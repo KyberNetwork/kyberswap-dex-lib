@@ -31,8 +31,9 @@ var (
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	histogramCalcAmountOutCountPerRequest, _ = meter.Int64Histogram("calc_amount_out_count_per_request",
 		metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1)))
-	histogramCalcAmountOutCountDuration, _ = meter.Float64Histogram("calc_amount_out_ms")
-	histogramClonePoolDuration, _          = meter.Float64Histogram("clone_pool_ms")
+	histogramCalcAmountOutDuration, _    = meter.Float64Histogram("calc_amount_out_ms")
+	histogramAEVMMultipleCallDuration, _ = meter.Float64Histogram("aevm_multiple_call_duration_ms")
+	histogramClonePoolDuration, _        = meter.Float64Histogram("clone_pool_ms")
 )
 
 func CountDexHit(ctx context.Context, dex string) {
@@ -83,8 +84,12 @@ func RecordCalcAmountOutCountPerRequest(ctx context.Context, count int64, dexTyp
 }
 
 func RecordCalcAmountOutDuration(ctx context.Context, duration time.Duration, dexUseAEVM bool, dex string) {
-	record(ctx, histogramCalcAmountOutCountDuration, float64(duration.Nanoseconds())/1e6,
+	record(ctx, histogramCalcAmountOutDuration, float64(duration.Nanoseconds())/1e6,
 		"dexUseAEVM", strconv.FormatBool(dexUseAEVM), "dex", dex)
+}
+
+func RecordAEVMMultipleCallDuration(ctx context.Context, duration time.Duration) {
+	record(ctx, histogramAEVMMultipleCallDuration, float64(duration.Nanoseconds())/1e6)
 }
 
 func RecordClonePoolDuration(ctx context.Context, duration time.Duration, dex string) {

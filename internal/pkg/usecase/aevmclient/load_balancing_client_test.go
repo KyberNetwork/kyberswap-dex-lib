@@ -148,15 +148,3 @@ func TestLatestStateRoot_AEVMServerUnavailable(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equalf(t, common.Hash{}, stateRoot, "stateRoot should be empty")
 }
-
-func TestReportStats(t *testing.T) {
-	c, err := NewLoadBalancingClient(Config{}, nil)
-	require.NoError(t, err)
-	defer c.Close()
-
-	c.multipleCallStats.Add(time.Now(), 20*time.Microsecond)
-	c.multipleCallStats.Add(time.Now(), 20*time.Microsecond)
-	c.multipleCallStats.Add(time.Now(), 20*time.Microsecond)
-
-	time.Sleep(3 * time.Second)
-}

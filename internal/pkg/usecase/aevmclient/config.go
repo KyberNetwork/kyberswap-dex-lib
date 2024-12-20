@@ -7,6 +7,4 @@ type Config struct {
 	RetryOnTimeoutMs          uint64 `json:"retryOnTimeOutMs"`
 	FindrouteRetryOnTimeoutMs uint64 `json:"findRouteRetryOnTimeOutMs"`
 	MaxRetry                  uint64 `json:"maxRetry"`
-
-	EnableStats bool `json:"enableStats"`
 }

@@ -3,7 +3,6 @@ package aevmclient
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,11 +10,10 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
-	"github.com/KyberNetwork/kutils/klog"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/aevmclient/stats"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -35,7 +33,6 @@ type LoadBalancingClient struct {
 	curIndex          atomic.Uint64
 	lock              sync.RWMutex // lock for mutating clients list
 	quitCh            chan struct{}
-	multipleCallStats *stats.ShardedStats[time.Duration]
 
 	retryOnTimeout          time.Duration
 	findrouteRetryOnTimeout time.Duration
@@ -76,19 +73,6 @@ func NewLoadBalancingClient(cfg Config, makeClientFunc MakeClient) (*LoadBalanci
 
 		retryOnTimeout:          time.Duration(cfg.RetryOnTimeoutMs) * time.Millisecond,
 		findrouteRetryOnTimeout: time.Duration(cfg.FindrouteRetryOnTimeoutMs) * time.Millisecond,
-	}
-
-	if cfg.EnableStats {
-		c.multipleCallStats = stats.NewShardedStats(runtime.GOMAXPROCS(0), func(a, b time.Duration) int {
-			if a.Microseconds() < b.Microseconds() {
-				return -1
-			}
-			if a.Microseconds() > b.Microseconds() {
-				return 1
-			}
-			return 0
-		})
-		go c.ReportMultipleCallStatsRoutine()
 	}
 
 	return c, nil
@@ -244,9 +228,7 @@ func (c *LoadBalancingClient) MultipleCall(ctx context.Context,
 	startTime := time.Now()
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] MultipleCall")
 	defer func() {
-		if c.cfg.EnableStats {
-			c.multipleCallStats.Add(startTime, time.Since(startTime))
-		}
+		metrics.RecordAEVMMultipleCallDuration(ctx, time.Since(startTime))
 		span.End()
 	}()
 
@@ -304,37 +286,4 @@ func (c *LoadBalancingClient) FindRoute(ctx context.Context,
 		func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
 			return client.FindRoute(ctx, req)
 		})
-}
-
-func (c *LoadBalancingClient) ReportMultipleCallStatsRoutine() {
-	// this code is copied from https://github.com/KyberNetwork/cevm/blob/9b327c77afe9efb31e8f898fdf934e1f67d319d7/aevmserver/stats/stats_streamer.go#L25
-
-	var (
-		ticker                = time.NewTicker(1 * time.Second)
-		windowDuration        = 5 * time.Minute
-		percentile     uint64 = 95
-		requestCounter uint64
-	)
-
-	for {
-		select {
-		case <-ticker.C:
-			windowEnd := time.Now()
-			windowStart := windowEnd.Add(-windowDuration)
-			windowEnd = windowEnd.Add(1 * time.Microsecond)
-
-			nextRequestCounter, requestDurations := c.multipleCallStats.Query(windowStart, windowEnd)
-			numRequest := nextRequestCounter - requestCounter
-			requestCounter = nextRequestCounter
-
-			var requestDurationByPercentile time.Duration
-			if d := stats.PN(requestDurations, int(percentile)); d != nil {
-				requestDurationByPercentile = *d
-			}
-			klog.Infof(context.Background(), "MultipleCall stats: { numRequest: %d, request_duration_p%d: %dus }\n",
-				numRequest, percentile, requestDurationByPercentile.Microseconds())
-		case <-c.quitCh:
-			break
-		}
-	}
 }
