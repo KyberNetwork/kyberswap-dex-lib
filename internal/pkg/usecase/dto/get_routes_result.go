@@ -6,6 +6,7 @@ import (
 
 type GetRoutesResult struct {
 	RouteSummary  *valueobject.RouteSummary `json:"routeSummary"`
+	Checksum      uint64                    `json:"checksum"`
 	RouterAddress string                    `json:"routerAddress"`
 }
 

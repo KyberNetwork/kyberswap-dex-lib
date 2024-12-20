@@ -146,6 +146,7 @@ useCase:
     routerAddress: *routerAddress
     availableSources: *availableSources
     defaultPoolsIndex: nativeTvl
+    salt: &salt
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
@@ -280,6 +281,7 @@ useCase:
         maxHops: 5
   buildRoute:
     chainId: *chainId
+    salt: *salt
     rfq:
       - id: clipper
         handler: clipper
@@ -400,6 +402,10 @@ repository:
     goCache:
       expiration: -1
       cleanupInterval: -1
+      chainId: *chainId
+    http:
+      timeout: 5s
+      baseUrl: "http://token-catalog-api.core-cluster.gke.production.internal:80"
   poolRank:
     redis:
       prefix: *chainName

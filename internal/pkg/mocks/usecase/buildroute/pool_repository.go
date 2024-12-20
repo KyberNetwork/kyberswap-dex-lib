@@ -21,7 +21,6 @@ import (
 type MockIPoolRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockIPoolRepositoryMockRecorder
-	isgomock struct{}
 }
 
 // MockIPoolRepositoryMockRecorder is the mock recorder for MockIPoolRepository.
@@ -42,31 +41,31 @@ func (m *MockIPoolRepository) EXPECT() *MockIPoolRepositoryMockRecorder {
 }
 
 // GetFaultyPools mocks base method.
-func (m *MockIPoolRepository) GetFaultyPools(ctx context.Context) ([]string, error) {
+func (m *MockIPoolRepository) GetFaultyPools(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFaultyPools", ctx)
+	ret := m.ctrl.Call(m, "GetFaultyPools", arg0)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFaultyPools indicates an expected call of GetFaultyPools.
-func (mr *MockIPoolRepositoryMockRecorder) GetFaultyPools(ctx any) *gomock.Call {
+func (mr *MockIPoolRepositoryMockRecorder) GetFaultyPools(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).GetFaultyPools), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).GetFaultyPools), arg0)
 }
 
 // TrackFaultyPools mocks base method.
-func (m *MockIPoolRepository) TrackFaultyPools(ctx context.Context, trackers []entity.FaultyPoolTracker) ([]string, error) {
+func (m *MockIPoolRepository) TrackFaultyPools(arg0 context.Context, arg1 []entity.FaultyPoolTracker) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrackFaultyPools", ctx, trackers)
+	ret := m.ctrl.Call(m, "TrackFaultyPools", arg0, arg1)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrackFaultyPools indicates an expected call of TrackFaultyPools.
-func (mr *MockIPoolRepositoryMockRecorder) TrackFaultyPools(ctx, trackers any) *gomock.Call {
+func (mr *MockIPoolRepositoryMockRecorder) TrackFaultyPools(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrackFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).TrackFaultyPools), ctx, trackers)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrackFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).TrackFaultyPools), arg0, arg1)
 }

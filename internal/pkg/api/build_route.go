@@ -89,6 +89,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 		Sender:              params.Sender,
 		Permit:              permit,
 		EnableGasEstimation: params.EnableGasEstimation,
+		Checksum:            params.RouteSummary.Checksum,
 	}, nil
 }
 
@@ -224,7 +225,8 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		GasPrice: gasPrice,
 		GasUSD:   gasUSD,
 
-		ExtraFee: extraFee,
+		ExtraFee:  extraFee,
+		Timestamp: params.Timestamp,
 
 		Route: route,
 	}, nil

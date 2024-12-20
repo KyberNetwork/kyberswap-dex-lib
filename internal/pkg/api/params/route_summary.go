@@ -19,6 +19,13 @@ type (
 		ExtraFee ExtraFee `json:"extraFee"`
 
 		Route [][]Swap `json:"route"`
+
+		RouteSummaryValidation
+	}
+
+	RouteSummaryValidation struct {
+		Checksum  uint64 `json:"checksum"`
+		Timestamp int64  `json:"timestamp"`
 	}
 
 	ExtraFee struct {

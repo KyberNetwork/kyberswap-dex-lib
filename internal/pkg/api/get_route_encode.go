@@ -193,6 +193,7 @@ func buildBuildRouteCommand(
 		Referral:          params.Referral,
 		Source:            params.ClientData.Source,
 		Permit:            common.FromHex(params.Permit),
+		Checksum:          getRoutesResult.Checksum,
 	}, nil
 }
 

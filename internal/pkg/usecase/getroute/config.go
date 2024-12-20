@@ -16,6 +16,7 @@ type Config struct {
 	SafetyQuoteConfig *valueobject.SafetyQuoteReductionConfig `mapstructure:"safetyQuoteConfig" json:"safetyQuoteConfig"`
 	CorrelatedPairs   map[string]string                       `mapstructure:"correlatedPairs" json:"correlatedPairs"`
 	DefaultPoolsIndex string                                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
+	Salt              string                                  `mapstructure:"salt" json:"salt"`
 }
 
 type AggregatorConfig struct {

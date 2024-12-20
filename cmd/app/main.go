@@ -216,7 +216,7 @@ func apiAction(c *cli.Context) (err error) {
 	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, common.HexToAddress(cfg.Encoder.RouterAddress))
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -476,7 +476,6 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		return applyLatestConfigForAPI(
-			ctx,
 			configLoader,
 			getRouteUseCase,
 			getBundledRouteUseCase,
@@ -563,7 +562,7 @@ func indexerAction(c *cli.Context) (err error) {
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -769,7 +768,6 @@ func getKeyStorage(storageFilePath string) (cryptopkg.KeyPairStorage, error) {
 }
 
 func applyLatestConfigForAPI(
-	ctx context.Context,
 	configLoader *config.ConfigLoader,
 	getRouteUseCase IGetRouteUseCase,
 	getBundledRouteUseCase IGetRouteUseCase,
@@ -829,7 +827,6 @@ func applyLatestConfigForIndexer(
 }
 
 func applyLatestConfigForLiquidityScoreIndexer(
-	ctx context.Context,
 	tradesGenerator *indexpools.TradeDataGenerator,
 	configLoader *config.ConfigLoader,
 ) error {
@@ -900,7 +897,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -954,7 +951,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	}))
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		return applyLatestConfigForLiquidityScoreIndexer(ctx, tradeGenerator, configLoader)
+		return applyLatestConfigForLiquidityScoreIndexer(tradeGenerator, configLoader)
 	}))
 
 	g, ctx := errgroup.WithContext(ctx)

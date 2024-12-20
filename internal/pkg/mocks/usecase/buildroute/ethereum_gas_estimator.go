@@ -21,7 +21,6 @@ import (
 type MockIEthereumGasEstimator struct {
 	ctrl     *gomock.Controller
 	recorder *MockIEthereumGasEstimatorMockRecorder
-	isgomock struct{}
 }
 
 // MockIEthereumGasEstimatorMockRecorder is the mock recorder for MockIEthereumGasEstimator.
@@ -42,16 +41,16 @@ func (m *MockIEthereumGasEstimator) EXPECT() *MockIEthereumGasEstimatorMockRecor
 }
 
 // EstimateGas mocks base method.
-func (m *MockIEthereumGasEstimator) EstimateGas(ctx context.Context, call ethereum.CallMsg) (uint64, error) {
+func (m *MockIEthereumGasEstimator) EstimateGas(arg0 context.Context, arg1 ethereum.CallMsg) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EstimateGas", ctx, call)
+	ret := m.ctrl.Call(m, "EstimateGas", arg0, arg1)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // EstimateGas indicates an expected call of EstimateGas.
-func (mr *MockIEthereumGasEstimatorMockRecorder) EstimateGas(ctx, call any) *gomock.Call {
+func (mr *MockIEthereumGasEstimatorMockRecorder) EstimateGas(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGas", reflect.TypeOf((*MockIEthereumGasEstimator)(nil).EstimateGas), ctx, call)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGas", reflect.TypeOf((*MockIEthereumGasEstimator)(nil).EstimateGas), arg0, arg1)
 }

@@ -12,6 +12,7 @@ import (
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -25,7 +26,7 @@ func slippageIsAboveMinThreshold(slippageTolerance int64, config FaultyPoolsConf
 }
 
 // requests to be tracked should only involve tokens that have been whitelisted or native token
-func isTokenValid(token string, config FaultyPoolsConfig, chainID valueobject.ChainID) bool {
+func isTokenWhiteList(token string, config FaultyPoolsConfig, chainID valueobject.ChainID) bool {
 	if eth.IsEther(token) || eth.IsWETH(token, chainID) {
 		return true
 	}
@@ -35,6 +36,11 @@ func isTokenValid(token string, config FaultyPoolsConfig, chainID valueobject.Ch
 	}
 
 	return false
+}
+
+// requests to be tracked should only involve tokens that have been indentified as non-fot token or non-honeypot
+func isInvalid(tokenInfo *routerEntity.TokenInfo) bool {
+	return tokenInfo.IsFOT || tokenInfo.IsHoneypot
 }
 
 func isPMMFaultyPoolError(err error) bool {

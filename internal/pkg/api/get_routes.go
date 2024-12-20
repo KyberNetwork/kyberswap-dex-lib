@@ -146,8 +146,12 @@ func transformGetRoutesResult(result *dto.GetRoutesResult) *params.GetRoutesResp
 		return nil
 	}
 
+	summary := transformRouteSummary(result.RouteSummary)
+	summary.Checksum = result.Checksum
+	summary.Timestamp = result.RouteSummary.Timestamp
+
 	return &params.GetRoutesResponse{
-		RouteSummary:  transformRouteSummary(result.RouteSummary),
+		RouteSummary:  summary,
 		RouterAddress: result.RouterAddress,
 	}
 }
@@ -156,7 +160,6 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 	if routeSummary == nil {
 		return nil
 	}
-
 	return &params.RouteSummary{
 		TokenIn:                     routeSummary.TokenIn,
 		AmountIn:                    routeSummary.AmountIn.String(),

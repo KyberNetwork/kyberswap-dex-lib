@@ -260,6 +260,7 @@ useCase:
     routerAddress: *routerAddress
     availableSources: *availableSources
     defaultPoolsIndex: composite
+    salt: &salt
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
@@ -403,6 +404,7 @@ useCase:
         maxHops: 5
   buildRoute:
     chainId: *chainId
+    salt: *salt
     rfq:
       - id: kyber-pmm
         handler: kyber-pmm
@@ -598,6 +600,10 @@ repository:
     goCache:
       expiration: -1
       cleanupInterval: -1
+      chainId: *chainId
+    http:
+      timeout: 5s
+      baseUrl: "http://token-catalog-api.pre-release-cluster.gke.production.internal:80"
   poolRank:
     redis:
       prefix: *chainName

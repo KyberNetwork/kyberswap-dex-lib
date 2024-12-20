@@ -3,14 +3,17 @@ package buildroute
 import (
 	"context"
 	"runtime/debug"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -33,6 +36,7 @@ func (uc *BuildRouteUseCase) convertAMMSwapsToPoolTrackers(route valueobject.Rou
 				Address:     swap.Pool,
 				TotalCount:  1,
 				FailedCount: failedCount,
+				Tokens:      []string{swap.TokenIn, swap.TokenOut},
 			})
 		}
 	}
@@ -55,6 +59,7 @@ func (uc *BuildRouteUseCase) convertPMMSwapsToPoolTrackers(swaps []valueobject.S
 			Address:     swap.Pool,
 			TotalCount:  1,
 			FailedCount: failedCount,
+			Tokens:      []string{swap.TokenIn, swap.TokenOut},
 		})
 	}
 
@@ -69,14 +74,46 @@ func (uc *BuildRouteUseCase) isPMMPoolsExceptLimitOrder(poolType string) bool {
 	return dexValueObject.IsRFQSource(valueobject.Exchange(poolType))
 }
 
-func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker, tokenIn, tokenOut string) {
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+func (uc *BuildRouteUseCase) shouldTrackTokens(ctx context.Context, tokens mapset.Set[string]) bool {
+	unwhiteListTokens := make([]string, 0, 2)
+	tokens.Each(func(s string) bool {
+		if !isTokenWhiteList(s, uc.config.FaultyPoolsConfig, uc.config.ChainID) {
+			unwhiteListTokens = append(unwhiteListTokens, s)
+		}
+		return false
+	})
+
+	if len(unwhiteListTokens) == 0 {
+		return true
+	}
+
+	// fetch token info to check if the token is fot token or honeypot
+	tokenInfo, err := uc.tokenRepository.FindTokenInfoByAddress(ctx, unwhiteListTokens)
+	if err != nil {
+		return false
+	}
+
+	for _, info := range tokenInfo {
+		if isInvalid(info) {
+			return false
+		}
+	}
+
+	return true
+
+}
+
+func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker, isTrackFaultyPools bool) {
+	if !isTrackFaultyPools {
 		return
 	}
 
-	// requests to be tracked should only involve tokens that have been whitelisted or native token
-	if !isTokenValid(tokenIn, uc.config.FaultyPoolsConfig, uc.config.ChainID) ||
-		!isTokenValid(tokenOut, uc.config.FaultyPoolsConfig, uc.config.ChainID) {
+	allTokens := mapset.NewThreadUnsafeSet[string]()
+	for _, tracker := range trackers {
+		allTokens.Append(tracker.Tokens...)
+	}
+
+	if !uc.shouldTrackTokens(ctx, allTokens) {
 		return
 	}
 
@@ -97,4 +134,19 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, trackers []ro
 			}).Error("fail to add faulty pools")
 	}
 
+}
+
+func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(route valueobject.RouteSummary, originalChecksum uint64) bool {
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+		return false
+	}
+
+	checksum := crypto.NewChecksum(route, uc.config.Salt)
+	if !checksum.Verify(originalChecksum) {
+		return false
+	}
+
+	now := time.Now().Unix()
+	secondElapsed := time.Duration(now-route.Timestamp) * time.Second
+	return secondElapsed <= valueobject.DefaultDeadline
 }

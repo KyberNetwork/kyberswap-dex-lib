@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
@@ -18,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -114,9 +116,13 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 
 	routeSummary.TokenIn = originalTokenIn
 	routeSummary.TokenOut = originalTokenOut
+	routeSummary.Timestamp = time.Now().Unix()
+
+	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
 
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,
+		Checksum:      checksum.Hash(),
 		RouterAddress: u.config.RouterAddress,
 	}, nil
 }

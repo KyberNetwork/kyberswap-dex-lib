@@ -6,4 +6,7 @@ type FaultyPoolTracker struct {
 	TotalCount int64
 	// if estimate gas in build route failed, failed count = 1, otherwise is 0
 	FailedCount int64
+
+	// list all tokens in the routes that can be swapped through
+	Tokens []string
 }

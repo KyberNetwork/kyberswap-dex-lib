@@ -16,6 +16,7 @@ import (
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/token_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute ITokenRepository
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+	FindTokenInfoByAddress(ctx context.Context, addresses []string) ([]*routerEntity.TokenInfo, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/encode/clientdata/client_data_encoder.go -package clientdata github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IClientDataEncoder

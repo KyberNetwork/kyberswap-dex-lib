@@ -44,9 +44,9 @@ func TestTokenCacheRepository_FindByAddresses(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
-		tokenDatastoreRepo := NewRedisRepository(db.Client, RedisRepositoryConfig{
+		tokenDatastoreRepo := NewRepository(db.Client, RedisRepositoryConfig{
 			Prefix: "",
-		})
+		}, nil)
 
 		repo := NewGoCacheRepository(tokenDatastoreRepo, GoCacheRepositoryConfig{
 			Expiration:      10 * time.Second,

@@ -130,6 +130,7 @@ useCase:
     routerAddress: *routerAddress
     availableSources: *availableSources
     defaultPoolsIndex: nativeTvl
+    salt: &salt
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
@@ -265,6 +266,7 @@ useCase:
         maxHops: 5
   buildRoute:
     chainId: *chainId
+    salt: *salt
     rfq:
       - id: kyberswap-limit-order-v2
         handler: limit-order

@@ -1,7 +1,10 @@
 package valueobject
 
 import (
+	"encoding/binary"
 	"math/big"
+
+	"github.com/cespare/xxhash/v2"
 )
 
 // RouteSummary contains route and summarized data around the route such as gas, amounts in USD,...
@@ -44,6 +47,32 @@ type RouteSummary struct {
 
 	// Route
 	Route [][]Swap `json:"route"`
+
+	Timestamp int64 `json:"timestamp"`
+}
+
+// Only use enough data to avoid "return amount not enough" due to manually modify amount out and swap amount
+func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
+	h := xxhash.New()
+	h.WriteString(salt)
+	h.WriteString(rs.TokenIn)
+	h.Write(rs.AmountIn.Bytes())
+
+	h.WriteString(rs.TokenOut)
+	h.Write(rs.AmountOut.Bytes())
+	_, _ = h.Write(binary.LittleEndian.AppendUint64(nil, uint64(rs.Timestamp)))
+
+	for _, path := range rs.Route {
+		for _, swap := range path {
+			h.WriteString(swap.Pool)
+			h.WriteString(swap.TokenIn)
+			h.WriteString(swap.TokenOut)
+			h.Write(swap.SwapAmount.Bytes())
+			h.Write(swap.AmountOut.Bytes())
+		}
+	}
+
+	return h
 }
 
 func (rs RouteSummary) GetPriceImpact() float64 {

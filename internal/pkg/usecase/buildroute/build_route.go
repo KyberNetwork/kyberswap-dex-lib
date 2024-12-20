@@ -88,6 +88,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
 
+	// Notice: must check route summary to track faulty pools at the beginning of the handle func to avoid route modification during execution
+	isFaultyPoolTrackEnable := uc.IsValidToTrackFaultyPools(command.RouteSummary, command.Checksum)
+
 	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
 	executorAddress := strings.ToLower(encoder.GetExecutorAddress(command.Source))
 
@@ -98,7 +101,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	command.RouteSummary = routeSummary
 
-	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, command.SlippageTolerance)
+	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, isFaultyPoolTrackEnable, command.SlippageTolerance)
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
@@ -118,7 +121,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}
 
 	// estimate gas price for a transaction
-	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData)
+	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData, isFaultyPoolTrackEnable)
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +173,7 @@ func (uc *BuildRouteUseCase) rfq(
 	recipient string,
 	source string,
 	routeSummary valueobject.RouteSummary,
+	isFaultyPoolTrackEnable bool,
 	slippageTolerance int64,
 ) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
@@ -230,12 +234,12 @@ func (uc *BuildRouteUseCase) rfq(
 		rfqHandler := uc.rfqHandlerByPoolType[poolType]
 		if rfqHandler.SupportBatch() {
 			g.Go(func() error {
-				return uc.processRFQs(ctx, poolType, routeSummary, paramsSlice...)
+				return uc.processRFQs(ctx, poolType, routeSummary, isFaultyPoolTrackEnable, paramsSlice...)
 			})
 		} else {
 			for _, params := range paramsSlice {
 				g.Go(func() error {
-					return uc.processRFQs(ctx, poolType, routeSummary, params)
+					return uc.processRFQs(ctx, poolType, routeSummary, isFaultyPoolTrackEnable, params)
 				})
 			}
 		}
@@ -302,6 +306,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	ctx context.Context,
 	poolType string,
 	routeSummary valueobject.RouteSummary,
+	isFaultyPoolTrackEnable bool,
 	indexedRFQParamsSlice ...valueobject.IndexedRFQParams,
 ) (err error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.processRFQs")
@@ -337,7 +342,8 @@ func (uc *BuildRouteUseCase) processRFQs(
 	// Track faulty pools if we got RFQ errors due to market too volatile
 	go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx),
 		uc.convertPMMSwapsToPoolTrackers(swaps, err),
-		routeSummary.TokenIn, routeSummary.TokenOut)
+		isFaultyPoolTrackEnable,
+	)
 
 	if err != nil {
 		return errors.WithMessagef(err, "swaps data: %v", swaps)
@@ -522,7 +528,7 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context, tokenIn, tokenOut st
 	return tokenInPriceUSD, tokenOutPriceUSD, nil
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, encodedData string) (uint64, float64, float64, error) {
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, encodedData string, isFaultyPoolTrackEnable bool) (uint64, float64, float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
@@ -550,7 +556,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 		go uc.trackFaultyPools(
 			ctxUtils.NewBackgroundCtxWithReqId(ctx),
 			uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
-			routeSummary.TokenIn, routeSummary.TokenOut)
+			isFaultyPoolTrackEnable,
+		)
 		if err != nil {
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
@@ -561,8 +568,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 			uc.trackFaultyPools(
 				ctx,
 				uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
-				routeSummary.TokenIn,
-				routeSummary.TokenOut)
+				isFaultyPoolTrackEnable,
+			)
 		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 

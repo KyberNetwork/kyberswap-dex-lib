@@ -12,6 +12,7 @@ type (
 		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
 		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
 		FaultyPoolDetectorDisabled    bool                     `mapstructure:"faultyPoolDetectorDisabled"`
+		Salt                          string                   `mapstructure:"salt"`
 	}
 	RFQConfig struct {
 		Id         string                 `mapstructure:"id"`
