@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -95,7 +94,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	pools, err := p.processBatch(ctx, successPairAddresses)
+	pools, err := p.processBatch(ctx, successPairAddresses, currentOffset)
 	if err != nil {
 		logger.Errorf("failed to process update new pool, err: %v", err)
 		return nil, metadataBytes, err
@@ -116,7 +115,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {
+func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []common.Address, currentOffset int) ([]entity.Pool, error) {
 	var tokenXAddresses = make([]common.Address, len(pairAddresses))
 	var tokenYAddresses = make([]common.Address, len(pairAddresses))
 
@@ -164,7 +163,7 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:   address,
 			Exchange:  p.config.DexID,
 			Type:      DexTypeLiquidityBookV20,
-			Timestamp: time.Now().Unix(),
+			Timestamp: int64(currentOffset),
 			Reserves:  []string{"0", "0"},
 			Tokens:    []*entity.PoolToken{&tokenX, &tokenY},
 		}
