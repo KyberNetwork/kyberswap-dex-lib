@@ -36,7 +36,7 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 
-		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -72,7 +72,7 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 
-		_, err = testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		_, err = testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -105,7 +105,7 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 
-		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -136,7 +136,7 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 
-		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,

@@ -29,7 +29,7 @@ func TestPoolCalcAmountOut(t *testing.T) {
 	assert.Equal(t, big.NewInt(-7), maverickPool.state.minBinMapIndex)
 	assert.Equal(t, big.NewInt(-6), maverickPool.state.maxBinMapIndex)
 
-	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0x4200000000000000000000000000000000000006",
@@ -78,7 +78,7 @@ func TestPoolCalcAmountIn(t *testing.T) {
 	assert.Equal(t, big.NewInt(-7), maverickPool.state.minBinMapIndex)
 	assert.Equal(t, big.NewInt(-6), maverickPool.state.maxBinMapIndex)
 
-	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 		return maverickPool.CalcAmountIn(pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{
 				Token:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
@@ -179,7 +179,7 @@ func TestUpdateBalance(t *testing.T) {
 				Amount: bignumber.NewBig10(tc.amountIn),
 			}
 			cloned := sim.CloneState()
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
@@ -187,7 +187,7 @@ func TestUpdateBalance(t *testing.T) {
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
-			resultBeforeUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			resultBeforeUpdate, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
@@ -204,7 +204,7 @@ func TestUpdateBalance(t *testing.T) {
 			}
 			sim.UpdateBalance(updateBalanceParams)
 
-			resultAfterUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			resultAfterUpdate, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
@@ -214,7 +214,7 @@ func TestUpdateBalance(t *testing.T) {
 				require.NotEqual(t, result.TokenAmountOut.Amount.String(), resultAfterUpdate.TokenAmountOut.Amount.String())
 			}
 
-			resultOfCloned, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			resultOfCloned, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return cloned.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
@@ -257,7 +257,7 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 				Token:  tc.tokenIn,
 				Amount: bignumber.NewBig10(tc.amountIn),
 			}
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,

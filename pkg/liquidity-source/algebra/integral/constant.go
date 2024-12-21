@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 )
 
@@ -59,14 +58,7 @@ var (
 	FEE_DENOMINATOR           = uint256.NewInt(1e6)
 	COMMUNITY_FEE_DENOMINATOR = uint256.NewInt(1e3)
 
-	ZERO = int256.NewInt(0)
-	ONE  = int256.NewInt(1)
-
-	MIN_INT256  = new(int256.Int).Neg(new(int256.Int).Lsh(ZERO, 255)) // -2^255
-	MAX_UINT256 = new(uint256.Int).Sub(new(uint256.Int).Lsh(uZERO, 256), uONE)
-
 	MAX_UINT16 = new(uint256.Int).SetUint64(1<<16 - 1)
-	MIN_UINT16 = new(uint256.Int).SetUint64(1)
 
 	uZERO       = uint256.NewInt(0)
 	uONE        = uint256.NewInt(1)
@@ -82,7 +74,6 @@ var (
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 
 	Q96  = new(uint256.Int).Lsh(uONE, 96)  // 1 << 96
-	Q128 = new(uint256.Int).Lsh(uONE, 128) // 1 << 128
 
 	BASE_FEE_MULTIPLIER   = new(uint256.Int).Lsh(uONE, FEE_FACTOR_SHIFT)   // 1 << 96
 	DOUBLE_FEE_MULTIPLIER = new(uint256.Int).Lsh(uONE, 2*FEE_FACTOR_SHIFT) // 1 << 2*96

@@ -93,7 +93,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("1663885565640917213", 10)
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
@@ -187,7 +187,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("1663885565640917213", 10)
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
@@ -281,7 +281,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("1090364867014427588545", 10)
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -375,7 +375,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("104234917775792427951", 10)
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x514910771af9ca656af840dff83e8264ecf986ca",
@@ -469,7 +469,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("166388556564091721308", 10)
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
@@ -1114,7 +1114,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			simulator, err := NewPoolSimulator(pool)
 			assert.Nil(t, err)
 
-			got, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
 				return simulator.CalcAmountIn(tt.params)
 			})
 			if err != nil {

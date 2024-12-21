@@ -66,7 +66,7 @@ type SubgraphPoolTicks struct {
 	Ticks []TickResp `json:"ticks"`
 }
 
-// for algebra v1 with single fee for both direction
+// GlobalStateFromRPC for algebra v1 with single fee for both direction
 type GlobalStateFromRPC struct {
 	Price        *big.Int
 	Tick         *big.Int
@@ -76,26 +76,14 @@ type GlobalStateFromRPC struct {
 	Unlocked     bool
 }
 
-// unified data for simulation
+// GlobalState contains unified data for simulation
 type GlobalState struct {
 	Price        *uint256.Int `json:"price"`
 	Tick         int32        `json:"tick"`
-	LastFee      uint16       `json:"lastFee"`
-	PluginConfig uint8        `json:"pluginConfig"`
-	CommunityFee uint16       `json:"communityFee"`
-	Unlocked     bool         `json:"unlocked"`
-}
-
-type FeeConfiguration struct {
-	Alpha1      uint16 `json:"alpha1"`      // max value of the first sigmoid
-	Alpha2      uint16 `json:"alpha2"`      // max value of the second sigmoid
-	Beta1       uint32 `json:"beta1"`       // shift along the x-axis for the first sigmoid
-	Beta2       uint32 `json:"beta2"`       // shift along the x-axis for the second sigmoid
-	Gamma1      uint16 `json:"gamma1"`      // horizontal stretch factor for the first sigmoid
-	Gamma2      uint16 `json:"gamma2"`      // horizontal stretch factor for the second sigmoid
-	VolumeBeta  uint32 `json:"volumeBeta"`  // shift along the x-axis for the outer volume-sigmoid
-	VolumeGamma uint16 `json:"volumeGamma"` // horizontal stretch factor the outer volume-sigmoid
-	BaseFee     uint16 `json:"baseFee"`     // minimum possible fee
+	LastFee      uint16       `json:"lF"`
+	PluginConfig uint8        `json:"pC"`
+	CommunityFee uint16       `json:"cF"`
+	Unlocked     bool         `json:"un"`
 }
 
 type FetchRPCResult struct {
@@ -106,23 +94,23 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int    `json:"reserve1"`
 
 	Timepoints       map[uint16]Timepoint
-	VotatilityOracle VotatilityOraclePlugin
-	SlidingFee       SlidingFeePlugin
-	DynamicFee       DynamicFeePlugin
+	VolatilityOracle VolatilityOraclePlugin
+	SlidingFee       SlidingFeeConfig
+	DynamicFee       DynamicFeeConfig
 	BlockNumber      *big.Int
 }
 
 type Timepoint struct {
-	Initialized          bool         // whether or not the timepoint is initialized
-	BlockTimestamp       uint32       // the block timestamp of the timepoint
-	TickCumulative       int64        // the tick accumulator, i.e., tick * time elapsed since the pool was first initialized
-	VolatilityCumulative *uint256.Int // the volatility accumulator; overflow after ~34800 years is desired :)
-	Tick                 int32        // tick at this blockTimestamp
-	AverageTick          int32        // average tick at this blockTimestamp (for WINDOW seconds)
-	WindowStartIndex     uint16       // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
+	Initialized          bool         `json:"init,omitempty"` // whether the timepoint is initialized
+	BlockTimestamp       uint32       `json:"ts,omitempty"`   // the block timestamp of the timepoint
+	TickCumulative       int64        `json:"cum,omitempty"`  // the tick accumulator, i.e., tick * time elapsed since the pool was first initialized
+	VolatilityCumulative *uint256.Int `json:"vo,omitempty"`   // the volatility accumulator; overflow after ~34800 years is desired :)
+	Tick                 int32        `json:"tick,omitempty"` // tick at this blockTimestamp
+	AverageTick          int32        `json:"avgT,omitempty"` // average tick at this blockTimestamp (for WINDOW seconds)
+	WindowStartIndex     uint16       `json:"wsI,omitempty"`  // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
 }
 
-// same as Timepoint but with bigInt for correct deserialization
+// TimepointRPC same as Timepoint but with bigInt for correct deserialization
 type TimepointRPC struct {
 	Initialized          bool
 	BlockTimestamp       uint32
@@ -133,22 +121,46 @@ type TimepointRPC struct {
 	WindowStartIndex     uint16
 }
 
-type StaticExtra struct {
-	UseBasePluginV2 bool `json:"useBasePluginV2"`
-}
-
 type Extra struct {
-	Liquidity        *big.Int               `json:"liquidity"`
-	GlobalState      GlobalState            `json:"globalState"`
+	Liquidity        *big.Int               `json:"liq"`
+	GlobalState      GlobalState            `json:"gS"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
-	TickSpacing      int32                  `json:"tickSpacing"`
-	Timepoints       map[uint16]Timepoint   `json:"timepoints"`
-	VotatilityOracle VotatilityOraclePlugin `json:"votalityOracle"`
-	SlidingFee       SlidingFeePlugin       `json:"slidingFee"`
-	DynamicFee       DynamicFeePlugin       `json:"dynamicFee"`
+	TickSpacing      int32                  `json:"tS"`
+	Timepoints       map[uint16]Timepoint   `json:"tP"`
+	VolatilityOracle VolatilityOraclePlugin `json:"vo"`
+	SlidingFee       SlidingFeeConfig       `json:"sF"`
+	DynamicFee       DynamicFeeConfig       `json:"dF"`
 }
 
-// we won't update the state when calculating amountOut, return this struct instead
+type VolatilityOraclePlugin struct {
+	TimepointIndex         uint16
+	LastTimepointTimestamp uint32
+	IsInitialized          bool
+	UpdatedWithinThisBlock bool // do plugin logic once. by right we should re-update the timepoint every new second
+}
+
+type DynamicFeeConfig struct {
+	Alpha1      uint16 `json:"a1,omitempty"` // max value of the first sigmoid
+	Alpha2      uint16 `json:"a2,omitempty"` // max value of the second sigmoid
+	Beta1       uint32 `json:"b1,omitempty"` // shift along the x-axis for the first sigmoid
+	Beta2       uint32 `json:"b2,omitempty"` // shift along the x-axis for the second sigmoid
+	Gamma1      uint16 `json:"g1,omitempty"` // horizontal stretch factor for the first sigmoid
+	Gamma2      uint16 `json:"g2,omitempty"` // horizontal stretch factor for the second sigmoid
+	VolumeBeta  uint32 `json:"vB,omitempty"` // shift along the x-axis for the outer volume-sigmoid
+	VolumeGamma uint16 `json:"vG,omitempty"` // horizontal stretch factor the outer volume-sigmoid
+	BaseFee     uint16 `json:"bF,omitempty"` // minimum possible fee
+}
+
+type SlidingFeeConfig struct {
+	ZeroToOneFeeFactor *uint256.Int `json:"0to1fF,omitempty"`
+	OneToZeroFeeFactor *uint256.Int `json:"1to0fF,omitempty"`
+}
+
+type StaticExtra struct {
+	UseBasePluginV2 bool `json:"2"`
+}
+
+// StateUpdate to be returned instead of updating state when calculating amountOut
 type StateUpdate struct {
 	Liquidity   *uint256.Int
 	GlobalState GlobalState
@@ -161,7 +173,6 @@ type PoolMeta struct {
 
 func (tp *TimepointRPC) toTimepoint() Timepoint {
 	volatilityCumulative := uint256.MustFromBig(tp.VolatilityCumulative)
-
 	return Timepoint{
 		Initialized:          tp.Initialized,
 		BlockTimestamp:       tp.BlockTimestamp,
@@ -196,9 +207,4 @@ type PriceMovementCache struct {
 
 	nextTick    int32 // The tick till the current step goes
 	initialized bool  // True if the _nextTick is initialized
-}
-
-type FeeFactors struct {
-	ZeroToOneFeeFactor *uint256.Int
-	OneToZeroFeeFactor *uint256.Int
 }

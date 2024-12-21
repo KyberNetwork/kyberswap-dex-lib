@@ -3,10 +3,13 @@ package integral
 import (
 	"encoding/json"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
@@ -105,7 +108,6 @@ var (
 
 	mockTimepointIndex         uint16 = 19874
 	mockLastTimepointTimestamp uint32 = 1733131721
-	mockIsInitialized                 = true
 
 	mockAlpha1      uint16 = 2900
 	mockAlpha2      uint16 = 12000
@@ -116,9 +118,6 @@ var (
 	mockVolumeBeta  uint32 = 0
 	mockVolumeGamma uint16 = 0
 	mockBaseFee     uint16 = 100
-
-	// mockSlidingFeeZeroToOneFeeFactor *int
-	// mockSlidingFeeOneToZeroFeeFactor *int
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -162,26 +161,25 @@ func TestCalcAmountOut(t *testing.T) {
 				tickMax:     mockTickmax,
 				tickSpacing: mockTickSpacing,
 				timepoints:  mockTimepoints,
-				volatilityOracle: &VotatilityOraclePlugin{
+				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
-					IsInitialized:          mockIsInitialized,
+					IsInitialized:          true,
 				},
-				dynamicFee: &DynamicFeePlugin{
-					FeeConfig: FeeConfiguration{
-						Alpha1:      mockAlpha1,
-						Alpha2:      mockAlpha2,
-						Beta1:       mockBeta1,
-						Beta2:       mockBeta2,
-						Gamma1:      mockGamma1,
-						Gamma2:      mockGamma2,
-						VolumeBeta:  mockVolumeBeta,
-						VolumeGamma: mockVolumeGamma,
-						BaseFee:     mockBaseFee,
-					},
+				dynamicFee: &DynamicFeeConfig{
+					Alpha1:      mockAlpha1,
+					Alpha2:      mockAlpha2,
+					Beta1:       mockBeta1,
+					Beta2:       mockBeta2,
+					Gamma1:      mockGamma1,
+					Gamma2:      mockGamma2,
+					VolumeBeta:  mockVolumeBeta,
+					VolumeGamma: mockVolumeGamma,
+					BaseFee:     mockBaseFee,
 				},
-				useBasePluginV2: false,
-				gas:             mockGas,
+				writeTimePointLock: new(sync.RWMutex),
+				useBasePluginV2:    false,
+				gas:                mockGas,
 			},
 			input: pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -246,26 +244,25 @@ func TestCalcAmountOut(t *testing.T) {
 				tickMax:     mockTickmax,
 				tickSpacing: mockTickSpacing,
 				timepoints:  mockTimepoints,
-				volatilityOracle: &VotatilityOraclePlugin{
+				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
-					IsInitialized:          mockIsInitialized,
+					IsInitialized:          true,
 				},
-				dynamicFee: &DynamicFeePlugin{
-					FeeConfig: FeeConfiguration{
-						Alpha1:      mockAlpha1,
-						Alpha2:      mockAlpha2,
-						Beta1:       mockBeta1,
-						Beta2:       mockBeta2,
-						Gamma1:      mockGamma1,
-						Gamma2:      mockGamma2,
-						VolumeBeta:  mockVolumeBeta,
-						VolumeGamma: mockVolumeGamma,
-						BaseFee:     mockBaseFee,
-					},
+				dynamicFee: &DynamicFeeConfig{
+					Alpha1:      mockAlpha1,
+					Alpha2:      mockAlpha2,
+					Beta1:       mockBeta1,
+					Beta2:       mockBeta2,
+					Gamma1:      mockGamma1,
+					Gamma2:      mockGamma2,
+					VolumeBeta:  mockVolumeBeta,
+					VolumeGamma: mockVolumeGamma,
+					BaseFee:     mockBaseFee,
 				},
-				useBasePluginV2: false,
-				gas:             mockGas,
+				writeTimePointLock: new(sync.RWMutex),
+				useBasePluginV2:    false,
+				gas:                mockGas,
 			},
 			input: pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -330,26 +327,25 @@ func TestCalcAmountOut(t *testing.T) {
 				tickMax:     mockTickmax,
 				tickSpacing: mockTickSpacing,
 				timepoints:  mockTimepoints,
-				volatilityOracle: &VotatilityOraclePlugin{
+				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
-					IsInitialized:          mockIsInitialized,
+					IsInitialized:          true,
 				},
-				dynamicFee: &DynamicFeePlugin{
-					FeeConfig: FeeConfiguration{
-						Alpha1:      mockAlpha1,
-						Alpha2:      mockAlpha2,
-						Beta1:       mockBeta1,
-						Beta2:       mockBeta2,
-						Gamma1:      mockGamma1,
-						Gamma2:      mockGamma2,
-						VolumeBeta:  mockVolumeBeta,
-						VolumeGamma: mockVolumeGamma,
-						BaseFee:     mockBaseFee,
-					},
+				dynamicFee: &DynamicFeeConfig{
+					Alpha1:      mockAlpha1,
+					Alpha2:      mockAlpha2,
+					Beta1:       mockBeta1,
+					Beta2:       mockBeta2,
+					Gamma1:      mockGamma1,
+					Gamma2:      mockGamma2,
+					VolumeBeta:  mockVolumeBeta,
+					VolumeGamma: mockVolumeGamma,
+					BaseFee:     mockBaseFee,
 				},
-				useBasePluginV2: false,
-				gas:             mockGas,
+				writeTimePointLock: new(sync.RWMutex),
+				useBasePluginV2:    false,
+				gas:                mockGas,
 			},
 			input: pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -414,26 +410,25 @@ func TestCalcAmountOut(t *testing.T) {
 				tickMax:     mockTickmax,
 				tickSpacing: mockTickSpacing,
 				timepoints:  mockTimepoints,
-				volatilityOracle: &VotatilityOraclePlugin{
+				volatilityOracle: &VolatilityOraclePlugin{
 					TimepointIndex:         mockTimepointIndex,
 					LastTimepointTimestamp: mockLastTimepointTimestamp,
-					IsInitialized:          mockIsInitialized,
+					IsInitialized:          true,
 				},
-				dynamicFee: &DynamicFeePlugin{
-					FeeConfig: FeeConfiguration{
-						Alpha1:      mockAlpha1,
-						Alpha2:      mockAlpha2,
-						Beta1:       mockBeta1,
-						Beta2:       mockBeta2,
-						Gamma1:      mockGamma1,
-						Gamma2:      mockGamma2,
-						VolumeBeta:  mockVolumeBeta,
-						VolumeGamma: mockVolumeGamma,
-						BaseFee:     mockBaseFee,
-					},
+				dynamicFee: &DynamicFeeConfig{
+					Alpha1:      mockAlpha1,
+					Alpha2:      mockAlpha2,
+					Beta1:       mockBeta1,
+					Beta2:       mockBeta2,
+					Gamma1:      mockGamma1,
+					Gamma2:      mockGamma2,
+					VolumeBeta:  mockVolumeBeta,
+					VolumeGamma: mockVolumeGamma,
+					BaseFee:     mockBaseFee,
 				},
-				useBasePluginV2: false,
-				gas:             mockGas,
+				writeTimePointLock: new(sync.RWMutex),
+				useBasePluginV2:    false,
+				gas:                mockGas,
 			},
 			input: pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -469,8 +464,9 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := tt.simulator.CalcAmountOut(tt.input)
-
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return tt.simulator.CalcAmountOut(tt.input)
+			})
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
 				assert.Equal(t, err.Error(), tt.expectedErr.Error())
@@ -500,7 +496,7 @@ func TestCalcAmountOut(t *testing.T) {
 	}
 }
 
-var mockPool = []byte(`{"address":"0xbe9c1d237d002c8d9402f30c16ace1436d008f0c","exchange":"silverswap","type":"algebra-integral","timestamp":1733225338,"reserves":["9999999999999944","2620057588865"],"tokens":[{"address":"0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83","name":"Wrapped Fantom","symbol":"WFTM","decimals":18,"weight":50,"swappable":true},{"address":"0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b","name":"Axelar Wrapped ETH","symbol":"axlETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liquidity\":161865919478591,\"globalState\":{\"price\":\"1282433937397070526017841373\",\"tick\":82476,\"lastFee\":100,\"pluginConfig\":193,\"communityFee\":100,\"unlocked\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":161865919478591},{\"Index\":887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":-161865919478591}],\"tickSpacing\":60,\"timepoints\":{\"0\":{\"Initialized\":true,\"BlockTimestamp\":1712116096,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":-82476,\"AverageTick\":-82476,\"WindowStartIndex\":0},\"1\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0},\"2\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0},\"65535\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0}},\"votalityOracle\":{\"TimepointIndex\":0,\"LastTimepointTimestamp\":1712116096,\"IsInitialized\":true},\"slidingFee\":{\"FeeFactors\":{\"ZeroToOneFeeFactor\":null,\"OneToZeroFeeFactor\":null}},\"dynamicFee\":{\"FeeConfig\":{\"alpha1\":2900,\"alpha2\":12000,\"beta1\":360,\"beta2\":60000,\"gamma1\":59,\"gamma2\":8500,\"volumeBeta\":0,\"volumeGamma\":0,\"baseFee\":100}}}","staticExtra":"{\"useBasePluginV2\":false}","blockNumber":99019509}`)
+var mockPool = []byte(`{"address":"0xbe9c1d237d002c8d9402f30c16ace1436d008f0c","exchange":"silverswap","type":"algebra-integral","timestamp":1733225338,"reserves":["9999999999999944","2620057588865"],"tokens":[{"address":"0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83","name":"Wrapped Fantom","symbol":"WFTM","decimals":18,"weight":50,"swappable":true},{"address":"0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b","name":"Axelar Wrapped ETH","symbol":"axlETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liq\":161865919478591,\"gS\":{\"price\":\"1282433937397070526017841373\",\"tick\":82476,\"lF\":100,\"pC\":193,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":161865919478591},{\"Index\":887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":-161865919478591}],\"tS\":60,\"tP\":{\"0\":{\"init\":true,\"ts\":1712116096,\"cum\":0,\"vo\":\"0\",\"tick\":-82476,\"avgT\":-82476,\"wsI\":0},\"1\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"2\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"65535\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0}},\"vo\":{\"TimepointIndex\":0,\"LastTimepointTimestamp\":1712116096,\"IsInitialized\":true},\"sF\":{\"0to1fF\":null,\"1to0fF\":null},\"dF\":{\"a1\":2900,\"a2\":12000,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"vB\":0,\"vG\":0,\"bF\":100}}","staticExtra":"{\"2\":false}","blockNumber":99019509}`)
 
 func TestCalcAmountOut_FromPool(t *testing.T) {
 	var p entity.Pool
@@ -510,12 +506,14 @@ func TestCalcAmountOut_FromPool(t *testing.T) {
 	ps, err := NewPoolSimulator(p, 280000)
 	require.NoError(t, err)
 
-	res, err := ps.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-			Amount: big.NewInt(100000000000000),
-		},
-		TokenOut: "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
+	res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return ps.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+				Amount: big.NewInt(100000000000000),
+			},
+			TokenOut: "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
+		})
 	})
 
 	require.NoError(t, err)

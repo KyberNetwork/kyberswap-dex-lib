@@ -7,7 +7,7 @@ import (
 // / @notice Calculates fee based on formula:
 // / baseFee + sigmoid1(volatility) + sigmoid2(volatility)
 // / maximum value capped by baseFee + alpha1 + alpha2
-func getFee(volatility *uint256.Int, config FeeConfiguration) uint16 {
+func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 	// normalize for 15 sec interval
 	normalizedVolatility := new(uint256.Int).Div(volatility, uFIFTEEN)
 
