@@ -136,7 +136,6 @@ type VolatilityOraclePlugin struct {
 	TimepointIndex         uint16
 	LastTimepointTimestamp uint32
 	IsInitialized          bool
-	UpdatedWithinThisBlock bool // do plugin logic once. by right we should re-update the timepoint every new second
 }
 
 type DynamicFeeConfig struct {

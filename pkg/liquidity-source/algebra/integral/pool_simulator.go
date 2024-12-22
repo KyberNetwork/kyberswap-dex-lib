@@ -38,7 +38,7 @@ type PoolSimulator struct {
 	volatilityOracle   *VolatilityOraclePlugin
 	dynamicFee         *DynamicFeeConfig
 	slidingFee         *SlidingFeeConfig
-	writeTimePointLock *sync.RWMutex
+	writeTimePointOnce *sync.Once
 
 	useBasePluginV2 bool
 }
@@ -103,7 +103,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 		volatilityOracle:   &extra.VolatilityOracle,
 		dynamicFee:         &extra.DynamicFee,
 		slidingFee:         &extra.SlidingFee,
-		writeTimePointLock: new(sync.RWMutex),
+		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
 	}, nil
 }
@@ -202,7 +202,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.liquidity = p.liquidity.Clone()
 	cloned.globalState.Price = p.globalState.Price.Clone()
-	cloned.writeTimePointLock = new(sync.RWMutex)
+	cloned.writeTimePointOnce = new(sync.Once)
 	return &cloned
 }
 
@@ -252,42 +252,25 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) (*uint256.Int, error)
 	return &sqrtPriceX96Limit, nil
 }
 
-// writeTimepoint locks and writes timepoint only once per second, triggers onWrite only if said write happened
-func (p *PoolSimulator) writeTimepoint(onWrite func() error) error {
+// writeTimepoint locks and writes timepoint only once, triggering onWrite only if said write happened.
+// By right we should re-update the timepoint every new second, but the difference should be small enough, and
+// new pool should have already been created and used in replacement of this pool.
+func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
 	volatilityOracle := p.volatilityOracle
 	if !volatilityOracle.IsInitialized {
 		return ErrNotInitialized
 	}
 
-	p.writeTimePointLock.RLock()
-	done := volatilityOracle.UpdatedWithinThisBlock
-	p.writeTimePointLock.RUnlock()
-	if done {
-		return nil
-	}
-
-	p.writeTimePointLock.Lock()
-	defer p.writeTimePointLock.Unlock()
-	if volatilityOracle.UpdatedWithinThisBlock { // check again for other concurrent writes
-		return nil
-	}
-
-	lastIndex := volatilityOracle.TimepointIndex
-	currentTimestamp := uint32(time.Now().Unix())
-	tick := p.globalState.Tick
-	newLastIndex, _, err := p.timepoints.write(lastIndex, currentTimestamp, tick)
-	if err != nil {
-		return err
-	}
-
-	volatilityOracle.TimepointIndex = newLastIndex
-	volatilityOracle.LastTimepointTimestamp = currentTimestamp
-	volatilityOracle.UpdatedWithinThisBlock = true
-
-	if onWrite == nil {
-		return nil
-	}
-	return onWrite()
+	p.writeTimePointOnce.Do(func() {
+		volatilityOracle.LastTimepointTimestamp = uint32(time.Now().Unix())
+		volatilityOracle.TimepointIndex, _, err = p.timepoints.write(
+			volatilityOracle.TimepointIndex, volatilityOracle.LastTimepointTimestamp, p.globalState.Tick)
+		if err != nil || onWrite == nil {
+			return
+		}
+		err = onWrite()
+	})
+	return err
 }
 
 func (p *PoolSimulator) beforeSwapV1() (uint32, uint32, error) {
