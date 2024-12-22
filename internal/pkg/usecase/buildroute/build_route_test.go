@@ -1557,7 +1557,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		command         func() dto.BuildRouteCommand
 		gasEstimator    func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator
 		countTotalPools func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository
-		tokenRepository func(ctrl *gomock.Controller) *buildroute.MockITokenRepository
+		tokenRepository func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository
 		result          *dto.BuildRouteResult
 		config          Config
 		err             error
@@ -1654,26 +1654,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}).Return([]string{"0xabc"}, nil).Times(1)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(2)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
-					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).
-					Return(
-						[]*routerEntities.TokenInfo{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", IsFOT: false, IsHoneypot: false},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", IsFOT: false, IsHoneypot: false},
-						},
-						nil,
-					)
+					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*routerEntities.TokenInfo{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", IsFOT: false, IsHoneypot: false},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", IsFOT: false, IsHoneypot: false},
+					},
+					nil,
+				)
 				return tokenRepository
 			},
 			config: Config{
@@ -1782,18 +1785,20 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}).Return([]string{}, testError).Times(1)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(1)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
 					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Times(0)
 				return tokenRepository
@@ -1879,17 +1884,19 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(1)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
 					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Times(0)
 				return tokenRepository
@@ -2000,18 +2007,20 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}).Return([]string{"0xabc"}, nil).Times(1)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(1)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
 					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Times(0)
 				return tokenRepository
@@ -2122,18 +2131,20 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}).Times(1).Return([]string{"0xabc", "0xabcd"}, nil)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(1)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
 					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Times(0)
 				return tokenRepository
@@ -2227,26 +2238,30 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(2)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-						},
-						nil,
-					)
+					Do(func(arg0, arg1 interface{}) {
+						defer wg.Done()
+					}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
-					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).
-					Return(
-						[]*routerEntities.TokenInfo{
-							{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", IsFOT: true, IsHoneypot: false},
-						},
-						nil,
-					)
+					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*routerEntities.TokenInfo{
+						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", IsFOT: true, IsHoneypot: false},
+					},
+					nil,
+				)
 				return tokenRepository
 			},
 			config: Config{
@@ -2368,28 +2383,31 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}).Times(1).Return([]string{"0xabc"}, nil)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(2)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "correlatedToken1", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-							{Address: "wlToken2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "correlatedToken1", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+						{Address: "wlToken2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
-					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).
-					Return(
-						[]*routerEntities.TokenInfo{
-							{Address: "correlatedToken1", IsFOT: false, IsHoneypot: false},
-						},
-						nil,
-					)
+					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*routerEntities.TokenInfo{
+						{Address: "correlatedToken1", IsFOT: false, IsHoneypot: false},
+					},
+					nil,
+				)
 				return tokenRepository
 			},
 			config: Config{
@@ -2500,28 +2518,31 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(2)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "correlatedTokenHoneypot1", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-							{Address: "wlToken2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "correlatedTokenHoneypot1", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+						{Address: "wlToken2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
-					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).
-					Return(
-						[]*routerEntities.TokenInfo{
-							{Address: "correlatedTokenHoneypot1", IsFOT: false, IsHoneypot: true},
-						},
-						nil,
-					)
+					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*routerEntities.TokenInfo{
+						{Address: "correlatedTokenHoneypot1", IsFOT: false, IsHoneypot: true},
+					},
+					nil,
+				)
 				return tokenRepository
 			},
 			config: Config{
@@ -2612,18 +2633,20 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 				return poolRepository
 			},
-			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
+			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
+				wg.Add(1)
 				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
-					Return(
-						[]*entity.Token{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
-							{Address: "wlToken1", Decimals: 6},
-						},
-						nil,
-					)
+					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						{Address: "wlToken1", Decimals: 6},
+					},
+					nil,
+				)
 				tokenRepository.EXPECT().
 					FindTokenInfoByAddress(gomock.Any(), gomock.Any()).Times(0)
 				return tokenRepository
@@ -2665,7 +2688,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				GetRouterAddress().
 				Return("0x01").AnyTimes()
 
-			tokenRepository := tc.tokenRepository(ctrl)
+			tokenRepository := tc.tokenRepository(ctrl, &wg)
 
 			onchainpriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
 			onchainpriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
