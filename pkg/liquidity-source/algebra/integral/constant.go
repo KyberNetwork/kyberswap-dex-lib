@@ -65,15 +65,13 @@ var (
 	uTWO        = uint256.NewInt(2)
 	uFOUR       = uint256.NewInt(4)
 	uSIX        = uint256.NewInt(6)
-	uEIGHT      = uint256.NewInt(8)
 	uFIFTEEN    = uint256.NewInt(15)
-	uSIXTEEN    = uint256.NewInt(16)
 	uTWENTYFOUR = uint256.NewInt(24)
 
 	MIN_SQRT_RATIO    = big.NewInt(4295128739)
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 
-	Q96  = new(uint256.Int).Lsh(uONE, 96)  // 1 << 96
+	Q96 = new(uint256.Int).Lsh(uONE, 96) // 1 << 96
 
 	BASE_FEE_MULTIPLIER   = new(uint256.Int).Lsh(uONE, FEE_FACTOR_SHIFT)   // 1 << 96
 	DOUBLE_FEE_MULTIPLIER = new(uint256.Int).Lsh(uONE, 2*FEE_FACTOR_SHIFT) // 1 << 2*96
