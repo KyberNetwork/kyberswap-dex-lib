@@ -18,7 +18,7 @@ import (
 )
 
 func isErrReturnAmountIsNotEnough(err error) bool {
-	return err != nil && strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error())
+	return err != nil && strings.Contains(strings.ToLower(err.Error()), ErrReturnAmountIsNotEnough.Error())
 }
 
 func slippageIsAboveMinThreshold(slippageTolerance int64, config FaultyPoolsConfig) bool {

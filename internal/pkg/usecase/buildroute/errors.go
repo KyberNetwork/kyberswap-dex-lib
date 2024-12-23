@@ -10,7 +10,7 @@ var (
 	ErrTokenNotFound                    = errors.New("token not found")
 	ErrQuotedAmountSmallerThanEstimated = errors.New("quoted amount is smaller than estimated")
 	ErrSenderEmptyWhenEnableEstimateGas = errors.New("sender address is empty when enable estimate gas")
-	ErrReturnAmountIsNotEnough          = errors.New("execution reverted: Return amount is not enough")
+	ErrReturnAmountIsNotEnough          = errors.New("return amount is not enough")
 	ErrRFQTimeout                       = errors.New("rfq timed out")
 	ErrCannotKeepDustTokenOut           = errors.New("cannot keep dust tokenOut")
 
