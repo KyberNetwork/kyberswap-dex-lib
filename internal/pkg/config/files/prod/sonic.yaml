@@ -30,6 +30,14 @@ common:
     - "beethovenx-composable-stable"
     - "metropolis-lb"
     - "uniswapv3"
+    - "wagmi"
+    - "sushiswap"
+    - "sushiswap-v3"
+    - "equal"
+    - "solidly-v3"
+    - "silverswap"
+    - "sboom"
+    - "dyor-swap"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
