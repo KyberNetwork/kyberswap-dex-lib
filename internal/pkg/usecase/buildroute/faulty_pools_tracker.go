@@ -90,10 +90,12 @@ func (uc *BuildRouteUseCase) shouldTrackTokens(ctx context.Context, tokens mapse
 	// fetch token info to check if the token is fot token or honeypot
 	tokenInfo, err := uc.tokenRepository.FindTokenInfoByAddress(ctx, unwhiteListTokens)
 	if err != nil {
+		logger.Errorf(ctx, "shouldTrackTokens failed to find token info from token catalog: %v", err)
 		return false
 	}
 
 	for _, info := range tokenInfo {
+		logger.Debugf(ctx, "shouldTrackTokens tokenInfo %v", tokenInfo)
 		if isInvalid(info) {
 			return false
 		}
