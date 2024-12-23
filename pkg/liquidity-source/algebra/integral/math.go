@@ -7,7 +7,7 @@ import (
 )
 
 func unsafeDivRoundingUp(x, y *uint256.Int) *uint256.Int {
-	if y.Sign() == 0 {
+	if y.IsZero() {
 		panic("division by zero")
 	}
 
