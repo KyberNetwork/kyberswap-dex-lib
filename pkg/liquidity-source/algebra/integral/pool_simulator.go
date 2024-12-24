@@ -401,11 +401,11 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 
 	if zeroToOne {
-		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(uint256.MustFromBig(MIN_SQRT_RATIO)) <= 0 {
+		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(MIN_SQRT_RATIO) <= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 	} else {
-		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(uint256.MustFromBig(MAX_SQRT_RATIO)) >= 0 {
+		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(MAX_SQRT_RATIO) >= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 	}

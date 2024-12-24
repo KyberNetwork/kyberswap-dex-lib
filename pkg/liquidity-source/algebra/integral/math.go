@@ -7,10 +7,6 @@ import (
 )
 
 func unsafeDivRoundingUp(x, y *uint256.Int) *uint256.Int {
-	if y.Sign() == 0 {
-		panic("division by zero")
-	}
-
 	quotient, remainder := new(uint256.Int).DivMod(x, y, new(uint256.Int))
 	if remainder.Sign() > 0 {
 		quotient.AddUint64(quotient, 1)
