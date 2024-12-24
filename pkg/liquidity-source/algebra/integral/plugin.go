@@ -533,13 +533,13 @@ func getNewPrice(
 	amount *uint256.Int,
 	zeroToOne, fromInput bool,
 ) (*uint256.Int, error) {
-	if price.Sign() == 0 {
+	if price.IsZero() {
 		return nil, fmt.Errorf("price cannot be zero")
 	}
-	if liquidity.Sign() == 0 {
+	if liquidity.IsZero() {
 		return nil, fmt.Errorf("liquidity cannot be zero")
 	}
-	if amount.Sign() == 0 {
+	if amount.IsZero() {
 		return new(uint256.Int).Set(price), nil
 	}
 
