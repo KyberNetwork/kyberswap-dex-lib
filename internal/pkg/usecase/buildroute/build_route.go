@@ -91,7 +91,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// Notice: must check route summary to track faulty pools at the beginning of the handle func to avoid route modification during execution
 	isFaultyPoolTrackEnable := uc.IsValidToTrackFaultyPools(command.RouteSummary, command.Checksum)
 
-	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
+	encoder := uc.encodeBuilder.GetEncoder(uc.config.ChainID)
 	executorAddress := strings.ToLower(encoder.GetExecutorAddress(command.Source))
 
 	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, command.RouteSummary)
@@ -249,11 +249,37 @@ func (uc *BuildRouteUseCase) rfq(
 		return routeSummary, errors.WithMessage(err, "rfq failed")
 	}
 
-	// Recalculate the new amount out after RFQ
-	afterRFQAmountOut := big.NewInt(0)
+	// Estimate new amount out after RFQ
+	var estimatedAfterRFQAmountOut big.Int
 	for _, path := range routeSummary.Route {
-		afterRFQAmountOut.Add(afterRFQAmountOut, path[len(path)-1].AmountOut)
+		var estimatedAmountOutBF big.Float
+		previousAmountOut := big.NewInt(0)
+		for _, swap := range path {
+			var estimatedAmountInBF big.Float
+			if previousAmountOut.Sign() == 0 || previousAmountOut.Cmp(swap.SwapAmount) > 0 {
+				estimatedAmountInBF.SetInt(swap.SwapAmount)
+			} else {
+				estimatedAmountInBF.SetInt(previousAmountOut)
+			}
+
+			// estimatedAmountOut = amountOut * (estimatedAmountIn / swapAmount)
+			estimatedAmountOutBF.SetInt(swap.AmountOut).
+				Mul(&estimatedAmountOutBF, &estimatedAmountInBF).
+				Quo(&estimatedAmountOutBF, new(big.Float).SetInt(swap.SwapAmount))
+
+			previousAmountOut, _ = estimatedAmountOutBF.Int(nil)
+		}
+		estimatedAmountOut, _ := estimatedAmountOutBF.Int(nil)
+		estimatedAfterRFQAmountOut.Add(&estimatedAfterRFQAmountOut, estimatedAmountOut)
 	}
+
+	estimatedAfterRFQAmountOutFloat64, _ := estimatedAfterRFQAmountOut.Float64()
+	amountOutFloat64, _ := routeSummary.AmountOut.Float64()
+	logger.Debugf(ctx, "afterRFQAmountOut: %v, oldAmountOut %v, estimatedSlippage %.2fbps",
+		estimatedAfterRFQAmountOut.String(),
+		routeSummary.AmountOut,
+		(1-estimatedAfterRFQAmountOutFloat64/amountOutFloat64)*float64(valueobject.BasisPoint.Int64()),
+	)
 
 	// acceptableRFQAmountOut = routeSummary.AmountOut * (1 - rfqAcceptableSlippageFraction * slippageTolerance)
 	// = routeSummary.AmountOut - routeSummary.AmountOut * rfqAcceptableSlippageFraction * slippageTolerance
@@ -286,15 +312,14 @@ func (uc *BuildRouteUseCase) rfq(
 	// However, some RFQs may only result in a slightly lower amount out.
 	// To handle this, if afterRFQAmountOut is within an acceptable range (determined by uc.config.rfqAcceptableSlippageFraction),
 	// we now allow the RFQ to proceed with the swap.
-	if afterRFQAmountOut.Cmp(acceptableRFQAmountOut) < 0 {
-		afterRFQAmountOutFloat64, _ := afterRFQAmountOut.Float64()
+	if estimatedAfterRFQAmountOut.Cmp(acceptableRFQAmountOut) < 0 {
 		acceptableRFQAmountOutFloat64, _ := acceptableRFQAmountOut.Float64()
 
 		logger.Errorf(ctx, "afterRFQAmountOut: %v < acceptableRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
-			afterRFQAmountOut,
+			estimatedAfterRFQAmountOut.String(),
 			acceptableRFQAmountOut,
 			routeSummary.AmountOut,
-			100*afterRFQAmountOutFloat64/acceptableRFQAmountOutFloat64)
+			100*estimatedAfterRFQAmountOutFloat64/acceptableRFQAmountOutFloat64)
 
 		return routeSummary, ErrQuotedAmountSmallerThanEstimated
 	}

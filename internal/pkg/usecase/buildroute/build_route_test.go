@@ -240,8 +240,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						Route: [][]valueobject.Swap{
 							{
 								{
-									Pool:      "0xabc",
-									AmountOut: big.NewInt(1000),
+									Pool:       "0xabc",
+									SwapAmount: big.NewInt(20000),
+									AmountOut:  big.NewInt(1000),
 								},
 							},
 						},
@@ -367,8 +368,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						Route: [][]valueobject.Swap{
 							{
 								{
-									Pool:      "0xabc",
-									AmountOut: big.NewInt(1000),
+									Pool:       "0xabc",
+									SwapAmount: big.NewInt(20000),
+									AmountOut:  big.NewInt(1000),
 								},
 							},
 						},
@@ -494,8 +496,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						Route: [][]valueobject.Swap{
 							{
 								{
-									Pool:      "0xabc",
-									AmountOut: big.NewInt(9999),
+									Pool:       "0xabc",
+									SwapAmount: big.NewInt(20000),
+									AmountOut:  big.NewInt(9999),
 								},
 							},
 						},
@@ -963,10 +966,11 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 						Route: [][]valueobject.Swap{
 							{
 								{
-									Pool:      "0xabc",
-									AmountOut: big.NewInt(10000),
-									TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-									TokenOut:  "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+									Pool:       "0xabc",
+									SwapAmount: big.NewInt(20000),
+									AmountOut:  big.NewInt(10000),
+									TokenIn:    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+									TokenOut:   "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
 								},
 							},
 						},
@@ -1146,10 +1150,11 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 						Route: [][]valueobject.Swap{
 							{
 								{
-									Pool:      "0xabc",
-									AmountOut: big.NewInt(10000),
-									TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-									TokenOut:  "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+									Pool:       "0xabc",
+									AmountOut:  big.NewInt(10000),
+									SwapAmount: big.NewInt(20000),
+									TokenIn:    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+									TokenOut:   "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
 								},
 							},
 						},
