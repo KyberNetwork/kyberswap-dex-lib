@@ -728,13 +728,33 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		result, _ := swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
 		t.Logf("Result for swap amount %d: %v", 14_705, result)
 		if result != nil {
-			t.Errorf("reserves ratio verification revert not hit for col reserves when swap amount %d", 14_705)
+			t.Errorf("FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_705)
 		}
 		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
 		t.Logf("Result 2 for swap amount %d: %v", 14_705, result)
 		if result != nil {
-			t.Errorf("reserves ratio verification revert not hit for debt reserves when swap amount %d", 14_705)
+			t.Errorf("FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_705)
 		}
+
+		// refresh reserves
+		colReserves = NewVerifyRatioColReserves()
+		debtReserves = NewVerifyRatioDebtReserves()
+		reserveXOutside, reserveYOutside = calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			colReserves.Token0RealReserves,
+			colReserves.Token1RealReserves,
+		)
+		colReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, colReserves.Token0RealReserves)
+		colReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, colReserves.Token1RealReserves)
+		reserveXOutside, reserveYOutside = calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			debtReserves.Token0RealReserves,
+			debtReserves.Token1RealReserves,
+		)
+		debtReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, debtReserves.Token0RealReserves)
+		debtReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, debtReserves.Token1RealReserves)
 
 		// Test for swap amount 14_695, revert should NOT hit
 		swapAmount = big.NewInt(14_695 * 1e6 * 1e6)
@@ -746,11 +766,11 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 			t.Logf("Error during swapInAdjusted for col reserves: %v", err)
 		}
 		if result == nil {
-			t.Errorf("reserves ratio verification revert hit for col reserves when swap amount %d", 14_695)
+			t.Errorf("FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_695)
 		}
 		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
 		if result == nil {
-			t.Errorf("reserves ratio verification revert hit for debt reserves when swap amount %d", 14_695)
+			t.Errorf("FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_695)
 		}
 	})
 }
