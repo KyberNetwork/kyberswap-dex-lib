@@ -396,9 +396,12 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * @returns {boolean} - Returns false if token0 reserves are too low, true otherwise.
  */
 func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
+	log.Printf("verifyToken0Reserves")
 	numerator := new(big.Int).Mul(token1Reserves, bI1e27)
 	denominator := new(big.Int).Mul(price, big.NewInt(MinSwapLiquidity))
-	log.Printf("Result of numerator.Div(numerator, denominator): %v vs token0Reserves: %v", numerator.Div(numerator, denominator), token0Reserves)
+	log.Printf("numerator: %v, denominator: %v", numerator, denominator)
+	result := new(big.Int).Div(numerator, denominator)
+	log.Printf("Result of numerator.Div(numerator, denominator): %v vs token0Reserves: %v", result, token0Reserves)
 	return token0Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 
@@ -411,10 +414,13 @@ func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
  * @returns {boolean} - Returns false if token1 reserves are too low, true otherwise.
  */
 func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
+	log.Printf("verifyToken1Reserves")
+
 	numerator := new(big.Int).Mul(token0Reserves, price)
 	denominator := new(big.Int).Mul(bI1e27, big.NewInt(MinSwapLiquidity))
 	log.Printf("numerator: %v, denominator: %v", numerator, denominator)
-	log.Printf("Result of numerator.Div(numerator, denominator): %v vs token1Reserves: %v", numerator.Div(numerator, denominator), token0Reserves)
+	result := new(big.Int).Div(numerator, denominator)
+	log.Printf("Result of numerator.Div(numerator, denominator): %v vs token1Reserves: %v", result, token1Reserves)
 	return token1Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 

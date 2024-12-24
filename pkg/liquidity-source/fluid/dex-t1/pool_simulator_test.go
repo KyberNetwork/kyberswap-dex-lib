@@ -724,17 +724,10 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 
 		// Test for swap amount 14_705, revert should hit
 		swapAmount := big.NewInt(14_705 * 1e6 * 1e6)
-		t.Logf("Swap amount: %s", swapAmount.String())
 		result, _ := swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
-		t.Logf("Result for swap amount %d: %v", 14_705, result)
-		if result != nil {
-			t.Errorf("FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_705)
-		}
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_705)
 		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
-		t.Logf("Result 2 for swap amount %d: %v", 14_705, result)
-		if result != nil {
-			t.Errorf("FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_705)
-		}
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_705)
 
 		// refresh reserves
 		colReserves = NewVerifyRatioColReserves()
@@ -760,18 +753,10 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		swapAmount = big.NewInt(14_695 * 1e6 * 1e6)
 		err := error(nil)
 		result, err = swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
-		t.Logf("Result for swap amount %d: %v", 14_695, result)
-		t.Logf("Swap amount: %s", swapAmount.String())
-		if err != nil {
-			t.Logf("Error during swapInAdjusted for col reserves: %v", err)
-		}
-		if result == nil {
-			t.Errorf("FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_695)
-		}
+		require.NoError(t, err, "Error during swapInAdjusted for col reserves")
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_695)
 		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
-		if result == nil {
-			t.Errorf("FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_695)
-		}
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_695)
 	})
 }
 
