@@ -1,7 +1,6 @@
 package dexT1
 
 import (
-	"log"
 	"math/big"
 	"testing"
 	"time"
@@ -13,33 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// function _calculateReservesOutsideRange(geometricMeanPrice, priceAtRange, reserveX, reserveY) {
-// 	// Scale factor for price precision (equivalent to 1e27 in Solidity)
-// 	const SCALE = 1e27;
-
-// 	// Calculate the three parts of the quadratic equation solution
-// 	const part1 = priceAtRange - geometricMeanPrice;
-
-// 	const part2 = (geometricMeanPrice * reserveX + reserveY * SCALE) / (2 * part1);
-
-// 	let part3 = reserveX * reserveY;
-// 	// Handle potential overflow like in Solidity
-// 	part3 = part3 < 1e50 ? (part3 * SCALE) / part1 : (part3 / part1) * SCALE;
-
-// 	// Calculate xa (reserveXOutside)
-// 	const reserveXOutside = part2 + Math.sqrt(part3 + part2 * part2);
-
-// 	// Calculate yb (reserveYOutside)
-// 	const reserveYOutside = (reserveXOutside * geometricMeanPrice) / SCALE;
-
-// 	return { reserveXOutside, reserveYOutside };
-//   }
-
 func calculateReservesOutsideRange(geometricMeanPrice, priceAtRange, reserveX, reserveY *big.Int) (*big.Int, *big.Int) {
-	log.Printf("geometricMeanPrice: %s", geometricMeanPrice.String())
-	log.Printf("priceAtRange: %s", priceAtRange.String())
-	log.Printf("reserveX: %s", reserveX.String())
-	log.Printf("reserveY: %s", reserveY.String())
 	// Calculate the three parts of the quadratic equation solution
 	part1 := new(big.Int).Sub(priceAtRange, geometricMeanPrice)
 
@@ -745,17 +718,13 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		debtReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, debtReserves.Token0RealReserves)
 		debtReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, debtReserves.Token1RealReserves)
 
-		t.Logf("Col Reserves Token0 Imaginary: %s", colReserves.Token0ImaginaryReserves.String())
-		t.Logf("Col Reserves Token1 Imaginary: %s", colReserves.Token1ImaginaryReserves.String())
-		t.Logf("Debt Reserves Token0 Imaginary: %s", debtReserves.Token0ImaginaryReserves.String())
-		t.Logf("Debt Reserves Token1 Imaginary: %s", debtReserves.Token1ImaginaryReserves.String())
-
 		// expected required ratio:
 		// token1Reserves must be > (token0Reserves * price) / (1e27 * MIN_SWAP_LIQUIDITY)
 		// so 2M / 6667, which is ~300
 
 		// Test for swap amount 14_705, revert should hit
-		swapAmount := big.NewInt(14_705).Mul(big.NewInt(1e6), big.NewInt(1e6))
+		swapAmount := big.NewInt(14_705 * 1e6 * 1e6)
+		t.Logf("Swap amount: %s", swapAmount.String())
 		result, _ := swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
 		t.Logf("Result for swap amount %d: %v", 14_705, result)
 		if result != nil {
@@ -768,9 +737,11 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		}
 
 		// Test for swap amount 14_695, revert should NOT hit
-		swapAmount = big.NewInt(14_695).Mul(big.NewInt(1e6), big.NewInt(1e6))
+		swapAmount = big.NewInt(14_695 * 1e6 * 1e6)
 		err := error(nil)
 		result, err = swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
+		t.Logf("Result for swap amount %d: %v", 14_695, result)
+		t.Logf("Swap amount: %s", swapAmount.String())
 		if err != nil {
 			t.Logf("Error during swapInAdjusted for col reserves: %v", err)
 		}
