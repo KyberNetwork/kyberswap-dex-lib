@@ -76,7 +76,7 @@ func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault
 	rpcRequest.AddCall(callParamsFactory(vaultMethodTaxBasisPoints, nil), []interface{}{&vault.TaxBasisPoints})
 	rpcRequest.AddCall(callParamsFactory(vaultMethodTotalTokenWeights, nil), []interface{}{&vault.TotalTokenWeights})
 	rpcRequest.AddCall(callParamsFactory(vaultMethodUSDG, nil), []interface{}{&vault.USDGAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodWhitelistedTokenCount, nil), []interface{}{&vault.WhitelistedTokensCount})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodAllWhitelistedTokensLength, nil), []interface{}{&vault.WhitelistedTokensCount})
 	rpcRequest.AddCall(callParamsFactory(vaultMethodMintBurnFeeBasisPoints, nil), []interface{}{&vault.MintBurnFeeBasicPoints})
 
 	_, err := rpcRequest.TryAggregate()
@@ -92,7 +92,7 @@ func (r *VaultReader) readWhitelistedTokens(
 ) error {
 	tokensLen := int(vault.WhitelistedTokensCount.Int64())
 
-	whitelistedTokens := make([]common.Address, tokensLen)
+	tokenList := make([]common.Address, tokensLen)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < tokensLen; i++ {
@@ -101,18 +101,37 @@ func (r *VaultReader) readWhitelistedTokens(
 			Target: address,
 			Method: vaultMethodAllWhitelistedTokens,
 			Params: []interface{}{new(big.Int).SetInt64(int64(i))},
-		}, []interface{}{&whitelistedTokens[i]})
+		}, []interface{}{&tokenList[i]})
 	}
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	res, err := rpcRequest.TryAggregate()
+	if err != nil {
 		return err
 	}
 
-	tokens := make([]string, tokensLen)
-	for i := range whitelistedTokens {
-		tokens[i] = strings.ToLower(whitelistedTokens[i].String())
+	isWhitelistedTokens := make([]bool, len(tokenList))
+	rpcRequest = r.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+
+	for i := 0; i < len(tokenList); i++ {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    r.abi,
+			Target: address,
+			Method: vaultMethodWhitelistedTokens,
+			Params: []interface{}{tokenList[i]},
+		}, []interface{}{&isWhitelistedTokens[i]})
+	}
+	_, err = rpcRequest.TryAggregate()
+	if err != nil {
+		return err
 	}
 
-	vault.WhitelistedTokens = tokens
+	currentWhiteListTokens := make([]string, 0, tokensLen)
+	for i := range tokenList {
+		if isWhitelistedTokens[i] {
+			currentWhiteListTokens = append(currentWhiteListTokens, strings.ToLower(tokenList[i].String()))
+		}
+	}
+
+	vault.WhitelistedTokens = currentWhiteListTokens
 
 	return nil
 }

@@ -5,10 +5,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -83,11 +84,24 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 				TokenOut: tokenOMG.Address,
 			}
 
-			result, err := poolSimulator.CalcAmountOut(params)
+			sim := poolSimulator.CloneState()
+			cloned := sim.CloneState()
+			result, err := sim.CalcAmountOut(params)
 			assert.Equal(t, tc.expectedErr, err)
-			if tc.expectedErr == nil {
-				assert.Equal(t, 0, result.TokenAmountOut.Amount.Cmp(tc.expectedAmountOut))
+			if tc.expectedErr != nil {
+				return
 			}
+			assert.Equal(t, 0, result.TokenAmountOut.Amount.Cmp(tc.expectedAmountOut))
+
+			sim.UpdateBalance(pool.UpdateBalanceParams{
+				TokenAmountIn:  params.TokenAmountIn,
+				TokenAmountOut: *result.TokenAmountOut,
+				SwapInfo:       result.SwapInfo,
+			})
+
+			clonedRes, err := cloned.CalcAmountOut(params)
+			assert.Equal(t, tc.expectedErr, err)
+			assert.Equal(t, result, clonedRes)
 		})
 	}
 }

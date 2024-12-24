@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -206,4 +208,25 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 		result[i].MakingAmount = makingAmount
 	}
 	return result, nil
+}
+
+func (o *order) RemainingAmount(limit pool.SwapLimit, filledMakingAmountByMaker map[string]*big.Int) (makingAmount, takingAmount *big.Int) {
+	if o.AvailableMakingAmount == nil {
+		makingAmount = new(big.Int).Sub(o.MakingAmount, o.FilledMakingAmount)
+		takingAmount = new(big.Int).Sub(o.TakingAmount, o.FilledTakingAmount)
+	} else {
+		makingAmount = o.AvailableMakingAmount
+		// the actual available balance might be less than `AvailableMakingAmount`
+		// for example if we have used another order for this same maker and makerAsset (but with different takerAsset) before
+		makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, o.Maker, o.MakerAsset)
+		if makerRemainingBalance != nil && makingAmount.Cmp(makerRemainingBalance) > 0 {
+			makingAmount = makerRemainingBalance
+		}
+		takingAmount = new(big.Int).Div(
+			new(big.Int).Mul(makingAmount, o.TakingAmount),
+			o.MakingAmount,
+		) // remainingTakingAmount = remainingMakingAmount * order.TakingAmount / order.MakingAmount
+	}
+
+	return makingAmount, takingAmount
 }

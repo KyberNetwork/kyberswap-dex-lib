@@ -159,6 +159,19 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.ZeroToOnePriceLevels = lo.Map(p.ZeroToOnePriceLevels, func(v PriceLevel, i int) PriceLevel {
+		v.Quote = new(big.Float).Set(v.Quote)
+		return v
+	})
+	cloned.OneToZeroPriceLevels = lo.Map(p.OneToZeroPriceLevels, func(v PriceLevel, i int) PriceLevel {
+		v.Quote = new(big.Float).Set(v.Quote)
+		return v
+	})
+	return &cloned
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
 	amountInBF.SetInt(params.TokenAmountIn.Amount)

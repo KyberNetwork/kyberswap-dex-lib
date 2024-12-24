@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -191,6 +192,15 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 	}
 	return &pool.CalcAmountOutResult{}, errors.New("i'm dead here")
+}
+
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.LpSupply = new(big.Int).Set(t.LpSupply)
+	cloned.Info.Reserves = lo.Map(t.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
+	return &cloned
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

@@ -14,6 +14,7 @@ const (
 	assetMethodLiability        = "liability"
 
 	poolMethodAddressOfAsset         = "addressOfAsset"
+	poolMethodIsPaused               = "isPaused"
 	poolMethodAmpFactor              = "ampFactor"
 	poolMethodEndCovRatio            = "endCovRatio"
 	poolMethodHaircutRate            = "haircutRate"

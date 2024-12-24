@@ -73,8 +73,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		staticExtraBytes, err := json.Marshal(&StaticExtra{
 			DexReservesResolver: u.config.DexReservesResolver,
-			HasNative: strings.EqualFold(curPool.Token0Address.Hex(), valueobject.EtherAddress) ||
-				strings.EqualFold(curPool.Token1Address.Hex(), valueobject.EtherAddress),
+			HasNative: strings.EqualFold(curPool.Token0Address.Hex(), valueobject.NativeAddress) ||
+				strings.EqualFold(curPool.Token1Address.Hex(), valueobject.NativeAddress),
 		})
 		if err != nil {
 			return nil, nil, err
@@ -112,13 +112,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   valueobject.WrapETHLower(curPool.Token0Address.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(curPool.Token0Address.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token0Decimals,
 				},
 				{
-					Address:   valueobject.WrapETHLower(curPool.Token1Address.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(curPool.Token1Address.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token1Decimals,
@@ -162,7 +162,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 
 	req := u.ethrpcClient.R().SetContext(ctx)
 
-	if strings.EqualFold(valueobject.EtherAddress, token0.String()) {
+	if strings.EqualFold(valueobject.NativeAddress, token0.String()) {
 		decimals0 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{
@@ -173,7 +173,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 		}, []interface{}{&decimals0})
 	}
 
-	if strings.EqualFold(valueobject.EtherAddress, token1.String()) {
+	if strings.EqualFold(valueobject.NativeAddress, token1.String()) {
 		decimals1 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{

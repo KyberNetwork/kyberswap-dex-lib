@@ -19,7 +19,7 @@ var (
 	Buy  SwapSide = "BUY"
 	Sell SwapSide = "SELL"
 
-	// BasGas is base gas to executor a tx for LO.
+	// BaseGas is base gas to executor a tx for LO.
 	BaseGas = 90000
 
 	// GasPerOrderExecutor is gas for executing an order.

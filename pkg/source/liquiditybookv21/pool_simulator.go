@@ -156,7 +156,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			p.Info.Reserves[idx] = new(big.Int).Add(reserve, params.TokenAmountIn.Amount)
 		}
 		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountOut.Token) {
-			p.Info.Reserves[idx] = new(big.Int).Sub(reserve, params.TokenAmountIn.Amount)
+			p.Info.Reserves[idx] = new(big.Int).Sub(reserve, params.TokenAmountOut.Amount)
 		}
 	}
 

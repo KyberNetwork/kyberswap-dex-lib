@@ -4,22 +4,22 @@
         "name": "USDC/USDC/USDT",
         "type": "curve-base",
         "lpToken": "0x31c330f2febda65693ec8801b77a93c6d1f479e4",
-        "aPrecision": "2000",
+        "aPrecision": "1",
         "tokens": [
             {
                 "address": "0x1d17cbcf0d6d143135ae902365d2e5e2a16538d4",
-                "precision": "1",
-                "rate": "1000000000000000000"
+                "precision": "1000000000000",
+                "rate": "1000000000000000000000000000000"
             },
             {
                 "address": "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4",
-                "precision": "1",
-                "rate": "1000000000000000000"
+                "precision": "1000000000000",
+                "rate": "1000000000000000000000000000000"
             },
             {
                 "address": "0x493257fd37edb34451f62edf8d2a0c418852ba4c",
-                "precision": "1",
-                "rate": "1000000000000000000"
+                "precision": "1000000000000",
+                "rate": "1000000000000000000000000000000"
             }
         ]
     }

@@ -4,7 +4,13 @@ import (
 	"strings"
 )
 
-var WETHByChainID = map[ChainID]string{
+var (
+	WETHByChainID = WrappedNativeMap // deprecated: use the correctly named WrappedNativeMap
+	WrapETHLower  = WrapNativeLower  // deprecated: use the correctly named WrapNativeLower
+	IsWETH        = IsWrappedNative  // deprecated: use the correctly named IsWrappedNative
+)
+
+var WrappedNativeMap = map[ChainID]string{
 	ChainIDEthereum:        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 	ChainIDEthereumW:       "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 	ChainIDRopsten:         "0xc778417E063141139Fce010982780140Aa0cD5Ab",
@@ -33,16 +39,17 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDScroll:          "0x5300000000000000000000000000000000000004",
 	ChainIDBlast:           "0x4300000000000000000000000000000000000004",
 	ChainIDMantle:          "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8",
+	ChainIDSonic:           "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
 }
 
-// WrapETHLower wraps, if applicable, native token to wrapped token; and then lowercase it.
-func WrapETHLower(token string, chainID ChainID) string {
-	if strings.EqualFold(token, EtherAddress) {
-		token = WETHByChainID[chainID]
+// WrapNativeLower wraps, if applicable, native token to wrapped token; and then lowercase it.
+func WrapNativeLower(token string, chainID ChainID) string {
+	if strings.EqualFold(token, NativeAddress) {
+		token = WrappedNativeMap[chainID]
 	}
 	return strings.ToLower(token)
 }
 
-func IsWETH(address string, chainID ChainID) bool {
-	return strings.EqualFold(address, WETHByChainID[chainID])
+func IsWrappedNative(address string, chainID ChainID) bool {
+	return strings.EqualFold(address, WrappedNativeMap[chainID])
 }

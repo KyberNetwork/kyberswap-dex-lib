@@ -119,7 +119,7 @@ func (d *PoolTracker) getReserves(
 	}
 
 	for i, token := range tokens {
-		if valueobject.IsWETH(token.Address, d.config.ChainID) {
+		if valueobject.IsWrappedNative(token.Address, d.config.ChainID) {
 			req.AddCall(&ethrpc.Call{
 				ABI:    multicallABI,
 				Target: d.config.MulticallContractAddress,

@@ -130,7 +130,11 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	tokens, reserves := p.GetTokens(), p.GetReserves()
 	inventory := make(map[string]*big.Int, len(tokens))
 	for i, token := range tokens {
-		inventory[token] = new(big.Int).Set(reserves[i])
+		var reducedReserve big.Float
+		reducedReserve.SetInt(reserves[i]).Mul(&reducedReserve, big.NewFloat(0.95))
+		// Reduce each token's reserve by 5% to prevent the total quote amount of a token
+		// from potentially exceeding the maker's balance when building the route
+		inventory[token], _ = reducedReserve.Int(nil)
 	}
 
 	return inventory

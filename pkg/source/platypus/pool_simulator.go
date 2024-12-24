@@ -262,19 +262,19 @@ func (p *PoolSimulator) _quoteIdealToAmountSAvax(
 	toAsset Asset,
 	fromAmount *big.Int,
 ) (*big.Int, error) {
-	weth, ok := valueobject.WETHByChainID[p.ChainID]
+	native, ok := valueobject.WrappedNativeMap[p.ChainID]
 	if !ok {
-		return nil, ErrWETHNotFound
+		return nil, ErrWrappedNativeNotFound
 	}
 
 	fromToken := fromAsset.UnderlyingToken
 	toToken := toAsset.UnderlyingToken
 
-	if strings.EqualFold(toToken, weth) {
+	if strings.EqualFold(toToken, native) {
 		return wmul(fromAmount, p.SAvaxRate), nil
 	}
 
-	if strings.EqualFold(fromToken, weth) {
+	if strings.EqualFold(fromToken, native) {
 		return wdiv(fromAmount, p.SAvaxRate)
 	}
 

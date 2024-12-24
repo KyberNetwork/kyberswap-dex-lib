@@ -177,10 +177,10 @@ func (t *PoolTracker) updatePool(
 		}
 		colByPool[pool] = col
 		reserves = append(reserves, poolData.Liquidity.StakedBalance.String())
-		if strings.EqualFold(pool, valueobject.EtherAddress) {
+		if strings.EqualFold(pool, valueobject.NativeAddress) {
 			nativeIdx = len(tokens)
 			tokens = append(tokens, &entity.PoolToken{
-				Address:   strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
+				Address:   strings.ToLower(valueobject.WrappedNativeMap[t.config.ChainID]),
 				Swappable: true,
 			})
 

@@ -3,10 +3,10 @@ package platypus
 import "errors"
 
 var (
-	ErrInvalidOracleType = errors.New("invalid oracle type")
-	ErrDivisionByZero    = errors.New("division by zero")
-	ErrPoolPaused        = errors.New("pool is paused")
-	ErrWETHNotFound      = errors.New("weth not found")
+	ErrInvalidOracleType     = errors.New("invalid oracle type")
+	ErrDivisionByZero        = errors.New("division by zero")
+	ErrPoolPaused            = errors.New("pool is paused")
+	ErrWrappedNativeNotFound = errors.New("wrapped native not found")
 
 	// ErrSameAddress swapping with tokenIn = tokenOut
 	ErrSameAddress      = errors.New("SAME_ADDRESS")
