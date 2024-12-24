@@ -3,6 +3,7 @@ package integral
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -333,8 +334,8 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 		FEE_FACTOR_SHIFT,
 	)
 
-	if adjustedFee.Cmp(MAX_UINT16) > 0 || adjustedFee.IsZero() {
-		adjustedFee.Set(MAX_UINT16)
+	if adjustedFee.BitLen() > 15 || adjustedFee.IsZero() {
+		adjustedFee.SetUint64(math.MaxUint16)
 	}
 
 	return uint16(adjustedFee.Uint64()), nil

@@ -57,12 +57,9 @@ var (
 	FEE_DENOMINATOR           = uint256.NewInt(1e6)
 	COMMUNITY_FEE_DENOMINATOR = uint256.NewInt(1e3)
 
-	MAX_UINT16 = uint256.NewInt(1<<16 - 1)
-
 	uZERO       = uint256.NewInt(0)
 	uONE        = uint256.NewInt(1)
 	uTWO        = uint256.NewInt(2)
-	uFOUR       = uint256.NewInt(4)
 	uSIX        = uint256.NewInt(6)
 	uFIFTEEN    = uint256.NewInt(15)
 	uTWENTYFOUR = uint256.NewInt(24)
