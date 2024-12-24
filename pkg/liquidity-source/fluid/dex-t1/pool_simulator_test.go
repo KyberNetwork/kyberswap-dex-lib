@@ -760,51 +760,88 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 	})
 }
 
-//   function testSwapOutVerifyReservesInRange() {
-// 	console.log("\n swapOut: Verify reserves should hit in expected range only ---------------------------------");
-// 	const decimals = 6;
+func NewVerifyRatioColReservesSwapOut() CollateralReserves {
+	return CollateralReserves{
+		Token0RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
+		Token1RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
+		Token0ImaginaryReserves: big.NewInt(0),
+		Token1ImaginaryReserves: big.NewInt(0),
+	}
+}
+func NewVerifyRatioDebtReservesSwapOut() DebtReserves {
+	return DebtReserves{
+		Token0RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
+		Token1RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
+		Token0ImaginaryReserves: big.NewInt(0),
+		Token1ImaginaryReserves: big.NewInt(0),
+	}
+}
 
-// 	const reserves = {
-// 	  token0RealReserves: 15_000 * 1e6 * 1e6, // e.g. 1 USDT
-// 	  token1RealReserves: 2_000_000 * 1e6 * 1e6, // e.g. 2M USDC
-// 	  token0ImaginaryReserves: 0,
-// 	  token1ImaginaryReserves: 0,
-// 	};
-// 	const { reserveXOutside, reserveYOutside } = _calculateReservesOutsideRange(
-// 	  1e27,
-// 	  1e27 * 1.000001,
-// 	  reserves.token0RealReserves,
-// 	  reserves.token1RealReserves
-// 	);
-// 	reserves.token0ImaginaryReserves = reserveXOutside + reserves.token0RealReserves;
-// 	reserves.token1ImaginaryReserves = reserveYOutside + reserves.token1RealReserves;
+func TestSwapOutVerifyReservesInRange(t *testing.T) {
+	t.Run("TestSwapOutVerifyReservesInRange", func(t *testing.T) {
+		decimals := int64(6)
 
-// 	console.log("test reserves", reserves);
+		colReserves := NewVerifyRatioColReservesSwapOut()
+		debtReserves := NewVerifyRatioDebtReservesSwapOut()
 
-// 	// expected required ratio:
-// 	// token0Reserves >= (token1Reserves * 1e27) / (price * MIN_SWAP_LIQUIDITY);
-// 	// so 2M / 6667, which is ~300
+		// Ignore the boolean return value
+		price, _ := new(big.Int).SetString("1000001000000000000000000000", 10)
 
-// 	// Test for swap amount 14_705, revert should hit
-// 	let swapAmount_ = 14_705;
-// 	let result = swapOutAdjusted(false, swapAmount_ * 1e6 * 1e6, reserves, reservesEmpty, decimals, limitsWide, syncTime);
-// 	console.log(`result for col reserves when swap amount ${swapAmount_} : ${result}`);
-// 	if (result != Number.MAX_VALUE) throw new Error("reserves ratio verification revert not hit");
+		reserveXOutside, reserveYOutside := calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			colReserves.Token0RealReserves,
+			colReserves.Token1RealReserves,
+		)
+		colReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, colReserves.Token0RealReserves)
+		colReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, colReserves.Token1RealReserves)
+		reserveXOutside, reserveYOutside = calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			debtReserves.Token0RealReserves,
+			debtReserves.Token1RealReserves,
+		)
+		debtReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, debtReserves.Token0RealReserves)
+		debtReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, debtReserves.Token1RealReserves)
 
-// 	result = swapOutAdjusted(false, swapAmount_ * 1e6 * 1e6, reservesEmpty, reserves, decimals, limitsWide, syncTime);
-// 	console.log(`result for debt reserves when swap amount ${swapAmount_} : ${result}`);
-// 	if (result != Number.MAX_VALUE) throw new Error("reserves ratio verification revert not hit");
+		// expected required ratio:
+		// token0Reserves >= (token1Reserves * 1e27) / (price * MIN_SWAP_LIQUIDITY)
+		// so 2M / 6667, which is ~300
 
-// 	// Test for swap amount 14_695, revert should NOT hit
-// 	swapAmount_ = 14_695;
+		// Test for swap amount 14_705, revert should hit
+		swapAmount := big.NewInt(14_705 * 1e6 * 1e6)
+		result, _ := swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_705)
+		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_705)
 
-// 	result = swapOutAdjusted(false, swapAmount_ * 1e6 * 1e6, reserves, reservesEmpty, decimals, limitsWide, syncTime);
-// 	console.log(`result for col reserves when swap amount ${swapAmount_} : ${result}`);
-// 	if (result == Number.MAX_VALUE) throw new Error("reserves ratio verification revert hit");
+		// refresh reserves
+		colReserves = NewVerifyRatioColReservesSwapOut()
+		debtReserves = NewVerifyRatioDebtReservesSwapOut()
+		reserveXOutside, reserveYOutside = calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			colReserves.Token0RealReserves,
+			colReserves.Token1RealReserves,
+		)
+		colReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, colReserves.Token0RealReserves)
+		colReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, colReserves.Token1RealReserves)
+		reserveXOutside, reserveYOutside = calculateReservesOutsideRange(
+			bI1e27,
+			price,
+			debtReserves.Token0RealReserves,
+			debtReserves.Token1RealReserves,
+		)
+		debtReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, debtReserves.Token0RealReserves)
+		debtReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, debtReserves.Token1RealReserves)
 
-// 	result = swapOutAdjusted(false, swapAmount_ * 1e6 * 1e6, reservesEmpty, reserves, decimals, limitsWide, syncTime);
-// 	console.log(`result for debt reserves when swap amount ${swapAmount_} : ${result}`);
-// 	if (result == Number.MAX_VALUE) throw new Error("reserves ratio verification revert hit");
-
-// 	console.log("\n\n\n");
-//   }
+		// Test for swap amount 14_695, revert should NOT hit
+		swapAmount = big.NewInt(14_695 * 1e6 * 1e6)
+		err := error(nil)
+		result, err = swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, time.Now().Unix()-10)
+		require.NoError(t, err, "Error during swapOutAdjusted for col reserves")
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_695)
+		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, time.Now().Unix()-10)
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_695)
+	})
+}
