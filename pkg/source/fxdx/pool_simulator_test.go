@@ -72,7 +72,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			poolSim, err := NewPoolSimulator(*poolEntity)
 			require.NoError(t, err)
 
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  tc.tokenIn,

@@ -43,7 +43,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	for _, amountIn := range testamount {
 		t.Run(fmt.Sprintf("deposit %v ETH in should get %v stETH out", amountIn, amountIn), func(t *testing.T) {
 			tokAmountIn := pool.TokenAmount{Token: tokens[0], Amount: amountIn}
-			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: tokAmountIn,
 					TokenOut:      tokens[1],

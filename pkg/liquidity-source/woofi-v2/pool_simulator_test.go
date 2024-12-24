@@ -58,7 +58,7 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return pool.CalcAmountOut(params)
 	})
 
@@ -139,7 +139,7 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 
 	pool.wooracle.Timestamp = time.Now().Unix()
 
-	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return pool.CalcAmountOut(params)
 	})
 
@@ -215,7 +215,7 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	_, err = testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	_, err = testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return pool.CalcAmountOut(params)
 	})
 
@@ -455,7 +455,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(tc.params)
 			})
 			assert.Equal(t, tc.expectedErr, err)
@@ -667,7 +667,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(tc.params)
 			})
 			assert.Equal(t, tc.expectedErr, err)

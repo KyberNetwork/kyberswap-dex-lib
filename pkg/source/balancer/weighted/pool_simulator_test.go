@@ -27,7 +27,7 @@ func TestSwap_2token(t *testing.T) {
 	var p, err = NewPoolSimulator(poolInfo)
 	require.Nil(t, err)
 
-	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return p.CalcAmountOut(
 			pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
@@ -59,7 +59,7 @@ func TestSwap_3token(t *testing.T) {
 	assert.Equal(t, 0, len(p.CanSwapTo("BALxx")))
 
 	// weight(BAL)/weight(WETH) is still the same as above, so amount out should be the same
-	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return p.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
 			TokenOut:      "WETH",
@@ -71,7 +71,7 @@ func TestSwap_3token(t *testing.T) {
 	assert.Equal(t, big.NewInt(3), result.Fee.Amount)
 
 	// BAL -> DAI
-	result, err = testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, err = testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return p.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
 			TokenOut:      "DAI",

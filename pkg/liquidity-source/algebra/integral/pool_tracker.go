@@ -126,7 +126,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
 		Timepoints:       rpcData.Timepoints,
-		VotatilityOracle: rpcData.VotatilityOracle,
+		VolatilityOracle: rpcData.VolatilityOracle,
 		SlidingFee:       rpcData.SlidingFee,
 		DynamicFee:       rpcData.DynamicFee,
 	})
@@ -239,7 +239,8 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		Unlocked:     rpcState.Unlocked,
 	}
 
-	timepoints, votalityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p.Address, result.BlockNumber)
+	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p.Address,
+		result.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -248,7 +249,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	}
 
 	res.Timepoints = timepoints
-	res.VotatilityOracle = votalityOracleData
+	res.VolatilityOracle = volatilityOracleData
 	res.SlidingFee = slidingFeeData
 	res.DynamicFee = dynamicFeeData
 	res.BlockNumber = result.BlockNumber
@@ -257,7 +258,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 }
 
 func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string, blockNumber *big.Int) (
-	map[uint16]Timepoint, VotatilityOraclePlugin, DynamicFeePlugin, SlidingFeePlugin, error) {
+	map[uint16]Timepoint, VolatilityOraclePlugin, DynamicFeeConfig, SlidingFeeConfig, error) {
 
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
@@ -283,15 +284,15 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string, blo
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to fetch Plugin address from pool")
-		return nil, VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
+		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
 	}
 
-	volatilityOracleData, err := d.getVotalityOracleData(ctx, plugin.Hex(), blockNumber)
+	volatilityOracleData, err := d.getVolatilityOracleData(ctx, plugin.Hex(), blockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to fetch VotatilityOracle data from plugin")
-		return nil, VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
+		}).Error("failed to fetch VolatilityOracle data from plugin")
+		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
 	}
 
 	timepoints, err := d.fetchTimepoints(ctx, plugin.Hex(), blockNumber, volatilityOracleData.TimepointIndex)
@@ -299,7 +300,7 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string, blo
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to fetch timepoints data from plugin")
-		return nil, VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
+		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
 	}
 
 	dynamicFeeData, err := d.getDynamicFeeData(ctx, plugin.Hex(), blockNumber)
@@ -307,26 +308,26 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string, blo
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to fetch DynamicFee data from plugin")
-		return nil, VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
+		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
 	}
 
-	var slidingFeeData SlidingFeePlugin
+	var slidingFeeData SlidingFeeConfig
 	if d.config.UseBasePluginV2 {
 		slidingFeeData, err = d.getSlidingFeeData(ctx, plugin.Hex(), blockNumber)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to fetch Sliding data from plugin")
-			return nil, VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
+			return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
 		}
 	}
 
 	return timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, nil
 }
 
-func (d *PoolTracker) getVotalityOracleData(ctx context.Context, pluginAddress string,
-	blockNumber *big.Int) (VotatilityOraclePlugin, error) {
-	var result VotatilityOraclePlugin
+func (d *PoolTracker) getVolatilityOracleData(ctx context.Context, pluginAddress string,
+	blockNumber *big.Int) (VolatilityOraclePlugin, error) {
+	var result VolatilityOraclePlugin
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
@@ -354,14 +355,15 @@ func (d *PoolTracker) getVotalityOracleData(ctx context.Context, pluginAddress s
 
 	_, err := req.Aggregate()
 	if err != nil {
-		return VotatilityOraclePlugin{}, err
+		return VolatilityOraclePlugin{}, err
 	}
 
 	return result, nil
 }
 
-func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string, blockNumber *big.Int) (SlidingFeePlugin, error) {
-	var result SlidingFeePlugin
+func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string,
+	blockNumber *big.Int) (SlidingFeeConfig, error) {
+	var result SlidingFeeConfig
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
@@ -373,18 +375,19 @@ func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress strin
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeFactorsMethod,
 		Params: nil,
-	}, []interface{}{&result.FeeFactors})
+	}, []interface{}{&result})
 
 	_, err := req.Call()
 	if err != nil {
-		return SlidingFeePlugin{}, err
+		return SlidingFeeConfig{}, err
 	}
 
 	return result, nil
 }
 
-func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress string, blockNumber *big.Int) (DynamicFeePlugin, error) {
-	var result DynamicFeePlugin
+func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress string,
+	blockNumber *big.Int) (DynamicFeeConfig, error) {
+	var result DynamicFeeConfig
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
@@ -396,11 +399,11 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 		Target: pluginAddress,
 		Method: dynamicFeeManagerPluginFeeConfigMethod,
 		Params: nil,
-	}, []interface{}{&result.FeeConfig})
+	}, []interface{}{&result})
 
 	_, err := req.Call()
 	if err != nil {
-		return DynamicFeePlugin{}, err
+		return DynamicFeeConfig{}, err
 	}
 
 	return result, nil

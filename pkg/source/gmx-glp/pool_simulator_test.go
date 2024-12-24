@@ -80,7 +80,7 @@ func TestPoolSimulator_MintAndStakeGlp(t *testing.T) {
 			pool, err := NewPoolSimulator(tc.entityPool)
 			assert.Nil(t, err)
 
-			_, err = testutil.MustConcurrentSafe[*poolPkg.CalcAmountOutResult](t, func() (any, error) {
+			_, err = testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
 					TokenAmountIn: tc.tokenAmountIn,
 					TokenOut:      tc.tokenOut,

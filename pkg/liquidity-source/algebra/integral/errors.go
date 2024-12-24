@@ -22,4 +22,6 @@ var (
 	ErrOutOfRangeOrInvalid = errors.New("value out of range or invalid")
 	ErrLiquiditySub        = errors.New("liquidity sub error")
 	ErrLiquidityAdd        = errors.New("liquidity add error")
+	ErrOverflow            = errors.New("overflow")
+	ErrUnderflow           = errors.New("underflow")
 )

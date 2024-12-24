@@ -90,7 +90,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
@@ -110,7 +110,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: true,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
@@ -130,7 +130,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: false,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
@@ -150,7 +150,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: false,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
@@ -209,7 +209,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
@@ -268,7 +268,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",

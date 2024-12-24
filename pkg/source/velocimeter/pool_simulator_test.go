@@ -42,7 +42,7 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: amountIn,
 					TokenOut:      tc.out,

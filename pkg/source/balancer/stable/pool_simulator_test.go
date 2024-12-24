@@ -56,7 +56,7 @@ func TestSwap(t *testing.T) {
 		AmountUsd: 100000,
 	}
 	var tokenOut = "D"
-	result, _ := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, _ := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return p.CalcAmountOut(
 			pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,

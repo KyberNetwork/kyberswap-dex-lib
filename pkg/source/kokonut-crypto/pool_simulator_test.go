@@ -34,7 +34,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return kokonutPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",

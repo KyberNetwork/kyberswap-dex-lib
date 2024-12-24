@@ -252,7 +252,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountIn(
 					pool.CalcAmountInParams{
@@ -346,7 +346,7 @@ func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			calcAmountOutResult, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
@@ -362,7 +362,7 @@ func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
 
 			assert.Equal(t, tt.args.amountOut, calcAmountOutResult.TokenAmountOut.Amount)
 
-			calcAmountInResult, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+			calcAmountInResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountIn(
 					pool.CalcAmountInParams{

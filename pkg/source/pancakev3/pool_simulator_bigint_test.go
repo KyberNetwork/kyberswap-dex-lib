@@ -116,7 +116,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, _ := NewPoolSimulatorBigInt(tt.entityPool, tt.chainId)
-			calcAmountOutResult, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: tt.tokenAmountIn,
 					TokenOut:      tt.tokenOut,
@@ -242,7 +242,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, _ := NewPoolSimulatorBigInt(tt.entityPool, tt.chainId)
-			calcAmountOutResult, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				return p.CalcAmountIn(pool.CalcAmountInParams{
 					TokenAmountOut: tt.tokenAmountOut,
 					TokenIn:        tt.tokenIn,

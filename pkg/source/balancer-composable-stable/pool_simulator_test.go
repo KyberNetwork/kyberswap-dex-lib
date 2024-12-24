@@ -94,7 +94,7 @@ func TestSwap(t *testing.T) {
 	}
 	for i, testcase := range testCases {
 		t.Run(fmt.Sprintf("testcase %d, tokenIn %s amountIn %s tokenOut %s", i, testcase.tokenIn, testcase.amountIn.String(), testcase.amountOut), func(t *testing.T) {
-			result, _ := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			result, _ := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
 						TokenAmountIn: pool.TokenAmount{
@@ -123,7 +123,7 @@ func TestCalculateInvariant(t *testing.T) {
 	balances := []*big.Int{
 		b1, b2, b3,
 	}
-	_, err := testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+	_, err := testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
 		return CalculateInvariant(a, balances, false)
 	})
 	assert.Equal(t, err, ErrorStableGetBalanceDidntConverge)

@@ -79,7 +79,7 @@ func TestCalcAmountOut(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(
 			poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -188,7 +188,7 @@ func TestGetAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name,
 			func(t *testing.T) {
-				result, err := testutil.MustConcurrentSafe[GetAmountResult](t, func() (any, error) {
+				result, err := testutil.MustConcurrentSafe(t, func() (GetAmountResult, error) {
 					return getAmountOut(tc.amountParams)
 				})
 				if err != nil {
@@ -329,7 +329,7 @@ func TestUpdateBalance(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, _ := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	result, _ := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
 			TokenOut:      "token1",
