@@ -2,7 +2,6 @@ package token
 
 import (
 	"context"
-	"strings"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -72,7 +71,7 @@ func (r *goCacheRepository) FindByAddresses(ctx context.Context, addresses []str
 }
 
 func (r *goCacheRepository) tokenInfoKey(address string) string {
-	return strings.Join([]string{KeyTokenInfo, address}, utils.SliceParamsItemSeparator)
+	return utils.Join(KeyTokenInfo, address)
 }
 
 func (r *goCacheRepository) FindTokenInfoByAddress(ctx context.Context, addresses []string) ([]*routerEntity.TokenInfo, error) {

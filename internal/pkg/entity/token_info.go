@@ -1,7 +1,7 @@
 package entity
 
 type TokenInfo struct {
-	Address    string `mapstructure:"address"`
-	IsFOT      bool   `mapstructure:"isFOT"`
-	IsHoneypot bool   `mapstructure:"isHoneypot"`
+	Address    string `json:"address"`
+	IsFOT      bool   `json:"isFOT"`
+	IsHoneypot bool   `json:"isHoneypot"`
 }

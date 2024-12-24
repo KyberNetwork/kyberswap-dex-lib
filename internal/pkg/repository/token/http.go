@@ -62,7 +62,7 @@ func (c *httpClient) FindTokenInfos(ctx context.Context, chainID valueobject.Cha
 		return nil, err
 	}
 
-	if resp.IsSuccess() {
+	if !resp.IsSuccess() {
 		return nil, fmt.Errorf("error ListTokens with response %v", resp)
 	}
 
