@@ -95,7 +95,6 @@ func (uc *BuildRouteUseCase) shouldTrackTokens(ctx context.Context, tokens mapse
 	}
 
 	for _, info := range tokenInfo {
-		logger.Debugf(ctx, "shouldTrackTokens tokenInfo %v", tokenInfo)
 		if isInvalid(info) {
 			return false
 		}
