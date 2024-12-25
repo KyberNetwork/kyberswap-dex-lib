@@ -169,6 +169,7 @@ encoder:
   executorAddressByClientID:
     defillama: *executorAddress
     llamaswap: *executorAddress
+    kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
       receiver:
