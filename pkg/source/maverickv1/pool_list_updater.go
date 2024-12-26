@@ -3,40 +3,36 @@ package maverickv1
 import (
 	"context"
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 )
 
 type PoolListUpdater struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	config           *Config
+	ethrpcClient     *ethrpc.Client
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
 func NewPoolListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
 ) *PoolListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolListUpdater{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:           cfg,
+		ethrpcClient:     ethrpcClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
@@ -158,7 +154,7 @@ func (d *PoolListUpdater) querySubgraph(
 	first int,
 	skip int,
 ) ([]*SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := mutableclient.NewRequest(fmt.Sprintf(`{
 		pools(
 			where : {
 				timestamp_gte: %v,
@@ -188,7 +184,7 @@ func (d *PoolListUpdater) querySubgraph(
 	var response struct {
 		Pools []*SubgraphPool `json:"pools"`
 	}
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  DexTypeMaverickV1,
 			"error": err,

@@ -2,6 +2,7 @@ package liquiditybookv21
 
 import (
 	"context"
+	"github.com/machinebox/graphql"
 	"math/big"
 	"sort"
 	"strconv"
@@ -10,7 +11,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

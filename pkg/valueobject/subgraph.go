@@ -6,6 +6,12 @@ import (
 	"github.com/KyberNetwork/logger"
 )
 
+type SubgraphSource string
+
+var (
+	SubgraphSourceTheGraph SubgraphSource = "thegraph"
+)
+
 type SubgraphMeta struct {
 	Block struct {
 		Timestamp int64 `json:"timestamp"`
