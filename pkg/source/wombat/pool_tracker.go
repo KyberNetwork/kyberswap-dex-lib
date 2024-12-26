@@ -2,9 +2,7 @@ package wombat
 
 import (
 	"context"
-	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
@@ -19,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -72,6 +69,9 @@ func (d *PoolTracker) getNewPoolState(
 	var paused bool
 	var assetAddresses = make([]common.Address, len(p.Tokens))
 
+	// We use the asset's underlying token as the key to check whether an asset is paused.
+	var isAssetPaused = make([]bool, len(p.Tokens))
+
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		calls.SetOverrides(overrides)
@@ -114,6 +114,12 @@ func (d *PoolTracker) getNewPoolState(
 			Method: poolMethodAddressOfAsset,
 			Params: []interface{}{common.HexToAddress(token.Address)},
 		}, []interface{}{&assetAddresses[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    PoolV2ABI,
+			Target: p.Address,
+			Method: poolMethodIsPaused,
+			Params: []interface{}{common.HexToAddress(token.Address)},
+		}, []interface{}{&isAssetPaused[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -163,36 +169,16 @@ func (d *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	subgraphQuery, err := d.querySubgraph(ctx, p)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"err":         err,
-		}).Errorf("failed to query subgraph")
-
-		return entity.Pool{}, err
-	}
-
 	var assetMap = make(map[string]Asset)
 	var reserves = make([]string, len(p.Tokens))
 	for i, token := range p.Tokens {
-		isPaused := false
-		reserves[i] = zeroString
-		if subgraphQuery != nil {
-			for _, assetQuery := range subgraphQuery.Assets {
-				if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
-					isPaused = assetQuery.IsPaused
-				}
-			}
-		}
-
 		// This pool has token in subgraph but not in contract: https://bscscan.com/address/0x2ea772346486972e7690219c190dadda40ac5da4#readProxyContract
 		if eth.IsZeroAddress(assetAddresses[i]) {
 			continue
 		}
 
 		assetMap[token.Address] = Asset{
-			IsPause:                 isPaused,
+			IsPause:                 isAssetPaused[i],
 			Address:                 assetAddresses[i].Hex(),
 			UnderlyingTokenDecimals: p.Tokens[i].Decimals,
 			Cash:                    cashes[i],
@@ -233,38 +219,4 @@ func (d *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
-}
-
-func (d *PoolTracker) querySubgraph(
-	ctx context.Context,
-	p entity.Pool,
-) (*SubgraphAsset, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
-		_meta { block { timestamp }}
-		pool(
-			id: "%v"
-		  ) {
-			assets {
-			  id
-			  isPaused
-			}
-		  }
-	}`, p.Address),
-	)
-
-	var response struct {
-		Pool *SubgraphAsset            `json:"pool"`
-		Meta *valueobject.SubgraphMeta `json:"_meta"`
-	}
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
-		logger.WithFields(logger.Fields{
-			"type":  DexTypeWombat,
-			"error": err,
-		}).Errorf("failed to query subgraph to get pools")
-		return nil, err
-	}
-
-	response.Meta.CheckIsLagging(d.config.DexID, p.Address)
-
-	return response.Pool, nil
 }

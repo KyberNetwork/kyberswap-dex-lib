@@ -26,7 +26,6 @@ type RFQ struct {
 	BaseToken           string   `json:"baseToken"`
 	QuoteToken          string   `json:"quoteToken"`
 	BaseTokenAmount     string   `json:"baseTokenAmount"`
-	QuoteTokenAmount    string   `json:"quoteTokenAmount"`
 	Trader              string   `json:"trader"`
 	EffectiveTrader     string   `json:"effectiveTrader"`
 	RewardTrader        string   `json:"rewardTrader"`
