@@ -10,6 +10,7 @@ import (
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -271,6 +272,7 @@ type Types struct {
 	MxTrading                      string
 	LO1inch                        string
 	VirtualFun                     string
+	BeetsSS                        string
 }
 
 var (
@@ -414,5 +416,6 @@ var (
 		MxTrading:                      mxtrading.DexType,
 		LO1inch:                        lo1inch.DexType,
 		VirtualFun:                     virtualfun.DexType,
+		BeetsSS:                        beetsss.DexType,
 	}
 )
