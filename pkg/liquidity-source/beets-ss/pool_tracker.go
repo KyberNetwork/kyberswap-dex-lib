@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -27,17 +29,34 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	blocknumber, totalAssets, totalSupply, depositPaused, err := d.getPoolData(ctx)
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	blocknumber, totalAssets, totalSupply, depositPaused, err := t.getPoolData(ctx, overrides)
 	if err != nil {
 		return p, err
 	}
 
-	return d.updatePool(p, blocknumber, totalAssets, totalSupply, depositPaused)
+	return t.updatePool(p, blocknumber, totalAssets, totalSupply, depositPaused)
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, blocknumber, totalAssets, totalSupply *big.Int, depositPaused bool) (entity.Pool, error) {
@@ -59,8 +78,11 @@ func (d *PoolTracker) updatePool(pool entity.Pool, blocknumber, totalAssets, tot
 	return pool, nil
 }
 
-func (d *PoolTracker) getPoolData(ctx context.Context) (*big.Int, *big.Int, *big.Int, bool, error) {
+func (d *PoolTracker) getPoolData(ctx context.Context, overrides map[common.Address]gethclient.OverrideAccount) (*big.Int, *big.Int, *big.Int, bool, error) {
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
 	var (
 		totalAssets   = ZERO
