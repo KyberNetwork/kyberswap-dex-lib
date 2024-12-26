@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestGetRoutesParamsValidator_Validate(t *testing.T) {
@@ -104,7 +105,9 @@ func TestGetRoutesParamsValidator_Validate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.Validate(tc.params)
 
@@ -113,7 +116,7 @@ func TestGetRoutesParamsValidator_Validate(t *testing.T) {
 	}
 }
 
-func TestGetRoutesParamsValidator_validateTokenIn(t *testing.T) {
+func TestGetRoutesParamsValidator_validateTokens(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -146,49 +149,45 @@ func TestGetRoutesParamsValidator_validateTokenIn(t *testing.T) {
 			tokenOut: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 			err:      nil,
 		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
-
-			err := validator.validateTokenIn(tc.tokenIn, tc.tokenOut)
-
-			assert.Equal(t, tc.err, err)
-		})
-	}
-}
-
-func TestGetRoutesParamsValidator_validateTokenOut(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name     string
-		tokenOut string
-		err      error
-	}{
 		{
 			name:     "it should return [tokenOut|required]",
+			tokenIn:  "0x0000000000000000000000000000000000000000",
 			tokenOut: "",
 			err:      NewValidationError("tokenOut", "required"),
 		},
 		{
 			name:     "it should return [tokenOut|invalid]",
+			tokenIn:  "0x0000000000000000000000000000000000000000",
 			tokenOut: "abc",
 			err:      NewValidationError("tokenOut", "invalid"),
 		},
 		{
 			name:     "it should return nil",
+			tokenIn:  "0x0000000000000000000000000000000000000000",
 			tokenOut: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 			err:      nil,
+		},
+		{
+			name:     "it should return [tokens|swapping between native and wrapped native is not allowed]",
+			tokenIn:  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // wETH
+			tokenOut: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // ETH
+			err:      NewValidationError("tokens", "swapping between native and wrapped native is not allowed"),
+		},
+		{
+			name:     "it should return [tokens|swapping between native and wrapped native is not allowed]",
+			tokenIn:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", // ETH
+			tokenOut: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // wETH
+			err:      NewValidationError("tokens", "swapping between native and wrapped native is not allowed"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
-			err := validator.validateTokenOut(tc.tokenOut)
+			err := validator.validateTokens(tc.tokenIn, tc.tokenOut)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -222,7 +221,9 @@ func TestGetRoutesParamsValidator_validateAmountIn(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateAmountIn(tc.amountIn)
 
@@ -258,7 +259,9 @@ func TestGetRoutesParamsValidator_validateFeeReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateFeeReceiver(tc.feeReceiver)
 
@@ -294,7 +297,9 @@ func TestGetRoutesParamsValidator_validateFeeAmount(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateFeeAmount(tc.feeAmount)
 
@@ -334,7 +339,9 @@ func TestGetRoutesParamsValidator_validateChargeFeeBy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateChargeFeeBy(tc.chargeFeeBy, tc.feeAmount)
 
@@ -370,7 +377,9 @@ func TestGetRoutesParamsValidator_validateGasPrice(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateGasPrice(tc.gasPrice)
 
@@ -406,7 +415,9 @@ func TestGetRoutesSourcesValidator_validateSources(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRoutesParamsValidator{}
+			validator := getRoutesParamsValidator{
+				chainID: valueobject.ChainIDEthereum,
+			}
 
 			err := validator.validateSources(tc.sources)
 

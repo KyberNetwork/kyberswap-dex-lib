@@ -258,7 +258,7 @@ func apiAction(c *cli.Context) (err error) {
 	slippageValidator := validator.NewSlippageValidator(cfg.Validator.SlippageValidatorConfig)
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
-	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
+	getRoutesParamsValidator := validator.NewGetRouteParamsValidator(cfg.Common.ChainID)
 	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc,
 		cfg.Validator.GetRouteEncodeParams, blackjackRepo, slippageValidator)
 	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc,

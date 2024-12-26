@@ -5,16 +5,19 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
-type getRoutesParamsValidator struct{}
+type getRoutesParamsValidator struct {
+	chainID valueobject.ChainID
+}
 
-func NewGetRouteParamsValidator() *getRoutesParamsValidator {
-	return &getRoutesParamsValidator{}
+func NewGetRouteParamsValidator(chainID valueobject.ChainID) *getRoutesParamsValidator {
+	return &getRoutesParamsValidator{
+		chainID: chainID,
+	}
 }
 
 func (v *getRoutesParamsValidator) ValidateBundled(params params.GetBundledRoutesParams) error {
@@ -22,11 +25,7 @@ func (v *getRoutesParamsValidator) ValidateBundled(params params.GetBundledRoute
 		return NewValidationError("tokensIn", "should have same length with tokensOut and amountsIn")
 	}
 	for i, tokenIn := range params.TokensIn {
-		if err := v.validateTokenIn(tokenIn, params.TokensOut[i]); err != nil {
-			return err
-		}
-
-		if err := v.validateTokenOut(params.TokensOut[i]); err != nil {
+		if err := v.validateTokens(tokenIn, params.TokensOut[i]); err != nil {
 			return err
 		}
 
@@ -54,11 +53,7 @@ func (v *getRoutesParamsValidator) ValidateBundled(params params.GetBundledRoute
 }
 
 func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error {
-	if err := v.validateTokenIn(params.TokenIn, params.TokenOut); err != nil {
-		return err
-	}
-
-	if err := v.validateTokenOut(params.TokenOut); err != nil {
+	if err := v.validateTokens(params.TokenIn, params.TokenOut); err != nil {
 		return err
 	}
 
@@ -92,7 +87,8 @@ func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error
 	return nil
 }
 
-func (v *getRoutesParamsValidator) validateTokenIn(tokenIn, tokenOut string) error {
+func (v *getRoutesParamsValidator) validateTokens(tokenIn, tokenOut string) error {
+	// validate tokenIn
 	if len(tokenIn) == 0 {
 		return NewValidationError("tokenIn", "required")
 	}
@@ -105,16 +101,18 @@ func (v *getRoutesParamsValidator) validateTokenIn(tokenIn, tokenOut string) err
 		return NewValidationError("tokenIn", "identical with tokenOut")
 	}
 
-	return nil
-}
-
-func (v *getRoutesParamsValidator) validateTokenOut(tokenOut string) error {
+	// validate tokenOut
 	if len(tokenOut) == 0 {
 		return NewValidationError("tokenOut", "required")
 	}
 
 	if !IsEthereumAddress(tokenOut) {
 		return NewValidationError("tokenOut", "invalid")
+	}
+
+	if strings.EqualFold(valueobject.WrapNativeLower(tokenIn, v.chainID), tokenOut) ||
+		strings.EqualFold(valueobject.WrapNativeLower(tokenOut, v.chainID), tokenIn) {
+		return NewValidationError("tokens", "swapping between native and wrapped native is not allowed")
 	}
 
 	return nil
