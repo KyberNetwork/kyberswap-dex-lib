@@ -24,8 +24,8 @@ github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXA
 github.com/KyberNetwork/kutils v0.3.8/go.mod h1:n8qRo+TkBkqspGRKu52h/UP5GvIxoSxWueTpgvHMuvo=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.85.9 h1:rYqE8yarePKUpex3ULRZyRqrBs2uOMfaI+UGDhVp9jc=
-github.com/KyberNetwork/kyberswap-dex-lib v0.85.9/go.mod h1:uz2ham42Lo5rVkFK6tQrNmBAdy7uGOtkPMX9+pG76+U=
+github.com/KyberNetwork/kyberswap-dex-lib v0.85.10 h1:nh1+LV3QGxpmMmQsj8m68UYsU058WonZKPbqS1PzdMU=
+github.com/KyberNetwork/kyberswap-dex-lib v0.85.10/go.mod h1:H+SOhgSJ/tlq36vju2DQ+Vsi/ndO4POFpVzH3aKmHd8=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0 h1:j5bQk6vgFyzbtyVZfuLSzlP/st4yQmTqeRrx8h2ZBqM=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0/go.mod h1:N02KxZO8LWxowVLH8kDDl/H5gEllsl60oxZVdVvdzCY=
 github.com/KyberNetwork/logger v0.2.1 h1:ZkP/I7PN8Dx1lWRiEw8pfuhiG6BXTAfcuQTzU/3Z0DQ=
@@ -44,8 +44,8 @@ github.com/KyberNetwork/service-framework v0.7.1 h1:JzH6kFGDJ3cxp8hMhXgrF+nMI5xc
 github.com/KyberNetwork/service-framework v0.7.1/go.mod h1:lzKwacWMYgCtv6diZwVsTO+8Q1MCHY6HT/rdxxQCkRY=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.2 h1:+VB8Q7W0F6D0ubyLg/6fCrGuDRncYtePC0XmclyKSP0=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.2/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
-github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.2 h1:fTBII1LpxH8b+zz2Y728VuFRYbUJgh0cfH/XYWJx8bI=
-github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.2/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
+github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.3 h1:J0odlUz0NVgtawgnanos/lkYUCcs0o76j3JY9pvURCo=
+github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.3/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/VictoriaMetrics/fastcache v1.12.2 h1:N0y9ASrJ0F6h0QaC3o6uJb3NIZ9VKLjCM7NQbSmF7WI=
