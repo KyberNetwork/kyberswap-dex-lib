@@ -215,6 +215,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeVirtualBC
 	dexValueObject.ExchangeVirtualFun: {},
+
+	// executeBeetsSS
+	dexValueObject.ExchangeBeetsSS: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

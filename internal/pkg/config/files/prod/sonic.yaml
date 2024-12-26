@@ -38,6 +38,7 @@ common:
     - "silverswap"
     - "sboom"
     - "dyor-swap"
+    - "beets-ss"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

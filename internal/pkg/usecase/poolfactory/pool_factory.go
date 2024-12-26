@@ -23,6 +23,7 @@ import (
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -728,7 +729,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newLO1inch(entityPool)
 	case pooltypes.PoolTypes.VirtualFun:
 		return f.newVirtualFun(entityPool)
-
+	case pooltypes.PoolTypes.BeetsSS:
+		return f.newBeetsSS(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2538,6 +2540,19 @@ func (f *PoolFactory) newVirtualFun(entityPool entity.Pool) (*virtualfun.PoolSim
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVirtualFun] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBeetsSS(entityPool entity.Pool) (*beetsss.PoolSimulator, error) {
+	corePool, err := beetsss.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBeetsSS] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type)
 	}
