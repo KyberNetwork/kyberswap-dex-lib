@@ -69,7 +69,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
 
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  tc.tokenIn,
@@ -113,7 +113,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
 
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 					TokenAmountOut: pool.TokenAmount{
 						Token:  tc.tokenOut,

@@ -94,7 +94,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			tc.entityPool.Extra = string(extraBytes)
 			pool, _ := NewPoolSimulator(tc.entityPool)
 
-			calcAmountOutResult, err := testutil.MustConcurrentSafe[*poolPkg.CalcAmountOutResult](t, func() (any, error) {
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
 					TokenAmountIn: tc.tokenAmountIn,
 					TokenOut:      tc.tokenOut,

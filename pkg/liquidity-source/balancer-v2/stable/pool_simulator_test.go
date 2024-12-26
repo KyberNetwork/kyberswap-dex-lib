@@ -45,7 +45,7 @@ func TestCalcAmountOut(t *testing.T) {
 			Amount: new(big.Int).SetUint64(99999910000000),
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
-		_, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -90,7 +90,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "1000000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -138,7 +138,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "590000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -198,7 +198,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "63551050657042642"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -338,7 +338,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			simulator, err := NewPoolSimulator(pool)
 			assert.Nil(t, err)
 
-			got, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
 				return simulator.CalcAmountIn(tt.params)
 			})
 			if err != nil {

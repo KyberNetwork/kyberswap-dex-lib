@@ -59,7 +59,7 @@ func TestGetAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, err := NewPoolSimulator(tc.entityPool)
 			assert.Nil(t, err)
-			calcAmountOutResult, err := testutil.MustConcurrentSafe[*poolPkg.CalcAmountOutResult](t, func() (any, error) {
+			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*poolPkg.CalcAmountOutResult, error) {
 				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
 					TokenAmountIn: tc.tokenAmountIn,
 					TokenOut:      tc.tokenOut,

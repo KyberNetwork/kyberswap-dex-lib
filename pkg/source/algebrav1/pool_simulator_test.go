@@ -43,7 +43,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
@@ -101,7 +101,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
@@ -145,7 +145,7 @@ func TestPoolSimulator_CalcAmountOut_SPL(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			_, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
@@ -183,7 +183,7 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
@@ -234,7 +234,7 @@ func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
@@ -274,7 +274,7 @@ func TestPoolSimulator_CalcAmountOut_DirFee(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,

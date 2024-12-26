@@ -1,26 +1,18 @@
 package integral
 
 import (
-	"errors"
-
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
 
-func unsafeDivRoundingUp(x, y *uint256.Int) (*uint256.Int, error) {
-	if y.Sign() == 0 {
-		return nil, errors.New("division by zero")
-	}
-
-	quotient := new(uint256.Int).Div(x, y)
-
-	remainder := new(uint256.Int).Mod(x, y)
+func unsafeDivRoundingUp(x, y *uint256.Int) *uint256.Int {
+	quotient, remainder := new(uint256.Int).DivMod(x, y, new(uint256.Int))
 	if remainder.Sign() > 0 {
-		quotient.Add(quotient, uONE)
+		quotient.AddUint64(quotient, 1)
 	}
 
-	return quotient, nil
+	return quotient
 }
 
 func addDelta(x *uint256.Int, y *int256.Int) (*uint256.Int, error) {

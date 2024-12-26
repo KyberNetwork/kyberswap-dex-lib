@@ -849,7 +849,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
