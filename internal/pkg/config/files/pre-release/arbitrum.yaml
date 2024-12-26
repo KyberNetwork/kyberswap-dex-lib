@@ -226,6 +226,8 @@ encoder:
       percent:
       feeMode:
       feeSharingAddress:
+    kyberswap:
+      feeSharingAddress: 0x0000000000000000000000000000000000000000
   functionSelectorMappingID: # This map can be updated when we change l2 executor address
     executeUniSwap: 0
     executeKyberClassic: 1

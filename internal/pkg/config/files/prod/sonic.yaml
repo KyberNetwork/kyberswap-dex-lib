@@ -132,6 +132,8 @@ encoder:
       percent:
       feeMode:
       feeSharingAddress:
+    kyberswap:
+      feeSharingAddress: 0x0000000000000000000000000000000000000000
 useCase:
   getRoute:
     chainId: *chainId
