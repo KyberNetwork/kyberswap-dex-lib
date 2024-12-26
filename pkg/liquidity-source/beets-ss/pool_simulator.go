@@ -12,7 +12,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -169,7 +168,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
 	cloned.totalAssets = p.totalAssets.Clone()
 	cloned.totalSupply = p.totalSupply.Clone()
