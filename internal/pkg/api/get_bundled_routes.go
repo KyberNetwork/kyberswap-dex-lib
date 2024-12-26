@@ -100,17 +100,18 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 	}
 
 	return dto.GetBundledRoutesQuery{
-		Pairs:               pairs,
-		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
-		ExcludedSources:     utils.TransformSliceParams(params.ExcludedSources),
-		OnlyScalableSources: params.OnlyScalableSources,
-		SaveGas:             params.SaveGas,
-		GasInclude:          params.GasInclude,
-		GasPrice:            gasPrice,
-		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
-		ClientId:            params.ClientId,
-		OverridePools:       params.OverridePools,
-		Index:               params.Index,
+		Pairs:                  pairs,
+		IncludedSources:        utils.TransformSliceParams(params.IncludedSources),
+		ExcludedSources:        utils.TransformSliceParams(params.ExcludedSources),
+		OnlyScalableSources:    params.OnlyScalableSources,
+		SaveGas:                params.SaveGas,
+		GasInclude:             params.GasInclude,
+		GasPrice:               gasPrice,
+		ExcludedPools:          mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
+		ClientId:               params.ClientId,
+		OverridePools:          params.OverridePools,
+		ExtraWhitelistedTokens: utils.TransformSliceParams(params.ExtraWhitelistedTokens),
+		Index:                  params.Index,
 	}, nil
 }
 

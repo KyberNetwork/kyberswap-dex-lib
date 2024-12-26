@@ -3,6 +3,7 @@ package getroute
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -200,6 +201,14 @@ func (a *bundledAggregator) findBestBundledRoute(
 	}
 	gasTokenPrice := GetPrice(params.GasToken, priceByAddress, true)
 
+	whitelistedTokenSet := a.config.WhitelistedTokenSet
+	if len(params.ExtraWhitelistedTokens) > 0 {
+		whitelistedTokenSet = maps.Clone(a.config.WhitelistedTokenSet)
+		for _, token := range params.ExtraWhitelistedTokens {
+			whitelistedTokenSet[token] = true
+		}
+	}
+
 	for _, pair := range params.Pairs {
 		tokenIn, ok := tokenByAddress[pair.TokenIn]
 		if !ok {
@@ -241,7 +250,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			}
 		}
 		findRouteParams := ConvertToPathfinderParams(
-			a.config.WhitelistedTokenSet,
+			whitelistedTokenSet,
 			&pairParams,
 			tokenByAddress,
 			priceByAddress,

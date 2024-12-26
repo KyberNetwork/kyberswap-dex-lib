@@ -37,6 +37,9 @@ type GetBundledRoutesParams struct {
 
 	OverridePools json.RawMessage `form:"overridePools"`
 
+	// ExtraWhitelistedTokens name of token addresses are included in whitelisted when finding route, separated by comma
+	ExtraWhitelistedTokens string `form:"extraWhitelistedTokens" binding:"max=215"`
+
 	Index string `form:"index"`
 }
 

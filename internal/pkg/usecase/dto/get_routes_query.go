@@ -51,7 +51,8 @@ type GetBundledRoutesQuery struct {
 	ExcludedPools mapset.Set[string]
 	ClientId      string
 
-	OverridePools json.RawMessage
+	OverridePools          json.RawMessage
+	ExtraWhitelistedTokens []string
 
 	Index string
 }

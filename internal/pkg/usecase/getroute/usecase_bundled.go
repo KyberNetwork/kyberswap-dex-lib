@@ -132,16 +132,17 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 	}
 
 	return &types.AggregateBundledParams{
-		Pairs:              pairs,
-		GasToken:           u.config.GasTokenAddress,
-		Sources:            sources,
-		SaveGas:            query.SaveGas,
-		GasInclude:         query.GasInclude,
-		GasPrice:           gasPrice,
-		IsHillClimbEnabled: u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
-		Index:              index,
-		ExcludedPools:      query.ExcludedPools,
-		ClientId:           query.ClientId,
-		OverridePools:      overridePools,
+		Pairs:                  pairs,
+		GasToken:               u.config.GasTokenAddress,
+		Sources:                sources,
+		SaveGas:                query.SaveGas,
+		GasInclude:             query.GasInclude,
+		GasPrice:               gasPrice,
+		IsHillClimbEnabled:     u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:                  index,
+		ExcludedPools:          query.ExcludedPools,
+		ClientId:               query.ClientId,
+		OverridePools:          overridePools,
+		ExtraWhitelistedTokens: query.ExtraWhitelistedTokens,
 	}, nil
 }

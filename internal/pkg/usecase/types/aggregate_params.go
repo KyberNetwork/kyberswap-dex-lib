@@ -104,4 +104,7 @@ type AggregateBundledParams struct {
 	Pairs []AggregateBundledParamsPair
 
 	OverridePools []*entity.Pool
+
+	// ExtraWhitelistedTokens list of token addresses are included in whitelisted when finding route
+	ExtraWhitelistedTokens []string
 }
