@@ -11,7 +11,7 @@ import (
 
 type Config struct {
 	DexID                  string                `json:"dexID"`
-	SubgraphURL            string                `json:"subgraphUrl"`
+	SubgraphAPI            string                `json:"subgraphAPI"`
 	SubgraphHeaders        http.Header           `json:"subgraphHeaders"`
 	SubgraphRequestTimeout durationjson.Duration `json:"subgraphRequestTimeout"`
 	SubgraphLimit          uint64                `json:"subgraphLimit"`

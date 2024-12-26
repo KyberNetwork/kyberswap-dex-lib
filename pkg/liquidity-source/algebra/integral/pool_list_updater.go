@@ -3,49 +3,45 @@ package integral
 import (
 	"context"
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"strconv"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kutils"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
-	config        *Config
-	graphqlClient *graphql.Client
+	config           *Config
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolsListUpdater{
-		config:        cfg,
-		graphqlClient: graphqlClient,
+		config:           cfg,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, lastPoolIds []string, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.AllowSubgraphError
 
-	req := graphql.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, lastPoolIds, first, skip))
+	req := mutableclient.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, lastPoolIds, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
 
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
 		if allowSubgraphError && len(response.Pools) > 0 {
 			return response.Pools, nil
 		}

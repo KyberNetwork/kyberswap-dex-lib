@@ -2,40 +2,39 @@ package wombat
 
 import (
 	"context"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolTracker struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	config           *Config
+	ethrpcClient     *ethrpc.Client
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
-func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolTracker(
+	cfg *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
+) *PoolTracker {
 	return &PoolTracker{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:           cfg,
+		ethrpcClient:     ethrpcClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 

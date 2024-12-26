@@ -2,6 +2,7 @@ package algebrav1
 
 import (
 	"context"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"time"
 
@@ -11,36 +12,32 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	config           *Config
+	ethrpcClient     *ethrpc.Client
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolTracker{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:           cfg,
+		ethrpcClient:     ethrpcClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}, nil
 }
 
@@ -622,14 +619,14 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
+		req := mutableclient.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
 
 		var resp struct {
 			Pool *SubgraphPoolTicks        `json:"pool"`
 			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &resp); err != nil {
 			if allowSubgraphError {
 				if resp.Pool == nil {
 					l.WithFields(logger.Fields{

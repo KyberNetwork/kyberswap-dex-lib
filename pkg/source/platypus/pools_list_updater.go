@@ -3,6 +3,7 @@ package platypus
 import (
 	"context"
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"strings"
 	"time"
@@ -11,30 +12,29 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
-	config        *Config
-	graphqlClient *graphql.Client
-	ethClient     *ethrpc.Client
+	config           *Config
+	ethClient        *ethrpc.Client
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
-func NewPoolsListUpdater(cfg *Config, ethClient *ethrpc.Client) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolsListUpdater(
+	cfg *Config,
+	ethClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
+) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:        cfg,
-		graphqlClient: graphqlClient,
-		ethClient:     ethClient,
+		config:           cfg,
+		ethClient:        ethClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
@@ -99,7 +99,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	ctx context.Context,
 	lastUpdate string,
 ) ([]SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := mutableclient.NewRequest(fmt.Sprintf(`{
 		pools (
 			where: {
 				lastUpdate_gte: "%s"
@@ -115,7 +115,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
-	if err := p.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := p.graphqlClient.Run(ctx, p.graphqlClientCfg, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"lastUpdate": lastUpdate,
 			"error":      err,

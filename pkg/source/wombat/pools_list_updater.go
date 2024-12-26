@@ -3,40 +3,36 @@ package wombat
 import (
 	"context"
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 )
 
 type PoolsListUpdater struct {
-	config        *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	config           *Config
+	ethrpcClient     *ethrpc.Client
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolsListUpdater{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:           cfg,
+		ethrpcClient:     ethrpcClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
@@ -145,7 +141,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	ctx context.Context,
 	lastCreateTime uint64,
 ) ([]*SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := mutableclient.NewRequest(fmt.Sprintf(`{
 		pools(
 			orderBy: createdTimestamp
 			orderDirection: asc
@@ -167,7 +163,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	var response struct {
 		Pools []*SubgraphPool `json:"pools"`
 	}
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  DexTypeWombat,
 			"error": err,

@@ -2,6 +2,7 @@ package gyro2clp
 
 import (
 	"context"
+	mutableclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
 	"math/big"
 	"strings"
 	"time"
@@ -18,24 +19,33 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config        Config
-	ethrpcClient  *ethrpc.Client
-	sharedUpdater *shared.PoolsListUpdater
+	config           Config
+	ethrpcClient     *ethrpc.Client
+	sharedUpdater    *shared.PoolsListUpdater
+	graphqlClient    *mutableclient.MutableClient
+	graphqlClientCfg *mutableclient.Config
 }
 
-func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(
+	config *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *mutableclient.MutableClient,
+	graphqlClientCfg *mutableclient.Config,
+) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolType},
-	})
+	}, graphqlClient, graphqlClientCfg)
 
 	return &PoolsListUpdater{
-		config:        *config,
-		ethrpcClient:  ethrpcClient,
-		sharedUpdater: sharedUpdater,
+		config:           *config,
+		ethrpcClient:     ethrpcClient,
+		sharedUpdater:    sharedUpdater,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
