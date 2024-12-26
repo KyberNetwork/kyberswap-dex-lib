@@ -87,11 +87,11 @@ type GlobalState struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int    `json:"liquidity"`
-	State       GlobalState `json:"state"`
-	TickSpacing *big.Int    `json:"tickSpacing"`
-	Reserve0    *big.Int    `json:"reserve0"`
-	Reserve1    *big.Int    `json:"reserve1"`
+	Liquidity   *big.Int
+	State       GlobalState
+	TickSpacing *big.Int
+	Reserve0    *big.Int
+	Reserve1    *big.Int
 
 	Timepoints       map[uint16]Timepoint
 	VolatilityOracle VolatilityOraclePlugin
@@ -133,9 +133,9 @@ type Extra struct {
 }
 
 type VolatilityOraclePlugin struct {
-	TimepointIndex         uint16
-	LastTimepointTimestamp uint32
-	IsInitialized          bool
+	TimepointIndex         uint16 `json:"tpIdx,omitempty"`
+	LastTimepointTimestamp uint32 `json:"lastTs,omitempty"`
+	IsInitialized          bool   `json:"init,omitempty"`
 }
 
 type DynamicFeeConfig struct {
@@ -156,7 +156,7 @@ type SlidingFeeConfig struct {
 }
 
 type StaticExtra struct {
-	UseBasePluginV2 bool `json:"2"`
+	UseBasePluginV2 bool `json:"pluginV2"`
 }
 
 // StateUpdate to be returned instead of updating state when calculating amountOut

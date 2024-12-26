@@ -22,13 +22,10 @@ const (
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
 
-	poolTicksMethod          = "ticks"
-	poolLiquidityMethod      = "liquidity"
-	poolGlobalStateMethod    = "globalState"
-	poolTickSpacingMethod    = "tickSpacing"
-	PoolPrevTickGlobalMethod = "prevTickGlobal"
-	PoolNextTickGlobalMethod = "nextTickGlobal"
-	poolPluginMethod         = "plugin"
+	poolLiquidityMethod   = "liquidity"
+	poolGlobalStateMethod = "globalState"
+	poolTickSpacingMethod = "tickSpacing"
+	poolPluginMethod      = "plugin"
 
 	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
 
