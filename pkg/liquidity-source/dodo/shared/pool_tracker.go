@@ -239,6 +239,11 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[DodoV2] failed to aggregate for pool data")
+		if p.Extra != "" {
+			p.Extra = ""
+			p.Reserves = entity.PoolReserves{"0", "0"}
+			return p, nil
+		}
 		return entity.Pool{}, err
 	}
 
