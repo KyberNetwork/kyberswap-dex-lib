@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
@@ -20,6 +21,14 @@ func NewBig10(s string) (res *big.Int) {
 
 func NewBig(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 0)
+	return res
+}
+
+func CeilBigFloat(bf *big.Float) *big.Int {
+	res, accuracy := bf.Int(nil)
+	if accuracy == big.Below {
+		res.Add(res, bignumber.One)
+	}
 	return res
 }
 

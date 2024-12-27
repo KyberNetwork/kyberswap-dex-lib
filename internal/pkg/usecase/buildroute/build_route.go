@@ -180,7 +180,7 @@ func (uc *BuildRouteUseCase) rfq(
 	defer span.End()
 
 	executorAddress := uc.encodeBuilder.
-		GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).
+		GetEncoder(uc.config.ChainID).
 		GetExecutorAddress(source)
 
 	rfqParamsByPoolType := make(map[string][]valueobject.IndexedRFQParams)
@@ -222,6 +222,10 @@ func (uc *BuildRouteUseCase) rfq(
 		}
 	}
 
+	if len(rfqParamsByPoolType) == 0 {
+		return routeSummary, nil
+	}
+
 	// NOTE: Each swap in the path must process RFQ pools sequentially,
 	// as the `newAmountOut` from one swap becomes the `newAmountIn` for the subsequent swap.
 	// We can only parallelize processing for different paths within the route.
@@ -249,29 +253,44 @@ func (uc *BuildRouteUseCase) rfq(
 		return routeSummary, errors.WithMessage(err, "rfq failed")
 	}
 
+	return uc.estimateRFQSlippage(ctx, routeSummary, slippageTolerance)
+}
+
+// Currently, we do not recalculate amountIn and amountOut for each swap after RFQ.
+// estimateRFQSlippage estimates routeSummary.amountOut after RFQ and compares with acceptableRFQAmountOut.
+func (uc *BuildRouteUseCase) estimateRFQSlippage(
+	ctx context.Context,
+	routeSummary valueobject.RouteSummary,
+	slippageTolerance int64,
+) (valueobject.RouteSummary, error) {
 	// Estimate new amount out after RFQ
-	var estimatedAfterRFQAmountOut big.Int
+	var estimatedAfterRFQAmountOutBF big.Float
 	for _, path := range routeSummary.Route {
-		var estimatedAmountOutBF big.Float
-		previousAmountOut := big.NewInt(0)
+		var (
+			estimatedAmountOutBF big.Float
+			previousAmountOutBF  big.Float
+		)
 		for _, swap := range path {
-			var estimatedAmountInBF big.Float
-			if previousAmountOut.Sign() == 0 || previousAmountOut.Cmp(swap.SwapAmount) > 0 {
-				estimatedAmountInBF.SetInt(swap.SwapAmount)
+			amountInBF := new(big.Float).SetInt(swap.SwapAmount)
+			estimatedAmountInBF := new(big.Float)
+			if previousAmountOutBF.Sign() == 0 || previousAmountOutBF.Cmp(amountInBF) > 0 {
+				estimatedAmountInBF.Set(amountInBF)
 			} else {
-				estimatedAmountInBF.SetInt(previousAmountOut)
+				estimatedAmountInBF.Set(&previousAmountOutBF)
 			}
 
-			// estimatedAmountOut = amountOut * (estimatedAmountIn / swapAmount)
+			// estimatedAmountOutBF = amountOut * estimatedAmountInBF / amountInBF
 			estimatedAmountOutBF.SetInt(swap.AmountOut).
-				Mul(&estimatedAmountOutBF, &estimatedAmountInBF).
-				Quo(&estimatedAmountOutBF, new(big.Float).SetInt(swap.SwapAmount))
+				Mul(&estimatedAmountOutBF, estimatedAmountInBF).
+				Quo(&estimatedAmountOutBF, amountInBF)
 
-			previousAmountOut, _ = estimatedAmountOutBF.Int(nil)
+			previousAmountOutBF.Set(&estimatedAmountOutBF)
 		}
-		estimatedAmountOut, _ := estimatedAmountOutBF.Int(nil)
-		estimatedAfterRFQAmountOut.Add(&estimatedAfterRFQAmountOut, estimatedAmountOut)
+
+		estimatedAfterRFQAmountOutBF.Add(&estimatedAfterRFQAmountOutBF, &estimatedAmountOutBF)
 	}
+
+	estimatedAfterRFQAmountOut := utils.CeilBigFloat(&estimatedAfterRFQAmountOutBF)
 
 	estimatedAfterRFQAmountOutFloat64, _ := estimatedAfterRFQAmountOut.Float64()
 	amountOutFloat64, _ := routeSummary.AmountOut.Float64()
