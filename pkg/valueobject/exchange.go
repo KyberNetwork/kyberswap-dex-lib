@@ -166,6 +166,7 @@ var (
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
 	ExchangeSolidlyV3   Exchange = "solidly-v3"
+	ExchangeSolidlyV2   Exchange = "solidly-v2"
 	ExchangeZero        Exchange = "zero"
 	ExchangeZebraV2     Exchange = "zebra-v2"
 
@@ -388,7 +389,6 @@ var (
 	ExchangeSonicMarket      Exchange = "sonic-market"
 	ExchangeSboom            Exchange = "sboom"
 	ExchangeBeetsSS          Exchange = "beets-ss"
-	ExchangeMemeDex          Exchange = "meme-dex"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -529,6 +529,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
 	ExchangeSolidlyV3:                  {},
+	ExchangeSolidlyV2:                  {},
 	ExchangeZero:                       {},
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV2Stable:           {},
@@ -709,7 +710,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSonicMarket:                {},
 	ExchangeSboom:                      {},
 	ExchangeBeetsSS:                    {},
-	ExchangeMemeDex:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
