@@ -24,7 +24,7 @@ type (
 	}
 
 	RouteSummaryValidation struct {
-		Checksum  uint64 `json:"checksum"`
+		Checksum  string `json:"checksum"`
 		Timestamp int64  `json:"timestamp"`
 	}
 

@@ -78,6 +78,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 	}
 
 	permit := common.FromHex(params.Permit)
+	num, _ := strconv.ParseUint(params.RouteSummary.Checksum, 10, 64)
 
 	return dto.BuildRouteCommand{
 		RouteSummary:        routeSummary,
@@ -89,7 +90,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 		Sender:              params.Sender,
 		Permit:              permit,
 		EnableGasEstimation: params.EnableGasEstimation,
-		Checksum:            params.RouteSummary.Checksum,
+		Checksum:            num,
 	}, nil
 }
 

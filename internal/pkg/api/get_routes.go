@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 
@@ -147,7 +148,7 @@ func transformGetRoutesResult(result *dto.GetRoutesResult) *params.GetRoutesResp
 	}
 
 	summary := transformRouteSummary(result.RouteSummary)
-	summary.Checksum = result.Checksum
+	summary.Checksum = fmt.Sprintf("%d", result.Checksum)
 	summary.Timestamp = result.RouteSummary.Timestamp
 
 	return &params.GetRoutesResponse{
