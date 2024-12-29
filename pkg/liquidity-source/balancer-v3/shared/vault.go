@@ -5,11 +5,19 @@ import (
 	"github.com/holiman/uint256"
 )
 
-func Swap(
+type vault struct{}
+
+var Vault *vault
+
+func init() {
+	Vault = &vault{}
+}
+
+func (v *vault) Swap(
 	param VaultSwapParams,
 	onSwap func(_ bool, _, _ int, _ *uint256.Int) (*uint256.Int, error),
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	amountGivenScaled18, err := ComputeAmountGivenScaled18(true, param.AmountGiven, param.DecimalScalingFactor, param.TokenRate)
+	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(true, param.AmountGiven, param.DecimalScalingFactor, param.TokenRate)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -37,12 +45,12 @@ func Swap(
 		return nil, nil, nil, ErrTradeAmountTooSmall
 	}
 
-	amountCalculated, err := ComputeAmountCalculatedRaw(true, amountGivenScaled18, param.SwapFeePercentage, param.DecimalScalingFactor, param.TokenRate)
+	amountCalculated, err := v.ComputeAmountCalculatedRaw(true, amountGivenScaled18, param.SwapFeePercentage, param.DecimalScalingFactor, param.TokenRate)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	totalSwapFee, aggregateFee, err := ComputeAggregateSwapFees(true, swapFeeScaled18, param.AggregateSwapFeePercentage,
+	totalSwapFee, aggregateFee, err := v.ComputeAggregateSwapFees(true, swapFeeScaled18, param.AggregateSwapFeePercentage,
 		param.DecimalScalingFactor, param.TokenRate)
 	if err != nil {
 		return nil, nil, nil, err
@@ -51,7 +59,7 @@ func Swap(
 	return amountCalculated, totalSwapFee, aggregateFee, nil
 }
 
-func ComputeAmountGivenScaled18(isExactIn bool, amountGiven, decimalScalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
+func (v *vault) ComputeAmountGivenScaled18(isExactIn bool, amountGiven, decimalScalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
 	if isExactIn {
 		return toScaled18ApplyRateRoundDown(amountGiven, decimalScalingFactor, tokenRate)
 	}
@@ -59,7 +67,7 @@ func ComputeAmountGivenScaled18(isExactIn bool, amountGiven, decimalScalingFacto
 	return toScaled18ApplyRateRoundUp(amountGiven, decimalScalingFactor, computeRateRoundUp(tokenRate))
 }
 
-func ComputeAmountCalculatedRaw(
+func (v *vault) ComputeAmountCalculatedRaw(
 	isExactIn bool,
 	amountCalculatedScaled18, swapFeePercentage,
 	decimalScalingFactor, tokenRate *uint256.Int,
@@ -81,7 +89,7 @@ func ComputeAmountCalculatedRaw(
 	return toRawUndoRateRoundDown(amountCalculatedScaled18, decimalScalingFactor, tokenRate)
 }
 
-func ComputeAggregateSwapFees(
+func (v *vault) ComputeAggregateSwapFees(
 	isExactIn bool,
 	totalSwapFeeAmountScaled18, aggregateSwapFeePercentage,
 	decimalScalingFactor, tokenRate *uint256.Int,
@@ -108,7 +116,7 @@ func ComputeAggregateSwapFees(
 	return totalSwapFeeAmountRaw, aggregateFeeAmountRaw, nil
 }
 
-func UpdateLiveBalance(
+func (v *vault) UpdateLiveBalance(
 	param VaultSwapParams,
 	rounding Rounding,
 ) (*uint256.Int, error) {

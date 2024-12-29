@@ -117,7 +117,7 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 		return nil, ErrInvalidAmountOut
 	}
 
-	amountIn, totalSwapFee, aggregateSwapFee, err := shared.Swap(shared.VaultSwapParams{
+	amountIn, totalSwapFee, aggregateSwapFee, err := shared.Vault.Swap(shared.VaultSwapParams{
 		IsExactIn:                  false,
 		IndexIn:                    indexIn,
 		IndexOut:                   indexOut,
@@ -179,7 +179,7 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		TokenRate:            p.tokenRates[tokenIndexIn],
 	}
 
-	updatedLiveBalanceIn, err := shared.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
+	updatedLiveBalanceIn, err := shared.Vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
@@ -194,7 +194,7 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	vaultParams.DecimalScalingFactor = p.decimalScalingFactors[tokenIndexOut]
 	vaultParams.TokenRate = p.tokenRates[tokenIndexOut]
 
-	updatedLiveBalanceOut, err := shared.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
+	updatedLiveBalanceOut, err := shared.Vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
@@ -283,7 +283,7 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidAmountIn
 	}
 
-	amountOut, totalSwapFee, aggregateFee, err := shared.Swap(shared.VaultSwapParams{
+	amountOut, totalSwapFee, aggregateFee, err := shared.Vault.Swap(shared.VaultSwapParams{
 		IsExactIn:                  true,
 		IndexIn:                    indexIn,
 		IndexOut:                   indexOut,
