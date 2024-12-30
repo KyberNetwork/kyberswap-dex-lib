@@ -389,6 +389,10 @@ var (
 	ExchangeSonicMarket      Exchange = "sonic-market"
 	ExchangeSboom            Exchange = "sboom"
 	ExchangeBeetsSS          Exchange = "beets-ss"
+	ExchangeShadowDex        Exchange = "shadow-dex"
+	ExchangeSwapXCL          Exchange = "swap-x-cl"
+	ExchangeSwapXV2          Exchange = "swap-x-v2"
+	ExchangeMemeBox          Exchange = "memebox"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -710,6 +714,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSonicMarket:                {},
 	ExchangeSboom:                      {},
 	ExchangeBeetsSS:                    {},
+	ExchangeShadowDex:                  {},
+	ExchangeSwapXCL:                    {},
+	ExchangeSwapXV2:                    {},
+	ExchangeMemeBox:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
