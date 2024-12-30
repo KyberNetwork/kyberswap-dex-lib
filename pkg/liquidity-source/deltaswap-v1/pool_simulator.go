@@ -2,6 +2,7 @@ package deltaswapv1
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -260,7 +261,11 @@ func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut, fee *uint2
 func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut, fee *uint256.Int) (amountIn *uint256.Int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 

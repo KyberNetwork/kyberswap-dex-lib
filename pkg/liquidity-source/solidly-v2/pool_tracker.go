@@ -1,4 +1,4 @@
-package velodromev2
+package solidlyv2
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -66,12 +67,7 @@ func (d *PoolTracker) getNewPoolState(
 			Info("Finished getting new pool state")
 	}()
 
-	var staticExtra PoolStaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, err
-	}
-
-	reserveData, isPaused, fee, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.Stable, overrides)
+	reserveData, isPaused, fee, blockNumber, err := d.getPoolData(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -82,13 +78,12 @@ func (d *PoolTracker) getNewPoolState(
 func (d *PoolTracker) getPoolData(
 	ctx context.Context,
 	poolAddress string,
-	stable bool,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (ReserveData, bool, uint64, uint64, error) {
+) (velodromev2.ReserveData, bool, uint64, uint64, error) {
 	var (
 		isPaused          bool
 		fee               *big.Int
-		getReservesResult GetReservesResult
+		getReservesResult velodromev2.GetReservesResult
 	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -97,16 +92,16 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolFactoryABI,
+		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodIsPaused,
+		Method: factoryMethodIsPaused,
 		Params: nil,
 	}, []interface{}{&isPaused})
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolFactoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodGetFee,
-		Params: []interface{}{common.HexToAddress(poolAddress), stable},
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodFeeRatio,
+		Params: []interface{}{},
 	}, []interface{}{&fee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -117,18 +112,19 @@ func (d *PoolTracker) getPoolData(
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return ReserveData{}, false, 0, 0, err
+		return velodromev2.ReserveData{}, false, 0, 0, err
 	}
 
-	return ReserveData{
+	return velodromev2.ReserveData{
 		Reserve0: getReservesResult.Reserve0,
 		Reserve1: getReservesResult.Reserve1,
 	}, isPaused, fee.Uint64(), resp.BlockNumber.Uint64(), nil
+
 }
 
 func (d *PoolTracker) updatePool(
 	pool entity.Pool,
-	reserveData ReserveData,
+	reserveData velodromev2.ReserveData,
 	isPaused bool,
 	fee uint64,
 	blockNumber uint64) (entity.Pool, error) {
@@ -136,10 +132,11 @@ func (d *PoolTracker) updatePool(
 		return pool, nil
 	}
 
-	poolExtra := PoolExtra{
+	poolExtra := velodromev2.PoolExtra{
 		IsPaused: isPaused,
 		Fee:      fee,
 	}
+
 	poolExtraBytes, err := json.Marshal(poolExtra)
 	if err != nil {
 		return pool, err

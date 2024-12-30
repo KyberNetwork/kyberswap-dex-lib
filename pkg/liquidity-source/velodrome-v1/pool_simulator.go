@@ -2,6 +2,7 @@ package velodromev1
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -285,7 +286,11 @@ func (s *PoolSimulator) _getAmountIn(
 
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 
