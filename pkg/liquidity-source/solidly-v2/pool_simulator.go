@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -153,6 +154,15 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 		FeePrecision: s.feePrecision.Uint64(),
 		BlockNumber:  s.Pool.Info.BlockNumber,
 	}
+}
+
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+	cloned := *p
+	cloned.decimals0 = p.decimals0.Clone()
+	cloned.decimals1 = p.decimals1.Clone()
+	cloned.feePrecision = p.feePrecision.Clone()
+	cloned.fee = p.fee.Clone()
+	return &cloned
 }
 
 func (s *PoolSimulator) getAmountOut(

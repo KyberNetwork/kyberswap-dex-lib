@@ -7,6 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -29,10 +31,27 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	startTime := time.Now()
 
@@ -48,54 +67,59 @@ func (d *PoolTracker) GetNewPoolState(
 			Info("Finished getting new pool state")
 	}()
 
-	var staticExtra velodromev2.PoolStaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, err
-	}
-
-	reserveData, blockNumber, err := d.getReserves(ctx, p.Address)
+	reserveData, isPaused, fee, blockNumber, err := d.getPoolData(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
 
-	isPaused, fee, err := d.getFactoryData(ctx, p.Address, blockNumber)
-	if err != nil {
-		return p, err
-	}
-
-	return d.updatePool(p, reserveData, isPaused, fee, blockNumber.Uint64())
+	return d.updatePool(p, reserveData, isPaused, fee, blockNumber)
 }
 
-func (d *PoolTracker) getFactoryData(
+func (d *PoolTracker) getPoolData(
 	ctx context.Context,
 	poolAddress string,
-	blockNumber *big.Int,
-) (bool, uint64, error) {
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (velodromev2.ReserveData, bool, uint64, uint64, error) {
 	var (
-		isPaused bool
-		fee      *big.Int
+		isPaused          bool
+		fee               *big.Int
+		getReservesResult velodromev2.GetReservesResult
 	)
 
-	getFactoryDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
-	getFactoryDataRequest.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodIsPaused,
 		Params: nil,
 	}, []interface{}{&isPaused})
-	getFactoryDataRequest.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodFeeRatio,
 		Params: []interface{}{},
 	}, []interface{}{&fee})
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetReserves,
+		Params: nil,
+	}, []interface{}{&getReservesResult})
 
-	if _, err := getFactoryDataRequest.TryBlockAndAggregate(); err != nil {
-		return false, 0, err
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return velodromev2.ReserveData{}, false, 0, 0, err
 	}
 
-	return isPaused, fee.Uint64(), nil
+	return velodromev2.ReserveData{
+		Reserve0: getReservesResult.Reserve0,
+		Reserve1: getReservesResult.Reserve1,
+	}, isPaused, fee.Uint64(), resp.BlockNumber.Uint64(), nil
+
 }
 
 func (d *PoolTracker) updatePool(
@@ -112,6 +136,7 @@ func (d *PoolTracker) updatePool(
 		IsPaused: isPaused,
 		Fee:      fee,
 	}
+
 	poolExtraBytes, err := json.Marshal(poolExtra)
 	if err != nil {
 		return pool, err
@@ -126,27 +151,4 @@ func (d *PoolTracker) updatePool(
 	pool.Timestamp = time.Now().Unix()
 
 	return pool, nil
-}
-
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string) (velodromev2.ReserveData, *big.Int, error) {
-	var getReservesResult velodromev2.GetReservesResult
-
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetReserves,
-		Params: nil,
-	}, []interface{}{&getReservesResult})
-
-	resp, err := getReservesRequest.TryBlockAndAggregate()
-	if err != nil {
-		return velodromev2.ReserveData{}, nil, err
-	}
-
-	return velodromev2.ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
-	}, resp.BlockNumber, nil
 }

@@ -154,6 +154,15 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+	cloned := *p
+	cloned.decimals0 = p.decimals0.Clone()
+	cloned.decimals1 = p.decimals1.Clone()
+	cloned.feePrecision = p.feePrecision.Clone()
+	cloned.fee = p.fee.Clone()
+	return &cloned
+}
+
 func (s *PoolSimulator) getAmountOut(
 	amountIn *uint256.Int,
 	tokenIn string,
