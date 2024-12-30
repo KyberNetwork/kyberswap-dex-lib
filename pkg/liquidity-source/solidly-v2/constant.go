@@ -16,10 +16,14 @@ const (
 	factoryMethodIsPaused       = "isPaused"
 	factoryMethodAllPairs       = "allPairs"
 	factoryMethodAllPairsLength = "allPairsLength"
-	factoryMethodStableFee      = "stableFees"
+	factoryMethodStableFees     = "stableFees"
 	factoryMethodVolatileFees   = "volatileFees"
 
 	poolMethodMetadata    = "metadata"
 	poolMethodGetReserves = "getReserves"
 	poolMethodFeeRatio    = "feeRatio"
+
+	memecoreMethodPoolFee = "poolFee"
+	memecoreMethodToken0  = "token0"
+	memecoreMethodToken1  = "token1"
 )
