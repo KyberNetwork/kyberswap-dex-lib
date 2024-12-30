@@ -16,7 +16,7 @@ const (
 
 type (
 	Rounding  int
-	TokenType int
+	TokenType uint8
 )
 
 const (

@@ -142,7 +142,7 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 	)
 
 	for j, token := range subgraphPool.Tokens {
-		scalingFactors[j], err = uint256.FromHex(token.ScalingFactor)
+		scalingFactors[j], err = uint256.FromDecimal(token.ScalingFactor)
 		if err != nil {
 			return entity.Pool{}, err
 		}

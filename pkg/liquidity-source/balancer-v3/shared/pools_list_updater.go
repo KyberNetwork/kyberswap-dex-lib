@@ -92,7 +92,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastBlockTimestamp
 	}
 
 	if len(response.Pools) != 0 {
-		lastBlockTimestamp = response.Pools[len(response.Pools)-1].CreateTime
+		lastBlockTimestamp, _ = new(big.Int).SetString(response.Pools[len(response.Pools)-1].CreateTime, 10)
 	}
 
 	return response.Pools, lastBlockTimestamp, nil

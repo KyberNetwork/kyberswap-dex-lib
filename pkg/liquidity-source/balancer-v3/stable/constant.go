@@ -1,7 +1,7 @@
 package stable
 
 const (
-	DexType = "balancer-v2-stable"
+	DexType = "balancer-v3-stable"
 
 	PoolType = "StablePool"
 

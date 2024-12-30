@@ -6,9 +6,9 @@ import (
 )
 
 type SubgraphPool struct {
-	ID         string   `json:"id"`
-	Address    string   `json:"address"`
-	CreateTime *big.Int `json:"blockTimestamp"`
+	ID         string `json:"id"`
+	Address    string `json:"address"`
+	CreateTime string `json:"blockTimestamp"`
 	Tokens     []struct {
 		Address       string `json:"address"`
 		Decimals      int    `json:"decimals"`

@@ -3,7 +3,6 @@ package stable
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -53,20 +52,22 @@ type AggregateFeePercentage struct {
 }
 
 type StablePoolDynamicData struct {
-	BalancesLiveScaled18    []*big.Int
-	TokenRates              []*big.Int
-	StaticSwapFeePercentage *big.Int
-	TotalSupply             *big.Int
-	BptRate                 *big.Int
-	AmplificationParameter  *big.Int
-	IsAmpUpdating           bool
-	StartValue              *big.Int
-	EndValue                *big.Int
-	StartTime               uint32
-	EndTime                 uint32
-	IsPoolInitialized       bool
-	IsPoolPaused            bool
-	IsPoolInRecoveryMode    bool
+	Data struct {
+		BalancesLiveScaled18    []*big.Int
+		TokenRates              []*big.Int
+		StaticSwapFeePercentage *big.Int
+		TotalSupply             *big.Int
+		BptRate                 *big.Int
+		AmplificationParameter  *big.Int
+		StartValue              *big.Int
+		EndValue                *big.Int
+		StartTime               uint32
+		EndTime                 uint32
+		IsAmpUpdating           bool
+		IsPoolInitialized       bool
+		IsPoolPaused            bool
+		IsPoolInRecoveryMode    bool
+	}
 }
 
 type PoolTokenInfo struct {
@@ -77,7 +78,7 @@ type PoolTokenInfo struct {
 }
 
 type TokenInfo struct {
-	TokenType     shared.TokenType
+	TokenType     uint8
 	IRateProvider common.Address
 	PaysYieldFees bool
 }
@@ -91,7 +92,6 @@ type PoolMetaInfo struct {
 }
 
 type RpcResult struct {
-	Tokens                     []common.Address
 	BalancesRaw                []*big.Int
 	BalancesLiveScaled18       []*big.Int
 	TokenRates                 []*big.Int

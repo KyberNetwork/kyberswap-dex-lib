@@ -174,20 +174,18 @@ func (t *PoolTracker) queryRPC(
 			"dexType":     DexType,
 			"poolAddress": poolAddress,
 		}).Error(err.Error())
-
 		return nil, err
 	}
 
 	return &RpcResult{
-		Tokens:                     poolTokenInfo.Tokens,
 		BalancesRaw:                poolTokenInfo.BalancesRaw,
-		BalancesLiveScaled18:       stablePoolDynamicData.BalancesLiveScaled18,
-		TokenRates:                 stablePoolDynamicData.TokenRates,
-		StaticSwapFeePercentage:    stablePoolDynamicData.StaticSwapFeePercentage,
+		BalancesLiveScaled18:       stablePoolDynamicData.Data.BalancesLiveScaled18,
+		TokenRates:                 stablePoolDynamicData.Data.TokenRates,
+		StaticSwapFeePercentage:    stablePoolDynamicData.Data.StaticSwapFeePercentage,
 		AggregateSwapFeePercentage: aggregateFeePercentages.AggregateSwapFeePercentage,
-		AmplificationParameter:     stablePoolDynamicData.AmplificationParameter,
-		IsPoolPaused:               stablePoolDynamicData.IsPoolPaused,
-		IsPoolInRecoveryMode:       stablePoolDynamicData.IsPoolInRecoveryMode,
+		AmplificationParameter:     stablePoolDynamicData.Data.AmplificationParameter,
+		IsPoolPaused:               stablePoolDynamicData.Data.IsPoolPaused,
+		IsPoolInRecoveryMode:       stablePoolDynamicData.Data.IsPoolInRecoveryMode,
 		BlockNumber:                res.BlockNumber.Uint64(),
 	}, nil
 }
