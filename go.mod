@@ -17,7 +17,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.85.11
+	github.com/KyberNetwork/kyberswap-dex-lib v0.85.13-0.20241230164536-acfa2339ed47
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -79,7 +79,7 @@ require (
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.2 // indirect
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.3 // indirect
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.5 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/aws/smithy-go v1.15.0 // indirect
