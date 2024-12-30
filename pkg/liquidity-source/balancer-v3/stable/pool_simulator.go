@@ -39,8 +39,8 @@ type PoolSimulator struct {
 	decimalScalingFactors  []*uint256.Int
 	tokenRates             []*uint256.Int
 
-	isVaultLocked bool
-	isPaused      bool
+	isInRecoveryMode bool
+	isPaused         bool
 
 	vault string
 
@@ -83,8 +83,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool:                       poolpkg.Pool{Info: poolInfo},
 		isPaused:                   extra.IsPaused,
-		isVaultLocked:              extra.IsVaultLocked,
-		swapFeePercentage:          extra.SwapFeePercentage,
+		isInRecoveryMode:           extra.IsInRecoveryMode,
+		swapFeePercentage:          extra.StaticSwapFeePercentage,
 		aggregateSwapFeePercentage: extra.AggregateSwapFeePercentage,
 		amplificationParameter:     extra.AmplificationParameter,
 		balancesLiveScaled18:       extra.BalancesLiveScaled18,
@@ -97,10 +97,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
-	if p.isVaultLocked {
-		return nil, ErrVaultIsLocked
-	}
-
 	if p.isPaused {
 		return nil, ErrPoolIsPaused
 	}
@@ -263,10 +259,6 @@ func (p *PoolSimulator) computeInvariant(rounding shared.Rounding) (*uint256.Int
 }
 
 func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if p.isVaultLocked {
-		return nil, ErrVaultIsLocked
-	}
-
 	if p.isPaused {
 		return nil, ErrPoolIsPaused
 	}

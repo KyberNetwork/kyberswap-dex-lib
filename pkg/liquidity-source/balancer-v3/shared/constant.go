@@ -3,9 +3,9 @@ package shared
 import "github.com/holiman/uint256"
 
 const (
-	VaultMethodGetPoolTokens            = "getPoolTokens"
-	PoolMethodGetSwapFeePercentage      = "getSwapFeePercentage"
-	PoolMethodGetPausedState            = "getPausedState"
+	PoolMethodGetTokenInfo               = "getTokenInfo"
+	PoolMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
+
 	PoolMethodGetAmplificationParameter = "getAmplificationParameter"
 	PoolMethodGetVault                  = "getVault"
 	PoolMethodVersion                   = "version"
@@ -14,11 +14,17 @@ const (
 	PoolVersion2 = 2
 )
 
-type Rounding int
+type (
+	Rounding  int
+	TokenType int
+)
 
 const (
 	ROUND_UP Rounding = iota
 	ROUND_DOWN
+
+	STANDARD TokenType = iota
+	WITH_RATE
 )
 
 var (

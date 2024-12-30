@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
@@ -72,61 +72,49 @@ func (t *PoolTracker) getNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
-
-		return p, err
-	}
-
-	var oldExtra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &oldExtra); err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
-
-		return p, err
-	}
-	scalingFactors := oldExtra.DecimalScalingFactors
-
-	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.Vault, staticExtra.PoolType, overrides)
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
 	if err != nil {
+		return p, err
+	}
+
+	res, err := t.queryRPC(ctx, p.Address, overrides)
+	if err != nil {
+		return p, err
+	}
+
+	if len(p.Reserves) != len(res.BalancesRaw) {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error("can not fetch reserves")
 		return p, err
 	}
 
 	var (
-		amplificationParameter, _ = uint256.FromBig(rpcRes.Amp)
-		swapFeePercentage, _      = uint256.FromBig(rpcRes.SwapFeePercentage)
-		poolTokens                = rpcRes.PoolTokens
-		pausedState               = rpcRes.PausedState
-		blockNumber               = rpcRes.BlockNumber
+		amplificationParameter, _     = uint256.FromBig(res.AmplificationParameter)
+		staticSwapFeePercentage, _    = uint256.FromBig(res.StaticSwapFeePercentage)
+		aggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+		balancesLiveScaled18          = lo.Map(res.BalancesLiveScaled18, func(v *big.Int, _ int) *uint256.Int {
+			r, _ := uint256.FromBig(v)
+			return r
+		})
+		tokenRates = lo.Map(res.TokenRates, func(v *big.Int, _ int) *uint256.Int {
+			r, _ := uint256.FromBig(v)
+			return r
+		})
 	)
 
-	// if staticExtra.PoolType == PoolTypeMetaStable {
-	// 	factors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
-	// 	for idx, factor := range rpcRes.ScalingFactors {
-	// 		factors[idx], _ = uint256.FromBig(factor)
-	// 	}
+	extra.AmplificationParameter = amplificationParameter
+	extra.StaticSwapFeePercentage = staticSwapFeePercentage
+	extra.AggregateSwapFeePercentage = aggregateSwapFeePercentage
+	extra.BalancesLiveScaled18 = balancesLiveScaled18
+	extra.TokenRates = tokenRates
+	extra.IsPaused = res.IsPoolPaused
+	extra.IsInRecoveryMode = res.IsPoolInRecoveryMode
 
-	// 	scalingFactors = factors
-	// }
-
-	// update pool
-
-	extra := Extra{
-		AmplificationParameter: amplificationParameter,
-		SwapFeePercentage:      swapFeePercentage,
-		DecimalScalingFactors:  scalingFactors,
-		IsPaused:               !isNotPaused(pausedState),
-	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -137,94 +125,47 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, poolTokens)
-	if err != nil {
-		return p, err
-	}
-
-	p.BlockNumber = blockNumber
+	p.BlockNumber = res.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = reserves
+	p.Reserves = lo.Map(res.TokenRates, func(v *big.Int, _ int) string {
+		return v.String()
+	})
 
 	return p, nil
-}
-
-func (t *PoolTracker) initReserves(
-	ctx context.Context,
-	p entity.Pool,
-	poolTokens PoolTokens,
-) ([]string, error) {
-	reserveByToken := make(map[string]*big.Int)
-	for idx, token := range poolTokens.Tokens {
-		addr := strings.ToLower(token.Hex())
-		reserveByToken[addr] = poolTokens.Balances[idx]
-	}
-
-	reserves := make([]string, len(p.Tokens))
-	for idx, token := range p.Tokens {
-		r, ok := reserveByToken[token.Address]
-		if !ok {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Error("can not get reserve")
-
-			return nil, ErrReserveNotFound
-		}
-
-		reserves[idx] = r.String()
-	}
-
-	return reserves, nil
 }
 
 func (t *PoolTracker) queryRPC(
 	ctx context.Context,
 	poolAddress string,
-	vault string,
-	poolType string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*rpcRes, error) {
+) (*RpcResult, error) {
 	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-		ampParams         AmplificationParameter
+		aggregateFeePercentages AggregateFeePercentage
+		stablePoolDynamicData   StablePoolDynamicData
+		poolTokenInfo           PoolTokenInfo
 	)
 
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true)
+	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true)
 	if overrides != nil {
 		req.SetOverrides(overrides)
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    shared.VaultABI,
-		Target: vault,
-		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{common.HexToHash(poolAddress)},
-	}, []interface{}{&poolTokens})
-
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: shared.PoolMethodGetAggregateFeePercentages,
+	}, []interface{}{&aggregateFeePercentages})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: shared.PoolMethodGetAmplificationParameter,
-	}, []interface{}{&ampParams})
-
+		Method: poolMethodGetStablePoolDynamicData,
+	}, []interface{}{&stablePoolDynamicData})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: shared.PoolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: shared.PoolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+		Method: shared.PoolMethodGetTokenInfo,
+	}, []interface{}{&poolTokenInfo})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -237,15 +178,16 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
-	return &rpcRes{
-		Amp:               ampParams.Value,
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		PausedState:       pausedState,
-		BlockNumber:       res.BlockNumber.Uint64(),
+	return &RpcResult{
+		Tokens:                     poolTokenInfo.Tokens,
+		BalancesRaw:                poolTokenInfo.BalancesRaw,
+		BalancesLiveScaled18:       stablePoolDynamicData.BalancesLiveScaled18,
+		TokenRates:                 stablePoolDynamicData.TokenRates,
+		StaticSwapFeePercentage:    stablePoolDynamicData.StaticSwapFeePercentage,
+		AggregateSwapFeePercentage: aggregateFeePercentages.AggregateSwapFeePercentage,
+		AmplificationParameter:     stablePoolDynamicData.AmplificationParameter,
+		IsPoolPaused:               stablePoolDynamicData.IsPoolPaused,
+		IsPoolInRecoveryMode:       stablePoolDynamicData.IsPoolInRecoveryMode,
+		BlockNumber:                res.BlockNumber.Uint64(),
 	}, nil
-}
-
-func isNotPaused(pausedState PausedState) bool {
-	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
 }

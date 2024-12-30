@@ -4,6 +4,9 @@ const (
 	DexType = "balancer-v2-stable"
 
 	PoolType = "StablePool"
+
+	poolMethodGetStablePoolDynamicData   = "getStablePoolDynamicData"
+	poolMethodGetStablePoolImmutableData = "getStablePoolImmutableData"
 )
 
 var (

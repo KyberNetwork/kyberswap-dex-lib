@@ -3,6 +3,7 @@ package stable
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
@@ -13,13 +14,13 @@ type Gas struct {
 
 type Extra struct {
 	AmplificationParameter     *uint256.Int   `json:"amplificationParameter"`
-	SwapFeePercentage          *uint256.Int   `json:"swapFeePercentage"`
+	StaticSwapFeePercentage    *uint256.Int   `json:"staticSwapFeePercentage"`
 	AggregateSwapFeePercentage *uint256.Int   `json:"aggregateSwapFeePercentage"`
 	BalancesLiveScaled18       []*uint256.Int `json:"balancesLiveScaled18"`
 	DecimalScalingFactors      []*uint256.Int `json:"decimalScalingFactors"`
 	TokenRates                 []*uint256.Int `json:"tokenRates"`
 	IsPaused                   bool           `json:"isPaused"`
-	IsVaultLocked              bool           `json:"isVaultLocked"`
+	IsInRecoveryMode           bool           `json:"isInRecoveryMode"`
 }
 
 type StaticExtra struct {
@@ -46,6 +47,41 @@ type AmplificationParameter struct {
 	Precision  *big.Int
 }
 
+type AggregateFeePercentage struct {
+	AggregateSwapFeePercentage  *big.Int
+	AggregateYieldFeePercentage *big.Int
+}
+
+type StablePoolDynamicData struct {
+	BalancesLiveScaled18    []*big.Int
+	TokenRates              []*big.Int
+	StaticSwapFeePercentage *big.Int
+	TotalSupply             *big.Int
+	BptRate                 *big.Int
+	AmplificationParameter  *big.Int
+	IsAmpUpdating           bool
+	StartValue              *big.Int
+	EndValue                *big.Int
+	StartTime               uint32
+	EndTime                 uint32
+	IsPoolInitialized       bool
+	IsPoolPaused            bool
+	IsPoolInRecoveryMode    bool
+}
+
+type PoolTokenInfo struct {
+	Tokens                   []common.Address
+	TokenInfo                []TokenInfo
+	BalancesRaw              []*big.Int
+	LastBalancesLiveScaled18 []*big.Int
+}
+
+type TokenInfo struct {
+	TokenType     shared.TokenType
+	IRateProvider common.Address
+	PaysYieldFees bool
+}
+
 type PoolMetaInfo struct {
 	Vault         string `json:"vault"`
 	PoolType      string `json:"poolType"`
@@ -54,13 +90,17 @@ type PoolMetaInfo struct {
 	BlockNumber   uint64 `json:"blockNumber"`
 }
 
-type rpcRes struct {
-	Amp               *big.Int
-	PoolTokens        PoolTokens
-	SwapFeePercentage *big.Int
-	ScalingFactors    []*big.Int
-	PausedState       PausedState
-	BlockNumber       uint64
+type RpcResult struct {
+	Tokens                     []common.Address
+	BalancesRaw                []*big.Int
+	BalancesLiveScaled18       []*big.Int
+	TokenRates                 []*big.Int
+	StaticSwapFeePercentage    *big.Int
+	AggregateSwapFeePercentage *big.Int
+	AmplificationParameter     *big.Int
+	IsPoolPaused               bool
+	IsPoolInRecoveryMode       bool
+	BlockNumber                uint64
 }
 
 type SwapInfo struct {

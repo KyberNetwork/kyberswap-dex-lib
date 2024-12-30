@@ -2,13 +2,18 @@
   {
     "inputs": [
       {
-        "internalType": "contract IVault",
-        "name": "mainVault",
+        "internalType": "contract IVaultExtension",
+        "name": "vaultExtension",
         "type": "address"
       },
       {
-        "internalType": "contract IVaultAdmin",
-        "name": "vaultAdmin",
+        "internalType": "contract IAuthorizer",
+        "name": "authorizer",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IProtocolFeeController",
+        "name": "protocolFeeController",
         "type": "address"
       }
     ],
@@ -55,6 +60,11 @@
   {
     "inputs": [],
     "name": "AfterSwapHookFailed",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "AllZeroInputs",
     "type": "error"
   },
   {
@@ -221,11 +231,6 @@
   },
   {
     "inputs": [],
-    "name": "CodecOverflow",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "DoesNotSupportAddLiquidityCustom",
     "type": "error"
   },
@@ -333,11 +338,6 @@
       }
     ],
     "name": "ERC20InvalidSpender",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ErrorSelectorNotFound",
     "type": "error"
   },
   {
@@ -479,6 +479,38 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "invariantRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxInvariantRatio",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvariantRatioAboveMax",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invariantRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minInvariantRatio",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvariantRatioBelowMin",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "issuedShares",
         "type": "uint256"
       },
@@ -499,6 +531,11 @@
   {
     "inputs": [],
     "name": "MinTokens",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MultipleNonZeroInputs",
     "type": "error"
   },
   {
@@ -556,11 +593,6 @@
   {
     "inputs": [],
     "name": "NotVaultDelegateCall",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "OutOfBounds",
     "type": "error"
   },
   {
@@ -709,19 +741,19 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "result",
-        "type": "bytes"
-      }
-    ],
-    "name": "Result",
+    "inputs": [],
+    "name": "RouterNotTrusted",
     "type": "error"
   },
   {
-    "inputs": [],
-    "name": "RouterNotTrusted",
+    "inputs": [
+      {
+        "internalType": "int256",
+        "name": "value",
+        "type": "int256"
+      }
+    ],
+    "name": "SafeCastOverflowedIntToUint",
     "type": "error"
   },
   {
@@ -733,6 +765,17 @@
       }
     ],
     "name": "SafeCastOverflowedUintToInt",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "SafeERC20FailedOperation",
     "type": "error"
   },
   {
@@ -817,11 +860,6 @@
   },
   {
     "inputs": [],
-    "name": "TokensNotSorted",
-    "type": "error"
-  },
-  {
-    "inputs": [],
     "name": "TradeAmountTooSmall",
     "type": "error"
   },
@@ -895,6 +933,11 @@
   {
     "inputs": [],
     "name": "WrongVaultExtensionDeployment",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ZeroDivision",
     "type": "error"
   },
   {
@@ -1645,56 +1688,59 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "spender",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "to",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "maxAmountsIn",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minBptAmountOut",
+            "type": "uint256"
+          },
+          {
+            "internalType": "enum AddLiquidityKind",
+            "name": "kind",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "userData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct AddLiquidityParams",
+        "name": "params",
+        "type": "tuple"
       }
     ],
-    "name": "allowance",
+    "name": "addLiquidity",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "spender",
-        "type": "address"
+        "internalType": "uint256[]",
+        "name": "amountsIn",
+        "type": "uint256[]"
       },
       {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "bptAmountOut",
         "type": "uint256"
-      }
-    ],
-    "name": "approve",
-    "outputs": [
+      },
       {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
+        "internalType": "bytes",
+        "name": "returnData",
+        "type": "bytes"
       }
     ],
     "stateMutability": "nonpayable",
@@ -1702,35 +1748,6 @@
   },
   {
     "inputs": [
-      {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "balanceOf",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      },
       {
         "components": [
           {
@@ -1739,581 +1756,50 @@
             "type": "uint8"
           },
           {
-            "internalType": "uint256",
-            "name": "amountGivenScaled18",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "balancesScaled18",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "uint256",
-            "name": "indexIn",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "indexOut",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "router",
-            "type": "address"
-          },
-          {
-            "internalType": "bytes",
-            "name": "userData",
-            "type": "bytes"
-          }
-        ],
-        "internalType": "struct PoolSwapParams",
-        "name": "swapParams",
-        "type": "tuple"
-      }
-    ],
-    "name": "computeDynamicSwapFeePercentage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "dynamicSwapFeePercentage",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "eventKey",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "eventData",
-        "type": "bytes"
-      }
-    ],
-    "name": "emitAuxiliaryEvent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getAddLiquidityCalledFlag",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IERC20",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "getAggregateSwapFeeAmount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IERC20",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "getAggregateYieldFeeAmount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getAuthorizer",
-    "outputs": [
-      {
-        "internalType": "contract IAuthorizer",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getBptRate",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "rate",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getCurrentLiveBalances",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "balancesLiveScaled18",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC4626",
-        "name": "wrappedToken",
-        "type": "address"
-      }
-    ],
-    "name": "getERC4626BufferAsset",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "asset",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getHooksConfig",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "bool",
-            "name": "enableHookAdjustedAmounts",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallBeforeInitialize",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallAfterInitialize",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallComputeDynamicSwapFee",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallBeforeSwap",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallAfterSwap",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallBeforeAddLiquidity",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallAfterAddLiquidity",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallBeforeRemoveLiquidity",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "shouldCallAfterRemoveLiquidity",
-            "type": "bool"
-          },
-          {
-            "internalType": "address",
-            "name": "hooksContract",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct HooksConfig",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getNonzeroDeltaCount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolConfig",
-    "outputs": [
-      {
-        "components": [
-          {
-            "components": [
-              {
-                "internalType": "bool",
-                "name": "disableUnbalancedLiquidity",
-                "type": "bool"
-              },
-              {
-                "internalType": "bool",
-                "name": "enableAddLiquidityCustom",
-                "type": "bool"
-              },
-              {
-                "internalType": "bool",
-                "name": "enableRemoveLiquidityCustom",
-                "type": "bool"
-              },
-              {
-                "internalType": "bool",
-                "name": "enableDonation",
-                "type": "bool"
-              }
-            ],
-            "internalType": "struct LiquidityManagement",
-            "name": "liquidityManagement",
-            "type": "tuple"
-          },
-          {
-            "internalType": "uint256",
-            "name": "staticSwapFeePercentage",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "aggregateSwapFeePercentage",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "aggregateYieldFeePercentage",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint40",
-            "name": "tokenDecimalDiffs",
-            "type": "uint40"
-          },
-          {
-            "internalType": "uint32",
-            "name": "pauseWindowEndTime",
-            "type": "uint32"
-          },
-          {
-            "internalType": "bool",
-            "name": "isPoolRegistered",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "isPoolInitialized",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "isPoolPaused",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "isPoolInRecoveryMode",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct PoolConfig",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolData",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "PoolConfigBits",
-            "name": "poolConfigBits",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "contract IERC20[]",
-            "name": "tokens",
-            "type": "address[]"
-          },
-          {
-            "components": [
-              {
-                "internalType": "enum TokenType",
-                "name": "tokenType",
-                "type": "uint8"
-              },
-              {
-                "internalType": "contract IRateProvider",
-                "name": "rateProvider",
-                "type": "address"
-              },
-              {
-                "internalType": "bool",
-                "name": "paysYieldFees",
-                "type": "bool"
-              }
-            ],
-            "internalType": "struct TokenInfo[]",
-            "name": "tokenInfo",
-            "type": "tuple[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "balancesRaw",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "balancesLiveScaled18",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "tokenRates",
-            "type": "uint256[]"
-          },
-          {
-            "internalType": "uint256[]",
-            "name": "decimalScalingFactors",
-            "type": "uint256[]"
-          }
-        ],
-        "internalType": "struct PoolData",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolPausedState",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "",
-        "type": "uint32"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolRoleAccounts",
-    "outputs": [
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "pauseManager",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "swapFeeManager",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "poolCreator",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct PoolRoleAccounts",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolTokenInfo",
-    "outputs": [
-      {
-        "internalType": "contract IERC20[]",
-        "name": "tokens",
-        "type": "address[]"
-      },
-      {
-        "components": [
-          {
-            "internalType": "enum TokenType",
-            "name": "tokenType",
+            "internalType": "enum WrappingDirection",
+            "name": "direction",
             "type": "uint8"
           },
           {
-            "internalType": "contract IRateProvider",
-            "name": "rateProvider",
+            "internalType": "contract IERC4626",
+            "name": "wrappedToken",
             "type": "address"
           },
           {
-            "internalType": "bool",
-            "name": "paysYieldFees",
-            "type": "bool"
+            "internalType": "uint256",
+            "name": "amountGivenRaw",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "limitRaw",
+            "type": "uint256"
           }
         ],
-        "internalType": "struct TokenInfo[]",
-        "name": "tokenInfo",
-        "type": "tuple[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "balancesRaw",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "lastBalancesLiveScaled18",
-        "type": "uint256[]"
+        "internalType": "struct BufferWrapOrUnwrapParams",
+        "name": "params",
+        "type": "tuple"
       }
     ],
-    "stateMutability": "view",
+    "name": "erc4626BufferWrapOrUnwrap",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountCalculatedRaw",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountInRaw",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOutRaw",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -2322,66 +1808,20 @@
         "internalType": "address",
         "name": "pool",
         "type": "address"
-      }
-    ],
-    "name": "getPoolTokenRates",
-    "outputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "decimalScalingFactors",
-        "type": "uint256[]"
       },
-      {
-        "internalType": "uint256[]",
-        "name": "tokenRates",
-        "type": "uint256[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolTokens",
-    "outputs": [
-      {
-        "internalType": "contract IERC20[]",
-        "name": "tokens",
-        "type": "address[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getProtocolFeeController",
-    "outputs": [
-      {
-        "internalType": "contract IProtocolFeeController",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
       {
         "internalType": "contract IERC20",
         "name": "token",
         "type": "address"
       }
     ],
-    "name": "getReservesOf",
+    "name": "getPoolTokenCountAndIndexOfToken",
     "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
       {
         "internalType": "uint256",
         "name": "",
@@ -2392,46 +1832,8 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "getStaticSwapFeePercentage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "token",
-        "type": "address"
-      }
-    ],
-    "name": "getTokenDelta",
-    "outputs": [
-      {
-        "internalType": "int256",
-        "name": "",
-        "type": "int256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "getVaultAdmin",
+    "name": "getVaultExtension",
     "outputs": [
       {
         "internalType": "address",
@@ -2440,216 +1842,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "to",
-        "type": "address"
-      },
-      {
-        "internalType": "contract IERC20[]",
-        "name": "tokens",
-        "type": "address[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "exactAmountsIn",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256",
-        "name": "minBptAmountOut",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes",
-        "name": "userData",
-        "type": "bytes"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "bptAmountOut",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IERC4626",
-        "name": "wrappedToken",
-        "type": "address"
-      }
-    ],
-    "name": "isERC4626BufferInitialized",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "isPoolInRecoveryMode",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "isPoolInitialized",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "isPoolPaused",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      }
-    ],
-    "name": "isPoolRegistered",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "isQueryDisabled",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "isQueryDisabledPermanently",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "isUnlocked",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      }
-    ],
-    "name": "quote",
-    "outputs": [
-      {
-        "internalType": "bytes",
-        "name": "result",
-        "type": "bytes"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      }
-    ],
-    "name": "quoteAndRevert",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -2668,108 +1860,83 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "pool",
-        "type": "address"
-      },
-      {
         "components": [
           {
-            "internalType": "contract IERC20",
-            "name": "token",
+            "internalType": "address",
+            "name": "pool",
             "type": "address"
           },
           {
-            "internalType": "enum TokenType",
-            "name": "tokenType",
+            "internalType": "address",
+            "name": "from",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxBptAmountIn",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "minAmountsOut",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "enum RemoveLiquidityKind",
+            "name": "kind",
             "type": "uint8"
           },
           {
-            "internalType": "contract IRateProvider",
-            "name": "rateProvider",
-            "type": "address"
-          },
-          {
-            "internalType": "bool",
-            "name": "paysYieldFees",
-            "type": "bool"
+            "internalType": "bytes",
+            "name": "userData",
+            "type": "bytes"
           }
         ],
-        "internalType": "struct TokenConfig[]",
-        "name": "tokenConfig",
-        "type": "tuple[]"
-      },
-      {
-        "internalType": "uint256",
-        "name": "swapFeePercentage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint32",
-        "name": "pauseWindowEndTime",
-        "type": "uint32"
-      },
-      {
-        "internalType": "bool",
-        "name": "protocolFeeExempt",
-        "type": "bool"
-      },
-      {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "pauseManager",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "swapFeeManager",
-            "type": "address"
-          },
-          {
-            "internalType": "address",
-            "name": "poolCreator",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct PoolRoleAccounts",
-        "name": "roleAccounts",
-        "type": "tuple"
-      },
-      {
-        "internalType": "address",
-        "name": "poolHooksContract",
-        "type": "address"
-      },
-      {
-        "components": [
-          {
-            "internalType": "bool",
-            "name": "disableUnbalancedLiquidity",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "enableAddLiquidityCustom",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "enableRemoveLiquidityCustom",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "enableDonation",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct LiquidityManagement",
-        "name": "liquidityManagement",
+        "internalType": "struct RemoveLiquidityParams",
+        "name": "params",
         "type": "tuple"
       }
     ],
-    "name": "registerPool",
+    "name": "removeLiquidity",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "bptAmountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "amountsOut",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes",
+        "name": "returnData",
+        "type": "bytes"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "sendTo",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -2777,8 +1944,127 @@
   {
     "inputs": [
       {
+        "internalType": "contract IERC20",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountHint",
+        "type": "uint256"
+      }
+    ],
+    "name": "settle",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "credit",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum SwapKind",
+            "name": "kind",
+            "type": "uint8"
+          },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IERC20",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "contract IERC20",
+            "name": "tokenOut",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amountGivenRaw",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "limitRaw",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes",
+            "name": "userData",
+            "type": "bytes"
+          }
+        ],
+        "internalType": "struct VaultSwapParams",
+        "name": "vaultSwapParams",
+        "type": "tuple"
+      }
+    ],
+    "name": "swap",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountCalculated",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
-        "name": "pool",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "transfer",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "spender",
         "type": "address"
       },
       {
@@ -2787,22 +2073,22 @@
         "type": "address"
       },
       {
-        "internalType": "uint256",
-        "name": "exactBptAmountIn",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
       },
       {
-        "internalType": "uint256[]",
-        "name": "minAmountsOut",
-        "type": "uint256[]"
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
-    "name": "removeLiquidityRecovery",
+    "name": "transferFrom",
     "outputs": [
       {
-        "internalType": "uint256[]",
-        "name": "amountsOutRaw",
-        "type": "uint256[]"
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "nonpayable",
@@ -2811,33 +2097,20 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
       }
     ],
-    "name": "totalSupply",
+    "name": "unlock",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
+        "internalType": "bytes",
+        "name": "result",
+        "type": "bytes"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "vault",
-    "outputs": [
-      {
-        "internalType": "contract IVault",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

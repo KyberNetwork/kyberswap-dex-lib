@@ -9,12 +9,9 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -144,54 +141,56 @@ func (t *PoolTracker) queryRPC(
 	poolID string,
 	vault string,
 ) (*rpcRes, error) {
-	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-	)
+	// var (
+	// 	poolTokens        PoolTokens
+	// 	swapFeePercentage *big.Int
+	// 	pausedState       PausedState
+	// )
 
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true)
+	// req := t.ethrpcClient.R().
+	// 	SetContext(ctx).
+	// 	SetRequireSuccess(true)
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    shared.VaultABI,
-		Target: vault,
-		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{common.HexToHash(poolID)},
-	}, []interface{}{&poolTokens})
+	// req.AddCall(&ethrpc.Call{
+	// 	ABI:    shared.VaultABI,
+	// 	Target: vault,
+	// 	Method: shared.VaultMethodGetPoolTokens,
+	// 	Params: []interface{}{common.HexToHash(poolID)},
+	// }, []interface{}{&poolTokens})
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: shared.PoolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
+	// req.AddCall(&ethrpc.Call{
+	// 	ABI:    poolABI,
+	// 	Target: poolAddress,
+	// 	Method: shared.PoolMethodGetSwapFeePercentage,
+	// }, []interface{}{&swapFeePercentage})
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: shared.PoolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+	// req.AddCall(&ethrpc.Call{
+	// 	ABI:    poolABI,
+	// 	Target: poolAddress,
+	// 	Method: shared.PoolMethodGetPausedState,
+	// }, []interface{}{&pausedState})
 
-	res, err := req.TryBlockAndAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": poolAddress,
-		}).Error(err.Error())
+	// res, err := req.TryBlockAndAggregate()
+	// if err != nil {
+	// 	logger.WithFields(logger.Fields{
+	// 		"dexId":       t.config.DexID,
+	// 		"dexType":     DexType,
+	// 		"poolAddress": poolAddress,
+	// 	}).Error(err.Error())
 
-		return nil, err
-	}
+	// 	return nil, err
+	// }
 
-	swapFeePercentageU256, _ := uint256.FromBig(swapFeePercentage)
+	// swapFeePercentageU256, _ := uint256.FromBig(swapFeePercentage)
 
-	return &rpcRes{
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentageU256,
-		PausedState:       pausedState,
-		BlockNumber:       res.BlockNumber.Uint64(),
-	}, nil
+	// return &rpcRes{
+	// 	PoolTokens:        poolTokens,
+	// 	SwapFeePercentage: swapFeePercentageU256,
+	// 	PausedState:       pausedState,
+	// 	BlockNumber:       res.BlockNumber.Uint64(),
+	// }, nil
+
+	return nil, nil
 }
 
 func isNotPaused(pausedState PausedState) bool {

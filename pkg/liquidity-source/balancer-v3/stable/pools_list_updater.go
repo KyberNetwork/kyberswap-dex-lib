@@ -156,18 +156,18 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 		reserves[j] = "0"
 	}
 
-	staticExtra := StaticExtra{
+	staticExtraBytes, err := json.Marshal(&StaticExtra{
 		PoolType:    PoolType,
 		PoolVersion: poolVersion,
 		Vault:       vault,
-	}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	})
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	extra := Extra{DecimalScalingFactors: scalingFactors}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(&Extra{
+		DecimalScalingFactors: scalingFactors,
+	})
 	if err != nil {
 		return entity.Pool{}, err
 	}
