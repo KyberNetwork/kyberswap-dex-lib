@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -45,8 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
 	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
 
-	swapFeeFl := big.NewFloat(entityPool.SwapFee)
-	swapFee, _ := swapFeeFl.Int(nil)
+	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
@@ -155,7 +155,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(tokenOut, p.elasticPool.Token0.Address.String()) {
+		if strings.EqualFold(tokenOut, hexutil.Encode(p.elasticPool.Token0.Address[:])) {
 			zeroForOne = false
 			tokenIn = p.elasticPool.Token1
 		} else {
