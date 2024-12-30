@@ -165,8 +165,8 @@ var (
 	ExchangeSuperSwapV3 Exchange = "superswap-v3"
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
-	ExchangeSolidlyV3   Exchange = "solidly-v3"
 	ExchangeSolidlyV2   Exchange = "solidly-v2"
+	ExchangeSolidlyV3   Exchange = "solidly-v3"
 	ExchangeZero        Exchange = "zero"
 	ExchangeZebraV2     Exchange = "zebra-v2"
 
@@ -528,8 +528,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSuperSwapV3:                {},
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
-	ExchangeSolidlyV3:                  {},
 	ExchangeSolidlyV2:                  {},
+	ExchangeSolidlyV3:                  {},
 	ExchangeZero:                       {},
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV2Stable:           {},
