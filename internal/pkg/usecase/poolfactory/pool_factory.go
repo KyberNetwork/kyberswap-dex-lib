@@ -67,6 +67,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -501,6 +502,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSaddle(entityPool)
 	case pooltypes.PoolTypes.RamsesV2:
 		return f.newRamsesV2(entityPool)
+	case pooltypes.PoolTypes.SolidlyV2:
+		return f.newSolidlyV2(entityPool)
 	case pooltypes.PoolTypes.SolidlyV3:
 		return f.newSolidlyV3(entityPool)
 	case pooltypes.PoolTypes.Dmm:
@@ -789,6 +792,20 @@ func (f *PoolFactory) newRamsesV2(entityPool entity.Pool) (*ramsesv2.PoolSimulat
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newRamsesV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSolidlyV2(entityPool entity.Pool) (*solidlyv2.PoolSimulator, error) {
+	corePool, err := solidlyv2.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSolidlyV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

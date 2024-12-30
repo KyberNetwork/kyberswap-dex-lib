@@ -116,6 +116,7 @@ common:
     - "shibaswap"
     - "smardex"
     - "integral"
+    - "solidly-v2"
     - "solidly-v3"
     - "sushiswap"
     - "sushiswap-v3"
