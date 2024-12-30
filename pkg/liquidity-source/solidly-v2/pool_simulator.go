@@ -1,4 +1,4 @@
-package velodromev2
+package solidlyv2
 
 import (
 	"errors"
@@ -12,6 +12,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -50,12 +52,12 @@ type (
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var staticExtra PoolStaticExtra
+	var staticExtra velodromev2.PoolStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
-	var extra PoolExtra
+	var extra velodromev2.PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -148,7 +150,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return PoolMeta{
+	return velodromev2.PoolMeta{
 		Fee:          s.fee.Uint64(),
 		FeePrecision: s.feePrecision.Uint64(),
 		BlockNumber:  s.Pool.Info.BlockNumber,
@@ -326,16 +328,16 @@ func (s *PoolSimulator) _getAmountIn(
 		reserveOut = _reserve1
 	}
 
-	numerator := SafeMul(
-		SafeMul(reserveIn, amountOut),
+	numerator := velodromev2.SafeMul(
+		velodromev2.SafeMul(reserveIn, amountOut),
 		s.feePrecision,
 	)
-	denominator := SafeMul(
-		SafeSub(reserveOut, amountOut),
-		SafeSub(s.feePrecision, s.fee),
+	denominator := velodromev2.SafeMul(
+		velodromev2.SafeSub(reserveOut, amountOut),
+		velodromev2.SafeSub(s.feePrecision, s.fee),
 	)
 
-	return SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
+	return velodromev2.SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
 }
 
 func (s *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
