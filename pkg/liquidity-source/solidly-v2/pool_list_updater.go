@@ -327,7 +327,7 @@ func (u *PoolsListUpdater) listMemecorePools(
 		newPool := entity.Pool{
 			Address:     strings.ToLower(poolAddress.Hex()),
 			Exchange:    u.config.DexID,
-			Type:        "solidly-v2-memecore",
+			Type:        DexType,
 			BlockNumber: resp.BlockNumber.Uint64(),
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{"0", "0"},
