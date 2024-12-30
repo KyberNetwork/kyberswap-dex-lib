@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
@@ -315,7 +315,7 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
 	cloned.swapFeePercentage = p.swapFeePercentage.Clone()
 	cloned.aggregateSwapFeePercentage = p.aggregateSwapFeePercentage.Clone()
