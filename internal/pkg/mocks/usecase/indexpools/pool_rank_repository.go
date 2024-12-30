@@ -84,18 +84,18 @@ func (mr *MockIPoolRankRepositoryMockRecorder) GetDirectIndexLength(ctx, key, to
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDirectIndexLength", reflect.TypeOf((*MockIPoolRankRepository)(nil).GetDirectIndexLength), ctx, key, token0, token1)
 }
 
-// RemoveAddressesFromWhitelistIndex mocks base method.
-func (m *MockIPoolRankRepository) RemoveAddressesFromWhitelistIndex(ctx context.Context, key string, pools []string, removeFromGlobal bool) error {
+// RemoveAddressFromIndex mocks base method.
+func (m *MockIPoolRankRepository) RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveAddressesFromWhitelistIndex", ctx, key, pools, removeFromGlobal)
+	ret := m.ctrl.Call(m, "RemoveAddressFromIndex", ctx, key, pools)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RemoveAddressesFromWhitelistIndex indicates an expected call of RemoveAddressesFromWhitelistIndex.
-func (mr *MockIPoolRankRepositoryMockRecorder) RemoveAddressesFromWhitelistIndex(ctx, key, pools, removeFromGlobal any) *gomock.Call {
+// RemoveAddressFromIndex indicates an expected call of RemoveAddressFromIndex.
+func (mr *MockIPoolRankRepositoryMockRecorder) RemoveAddressFromIndex(ctx, key, pools any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAddressesFromWhitelistIndex", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveAddressesFromWhitelistIndex), ctx, key, pools, removeFromGlobal)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAddressFromIndex", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveAddressFromIndex), ctx, key, pools)
 }
 
 // RemoveFromSortedSet mocks base method.

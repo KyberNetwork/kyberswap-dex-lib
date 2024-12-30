@@ -22,32 +22,12 @@ func (u *RemovePoolIndexUseCase) RemovePoolAddressFromIndexes(ctx context.Contex
 	}
 
 	// we don't have enough information to check if the pool belong to any indexes set, so we will send commands to all nativeTvl and amplifiedNativeTvl set
-	err := u.poolRankRepo.RemoveAddressesFromWhitelistIndex(ctx, poolrank.SortByTVLNative, addresses, true)
+	err := u.poolRankRepo.RemoveAddressFromIndex(ctx, poolrank.SortByTVLNative, addresses)
 	if err != nil {
 		return err
 	}
 
-	err = u.poolRankRepo.RemoveAddressesFromWhitelistIndex(ctx, poolrank.SortByAmplifiedTVLNative, addresses, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
-
-}
-
-func (u *RemovePoolIndexUseCase) RemovePoolAddressFromLiqScoreIndexes(ctx context.Context, addresses ...string) error {
-	if len(addresses) == 0 {
-		return nil
-	}
-
-	// we don't have enough information to check if the pool belong to any indexes set, so we will send commands to all nativeTvl and amplifiedNativeTvl set
-	err := u.poolRankRepo.RemoveAddressesFromWhitelistIndex(ctx, poolrank.SortByLiquidityScoreTvl, addresses, true)
-	if err != nil {
-		return err
-	}
-
-	err = u.poolRankRepo.RemoveAddressesFromWhitelistIndex(ctx, poolrank.SortByLiquidityScore, addresses, false)
+	err = u.poolRankRepo.RemoveAddressFromIndex(ctx, poolrank.SortByAmplifiedTVLNative, addresses)
 	if err != nil {
 		return err
 	}

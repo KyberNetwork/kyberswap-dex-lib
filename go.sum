@@ -14,8 +14,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4 h1:JbIQLyp4YNbwEUlBJGE/xc2ktr6e
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.3 h1:H1ZoKsaoqK5xEuW+Zv1b9dxG09Cn/GjEiwjXdOIreQk=
 github.com/KyberNetwork/ethrpc v0.7.3/go.mod h1:+MonZWaG7IfjuMz35BoUF4w+tu5qU+rlEqMF0UM3+1w=
-github.com/KyberNetwork/grpc-service v0.3.9 h1:unLpnpWbdttYe0+oG3I5MWNaC5Pt0xKAFqh1xr2d3k0=
-github.com/KyberNetwork/grpc-service v0.3.9/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
+github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545 h1:apFMVFwAtAo3LAXgxwSartOiaHag2R6aRXYe+8sW1sg=
+github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
@@ -36,8 +36,8 @@ github.com/KyberNetwork/pancake-v3-sdk v0.2.2 h1:45P7nv11pKHiQQcad2IA6RerjTyVZJm
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/pathfinder-lib v0.1.7 h1:zHYHTk5gJ8UF2M1tnyDDh67uRroT35OfzGMDYjiCyw4=
 github.com/KyberNetwork/pathfinder-lib v0.1.7/go.mod h1:1zQ8DhbWtcSfqyn4IgkB4svLIycnhPnTSwrPxAnQKWY=
-github.com/KyberNetwork/pool-service v0.82.11 h1:1Jk6e85a/B+0jRleY28XIMGrrNWAIQPTcK/1pgoI5mA=
-github.com/KyberNetwork/pool-service v0.82.11/go.mod h1:Ob3T4s3F3d+DsIhfach/MmoJ8A9nzoOfZHEpOt6H+50=
+github.com/KyberNetwork/pool-service v0.67.0 h1:Vw26sKsi5y4fpt1eD6vqBq6IILOT9cb3c9RseTxdtDM=
+github.com/KyberNetwork/pool-service v0.67.0/go.mod h1:Dbuj6W+40pHSRqQKQ8Jq0o2zs9+9MzxEP2KX3M1HFlA=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=
 github.com/KyberNetwork/reload v0.1.1/go.mod h1:0qlzJAjsqBf1ZBw93qPpucFXre/0FMtQWwD/BidcYtM=
 github.com/KyberNetwork/service-framework v0.7.1 h1:JzH6kFGDJ3cxp8hMhXgrF+nMI5xc80hR5s0XbpzT3EY=

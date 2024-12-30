@@ -132,6 +132,8 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 		Info("job done")
 }
 
+type BatchedPoolAddress = kutils.ChanTask[*message.EventMessage]
+
 func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
 	batcher := kutils.NewChanBatcher[*BatchedPoolAddress, *message.EventMessage](
 		func() (batchRate time.Duration, batchCnt int) {
