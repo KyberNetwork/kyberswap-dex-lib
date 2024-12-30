@@ -157,6 +157,9 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 
 func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
+	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
 	return &cloned
 }
 
