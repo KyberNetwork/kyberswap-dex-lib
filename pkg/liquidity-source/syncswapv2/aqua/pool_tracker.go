@@ -2,15 +2,14 @@ package syncswapv2aqua
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
-
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
