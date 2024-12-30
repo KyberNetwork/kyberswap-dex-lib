@@ -10,15 +10,22 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/KyberNetwork/kutils"
+	"github.com/KyberNetwork/pool-service/pkg/message"
+	"github.com/KyberNetwork/router-service/internal/pkg/consumer"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type LiquidityScoreIndexPoolsJob struct {
 	indexUsecase               ITradeGeneratorUsecase
 	updatePoolScores           IUpdatePoolScores
 	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase
+	removePoolUsecase          IRemovePoolIndexUseCase
+	poolEventsStreamConsumer   consumer.Consumer[*message.EventMessage]
 	config                     LiquidityScoreIndexPoolsJobConfig
 }
 
@@ -26,38 +33,103 @@ func NewLiquidityScoreIndexPoolsJob(
 	indexUseCase ITradeGeneratorUsecase,
 	updatePoolScores IUpdatePoolScores,
 	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase,
+	removePoolUsecase IRemovePoolIndexUseCase,
+	streamConsumer consumer.Consumer[*message.EventMessage],
 	config LiquidityScoreIndexPoolsJobConfig) *LiquidityScoreIndexPoolsJob {
 	return &LiquidityScoreIndexPoolsJob{
 		indexUsecase:               indexUseCase,
 		config:                     config,
 		updatePoolScores:           updatePoolScores,
 		blacklistIndexPoolsUsecase: blacklistIndexPoolsUsecase,
+		poolEventsStreamConsumer:   streamConsumer,
+		removePoolUsecase:          removePoolUsecase,
 	}
 }
 
 func (job *LiquidityScoreIndexPoolsJob) Run(ctx context.Context) {
-	ticker := time.NewTicker(job.config.Interval)
-	defer ticker.Stop()
+	job.subscribeEventStream(ctx)
+}
+
+func (u *LiquidityScoreIndexPoolsJob) subscribeEventStream(ctx context.Context) {
+	batcher := kutils.NewChanBatcher[*BatchedPoolAddress, *message.EventMessage](
+		func() (batchRate time.Duration, batchCnt int) {
+			return u.config.PoolEvent.BatchRate, u.config.PoolEvent.BatchSize
+		}, u.handleStreamEvents)
+	defer batcher.Close()
 
 	for {
-		job.scanAndIndex(ctxutils.NewJobCtx(ctx))
 		select {
 		case <-ctx.Done():
+			if env.IsProductionMode(u.config.Env) {
+				time.Sleep(10 * time.Second)
+			}
 			logger.
 				WithFields(ctx,
 					logger.Fields{
-						"job.name": LiquidityScoreIndexPools,
+						"job.name": IndexPools,
 						"error":    ctx.Err(),
 					}).
 				Errorf("job error")
-			return
-		case <-ticker.C:
-			continue
+		default:
+			u.poolEventsStreamConsumer.Consume(
+				ctx,
+				func(ctx context.Context, msg *message.EventMessage) error {
+					return u.handleMessage(ctx, msg, batcher)
+				})
+			time.Sleep(u.config.PoolEvent.RetryInterval)
+			logger.WithFields(ctx,
+				logger.Fields{
+					"job.name": consumer.PoolEvents,
+				}).
+				Info("job restarting")
+
 		}
 	}
 }
 
-func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context) {
+func (u *LiquidityScoreIndexPoolsJob) handleMessage(ctx context.Context,
+	msg *message.EventMessage,
+	poolCreatedBatcher *kutils.ChanBatcher[*BatchedPoolAddress, *message.EventMessage]) error {
+	if msg == nil {
+		return nil
+	}
+	switch msg.EventType {
+	// keep message.EventUnspecified to backward compatible with the old events in redis stream, will be removed later
+	case message.EventPoolCreated, message.EventPoolUpdated, message.EventUnspecified:
+		task := kutils.NewChanTask[*message.EventMessage](ctx)
+		task.Resolve(msg, nil)
+		poolCreatedBatcher.Batch(task)
+	case message.EventPoolDeleted:
+		payload := new(message.PoolDeletedPayload)
+		err := json.Unmarshal([]byte(msg.Payload), payload)
+		if err == nil {
+			if payload.PoolEntity.Address != "" {
+				err := u.removePoolUsecase.RemovePoolAddressFromLiqScoreIndexes(ctx, payload.PoolEntity.Address)
+				if err != nil {
+					logger.Errorf(ctx, "RemovePoolFromIndexes pool %s error %v", &payload.PoolEntity.Address, err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (u *LiquidityScoreIndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddress) {
+	if len(msgs) == 0 {
+		return
+	}
+
+	poolAddrSet := mapset.NewThreadUnsafeSet[string]()
+	for _, msg := range msgs {
+		poolAddrSet.Add(msg.Ret.PoolAddress)
+	}
+
+	ctx := ctxutils.NewJobCtx(msgs[0].Ctx())
+	u.scanAndIndex(ctx, poolAddrSet)
+}
+
+func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context, poolAddresses mapset.Set[string]) {
 	startTime := time.Now()
 	defer func() {
 		logger.
@@ -69,7 +141,7 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context) {
 			).
 			Info("job done with duration")
 	}()
-	err := job.runScanJob(ctxutils.NewJobCtx(ctx))
+	err := job.runScanJob(ctxutils.NewJobCtx(ctx), poolAddresses)
 	if err != nil {
 		logger.
 			WithFields(ctx,
@@ -117,7 +189,7 @@ func (job *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context) e
 	return nil
 }
 
-func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context) error {
+func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, poolAddresses mapset.Set[string]) error {
 	// get blacklist index pools from local cache
 	totalBlacklistPools := job.blacklistIndexPoolsUsecase.GetBlacklistIndexPools(ctx)
 	newBlacklistPools := []string{}
@@ -144,7 +216,7 @@ func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context) error {
 	// failedBuffer := bufio.NewWriter(failedFile)
 	output := make(chan indexpools.TradesGenerationOutput, job.config.BatchSize)
 
-	go job.indexUsecase.Handle(ctx, output, totalBlacklistPools)
+	go job.indexUsecase.Handle(ctx, output, totalBlacklistPools, poolAddresses)
 
 	for output := range output {
 		for p, trades := range output.Successed {

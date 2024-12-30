@@ -882,7 +882,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	// init redis client
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
+		logger.Errorf(ctx, "[liqIndexerAction] fail to init redis client to pool service")
 		return err
 	}
 	routerRedisClient, err := redis.New(&cfg.Redis)
@@ -934,7 +934,15 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
 	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
-	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools, cfg.Job.LiquidityScoreIndexPools)
+	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)
+	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
+	if err != nil {
+		logger.Errorf(ctx, "[liqIndexerAction] fail to init redis client to pool service")
+		return err
+	}
+	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,
+		&cfg.Job.LiquidityScoreIndexPools.PoolEvent.ConsumerConfig)
+	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools, removePoolUsecase, poolEventStreamConsumer, cfg.Job.LiquidityScoreIndexPools)
 
 	reloadManager := reload.NewManager()
 

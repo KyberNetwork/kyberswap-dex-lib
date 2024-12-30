@@ -173,20 +173,17 @@ func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int
 func (r *redisRepository) FindGlobalBestPoolsByScores(ctx context.Context, poolCount int64, sortBy string) ([]string, error) {
 	whiteListSet := mapset.NewThreadUnsafeSet[string]()
 	result := make([]string, 0, poolCount)
-	if sortBy == SortByLiquidityScoreTvl {
-		whitelist, err := r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), &redis.ZRangeBy{
-			Min:   "0",
-			Max:   "+inf",
-			Count: poolCount,
-		}).Result()
-		if err != nil {
-			return whitelist, err
-		}
-		whiteListSet.Append(whitelist...)
-		// must retain the order in whitelist set returned from redis
-		result = append(result, whitelist...)
-
+	whitelist, err := r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), &redis.ZRangeBy{
+		Min:   "0",
+		Max:   "+inf",
+		Count: poolCount,
+	}).Result()
+	if err != nil {
+		return whitelist, err
 	}
+	whiteListSet.Append(whitelist...)
+	// must retain the order in whitelist set returned from redis
+	result = append(result, whitelist...)
 
 	if int(poolCount)-whiteListSet.Cardinality() <= 0 {
 		return result, nil
@@ -284,21 +281,24 @@ func (r *redisRepository) RemoveFromSortedSet(
 	return err
 }
 
-func (r *redisRepository) RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error {
+func (r *redisRepository) RemoveAddressesFromWhitelistIndex(ctx context.Context, key string, pools []string, removeFromGlobal bool) error {
 	if len(pools) == 0 {
 		return nil
 	}
-	_, err := r.redisClient.TxPipelined(
-		ctx, func(tx redis.Pipeliner) error {
-			// remove pools from global and whitelist for both tvl and amplifiedtvl
-			tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(key), pools)
-			tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools)
+	// remove pools from global and whitelist for both tvl and amplifiedtvl
+	if removeFromGlobal {
+		_, err := r.redisClient.TxPipelined(
+			ctx, func(tx redis.Pipeliner) error {
+				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(SortByTVLNative), pools)
+				tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools)
 
-			return nil
-		},
-	)
-
-	return err
+				return nil
+			},
+		)
+		return err
+	} else {
+		return r.redisClient.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools).Err()
+	}
 }
 
 func (r *redisRepository) GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error) {

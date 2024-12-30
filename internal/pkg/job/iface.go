@@ -31,7 +31,8 @@ type IUpdateL1FeeUseCase interface {
 }
 
 type ITradeGeneratorUsecase interface {
-	Handle(ctx context.Context, output chan<- indexpools.TradesGenerationOutput, indexBlacklistWlPools mapset.Set[string])
+	Handle(ctx context.Context,
+		output chan<- indexpools.TradesGenerationOutput, indexBlacklistWlPools mapset.Set[string], addresses mapset.Set[string])
 }
 
 type IRemovePoolsFromIndexUseCase interface {
@@ -45,4 +46,8 @@ type IUpdatePoolScores interface {
 type IBlacklistIndexPoolsUsecase interface {
 	GetBlacklistIndexPools(ctx context.Context) mapset.Set[string]
 	AddToBlacklistIndexPools(ctx context.Context, addresses []string)
+}
+
+type IRemovePoolIndexUseCase interface {
+	RemovePoolAddressFromLiqScoreIndexes(ctx context.Context, addresses ...string) error
 }

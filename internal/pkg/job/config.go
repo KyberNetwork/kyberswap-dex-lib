@@ -46,11 +46,19 @@ type (
 	}
 
 	LiquidityScoreIndexPoolsJobConfig struct {
+		Env                      string        `mapstructure:"env" json:"env"`
 		BatchSize                time.Duration `mapstructure:"batchSize"`
 		SuccessedFileName        string        `mapstructure:"successedFileName"`
 		FailedFileName           string        `mapstructure:"failedFileName"`
 		LiquidityScoreCalcScript string        `mapstructure:"liquidityScoreCalcScript"`
 		Interval                 time.Duration `mapstructure:"interval"`
 		ExportFailedTrade        bool          `mapstructure:"exportFailedTrade"`
+
+		PoolEvent struct {
+			ConsumerConfig consumer.Config `mapstructure:"consumerConfig"`
+			BatchRate      time.Duration   `mapstructure:"batchRate"`
+			BatchSize      int             `mapstructure:"batchSize"`
+			RetryInterval  time.Duration   `mapstructure:"retryInterval"`
+		} `mapstructure:"poolEvent"`
 	}
 )

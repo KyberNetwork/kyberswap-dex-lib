@@ -55,7 +55,7 @@ type IPoolRankRepository interface {
 		isToken0Whitelisted, isToken1Whitelisted bool,
 		key string, memberName string, useGlobal bool,
 	) error
-	RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error
+	RemoveAddressesFromWhitelistIndex(ctx context.Context, key string, pools []string, removeFromGlobal bool) error
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)
 }
 

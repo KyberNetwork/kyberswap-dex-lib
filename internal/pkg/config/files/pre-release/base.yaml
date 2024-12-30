@@ -1,4 +1,4 @@
-env: "production"
+env: &env "pre-release"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -489,12 +489,26 @@ job:
   trackExecutorBalance:
     interval: 1h
   liquidityScoreIndexPools:
+    env: *env
     batchSize: 200
     interval: 1h
     successedFileName: "./trade_data.txt"
     failedFileName: "./failed_trade_data.txt"
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_events"
+        group: "router_liqIndexPools"
+        key: "message"
+        block: 300ms
+        count: 200
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
 repository:
   gas:
     redis:

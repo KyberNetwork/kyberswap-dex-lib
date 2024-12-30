@@ -1456,9 +1456,9 @@ func TestRedisRepository_RemoveAddressFromIndex(t *testing.T) {
 		whitelistToken2Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Equal(t, whitelistToken2Tvl, expectedTvlScore)
 
-		err = repo.RemoveAddressFromIndex(context.TODO(), SortByTVLNative, []string{"pooladdress2"})
+		err = repo.RemoveAddressesFromWhitelistIndex(context.TODO(), SortByTVLNative, []string{"pooladdress2"}, true)
 		assert.Nil(t, err)
-		err = repo.RemoveAddressFromIndex(context.TODO(), SortByAmplifiedTVLNative, []string{"pooladdress2"})
+		err = repo.RemoveAddressesFromWhitelistIndex(context.TODO(), SortByAmplifiedTVLNative, []string{"pooladdress2"}, false)
 		assert.Nil(t, err)
 
 		// asset data after delete

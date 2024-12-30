@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+type Environment string
+
+const (
+	Production Environment = "production"
+	PreRelease Environment = "pre-release"
+)
+
 // StringFromEnv returns the env variable for the given key
 // and falls back to the given defaultValue if not set
 func StringFromEnv(key, defaultValue string) string {
@@ -75,4 +82,8 @@ func ParseBoolFromEnv(envVar string, defaultValue bool) bool {
 	}
 
 	return defaultValue
+}
+
+func IsProductionMode(env string) bool {
+	return Environment(env) == Production
 }
