@@ -1,6 +1,8 @@
 package classical
 
 import (
+	"fmt"
+
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/libv1"
@@ -23,7 +25,11 @@ func (p *PoolSimulator) querySellQuoteToken(amount *uint256.Int) (
 ) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 

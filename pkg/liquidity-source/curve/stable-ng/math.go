@@ -1,6 +1,7 @@
 package stableng
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -315,8 +316,11 @@ func (t *PoolSimulator) GetDx(
 ) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.Wrapf(ErrExecutionReverted, "recovered error: %v", r.(error))
-			return
+			if recoveredError, ok := r.(error); ok {
+				err = errors.Wrapf(ErrExecutionReverted, "recovered error: %v", recoveredError)
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 
