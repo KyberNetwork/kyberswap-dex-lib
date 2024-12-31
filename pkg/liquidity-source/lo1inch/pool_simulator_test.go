@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,24 +14,26 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 	// prepare data for test case 2
-	takingAmount := new(big.Int).SetInt64(100000000 - 101)
-	orderMakingAmount, _ := new(big.Int).SetString("100000000000", 10)
-	orderTakingAmount, _ := new(big.Int).SetString("100247731166", 10)
+	takingAmount := uint256.NewInt(100000000 - 101)
+	orderMakingAmount := uint256.NewInt(100000000000)
+	orderTakingAmount := uint256.NewInt(100247731166)
 
-	makingAmount := new(big.Int).Div(new(big.Int).Mul(takingAmount, orderMakingAmount), orderTakingAmount)
-	makerBalance, _ := new(big.Int).SetString("722627607117", 10)
-	makerAllowance, _ := new(big.Int).SetString("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10)
+	makingAmount := new(uint256.Int).Div(
+		new(uint256.Int).Mul(takingAmount, orderMakingAmount),
+		orderTakingAmount,
+	)
+	makerBalance := uint256.MustFromDecimal("722627607117")
+	makerAllowance := uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935")
 
-	remainingMakerAmount := new(big.Int).Sub(orderMakingAmount, makingAmount)
-	remainingMakerBalance := new(big.Int).Sub(makerBalance, makingAmount)
-	remainingMakerAllowance := new(big.Int).Sub(makerAllowance, makingAmount)
+	remainingMakerAmount := new(uint256.Int).Sub(orderMakingAmount, makingAmount)
+	remainingMakerBalance := new(uint256.Int).Sub(makerBalance, makingAmount)
+	remainingMakerAllowance := new(uint256.Int).Sub(makerAllowance, makingAmount)
 
-	amountOut := new(big.Int).Add(big.NewInt(10000), makingAmount)
+	amountOut := new(uint256.Int).Add(uint256.NewInt(10000), makingAmount)
 	// end of prepare data for test case 2
 
 	type fields struct {
@@ -70,15 +73,15 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							{
 								Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 								OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-								RemainingMakerAmount: big.NewInt(10000),
-								MakerBalance:         big.NewInt(10437135),
-								MakerAllowance:       big.NewInt(900000),
+								RemainingMakerAmount: uint256.NewInt(10000),
+								MakerBalance:         uint256.NewInt(10437135),
+								MakerAllowance:       uint256.NewInt(900000),
 								MakerAsset:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
 								TakerAsset:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 								Salt:                 "54304030",
 								Receiver:             "0x0000000000000000000000000000000000000000",
-								MakingAmount:         big.NewInt(10000),
-								TakingAmount:         big.NewInt(101),
+								MakingAmount:         uint256.NewInt(10000),
+								TakingAmount:         uint256.NewInt(101),
 								Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
 							},
 						},
@@ -90,7 +93,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 				param: pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-						Amount: big.NewInt(101),
+						Amount: uint256.NewInt(101).ToBig(),
 					},
 					TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Limit:    nil,
@@ -99,12 +102,12 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 			want: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:     "0xdac17f958d2ee523a2206206994597c13d831ec7",
-					Amount:    big.NewInt(10000),
+					Amount:    uint256.NewInt(10000).ToBig(),
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
 					Token:     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-					Amount:    big.NewInt(0),
+					Amount:    uint256.NewInt(0).ToBig(),
 					AmountUsd: 0,
 				},
 				Gas: 113308,
@@ -115,19 +118,19 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 						{
 							Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 							OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-							RemainingMakerAmount: new(big.Int).Sub(big.NewInt(10000), big.NewInt(10000)),
-							MakerBalance:         big.NewInt(10437135 - 10000),
-							MakerAllowance:       big.NewInt(900000 - 10000),
+							RemainingMakerAmount: uint256.NewInt(0),
+							MakerBalance:         uint256.NewInt(10437135 - 10000),
+							MakerAllowance:       uint256.NewInt(900000 - 10000),
 							MakerAsset:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
 							TakerAsset:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 							Salt:                 "54304030",
 							Receiver:             "0x0000000000000000000000000000000000000000",
-							MakingAmount:         big.NewInt(10000),
-							TakingAmount:         big.NewInt(101),
+							MakingAmount:         uint256.NewInt(10000),
+							TakingAmount:         uint256.NewInt(101),
 							Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
 
-							FilledMakingAmount: big.NewInt(10000),
-							FilledTakingAmount: big.NewInt(101),
+							FilledMakingAmount: uint256.NewInt(10000),
+							FilledTakingAmount: uint256.NewInt(101),
 						},
 					},
 				},
@@ -161,7 +164,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 				param: pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-						Amount: big.NewInt(100000000),
+						Amount: uint256.NewInt(100000000).ToBig(),
 					},
 					TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Limit:    nil,
@@ -170,12 +173,12 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 			want: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:     "0xdac17f958d2ee523a2206206994597c13d831ec7",
-					Amount:    amountOut,
+					Amount:    amountOut.ToBig(),
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
 					Token:     "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-					Amount:    big.NewInt(0),
+					Amount:    uint256.NewInt(0).ToBig(),
 					AmountUsd: 0,
 				},
 				Gas: 136616,
@@ -186,19 +189,19 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 						{
 							Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 							OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-							RemainingMakerAmount: new(big.Int).Sub(big.NewInt(10000), big.NewInt(10000)),
-							MakerBalance:         big.NewInt(10437135 - 10000),
-							MakerAllowance:       big.NewInt(900000 - 10000),
+							RemainingMakerAmount: uint256.NewInt(0),
+							MakerBalance:         uint256.NewInt(10437135 - 10000),
+							MakerAllowance:       uint256.NewInt(900000 - 10000),
 							MakerAsset:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
 							TakerAsset:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 							Salt:                 "54304030",
 							Receiver:             "0x0000000000000000000000000000000000000000",
-							MakingAmount:         big.NewInt(10000),
-							TakingAmount:         big.NewInt(101),
+							MakingAmount:         uint256.NewInt(10000),
+							TakingAmount:         uint256.NewInt(101),
 							Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
 
-							FilledMakingAmount: big.NewInt(10000),
-							FilledTakingAmount: big.NewInt(101),
+							FilledMakingAmount: uint256.NewInt(10000),
+							FilledTakingAmount: uint256.NewInt(101),
 						},
 						{
 							Signature:            "0xd6a593b5bcdbe12600f09c421a769fdc2c5dd10399e71a873b7fbad1cb764b0b484452ab925d3420a9a58188b38a8b44eb91892c938ffe622c7cb6b4dd2634511b",
@@ -210,8 +213,8 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							TakerAsset:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 							Salt:                 "67123001626078665156821660044248014421358635920891485277615109939076199471724",
 							Receiver:             "0x0000000000000000000000000000000000000000",
-							MakingAmount:         big.NewInt(100000000000),
-							TakingAmount:         big.NewInt(100247731166),
+							MakingAmount:         uint256.NewInt(100000000000),
+							TakingAmount:         uint256.NewInt(100247731166),
 							Maker:                "0x29eba388141f070e6824dd7628f11cb946bc548b",
 
 							FilledMakingAmount: makingAmount,
@@ -282,15 +285,15 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							{
 								Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 								OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-								RemainingMakerAmount: big.NewInt(10000),
-								MakerBalance:         big.NewInt(10437135),
-								MakerAllowance:       big.NewInt(900000),
+								RemainingMakerAmount: uint256.NewInt(10000),
+								MakerBalance:         uint256.NewInt(10437135),
+								MakerAllowance:       uint256.NewInt(900000),
 								MakerAsset:           "0xdac17f958d2ee523a2206206994597c13d831ec7",
 								TakerAsset:           "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 								Salt:                 "54304030",
 								Receiver:             "0x0000000000000000000000000000000000000000",
-								MakingAmount:         big.NewInt(10000),
-								TakingAmount:         big.NewInt(101),
+								MakingAmount:         uint256.NewInt(10000),
+								TakingAmount:         uint256.NewInt(101),
 								Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
 							},
 						},
@@ -389,11 +392,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			TakeToken0Orders: lo.Map(orders, func(o testorder, _ int) *Order {
 				return &Order{
 					OrderHash:            o.hash,
-					MakingAmount:         bignumber.NewBig10(o.makingAmount),
-					TakingAmount:         bignumber.NewBig10(o.takingAmount),
-					RemainingMakerAmount: bignumber.NewBig10(o.remainingMakerAmount),
-					MakerBalance:         bignumber.NewBig10("100000000000000000000"),
-					MakerAllowance:       bignumber.NewBig10("100000000000000000000"),
+					MakingAmount:         uint256.MustFromDecimal(o.makingAmount),
+					TakingAmount:         uint256.MustFromDecimal(o.takingAmount),
+					RemainingMakerAmount: uint256.MustFromDecimal(o.remainingMakerAmount),
+					MakerBalance:         uint256.MustFromDecimal("100000000000000000000"),
+					MakerAllowance:       uint256.MustFromDecimal("100000000000000000000"),
 				}
 			}),
 		}
@@ -415,7 +418,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  "A",
-					Amount: bignumber.NewBig10(tc.amountIn),
+					Amount: uint256.MustFromDecimal(tc.amountIn).ToBig(),
 				},
 				TokenOut: "B",
 				Limit:    limit,
@@ -490,11 +493,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				TakeToken0Orders: lo.Map(orders, func(o testorder, _ int) *Order {
 					return &Order{
 						OrderHash:            o.hash,
-						MakingAmount:         bignumber.NewBig10(o.makingAmount),
-						TakingAmount:         bignumber.NewBig10(o.takingAmount),
-						RemainingMakerAmount: bignumber.NewBig10(o.remainingMakerAmount),
-						MakerBalance:         bignumber.NewBig10("100000000000000000000"),
-						MakerAllowance:       bignumber.NewBig10("100000000000000000000"),
+						MakingAmount:         uint256.MustFromDecimal(o.makingAmount),
+						TakingAmount:         uint256.MustFromDecimal(o.takingAmount),
+						RemainingMakerAmount: uint256.MustFromDecimal(o.remainingMakerAmount),
+						MakerBalance:         uint256.MustFromDecimal("100000000000000000000"),
+						MakerAllowance:       uint256.MustFromDecimal("100000000000000000000"),
 					}
 				}),
 			}
@@ -519,7 +522,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
-						Amount: bignumber.NewBig10(swap.amountIn),
+						Amount: uint256.MustFromDecimal(swap.amountIn).ToBig(),
 					},
 					TokenOut: "B",
 					Limit:    limit,
@@ -547,7 +550,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				sims[tc.pool].UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
-						Amount: bignumber.NewBig10(swap.amountIn),
+						Amount: uint256.MustFromDecimal(swap.amountIn).ToBig(),
 					},
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
@@ -583,13 +586,13 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 		},
 	}
 
-	makerBalances := map[string]*big.Int{
-		"maker1": bignumber.NewBig10("250"),
-		"maker2": bignumber.NewBig10("100"),
+	makerBalances := map[string]*uint256.Int{
+		"maker1": uint256.MustFromDecimal("250"),
+		"maker2": uint256.MustFromDecimal("100"),
 	}
-	minBalanceAllowanceByMakerAndAsset := map[makerAndAsset]*big.Int{
-		newMakerAndAsset("maker1", "B"): bignumber.NewBig10("150"), // maker1 original balance is 250, but 100 has been spent in previous paths (order with same makerAsset but different takerAsset)
-		newMakerAndAsset("maker2", "B"): bignumber.NewBig10("50"),  // same, maker2 has spent 50 already
+	minBalanceAllowanceByMakerAndAsset := map[makerAndAsset]*uint256.Int{
+		newMakerAndAsset("maker1", "B"): uint256.MustFromDecimal("150"), // maker1 original balance is 250, but 100 has been spent in previous paths (order with same makerAsset but different takerAsset)
+		newMakerAndAsset("maker2", "B"): uint256.MustFromDecimal("50"),  // same, maker2 has spent 50 already
 	}
 
 	testcases := []struct {
@@ -634,9 +637,9 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 						Maker:                o.maker,
 						MakerAsset:           "B",
 						TakerAsset:           "A",
-						MakingAmount:         bignumber.NewBig10(o.makingAmount),
-						TakingAmount:         bignumber.NewBig10(o.takingAmount),
-						RemainingMakerAmount: bignumber.NewBig10(o.remainingMakerAmount),
+						MakingAmount:         uint256.MustFromDecimal(o.makingAmount),
+						TakingAmount:         uint256.MustFromDecimal(o.takingAmount),
+						RemainingMakerAmount: uint256.MustFromDecimal(o.remainingMakerAmount),
 						MakerBalance:         makerBalances[o.maker],
 						MakerAllowance:       makerBalances[o.maker],
 					}
@@ -665,7 +668,7 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
-						Amount: bignumber.NewBig10(swap.amountIn),
+						Amount: uint256.MustFromDecimal(swap.amountIn).ToBig(),
 					},
 					TokenOut: "B",
 					Limit:    limit,
@@ -693,7 +696,7 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 				sims[tc.pool].UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
-						Amount: bignumber.NewBig10(swap.amountIn),
+						Amount: uint256.MustFromDecimal(swap.amountIn).ToBig(),
 					},
 					TokenAmountOut: *res.TokenAmountOut,
 					Fee:            *res.Fee,
