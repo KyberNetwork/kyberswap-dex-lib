@@ -9,4 +9,8 @@ var (
 	ErrPoolIsPaused                     = errors.New("pool is paused")
 	ErrDynamicSwapFeeHookFailed         = errors.New("dynamicSwapFeeHook is failed")
 	ErrPercentageAboveMax               = errors.New("percentage above max")
+	ErrSwapLimit                        = errors.New("swap limit error")
+	ErrHookAdjustedSwapLimit            = errors.New("hook adjusted swap limit error")
+	ErrBeforeSwapHookFailed             = errors.New("beforeSwapHook is failed")
+	ErrAfterSwapHookFailed              = errors.New("afterSwapHook is failed")
 )

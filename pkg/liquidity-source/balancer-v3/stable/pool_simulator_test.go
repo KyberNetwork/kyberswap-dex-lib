@@ -9,8 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -33,15 +35,19 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage:          uint256.NewInt(50000000000000),
-			aggregateSwapFeePercentage: uint256.NewInt(500000000000000000),
-			amplificationParameter:     uint256.NewInt(5000),
-			tokenRates:                 []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
-			decimalScalingFactors:      []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
-			balancesLiveScaled18:       []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
+			vault: vault.New(
+				hooks.NewBaseHook(),
+				shared.HooksConfig{},
+				false, // isPoolInRecoveryMode
+				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
+				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
+				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
+				uint256.NewInt(1000000),
+				uint256.NewInt(30000000000000),
+				uint256.NewInt(500000000000000000),
+			),
 
-			poolType:    PoolType,
-			poolVersion: shared.PoolVersion1,
+			poolType: PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -74,15 +80,19 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage:          uint256.NewInt(30000000000000),
-			aggregateSwapFeePercentage: uint256.NewInt(500000000000000000),
-			amplificationParameter:     uint256.NewInt(1000000),
-			tokenRates:                 []*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},
-			decimalScalingFactors:      []*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},
-			balancesLiveScaled18:       []*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")},
+			vault: vault.New(
+				hooks.NewBaseHook(),
+				shared.HooksConfig{},
+				false, // isPoolInRecoveryMode
+				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
+				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
+				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
+				uint256.NewInt(1000000),
+				uint256.NewInt(30000000000000),
+				uint256.NewInt(500000000000000000),
+			),
 
-			poolType:    PoolType,
-			poolVersion: shared.PoolVersion1,
+			poolType: PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -124,9 +134,17 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage:      uint256.NewInt(53332221119995),
-			amplificationParameter: uint256.NewInt(1390000),
-			decimalScalingFactors:  []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1000), uint256.NewInt(100)},
+			vault: vault.New(
+				hooks.NewBaseHook(),
+				shared.HooksConfig{},
+				false, // isPoolInRecoveryMode
+				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
+				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
+				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
+				uint256.NewInt(1000000),
+				uint256.NewInt(30000000000000),
+				uint256.NewInt(500000000000000000),
+			),
 
 			poolType:    PoolType,
 			poolVersion: 1,

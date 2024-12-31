@@ -222,6 +222,7 @@ func (t *PoolTracker) queryRPC(
 
 	return &RpcResult{
 		HooksConfig: shared.HooksConfig{
+			EnableHookAdjustedAmounts:       hooksConfig.Data.EnableHookAdjustedAmounts,
 			ShouldCallComputeDynamicSwapFee: hooksConfig.Data.ShouldCallComputeDynamicSwapFee,
 			ShouldCallBeforeSwap:            hooksConfig.Data.ShouldCallBeforeSwap,
 			ShouldCallAfterSwap:             hooksConfig.Data.ShouldCallAfterSwap,

@@ -17,14 +17,6 @@ type VaultSwapParams struct {
 	IndexIn        int
 	IndexOut       int
 	AmountGivenRaw *uint256.Int
-	LimitRaw       *uint256.Int
-	// HooksConfig                HooksConfig
-	// DecimalScalingFactor       *uint256.Int
-	// TokenRate                  *uint256.Int
-	// AmplificationParameter     *uint256.Int
-	// SwapFeePercentage          *uint256.Int
-	// AggregateSwapFeePercentage *uint256.Int
-	// BalancesLiveScaled18       []*uint256.Int
 }
 
 type PoolSwapParams struct {
@@ -34,6 +26,18 @@ type PoolSwapParams struct {
 	BalancesLiveScaled18 []*uint256.Int
 	IndexIn              int
 	IndexOut             int
+}
+
+type AfterSwapParams struct {
+	Kind                     SwapKind
+	IndexIn                  int
+	IndexOut                 int
+	AmountInScaled18         *uint256.Int
+	AmountOutScaled18        *uint256.Int
+	TokenInBalanceScaled18   *uint256.Int
+	TokenOutBalanceScaled18  *uint256.Int
+	AmountCalculatedScaled18 *uint256.Int
+	AmountCalculatedRaw      *uint256.Int
 }
 
 type TokenInfo struct {
@@ -55,6 +59,7 @@ type PoolDataRPC struct {
 }
 
 type HooksConfig struct {
+	EnableHookAdjustedAmounts       bool `json:"enableHookAdjustedAmounts"`
 	ShouldCallComputeDynamicSwapFee bool `json:"shouldCallComputeDynamicSwapFee"`
 	ShouldCallBeforeSwap            bool `json:"shouldCallBeforeSwap"`
 	ShouldCallAfterSwap             bool `json:"shouldCallAfterSwap"`

@@ -17,18 +17,9 @@ func (h *StableSurgeHook) OnComputeDynamicSwapFeePercentage(
 	balanceIn,
 	balanceOut *uint256.Int,
 ) (bool, *uint256.Int, error) {
-	calculatedSwapFeePercentage, err := h.calculatedExpectedSwapFeePercentage(balanceIn, balanceOut, amountGivenScaled18)
-	if err != nil {
-		return false, nil, err
-	}
-
-	if calculatedSwapFeePercentage.Gt(staticSwapFeePercentage) {
-		return true, calculatedSwapFeePercentage, nil
-	}
-
 	return false, staticSwapFeePercentage, nil
 }
 
 func (h *StableSurgeHook) getSurgeFeePercentage(params shared.VaultSwapParams) (*uint256.Int, error) {
-	// numTokens :=
+	return nil, nil
 }

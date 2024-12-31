@@ -1,18 +1,26 @@
 package hooks
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+	"github.com/holiman/uint256"
+)
 
 type baseHook struct{}
 
-var BaseHook = &baseHook{}
+func NewBaseHook() *baseHook {
+	return &baseHook{}
+}
 
-func (h *baseHook) OnBeforeSwap() {}
+func (h *baseHook) OnBeforeSwap(shared.PoolSwapParams) (bool, error) {
+	return false, nil
+}
 
-func (h *baseHook) OnAfterSwap() {}
+func (h *baseHook) OnAfterSwap(shared.AfterSwapParams) (bool, *uint256.Int, error) {
+	return false, math.ZERO, nil
 
-func (h *baseHook) OnComputeDynamicSwapFeePercentage(
-	staticSwapFeePercentage,
-	amountGivenScaled18,
-	balanceIn,
-	balanceOut *uint256.Int,
-) (bool, *uint256.Int, error)
+}
+
+func (h *baseHook) OnComputeDynamicSwapFeePercentage(shared.PoolSwapParams) (bool, *uint256.Int, error) {
+	return false, math.ZERO, nil
+}

@@ -6,9 +6,9 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
@@ -27,14 +27,7 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	swapFeePercentage          *uint256.Int
-	aggregateSwapFeePercentage *uint256.Int
-
-	amplificationParameter *uint256.Int
-	balancesLiveScaled18   []*uint256.Int
-	decimalScalingFactors  []*uint256.Int
-	tokenRates             []*uint256.Int
-	vault                  *vault.Vault
+	vault *vault.Vault
 
 	hooksConfig shared.HooksConfig
 
@@ -70,6 +63,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
+	// Need to detect the current using hook of pool
+	hook := hooks.NewBaseHook()
+
+	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
+		extra.BalancesLiveScaled18, extra.AmplificationParameter, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
+
 	poolInfo := poolpkg.PoolInfo{
 		Address:     entityPool.Address,
 		Exchange:    entityPool.Exchange,
@@ -81,19 +80,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                       poolpkg.Pool{Info: poolInfo},
-		isVaultPaused:              extra.IsVaultPaused,
-		isPoolPaused:               extra.IsPoolPaused,
-		isPoolInRecoveryMode:       extra.IsPoolInRecoveryMode,
-		swapFeePercentage:          extra.StaticSwapFeePercentage,
-		aggregateSwapFeePercentage: extra.AggregateSwapFeePercentage,
-		amplificationParameter:     extra.AmplificationParameter,
-		balancesLiveScaled18:       extra.BalancesLiveScaled18,
-		tokenRates:                 extra.TokenRates,
-		decimalScalingFactors:      extra.DecimalScalingFactors,
-		hooksConfig:                extra.HooksConfig,
-		vaultAddress:               staticExtra.Vault,
-		poolType:                   staticExtra.PoolType,
+		Pool:                 poolpkg.Pool{Info: poolInfo},
+		isVaultPaused:        extra.IsVaultPaused,
+		isPoolPaused:         extra.IsPoolPaused,
+		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
+		vault:                vault,
+		hooksConfig:          extra.HooksConfig,
+		vaultAddress:         staticExtra.Vault,
+		poolType:             staticExtra.PoolType,
 	}, nil
 }
 
@@ -146,7 +140,7 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
+		Vault:         s.vaultAddress,
 		PoolType:      s.poolType,
 		PoolVersion:   s.poolVersion,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
@@ -168,47 +162,27 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	updatedRawBalanceIn.Sub(updatedRawBalanceIn, swapInfo.AggregateFee)
 	p.Info.Reserves[tokenIndexIn] = updatedRawBalanceIn
 
-	vaultParams := shared.VaultSwapParams{
-		AmountGiven:          uint256.MustFromBig(updatedRawBalanceIn),
-		DecimalScalingFactor: p.decimalScalingFactors[tokenIndexIn],
-		TokenRate:            p.tokenRates[tokenIndexIn],
-	}
+	amountGivenRaw := uint256.MustFromBig(updatedRawBalanceIn)
 
-	updatedLiveBalanceIn, err := p.vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
+	updatedLiveBalanceIn, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
 	}
-	p.balancesLiveScaled18[tokenIndexIn] = updatedLiveBalanceIn
+	p.vault.BalancesLiveScaled18[tokenIndexIn] = updatedLiveBalanceIn
 
 	updatedRawBalanceOut := new(big.Int)
 	updatedRawBalanceOut.Sub(p.Info.Reserves[tokenIndexOut], params.TokenAmountOut.Amount)
 	p.Info.Reserves[tokenIndexOut] = updatedRawBalanceOut
 
-	vaultParams.AmountGiven.SetFromBig(updatedRawBalanceOut)
-	vaultParams.DecimalScalingFactor = p.decimalScalingFactors[tokenIndexOut]
-	vaultParams.TokenRate = p.tokenRates[tokenIndexOut]
+	amountGivenRaw.SetFromBig(updatedRawBalanceOut)
 
-	updatedLiveBalanceOut, err := shared.Vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
+	updatedLiveBalanceOut, err := p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
 	}
-	p.balancesLiveScaled18[tokenIndexOut] = updatedLiveBalanceOut
-}
-
-func (p *PoolSimulator) computeBalance(tokenInIndex int, invariantRatio *uint256.Int) (*uint256.Int, error) {
-	invariant, err := p.computeInvariant(shared.ROUND_UP)
-	if err != nil {
-		return nil, err
-	}
-
-	newInvariant, err := math.MulUp(invariant, invariantRatio)
-	if err != nil {
-		return nil, err
-	}
-
-	return math.StableMath.ComputeBalance(p.amplificationParameter, p.balancesLiveScaled18, newInvariant, tokenInIndex)
+	p.vault.BalancesLiveScaled18[tokenIndexOut] = updatedLiveBalanceOut
 }
 
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
@@ -220,8 +194,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 	var amountOutScaled18 *uint256.Int
 	if param.Kind == shared.EXACT_IN {
 		amountOutScaled18, err = math.StableMath.ComputeOutGivenExactIn(
-			p.amplificationParameter,
-			p.balancesLiveScaled18,
+			p.vault.AmplificationParameter,
+			p.vault.BalancesLiveScaled18,
 			param.IndexIn,
 			param.IndexOut,
 			param.AmountGivenScaled18,
@@ -229,8 +203,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 		)
 	} else {
 		amountOutScaled18, err = math.StableMath.ComputeInGivenExactOut(
-			p.amplificationParameter,
-			p.balancesLiveScaled18,
+			p.vault.AmplificationParameter,
+			p.vault.BalancesLiveScaled18,
 			param.IndexIn,
 			param.IndexOut,
 			param.AmountGivenScaled18,
@@ -245,7 +219,7 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 }
 
 func (p *PoolSimulator) computeInvariant(rounding shared.Rounding) (*uint256.Int, error) {
-	invariant, err := math.StableMath.ComputeInvariant(p.amplificationParameter, p.balancesLiveScaled18)
+	invariant, err := math.StableMath.ComputeInvariant(p.vault.AmplificationParameter, p.vault.BalancesLiveScaled18)
 	if err != nil {
 		return nil, err
 	}
@@ -306,17 +280,18 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
-	cloned.swapFeePercentage = p.swapFeePercentage.Clone()
-	cloned.aggregateSwapFeePercentage = p.aggregateSwapFeePercentage.Clone()
-	cloned.amplificationParameter = p.amplificationParameter.Clone()
-	cloned.balancesLiveScaled18 = lo.Map(p.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
-		return new(uint256.Int).Set(v)
-	})
-	cloned.decimalScalingFactors = lo.Map(p.decimalScalingFactors, func(v *uint256.Int, _ int) *uint256.Int {
-		return new(uint256.Int).Set(v)
-	})
-	cloned.tokenRates = lo.Map(p.tokenRates, func(v *uint256.Int, _ int) *uint256.Int {
-		return new(uint256.Int).Set(v)
-	})
+	// cloned.swapFeePercentage = p.swapFeePercentage.Clone()
+	// cloned.aggregateSwapFeePercentage = p.aggregateSwapFeePercentage.Clone()
+	// cloned.amplificationParameter = p.amplificationParameter.Clone()
+	// cloned.balancesLiveScaled18 = lo.Map(p.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
+	// 	return new(uint256.Int).Set(v)
+	// })
+	// cloned.decimalScalingFactors = lo.Map(p.decimalScalingFactors, func(v *uint256.Int, _ int) *uint256.Int {
+	// 	return new(uint256.Int).Set(v)
+	// })
+	// cloned.tokenRates = lo.Map(p.tokenRates, func(v *uint256.Int, _ int) *uint256.Int {
+	// 	return new(uint256.Int).Set(v)
+	// })
+
 	return &cloned
 }

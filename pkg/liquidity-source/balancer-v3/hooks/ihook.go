@@ -6,7 +6,7 @@ import (
 )
 
 type IHook interface {
-	OnBeforeSwap()
-	OnAfterSwap()
+	OnBeforeSwap(param shared.PoolSwapParams) (bool, error)
+	OnAfterSwap(param shared.AfterSwapParams) (bool, *uint256.Int, error)
 	OnComputeDynamicSwapFeePercentage(param shared.PoolSwapParams) (bool, *uint256.Int, error)
 }
