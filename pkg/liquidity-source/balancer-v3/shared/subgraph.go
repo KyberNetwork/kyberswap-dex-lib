@@ -6,14 +6,17 @@ import (
 )
 
 type SubgraphPool struct {
-	ID         string `json:"id"`
-	Address    string `json:"address"`
-	CreateTime string `json:"blockTimestamp"`
-	Tokens     []struct {
-		Address       string `json:"address"`
-		Decimals      int    `json:"decimals"`
-		ScalingFactor string `json:"scalingFactor"`
+	ID             string `json:"id"`
+	Address        string `json:"address"`
+	BlockTimestamp string `json:"blockTimestamp"`
+	Factory        string `json:"factory"`
+	Tokens         []struct {
+		Address  string `json:"address"`
+		Decimals int    `json:"decimals"`
 	} `json:"tokens"`
+	Vault struct {
+		ID string `json:"id"`
+	} `json:"vault"`
 }
 
 func BuildSubgraphPoolsQuery(
@@ -34,10 +37,13 @@ func BuildSubgraphPoolsQuery(
 			id
 			address
 			blockTimestamp
+			factory
 			tokens {
 			  address
 			  decimals
-			  scalingFactor
+			}
+			vault {
+			  id
 			}
 		}
 	}`

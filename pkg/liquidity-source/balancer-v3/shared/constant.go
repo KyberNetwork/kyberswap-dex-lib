@@ -3,20 +3,24 @@ package shared
 import "github.com/holiman/uint256"
 
 const (
-	PoolMethodGetTokenInfo               = "getTokenInfo"
-	PoolMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
-
 	PoolMethodGetAmplificationParameter = "getAmplificationParameter"
-	PoolMethodGetVault                  = "getVault"
 	PoolMethodVersion                   = "version"
 
-	PoolVersion1 = 1
-	PoolVersion2 = 2
+	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
+	VaultMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
+	VaultMethodGetPoolTokenRates          = "getPoolTokenRates"
+	VaultMethodGetPoolData                = "getPoolData"
+	VaultMethodGetHooksConfig             = "getHooksConfig"
+
+	VaultMethodIsPoolPaused         = "isPoolPaused"
+	VaultMethodIsVaultPaused        = "isVaultPaused"
+	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 )
 
 type (
 	Rounding  int
 	TokenType uint8
+	SwapKind  int
 )
 
 const (
@@ -25,6 +29,9 @@ const (
 
 	STANDARD TokenType = iota
 	WITH_RATE
+
+	EXACT_IN SwapKind = iota
+	EXACT_OUT
 )
 
 var (

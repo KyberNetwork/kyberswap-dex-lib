@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -19,13 +20,8 @@ import (
 
 var (
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
-	ErrPoolIsPaused             = errors.New("pool is paused")
 	ErrInvalidAmp               = errors.New("invalid amp")
 	ErrNotTwoTokens             = errors.New("not two tokens")
-
-	ErrTradeAmountTooSmall = errors.New("trade amount is too small")
-
-	ErrVaultIsLocked = errors.New("vault is locked")
 )
 
 type PoolSimulator struct {
@@ -38,11 +34,15 @@ type PoolSimulator struct {
 	balancesLiveScaled18   []*uint256.Int
 	decimalScalingFactors  []*uint256.Int
 	tokenRates             []*uint256.Int
+	vault                  *vault.Vault
 
-	isInRecoveryMode bool
-	isPaused         bool
+	hooksConfig shared.HooksConfig
 
-	vault string
+	isVaultPaused        bool
+	isPoolPaused         bool
+	isPoolInRecoveryMode bool
+
+	vaultAddress string
 
 	poolType    string
 	poolVersion int
@@ -82,23 +82,28 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool:                       poolpkg.Pool{Info: poolInfo},
-		isPaused:                   extra.IsPaused,
-		isInRecoveryMode:           extra.IsInRecoveryMode,
+		isVaultPaused:              extra.IsVaultPaused,
+		isPoolPaused:               extra.IsPoolPaused,
+		isPoolInRecoveryMode:       extra.IsPoolInRecoveryMode,
 		swapFeePercentage:          extra.StaticSwapFeePercentage,
 		aggregateSwapFeePercentage: extra.AggregateSwapFeePercentage,
 		amplificationParameter:     extra.AmplificationParameter,
 		balancesLiveScaled18:       extra.BalancesLiveScaled18,
 		tokenRates:                 extra.TokenRates,
 		decimalScalingFactors:      extra.DecimalScalingFactors,
-		vault:                      staticExtra.Vault,
+		hooksConfig:                extra.HooksConfig,
+		vaultAddress:               staticExtra.Vault,
 		poolType:                   staticExtra.PoolType,
-		poolVersion:                staticExtra.PoolVersion,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
-	if p.isPaused {
-		return nil, ErrPoolIsPaused
+	if p.isVaultPaused {
+		return nil, shared.ErrVaultIsPaused
+	}
+
+	if p.isPoolPaused {
+		return nil, shared.ErrPoolIsPaused
 	}
 
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
@@ -113,17 +118,11 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 		return nil, ErrInvalidAmountOut
 	}
 
-	amountIn, totalSwapFee, aggregateSwapFee, err := shared.Vault.Swap(shared.VaultSwapParams{
-		IsExactIn:                  false,
-		IndexIn:                    indexIn,
-		IndexOut:                   indexOut,
-		AmountGiven:                amountOut,
-		DecimalScalingFactor:       p.decimalScalingFactors[indexOut],
-		TokenRate:                  p.tokenRates[indexOut],
-		AmplificationParameter:     p.amplificationParameter,
-		SwapFeePercentage:          p.swapFeePercentage,
-		AggregateSwapFeePercentage: p.aggregateSwapFeePercentage,
-		BalancesLiveScaled18:       p.balancesLiveScaled18,
+	amountIn, totalSwapFee, aggregateSwapFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_OUT,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountOut,
 	}, p.OnSwap)
 	if err != nil {
 		return nil, err
@@ -175,7 +174,7 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		TokenRate:            p.tokenRates[tokenIndexIn],
 	}
 
-	updatedLiveBalanceIn, err := shared.Vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
+	updatedLiveBalanceIn, err := p.vault.UpdateLiveBalance(vaultParams, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
@@ -212,29 +211,29 @@ func (p *PoolSimulator) computeBalance(tokenInIndex int, invariantRatio *uint256
 	return math.StableMath.ComputeBalance(p.amplificationParameter, p.balancesLiveScaled18, newInvariant, tokenInIndex)
 }
 
-func (p *PoolSimulator) OnSwap(isExactIn bool, indexIn, indexOut int, amountInScaled18 *uint256.Int) (*uint256.Int, error) {
+func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
 	invariant, err := p.computeInvariant(shared.ROUND_DOWN)
 	if err != nil {
 		return nil, err
 	}
 
 	var amountOutScaled18 *uint256.Int
-	if isExactIn {
+	if param.Kind == shared.EXACT_IN {
 		amountOutScaled18, err = math.StableMath.ComputeOutGivenExactIn(
 			p.amplificationParameter,
 			p.balancesLiveScaled18,
-			indexIn,
-			indexOut,
-			amountInScaled18,
+			param.IndexIn,
+			param.IndexOut,
+			param.AmountGivenScaled18,
 			invariant,
 		)
 	} else {
 		amountOutScaled18, err = math.StableMath.ComputeInGivenExactOut(
 			p.amplificationParameter,
 			p.balancesLiveScaled18,
-			indexIn,
-			indexOut,
-			amountInScaled18,
+			param.IndexIn,
+			param.IndexOut,
+			param.AmountGivenScaled18,
 			invariant,
 		)
 	}
@@ -259,8 +258,12 @@ func (p *PoolSimulator) computeInvariant(rounding shared.Rounding) (*uint256.Int
 }
 
 func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if p.isPaused {
-		return nil, ErrPoolIsPaused
+	if p.isVaultPaused {
+		return nil, shared.ErrVaultIsPaused
+	}
+
+	if p.isPoolPaused {
+		return nil, shared.ErrPoolIsPaused
 	}
 
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
@@ -275,17 +278,11 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidAmountIn
 	}
 
-	amountOut, totalSwapFee, aggregateFee, err := shared.Vault.Swap(shared.VaultSwapParams{
-		IsExactIn:                  true,
-		IndexIn:                    indexIn,
-		IndexOut:                   indexOut,
-		AmountGiven:                amountIn,
-		DecimalScalingFactor:       p.decimalScalingFactors[indexIn],
-		TokenRate:                  p.tokenRates[indexIn],
-		AmplificationParameter:     p.amplificationParameter,
-		SwapFeePercentage:          p.swapFeePercentage,
-		AggregateSwapFeePercentage: p.aggregateSwapFeePercentage,
-		BalancesLiveScaled18:       p.balancesLiveScaled18,
+	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_IN,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountIn,
 	}, p.OnSwap)
 	if err != nil {
 		return nil, err

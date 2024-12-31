@@ -72,12 +72,6 @@ func (t *PoolTracker) getNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	var extra Extra
-	err := json.Unmarshal([]byte(p.Extra), &extra)
-	if err != nil {
-		return p, err
-	}
-
 	res, err := t.queryRPC(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
@@ -96,25 +90,29 @@ func (t *PoolTracker) getNewPoolState(
 		amplificationParameter, _     = uint256.FromBig(res.AmplificationParameter)
 		staticSwapFeePercentage, _    = uint256.FromBig(res.StaticSwapFeePercentage)
 		aggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
-		balancesLiveScaled18          = lo.Map(res.BalancesLiveScaled18, func(v *big.Int, _ int) *uint256.Int {
-			r, _ := uint256.FromBig(v)
-			return r
+
+		balancesLiveScaled18 = lo.Map(res.BalancesLiveScaled18, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
 		})
 		tokenRates = lo.Map(res.TokenRates, func(v *big.Int, _ int) *uint256.Int {
-			r, _ := uint256.FromBig(v)
-			return r
+			return uint256.MustFromBig(v)
+		})
+		decimalScalingFactors = lo.Map(res.DecimalScalingFactors, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
 		})
 	)
 
-	extra.AmplificationParameter = amplificationParameter
-	extra.StaticSwapFeePercentage = staticSwapFeePercentage
-	extra.AggregateSwapFeePercentage = aggregateSwapFeePercentage
-	extra.BalancesLiveScaled18 = balancesLiveScaled18
-	extra.TokenRates = tokenRates
-	extra.IsPaused = res.IsPoolPaused
-	extra.IsInRecoveryMode = res.IsPoolInRecoveryMode
-
-	extraBytes, err := json.Marshal(&extra)
+	extraBytes, err := json.Marshal(&Extra{
+		AmplificationParameter:     amplificationParameter,
+		StaticSwapFeePercentage:    staticSwapFeePercentage,
+		AggregateSwapFeePercentage: aggregateSwapFeePercentage,
+		BalancesLiveScaled18:       balancesLiveScaled18,
+		DecimalScalingFactors:      decimalScalingFactors,
+		TokenRates:                 tokenRates,
+		IsVaultPaused:              res.IsVaultPaused,
+		IsPoolPaused:               res.IsPoolPaused,
+		IsPoolInRecoveryMode:       res.IsPoolInRecoveryMode,
+	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -141,9 +139,16 @@ func (t *PoolTracker) queryRPC(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*RpcResult, error) {
 	var (
-		aggregateFeePercentages AggregateFeePercentage
-		stablePoolDynamicData   StablePoolDynamicData
-		poolTokenInfo           PoolTokenInfo
+		aggregateFeePercentages shared.AggregateFeePercentage
+		hooksConfig             shared.HooksConfigRPC
+		poolData                shared.PoolDataRPC
+
+		amplificationParameter  AmplificationParameter
+		staticSwapFeePercentage *big.Int
+
+		isVaultPaused        bool
+		isPoolPaused         bool
+		isPoolInRecoveryMode bool
 	)
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true)
@@ -152,20 +157,58 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: shared.PoolMethodGetAggregateFeePercentages,
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetAggregateFeePercentages,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&aggregateFeePercentages})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetStaticSwapFeePercentage,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&staticSwapFeePercentage})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetPoolData,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&poolData})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetHooksConfig,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&hooksConfig})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsVaultPaused,
+	}, []interface{}{&isVaultPaused})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolPaused,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&isPoolPaused})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolInRecoveryMode,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&isPoolInRecoveryMode})
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: poolMethodGetStablePoolDynamicData,
-	}, []interface{}{&stablePoolDynamicData})
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: shared.PoolMethodGetTokenInfo,
-	}, []interface{}{&poolTokenInfo})
+		Method: poolMethodGetAmplificationParameter,
+	}, []interface{}{&amplificationParameter})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -178,14 +221,20 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &RpcResult{
-		BalancesRaw:                poolTokenInfo.BalancesRaw,
-		BalancesLiveScaled18:       stablePoolDynamicData.Data.BalancesLiveScaled18,
-		TokenRates:                 stablePoolDynamicData.Data.TokenRates,
-		StaticSwapFeePercentage:    stablePoolDynamicData.Data.StaticSwapFeePercentage,
+		HooksConfig: shared.HooksConfig{
+			ShouldCallComputeDynamicSwapFee: hooksConfig.Data.ShouldCallComputeDynamicSwapFee,
+			ShouldCallBeforeSwap:            hooksConfig.Data.ShouldCallBeforeSwap,
+			ShouldCallAfterSwap:             hooksConfig.Data.ShouldCallAfterSwap,
+		},
+		BalancesRaw:                poolData.Data.BalancesRaw,
+		BalancesLiveScaled18:       poolData.Data.BalancesLiveScaled18,
+		TokenRates:                 poolData.Data.TokenRates,
+		StaticSwapFeePercentage:    staticSwapFeePercentage,
 		AggregateSwapFeePercentage: aggregateFeePercentages.AggregateSwapFeePercentage,
-		AmplificationParameter:     stablePoolDynamicData.Data.AmplificationParameter,
-		IsPoolPaused:               stablePoolDynamicData.Data.IsPoolPaused,
-		IsPoolInRecoveryMode:       stablePoolDynamicData.Data.IsPoolInRecoveryMode,
+		AmplificationParameter:     amplificationParameter.Value,
+		IsVaultPaused:              isVaultPaused,
+		IsPoolPaused:               isPoolPaused,
+		IsPoolInRecoveryMode:       isPoolInRecoveryMode,
 		BlockNumber:                res.BlockNumber.Uint64(),
 	}, nil
 }

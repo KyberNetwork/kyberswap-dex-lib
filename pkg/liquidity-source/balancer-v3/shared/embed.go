@@ -2,8 +2,5 @@ package shared
 
 import _ "embed"
 
-//go:embed abis/Vault.json
-var vaultJson []byte
-
-//go:embed abis/VaultExtension.json
-var vaultExtensionJson []byte
+//go:embed abis/VaultExplorer.json
+var vaultExplorerJson []byte

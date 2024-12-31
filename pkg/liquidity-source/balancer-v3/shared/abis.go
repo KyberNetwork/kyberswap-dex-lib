@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	VaultABI          abi.ABI
-	VaultExtensionABI abi.ABI
+	VaultExplorerABI abi.ABI
 )
 
 func init() {
@@ -16,8 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&VaultABI, vaultJson},
-		{&VaultExtensionABI, vaultExtensionJson},
+		{&VaultExplorerABI, vaultExplorerJson},
 	}
 
 	for _, b := range builder {

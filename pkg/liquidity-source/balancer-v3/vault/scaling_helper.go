@@ -1,4 +1,4 @@
-package shared
+package vault
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"

@@ -5,8 +5,7 @@ const (
 
 	PoolType = "StablePool"
 
-	poolMethodGetStablePoolDynamicData   = "getStablePoolDynamicData"
-	poolMethodGetStablePoolImmutableData = "getStablePoolImmutableData"
+	poolMethodGetAmplificationParameter = "getAmplificationParameter"
 )
 
 var (
