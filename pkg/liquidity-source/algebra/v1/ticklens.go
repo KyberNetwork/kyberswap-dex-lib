@@ -38,7 +38,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 		}, []interface{}{&populatedTicks[i]})
 	}
 
-	resp, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -50,11 +50,13 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 			continue
 		}
 
-		ticks = append(ticks, TickResp{
-			TickIdx:        strconv.FormatInt(changedTicks[i], 10),
-			LiquidityGross: populatedTicks[i].LiquidityTotal.String(),
-			LiquidityNet:   populatedTicks[i].LiquidityDelta.String(),
-		})
+		if populatedTicks[i].Initialized {
+			ticks = append(ticks, TickResp{
+				TickIdx:        strconv.FormatInt(changedTicks[i], 10),
+				LiquidityGross: populatedTicks[i].LiquidityTotal.String(),
+				LiquidityNet:   populatedTicks[i].LiquidityDelta.String(),
+			})
+		}
 	}
 
 	// if we only fetched some ticks, then update them to the original ticks and return
