@@ -70,7 +70,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							{
 								Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 								OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-								CreateDateTime:       "2024-07-15T13:41:09.572Z",
 								RemainingMakerAmount: big.NewInt(10000),
 								MakerBalance:         big.NewInt(10437135),
 								MakerAllowance:       big.NewInt(900000),
@@ -81,8 +80,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 								MakingAmount:         big.NewInt(10000),
 								TakingAmount:         big.NewInt(101),
 								Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
-								MakerRate:            "0.010100000000000000",
-								TakerRate:            "99.009900990099009901",
 							},
 						},
 					}),
@@ -118,7 +115,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 						{
 							Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 							OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-							CreateDateTime:       "2024-07-15T13:41:09.572Z",
 							RemainingMakerAmount: new(big.Int).Sub(big.NewInt(10000), big.NewInt(10000)),
 							MakerBalance:         big.NewInt(10437135 - 10000),
 							MakerAllowance:       big.NewInt(900000 - 10000),
@@ -129,8 +125,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							MakingAmount:         big.NewInt(10000),
 							TakingAmount:         big.NewInt(101),
 							Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
-							MakerRate:            "0.010100000000000000",
-							TakerRate:            "99.009900990099009901",
 
 							FilledMakingAmount: big.NewInt(10000),
 							FilledTakingAmount: big.NewInt(101),
@@ -159,7 +153,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							Swappable: true,
 						},
 					},
-					Extra:       `{"takeToken0Orders":[{"signature":"0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c","orderHash":"0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285","createDateTime":"2024-07-15T13:41:09.572Z","remainingMakerAmount":10000,"makerBalance":10437135,"makerAllowance":900000,"makerAsset":"0xdac17f958d2ee523a2206206994597c13d831ec7","takerAsset":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","salt":"54304030","receiver":"0x0000000000000000000000000000000000000000","makingAmount":10000,"takingAmount":101,"maker":"0xdf4039a454d58868dfd43f076ee46c92a35fdfd9","makerRate":"0.010100000000000000","takerRate":"99.009900990099009901"},{"signature":"0xd6a593b5bcdbe12600f09c421a769fdc2c5dd10399e71a873b7fbad1cb764b0b484452ab925d3420a9a58188b38a8b44eb91892c938ffe622c7cb6b4dd2634511b","orderHash":"0x8066b141446ead126c0aa0aeb2a1c268632be0e8d9d3ce0eace15671e06624eb","createDateTime":"2024-11-15T18:21:56.905Z","remainingMakerAmount":100000000000,"makerBalance":722627607117,"makerAllowance":115792089237316195423570985008687907853269984665640564039457584007913129639935,"makerAsset":"0xdac17f958d2ee523a2206206994597c13d831ec7","takerAsset":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","salt":"67123001626078665156821660044248014421358635920891485277615109939076199471724","receiver":"0x0000000000000000000000000000000000000000","makingAmount":100000000000,"takingAmount":100247731166,"maker":"0x29eba388141f070e6824dd7628f11cb946bc548b","makerRate":"1.002477311660000000","takerRate":"0.997528810247188712"}]}`,
+					Extra:       `{"takeToken0Orders":[{"signature":"0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c","orderHash":"0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285","remainingMakerAmount":10000,"makerBalance":10437135,"makerAllowance":900000,"makerAsset":"0xdac17f958d2ee523a2206206994597c13d831ec7","takerAsset":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","salt":"54304030","receiver":"0x0000000000000000000000000000000000000000","makingAmount":10000,"takingAmount":101,"maker":"0xdf4039a454d58868dfd43f076ee46c92a35fdfd9"},{"signature":"0xd6a593b5bcdbe12600f09c421a769fdc2c5dd10399e71a873b7fbad1cb764b0b484452ab925d3420a9a58188b38a8b44eb91892c938ffe622c7cb6b4dd2634511b","orderHash":"0x8066b141446ead126c0aa0aeb2a1c268632be0e8d9d3ce0eace15671e06624eb","remainingMakerAmount":100000000000,"makerBalance":722627607117,"makerAllowance":115792089237316195423570985008687907853269984665640564039457584007913129639935,"makerAsset":"0xdac17f958d2ee523a2206206994597c13d831ec7","takerAsset":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","salt":"67123001626078665156821660044248014421358635920891485277615109939076199471724","receiver":"0x0000000000000000000000000000000000000000","makingAmount":100000000000,"takingAmount":100247731166,"maker":"0x29eba388141f070e6824dd7628f11cb946bc548b"}]}`,
 					StaticExtra: `{"token0":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","token1":"0xdac17f958d2ee523a2206206994597c13d831ec7"}`,
 				},
 			},
@@ -192,7 +186,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 						{
 							Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 							OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-							CreateDateTime:       "2024-07-15T13:41:09.572Z",
 							RemainingMakerAmount: new(big.Int).Sub(big.NewInt(10000), big.NewInt(10000)),
 							MakerBalance:         big.NewInt(10437135 - 10000),
 							MakerAllowance:       big.NewInt(900000 - 10000),
@@ -203,8 +196,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							MakingAmount:         big.NewInt(10000),
 							TakingAmount:         big.NewInt(101),
 							Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
-							MakerRate:            "0.010100000000000000",
-							TakerRate:            "99.009900990099009901",
 
 							FilledMakingAmount: big.NewInt(10000),
 							FilledTakingAmount: big.NewInt(101),
@@ -212,7 +203,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 						{
 							Signature:            "0xd6a593b5bcdbe12600f09c421a769fdc2c5dd10399e71a873b7fbad1cb764b0b484452ab925d3420a9a58188b38a8b44eb91892c938ffe622c7cb6b4dd2634511b",
 							OrderHash:            "0x8066b141446ead126c0aa0aeb2a1c268632be0e8d9d3ce0eace15671e06624eb",
-							CreateDateTime:       "2024-11-15T18:21:56.905Z",
 							RemainingMakerAmount: remainingMakerAmount,
 							MakerBalance:         remainingMakerBalance,
 							MakerAllowance:       remainingMakerAllowance,
@@ -223,8 +213,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							MakingAmount:         big.NewInt(100000000000),
 							TakingAmount:         big.NewInt(100247731166),
 							Maker:                "0x29eba388141f070e6824dd7628f11cb946bc548b",
-							MakerRate:            "1.002477311660000000",
-							TakerRate:            "0.997528810247188712",
 
 							FilledMakingAmount: makingAmount,
 							FilledTakingAmount: takingAmount,
@@ -294,7 +282,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 							{
 								Signature:            "0x3f31467bce6bb134944a8c3c57a8c2786ffadf31a7c39cb22a9c51cceb7e3c0f7ed91bba74a8227aae8933fa72cc8c6e3796bd4c4e734fcbe22bf5061ef9e8971c",
 								OrderHash:            "0x177af74e4d3880743ac6603323a9a50f6999968e499f44966dd00d642e933285",
-								CreateDateTime:       "2024-07-15T13:41:09.572Z",
 								RemainingMakerAmount: big.NewInt(10000),
 								MakerBalance:         big.NewInt(10437135),
 								MakerAllowance:       big.NewInt(900000),
@@ -305,8 +292,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 								MakingAmount:         big.NewInt(10000),
 								TakingAmount:         big.NewInt(101),
 								Maker:                "0xdf4039a454d58868dfd43f076ee46c92a35fdfd9",
-								MakerRate:            "0.010100000000000000",
-								TakerRate:            "99.009900990099009901",
 							},
 						},
 					}),
