@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -107,7 +107,7 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 		}
 		var reserves = []string{zeroString, zeroString}
 
-		tickSpacing := bignumber.NewBig10(p.TickSpacing)
+		tickSpacing, _ := kutils.Atoi[int32](p.TickSpacing)
 		var staticExtra = StaticExtra{
 			TickSpacing: tickSpacing,
 		}

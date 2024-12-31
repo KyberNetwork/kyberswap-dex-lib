@@ -31,3 +31,8 @@ func TenPowDecimals(decimal uint8) *big.Float {
 func TenPowInt(decimal uint8) *uint256.Int {
 	return new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(decimal)))
 }
+
+func NewUint256(s string) (res *uint256.Int) {
+	res, _ = uint256.FromDecimal(s)
+	return res
+}
