@@ -362,6 +362,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 		StallingPMMThreshold: 500 * time.Second,
 		PoolRenewalInterval:  5 * time.Second,
 		Capacity:             nPools,
+		AvailableSources:     []string{"uniswap", "sushiswap", "pancake", "uniswapv3", "curve", "curve-stable-ng", "curve-stable-meta-ng", "curve-tricrypto-ng", "curve-stable-plain", "curve-twocrypto-ng", "smardex"},
 	}
 
 	tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)

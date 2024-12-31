@@ -226,7 +226,11 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 
-	poolEntities, err := p.GetPoolsIncludingBasePools.Handle(ctx, filteredPoolAddress, nil)
+	availableSources := mapset.NewThreadUnsafeSet(p.config.AvailableSources...)
+
+	poolEntities, err := p.GetPoolsIncludingBasePools.Handle(ctx, filteredPoolAddress, func(pool *entity.Pool) bool {
+		return availableSources.ContainsOne(pool.Exchange)
+	})
 	// reserve memory for pool entities in heap memory, avoid mem allocation burden
 	// Any item stored in the Pool may be removed automatically at any time without notification.
 	// If the Pool holds the only reference when this happens, the item might be deallocated.

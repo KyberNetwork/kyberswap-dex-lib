@@ -17,4 +17,5 @@ type Config struct {
 	// non-configured stalling threshold is treat as non-enabling stalling threshold
 	StallingPMMThreshold time.Duration            `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
 	FeatureFlags         valueobject.FeatureFlags `mapstructure:"featureFlags"`
+	AvailableSources     []string                 `mapstructure:"availableSources" json:"availableSources"`
 }

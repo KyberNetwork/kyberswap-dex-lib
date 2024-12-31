@@ -216,6 +216,7 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.TradeDataGenerator.AvailableSources = strAvailableSources
+	cl.config.UseCase.PoolManager.AvailableSources = strAvailableSources
 }
 
 func (cl *ConfigLoader) setUnscalableSources(unscalableSources []valueobject.Source) {
