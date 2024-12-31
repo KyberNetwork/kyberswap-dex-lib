@@ -15,7 +15,6 @@ const (
 type Order struct {
 	Signature            string   `json:"signature"`
 	OrderHash            string   `json:"orderHash"`
-	CreateDateTime       string   `json:"createDateTime"`
 	RemainingMakerAmount *big.Int `json:"remainingMakerAmount"`
 	MakerBalance         *big.Int `json:"makerBalance"`
 	MakerAllowance       *big.Int `json:"makerAllowance"`
@@ -28,8 +27,6 @@ type Order struct {
 	Maker                string   `json:"maker"`
 	Extension            string   `json:"extension"`
 	MakerTraits          string   `json:"makerTraits"`
-	MakerRate            string   `json:"makerRate"`
-	TakerRate            string   `json:"takerRate"`
 	IsMakerContract      bool     `json:"isMakerContract"`
 }
 
@@ -53,7 +50,6 @@ type SwapInfo struct {
 type FilledOrderInfo struct {
 	Signature            string   `json:"signature"`
 	OrderHash            string   `json:"orderHash"`
-	CreateDateTime       string   `json:"createDateTime"`
 	RemainingMakerAmount *big.Int `json:"remainingMakerAmount"`
 	MakerBalance         *big.Int `json:"makerBalance"`
 	MakerAllowance       *big.Int `json:"makerAllowance"`
@@ -66,8 +62,6 @@ type FilledOrderInfo struct {
 	Maker                string   `json:"maker"`
 	Extension            string   `json:"extension"`
 	MakerTraits          string   `json:"makerTraits"`
-	MakerRate            string   `json:"makerRate"`
-	TakerRate            string   `json:"takerRate"`
 	IsMakerContract      bool     `json:"isMakerContract"`
 
 	// Some extra fields compared to Order
