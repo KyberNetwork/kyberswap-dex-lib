@@ -46,6 +46,7 @@ func (v *Vault) CloneState() *Vault {
 	return &cloned
 }
 
+// https://etherscan.io/address/0xbA1333333333a1BA1108E8412f11850A5C319bA9#code#F1#L197
 func (v *Vault) Swap(
 	vaultSwapParams shared.VaultSwapParams,
 	onSwap func(param shared.PoolSwapParams) (*uint256.Int, error),

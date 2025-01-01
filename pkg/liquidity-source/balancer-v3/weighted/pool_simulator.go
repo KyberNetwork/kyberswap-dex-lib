@@ -227,6 +227,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
+// https://etherscan.io/address/0xb9b144b5678ff6527136b2c12a86c9ee5dd12a85#code#F1#L150
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *uint256.Int, err error) {
 	balanceTokenInScaled18 := param.BalancesLiveScaled18[param.IndexIn]
 	balanceTokenOutScaled18 := param.BalancesLiveScaled18[param.IndexOut]

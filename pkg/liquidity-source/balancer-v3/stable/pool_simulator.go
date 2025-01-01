@@ -227,6 +227,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
+// https://etherscan.io/address/0xc1d48bb722a22cc6abf19facbe27470f08b3db8c#code#F1#L169
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
 	invariant, err := p.computeInvariant(param.BalancesLiveScaled18, shared.ROUND_DOWN)
 	if err != nil {
