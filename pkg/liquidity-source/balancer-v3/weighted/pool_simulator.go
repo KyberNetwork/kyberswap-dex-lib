@@ -6,6 +6,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
@@ -275,6 +276,9 @@ func (p *PoolSimulator) getNormalizedWeight(tokenIndex int) (*uint256.Int, error
 func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
 	cloned.vault = p.vault.CloneState()
+	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
 
 	return &cloned
 }
