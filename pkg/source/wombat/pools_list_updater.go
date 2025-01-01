@@ -3,7 +3,8 @@ package wombat
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strconv"
 	"time"
@@ -18,15 +19,15 @@ import (
 type PoolsListUpdater struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           cfg,
@@ -141,7 +142,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	ctx context.Context,
 	lastCreateTime uint64,
 ) ([]*SubgraphPool, error) {
-	req := mutableclient.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools(
 			orderBy: createdTimestamp
 			orderDirection: asc
@@ -163,7 +164,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	var response struct {
 		Pools []*SubgraphPool `json:"pools"`
 	}
-	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  DexTypeWombat,
 			"error": err,

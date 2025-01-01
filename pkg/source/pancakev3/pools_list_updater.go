@@ -3,7 +3,8 @@ package pancakev3
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strconv"
 
@@ -21,15 +22,15 @@ import (
 type PoolsListUpdater struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           cfg,
@@ -42,13 +43,13 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 
-	req := mutableclient.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
+	req := graphqlpkg.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
 
-	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		// Workaround at the moment to live with the error subgraph on Arbitrum
 		if allowSubgraphError && len(response.Pools) > 0 {
 			return response.Pools, nil

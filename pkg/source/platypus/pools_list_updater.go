@@ -3,7 +3,8 @@ package platypus
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strings"
 	"time"
@@ -20,15 +21,15 @@ import (
 type PoolsListUpdater struct {
 	config           *Config
 	ethClient        *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           cfg,
@@ -99,7 +100,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	ctx context.Context,
 	lastUpdate string,
 ) ([]SubgraphPool, error) {
-	req := mutableclient.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools (
 			where: {
 				lastUpdate_gte: "%s"
@@ -115,7 +116,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
-	if err := p.graphqlClient.Run(ctx, p.graphqlClientCfg, req, &response); err != nil {
+	if err := p.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"lastUpdate": lastUpdate,
 			"error":      err,

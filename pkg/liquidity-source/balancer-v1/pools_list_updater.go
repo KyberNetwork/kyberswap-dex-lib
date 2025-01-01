@@ -3,7 +3,7 @@ package balancerv1
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -17,8 +17,8 @@ type (
 	PoolsListUpdater struct {
 		config           *Config
 		ethrpcClient     *ethrpc.Client
-		graphqlClient    *mutableclient.MutableClient
-		graphqlClientCfg *mutableclient.Config
+		graphqlClient    *graphqlpkg.Client
+		graphqlClientCfg *graphqlpkg.Config
 	}
 
 	PoolsListUpdaterMetadata struct {
@@ -39,8 +39,8 @@ type (
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           cfg,
@@ -145,11 +145,11 @@ func (u *PoolsListUpdater) initPools(_ context.Context, subgraphPools []FetchPoo
 
 func (u *PoolsListUpdater) fetchPoolsFromSubgraph(ctx context.Context, lastCreateTime int) ([]FetchPoolsResponsePool, error) {
 	var (
-		req  = mutableclient.NewRequest(newFetchPoolIDsQuery(lastCreateTime, u.config.NewPoolLimit))
+		req  = graphqlpkg.NewRequest(newFetchPoolIDsQuery(lastCreateTime, u.config.NewPoolLimit))
 		resp FetchPoolsResponse
 	)
 
-	if err := u.graphqlClient.Run(ctx, u.graphqlClientCfg, req, &resp); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 

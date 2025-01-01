@@ -2,7 +2,8 @@ package shared
 
 import (
 	"context"
-	mutableclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"net/http"
 	"time"
@@ -13,8 +14,8 @@ import (
 type (
 	PoolsListUpdater struct {
 		config           *Config
-		graphqlClient    *mutableclient.MutableClient
-		graphqlClientCfg *mutableclient.Config
+		graphqlClient    *graphqlpkg.Client
+		graphqlClientCfg *graphqlpkg.Config
 	}
 
 	Config struct {
@@ -34,8 +35,8 @@ const graphQLRequestTimeout = 20 * time.Second
 
 func NewPoolsListUpdater(
 	config *Config,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           config,
@@ -85,9 +86,9 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 		u.config.NewPoolLimit,
 		0,
 	)
-	req := mutableclient.NewRequest(query)
+	req := graphqlpkg.NewRequest(query)
 
-	if err := u.graphqlClient.Run(ctx, u.graphqlClientCfg, req, &response); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		return nil, nil, err
 	}
 

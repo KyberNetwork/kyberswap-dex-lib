@@ -2,7 +2,8 @@ package algebrav1
 
 import (
 	"context"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"time"
 
@@ -23,15 +24,15 @@ import (
 type PoolTracker struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
 		config:           cfg,
@@ -619,14 +620,14 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := mutableclient.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
 
 		var resp struct {
 			Pool *SubgraphPoolTicks        `json:"pool"`
 			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if allowSubgraphError {
 				if resp.Pool == nil {
 					l.WithFields(logger.Fields{
