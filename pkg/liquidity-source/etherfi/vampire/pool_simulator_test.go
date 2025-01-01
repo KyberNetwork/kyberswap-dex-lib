@@ -1,14 +1,15 @@
 package etherfivampire
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
+
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPoolSimulator(t *testing.T) {

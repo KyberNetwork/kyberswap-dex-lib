@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -162,7 +163,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	for _, token := range synths {
 		tokenAddress := token
 
-		if strings.EqualFold(address, tokenAddress.String()) {
+		if strings.EqualFold(address, hexutil.Encode(tokenAddress[:])) {
 			continue
 		}
 
