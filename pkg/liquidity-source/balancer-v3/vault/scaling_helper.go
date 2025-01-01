@@ -7,12 +7,12 @@ import (
 
 func toScaled18ApplyRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
 	scaledAmount := new(uint256.Int).Mul(amount, scalingFactor)
-	return math.MulUp(scaledAmount, tokenRate)
+	return math.FixPoint.MulUp(scaledAmount, tokenRate)
 }
 
 func toScaled18ApplyRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
 	scaledAmount := new(uint256.Int).Mul(amount, scalingFactor)
-	return math.MulDown(scaledAmount, tokenRate)
+	return math.FixPoint.MulDown(scaledAmount, tokenRate)
 }
 
 func computeRateRoundUp(rate *uint256.Int) *uint256.Int {
@@ -27,19 +27,19 @@ func computeRateRoundUp(rate *uint256.Int) *uint256.Int {
 }
 
 func toRawUndoRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	divisor, err := math.Mul(scalingFactor, tokenRate)
+	divisor, err := math.FixPoint.Mul(scalingFactor, tokenRate)
 	if err != nil {
 		return nil, err
 	}
 
-	return math.DivDown(amount, divisor)
+	return math.FixPoint.DivDown(amount, divisor)
 }
 
 func toRawUndoRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	divisor, err := math.Mul(scalingFactor, tokenRate)
+	divisor, err := math.FixPoint.Mul(scalingFactor, tokenRate)
 	if err != nil {
 		return nil, err
 	}
 
-	return math.DivUp(amount, divisor)
+	return math.FixPoint.DivUp(amount, divisor)
 }

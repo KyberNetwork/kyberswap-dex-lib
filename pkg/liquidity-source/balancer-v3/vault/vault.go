@@ -5,6 +5,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 type Vault struct {
@@ -33,6 +34,16 @@ func New(hook hooks.IHook, hooksConfig shared.HooksConfig, isPoolInRecoveryMode 
 		swapFeePercentage:          swapFeePercentage,
 		aggregateSwapFeePercentage: aggregateSwapFeePercentage,
 	}
+}
+
+func (v *Vault) CloneState() *Vault {
+	cloned := *v
+
+	v.balancesLiveScaled18 = lo.Map(v.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
+		return new(uint256.Int).Set(v)
+	})
+
+	return &cloned
 }
 
 func (v *Vault) Swap(
@@ -73,12 +84,12 @@ func (v *Vault) Swap(
 
 	var totalSwapFeeAmountScaled18 *uint256.Int
 	if vaultSwapParams.Kind == shared.EXACT_IN {
-		totalSwapFeeAmountScaled18, err = math.MulUp(poolSwapParams.AmountGivenScaled18, poolSwapParams.SwapFeePercentage)
+		totalSwapFeeAmountScaled18, err = math.FixPoint.MulUp(poolSwapParams.AmountGivenScaled18, poolSwapParams.SwapFeePercentage)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 
-		poolSwapParams.AmountGivenScaled18, err = math.Sub(poolSwapParams.AmountGivenScaled18, totalSwapFeeAmountScaled18)
+		poolSwapParams.AmountGivenScaled18, err = math.FixPoint.Sub(poolSwapParams.AmountGivenScaled18, totalSwapFeeAmountScaled18)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -109,12 +120,12 @@ func (v *Vault) Swap(
 			return nil, nil, nil, err
 		}
 	} else {
-		totalSwapFeeAmountScaled18, err := math.MulDivUp(amountCalculatedScaled18, v.swapFeePercentage, math.Complement(v.swapFeePercentage))
+		totalSwapFeeAmountScaled18, err := math.FixPoint.MulDivUp(amountCalculatedScaled18, v.swapFeePercentage, math.FixPoint.Complement(v.swapFeePercentage))
 		if err != nil {
 			return nil, nil, nil, err
 		}
 
-		amountCalculatedScaled18, err = math.Add(amountCalculatedScaled18, totalSwapFeeAmountScaled18)
+		amountCalculatedScaled18, err = math.FixPoint.Add(amountCalculatedScaled18, totalSwapFeeAmountScaled18)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -164,7 +175,7 @@ func (v *Vault) ComputeAggregateSwapFees(
 		}
 
 		if !v.isPoolInRecoveryMode {
-			aggregateSwapFeeAmountRaw, err = math.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
+			aggregateSwapFeeAmountRaw, err = math.FixPoint.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
 			if err != nil {
 				return nil, nil, err
 			}

@@ -1,5 +1,7 @@
 package stable
 
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+
 const (
 	DexType = "balancer-v3-stable"
 
@@ -9,5 +11,5 @@ const (
 )
 
 var (
-	defaultGas = Gas{Swap: 80000}
+	defaultGas = shared.Gas{Swap: 80000}
 )

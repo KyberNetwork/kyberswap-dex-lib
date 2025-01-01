@@ -48,7 +48,7 @@ func (s *stableMath) ComputeOutGivenExactIn(
 
 	balances[tokenIndexIn].Sub(balances[tokenIndexIn], tokenAmountIn)
 
-	amountOut, err := Sub(balances[tokenIndexOut], finalBalanceOut)
+	amountOut, err := FixPoint.Sub(balances[tokenIndexOut], finalBalanceOut)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (s *stableMath) ComputeInGivenExactOut(
 
 	balances[tokenIndexOut].Add(balances[tokenIndexOut], tokenAmountOut)
 
-	amountOut, err := Sub(finalBalanceIn, balances[tokenIndexIn])
+	amountOut, err := FixPoint.Sub(finalBalanceIn, balances[tokenIndexIn])
 	if err != nil {
 		return nil, err
 	}

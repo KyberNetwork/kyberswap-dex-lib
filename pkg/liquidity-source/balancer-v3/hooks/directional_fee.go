@@ -33,28 +33,28 @@ func (h *directionalFeeHook) OnComputeDynamicSwapFeePercentage(param shared.Pool
 }
 
 func (h *directionalFeeHook) calculatedExpectedSwapFeePercentage(balanceIn, balanceOut, swapAmount *uint256.Int) (*uint256.Int, error) {
-	finalBalanceTokenIn, err := math.Add(balanceIn, swapAmount)
+	finalBalanceTokenIn, err := math.FixPoint.Add(balanceIn, swapAmount)
 	if err != nil {
 		return nil, err
 	}
 
-	finalBalanceTokenOut, err := math.Sub(balanceOut, swapAmount)
+	finalBalanceTokenOut, err := math.FixPoint.Sub(balanceOut, swapAmount)
 	if err != nil {
 		return nil, err
 	}
 
 	if finalBalanceTokenIn.Gt(finalBalanceTokenOut) {
-		diff, err := math.Sub(finalBalanceTokenIn, finalBalanceTokenOut)
+		diff, err := math.FixPoint.Sub(finalBalanceTokenIn, finalBalanceTokenOut)
 		if err != nil {
 			return nil, err
 		}
 
-		totalLiquidity, err := math.Add(finalBalanceTokenIn, finalBalanceTokenOut)
+		totalLiquidity, err := math.FixPoint.Add(finalBalanceTokenIn, finalBalanceTokenOut)
 		if err != nil {
 			return nil, err
 		}
 
-		diff, err = math.DivDown(diff, totalLiquidity)
+		diff, err = math.FixPoint.DivDown(diff, totalLiquidity)
 		return diff, err
 	}
 

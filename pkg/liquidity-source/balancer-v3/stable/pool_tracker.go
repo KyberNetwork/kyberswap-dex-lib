@@ -220,6 +220,14 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
+	if hooksConfig.Data.HooksContract != (common.Address{}) {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Warnf("this pool has a contract hook implemented at %s => should check it", hooksConfig.Data.HooksContract)
+	}
+
 	return &RpcResult{
 		HooksConfig: shared.HooksConfig{
 			EnableHookAdjustedAmounts:       hooksConfig.Data.EnableHookAdjustedAmounts,

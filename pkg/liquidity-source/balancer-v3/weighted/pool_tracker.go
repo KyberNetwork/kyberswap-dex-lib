@@ -4,15 +4,19 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 var ErrReserveNotFound = errors.New("reserve not found")
@@ -35,7 +39,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -51,37 +72,49 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	res, err := t.queryRPC(ctx, p.Address, overrides)
+	if err != nil {
+		return p, err
+	}
+
+	if len(p.Reserves) != len(res.BalancesRaw) {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Error(err.Error())
-
-		return p, err
-	}
-
-	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault)
-	if err != nil {
+		}).Error("can not fetch reserves")
 		return p, err
 	}
 
 	var (
-		poolTokens        = rpcRes.PoolTokens
-		swapFeePercentage = rpcRes.SwapFeePercentage
-		pausedState       = rpcRes.PausedState
-		blockNumber       = rpcRes.BlockNumber
+		staticSwapFeePercentage, _    = uint256.FromBig(res.StaticSwapFeePercentage)
+		aggregateSwapFeePercentage, _ = uint256.FromBig(res.AggregateSwapFeePercentage)
+
+		balancesLiveScaled18 = lo.Map(res.BalancesLiveScaled18, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
+		})
+		tokenRates = lo.Map(res.TokenRates, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
+		})
+		decimalScalingFactors = lo.Map(res.DecimalScalingFactors, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
+		})
+		normalizedWeights = lo.Map(res.NormalizedWeights, func(v *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(v)
+		})
 	)
 
-	// update pool
-
-	extra := Extra{
-		SwapFeePercentage: swapFeePercentage,
-		Paused:            !isNotPaused(pausedState),
-	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(&Extra{
+		NormalizedWeights:          normalizedWeights,
+		StaticSwapFeePercentage:    staticSwapFeePercentage,
+		AggregateSwapFeePercentage: aggregateSwapFeePercentage,
+		BalancesLiveScaled18:       balancesLiveScaled18,
+		DecimalScalingFactors:      decimalScalingFactors,
+		TokenRates:                 tokenRates,
+		IsVaultPaused:              res.IsVaultPaused,
+		IsPoolPaused:               res.IsPoolPaused,
+		IsPoolInRecoveryMode:       res.IsPoolInRecoveryMode,
+	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -92,107 +125,127 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, poolTokens)
-	if err != nil {
-		return p, err
-	}
-
-	p.BlockNumber = blockNumber
+	p.BlockNumber = res.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = reserves
+	p.Reserves = lo.Map(res.TokenRates, func(v *big.Int, _ int) string {
+		return v.String()
+	})
 
 	return p, nil
-}
-
-func (t *PoolTracker) initReserves(
-	ctx context.Context,
-	p entity.Pool,
-	poolTokens PoolTokens,
-) ([]string, error) {
-	reserveByToken := make(map[string]*big.Int)
-	for idx, token := range poolTokens.Tokens {
-		addr := strings.ToLower(token.Hex())
-		reserveByToken[addr] = poolTokens.Balances[idx]
-	}
-
-	reserves := make([]string, len(p.Tokens))
-	for idx, token := range p.Tokens {
-		r, ok := reserveByToken[token.Address]
-		if !ok {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Error("can not get reserve")
-
-			return nil, ErrReserveNotFound
-		}
-
-		reserves[idx] = r.String()
-	}
-
-	return reserves, nil
 }
 
 func (t *PoolTracker) queryRPC(
 	ctx context.Context,
 	poolAddress string,
-	poolID string,
-	vault string,
-) (*rpcRes, error) {
-	// var (
-	// 	poolTokens        PoolTokens
-	// 	swapFeePercentage *big.Int
-	// 	pausedState       PausedState
-	// )
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*RpcResult, error) {
+	var (
+		aggregateFeePercentages shared.AggregateFeePercentage
+		hooksConfig             shared.HooksConfigRPC
+		poolData                shared.PoolDataRPC
 
-	// req := t.ethrpcClient.R().
-	// 	SetContext(ctx).
-	// 	SetRequireSuccess(true)
+		normalizedWeights       []*big.Int
+		staticSwapFeePercentage *big.Int
 
-	// req.AddCall(&ethrpc.Call{
-	// 	ABI:    shared.VaultABI,
-	// 	Target: vault,
-	// 	Method: shared.VaultMethodGetPoolTokens,
-	// 	Params: []interface{}{common.HexToHash(poolID)},
-	// }, []interface{}{&poolTokens})
+		isVaultPaused        bool
+		isPoolPaused         bool
+		isPoolInRecoveryMode bool
+	)
 
-	// req.AddCall(&ethrpc.Call{
-	// 	ABI:    poolABI,
-	// 	Target: poolAddress,
-	// 	Method: shared.PoolMethodGetSwapFeePercentage,
-	// }, []interface{}{&swapFeePercentage})
+	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
-	// req.AddCall(&ethrpc.Call{
-	// 	ABI:    poolABI,
-	// 	Target: poolAddress,
-	// 	Method: shared.PoolMethodGetPausedState,
-	// }, []interface{}{&pausedState})
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetAggregateFeePercentages,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&aggregateFeePercentages})
 
-	// res, err := req.TryBlockAndAggregate()
-	// if err != nil {
-	// 	logger.WithFields(logger.Fields{
-	// 		"dexId":       t.config.DexID,
-	// 		"dexType":     DexType,
-	// 		"poolAddress": poolAddress,
-	// 	}).Error(err.Error())
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetStaticSwapFeePercentage,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&staticSwapFeePercentage})
 
-	// 	return nil, err
-	// }
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetPoolData,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&poolData})
 
-	// swapFeePercentageU256, _ := uint256.FromBig(swapFeePercentage)
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodGetHooksConfig,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&hooksConfig})
 
-	// return &rpcRes{
-	// 	PoolTokens:        poolTokens,
-	// 	SwapFeePercentage: swapFeePercentageU256,
-	// 	PausedState:       pausedState,
-	// 	BlockNumber:       res.BlockNumber.Uint64(),
-	// }, nil
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsVaultPaused,
+	}, []interface{}{&isVaultPaused})
 
-	return nil, nil
-}
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolPaused,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&isPoolPaused})
 
-func isNotPaused(pausedState PausedState) bool {
-	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolInRecoveryMode,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&isPoolInRecoveryMode})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetNormalizedWeights,
+	}, []interface{}{&normalizedWeights})
+
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	if hooksConfig.Data.HooksContract != (common.Address{}) {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Warnf("this pool has a contract hook implemented at %s => should check it", hooksConfig.Data.HooksContract)
+	}
+
+	return &RpcResult{
+		HooksConfig: shared.HooksConfig{
+			EnableHookAdjustedAmounts:       hooksConfig.Data.EnableHookAdjustedAmounts,
+			ShouldCallComputeDynamicSwapFee: hooksConfig.Data.ShouldCallComputeDynamicSwapFee,
+			ShouldCallBeforeSwap:            hooksConfig.Data.ShouldCallBeforeSwap,
+			ShouldCallAfterSwap:             hooksConfig.Data.ShouldCallAfterSwap,
+		},
+		BalancesRaw:                poolData.Data.BalancesRaw,
+		BalancesLiveScaled18:       poolData.Data.BalancesLiveScaled18,
+		TokenRates:                 poolData.Data.TokenRates,
+		StaticSwapFeePercentage:    staticSwapFeePercentage,
+		AggregateSwapFeePercentage: aggregateFeePercentages.AggregateSwapFeePercentage,
+		NormalizedWeights:          normalizedWeights,
+		IsVaultPaused:              isVaultPaused,
+		IsPoolPaused:               isPoolPaused,
+		IsPoolInRecoveryMode:       isPoolInRecoveryMode,
+		BlockNumber:                res.BlockNumber.Uint64(),
+	}, nil
 }

@@ -37,9 +37,6 @@ type PoolSimulator struct {
 	isPoolInRecoveryMode bool
 
 	vaultAddress string
-
-	poolType    string
-	poolVersion int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -64,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
-	// Need to detect the current hook of pool
+	// Need to detect the current hook type of pool
 	hook := hooks.NewBaseHook()
 
 	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
@@ -89,7 +86,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		hooksConfig:          extra.HooksConfig,
 		currentAmp:           extra.AmplificationParameter,
 		vaultAddress:         staticExtra.Vault,
-		poolType:             staticExtra.PoolType,
 	}, nil
 }
 
@@ -106,12 +102,12 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrTokenNotRegistered
+		return nil, shared.ErrTokenNotRegistered
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountIn
+		return nil, shared.ErrInvalidAmountIn
 	}
 
 	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
@@ -153,12 +149,12 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrTokenNotRegistered
+		return nil, shared.ErrTokenNotRegistered
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountOut
+		return nil, shared.ErrInvalidAmountOut
 	}
 
 	amountIn, totalSwapFee, aggregateSwapFee, err := p.vault.Swap(shared.VaultSwapParams{
@@ -225,8 +221,6 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
 		Vault:         s.vaultAddress,
-		PoolType:      s.poolType,
-		PoolVersion:   s.poolVersion,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
 		BlockNumber:   s.Info.BlockNumber,
 	}
@@ -280,18 +274,7 @@ func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, ro
 
 func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
 	cloned := *p
-	// cloned.swapFeePercentage = p.swapFeePercentage.Clone()
-	// cloned.aggregateSwapFeePercentage = p.aggregateSwapFeePercentage.Clone()
-	// cloned.amplificationParameter = p.amplificationParameter.Clone()
-	// cloned.balancesLiveScaled18 = lo.Map(p.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
-	// 	return new(uint256.Int).Set(v)
-	// })
-	// cloned.decimalScalingFactors = lo.Map(p.decimalScalingFactors, func(v *uint256.Int, _ int) *uint256.Int {
-	// 	return new(uint256.Int).Set(v)
-	// })
-	// cloned.tokenRates = lo.Map(p.tokenRates, func(v *uint256.Int, _ int) *uint256.Int {
-	// 	return new(uint256.Int).Set(v)
-	// })
+	cloned.vault = p.vault.CloneState()
 
 	return &cloned
 }

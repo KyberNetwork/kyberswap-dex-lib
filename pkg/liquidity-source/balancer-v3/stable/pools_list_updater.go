@@ -88,8 +88,7 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool) ([]en
 
 		if strings.EqualFold(PoolType, poolType) {
 			staticExtraBytes, err := json.Marshal(&StaticExtra{
-				PoolType: PoolType,
-				Vault:    subgraphPool.Vault.ID,
+				Vault: subgraphPool.Vault.ID,
 			})
 			if err != nil {
 				return nil, err

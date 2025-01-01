@@ -4,19 +4,14 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
-type Gas struct {
-	Swap int64
-}
-
 type Extra struct {
 	HooksConfig                shared.HooksConfig `json:"hooksConfig"`
-	AmplificationParameter     *uint256.Int       `json:"amplificationParameter"`
 	StaticSwapFeePercentage    *uint256.Int       `json:"staticSwapFeePercentage"`
 	AggregateSwapFeePercentage *uint256.Int       `json:"aggregateSwapFeePercentage"`
+	AmplificationParameter     *uint256.Int       `json:"amplificationParameter"`
 	BalancesLiveScaled18       []*uint256.Int     `json:"balancesLiveScaled18"`
 	DecimalScalingFactors      []*uint256.Int     `json:"decimalScalingFactors"`
 	TokenRates                 []*uint256.Int     `json:"tokenRates"`
@@ -26,20 +21,7 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolType string `json:"poolType"`
-	Vault    string `json:"vault"`
-}
-
-type PoolTokens struct {
-	Tokens          []common.Address
-	Balances        []*big.Int
-	LastChangeBlock *big.Int
-}
-
-type PausedState struct {
-	Paused              bool
-	PauseWindowEndTime  *big.Int
-	BufferPeriodEndTime *big.Int
+	Vault string `json:"vault"`
 }
 
 type AmplificationParameter struct {
@@ -67,23 +49,8 @@ type StablePoolDynamicData struct {
 	}
 }
 
-type PoolTokenInfo struct {
-	Tokens                   []common.Address
-	TokenInfo                []TokenInfo
-	BalancesRaw              []*big.Int
-	LastBalancesLiveScaled18 []*big.Int
-}
-
-type TokenInfo struct {
-	TokenType     uint8
-	IRateProvider common.Address
-	PaysYieldFees bool
-}
-
 type PoolMetaInfo struct {
 	Vault         string `json:"vault"`
-	PoolType      string `json:"poolType"`
-	PoolVersion   int    `json:"poolVersion"`
 	TokenOutIndex int    `json:"tokenOutIndex"`
 	BlockNumber   uint64 `json:"blockNumber"`
 }
@@ -94,9 +61,9 @@ type RpcResult struct {
 	BalancesLiveScaled18       []*big.Int
 	TokenRates                 []*big.Int
 	DecimalScalingFactors      []*big.Int
+	AmplificationParameter     *big.Int
 	StaticSwapFeePercentage    *big.Int
 	AggregateSwapFeePercentage *big.Int
-	AmplificationParameter     *big.Int
 	IsVaultPaused              bool
 	IsPoolPaused               bool
 	IsPoolInRecoveryMode       bool

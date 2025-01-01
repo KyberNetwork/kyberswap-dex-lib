@@ -46,7 +46,6 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(1000000),
-			poolType:   PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -90,7 +89,6 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000),
 			),
 			currentAmp: uint256.NewInt(1000000),
-			poolType:   PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -143,9 +141,6 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000),
 			),
 			currentAmp: uint256.NewInt(1000000),
-
-			poolType:    PoolType,
-			poolVersion: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{

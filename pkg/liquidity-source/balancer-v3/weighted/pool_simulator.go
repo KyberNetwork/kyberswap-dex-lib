@@ -4,60 +4,40 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
 var (
-	ErrTokenNotRegistered       = errors.New("TOKEN_NOT_REGISTERED")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInvalidAmountIn          = errors.New("invalid amount in")
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
-	ErrPoolPaused               = errors.New("pool is paused")
-	ErrMaxTotalInRatio          = errors.New("MAX_TOTAL_IN_RATIO")
-	ErrMaxTotalOutRatio         = errors.New("MAX_TOTAL_OUT_RATIO")
-	ErrOverflow                 = errors.New("OVERFLOW")
+	ErrInvalidAmp               = errors.New("invalid amp")
+	ErrNotTwoTokens             = errors.New("not two tokens")
 )
 
-var (
-	defaultGas = Gas{Swap: 80000}
+type PoolSimulator struct {
+	poolpkg.Pool
 
-	_MAX_IN_RATIO  = uint256.NewInt(0.3e18)
-	_MAX_OUT_RATIO = uint256.NewInt(0.3e18)
-)
+	vault             *vault.Vault
+	normalizedWeights []*uint256.Int
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+	hooksConfig shared.HooksConfig
 
-		paused bool
+	isVaultPaused        bool
+	isPoolPaused         bool
+	isPoolInRecoveryMode bool
 
-		swapFeePercentage *uint256.Int
-		scalingFactors    []*uint256.Int
-		normalizedWeights []*uint256.Int
-
-		vault      string
-		poolID     string
-		poolVerion int
-
-		totalAmountsIn          []*uint256.Int
-		scaledMaxTotalAmountsIn []*uint256.Int
-
-		totalAmountsOut          []*uint256.Int
-		scaledMaxTotalAmountsOut []*uint256.Int
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+	vaultAddress string
+}
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -66,12 +46,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		tokens   = make([]string, len(entityPool.Tokens))
 		reserves = make([]*big.Int, len(entityPool.Tokens))
-
-		totalAmountsIn          = make([]*uint256.Int, len(entityPool.Tokens))
-		scaledMaxTotalAmountsIn = make([]*uint256.Int, len(entityPool.Tokens))
-
-		totalAmountsOut          = make([]*uint256.Int, len(entityPool.Tokens))
-		scaledMaxTotalAmountsOut = make([]*uint256.Int, len(entityPool.Tokens))
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -87,26 +61,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
-	scaledInitialBalances, err := _upscaleArray(staticExtra.PoolVersion, reserves, staticExtra.ScalingFactors)
-	if err != nil {
-		return nil, err
-	}
-	for idx := 0; idx < len(entityPool.Tokens); idx++ {
-		totalAmountsIn[idx] = number.Zero
-		totalAmountsOut[idx] = number.Zero
+	// Need to detect the current hook type of pool
+	hook := hooks.NewBaseHook()
 
-		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
-		if err != nil {
-			return nil, err
-		}
-		scaledMaxTotalAmountsIn[idx] = maxIn
-
-		maxOut, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_OUT_RATIO)
-		if err != nil {
-			return nil, err
-		}
-		scaledMaxTotalAmountsOut[idx] = maxOut
-	}
+	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
+		extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
 
 	poolInfo := poolpkg.PoolInfo{
 		Address:     entityPool.Address,
@@ -115,99 +74,48 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:      tokens,
 		Reserves:    reserves,
 		Checked:     true,
-		BlockNumber: uint64(entityPool.BlockNumber),
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
-		Pool:                     poolpkg.Pool{Info: poolInfo},
-		paused:                   extra.Paused,
-		swapFeePercentage:        extra.SwapFeePercentage,
-		scalingFactors:           staticExtra.ScalingFactors,
-		vault:                    staticExtra.Vault,
-		poolID:                   staticExtra.PoolID,
-		poolVerion:               staticExtra.PoolVersion,
-		totalAmountsIn:           totalAmountsIn,
-		scaledMaxTotalAmountsIn:  scaledMaxTotalAmountsIn,
-		totalAmountsOut:          totalAmountsOut,
-		scaledMaxTotalAmountsOut: scaledMaxTotalAmountsOut,
+		Pool:                 poolpkg.Pool{Info: poolInfo},
+		isVaultPaused:        extra.IsVaultPaused,
+		isPoolPaused:         extra.IsPoolPaused,
+		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
+		vault:                vault,
+		hooksConfig:          extra.HooksConfig,
+		normalizedWeights:    extra.NormalizedWeights,
+		vaultAddress:         staticExtra.Vault,
 	}, nil
 }
 
-// https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.paused {
-		return nil, ErrPoolPaused
+func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	if p.isVaultPaused {
+		return nil, shared.ErrVaultIsPaused
 	}
 
-	tokenAmountIn := params.TokenAmountIn
-	tokenOut := params.TokenOut
-
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-
-	if indexIn == -1 || indexOut == -1 {
-		return nil, ErrTokenNotRegistered
+	if p.isPoolPaused {
+		return nil, shared.ErrPoolIsPaused
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
+	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, shared.ErrTokenNotRegistered
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountIn
+		return nil, shared.ErrInvalidAmountIn
 	}
 
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
-	normalizedWeightIn := s.normalizedWeights[indexIn]
-	normalizedWeightOut := s.normalizedWeights[indexOut]
-
-	balanceTokenIn, err := _upscale(s.poolVerion, reserveIn, scalingFactorTokenIn)
-	if err != nil {
-		return nil, err
-	}
-	balanceTokenOut, err := _upscale(s.poolVerion, reserveOut, scalingFactorTokenOut)
-	if err != nil {
-		return nil, err
-	}
-
-	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
-	if err != nil {
-		return nil, err
-	}
-
-	amountInAfterFee, err := math.FixedPoint.Sub(amountIn, feeAmount)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.validateMaxInRatio(indexIn, amountInAfterFee); err != nil {
-		return nil, err
-	}
-
-	upScaledAmountIn, err := _upscale(s.poolVerion, amountInAfterFee, scalingFactorTokenIn)
-	if err != nil {
-		return nil, err
-	}
-
-	upScaledAmountOut, err := s._onSwapGivenIn(
-		balanceTokenIn,
-		normalizedWeightIn,
-		balanceTokenOut,
-		normalizedWeightOut,
-		upScaledAmountIn,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	amountOut, err := _downscaleDown(s.poolVerion, upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_IN,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountIn,
+	}, p.OnSwap)
 	if err != nil {
 		return nil, err
 	}
@@ -219,86 +127,42 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Fee: &poolpkg.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: feeAmount.ToBig(),
+			Amount: totalSwapFee.ToBig(),
+		},
+		SwapInfo: SwapInfo{
+			AggregateFee: aggregateFee.ToBig(),
 		},
 		Gas: defaultGas.Swap,
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
-	if s.paused {
-		return nil, ErrPoolPaused
+func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	if p.isVaultPaused {
+		return nil, shared.ErrVaultIsPaused
 	}
 
-	tokenAmountOut := params.TokenAmountOut
-	tokenIn := params.TokenIn
-
-	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
-
-	if indexIn == -1 || indexOut == -1 {
-		return nil, ErrTokenNotRegistered
+	if p.isPoolPaused {
+		return nil, shared.ErrPoolIsPaused
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
+	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, shared.ErrTokenNotRegistered
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
-		return nil, ErrInvalidAmountIn
+		return nil, shared.ErrInvalidAmountOut
 	}
 
-	if err := s.validateMaxOutRatio(indexOut, amountOut); err != nil {
-		return nil, err
-	}
-
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
-	normalizedWeightIn := s.normalizedWeights[indexIn]
-	normalizedWeightOut := s.normalizedWeights[indexOut]
-
-	balanceTokenIn, err := _upscale(s.poolVerion, reserveIn, scalingFactorTokenIn)
-	if err != nil {
-		return nil, err
-	}
-	balanceTokenOut, err := _upscale(s.poolVerion, reserveOut, scalingFactorTokenOut)
-	if err != nil {
-		return nil, err
-	}
-
-	upScaledAmountOut, err := _upscale(s.poolVerion, amountOut, scalingFactorTokenOut)
-	if err != nil {
-		return nil, err
-	}
-
-	upScaledAmountIn, err := s._onSwapGivenOut(
-		balanceTokenIn,
-		normalizedWeightIn,
-		balanceTokenOut,
-		normalizedWeightOut,
-		upScaledAmountOut,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	amountIn, err := _downscaleUp(s.poolVerion, upScaledAmountIn, scalingFactorTokenIn)
-	if err != nil {
-		return nil, err
-	}
-
-	amountInAfterFee, err := s._addSwapFeeAmount(amountIn)
-	if err != nil {
-		return nil, err
-	}
-
-	feeAmount, err := math.FixedPoint.Sub(amountInAfterFee, amountIn)
+	amountIn, totalSwapFee, aggregateSwapFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_OUT,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountOut,
+	}, p.OnSwap)
 	if err != nil {
 		return nil, err
 	}
@@ -310,184 +174,107 @@ func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 		},
 		Fee: &poolpkg.TokenAmount{
 			Token:  tokenIn,
-			Amount: feeAmount.ToBig(),
+			Amount: totalSwapFee.ToBig(),
+		},
+		SwapInfo: SwapInfo{
+			AggregateFee: aggregateSwapFee.ToBig(),
 		},
 		Gas: defaultGas.Swap,
 	}, nil
 }
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F1#L165
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F3#L117
-func (s *PoolSimulator) _onSwapGivenIn(
-	balanceTokenIn *uint256.Int,
-	normalizedWeightIn *uint256.Int,
-	balanceTokenOut *uint256.Int,
-	normalizedWeightOut *uint256.Int,
-	upScaledAmountIn *uint256.Int,
-) (*uint256.Int, error) {
-	if s.poolVerion == shared.PoolVersion1 {
-		return math.WeightedMath.CalcOutGivenInV1(
-			balanceTokenIn,
-			normalizedWeightIn,
-			balanceTokenOut,
-			normalizedWeightOut,
-			upScaledAmountIn,
-		)
+func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
+	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
+
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
 	}
 
-	return math.WeightedMath.CalcOutGivenIn(
-		balanceTokenIn,
-		normalizedWeightIn,
-		balanceTokenOut,
-		normalizedWeightOut,
-		upScaledAmountIn,
-	)
-}
+	updatedRawBalanceIn := new(big.Int)
+	updatedRawBalanceIn.Add(p.Info.Reserves[tokenIndexIn], params.TokenAmountIn.Amount)
+	updatedRawBalanceIn.Sub(updatedRawBalanceIn, swapInfo.AggregateFee)
+	p.Info.Reserves[tokenIndexIn] = updatedRawBalanceIn
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F1#L182
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F3#L132
-func (s *PoolSimulator) _onSwapGivenOut(
-	balanceTokenIn *uint256.Int,
-	normalizedWeightIn *uint256.Int,
-	balanceTokenOut *uint256.Int,
-	normalizedWeightOut *uint256.Int,
-	upScaledAmountOut *uint256.Int,
-) (*uint256.Int, error) {
-	if s.poolVerion == shared.PoolVersion1 {
-		return math.WeightedMath.CalcInGivenOutV1(
-			balanceTokenIn,
-			normalizedWeightIn,
-			balanceTokenOut,
-			normalizedWeightOut,
-			upScaledAmountOut,
-		)
-	}
+	amountGivenRaw := uint256.MustFromBig(updatedRawBalanceIn)
 
-	return math.WeightedMath.CalcInGivenOut(
-		balanceTokenIn,
-		normalizedWeightIn,
-		balanceTokenOut,
-		normalizedWeightOut,
-		upScaledAmountOut,
-	)
-}
-
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L454
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L619
-func (s *PoolSimulator) _addSwapFeeAmount(amount *uint256.Int) (*uint256.Int, error) {
-	// This returns amount + fee amount, so we round up (favoring a higher fee amount).
-	return math.FixedPoint.DivUp(amount, math.FixedPoint.Complement(s.swapFeePercentage))
-}
-
-func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int) error {
-	sum := new(uint256.Int).Add(s.totalAmountsIn[tokenIndex], amountIn)
-	upscaledSum, err := _upscale(s.poolVerion, sum, s.scalingFactors[tokenIndex])
+	_, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
-		return err
+		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
+		return
 	}
 
-	if upscaledSum.Gt(s.scaledMaxTotalAmountsIn[tokenIndex]) {
-		return ErrMaxTotalInRatio
-	}
+	updatedRawBalanceOut := new(big.Int)
+	updatedRawBalanceOut.Sub(p.Info.Reserves[tokenIndexOut], params.TokenAmountOut.Amount)
+	p.Info.Reserves[tokenIndexOut] = updatedRawBalanceOut
 
-	return nil
-}
+	amountGivenRaw.SetFromBig(updatedRawBalanceOut)
 
-func (s *PoolSimulator) validateMaxOutRatio(tokenIndex int, amountOut *uint256.Int) error {
-	sum := new(uint256.Int).Add(s.totalAmountsOut[tokenIndex], amountOut)
-	upscaledSum, err := _upscale(s.poolVerion, sum, s.scalingFactors[tokenIndex])
+	_, err = p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
-		return err
-	}
-
-	if upscaledSum.Gt(s.scaledMaxTotalAmountsOut[tokenIndex]) {
-		return ErrMaxTotalOutRatio
-	}
-
-	return nil
-}
-
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	for idx, token := range s.Info.Tokens {
-		if token == params.TokenAmountIn.Token {
-			s.Info.Reserves[idx] = new(big.Int).Add(
-				s.Info.Reserves[idx],
-				params.TokenAmountIn.Amount,
-			)
-
-			s.totalAmountsIn[idx] = new(uint256.Int).Add(
-				s.totalAmountsIn[idx],
-				uint256.MustFromBig(params.TokenAmountIn.Amount),
-			)
-		}
-
-		if token == params.TokenAmountOut.Token {
-			s.Info.Reserves[idx] = new(big.Int).Sub(
-				s.Info.Reserves[idx],
-				params.TokenAmountOut.Amount,
-			)
-		}
+		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
+		return
 	}
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
+		Vault:         s.vaultAddress,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
 		BlockNumber:   s.Info.BlockNumber,
 	}
 }
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F27#L529
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F13#L681
-func _upscale(poolVerion int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	if poolVerion == shared.PoolVersion1 {
-		return math.Math.Mul(amount, scalingFactor)
+func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *uint256.Int, err error) {
+	balanceTokenInScaled18 := param.BalancesLiveScaled18[param.IndexIn]
+	balanceTokenOutScaled18 := param.BalancesLiveScaled18[param.IndexOut]
+
+	weightIn, err := p.getNormalizedWeight(param.IndexIn)
+	if err != nil {
+		return nil, err
 	}
 
-	return math.FixedPoint.MulDown(amount, scalingFactor)
+	weightOut, err := p.getNormalizedWeight(param.IndexOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if param.Kind == shared.EXACT_IN {
+		amountOutScaled18, err = math.WeightedMath.ComputeOutGivenExactIn(
+			balanceTokenInScaled18,
+			weightIn,
+			balanceTokenOutScaled18,
+			weightOut,
+			param.AmountGivenScaled18,
+		)
+	} else {
+		amountOutScaled18, err = math.WeightedMath.ComputeInGivenExactOut(
+			balanceTokenInScaled18,
+			weightIn,
+			balanceTokenOutScaled18,
+			weightOut,
+			param.AmountGivenScaled18,
+		)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return
 }
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L547
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L706
-func _downscaleDown(poolVerion int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	if poolVerion == shared.PoolVersion1 {
-		return math.Math.DivDown(amount, scalingFactor)
+func (p *PoolSimulator) getNormalizedWeight(tokenIndex int) (*uint256.Int, error) {
+	if tokenIndex > len(p.normalizedWeights) {
+		return nil, ErrInvalidToken
 	}
 
-	return math.FixedPoint.DivDown(amount, scalingFactor)
+	return p.normalizedWeights[tokenIndex], nil
 }
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L565
-//
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L727
-func _downscaleUp(poolVerion int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	if poolVerion == shared.PoolVersion1 {
-		return math.Math.DivUp(amount, scalingFactor)
-	}
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+	cloned := *p
+	cloned.vault = p.vault.CloneState()
 
-	return math.FixedPoint.DivUp(amount, scalingFactor)
-}
-
-func _upscaleArray(poolVerion int, balances []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
-	upscaled := make([]*uint256.Int, len(balances))
-	for i, balance := range balances {
-		b, overflow := uint256.FromBig(balance)
-		if overflow {
-			return nil, ErrOverflow
-		}
-
-		upscaledI, err := _upscale(poolVerion, b, scalingFactors[i])
-		if err != nil {
-			return nil, err
-		}
-		upscaled[i] = upscaledI
-	}
-	return upscaled, nil
+	return &cloned
 }

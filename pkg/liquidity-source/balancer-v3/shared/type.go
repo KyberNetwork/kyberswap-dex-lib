@@ -7,6 +7,10 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type Gas struct {
+	Swap int64
+}
+
 type AggregateFeePercentage struct {
 	AggregateSwapFeePercentage  *big.Int
 	AggregateYieldFeePercentage *big.Int

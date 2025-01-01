@@ -10,3 +10,16 @@ type IHook interface {
 	OnAfterSwap(param shared.AfterSwapParams) (bool, *uint256.Int, error)
 	OnComputeDynamicSwapFeePercentage(param shared.PoolSwapParams) (bool, *uint256.Int, error)
 }
+
+// Define a map of supported hooks
+var hooksMap = map[string]bool{
+	"DirectionalFee":   true,
+	"FeeTaking":        true,
+	"StableSurge":      true,
+	"VeBALFeeDiscount": true,
+}
+
+func IsHookSupported(hook string) bool {
+	_, exists := hooksMap[hook]
+	return exists
+}

@@ -3,45 +3,73 @@ package weighted
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/holiman/uint256"
 )
 
 type Extra struct {
-	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
-	Paused            bool         `json:"paused"`
+	HooksConfig                shared.HooksConfig `json:"hooksConfig"`
+	StaticSwapFeePercentage    *uint256.Int       `json:"staticSwapFeePercentage"`
+	AggregateSwapFeePercentage *uint256.Int       `json:"aggregateSwapFeePercentage"`
+	NormalizedWeights          []*uint256.Int     `json:"normalizedWeights"`
+	BalancesLiveScaled18       []*uint256.Int     `json:"balancesLiveScaled18"`
+	DecimalScalingFactors      []*uint256.Int     `json:"decimalScalingFactors"`
+	TokenRates                 []*uint256.Int     `json:"tokenRates"`
+	IsVaultPaused              bool               `json:"isVaultPaused"`
+	IsPoolPaused               bool               `json:"isPoolPaused"`
+	IsPoolInRecoveryMode       bool               `json:"isPoolInRecoveryMode"`
 }
 
 type StaticExtra struct {
-	PoolID         string         `json:"poolId"`
-	PoolType       string         `json:"poolType"`
-	PoolVersion    int            `json:"poolVersion"`
-	ScalingFactors []*uint256.Int `json:"scalingFactors"`
-	Vault          string         `json:"vault"`
+	Vault string `json:"vault"`
 }
 
-type PoolTokens struct {
-	Tokens          []common.Address
-	Balances        []*big.Int
-	LastChangeBlock *big.Int
+type AmplificationParameter struct {
+	Value      *big.Int
+	IsUpdating bool
+	Precision  *big.Int
 }
 
-type PausedState struct {
-	Paused              bool
-	PauseWindowEndTime  *big.Int
-	BufferPeriodEndTime *big.Int
+type StablePoolDynamicData struct {
+	Data struct {
+		BalancesLiveScaled18    []*big.Int
+		TokenRates              []*big.Int
+		StaticSwapFeePercentage *big.Int
+		TotalSupply             *big.Int
+		BptRate                 *big.Int
+		AmplificationParameter  *big.Int
+		StartValue              *big.Int
+		EndValue                *big.Int
+		StartTime               uint32
+		EndTime                 uint32
+		IsAmpUpdating           bool
+		IsPoolInitialized       bool
+		IsPoolPaused            bool
+		IsPoolInRecoveryMode    bool
+	}
 }
 
 type PoolMetaInfo struct {
 	Vault         string `json:"vault"`
-	PoolID        string `json:"poolId"`
 	TokenOutIndex int    `json:"tokenOutIndex"`
 	BlockNumber   uint64 `json:"blockNumber"`
 }
 
-type rpcRes struct {
-	PoolTokens        PoolTokens
-	SwapFeePercentage *uint256.Int
-	PausedState       PausedState
-	BlockNumber       uint64
+type RpcResult struct {
+	HooksConfig                shared.HooksConfig
+	BalancesRaw                []*big.Int
+	BalancesLiveScaled18       []*big.Int
+	TokenRates                 []*big.Int
+	DecimalScalingFactors      []*big.Int
+	NormalizedWeights          []*big.Int
+	StaticSwapFeePercentage    *big.Int
+	AggregateSwapFeePercentage *big.Int
+	IsVaultPaused              bool
+	IsPoolPaused               bool
+	IsPoolInRecoveryMode       bool
+	BlockNumber                uint64
+}
+
+type SwapInfo struct {
+	AggregateFee *big.Int `json:"aggregateFee"`
 }
