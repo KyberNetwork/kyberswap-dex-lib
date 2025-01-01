@@ -2,6 +2,8 @@ package composablestable
 
 import (
 	"context"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strings"
 	"time"
@@ -23,14 +25,18 @@ type PoolsListUpdater struct {
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(config *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
+) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolTypeComposableStable},
-	})
+	}, graphqlClient, graphqlClientCfg)
 
 	return &PoolsListUpdater{
 		config:        config,

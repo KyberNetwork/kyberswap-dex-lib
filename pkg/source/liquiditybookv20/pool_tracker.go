@@ -2,7 +2,8 @@ package liquiditybookv20
 
 import (
 	"context"
-	mutableclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"sort"
 	"strconv"
@@ -24,15 +25,15 @@ import (
 type PoolTracker struct {
 	cfg              *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
 		cfg:              cfg,
@@ -205,7 +206,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		// query
 		var (
 			query = buildQueryGetBins(p.Address, binIDGT)
-			req   = mutableclient.NewRequest(query)
+			req   = graphqlpkg.NewRequest(query)
 
 			resp struct {
 				Pair *lbpairSubgraphResp       `json:"lbpair"`
@@ -213,7 +214,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 			}
 		)
 
-		if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if !d.cfg.AllowSubgraphError {
 				logger.WithFields(logger.Fields{
 					"poolAddress":        p.Address,

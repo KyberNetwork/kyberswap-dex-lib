@@ -3,7 +3,8 @@ package ambient
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"strings"
 	"time"
 
@@ -18,15 +19,15 @@ import (
 type PoolListUpdater struct {
 	cfg              Config
 	poolDatastore    IPoolDatastore
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	cfg Config,
 	poolDatastore IPoolDatastore,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolListUpdater, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -116,7 +117,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		limit = u.cfg.SubgraphLimit
 	}
 	var (
-		req = mutableclient.NewRequest(fmt.Sprintf(`{
+		req = graphqlpkg.NewRequest(fmt.Sprintf(`{
 	pools(
 		where: {
 			timeCreate_gt: %d,
@@ -136,7 +137,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		resp SubgraphPoolsResponse
 	)
 
-	if err := u.graphqlClient.Run(ctx, u.graphqlClientCfg, req, &resp); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 

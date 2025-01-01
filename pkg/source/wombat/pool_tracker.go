@@ -2,7 +2,8 @@ package wombat
 
 import (
 	"context"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"time"
 
@@ -20,15 +21,15 @@ import (
 type PoolTracker struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolTracker {
 	return &PoolTracker{
 		config:           cfg,

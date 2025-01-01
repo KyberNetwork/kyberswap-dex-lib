@@ -3,7 +3,8 @@ package balancercomposablestable
 import (
 	"context"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strconv"
 	"strings"
@@ -20,15 +21,15 @@ import (
 type PoolsListUpdater struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:           cfg,
@@ -198,7 +199,7 @@ func (d *PoolsListUpdater) getPoolsListByType(
 		lastCreateTime = zeroBI
 	}
 
-	req := mutableclient.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools(
 			where : {
 				poolType: "%v",
@@ -229,7 +230,7 @@ func (d *PoolsListUpdater) getPoolsListByType(
 		Pairs []*SubgraphPool `json:"pools"`
 	}
 
-	if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  poolType,
 			"error": err,

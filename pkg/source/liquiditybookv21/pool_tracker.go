@@ -2,7 +2,6 @@ package liquiditybookv21
 
 import (
 	"context"
-	"github.com/machinebox/graphql"
 	"math/big"
 	"sort"
 	"strconv"
@@ -22,22 +21,23 @@ import (
 )
 
 type PoolTracker struct {
-	cfg           *Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	cfg              *Config
+	ethrpcClient     *ethrpc.Client
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
-func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolTracker(
+	cfg *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
+) (*PoolTracker, error) {
 	return &PoolTracker{
-		cfg:           cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		cfg:              cfg,
+		ethrpcClient:     ethrpcClient,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}, nil
 }
 
@@ -234,7 +234,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		// query
 		var (
 			query = buildQueryGetBins(p.Address, binIDGT)
-			req   = graphql.NewRequest(query)
+			req   = graphqlpkg.NewRequest(query)
 
 			resp struct {
 				Pair *lbpairSubgraphResp       `json:"lbpair"`

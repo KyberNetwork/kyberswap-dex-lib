@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type (
 	PoolsListUpdater struct {
-		config        *Config
-		graphqlClient *graphql.Client
+		config           *Config
+		graphqlClient    *graphqlpkg.Client
+		graphqlClientCfg *graphqlpkg.Config
 	}
 
 	Config struct {
@@ -33,16 +33,15 @@ type (
 
 const graphQLRequestTimeout = 20 * time.Second
 
-func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     config.SubgraphAPI,
-		Header:  config.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolsListUpdater(
+	config *Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
+) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:        config,
-		graphqlClient: graphqlClient,
+		config:           config,
+		graphqlClient:    graphqlClient,
+		graphqlClientCfg: graphqlClientCfg,
 	}
 }
 
@@ -87,7 +86,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 		u.config.NewPoolLimit,
 		0,
 	)
-	req := graphql.NewRequest(query)
+	req := graphqlpkg.NewRequest(query)
 
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		return nil, nil, err

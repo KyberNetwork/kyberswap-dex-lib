@@ -2,7 +2,8 @@ package ramsesv2
 
 import (
 	"context"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"time"
 
@@ -21,15 +22,15 @@ import (
 type PoolTracker struct {
 	config           *Config
 	ethrpcClient     *ethrpc.Client
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolTracker, error) {
 
 	return &PoolTracker{
@@ -240,14 +241,14 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := mutableclient.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
 			Ticks []TickResp                `json:"ticks"`
 			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, d.graphqlClientCfg, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
 				if resp.Ticks == nil {

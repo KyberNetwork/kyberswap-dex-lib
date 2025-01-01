@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"context"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
@@ -16,8 +17,12 @@ type PoolsListUpdater struct {
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *shared.Config) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(config)
+func NewPoolsListUpdater(
+	config *shared.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
+) *PoolsListUpdater {
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient, graphqlClientCfg)
 
 	return &PoolsListUpdater{
 		config:        *config,

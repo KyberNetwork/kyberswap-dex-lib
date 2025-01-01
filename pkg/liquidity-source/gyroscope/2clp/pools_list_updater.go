@@ -2,7 +2,8 @@ package gyro2clp
 
 import (
 	"context"
-	mutableclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strings"
 	"time"
@@ -22,15 +23,15 @@ type PoolsListUpdater struct {
 	config           Config
 	ethrpcClient     *ethrpc.Client
 	sharedUpdater    *shared.PoolsListUpdater
-	graphqlClient    *mutableclient.MutableClient
-	graphqlClientCfg *mutableclient.Config
+	graphqlClient    *graphqlpkg.Client
+	graphqlClientCfg *graphqlpkg.Config
 }
 
 func NewPoolsListUpdater(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *mutableclient.MutableClient,
-	graphqlClientCfg *mutableclient.Config,
+	graphqlClient *graphqlpkg.Client,
+	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,

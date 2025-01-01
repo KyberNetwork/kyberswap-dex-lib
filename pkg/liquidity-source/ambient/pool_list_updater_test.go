@@ -3,7 +3,7 @@ package ambient_test
 import (
 	"context"
 	"fmt"
-	mutableclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql/mutable"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"math/big"
 	"os"
 	"testing"
@@ -52,11 +52,11 @@ func TestPoolListUpdater(t *testing.T) {
 			MulticallContractAddress: multicallAddress,
 		}
 
-		graphqlClientCfg = &mutableclient.Config{
+		graphqlClientCfg = &graphqlpkg.Config{
 			Url:     config.SubgraphAPI,
 			Timeout: config.SubgraphRequestTimeout.Duration,
 		}
-		graphqlClient = mutableclient.New(*graphqlClientCfg)
+		graphqlClient = graphqlpkg.New(*graphqlClientCfg)
 	)
 
 	{
