@@ -6,21 +6,23 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type baseHook struct{}
+type BaseHook struct{}
 
-func NewBaseHook() *baseHook {
-	return &baseHook{}
+var _ IHook = (*BaseHook)(nil)
+
+func NewBaseHook() *BaseHook {
+	return &BaseHook{}
 }
 
-func (h *baseHook) OnBeforeSwap(shared.PoolSwapParams) (bool, error) {
+func (h *BaseHook) OnBeforeSwap(shared.PoolSwapParams) (bool, error) {
 	return false, nil
 }
 
-func (h *baseHook) OnAfterSwap(shared.AfterSwapParams) (bool, *uint256.Int, error) {
+func (h *BaseHook) OnAfterSwap(shared.AfterSwapParams) (bool, *uint256.Int, error) {
 	return false, math.ZERO, nil
 
 }
 
-func (h *baseHook) OnComputeDynamicSwapFeePercentage(shared.PoolSwapParams) (bool, *uint256.Int, error) {
+func (h *BaseHook) OnComputeDynamicSwapFeePercentage(shared.PoolSwapParams) (bool, *uint256.Int, error) {
 	return false, math.ZERO, nil
 }

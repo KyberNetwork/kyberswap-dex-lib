@@ -34,8 +34,8 @@ func (v *Vault) callAfterSwapHook(
 		IndexOut:                 vaultParamSwap.IndexOut,
 		AmountInScaled18:         amountInScaled18,
 		AmountOutScaled18:        amountOutScaled18,
-		TokenInBalanceScaled18:   v.BalancesLiveScaled18[vaultParamSwap.IndexIn],
-		TokenOutBalanceScaled18:  v.BalancesLiveScaled18[vaultParamSwap.IndexOut],
+		TokenInBalanceScaled18:   v.balancesLiveScaled18[vaultParamSwap.IndexIn],
+		TokenOutBalanceScaled18:  v.balancesLiveScaled18[vaultParamSwap.IndexOut],
 		AmountCalculatedScaled18: amountCalculatedScaled18,
 		AmountCalculatedRaw:      amountCalculatedRaw,
 	})
@@ -70,21 +70,3 @@ func (v *Vault) callComputeDynamicSwapFeeHook(poolSwapParams shared.PoolSwapPara
 
 	return swapFeePercentage, nil
 }
-
-// (bool success, uint256 swapFeePercentage) = hooksContract.onComputeDynamicSwapFeePercentage(
-// 	swapParams,
-// 	pool,
-// 	staticSwapFeePercentage
-// );
-
-// if (success == false) {
-// 	revert IVaultErrors.DynamicSwapFeeHookFailed();
-// }
-
-// // A 100% fee is not supported. In the ExactOut case, the Vault divides by the complement of the swap fee.
-// // The minimum precision constraint provides an additional buffer.
-// if (swapFeePercentage > MAX_FEE_PERCENTAGE) {
-// 	revert IVaultErrors.PercentageAboveMax();
-// }
-
-// return swapFeePercentage;

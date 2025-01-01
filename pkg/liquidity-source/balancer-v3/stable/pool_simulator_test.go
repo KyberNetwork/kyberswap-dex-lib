@@ -42,12 +42,11 @@ func TestCalcAmountOut(t *testing.T) {
 				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
 				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
 				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
-				uint256.NewInt(1000000),
-				uint256.NewInt(30000000000000),
-				uint256.NewInt(500000000000000000),
+				uint256.NewInt(30000000000000),     // swapFeePercentage
+				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
-
-			poolType: PoolType,
+			currentAmp: uint256.NewInt(1000000),
+			poolType:   PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -87,12 +86,11 @@ func TestCalcAmountOut(t *testing.T) {
 				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
 				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
 				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
-				uint256.NewInt(1000000),
 				uint256.NewInt(30000000000000),
 				uint256.NewInt(500000000000000000),
 			),
-
-			poolType: PoolType,
+			currentAmp: uint256.NewInt(1000000),
+			poolType:   PoolType,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -141,10 +139,10 @@ func TestCalcAmountOut(t *testing.T) {
 				[]*uint256.Int{uint256.NewInt(1e18), uint256.NewInt(1e18)},                                                         // decimalScalingFactors
 				[]*uint256.Int{uint256.NewInt(1026650641510258300), uint256.NewInt(1105219353582858337)},                           // tokenRates
 				[]*uint256.Int{uint256.MustFromDecimal("151090057727415359409"), uint256.MustFromDecimal("249356634133584290044")}, // balancesLiveScaled18
-				uint256.NewInt(1000000),
 				uint256.NewInt(30000000000000),
 				uint256.NewInt(500000000000000000),
 			),
+			currentAmp: uint256.NewInt(1000000),
 
 			poolType:    PoolType,
 			poolVersion: 1,

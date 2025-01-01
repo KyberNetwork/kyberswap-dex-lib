@@ -5,7 +5,9 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type StableSurgeHook struct{}
+type StableSurgeHook struct {
+	BaseHook
+}
 
 func NewStableSurgeHook() *StableSurgeHook {
 	return &StableSurgeHook{}

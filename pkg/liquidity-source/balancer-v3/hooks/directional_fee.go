@@ -7,6 +7,8 @@ import (
 )
 
 type directionalFeeHook struct {
+	BaseHook
+
 	staticSwapFeePercentage *uint256.Int
 }
 

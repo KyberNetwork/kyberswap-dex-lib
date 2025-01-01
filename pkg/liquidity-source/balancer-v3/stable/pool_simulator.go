@@ -27,7 +27,8 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	vault *vault.Vault
+	vault      *vault.Vault
+	currentAmp *uint256.Int
 
 	hooksConfig shared.HooksConfig
 
@@ -63,11 +64,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
-	// Need to detect the current using hook of pool
+	// Need to detect the current hook of pool
 	hook := hooks.NewBaseHook()
 
 	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
-		extra.BalancesLiveScaled18, extra.AmplificationParameter, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
+		extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
 
 	poolInfo := poolpkg.PoolInfo{
 		Address:     entityPool.Address,
@@ -86,8 +87,56 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
 		vault:                vault,
 		hooksConfig:          extra.HooksConfig,
+		currentAmp:           extra.AmplificationParameter,
 		vaultAddress:         staticExtra.Vault,
 		poolType:             staticExtra.PoolType,
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	if p.isVaultPaused {
+		return nil, shared.ErrVaultIsPaused
+	}
+
+	if p.isPoolPaused {
+		return nil, shared.ErrPoolIsPaused
+	}
+
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+
+	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrTokenNotRegistered
+	}
+
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+
+	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_IN,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountIn,
+	}, p.OnSwap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountOutResult{
+		TokenAmountOut: &poolpkg.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut.ToBig(),
+		},
+		Fee: &poolpkg.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: totalSwapFee.ToBig(),
+		},
+		SwapInfo: SwapInfo{
+			AggregateFee: aggregateFee.ToBig(),
+		},
+		Gas: defaultGas.Swap,
 	}, nil
 }
 
@@ -138,16 +187,6 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return PoolMetaInfo{
-		Vault:         s.vaultAddress,
-		PoolType:      s.poolType,
-		PoolVersion:   s.poolVersion,
-		TokenOutIndex: s.GetTokenIndex(tokenOut),
-		BlockNumber:   s.Info.BlockNumber,
-	}
-}
-
 func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
 	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
@@ -164,12 +203,11 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	amountGivenRaw := uint256.MustFromBig(updatedRawBalanceIn)
 
-	updatedLiveBalanceIn, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.ROUND_DOWN)
+	_, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
 	}
-	p.vault.BalancesLiveScaled18[tokenIndexIn] = updatedLiveBalanceIn
 
 	updatedRawBalanceOut := new(big.Int)
 	updatedRawBalanceOut.Sub(p.Info.Reserves[tokenIndexOut], params.TokenAmountOut.Amount)
@@ -177,16 +215,25 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	amountGivenRaw.SetFromBig(updatedRawBalanceOut)
 
-	updatedLiveBalanceOut, err := p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.ROUND_DOWN)
+	_, err = p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
 		return
 	}
-	p.vault.BalancesLiveScaled18[tokenIndexOut] = updatedLiveBalanceOut
+}
+
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	return PoolMetaInfo{
+		Vault:         s.vaultAddress,
+		PoolType:      s.poolType,
+		PoolVersion:   s.poolVersion,
+		TokenOutIndex: s.GetTokenIndex(tokenOut),
+		BlockNumber:   s.Info.BlockNumber,
+	}
 }
 
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
-	invariant, err := p.computeInvariant(shared.ROUND_DOWN)
+	invariant, err := p.computeInvariant(param.BalancesLiveScaled18, shared.ROUND_DOWN)
 	if err != nil {
 		return nil, err
 	}
@@ -194,8 +241,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 	var amountOutScaled18 *uint256.Int
 	if param.Kind == shared.EXACT_IN {
 		amountOutScaled18, err = math.StableMath.ComputeOutGivenExactIn(
-			p.vault.AmplificationParameter,
-			p.vault.BalancesLiveScaled18,
+			p.currentAmp,
+			param.BalancesLiveScaled18,
 			param.IndexIn,
 			param.IndexOut,
 			param.AmountGivenScaled18,
@@ -203,8 +250,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 		)
 	} else {
 		amountOutScaled18, err = math.StableMath.ComputeInGivenExactOut(
-			p.vault.AmplificationParameter,
-			p.vault.BalancesLiveScaled18,
+			p.currentAmp,
+			param.BalancesLiveScaled18,
 			param.IndexIn,
 			param.IndexOut,
 			param.AmountGivenScaled18,
@@ -218,8 +265,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 	return amountOutScaled18, nil
 }
 
-func (p *PoolSimulator) computeInvariant(rounding shared.Rounding) (*uint256.Int, error) {
-	invariant, err := math.StableMath.ComputeInvariant(p.vault.AmplificationParameter, p.vault.BalancesLiveScaled18)
+func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, rounding shared.Rounding) (*uint256.Int, error) {
+	invariant, err := math.StableMath.ComputeInvariant(p.currentAmp, balancesLiveScaled18)
 	if err != nil {
 		return nil, err
 	}
@@ -229,53 +276,6 @@ func (p *PoolSimulator) computeInvariant(rounding shared.Rounding) (*uint256.Int
 	}
 
 	return invariant, nil
-}
-
-func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if p.isVaultPaused {
-		return nil, shared.ErrVaultIsPaused
-	}
-
-	if p.isPoolPaused {
-		return nil, shared.ErrPoolIsPaused
-	}
-
-	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
-
-	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrTokenNotRegistered
-	}
-
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountIn
-	}
-
-	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
-		Kind:           shared.EXACT_IN,
-		IndexIn:        indexIn,
-		IndexOut:       indexOut,
-		AmountGivenRaw: amountIn,
-	}, p.OnSwap)
-	if err != nil {
-		return nil, err
-	}
-
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &poolpkg.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: totalSwapFee.ToBig(),
-		},
-		SwapInfo: SwapInfo{
-			AggregateFee: aggregateFee.ToBig(),
-		},
-		Gas: defaultGas.Swap,
-	}, nil
 }
 
 func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {

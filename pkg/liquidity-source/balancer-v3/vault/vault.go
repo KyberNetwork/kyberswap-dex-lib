@@ -8,9 +8,7 @@ import (
 )
 
 type Vault struct {
-	AmplificationParameter *uint256.Int
-	BalancesLiveScaled18   []*uint256.Int
-
+	balancesLiveScaled18       []*uint256.Int
 	decimalScalingFactors      []*uint256.Int
 	tokenRates                 []*uint256.Int
 	swapFeePercentage          *uint256.Int
@@ -24,15 +22,14 @@ type Vault struct {
 
 func New(hook hooks.IHook, hooksConfig shared.HooksConfig, isPoolInRecoveryMode bool,
 	decimalScalingFactors, tokenRates, balancesLiveScaled18 []*uint256.Int,
-	amplificationParameter, swapFeePercentage, aggregateSwapFeePercentage *uint256.Int,
+	swapFeePercentage, aggregateSwapFeePercentage *uint256.Int,
 ) *Vault {
 	return &Vault{
 		hook:                       hook,
 		hooksConfig:                hooksConfig,
 		decimalScalingFactors:      decimalScalingFactors,
 		tokenRates:                 tokenRates,
-		BalancesLiveScaled18:       balancesLiveScaled18,
-		AmplificationParameter:     amplificationParameter,
+		balancesLiveScaled18:       balancesLiveScaled18,
 		swapFeePercentage:          swapFeePercentage,
 		aggregateSwapFeePercentage: aggregateSwapFeePercentage,
 	}
@@ -42,7 +39,7 @@ func (v *Vault) Swap(
 	vaultSwapParams shared.VaultSwapParams,
 	onSwap func(param shared.PoolSwapParams) (*uint256.Int, error),
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(true, vaultSwapParams.AmountGivenRaw,
+	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams.Kind, vaultSwapParams.AmountGivenRaw,
 		v.decimalScalingFactors[vaultSwapParams.IndexOut], v.tokenRates[vaultSwapParams.IndexOut])
 	if err != nil {
 		return nil, nil, nil, err
@@ -52,7 +49,7 @@ func (v *Vault) Swap(
 		Kind:                 vaultSwapParams.Kind,
 		SwapFeePercentage:    v.swapFeePercentage,
 		AmountGivenScaled18:  amountGivenScaled18,
-		BalancesLiveScaled18: v.BalancesLiveScaled18,
+		BalancesLiveScaled18: v.balancesLiveScaled18,
 		IndexIn:              vaultSwapParams.IndexIn,
 		IndexOut:             vaultSwapParams.IndexOut,
 	}
@@ -148,8 +145,8 @@ func (v *Vault) Swap(
 	return amountCalculated, totalSwapFee, aggregateFee, nil
 }
 
-func (v *Vault) ComputeAmountGivenScaled18(isExactIn bool, amountGiven, decimalScalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	if isExactIn {
+func (v *Vault) ComputeAmountGivenScaled18(kind shared.SwapKind, amountGiven, decimalScalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
+	if kind == shared.EXACT_IN {
 		return toScaled18ApplyRateRoundDown(amountGiven, decimalScalingFactor, tokenRate)
 	}
 
@@ -159,15 +156,15 @@ func (v *Vault) ComputeAmountGivenScaled18(isExactIn bool, amountGiven, decimalS
 func (v *Vault) ComputeAggregateSwapFees(
 	totalSwapFeeAmountScaled18, aggregateSwapFeePercentage,
 	decimalScalingFactor, tokenRate *uint256.Int,
-) (*uint256.Int, *uint256.Int, error) {
+) (totalSwapFeeAmountRaw, aggregateSwapFeeAmountRaw *uint256.Int, err error) {
 	if totalSwapFeeAmountScaled18.Sign() > 0 {
-		totalSwapFeeAmountRaw, err := toRawUndoRateRoundDown(totalSwapFeeAmountScaled18, decimalScalingFactor, tokenRate)
+		totalSwapFeeAmountRaw, err = toRawUndoRateRoundDown(totalSwapFeeAmountScaled18, decimalScalingFactor, tokenRate)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if !v.isPoolInRecoveryMode {
-			aggregateSwapFeeAmountRaw, err := math.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
+			aggregateSwapFeeAmountRaw, err = math.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -176,8 +173,10 @@ func (v *Vault) ComputeAggregateSwapFees(
 				return nil, nil, ErrProtocolFeesExceedTotalCollected
 			}
 
-			return totalSwapFeeAmountRaw, aggregateSwapFeeAmountRaw, nil
+			return
 		}
+
+		return totalSwapFeeAmountRaw, math.ZERO, nil
 	}
 
 	return math.ZERO, math.ZERO, nil
@@ -187,10 +186,18 @@ func (v *Vault) UpdateLiveBalance(
 	index int,
 	amountGivenRaw *uint256.Int,
 	rounding shared.Rounding,
-) (*uint256.Int, error) {
+) (newBalanceLiveScaled18 *uint256.Int, err error) {
 	if rounding == shared.ROUND_UP {
-		return toScaled18ApplyRateRoundUp(amountGivenRaw, v.decimalScalingFactors[index], v.tokenRates[index])
+		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundUp(amountGivenRaw, v.decimalScalingFactors[index], v.tokenRates[index])
+	} else {
+		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundDown(amountGivenRaw, v.decimalScalingFactors[index], v.tokenRates[index])
 	}
 
-	return toScaled18ApplyRateRoundDown(amountGivenRaw, v.decimalScalingFactors[index], v.tokenRates[index])
+	if err != nil {
+		return nil, err
+	}
+
+	v.balancesLiveScaled18[index] = newBalanceLiveScaled18
+
+	return
 }

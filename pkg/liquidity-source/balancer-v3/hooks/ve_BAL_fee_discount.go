@@ -5,7 +5,9 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type VeBALFeeDiscountHook struct{}
+type VeBALFeeDiscountHook struct {
+	BaseHook
+}
 
 func NewVeBALFeeDiscountHook() *VeBALFeeDiscountHook {
 	return &VeBALFeeDiscountHook{}
