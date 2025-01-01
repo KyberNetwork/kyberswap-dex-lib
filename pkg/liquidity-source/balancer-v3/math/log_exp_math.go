@@ -9,10 +9,20 @@ import (
 )
 
 var (
+	iTWO      = int256.NewInt(2)
+	iTHREE    = int256.NewInt(3)
+	iFIVE     = int256.NewInt(5)
+	iSEVEN    = int256.NewInt(7)
+	iNINE     = int256.NewInt(9)
+	iELEVEN   = int256.NewInt(11)
+	iTHIRTEEN = int256.NewInt(13)
+	iFIFTEEN  = int256.NewInt(15)
+
 	ONE_E20, _ = uint256.FromDecimal("100000000000000000000") // 1e20
 
-	iONE_E17 = int256.NewInt(1e17)
-	iONE_E18 = int256.NewInt(1e18)
+	iONE_E36, _ = int256.FromDec("1000000000000000000000000000000000000") // 1e36
+	iONE_E17    = int256.NewInt(1e17)
+	iONE_E18    = int256.NewInt(1e18)
 
 	TWO_254             = new(uint256.Int).Lsh(ONE, 254)
 	MILD_EXPONENT_BOUND = new(uint256.Int).Div(TWO_254, ONE_E20)
@@ -108,7 +118,70 @@ func Pow(x, y *uint256.Int) (*uint256.Int, error) {
 }
 
 func Ln36(x *int256.Int) (*int256.Int, error) {
-	return nil, nil
+	x18, overflow := new(int256.Int).MulOverflow(x, iONE_E18)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
+
+	// z = (x - ONE_36) * ONE_36 / (x + ONE_36)
+	numerator := new(int256.Int).Sub(x18, iONE_E36)
+	numerator, overflow = numerator.MulOverflow(numerator, iONE_E36)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
+
+	denominator, overflow := new(int256.Int).AddOverflow(x18, iONE_E36)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
+
+	z := new(int256.Int).Quo(numerator, denominator)
+
+	// z_squared = (z * z) / ONE_36
+	zSquared, overflow := new(int256.Int).MulOverflow(z, z)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
+	zSquared.Quo(zSquared, iONE_E36)
+
+	// Initial term
+	num := new(int256.Int).Set(z)
+	seriesSum := new(int256.Int).Set(z)
+
+	temp := new(int256.Int)
+
+	// Helper function for term calculation
+	calculateTerm := func(divisor *int256.Int) error {
+		num, overflow = num.MulOverflow(num, zSquared)
+		if overflow {
+			return ErrMulOverflow
+		}
+		num.Quo(num, iONE_E36)
+
+		temp.Set(num)
+		temp.Quo(temp, divisor)
+
+		seriesSum, overflow = seriesSum.AddOverflow(seriesSum, temp)
+		if overflow {
+			return ErrAddOverflow
+		}
+
+		return nil
+	}
+
+	// Calculate all terms
+	for _, divisor := range []*int256.Int{iTHREE, iFIVE, iSEVEN, iNINE, iELEVEN, iTHIRTEEN, iFIFTEEN} {
+		if err := calculateTerm(divisor); err != nil {
+			return nil, err
+		}
+	}
+
+	result, overflow := seriesSum.MulOverflow(seriesSum, iTWO)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
+
+	return result, nil
 }
 
 func Ln(x *int256.Int) (*int256.Int, error) {
