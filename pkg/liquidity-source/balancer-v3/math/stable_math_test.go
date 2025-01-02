@@ -184,3 +184,66 @@ func TestStableMath_ComputeOutGivenExactIn(t *testing.T) {
 		})
 	}
 }
+
+func TestStableMath_ComputeInGivenExactOut(t *testing.T) {
+	tests := []struct {
+		name           string
+		amp            *uint256.Int
+		balances       []*uint256.Int
+		tokenIndexIn   int
+		tokenIndexOut  int
+		tokenAmountIn  *uint256.Int
+		invariant      *uint256.Int
+		expectedAmount *uint256.Int
+		expectedErr    error
+	}{
+		{
+			name: "Equal pool swap",
+			amp:  uint256.NewInt(1000000),
+			balances: []*uint256.Int{
+				uint256.NewInt(1000000),
+				uint256.NewInt(1000000),
+			},
+			tokenIndexIn:   0,
+			tokenIndexOut:  1,
+			tokenAmountIn:  uint256.NewInt(100),
+			invariant:      uint256.NewInt(2000000),
+			expectedAmount: uint256.NewInt(100),
+			expectedErr:    nil,
+		},
+		{
+			name: "Imbalanced pool swap",
+			amp:  uint256.NewInt(100),
+			balances: []*uint256.Int{
+				uint256.NewInt(1500000),
+				uint256.NewInt(500000),
+			},
+			tokenIndexIn:   0,
+			tokenIndexOut:  1,
+			tokenAmountIn:  uint256.NewInt(100),
+			invariant:      uint256.NewInt(1000000),
+			expectedAmount: uint256.NewInt(352455),
+			expectedErr:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			amount, err := StableMath.ComputeOutGivenExactIn(
+				tt.amp,
+				tt.balances,
+				tt.tokenIndexIn,
+				tt.tokenIndexOut,
+				tt.tokenAmountIn,
+				tt.invariant,
+			)
+
+			if tt.expectedErr != nil {
+				assert.Equal(t, tt.expectedErr, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedAmount, amount)
+			}
+		})
+	}
+}

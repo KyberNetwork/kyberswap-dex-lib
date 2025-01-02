@@ -210,7 +210,7 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	_, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
-		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
+		logger.Warnf("[%s] failed to UpdateBalance for pool %s", DexType, p.Info.Address)
 		return
 	}
 
@@ -222,7 +222,7 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	_, err = p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.ROUND_DOWN)
 	if err != nil {
-		logger.Warnf("[%s] failed to UpdateBalance for %v pool", DexType, p.Info.Address)
+		logger.Warnf("[%s] failed to UpdateBalance for pool %s", DexType, p.Info.Address)
 		return
 	}
 }

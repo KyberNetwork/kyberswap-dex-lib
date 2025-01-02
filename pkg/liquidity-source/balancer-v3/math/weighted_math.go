@@ -39,7 +39,7 @@ func (s *weightedMath) ComputeOutGivenExactIn(
 	  // wO = weightOut                                                                            //
 	  **********************************************************************************************/
 
-	balanceInApplyRate, err := FixPoint.MulDown(amountIn, MAX_IN_RATIO)
+	balanceInApplyRate, err := FixPoint.MulDown(balanceIn, MAX_IN_RATIO)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (s *weightedMath) ComputeInGivenExactOut(
 	  // wO = weightOut                                                                            //
 	  **********************************************************************************************/
 
-	balanceOutApplyRate, err := FixPoint.MulDown(amountOut, MAX_OUT_RATIO)
+	balanceOutApplyRate, err := FixPoint.MulDown(balanceOut, MAX_OUT_RATIO)
 	if err != nil {
 		return nil, err
 	}
