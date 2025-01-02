@@ -3,7 +3,8 @@ package vault
 import "errors"
 
 var (
-	ErrTradeAmountTooSmall              = errors.New("trade amount is too small")
+	ErrAmountInTooSmall                 = errors.New("amount in is too small")
+	ErrAmountOutTooSmall                = errors.New("amount out is too small")
 	ErrProtocolFeesExceedTotalCollected = errors.New("protocolFees exceed totalCollected")
 	ErrVaultIsPaused                    = errors.New("vault is paused")
 	ErrPoolIsPaused                     = errors.New("pool is paused")

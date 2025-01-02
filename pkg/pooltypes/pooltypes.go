@@ -7,7 +7,7 @@ import (
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
-
+	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
@@ -215,6 +215,7 @@ type Types struct {
 	BalancerV2Stable               string
 	BalancerV2ComposableStable     string
 	BalancerV3Stable               string
+	BalancerV3Weighted             string
 	VelocoreV2CPMM                 string
 	VelocoreV2WombatStable         string
 	Fulcrom                        string
@@ -361,6 +362,7 @@ var (
 		BalancerV2Stable:               balancerv2stable.DexType,
 		BalancerV2ComposableStable:     balancerv2composablestable.DexType,
 		BalancerV3Stable:               balancerv3stable.DexType,
+		BalancerV3Weighted:             balancerv3weighted.DexType,
 		VelocoreV2CPMM:                 velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:         velocorev2wombatstable.DexType,
 		Fulcrom:                        fulcrom.DexTypeFulcrom,

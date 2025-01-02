@@ -6,12 +6,18 @@ import (
 )
 
 func toScaled18ApplyRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	scaledAmount := new(uint256.Int).Mul(amount, scalingFactor)
+	scaledAmount, err := math.FixPoint.Mul(amount, scalingFactor)
+	if err != nil {
+		return nil, err
+	}
 	return math.FixPoint.MulUp(scaledAmount, tokenRate)
 }
 
 func toScaled18ApplyRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	scaledAmount := new(uint256.Int).Mul(amount, scalingFactor)
+	scaledAmount, err := math.FixPoint.Mul(amount, scalingFactor)
+	if err != nil {
+		return nil, err
+	}
 	return math.FixPoint.MulDown(scaledAmount, tokenRate)
 }
 

@@ -98,7 +98,7 @@ func (v *Vault) Swap(
 
 	// _ensureValidSwapAmount
 	if amountGivenScaled18.Lt(MINIMUM_TRADE_AMOUNT) {
-		return nil, nil, nil, ErrTradeAmountTooSmall
+		return nil, nil, nil, ErrAmountInTooSmall
 	}
 
 	amountCalculatedScaled18, err := onSwap(poolSwapParams)
@@ -108,7 +108,7 @@ func (v *Vault) Swap(
 
 	// _ensureValidSwapAmount
 	if amountCalculatedScaled18.Lt(MINIMUM_TRADE_AMOUNT) {
-		return nil, nil, nil, ErrTradeAmountTooSmall
+		return nil, nil, nil, ErrAmountOutTooSmall
 	}
 
 	var amountCalculated *uint256.Int
@@ -121,7 +121,7 @@ func (v *Vault) Swap(
 			return nil, nil, nil, err
 		}
 	} else {
-		totalSwapFeeAmountScaled18, err := math.FixPoint.MulDivUp(amountCalculatedScaled18, v.swapFeePercentage, math.FixPoint.Complement(v.swapFeePercentage))
+		totalSwapFeeAmountScaled18, err = math.FixPoint.MulDivUp(amountCalculatedScaled18, v.swapFeePercentage, math.FixPoint.Complement(v.swapFeePercentage))
 		if err != nil {
 			return nil, nil, nil, err
 		}
