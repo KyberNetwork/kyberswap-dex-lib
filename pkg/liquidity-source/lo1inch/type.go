@@ -30,6 +30,7 @@ type Order struct {
 	Extension            string       `json:"extension"`
 	MakerTraits          string       `json:"makerTraits"`
 	IsMakerContract      bool         `json:"isMakerContract"`
+	TakerRate            float64      `json:"-"` // We will not save this field in the datastore, but we need it for filtering the orders
 }
 
 type StaticExtra struct {
