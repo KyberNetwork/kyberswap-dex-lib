@@ -206,7 +206,7 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 }
 
-func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+func TestCalcAmountIn(t *testing.T) {
 	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("720118889801352582380", 10)

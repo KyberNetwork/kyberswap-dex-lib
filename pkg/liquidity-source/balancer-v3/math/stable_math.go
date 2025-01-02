@@ -2,6 +2,7 @@ package math
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/holiman/uint256"
 )
@@ -15,7 +16,9 @@ var (
 
 var StableMath *stableMath
 
-type stableMath struct{}
+type stableMath struct {
+	mu sync.RWMutex
+}
 
 func init() {
 	StableMath = &stableMath{}
@@ -26,7 +29,7 @@ func (s *stableMath) ComputeOutGivenExactIn(
 	balances []*uint256.Int,
 	tokenIndexIn, tokenIndexOut int,
 	tokenAmountIn, invariant *uint256.Int,
-) (*uint256.Int, error) {
+) (amountOut *uint256.Int, err error) {
 	/**************************************************************************************************************
 	  // outGivenExactIn token x for y - polynomial equation to solve                                              //
 	  // ay = amount out to calculate                                                                              //
@@ -39,21 +42,32 @@ func (s *stableMath) ComputeOutGivenExactIn(
 	  // P = product of final balances but y                                                                       //
 	  **************************************************************************************************************/
 
-	balances[tokenIndexIn].Add(balances[tokenIndexIn], tokenAmountIn)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	balances[tokenIndexIn], err = FixPoint.Add(balances[tokenIndexIn], tokenAmountIn)
+	if err != nil {
+		return nil, err
+	}
 
 	finalBalanceOut, err := s.ComputeBalance(amplificationParameter, balances, invariant, tokenIndexOut)
 	if err != nil {
 		return nil, err
 	}
 
-	balances[tokenIndexIn].Sub(balances[tokenIndexIn], tokenAmountIn)
-
-	amountOut, err := FixPoint.Sub(balances[tokenIndexOut], finalBalanceOut)
+	balances[tokenIndexIn], err = FixPoint.Sub(balances[tokenIndexIn], tokenAmountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	return amountOut.SubUint64(amountOut, 1), nil
+	amountOut, err = FixPoint.Sub(balances[tokenIndexOut], finalBalanceOut)
+	if err != nil {
+		return nil, err
+	}
+
+	amountOut.SubUint64(amountOut, 1)
+
+	return
 }
 
 func (s *stableMath) ComputeInGivenExactOut(
@@ -61,7 +75,7 @@ func (s *stableMath) ComputeInGivenExactOut(
 	balances []*uint256.Int,
 	tokenIndexIn, tokenIndexOut int,
 	tokenAmountOut, invariant *uint256.Int,
-) (*uint256.Int, error) {
+) (amountIn *uint256.Int, err error) {
 	/**************************************************************************************************************
 	  // inGivenExactOut token x for y - polynomial equation to solve                                              //
 	  // ax = amount in to calculate                                                                               //
@@ -74,21 +88,32 @@ func (s *stableMath) ComputeInGivenExactOut(
 	  // P = product of final balances but x                                                                       //
 	  **************************************************************************************************************/
 
-	balances[tokenIndexOut].Sub(balances[tokenIndexOut], tokenAmountOut)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	balances[tokenIndexOut], err = FixPoint.Sub(balances[tokenIndexOut], tokenAmountOut)
+	if err != nil {
+		return nil, err
+	}
 
 	finalBalanceIn, err := s.ComputeBalance(amplificationParameter, balances, invariant, tokenIndexIn)
 	if err != nil {
 		return nil, err
 	}
 
-	balances[tokenIndexOut].Add(balances[tokenIndexOut], tokenAmountOut)
-
-	amountOut, err := FixPoint.Sub(finalBalanceIn, balances[tokenIndexIn])
+	balances[tokenIndexOut], err = FixPoint.Add(balances[tokenIndexOut], tokenAmountOut)
 	if err != nil {
 		return nil, err
 	}
 
-	return amountOut.AddUint64(amountOut, 1), nil
+	amountIn, err = FixPoint.Sub(finalBalanceIn, balances[tokenIndexIn])
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn.AddUint64(amountIn, 1)
+
+	return
 }
 
 func (s *stableMath) ComputeBalance(
@@ -177,9 +202,11 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 	numTokens := uint256.NewInt(uint64(len(balances)))
 	sum := uint256.NewInt(0)
 
-	for _, balance := range balances {
-		sum.Add(sum, balance)
+	s.mu.RLock()
+	for i := range balances {
+		sum.Add(sum, balances[i])
 	}
+	s.mu.RUnlock()
 
 	if sum.IsZero() {
 		return sum, nil
@@ -200,12 +227,15 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 
 		// D_P = D^(n+1)/(n^n * P)
 		D_P.Set(invariant)
+
+		s.mu.RLock()
 		for _, balance := range balances {
 			// D_P = D_P * D / (x_i * n)
 			tmp.Mul(balance, numTokens)
 			D_P.Mul(D_P, invariant)
 			D_P.Div(D_P, tmp)
 		}
+		s.mu.RUnlock()
 
 		// (A * n * S / AP + D_P * n) * D
 		numer.Mul(ampTimesN, sum)
