@@ -35,11 +35,11 @@ func toRawUndoRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uin
 	return math.FixPoint.DivDown(amount, divisor)
 }
 
-func toRawUndoRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
-	divisor, err := math.FixPoint.Mul(scalingFactor, tokenRate)
-	if err != nil {
-		return nil, err
-	}
+// func toRawUndoRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
+// 	divisor, err := math.FixPoint.Mul(scalingFactor, tokenRate)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return math.FixPoint.DivUp(amount, divisor)
-}
+// 	return math.FixPoint.DivUp(amount, divisor)
+// }
