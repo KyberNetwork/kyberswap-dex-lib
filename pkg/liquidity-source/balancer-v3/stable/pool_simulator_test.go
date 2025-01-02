@@ -243,7 +243,7 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 }
 
-func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+func TestCalcAmountIn(t *testing.T) {
 	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
@@ -294,7 +294,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
 	})
 
-	t.Run("1. Swap from token 1 to token 0 successful", func(t *testing.T) {
+	t.Run("2. Swap from token 1 to token 0 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
