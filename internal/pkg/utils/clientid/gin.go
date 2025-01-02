@@ -25,11 +25,8 @@ func ExtractClientID(c *gin.Context) string {
 	var clientData struct {
 		Source string `json:"source"`
 	}
-	if err := json.Unmarshal([]byte(clientDataStr), &clientData); err != nil {
-		return ""
-	}
 
-	if clientData.Source != "" {
+	if err := json.Unmarshal([]byte(clientDataStr), &clientData); err == nil && clientData.Source != "" {
 		return clientData.Source
 	}
 
