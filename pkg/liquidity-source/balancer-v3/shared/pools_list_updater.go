@@ -23,6 +23,7 @@ type (
 		SubgraphAPI     string
 		SubgraphHeaders http.Header
 		NewPoolLimit    int
+		Factory         string
 	}
 
 	Metadata struct {
@@ -81,6 +82,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastBlockTimestamp
 	}
 
 	query := BuildSubgraphPoolsQuery(
+		u.config.Factory,
 		lastBlockTimestamp,
 		u.config.NewPoolLimit,
 		0,

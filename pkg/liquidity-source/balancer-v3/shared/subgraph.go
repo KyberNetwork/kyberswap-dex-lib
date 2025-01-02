@@ -3,13 +3,13 @@ package shared
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type SubgraphPool struct {
 	ID             string `json:"id"`
 	Address        string `json:"address"`
 	BlockTimestamp string `json:"blockTimestamp"`
-	Factory        string `json:"factory"`
 	Tokens         []struct {
 		Address  string `json:"address"`
 		Decimals int    `json:"decimals"`
@@ -20,6 +20,7 @@ type SubgraphPool struct {
 }
 
 func BuildSubgraphPoolsQuery(
+	factory string,
 	lastBlockTimestamp *big.Int,
 	first int,
 	skip int,
@@ -27,6 +28,7 @@ func BuildSubgraphPoolsQuery(
 	q := `{
 		pools(
 			where : {
+				factory: "%s",
 				blockTimestamp_gte: %v
 			},
 			first: %d,
@@ -37,7 +39,6 @@ func BuildSubgraphPoolsQuery(
 			id
 			address
 			blockTimestamp
-			factory
 			tokens {
 			  address
 			  decimals
@@ -48,5 +49,5 @@ func BuildSubgraphPoolsQuery(
 		}
 	}`
 
-	return fmt.Sprintf(q, lastBlockTimestamp, first, skip)
+	return fmt.Sprintf(q, strings.ToLower(factory), lastBlockTimestamp, first, skip)
 }

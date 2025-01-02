@@ -25,6 +25,7 @@ func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsList
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
+		Factory:         config.Factory,
 	})
 
 	return &PoolsListUpdater{
@@ -76,10 +77,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, subgraphPool := range subgraphPools {
-		if subgraphPool.Factory != u.config.Factory {
-			continue
-		}
-
 		staticExtraBytes, err := json.Marshal(&StaticExtra{
 			Vault:       subgraphPool.Vault.ID,
 			DefaultHook: u.config.DefaultHook,
