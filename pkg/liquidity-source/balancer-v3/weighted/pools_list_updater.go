@@ -3,7 +3,6 @@ package weighted
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -47,13 +46,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Infof("Finish updating pools list.")
 	}()
 
-	if u.config.Factories == nil {
+	if u.config.Factory == "" {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
 			"dexType": DexType,
-		}).Error("factories config is empty")
+		}).Error("factory config is empty")
 
-		return nil, nil, errors.New("PoolTypeByFactory config is empty")
+		return nil, nil, errors.New("factory config is empty")
 	}
 
 	subgraphPools, newMetadataBytes, err := u.sharedUpdater.GetNewPools(ctx, metadataBytes)
@@ -77,47 +76,42 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, subgraphPool := range subgraphPools {
-		poolType, found := u.config.Factories[subgraphPool.Factory]
-		if !found && subgraphPool.Factory != "" {
-			logger.WithFields(logger.Fields{
-				"dexId":   u.config.DexID,
-				"dexType": DexType,
-			}).Warnf("detected a new factory that hasn't been configured : %s", subgraphPool.Factory)
+		if subgraphPool.Factory != u.config.Factory {
 			continue
 		}
 
-		if strings.EqualFold(PoolType, poolType) {
-			staticExtraBytes, err := json.Marshal(&StaticExtra{
-				Vault:       subgraphPool.Vault.ID,
-				DefaultHook: u.config.DefaultHook,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			var (
-				poolTokens = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-				reserves   = make([]string, len(subgraphPool.Tokens))
-			)
-			for i, token := range subgraphPool.Tokens {
-				poolTokens[i] = &entity.PoolToken{
-					Address:   token.Address,
-					Weight:    1,
-					Swappable: true,
-				}
-				reserves[i] = "0"
-			}
-
-			pools = append(pools, entity.Pool{
-				Address:     subgraphPool.Address,
-				Exchange:    u.config.DexID,
-				Type:        DexType,
-				Timestamp:   time.Now().Unix(),
-				Tokens:      poolTokens,
-				Reserves:    reserves,
-				StaticExtra: string(staticExtraBytes),
-			})
+		staticExtraBytes, err := json.Marshal(&StaticExtra{
+			Vault:       subgraphPool.Vault.ID,
+			DefaultHook: u.config.DefaultHook,
+		})
+		if err != nil {
+			return nil, err
 		}
+
+		var (
+			poolTokens = make([]*entity.PoolToken, len(subgraphPool.Tokens))
+			reserves   = make([]string, len(subgraphPool.Tokens))
+		)
+
+		for i, token := range subgraphPool.Tokens {
+			poolTokens[i] = &entity.PoolToken{
+				Address:   token.Address,
+				Weight:    1,
+				Swappable: true,
+			}
+			reserves[i] = "0"
+		}
+
+		pools = append(pools, entity.Pool{
+			Address:     subgraphPool.Address,
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Tokens:      poolTokens,
+			Reserves:    reserves,
+			StaticExtra: string(staticExtraBytes),
+		})
+
 	}
 
 	return pools, nil

@@ -250,6 +250,7 @@ func (t *PoolTracker) queryRPC(
 		BalancesRaw:                poolData.Data.BalancesRaw,
 		BalancesLiveScaled18:       poolData.Data.BalancesLiveScaled18,
 		TokenRates:                 poolData.Data.TokenRates,
+		DecimalScalingFactors:      poolData.Data.DecimalScalingFactors,
 		StaticSwapFeePercentage:    staticSwapFeePercentage,
 		AggregateSwapFeePercentage: aggregateFeePercentages.AggregateSwapFeePercentage,
 		AmplificationParameter:     amplificationParameter.Value,
