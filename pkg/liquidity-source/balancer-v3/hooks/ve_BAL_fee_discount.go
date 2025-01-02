@@ -1,5 +1,7 @@
 package hooks
 
+const VeBALFeeDiscountHookType = "VeBALFeeDiscountHook"
+
 type VeBALFeeDiscountHook struct {
 	BaseHook
 }

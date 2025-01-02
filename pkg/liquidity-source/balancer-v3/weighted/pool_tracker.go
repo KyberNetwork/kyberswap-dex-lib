@@ -72,7 +72,7 @@ func (t *PoolTracker) getNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	res, err := t.queryRPC(ctx, p.Address, overrides)
+	res, shouldDisablePool, err := t.queryRPC(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -128,10 +128,17 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = res.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = lo.Map(res.TokenRates, func(v *big.Int, _ int) string {
-		return v.String()
-	})
 
+	// Set all reserves to 0 to disable pool temporarily
+	if shouldDisablePool {
+		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string {
+			return "0"
+		})
+	} else {
+		p.Reserves = lo.Map(res.BalancesRaw, func(v *big.Int, _ int) string {
+			return v.String()
+		})
+	}
 	return p, nil
 }
 
@@ -139,7 +146,7 @@ func (t *PoolTracker) queryRPC(
 	ctx context.Context,
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*RpcResult, error) {
+) (*RpcResult, bool, error) {
 	var (
 		aggregateFeePercentages shared.AggregateFeePercentage
 		hooksConfig             shared.HooksConfigRPC
@@ -219,10 +226,13 @@ func (t *PoolTracker) queryRPC(
 			"dexType":     DexType,
 			"poolAddress": poolAddress,
 		}).Error(err.Error())
-		return nil, err
+		return nil, false, err
 	}
 
+	var shouldDisablePool bool
 	if hooksConfig.Data.HooksContract != (common.Address{}) {
+		shouldDisablePool = true
+
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
@@ -247,5 +257,5 @@ func (t *PoolTracker) queryRPC(
 		IsPoolPaused:               isPoolPaused,
 		IsPoolInRecoveryMode:       isPoolInRecoveryMode,
 		BlockNumber:                res.BlockNumber.Uint64(),
-	}, nil
+	}, shouldDisablePool, nil
 }

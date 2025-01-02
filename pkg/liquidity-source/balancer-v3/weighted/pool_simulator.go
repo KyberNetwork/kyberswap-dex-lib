@@ -63,7 +63,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	// Need to detect the current hook type of pool
-	hook := hooks.NewBaseHook()
+	if staticExtra.DefaultHook != "" && !hooks.IsHookSupported(staticExtra.DefaultHook) {
+		logger.Warnf("[%s] defaultHook is not supported now for pool %s => fallback to BaseHook", DexType, entityPool.Address)
+	}
+
+	var hook hooks.IHook
+	switch staticExtra.DefaultHook {
+	default:
+		hook = hooks.NewBaseHook()
+	}
 
 	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
 		extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)

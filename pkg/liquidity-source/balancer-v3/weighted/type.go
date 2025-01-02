@@ -21,7 +21,8 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Vault string `json:"vault"`
+	Vault       string `json:"vault"`
+	DefaultHook string `json:"defaultHook"`
 }
 
 type AmplificationParameter struct {

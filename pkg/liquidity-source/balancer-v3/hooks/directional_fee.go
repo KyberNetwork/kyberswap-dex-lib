@@ -6,6 +6,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
+const DirectionalFeeHookType = "DirectionalFeeHook"
+
 type directionalFeeHook struct {
 	BaseHook
 

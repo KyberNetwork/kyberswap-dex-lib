@@ -9,4 +9,5 @@ type Config struct {
 	NewPoolLimit    int               `json:"newPoolLimit"`
 	VaultExplorer   string            `json:"vaultExplorer"`
 	Factories       map[string]string `json:"factories"`
+	DefaultHook     string            `json:"defaultHook"`
 }
