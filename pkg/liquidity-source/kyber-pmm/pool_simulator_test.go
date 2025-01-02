@@ -89,7 +89,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			amountOut, err := testutil.MustConcurrentSafe[*big.Float](t, func() (any, error) {
+			amountOut, err := testutil.MustConcurrentSafe[*big.Float](t, func() (*big.Float, error) {
 				return getAmountOut(tt.args.amountIn, tt.args.priceLevels)
 			})
 			assert.Equal(t, tt.expectedErr, err)
