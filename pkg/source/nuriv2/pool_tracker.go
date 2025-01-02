@@ -236,7 +236,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
 				if resp.Ticks == nil {

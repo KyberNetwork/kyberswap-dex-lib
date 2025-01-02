@@ -164,7 +164,7 @@ func (d *PoolsListUpdater) querySubgraph(
 	var response struct {
 		Pools []*SubgraphPool `json:"pools"`
 	}
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err, _ := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  DexTypeWombat,
 			"error": err,

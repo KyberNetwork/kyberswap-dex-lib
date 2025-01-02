@@ -62,7 +62,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 		Pools []SubgraphPool `json:"pools"`
 	}
 
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err, _ := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.Errorf("failed to query subgraph, err: %v", err)
 		return nil, err
 	}

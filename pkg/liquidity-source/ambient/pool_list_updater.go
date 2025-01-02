@@ -137,7 +137,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		resp SubgraphPoolsResponse
 	)
 
-	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
+	if err, _ := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 
