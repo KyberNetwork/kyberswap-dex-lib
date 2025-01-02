@@ -146,7 +146,12 @@ func (s *stableMath) ComputeBalance(
 	// c = (D^2 * AP)/(An * P_D) * x_i
 	numerator := new(uint256.Int).Mul(invariantSquared, _AMP_PRECISION)
 	denominator := new(uint256.Int).Mul(ampTimesN, balanceProduct)
-	c := new(uint256.Int).Div(numerator, denominator)
+
+	c, err := FixPoint.DivRawUp(numerator, denominator)
+	if err != nil {
+		return nil, err
+	}
+
 	c.Mul(c, balances[tokenIndex])
 
 	// b = S + (D * AP)/An
@@ -157,7 +162,10 @@ func (s *stableMath) ComputeBalance(
 	// y = (D^2 + c)/(D + b)
 	numerator.Add(invariantSquared, c)
 	denominator.Add(invariant, b)
-	tokenBalance := new(uint256.Int).Div(numerator, denominator)
+	tokenBalance, err := FixPoint.DivRawUp(numerator, denominator)
+	if err != nil {
+		return nil, err
+	}
 
 	prevTokenBalance := new(uint256.Int)
 	for i := 0; i < 255; i++ {
@@ -171,15 +179,24 @@ func (s *stableMath) ComputeBalance(
 		denominator.Add(denominator, b)
 		denominator.Sub(denominator, invariant)
 
-		tokenBalance.Div(numerator, denominator)
+		tokenBalance, err = FixPoint.DivRawUp(numerator, denominator)
+		if err != nil {
+			return nil, err
+		}
 
 		if tokenBalance.Gt(prevTokenBalance) {
-			mulResult.Sub(tokenBalance, prevTokenBalance)
+			mulResult, err = FixPoint.Sub(tokenBalance, prevTokenBalance)
+			if err != nil {
+				return nil, err
+			}
 			if mulResult.Cmp(ONE) <= 0 {
 				return tokenBalance, nil
 			}
 		} else {
-			mulResult.Sub(prevTokenBalance, tokenBalance)
+			mulResult, err = FixPoint.Sub(prevTokenBalance, tokenBalance)
+			if err != nil {
+				return nil, err
+			}
 			if mulResult.Cmp(ONE) <= 0 {
 				return tokenBalance, nil
 			}

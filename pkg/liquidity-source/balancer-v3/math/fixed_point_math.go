@@ -93,6 +93,23 @@ func (f *fixPoint) DivDown(a, b *uint256.Int) (*uint256.Int, error) {
 	return aInflated.Div(aInflated, b), nil
 }
 
+func (f *fixPoint) DivRawUp(a, b *uint256.Int) (*uint256.Int, error) {
+	if b.IsZero() {
+		return nil, ErrZeroDivision
+	}
+
+	// result = a == 0 ? 0 : 1 + (a - 1) / b
+	if a.IsZero() {
+		return ZERO, nil
+	}
+
+	delta := new(uint256.Int).Sub(a, ONE)
+	delta.Div(delta, b)
+	delta.Add(ONE, delta)
+
+	return delta, nil
+}
+
 func (f *fixPoint) PowUp(x, y *uint256.Int) (*uint256.Int, error) {
 	if y.Eq(ONE_E18) {
 		return x, nil

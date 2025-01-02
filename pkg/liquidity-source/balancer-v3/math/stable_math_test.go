@@ -91,7 +91,7 @@ func TestStableMath_ComputeBalance(t *testing.T) {
 			},
 			invariant:       uint256.NewInt(2000000),
 			tokenIndex:      0,
-			expectedBalance: uint256.NewInt(1000000),
+			expectedBalance: uint256.NewInt(1000001),
 			expectedErr:     nil,
 		},
 		{
@@ -103,7 +103,7 @@ func TestStableMath_ComputeBalance(t *testing.T) {
 			},
 			invariant:       uint256.MustFromDecimal("400033876069185101476"),
 			tokenIndex:      1,
-			expectedBalance: uint256.MustFromDecimal("249100103697704706751"),
+			expectedBalance: uint256.MustFromDecimal("249100103697704706752"),
 			expectedErr:     nil,
 		},
 	}
@@ -145,7 +145,7 @@ func TestStableMath_ComputeOutGivenExactIn(t *testing.T) {
 			tokenIndexOut:  1,
 			tokenAmountIn:  uint256.NewInt(100),
 			invariant:      uint256.NewInt(2000000),
-			expectedAmount: uint256.NewInt(100),
+			expectedAmount: uint256.NewInt(98),
 			expectedErr:    nil,
 		},
 		{
@@ -159,7 +159,7 @@ func TestStableMath_ComputeOutGivenExactIn(t *testing.T) {
 			tokenIndexOut:  1,
 			tokenAmountIn:  uint256.NewInt(100),
 			invariant:      uint256.NewInt(1000000),
-			expectedAmount: uint256.NewInt(352455),
+			expectedAmount: uint256.NewInt(352454),
 			expectedErr:    nil,
 		},
 	}
@@ -208,7 +208,7 @@ func TestStableMath_ComputeInGivenExactOut(t *testing.T) {
 			tokenIndexOut:  1,
 			tokenAmountIn:  uint256.NewInt(100),
 			invariant:      uint256.NewInt(2000000),
-			expectedAmount: uint256.NewInt(100),
+			expectedAmount: uint256.NewInt(98),
 			expectedErr:    nil,
 		},
 		{
@@ -222,7 +222,7 @@ func TestStableMath_ComputeInGivenExactOut(t *testing.T) {
 			tokenIndexOut:  1,
 			tokenAmountIn:  uint256.NewInt(100),
 			invariant:      uint256.NewInt(1000000),
-			expectedAmount: uint256.NewInt(352455),
+			expectedAmount: uint256.NewInt(352454),
 			expectedErr:    nil,
 		},
 	}
