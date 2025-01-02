@@ -1,7 +1,6 @@
 package weighted
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -17,12 +16,6 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
-)
-
-var (
-	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
-	ErrInvalidAmp               = errors.New("invalid amp")
-	ErrNotTwoTokens             = errors.New("not two tokens")
 )
 
 type PoolSimulator struct {
@@ -69,6 +62,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	var hook hooks.IHook
 	switch staticExtra.DefaultHook {
+	case hooks.DirectionalFeeHookType:
+		hook = hooks.NewDirectionalFeeHook(extra.StaticSwapFeePercentage)
 	default:
 		hook = hooks.NewBaseHook()
 	}
