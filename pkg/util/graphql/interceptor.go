@@ -4,9 +4,9 @@ import (
 	"context"
 )
 
-type ClientFunc func(ctx context.Context, req *Request, resp interface{}) error
+type ClientFunc func(ctx context.Context, req *Request, resp interface{}) (error, *Metadata)
 
-func (fn ClientFunc) Invoke(ctx context.Context, req *Request, resp interface{}) error {
+func (fn ClientFunc) Invoke(ctx context.Context, req *Request, resp interface{}) (error, *Metadata) {
 	return fn(ctx, req, resp)
 }
 

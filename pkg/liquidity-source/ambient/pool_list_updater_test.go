@@ -56,7 +56,7 @@ func TestPoolListUpdater(t *testing.T) {
 			Url:     config.SubgraphAPI,
 			Timeout: config.SubgraphRequestTimeout.Duration,
 		}
-		graphqlClient = graphqlpkg.New(*graphqlClientCfg)
+		graphqlClient = graphqlpkg.NewGraphQLClient(*graphqlClientCfg)
 	)
 
 	{

@@ -242,7 +242,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 			}
 		)
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if !d.cfg.AllowSubgraphError {
 				logger.WithFields(logger.Fields{
 					"poolAddress":        p.Address,

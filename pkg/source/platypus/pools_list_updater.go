@@ -116,7 +116,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
-	if err := p.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err, _ := p.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"lastUpdate": lastUpdate,
 			"error":      err,
