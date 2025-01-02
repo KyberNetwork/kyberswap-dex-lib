@@ -26,6 +26,7 @@ type PoolSimulator struct {
 
 var (
 	ErrPoolPaused = errors.New("pool is paused")
+	ErrOverflow   = errors.New("overflow")
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -83,8 +84,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut := p.calcAmountOut(tokenInIndex, tokenAmountIn.Amount)
-	totalGas := p.gas
+	amountOut, err := p.calcAmountOut(tokenInIndex, tokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -95,7 +98,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: totalGas,
+		Gas: p.gas,
 	}, nil
 }
 
@@ -126,12 +129,15 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) *uint256.Int {
-	amountOut := new(uint256.Int).Set(uint256.MustFromBig(amountIn))
-	if (p.isRateInversed && tokenInIndex == 0) || (!p.isRateInversed && tokenInIndex == 1) {
+func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) (*uint256.Int, error) {
+	amountOut := new(uint256.Int)
+	if amountOut.SetFromBig(amountIn) {
+		return nil, ErrOverflow
+	}
+	if p.isRateInversed == (tokenInIndex == 0) {
 		amountOut = amountOut.Mul(amountOut, p.rateUnit).Div(amountOut, p.rate)
 	} else {
 		amountOut = amountOut.Div(amountOut, p.rateUnit).Mul(amountOut, p.rate)
 	}
-	return amountOut
+	return amountOut, nil
 }

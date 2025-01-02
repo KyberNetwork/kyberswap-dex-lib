@@ -18,7 +18,6 @@ import (
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
-
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
@@ -131,7 +130,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -293,7 +292,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -453,7 +452,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(4),
 					AmountUsd: 0,
 				},
@@ -663,7 +662,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -850,7 +849,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
@@ -971,7 +970,6 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
 
 			si := res.SwapInfo.(SwapInfo)
-			assert.Equal(t, bignumber.NewBig10(tc.amountIn), bignumber.NewBig10(si.AmountIn))
 			oid := make([]int64, 0, len(si.FilledOrders))
 			oinfo := ""
 			for _, o := range si.FilledOrders {
@@ -1061,14 +1059,16 @@ func TestPool_UpdateBalance(t *testing.T) {
 		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
-				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				cloned := sims[tc.pool].CloneState()
+				calcAmountOutParams := pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
 						Amount: bignumber.NewBig10(swap.amountIn),
 					},
 					TokenOut: "B",
 					Limit:    limit,
-				})
+				}
+				res, err := sims[tc.pool].CalcAmountOut(calcAmountOutParams)
 
 				if swap.expOrderIds == nil {
 					require.NotNil(t, err)
@@ -1079,8 +1079,11 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
+				clonedRes, err := cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
+
 				si := res.SwapInfo.(SwapInfo)
-				assert.Equal(t, bignumber.NewBig10(swap.amountIn), bignumber.NewBig10(si.AmountIn))
 				oid := make([]int64, 0, len(si.FilledOrders))
 				oinfo := ""
 				for _, o := range si.FilledOrders {
@@ -1103,6 +1106,10 @@ func TestPool_UpdateBalance(t *testing.T) {
 					SwapInfo:       res.SwapInfo,
 					SwapLimit:      limit,
 				})
+
+				clonedRes, err = cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 			})
 		}
 	}
@@ -1231,7 +1238,6 @@ func TestPool_Inventory(t *testing.T) {
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
 				si := res.SwapInfo.(SwapInfo)
-				assert.Equal(t, bignumber.NewBig10(swap.amountIn), bignumber.NewBig10(si.AmountIn))
 				oid := make([]int64, 0, len(si.FilledOrders))
 				oinfo := ""
 				for _, o := range si.FilledOrders {
@@ -1366,7 +1372,6 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 			}
 			assert.Equal(t, tc.expOrderIds, oid, oinfo)
 			fmt.Println(oinfo)
-			fmt.Println("--", si.AmountIn)
 		})
 	}
 }

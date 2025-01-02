@@ -1,14 +1,15 @@
 package virtualfun
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -329,7 +330,11 @@ func (s *PoolSimulator) getAmountsOut(amountIn *uint256.Int, isBuy bool) *uint25
 func (s *PoolSimulator) sellExactOut(amountOut *uint256.Int) (amountIn, amountOutBeforeFee *uint256.Int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 
@@ -348,7 +353,11 @@ func (s *PoolSimulator) sellExactOut(amountOut *uint256.Int) (amountIn, amountOu
 func (s *PoolSimulator) buyExactOut(amountOut *uint256.Int) (amountInBeforeFee *uint256.Int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 

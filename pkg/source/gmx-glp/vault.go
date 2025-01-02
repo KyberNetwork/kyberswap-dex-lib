@@ -61,10 +61,11 @@ const (
 	vaultMethodTaxBasisPoints           = "taxBasisPoints"
 	vaultMethodTotalTokenWeights        = "totalTokenWeights"
 	vaultMethodUSDG                     = "usdg"
-	vaultMethodWhitelistedTokenCount    = "whitelistedTokenCount"
 	vaultMethodMintBurnFeeBasisPoints   = "mintBurnFeeBasisPoints"
 
-	vaultMethodAllWhitelistedTokens = "allWhitelistedTokens"
+	vaultMethodAllWhitelistedTokensLength = "allWhitelistedTokensLength"
+	vaultMethodAllWhitelistedTokens       = "allWhitelistedTokens"
+	vaultMethodWhitelistedTokens          = "whitelistedTokens"
 
 	vaultMethodPoolAmounts     = "poolAmounts"
 	vaultMethodBufferAmounts   = "bufferAmounts"

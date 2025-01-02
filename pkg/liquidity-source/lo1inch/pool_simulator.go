@@ -274,7 +274,6 @@ func newFilledOrderInfo(
 	return &FilledOrderInfo{
 		Signature:            order.Signature,
 		OrderHash:            order.OrderHash,
-		CreateDateTime:       order.CreateDateTime,
 		RemainingMakerAmount: new(big.Int).Sub(order.RemainingMakerAmount, orderFilledMakingAmount),
 		MakerBalance:         new(big.Int).Sub(order.MakerBalance, orderFilledMakingAmount),
 		MakerAllowance:       new(big.Int).Sub(order.MakerAllowance, orderFilledMakingAmount),
@@ -287,8 +286,6 @@ func newFilledOrderInfo(
 		Maker:                order.Maker,
 		Extension:            order.Extension,
 		MakerTraits:          order.MakerTraits,
-		MakerRate:            order.MakerRate,
-		TakerRate:            order.TakerRate,
 		IsMakerContract:      order.IsMakerContract,
 
 		// REMEMBER: these 2 values are the amounts of maker/taker asset that has been filled, but this is just the amount that has been filled after ONE CalcAmountOut call, not the total amount that has been filled in this order

@@ -40,6 +40,17 @@ type TickResp struct {
 	LiquidityNet   string `json:"liquidityNet"`
 }
 
+type Tick struct {
+	LiquidityTotal           *big.Int
+	LiquidityDelta           *big.Int
+	OuterFeeGrowth0Token     *big.Int
+	OuterFeeGrowth1Token     *big.Int
+	OuterTickCumulative      *big.Int
+	OuterSecondsPerLiquidity *big.Int
+	OuterSecondsSpent        uint32
+	Initialized              bool
+}
+
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`
 	Ticks []TickResp `json:"ticks"`

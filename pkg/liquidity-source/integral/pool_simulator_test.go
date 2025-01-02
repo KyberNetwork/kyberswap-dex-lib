@@ -72,7 +72,7 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		require.Nil(t, err)
 
-		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  _token0,
@@ -213,7 +213,7 @@ func TestUpdateBalance(t *testing.T) {
 		Amount: _amount0In,
 	}
 
-	result, _ := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+	result, _ := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
 			TokenOut:      _token1,

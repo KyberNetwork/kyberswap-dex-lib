@@ -1,11 +1,11 @@
 package syncswapv2classic
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

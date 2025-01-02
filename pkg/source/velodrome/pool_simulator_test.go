@@ -46,7 +46,7 @@ func TestCalcAmountOut(t *testing.T) {
 			assert.Equal(t, []string{"B"}, p.CanSwapTo("A"))
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: amountIn,
 					TokenOut:      tc.out,

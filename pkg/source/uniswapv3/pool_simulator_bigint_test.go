@@ -72,7 +72,7 @@ func TestPoolSimulatorBigInt_CalcAmountIn(t *testing.T) {
 			poolSim, err := NewPoolSimulatorBigInt(*poolEntity, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
 
-			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 					TokenAmountOut: pool.TokenAmount{
 						Token:  tc.tokenOut,

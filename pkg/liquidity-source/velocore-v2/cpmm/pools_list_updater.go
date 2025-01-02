@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var ErrWETHNotFound = errors.New("WETH not found")
+var ErrWrappedNativeNotFound = errors.New("wrapped native not found")
 
 type PoolsListUpdater struct {
 	config       *Config
@@ -143,13 +143,13 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				break
 			}
 
-			if strings.EqualFold(t, valueobject.EtherAddress) {
+			if strings.EqualFold(t, valueobject.NativeAddress) {
 				nativeTokenIndex = j
-				weth, ok := valueobject.WETHByChainID[d.config.ChainID]
+				native, ok := valueobject.WrappedNativeMap[d.config.ChainID]
 				if !ok {
-					return nil, ErrWETHNotFound
+					return nil, ErrWrappedNativeNotFound
 				}
-				t = strings.ToLower(weth)
+				t = strings.ToLower(native)
 			}
 
 			poolTokens = append(poolTokens, &entity.PoolToken{

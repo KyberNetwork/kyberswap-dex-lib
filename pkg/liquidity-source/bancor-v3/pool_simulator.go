@@ -226,8 +226,8 @@ func (s *PoolSimulator) verifyTokens(sourceToken, targetToken string) error {
 }
 
 func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, string, bool, bool, error) {
-	weth := strings.ToLower(valueobject.WETHByChainID[s.chainID])
-	if tokenIn != weth && tokenOut != weth {
+	native := strings.ToLower(valueobject.WrappedNativeMap[s.chainID])
+	if tokenIn != native && tokenOut != native {
 		return tokenIn, tokenOut, false, false, nil
 	}
 
@@ -239,7 +239,7 @@ func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, strin
 	)
 
 	var (
-		eth = strings.ToLower(valueobject.EtherAddress)
+		eth = strings.ToLower(valueobject.NativeAddress)
 
 		ethReserve  *uint256.Int
 		wethReserve *uint256.Int
@@ -252,21 +252,21 @@ func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, strin
 		ethReserve = ethPoolData.Liquidity.StakedBalance
 	}
 
-	wethPoolData, err := s.getPoolData(weth)
+	wethPoolData, err := s.getPoolData(native)
 	if err != nil {
 		wethReserve = number.Zero
 	} else {
 		wethReserve = wethPoolData.Liquidity.StakedBalance
 	}
 
-	if tokenIn == weth && ethReserve.Cmp(wethReserve) > 0 {
+	if tokenIn == native && ethReserve.Cmp(wethReserve) > 0 {
 		sourceToken = eth
 		isSourceNative = true
 	}
 
-	if (tokenOut == weth) &&
-		((tokenIn != weth && ethReserve.Cmp(wethReserve) > 0) ||
-			(tokenIn == weth && !isSourceNative)) {
+	if (tokenOut == native) &&
+		((tokenIn != native && ethReserve.Cmp(wethReserve) > 0) ||
+			(tokenIn == native && !isSourceNative)) {
 		targetToken = eth
 		isTargetNative = true
 	}

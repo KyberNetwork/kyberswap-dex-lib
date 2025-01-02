@@ -10,6 +10,7 @@ import (
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -54,6 +55,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -213,6 +215,7 @@ type Types struct {
 	VelocoreV2CPMM                 string
 	VelocoreV2WombatStable         string
 	Fulcrom                        string
+	SolidlyV2                      string
 	SolidlyV3                      string
 	LegacyBalancerWeighted         string
 	LegacyBalancerStable           string
@@ -271,6 +274,7 @@ type Types struct {
 	MxTrading                      string
 	LO1inch                        string
 	VirtualFun                     string
+	BeetsSS                        string
 }
 
 var (
@@ -356,6 +360,7 @@ var (
 		VelocoreV2CPMM:                 velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:         velocorev2wombatstable.DexType,
 		Fulcrom:                        fulcrom.DexTypeFulcrom,
+		SolidlyV2:                      solidlyv2.DexType,
 		SolidlyV3:                      solidlyv3.DexTypeSolidlyV3,
 		LegacyBalancerWeighted:         string(balancer.DexTypeBalancerWeighted),
 		LegacyBalancerStable:           string(balancer.DexTypeBalancerStable),
@@ -414,5 +419,6 @@ var (
 		MxTrading:                      mxtrading.DexType,
 		LO1inch:                        lo1inch.DexType,
 		VirtualFun:                     virtualfun.DexType,
+		BeetsSS:                        beetsss.DexType,
 	}
 )

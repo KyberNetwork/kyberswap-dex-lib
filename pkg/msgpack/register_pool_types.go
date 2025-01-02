@@ -15,6 +15,7 @@ import (
 	pkg_liquiditysource_bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	pkg_liquiditysource_bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	pkg_liquiditysource_bedrock_unieth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	pkg_liquiditysource_curve_plain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	pkg_liquiditysource_curve_stablemetang "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -59,6 +60,7 @@ import (
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	pkg_liquiditysource_solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -147,6 +149,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bancorv3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bebop.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unieth.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{})
@@ -191,6 +194,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swaapv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})

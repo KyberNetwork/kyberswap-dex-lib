@@ -2,6 +2,7 @@ package velodromev2
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -154,6 +155,14 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
+func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
+	return &cloned
+}
+
 func (s *PoolSimulator) getAmountOut(
 	amountIn *uint256.Int,
 	tokenIn string,
@@ -300,7 +309,11 @@ func (s *PoolSimulator) _getAmountIn(
 
 	defer func() {
 		if r := recover(); r != nil {
-			err = r.(error)
+			if recoveredError, ok := r.(error); ok {
+				err = recoveredError
+			} else {
+				err = fmt.Errorf("unexpected panic: %v", r)
+			}
 		}
 	}()
 

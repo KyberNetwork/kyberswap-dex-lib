@@ -165,6 +165,7 @@ var (
 	ExchangeSuperSwapV3 Exchange = "superswap-v3"
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
+	ExchangeSolidlyV2   Exchange = "solidly-v2"
 	ExchangeSolidlyV3   Exchange = "solidly-v3"
 	ExchangeZero        Exchange = "zero"
 	ExchangeZebraV2     Exchange = "zebra-v2"
@@ -383,6 +384,15 @@ var (
 	ExchangeMxTrading        Exchange = "mx-trading"
 	ExchangeLO1inch          Exchange = "lo1inch"
 	ExchangeVirtualFun       Exchange = "virtual-fun"
+	ExchangeMetropolis       Exchange = "metropolis"
+	ExchangeMetropolisLB     Exchange = "metropolis-lb"
+	ExchangeSonicMarket      Exchange = "sonic-market"
+	ExchangeSboom            Exchange = "sboom"
+	ExchangeBeetsSS          Exchange = "beets-ss"
+	ExchangeShadowDex        Exchange = "shadow-dex"
+	ExchangeSwapXCL          Exchange = "swap-x-cl"
+	ExchangeSwapXV2          Exchange = "swap-x-v2"
+	ExchangeMemeBox          Exchange = "memebox"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -522,6 +532,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSuperSwapV3:                {},
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
+	ExchangeSolidlyV2:                  {},
 	ExchangeSolidlyV3:                  {},
 	ExchangeZero:                       {},
 	ExchangeBalancerV2Weighted:         {},
@@ -698,6 +709,15 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeScribe:                     {},
 	ExchangeHorizonIntegral:            {},
 	ExchangeVirtualFun:                 {},
+	ExchangeMetropolis:                 {},
+	ExchangeMetropolisLB:               {},
+	ExchangeSonicMarket:                {},
+	ExchangeSboom:                      {},
+	ExchangeBeetsSS:                    {},
+	ExchangeShadowDex:                  {},
+	ExchangeSwapXCL:                    {},
+	ExchangeSwapXV2:                    {},
+	ExchangeMemeBox:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

@@ -79,7 +79,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	// Take Router fee if swap from ETH -> Token
-	if valueobject.IsWETH(param.TokenAmountIn.Token, s.chainID) {
+	if valueobject.IsWrappedNative(param.TokenAmountIn.Token, s.chainID) {
 		fee, _ := uint256.FromBig(s.extra.USDCToETHBuyTotalFee)
 		amountIn.Sub(amountIn, fee)
 	}
@@ -103,7 +103,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if valueobject.IsWETH(param.TokenOut, s.chainID) {
+	if valueobject.IsWrappedNative(param.TokenOut, s.chainID) {
 		fee, _ := uint256.FromBig(s.extra.USDCToETHSellTotalFee)
 		amountOut.Sub(amountOut, fee)
 	}

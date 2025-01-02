@@ -44,8 +44,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	for _, swapPath := range paths {
 		staticExtraBytes, err := json.Marshal(&StaticExtra{
 			VaultLiquidationResolver: u.config.VaultLiquidationResolver,
-			HasNative: strings.EqualFold(swapPath.TokenIn.Hex(), valueobject.EtherAddress) ||
-				strings.EqualFold(swapPath.TokenOut.Hex(), valueobject.EtherAddress),
+			HasNative: strings.EqualFold(swapPath.TokenIn.Hex(), valueobject.NativeAddress) ||
+				strings.EqualFold(swapPath.TokenOut.Hex(), valueobject.NativeAddress),
 		})
 		if err != nil {
 			return nil, nil, err
@@ -57,12 +57,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Reserves: entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   valueobject.WrapETHLower(swapPath.TokenIn.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(swapPath.TokenIn.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 				},
 				{
-					Address:   valueobject.WrapETHLower(swapPath.TokenOut.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(swapPath.TokenOut.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 				},

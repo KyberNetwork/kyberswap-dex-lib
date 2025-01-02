@@ -132,8 +132,8 @@ func (u *PoolsListUpdater) GetNewPoolsFromDataSource(ctx context.Context, dataSo
 	for i := range result.Data.PoolData {
 		result.Data.PoolData[i].Address = strings.ToLower(result.Data.PoolData[i].Address)
 		for j := range result.Data.PoolData[i].Coins {
-			if strings.EqualFold(result.Data.PoolData[i].Coins[j].Address, valueobject.EtherAddress) {
-				result.Data.PoolData[i].Coins[j].Address = strings.ToLower(valueobject.WETHByChainID[u.config.ChainID])
+			if strings.EqualFold(result.Data.PoolData[i].Coins[j].Address, valueobject.NativeAddress) {
+				result.Data.PoolData[i].Coins[j].Address = strings.ToLower(valueobject.WrappedNativeMap[u.config.ChainID])
 				result.Data.PoolData[i].Coins[j].IsOrgNative = true
 			}
 		}
