@@ -26,6 +26,7 @@ const (
 	methodGetFeeConfigOtz        = "feeConfigOtz"
 	methodGetTimepoints          = "timepoints"
 	methodGetTickSpacing         = "tickSpacing"
+	methodGetTicks               = "ticks"
 	erc20MethodBalanceOf         = "balanceOf"
 
 	maxSwapLoop         = 1000000
