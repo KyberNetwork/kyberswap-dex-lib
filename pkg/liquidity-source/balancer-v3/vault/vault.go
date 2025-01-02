@@ -51,8 +51,7 @@ func (v *Vault) Swap(
 	vaultSwapParams shared.VaultSwapParams,
 	onSwap func(param shared.PoolSwapParams) (*uint256.Int, error),
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams.Kind, vaultSwapParams.AmountGivenRaw,
-		v.decimalScalingFactors[vaultSwapParams.IndexOut], v.tokenRates[vaultSwapParams.IndexOut])
+	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams.Kind, vaultSwapParams.IndexOut, vaultSwapParams.AmountGivenRaw)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -75,12 +74,10 @@ func (v *Vault) Swap(
 	}
 
 	if v.hooksConfig.ShouldCallComputeDynamicSwapFee {
-		swapFeePercentage, err := v.callComputeDynamicSwapFeeHook(poolSwapParams)
+		poolSwapParams.SwapFeePercentage, err = v.callComputeDynamicSwapFeeHook(poolSwapParams)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-
-		poolSwapParams.SwapFeePercentage = swapFeePercentage
 	}
 
 	var totalSwapFeeAmountScaled18 *uint256.Int
@@ -140,8 +137,7 @@ func (v *Vault) Swap(
 		}
 	}
 
-	totalSwapFee, aggregateFee, err := v.ComputeAggregateSwapFees(totalSwapFeeAmountScaled18, v.aggregateSwapFeePercentage,
-		v.decimalScalingFactors[poolSwapParams.IndexIn], v.tokenRates[poolSwapParams.IndexIn])
+	totalSwapFee, aggregateFee, err := v.ComputeAggregateSwapFees(poolSwapParams.IndexIn, totalSwapFeeAmountScaled18, v.aggregateSwapFeePercentage)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -157,20 +153,18 @@ func (v *Vault) Swap(
 	return amountCalculated, totalSwapFee, aggregateFee, nil
 }
 
-func (v *Vault) ComputeAmountGivenScaled18(kind shared.SwapKind, amountGiven, decimalScalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
+func (v *Vault) ComputeAmountGivenScaled18(kind shared.SwapKind, index int, amountGiven *uint256.Int) (*uint256.Int, error) {
 	if kind == shared.EXACT_IN {
-		return toScaled18ApplyRateRoundDown(amountGiven, decimalScalingFactor, tokenRate)
+		return toScaled18ApplyRateRoundDown(amountGiven, v.decimalScalingFactors[index], v.tokenRates[index])
 	}
 
-	return toScaled18ApplyRateRoundUp(amountGiven, decimalScalingFactor, computeRateRoundUp(tokenRate))
+	return toScaled18ApplyRateRoundUp(amountGiven, v.decimalScalingFactors[index], computeRateRoundUp(v.tokenRates[index]))
 }
 
-func (v *Vault) ComputeAggregateSwapFees(
-	totalSwapFeeAmountScaled18, aggregateSwapFeePercentage,
-	decimalScalingFactor, tokenRate *uint256.Int,
+func (v *Vault) ComputeAggregateSwapFees(index int, totalSwapFeeAmountScaled18, aggregateSwapFeePercentage *uint256.Int,
 ) (totalSwapFeeAmountRaw, aggregateSwapFeeAmountRaw *uint256.Int, err error) {
 	if totalSwapFeeAmountScaled18.Sign() > 0 {
-		totalSwapFeeAmountRaw, err = toRawUndoRateRoundDown(totalSwapFeeAmountScaled18, decimalScalingFactor, tokenRate)
+		totalSwapFeeAmountRaw, err = toRawUndoRateRoundDown(totalSwapFeeAmountScaled18, v.decimalScalingFactors[index], v.tokenRates[index])
 		if err != nil {
 			return nil, nil, err
 		}
