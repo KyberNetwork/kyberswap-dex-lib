@@ -22,14 +22,14 @@ func toScaled18ApplyRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int)
 }
 
 func computeRateRoundUp(rate *uint256.Int) *uint256.Int {
-	div := new(uint256.Int).Div(rate, math.ONE_E18)
-	div.Mul(div, math.ONE_E18)
+	divisor := new(uint256.Int).Div(rate, math.ONE_E18)
+	divisor.Mul(divisor, math.ONE_E18)
 
-	if div.Eq(rate) {
-		return new(uint256.Int).Set(rate)
+	if divisor.Eq(rate) {
+		return divisor.Set(rate)
 	}
 
-	return new(uint256.Int).Add(rate, math.ONE)
+	return divisor.Add(rate, math.ONE)
 }
 
 func toRawUndoRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {

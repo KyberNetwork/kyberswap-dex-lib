@@ -27,12 +27,12 @@ func TestStableMath_ComputeInvariant(t *testing.T) {
 		},
 		{
 			name: "Imbalanced 2 token pool",
-			amp:  uint256.NewInt(1000000),
+			amp:  uint256.NewInt(200000),
 			balances: []*uint256.Int{
-				uint256.MustFromDecimal("150946570888469782860"),
-				uint256.MustFromDecimal("249100103697704706751"),
+				uint256.MustFromDecimal("340867122491122140643"),
+				uint256.MustFromDecimal("384610409069784884043"),
 			},
-			expectedInvariant: uint256.MustFromDecimal("400033876069185101475"),
+			expectedInvariant: uint256.MustFromDecimal("725470946757739599230"),
 			expectedErr:       nil,
 		},
 		{
@@ -96,14 +96,14 @@ func TestStableMath_ComputeBalance(t *testing.T) {
 		},
 		{
 			name: "Imbalanced 2 token pool",
-			amp:  uint256.NewInt(1000000),
+			amp:  uint256.NewInt(200000),
 			balances: []*uint256.Int{
-				uint256.MustFromDecimal("150946570888469782860"),
-				uint256.MustFromDecimal("249100103697704706751"),
+				uint256.MustFromDecimal("340867122491122140643"),
+				uint256.MustFromDecimal("384610409069784884043"),
 			},
-			invariant:       uint256.MustFromDecimal("400033876069185101476"),
+			invariant:       uint256.MustFromDecimal("725470946757739599230"),
 			tokenIndex:      1,
-			expectedBalance: uint256.MustFromDecimal("249100103697704706752"),
+			expectedBalance: uint256.MustFromDecimal("384610409069784884044"),
 			expectedErr:     nil,
 		},
 	}
