@@ -43,7 +43,7 @@ func TestPoolListUpdater(t *testing.T) {
 		config = ambient.Config{
 			DexID:                    "ambient",
 			SubgraphAPI:              "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
-			SubgraphRequestTimeout:   durationjson.Duration{Duration: time.Second * 10},
+			SubgraphTimeout:          durationjson.Duration{Duration: time.Second * 10},
 			SubgraphLimit:            10,
 			PoolIdx:                  big.NewInt(420),
 			NativeTokenAddress:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -54,7 +54,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 		graphqlClientCfg = &graphqlpkg.Config{
 			Url:     config.SubgraphAPI,
-			Timeout: config.SubgraphRequestTimeout.Duration,
+			Timeout: config.SubgraphTimeout.Duration,
 		}
 		graphqlClient = graphqlpkg.NewGraphQLClient(*graphqlClientCfg)
 	)
