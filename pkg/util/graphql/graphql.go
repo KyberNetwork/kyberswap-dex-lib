@@ -117,9 +117,10 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	metadata := &Metadata{
-		RespHeader: res.Header,
-		StatusCode: res.StatusCode,
+	metadata := &Metadata{}
+	if res != nil {
+		metadata.RespHeader = res.Header
+		metadata.StatusCode = res.StatusCode
 	}
 	if err != nil {
 		return err, nil
@@ -193,9 +194,10 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	metadata := &Metadata{
-		RespHeader: res.Header,
-		StatusCode: res.StatusCode,
+	metadata := &Metadata{}
+	if res != nil {
+		metadata.RespHeader = res.Header
+		metadata.StatusCode = res.StatusCode
 	}
 	if err != nil {
 		return err, nil
