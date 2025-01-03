@@ -1,10 +1,10 @@
 package graphql
 
 import (
+	httppkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/http"
+	"github.com/machinebox/graphql"
 	"net/http"
 	"time"
-
-	"github.com/machinebox/graphql"
 )
 
 const (
@@ -47,4 +47,40 @@ func NewWithTimeout(url string, timeout time.Duration) *graphql.Client {
 		Url:     url,
 		Timeout: timeout,
 	})
+}
+
+func NewGraphQLClient(cfg Config, interceptors ...any) *Client {
+	if cfg.Timeout == 0 {
+		cfg.Timeout = DefaultGraphQLRequestTimeout
+	}
+
+	httpInterceptors, graphqlInterceptors := filterInterceptors(interceptors)
+
+	httpClient := &http.Client{
+		Timeout: cfg.Timeout,
+		Transport: &TransportWithDefaultHeaders{
+			Transport: http.DefaultTransport,
+			Headers:   cfg.Header,
+		},
+	}
+	httpClient.Transport = httppkg.ComposeInterceptor(httpClient.Transport, httpInterceptors...)
+
+	return NewClient(
+		cfg.Url,
+		WithHTTPClient(httpClient), WithRunInterceptors(graphqlInterceptors...),
+	)
+}
+
+func filterInterceptors(interceptors []interface{}) ([]httppkg.Interceptor, []Interceptor) {
+	httpInterceptors := make([]httppkg.Interceptor, 0)
+	graphqlInterceptors := make([]Interceptor, 0)
+	for _, interceptor := range interceptors {
+		switch i := interceptor.(type) {
+		case httppkg.Interceptor:
+			httpInterceptors = append(httpInterceptors, i)
+		case Interceptor:
+			graphqlInterceptors = append(graphqlInterceptors, i)
+		}
+	}
+	return httpInterceptors, graphqlInterceptors
 }

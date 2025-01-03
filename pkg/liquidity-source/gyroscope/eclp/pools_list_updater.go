@@ -2,6 +2,8 @@ package gyroeclp
 
 import (
 	"context"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"strings"
 	"time"
 
@@ -18,21 +20,27 @@ type PoolsListUpdater struct {
 	config        Config
 	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
+	graphqlClient *graphqlpkg.Client
 }
 
-func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(
+	config *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolType},
-	})
+	}, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,
 		ethrpcClient:  ethrpcClient,
 		sharedUpdater: sharedUpdater,
+		graphqlClient: graphqlClient,
 	}
 }
 

@@ -2,7 +2,6 @@ package liquiditybookv20
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
@@ -23,8 +22,7 @@ const (
 const (
 	defaultTokenWeight = 50
 
-	graphQLRequestTimeout = 20 * time.Second
-	graphFirstLimit       = 1000
+	graphFirstLimit = 1000
 
 	basisPointMax = 10000
 

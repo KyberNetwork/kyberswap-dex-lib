@@ -2,15 +2,13 @@ package maverickv1
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
-	DexTypeMaverickV1     = "maverick-v1"
-	graphQLRequestTimeout = 20 * time.Second
-	defaultChunk          = 200
+	DexTypeMaverickV1 = "maverick-v1"
+	defaultChunk      = 200
 
 	poolMethodFee         = "fee"
 	poolMethodGetState    = "getState"

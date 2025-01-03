@@ -3,37 +3,32 @@ package elastic
 import (
 	"context"
 	"fmt"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -174,7 +169,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(
+		req := graphqlpkg.NewRequest(
 			fmt.Sprintf(`{
 				pool(id: "%v") {
 					id
@@ -193,7 +188,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			logger.Errorf("failed to query subgraph for pool: %v, err: %v", poolAddress, err)
 			return nil, err
 		}

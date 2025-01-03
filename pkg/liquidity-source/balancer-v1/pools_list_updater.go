@@ -3,23 +3,21 @@ package balancerv1
 import (
 	"context"
 	"fmt"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 )
 
 type (
 	PoolsListUpdater struct {
 		config        *Config
 		ethrpcClient  *ethrpc.Client
-		graphqlClient *graphql.Client
+		graphqlClient *graphqlpkg.Client
 	}
 
 	PoolsListUpdaterMetadata struct {
@@ -40,15 +38,12 @@ type (
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:       cfg,
-		ethrpcClient: ethrpcClient,
-		graphqlClient: graphqlpkg.New(graphqlpkg.Config{
-			Url:     cfg.SubgraphURL,
-			Header:  cfg.SubgraphHeaders,
-			Timeout: cfg.SubgraphRequestTimeout.Duration,
-		}),
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
@@ -147,11 +142,11 @@ func (u *PoolsListUpdater) initPools(_ context.Context, subgraphPools []FetchPoo
 
 func (u *PoolsListUpdater) fetchPoolsFromSubgraph(ctx context.Context, lastCreateTime int) ([]FetchPoolsResponsePool, error) {
 	var (
-		req  = graphql.NewRequest(newFetchPoolIDsQuery(lastCreateTime, u.config.NewPoolLimit))
+		req  = graphqlpkg.NewRequest(newFetchPoolIDsQuery(lastCreateTime, u.config.NewPoolLimit))
 		resp FetchPoolsResponse
 	)
 
-	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
+	if err, _ := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 

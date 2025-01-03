@@ -2,7 +2,6 @@ package balancercomposablestable
 
 import (
 	"math/big"
-	"time"
 )
 
 type PoolType string
@@ -14,7 +13,6 @@ const (
 
 	subgraphPoolTypeComposableStable PoolType = "ComposableStable"
 	DexTypeBalancerComposableStable  DexType  = "balancer-composable-stable"
-	graphQLRequestTimeout                     = 20 * time.Second
 
 	emptyString         = ""
 	zeroString          = "0"

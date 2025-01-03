@@ -2,6 +2,8 @@ package liquiditybookv20
 
 import (
 	"context"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"sort"
 	"strconv"
@@ -11,30 +13,26 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
 	cfg           *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
-func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolTracker(
+	cfg *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) (*PoolTracker, error) {
 	return &PoolTracker{
 		cfg:           cfg,
 		ethrpcClient:  ethrpcClient,
@@ -205,7 +203,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		// query
 		var (
 			query = buildQueryGetBins(p.Address, binIDGT)
-			req   = graphql.NewRequest(query)
+			req   = graphqlpkg.NewRequest(query)
 
 			resp struct {
 				Pair *lbpairSubgraphResp       `json:"lbpair"`
@@ -213,7 +211,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 			}
 		)
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if !d.cfg.AllowSubgraphError {
 				logger.WithFields(logger.Fields{
 					"poolAddress":        p.Address,

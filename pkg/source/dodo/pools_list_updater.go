@@ -4,31 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"strconv"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        *Config
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: defaultGraphQLRequestTimeout,
-	})
-
 	return &PoolsListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
@@ -216,7 +210,7 @@ func (d *PoolsListUpdater) getPoolsList(
 	lastCreateTime *big.Int,
 ) ([]SubgraphPool, error) {
 	// 'CLASSICAL', 'DVM', 'DSP', 'DPP' pools
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pairs(
 				first: %v, 
 				skip: %v, 
@@ -261,7 +255,7 @@ func (d *PoolsListUpdater) getPoolsList(
 	var response struct {
 		Pairs []SubgraphPool `json:"pairs"`
 	}
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err, _ := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.Errorf("failed to query subgraph, err %v", err)
 		return nil, err
 	}

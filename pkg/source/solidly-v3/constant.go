@@ -2,18 +2,16 @@ package solidlyv3
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
-	DexTypeSolidlyV3      = "solidly-v3"
-	graphSkipLimit        = 5000
-	graphFirstLimit       = 1000
-	defaultTokenDecimals  = 18
-	defaultTokenWeight    = 50
-	zeroString            = "0"
-	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
+	DexTypeSolidlyV3     = "solidly-v3"
+	graphSkipLimit       = 5000
+	graphFirstLimit      = 1000
+	defaultTokenDecimals = 18
+	defaultTokenWeight   = 50
+	zeroString           = "0"
+	emptyString          = ""
 )
 
 const (

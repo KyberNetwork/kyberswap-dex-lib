@@ -2,20 +2,18 @@ package shared
 
 import (
 	"context"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+
 	"math/big"
 	"net/http"
-	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
-
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type (
 	PoolsListUpdater struct {
 		config        *Config
-		graphqlClient *graphql.Client
+		graphqlClient *graphqlpkg.Client
 	}
 
 	Config struct {
@@ -31,15 +29,10 @@ type (
 	}
 )
 
-const graphQLRequestTimeout = 20 * time.Second
-
-func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     config.SubgraphAPI,
-		Header:  config.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolsListUpdater(
+	config *Config,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:        config,
 		graphqlClient: graphqlClient,
@@ -87,9 +80,9 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 		u.config.NewPoolLimit,
 		0,
 	)
-	req := graphql.NewRequest(query)
+	req := graphqlpkg.NewRequest(query)
 
-	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err, _ := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		return nil, nil, err
 	}
 
