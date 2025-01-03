@@ -31,3 +31,22 @@ func TenPowDecimals(decimal uint8) *big.Float {
 func TenPowInt(decimal uint8) *uint256.Int {
 	return new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(decimal)))
 }
+
+func NewUint256(s string) (res *uint256.Int, err error) {
+	res = new(uint256.Int)
+	err = res.SetFromDecimal(s)
+	return
+}
+
+// Min returns the smaller of a or b.
+func Min(a, b *uint256.Int) *uint256.Int {
+	if a == nil || b == nil {
+		return nil
+	}
+
+	if a.Cmp(b) < 0 {
+		return a
+	}
+
+	return b
+}
