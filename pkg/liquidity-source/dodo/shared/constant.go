@@ -1,7 +1,5 @@
 package shared
 
-import "time"
-
 const (
 	// SubgraphPoolType DodoV1
 	SubgraphPoolTypeDodoClassical = "CLASSICAL"
@@ -10,9 +8,8 @@ const (
 	SubgraphPoolTypeDodoStable         = "DSP"
 	SubgraphPoolTypeDodoPrivate        = "DPP"
 
-	defaultTokenWeight           = 50
-	defaultGraphQLRequestTimeout = 20 * time.Second
-	defaultTokenDecimals         = 18
+	defaultTokenWeight   = 50
+	defaultTokenDecimals = 18
 
 	zeroString = "0"
 

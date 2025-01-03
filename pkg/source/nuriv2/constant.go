@@ -2,18 +2,16 @@ package nuriv2
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
-	DexType               = "nuri-v2"
-	graphSkipLimit        = 5000
-	graphFirstLimit       = 1000
-	defaultTokenDecimals  = 18
-	defaultTokenWeight    = 50
-	zeroString            = "0"
-	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
+	DexType              = "nuri-v2"
+	graphSkipLimit       = 5000
+	graphFirstLimit      = 1000
+	defaultTokenDecimals = 18
+	defaultTokenWeight   = 50
+	zeroString           = "0"
+	emptyString          = ""
 )
 
 const (

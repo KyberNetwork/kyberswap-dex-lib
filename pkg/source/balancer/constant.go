@@ -2,7 +2,6 @@ package balancer
 
 import (
 	"math/big"
-	"time"
 )
 
 type PoolType string
@@ -18,8 +17,6 @@ const (
 	DexTypeBalancerWeighted    DexType  = "balancer-weighted"
 	DexTypeBalancerStable      DexType  = "balancer-stable"
 	DexTypeBalancerMetaStable  DexType  = "balancer-meta-stable"
-
-	graphQLRequestTimeout = 20 * time.Second
 
 	emptyString         = ""
 	zeroString          = "0"
