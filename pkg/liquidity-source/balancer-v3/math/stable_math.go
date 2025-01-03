@@ -2,7 +2,6 @@ package math
 
 import (
 	"errors"
-	"sync"
 
 	"github.com/holiman/uint256"
 )
@@ -16,9 +15,7 @@ var (
 
 var StableMath *stableMath
 
-type stableMath struct {
-	mu sync.RWMutex
-}
+type stableMath struct{}
 
 func init() {
 	StableMath = &stableMath{}
@@ -42,20 +39,17 @@ func (s *stableMath) ComputeOutGivenExactIn(
 	  // P = product of final balances but y                                                                       //
 	  **************************************************************************************************************/
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// because balances will be overwritten during calculations, to avoid using locks we will make a copy for
+	// safety calculations across goroutines
+	var _balances = make([]*uint256.Int, len(balances))
+	copy(_balances, balances)
 
-	balances[tokenIndexIn], err = FixPoint.Add(balances[tokenIndexIn], tokenAmountIn)
+	_balances[tokenIndexIn], err = FixPoint.Add(balances[tokenIndexIn], tokenAmountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	finalBalanceOut, err := s.ComputeBalance(amplificationParameter, balances, invariant, tokenIndexOut)
-	if err != nil {
-		return nil, err
-	}
-
-	balances[tokenIndexIn], err = FixPoint.Sub(balances[tokenIndexIn], tokenAmountIn)
+	finalBalanceOut, err := s.ComputeBalance(amplificationParameter, _balances, invariant, tokenIndexOut)
 	if err != nil {
 		return nil, err
 	}
@@ -88,20 +82,17 @@ func (s *stableMath) ComputeInGivenExactOut(
 	  // P = product of final balances but x                                                                       //
 	  **************************************************************************************************************/
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// because balances will be overwritten during calculations, to avoid using locks we will make a copy for
+	// safety calculations across goroutines
+	var _balances = make([]*uint256.Int, len(balances))
+	copy(_balances, balances)
 
-	balances[tokenIndexOut], err = FixPoint.Sub(balances[tokenIndexOut], tokenAmountOut)
+	_balances[tokenIndexOut], err = FixPoint.Sub(balances[tokenIndexOut], tokenAmountOut)
 	if err != nil {
 		return nil, err
 	}
 
-	finalBalanceIn, err := s.ComputeBalance(amplificationParameter, balances, invariant, tokenIndexIn)
-	if err != nil {
-		return nil, err
-	}
-
-	balances[tokenIndexOut], err = FixPoint.Add(balances[tokenIndexOut], tokenAmountOut)
+	finalBalanceIn, err := s.ComputeBalance(amplificationParameter, _balances, invariant, tokenIndexIn)
 	if err != nil {
 		return nil, err
 	}
@@ -219,11 +210,9 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 	numTokens := uint256.NewInt(uint64(len(balances)))
 	sum := uint256.NewInt(0)
 
-	s.mu.RLock()
 	for i := range balances {
 		sum.Add(sum, balances[i])
 	}
-	s.mu.RUnlock()
 
 	if sum.IsZero() {
 		return sum, nil
@@ -245,14 +234,12 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 		// D_P = D^(n+1)/(n^n * P)
 		D_P.Set(invariant)
 
-		s.mu.RLock()
 		for _, balance := range balances {
 			// D_P = D_P * D / (x_i * n)
 			tmp.Mul(balance, numTokens)
 			D_P.Mul(D_P, invariant)
 			D_P.Div(D_P, tmp)
 		}
-		s.mu.RUnlock()
 
 		// (A * n * S / AP + D_P * n) * D
 		numer.Mul(ampTimesN, sum)
