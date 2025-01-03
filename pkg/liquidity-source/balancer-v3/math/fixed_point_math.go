@@ -3,6 +3,7 @@ package math
 import (
 	"errors"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
 
@@ -28,69 +29,33 @@ func init() {
 }
 
 func (f *fixPoint) MulDivUp(a, b, c *uint256.Int) (*uint256.Int, error) {
-	if c.IsZero() {
-		return nil, ErrZeroDivision
-	}
-
-	product, err := f.Mul(a, b)
-	if err != nil {
-		return nil, err
-	}
-
-	// result = a == 0 ? 0 : (a * b - 1) / c + 1
-	if product.IsZero() {
-		return ZERO, nil
-	}
-
-	product.Sub(product, ONE)
-	product.Div(product, c)
-	product.Add(product, ONE)
-
-	return product, nil
+	return v3Utils.MulDivRoundingUp(a, b, c)
 }
 
 func (f *fixPoint) MulUp(a, b *uint256.Int) (*uint256.Int, error) {
-	product, err := f.Mul(a, b)
-	if err != nil {
-		return nil, ErrMulOverflow
-	}
-
-	// result = product == 0 ? 0 : ((product - 1) / FixedPoint.ONE) + 1
-	if product.IsZero() {
-		return ZERO, nil
-	}
-
-	product.Sub(product, ONE)
-	product.Div(product, ONE_E18)
-	product.Add(product, ONE)
-
-	return product, nil
+	return v3Utils.MulDivRoundingUp(a, b, ONE_E18)
 }
 
 func (f *fixPoint) MulDown(a, b *uint256.Int) (*uint256.Int, error) {
-	product, err := f.Mul(a, b)
-	if err != nil {
+	res, overflow := new(uint256.Int).MulDivOverflow(a, b, ONE_E18)
+	if overflow {
 		return nil, ErrMulOverflow
 	}
 
-	return product.Div(product, ONE_E18), nil
+	return res, nil
 }
 
 func (f *fixPoint) DivUp(a, b *uint256.Int) (*uint256.Int, error) {
-	return f.MulDivUp(a, ONE_E18, b)
+	return v3Utils.MulDivRoundingUp(a, ONE_E18, b)
 }
 
 func (f *fixPoint) DivDown(a, b *uint256.Int) (*uint256.Int, error) {
-	if b.IsZero() {
-		return nil, ErrZeroDivision
+	res, overflow := new(uint256.Int).MulDivOverflow(a, ONE_E18, b)
+	if overflow {
+		return nil, ErrMulOverflow
 	}
 
-	aInflated, err := f.Mul(a, ONE_E18)
-	if err != nil {
-		return nil, err
-	}
-
-	return aInflated.Div(aInflated, b), nil
+	return res, nil
 }
 
 func (f *fixPoint) DivRawUp(a, b *uint256.Int) (*uint256.Int, error) {
