@@ -28,6 +28,7 @@ var (
 	BasisPoint = big.NewInt(10000)
 
 	MAX_UINT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 128), One)
+	MAX_UINT_256 = new(big.Int).Sub(new(big.Int).Lsh(One, 256), One)
 )
 
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)
