@@ -2,7 +2,6 @@ package liquiditybookv21
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
@@ -26,8 +25,7 @@ const (
 const (
 	defaultTokenWeight = 50
 
-	graphQLRequestTimeout = 20 * time.Second
-	graphFirstLimit       = 1000
+	graphFirstLimit = 1000
 
 	// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/Constants.sol#L20
 	basisPointMax = 10000

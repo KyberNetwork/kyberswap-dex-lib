@@ -6,7 +6,6 @@ import (
 
 	"math/big"
 	"net/http"
-	"time"
 
 	"github.com/goccy/go-json"
 )
@@ -30,8 +29,6 @@ type (
 		LastCreateTime *big.Int `json:"lastCreateTime"`
 	}
 )
-
-const graphQLRequestTimeout = 20 * time.Second
 
 func NewPoolsListUpdater(
 	config *Config,

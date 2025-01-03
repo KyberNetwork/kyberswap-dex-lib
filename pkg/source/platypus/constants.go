@@ -2,7 +2,6 @@ package platypus
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -24,8 +23,6 @@ const (
 
 	addressZero       = "0x0000000000000000000000000000000000000000"
 	addressStakedAvax = "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be"
-
-	graphQLRequestTimeout = 20 * time.Second
 )
 
 const (
