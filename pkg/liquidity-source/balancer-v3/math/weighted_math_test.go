@@ -38,6 +38,7 @@ func TestWeightedMath_ComputeOutGivenExactIn(t *testing.T) {
 			expectedAmount: nil,
 			expectedErr:    ErrMaxInRatio,
 		},
+
 		{
 			name:           "Zero amountIn",
 			balanceIn:      uint256.NewInt(1000),

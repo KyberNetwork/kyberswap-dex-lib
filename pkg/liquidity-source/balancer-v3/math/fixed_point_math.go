@@ -46,10 +46,18 @@ func (f *fixPoint) MulDown(a, b *uint256.Int) (*uint256.Int, error) {
 }
 
 func (f *fixPoint) DivUp(a, b *uint256.Int) (*uint256.Int, error) {
+	if b.IsZero() {
+		return nil, ErrZeroDivision
+	}
+
 	return v3Utils.MulDivRoundingUp(a, ONE_E18, b)
 }
 
 func (f *fixPoint) DivDown(a, b *uint256.Int) (*uint256.Int, error) {
+	if b.IsZero() {
+		return nil, ErrZeroDivision
+	}
+
 	res, overflow := new(uint256.Int).MulDivOverflow(a, ONE_E18, b)
 	if overflow {
 		return nil, ErrMulOverflow
