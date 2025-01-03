@@ -483,9 +483,17 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 		} else {
 			// use buy price for token out
 			amountOutUsdResult, _ = business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].getBuyPrice()).Float64()
+			// Handle case where 2 consecutive points have a big diffrentiate prices impact, we have to generate 2 extra points between them
+			// example: if At data point 10^1, P1 = 40%; At data point 10^2 P2 = 90%, then delta price impact = 50%, then we have to generate more extra point 20 and 50
+			priceImpact := (amountInUsd - amountOutUsdResult) / amountInUsd
+			if i > 0 && i < MAX_EXPONENT_GENERATE_EXTRA_POINT && math.Abs(priceImpact-lastTradeData.PriceImpact) > PRICE_IMPACT_THRESHOLD {
+				extraPoints := gen.generateExtraDataPointsTradeData(ctx, tokenIn, tokenOut, tokens, prices, pool, limit, calcAmountOutInstance.CalcAmountOut, i-1)
+				result = append(result, extraPoints...)
+			}
 			lastTradeData = TradeData{
 				TokenIn:      tokenIn,
 				TokenOut:     tokenOut,
+				PriceImpact:  priceImpact,
 				AmountInUsd:  amountInUsd,
 				AmountOutUsd: amountOutUsdResult,
 				Pool:         pool.GetAddress(),
@@ -509,6 +517,53 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 			AmountOutUsd: amountOutUsdResult,
 			Pool:         pool.GetAddress(),
 			Err:          swapErrResult,
+			AmountIn:     amountIn.Text(10),
+			Dex:          pool.GetExchange(),
+		})
+	}
+
+	return result
+
+}
+
+func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Context,
+	tokenIn, tokenOut string,
+	tokens map[string]*entity.Token,
+	prices map[string]*price,
+	pool poolpkg.IPoolSimulator,
+	limit poolpkg.SwapLimit,
+	calcAmountFunc func(ctx context.Context, pool poolpkg.IPoolSimulator, tokenAmountIn poolpkg.TokenAmount, tokenOut string, limit poolpkg.SwapLimit) (*poolpkg.CalcAmountOutResult, error),
+	exponent int) []TradeData {
+	amountInList := make([]float64, 0, 2)
+	amountInList = append(amountInList, 2*math.Pow10(exponent))
+	amountInList = append(amountInList, 5*math.Pow10(exponent))
+	result := make([]TradeData, 0, 2)
+
+	for _, amountInUsd := range amountInList {
+		// use sell price for token in
+		amountIn := business.CalcAmountFromUSD(amountInUsd, tokens[tokenIn].Decimals, prices[tokenIn].getSellPrice())
+		amountOut, err := calcAmountFunc(ctx, pool, poolpkg.TokenAmount{
+			Token:     tokenIn,
+			Amount:    amountIn,
+			AmountUsd: amountInUsd,
+		}, tokenOut, limit)
+
+		if err != nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"struct": "TradeDataGenerator",
+					"method": "generateExtraDataPointsTradeData",
+				}).Errorf("error when calculate amount out %v poolAddress %v amountInUsd %f", err, pool.GetAddress(), amountInUsd)
+			continue
+		}
+
+		amountOutUsdResult, _ := business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].getBuyPrice()).Float64()
+		result = append(result, TradeData{
+			TokenIn:      tokenIn,
+			TokenOut:     tokenOut,
+			AmountInUsd:  amountInUsd,
+			AmountOutUsd: amountOutUsdResult,
+			Pool:         pool.GetAddress(),
 			AmountIn:     amountIn.Text(10),
 			Dex:          pool.GetExchange(),
 		})

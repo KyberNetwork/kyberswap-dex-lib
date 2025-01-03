@@ -48,6 +48,7 @@ func (t TradePair) String() string {
 type TradeData struct {
 	TokenIn      string  `json:"TokenIn"`
 	TokenOut     string  `json:"TokenOut"`
+	PriceImpact  float64 `json:"-"`
 	AmountInUsd  float64 `json:"AmountInUsd"`
 	AmountOutUsd float64 `json:"AmountOutUsd"`
 	Pool         string  `json:"Pool"`

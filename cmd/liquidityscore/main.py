@@ -91,7 +91,7 @@ def read_trade_data(filename, min_threshold_amount_out_percentage) -> list:
             if token not in pools[pool_addr]:
                 pools[pool_addr][token] = [
                     (trade['AmountInUsd'], trade['AmountOutUsd'], trade['TokenIn'], trade['TokenOut'])]
-                level_counter = round(math.log10(trade['AmountInUsd']))
+                level_counter = math.floor(math.log10(trade['AmountInUsd']))
             else:
                 price_impact = trade['AmountOutUsd'] / trade['AmountInUsd']
                 if not numpy.isclose(trade['AmountOutUsd'], pools[pool_addr][token][-1][1],

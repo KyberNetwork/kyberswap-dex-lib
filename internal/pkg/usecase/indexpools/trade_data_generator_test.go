@@ -78,13 +78,25 @@ func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
 				simulator.EXPECT().GetType().Return("uniswap").AnyTimes()
 				simulator.EXPECT().GetExchange().Return("pancake").AnyTimes()
 				simulator.EXPECT().GetAddress().Return("0xabc").AnyTimes()
-				simulator.EXPECT().CalcAmountOut(gomock.Any()).Return(
-					&poolpkg.CalcAmountOutResult{
+				output := map[float64]int64{
+					1:        1,
+					10:       9,
+					100:      99,
+					1000:     999,
+					10000:    999,
+					100000:   999,
+					1000000:  999,
+					10000000: 999,
+				}
+				simulator.EXPECT().CalcAmountOut(gomock.Any()).DoAndReturn(func(arg0 interface{}) (*poolpkg.CalcAmountOutResult, error) {
+					param := arg0.(poolpkg.CalcAmountOutParams)
+					return &poolpkg.CalcAmountOutResult{
 						TokenAmountOut: &poolpkg.TokenAmount{
-							Token:  "token2",
-							Amount: big.NewInt(100),
+							Token:  "token3",
+							Amount: big.NewInt(output[param.TokenAmountIn.AmountUsd]),
 						},
-					}, nil).Times(config.MaxDataPointNumber + 1)
+					}, nil
+				}).Times(config.MaxDataPointNumber + 1)
 
 				return simulator
 			},
@@ -93,49 +105,49 @@ func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  1,
-					AmountOutUsd: 200,
+					AmountOutUsd: 2,
 				},
 				10: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  10,
-					AmountOutUsd: 200,
+					AmountOutUsd: 18,
 				},
 				100: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  100,
-					AmountOutUsd: 200,
+					AmountOutUsd: 198,
 				},
 				1000: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  1000,
-					AmountOutUsd: 200,
+					AmountOutUsd: 1998,
 				},
 				10000: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  10000,
-					AmountOutUsd: 200,
+					AmountOutUsd: 1998,
 				},
 				100000: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  100000,
-					AmountOutUsd: 200,
+					AmountOutUsd: 1998,
 				},
 				1000000: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  1000000,
-					AmountOutUsd: 200,
+					AmountOutUsd: 1998,
 				},
 				10000000: {
 					TokenIn:      "token1",
 					TokenOut:     "token2",
 					AmountInUsd:  10000000,
-					AmountOutUsd: 200,
+					AmountOutUsd: 1998,
 				},
 			},
 		},
@@ -435,6 +447,120 @@ func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
 					AmountInUsd:  100000,
 					AmountOutUsd: 0,
 					Err:          fmt.Errorf("calcAmountOut error %v amountOut <nil>", ErrAmountOutNotValid),
+				},
+			},
+		},
+		{
+			name:     "it should generate extra points",
+			tokenIn:  "token1",
+			tokenOut: "token2",
+			prepare: func(ctrl *gomock.Controller, config TradeDataGeneratorConfig) poolpkg.IPoolSimulator {
+				simulator := poolMocks.NewMockIPoolSimulator(ctrl)
+				simulator.EXPECT().GetType().Return("uniswap").AnyTimes()
+				simulator.EXPECT().GetExchange().Return("pancake").AnyTimes()
+				simulator.EXPECT().GetAddress().Return("0xabc").AnyTimes()
+				prices["token2"] = &price{
+					buyPrice:  1,
+					sellPrice: 1,
+				}
+				output := map[float64]int64{
+					1:        1,
+					2:        2,
+					5:        4,
+					10:       16,
+					20:       16,
+					50:       40,
+					100:      100,
+					1000:     999,
+					10000:    999,
+					100000:   999,
+					1000000:  999,
+					10000000: 999,
+				}
+				simulator.EXPECT().CalcAmountOut(gomock.Any()).DoAndReturn(func(arg0 interface{}) (*poolpkg.CalcAmountOutResult, error) {
+					param := arg0.(poolpkg.CalcAmountOutParams)
+					return &poolpkg.CalcAmountOutResult{
+						TokenAmountOut: &poolpkg.TokenAmount{
+							Token:  "token2",
+							Amount: big.NewInt(output[param.TokenAmountIn.AmountUsd]),
+						},
+					}, nil
+				}).AnyTimes()
+
+				return simulator
+			},
+			expectedTradeData: map[float64]TradeData{
+				1: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  1,
+					AmountOutUsd: 1,
+				},
+				2: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  2,
+					AmountOutUsd: 2,
+				},
+				5: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  4,
+					AmountOutUsd: 4,
+				},
+				10: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  16,
+					AmountOutUsd: 16,
+				},
+				20: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  16,
+					AmountOutUsd: 16,
+				},
+				50: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  16,
+					AmountOutUsd: 40,
+				},
+				100: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  100,
+					AmountOutUsd: 100,
+				},
+				1000: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  1000,
+					AmountOutUsd: 999,
+				},
+				10000: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  10000,
+					AmountOutUsd: 999,
+				},
+				100000: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  100000,
+					AmountOutUsd: 999,
+				},
+				1000000: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  1000000,
+					AmountOutUsd: 999,
+				},
+				10000000: {
+					TokenIn:      "token1",
+					TokenOut:     "token2",
+					AmountInUsd:  10000000,
+					AmountOutUsd: 999,
 				},
 			},
 		},
