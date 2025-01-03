@@ -12,8 +12,8 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 )
 
 // const (
@@ -50,12 +50,12 @@ type PoolParams struct {
 }
 
 type PoolTracker struct {
-	config       *syncswap.Config
+	config       *syncswapv2.Config
 	ethrpcClient *ethrpc.Client
 }
 
 func NewPoolTracker(
-	config *syncswap.Config,
+	config *syncswapv2.Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolTracker {
 	return &PoolTracker{
@@ -91,10 +91,15 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 	feeManagerV2Address = common.HexToAddress(extra.FeeManagerAddress)
 
+	masterAddress := d.config.MasterAddress[0]
+	if extra.MasterAddress != "" {
+		masterAddress = extra.MasterAddress
+	}
+
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    masterABI,
-		Target: d.config.MasterAddress,
+		Target: masterAddress,
 		Method: poolMethodGetFeeManager,
 		Params: nil,
 	}, []interface{}{&feeManagerV2Address})
@@ -272,6 +277,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FutureGamma:               int64(poolParams.FutureGamma),
 			InitialTime:               int64(poolParams.InitialTime),
 			FeeManagerAddress:         feeManagerV2Address.Hex(),
+			MasterAddress:             masterAddress,
 		})
 
 	if err != nil {

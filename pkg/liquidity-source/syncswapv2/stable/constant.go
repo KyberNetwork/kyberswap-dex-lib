@@ -12,8 +12,6 @@ var (
 	reserveZero                             = "0"
 	addressZero                             = "0x0000000000000000000000000000000000000000"
 
-	poolMasterMethodPoolsLength         = "poolsLength"
-	poolMasterMethodPools               = "pools"
 	poolMethodPoolType                  = "poolType"
 	poolMethodGetAssets                 = "getAssets"
 	poolMethodGetSwapFee                = "getSwapFee"
