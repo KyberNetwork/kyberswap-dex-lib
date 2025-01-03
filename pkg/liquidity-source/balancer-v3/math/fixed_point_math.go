@@ -10,9 +10,8 @@ import (
 var (
 	ErrAddOverflow  = errors.New("ADD_OVERFLOW")
 	ErrSubOverflow  = errors.New("SUB_OVERFLOW")
-	ErrZeroDivision = errors.New("ZERO_DIVISION")
-	ErrDivInternal  = errors.New("DIV_INTERNAL")
 	ErrMulOverflow  = errors.New("MUL_OVERFLOW")
+	ErrZeroDivision = errors.New("ZERO_DIVISION")
 
 	ONE_E18                = uint256.NewInt(1e18) // 18 decimal places
 	TWO_E18                = new(uint256.Int).Mul(ONE_E18, TWO)
