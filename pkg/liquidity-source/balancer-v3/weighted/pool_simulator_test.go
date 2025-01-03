@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
@@ -49,8 +51,8 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
 
-		expectedAmountOut := "12278617355364789838"
-		expectedSwapFee := "2103630945830047"
+		expectedAmountOut := "14588365766046319212"
+		expectedSwapFee := "2500000000000000"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -99,8 +101,8 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
 
-		expectedAmountOut := "80912682117686948"
-		expectedSwapFee := "2971053459918506"
+		expectedAmountOut := "68085611533624911"
+		expectedSwapFee := "2500000000000000"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -190,7 +192,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(991000), // less than MINIMUM_TRADE_AMOUNT (1000000)
+			Amount: big.NewInt(1300000), // less than MINIMUM_TRADE_AMOUNT (1000000)
 		}
 		tokenOut := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
 
@@ -203,6 +205,44 @@ func TestCalcAmountOut(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, vault.ErrAmountOutTooSmall, err)
+	})
+
+	// Mock state from https://gnosisscan.io/tx/0x14579e3588ad7a76bfd850168baf41a581ed049c3a355a6c3c891cdccc2b0836
+	t.Run("5. should return OK", func(t *testing.T) {
+		poolStr := `{"address":"0x272d6be442e30d7c87390edeb9b96f1e84cecd8d","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1735816509,"reserves":["619469949959861143118","1841897390394044699179"],"tokens":[{"address":"0x773cda0cade2a3d86e6d4e30699d40bb95174ff2","weight":1,"swappable":true},{"address":"0x7c16f0185a26db0ae7a9377f23bc18ea7ce5d644","weight":1,"swappable":true}],"extra":"{\"hooksConfig\":{\"enableHookAdjustedAmounts\":false,\"shouldCallComputeDynamicSwapFee\":false,\"shouldCallBeforeSwap\":false,\"shouldCallAfterSwap\":false},\"staticSwapFeePercentage\":\"2500000000000000\",\"aggregateSwapFeePercentage\":\"100000000000000000\",\"normalizedWeights\":[\"500000000000000000\",\"500000000000000000\"],\"balancesLiveScaled18\":[\"718362766363614682950\",\"8898955182296732614690\"],\"decimalScalingFactors\":[\"1\",\"1\"],\"tokenRates\":[\"1189577407040530520\",\"1000892729180982664\"],\"isVaultPaused\":false,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false}","staticExtra":"{\"vault\":\"0xba1333333333a1ba1108e8412f11850a5c319ba9\",\"defaultHook\":\"\"}","blockNumber":21536418}`
+
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolStr), &pool)
+		assert.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+
+		amountIn, _ := new(big.Int).SetString("999108067073568238", 10)
+
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0x7c16f0185a26db0ae7a9377f23bc18ea7ce5d644",
+			Amount: amountIn,
+		}
+		tokenOut := "0x773cda0cade2a3d86e6d4e30699d40bb95174ff2"
+
+		// expected
+		expectedAmountOut := "67682487794870862"
+		expectedSwapFee := "2497770167683920"
+
+		// actual
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
 	})
 }
 
@@ -395,5 +435,42 @@ func TestCalcAmountIn(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Equal(t, vault.ErrAmountOutTooSmall, err)
+	})
+
+	t.Run("5. should return OK", func(t *testing.T) {
+		poolStr := `{"address":"0x272d6be442e30d7c87390edeb9b96f1e84cecd8d","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1735816509,"reserves":["619469949959861143118","1841897390394044699179"],"tokens":[{"address":"0x773cda0cade2a3d86e6d4e30699d40bb95174ff2","weight":1,"swappable":true},{"address":"0x7c16f0185a26db0ae7a9377f23bc18ea7ce5d644","weight":1,"swappable":true}],"extra":"{\"hooksConfig\":{\"enableHookAdjustedAmounts\":false,\"shouldCallComputeDynamicSwapFee\":false,\"shouldCallBeforeSwap\":false,\"shouldCallAfterSwap\":false},\"staticSwapFeePercentage\":\"2500000000000000\",\"aggregateSwapFeePercentage\":\"100000000000000000\",\"normalizedWeights\":[\"500000000000000000\",\"500000000000000000\"],\"balancesLiveScaled18\":[\"718362766363614682950\",\"8898955182296732614690\"],\"decimalScalingFactors\":[\"1\",\"1\"],\"tokenRates\":[\"1189577407040530520\",\"1000892729180982664\"],\"isVaultPaused\":false,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false}","staticExtra":"{\"vault\":\"0xba1333333333a1ba1108e8412f11850a5c319ba9\",\"defaultHook\":\"\"}","blockNumber":21536418}`
+
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolStr), &pool)
+		assert.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+
+		amountOut, _ := new(big.Int).SetString("67682487794870862", 10)
+
+		tokenAmountOut := poolpkg.TokenAmount{
+			Token:  "0x773cda0cade2a3d86e6d4e30699d40bb95174ff2",
+			Amount: amountOut,
+		}
+		tokenIn := "0x7c16f0185a26db0ae7a9377f23bc18ea7ce5d644"
+
+		// expected
+		expectedAmountIn := "999108067073574530"
+		expectedSwapFee := "2497770167683936"
+
+		// actual
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
+			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+				TokenAmountOut: tokenAmountOut,
+				TokenIn:        tokenIn,
+			})
+		})
+
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
+		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
 	})
 }

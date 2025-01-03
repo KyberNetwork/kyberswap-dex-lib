@@ -51,7 +51,7 @@ func (v *Vault) Swap(
 	vaultSwapParams shared.VaultSwapParams,
 	onSwap func(param shared.PoolSwapParams) (*uint256.Int, error),
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams.Kind, vaultSwapParams.IndexOut, vaultSwapParams.AmountGivenRaw)
+	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -153,12 +153,12 @@ func (v *Vault) Swap(
 	return amountCalculated, totalSwapFee, aggregateFee, nil
 }
 
-func (v *Vault) ComputeAmountGivenScaled18(kind shared.SwapKind, index int, amountGiven *uint256.Int) (*uint256.Int, error) {
-	if kind == shared.EXACT_IN {
-		return toScaled18ApplyRateRoundDown(amountGiven, v.decimalScalingFactors[index], v.tokenRates[index])
+func (v *Vault) ComputeAmountGivenScaled18(param shared.VaultSwapParams) (*uint256.Int, error) {
+	if param.Kind == shared.EXACT_IN {
+		return toScaled18ApplyRateRoundDown(param.AmountGivenRaw, v.decimalScalingFactors[param.IndexIn], v.tokenRates[param.IndexIn])
 	}
 
-	return toScaled18ApplyRateRoundUp(amountGiven, v.decimalScalingFactors[index], computeRateRoundUp(v.tokenRates[index]))
+	return toScaled18ApplyRateRoundUp(param.AmountGivenRaw, v.decimalScalingFactors[param.IndexOut], computeRateRoundUp(v.tokenRates[param.IndexOut]))
 }
 
 func (v *Vault) ComputeAggregateSwapFees(index int, totalSwapFeeAmountScaled18, aggregateSwapFeePercentage *uint256.Int,
