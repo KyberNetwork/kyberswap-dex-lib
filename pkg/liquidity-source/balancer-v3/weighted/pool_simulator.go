@@ -57,7 +57,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	// Need to detect the current hook type of pool
 	if staticExtra.DefaultHook != "" && !hooks.IsHookSupported(staticExtra.DefaultHook) {
-		logger.Warnf("[%s] defaultHook is not supported now for pool %s => fallback to BaseHook", DexType, entityPool.Address)
+		logger.Warnf(
+			"[%s] Pool Address: %s | Warning: defaultHook is not supported => falling back to BaseHook",
+			DexType,
+			entityPool.Address,
+		)
 	}
 
 	var hook hooks.IHook
