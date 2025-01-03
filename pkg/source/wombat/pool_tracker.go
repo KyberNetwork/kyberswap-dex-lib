@@ -19,23 +19,20 @@ import (
 )
 
 type PoolTracker struct {
-	config           *Config
-	ethrpcClient     *ethrpc.Client
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolTracker {
 	return &PoolTracker{
-		config:           cfg,
-		ethrpcClient:     ethrpcClient,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 

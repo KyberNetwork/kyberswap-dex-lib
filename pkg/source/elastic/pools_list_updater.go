@@ -3,6 +3,7 @@ package elastic
 import (
 	"context"
 	"fmt"
+
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"math/big"
@@ -16,20 +17,17 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config           *Config
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:           cfg,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        cfg,
+		graphqlClient: graphqlClient,
 	}
 }
 

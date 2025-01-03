@@ -3,6 +3,7 @@ package uniswapv3
 import (
 	"context"
 	"fmt"
+
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"math/big"
@@ -19,23 +20,20 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config           *Config
-	ethrpcClient     *ethrpc.Client
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:           cfg,
-		ethrpcClient:     ethrpcClient,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 

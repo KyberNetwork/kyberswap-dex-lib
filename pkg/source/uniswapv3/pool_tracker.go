@@ -3,6 +3,7 @@ package uniswapv3
 import (
 	"context"
 	"errors"
+
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"math/big"
@@ -21,17 +22,15 @@ import (
 )
 
 type PoolTracker struct {
-	config           *Config
-	ethrpcClient     *ethrpc.Client
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolTracker, error) {
 	initializedCfg, err := initializeConfig(cfg)
 	if err != nil {
@@ -39,10 +38,9 @@ func NewPoolTracker(
 	}
 
 	return &PoolTracker{
-		config:           initializedCfg,
-		ethrpcClient:     ethrpcClient,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        initializedCfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}, nil
 }
 

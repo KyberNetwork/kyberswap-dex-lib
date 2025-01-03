@@ -15,20 +15,17 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config           *Config
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:           cfg,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        cfg,
+		graphqlClient: graphqlClient,
 	}
 }
 

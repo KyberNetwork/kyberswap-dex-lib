@@ -20,9 +20,8 @@ type PoolsListUpdater struct {
 func NewPoolsListUpdater(
 	config *shared.Config,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient, graphqlClientCfg)
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,
