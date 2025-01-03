@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -12,6 +13,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -140,7 +142,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	totalMakingAmount := number.Set(number.Zero)
 
+	// calculate current time once so we don't have to re-calculate it for each order
+	currentTime := time.Now().Unix()
+
 	for i, order := range orders {
+		makerTraits := helper1inch.NewMakerTraits(order.MakerTraits)
+		// Filter out expired orders
+		// Note: This is different from pool-service, we don't have any buffer here because when we simulate the order, real-time is important
+		if makerTraits.IsExpired(currentTime) {
+			continue
+		}
+
 		orderRemainingMakingAmount := order.RemainingMakerAmount
 
 		// the actual available balance might be less than `order.RemainingMakerAmount`
