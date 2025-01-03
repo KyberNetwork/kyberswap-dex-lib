@@ -19,23 +19,20 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config           *Config
-	ethClient        *ethrpc.Client
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	config        *Config
+	ethClient     *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:           cfg,
-		ethClient:        ethClient,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        cfg,
+		ethClient:     ethClient,
+		graphqlClient: graphqlClient,
 	}
 }
 

@@ -3,11 +3,12 @@ package ambient_test
 import (
 	"context"
 	"fmt"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"math/big"
 	"os"
 	"testing"
 	"time"
+
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/ethereum/go-ethereum/common"
@@ -62,7 +63,7 @@ func TestPoolListUpdater(t *testing.T) {
 	{
 		t.Logf("first run with limit = 10")
 
-		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{}, graphqlClient, graphqlClientCfg)
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{}, graphqlClient)
 		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)
@@ -78,7 +79,7 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Logf("second run with metadata from first run and limit = 1000")
 
 		config.SubgraphLimit = 1000
-		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool}, graphqlClient, graphqlClientCfg)
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool}, graphqlClient)
 		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)

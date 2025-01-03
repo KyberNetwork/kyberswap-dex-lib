@@ -17,26 +17,23 @@ import (
 )
 
 type PoolListUpdater struct {
-	cfg              Config
-	poolDatastore    IPoolDatastore
-	graphqlClient    *graphqlpkg.Client
-	graphqlClientCfg *graphqlpkg.Config
+	cfg           Config
+	poolDatastore IPoolDatastore
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg Config,
 	poolDatastore IPoolDatastore,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) (*PoolListUpdater, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 	return &PoolListUpdater{
-		cfg:              cfg,
-		poolDatastore:    poolDatastore,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		cfg:           cfg,
+		poolDatastore: poolDatastore,
+		graphqlClient: graphqlClient,
 	}, nil
 }
 

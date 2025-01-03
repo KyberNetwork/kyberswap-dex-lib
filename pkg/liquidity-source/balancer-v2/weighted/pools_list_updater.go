@@ -32,7 +32,6 @@ func NewPoolsListUpdater(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
@@ -40,7 +39,7 @@ func NewPoolsListUpdater(
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolTypeWeighted},
-	}, graphqlClient, graphqlClientCfg)
+	}, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,

@@ -12,9 +12,8 @@ import (
 
 type (
 	PoolsListUpdater struct {
-		config           *Config
-		graphqlClient    *graphqlpkg.Client
-		graphqlClientCfg *graphqlpkg.Config
+		config        *Config
+		graphqlClient *graphqlpkg.Client
 	}
 
 	Config struct {
@@ -33,12 +32,10 @@ type (
 func NewPoolsListUpdater(
 	config *Config,
 	graphqlClient *graphqlpkg.Client,
-	graphqlClientCfg *graphqlpkg.Config,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:           config,
-		graphqlClient:    graphqlClient,
-		graphqlClientCfg: graphqlClientCfg,
+		config:        config,
+		graphqlClient: graphqlClient,
 	}
 }
 
