@@ -40,11 +40,11 @@ func (s *stableMath) ComputeOutGivenExactIn(
 	  **************************************************************************************************************/
 
 	// because balances will be overwritten during calculations, to avoid using locks we will make a copy for
-	// safety calculations across goroutines
+	// safety calculations across goroutines (due to this slice isn't large, just only a few elements per pool)
 	var _balances = make([]*uint256.Int, len(balances))
 	copy(_balances, balances)
 
-	_balances[tokenIndexIn], err = FixPoint.Add(balances[tokenIndexIn], tokenAmountIn)
+	_balances[tokenIndexIn], err = FixPoint.Add(_balances[tokenIndexIn], tokenAmountIn)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (s *stableMath) ComputeOutGivenExactIn(
 		return nil, err
 	}
 
-	amountOut, err = FixPoint.Sub(balances[tokenIndexOut], finalBalanceOut)
+	amountOut, err = FixPoint.Sub(_balances[tokenIndexOut], finalBalanceOut)
 	if err != nil {
 		return nil, err
 	}
@@ -83,11 +83,11 @@ func (s *stableMath) ComputeInGivenExactOut(
 	  **************************************************************************************************************/
 
 	// because balances will be overwritten during calculations, to avoid using locks we will make a copy for
-	// safety calculations across goroutines
+	// safety calculations across goroutines (due to this slice isn't large, just only a few elements per pool)
 	var _balances = make([]*uint256.Int, len(balances))
 	copy(_balances, balances)
 
-	_balances[tokenIndexOut], err = FixPoint.Sub(balances[tokenIndexOut], tokenAmountOut)
+	_balances[tokenIndexOut], err = FixPoint.Sub(_balances[tokenIndexOut], tokenAmountOut)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (s *stableMath) ComputeInGivenExactOut(
 		return nil, err
 	}
 
-	amountIn, err = FixPoint.Sub(finalBalanceIn, balances[tokenIndexIn])
+	amountIn, err = FixPoint.Sub(finalBalanceIn, _balances[tokenIndexIn])
 	if err != nil {
 		return nil, err
 	}
