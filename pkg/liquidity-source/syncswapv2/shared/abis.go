@@ -7,9 +7,7 @@ import (
 )
 
 var (
-	masterABI       abi.ABI
-	aquaPoolABI     abi.ABI
-	feeManagerV2ABI abi.ABI
+	masterABI abi.ABI
 )
 
 func init() {
