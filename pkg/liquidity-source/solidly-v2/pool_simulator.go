@@ -40,8 +40,9 @@ type (
 		decimals1    *uint256.Int
 		feePrecision *uint256.Int
 
-		isPaused bool
-		fee      *uint256.Int
+		isMemecoreDEX bool
+		isPaused      bool
+		fee           *uint256.Int
 
 		gas Gas
 	}
@@ -52,7 +53,7 @@ type (
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var staticExtra velodromev2.PoolStaticExtra
+	var staticExtra PoolStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
@@ -73,20 +74,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
-		stable:       staticExtra.Stable,
-		decimals0:    staticExtra.Decimal0,
-		decimals1:    staticExtra.Decimal1,
-		feePrecision: uint256.NewInt(staticExtra.FeePrecision),
+		stable:    staticExtra.Stable,
+		decimals0: staticExtra.Decimal0,
+		decimals1: staticExtra.Decimal1,
 
-		isPaused: extra.IsPaused,
-		fee:      uint256.NewInt(extra.Fee),
+		isPaused:      extra.IsPaused,
+		isMemecoreDEX: staticExtra.IsMemecoreDEX,
+
+		feePrecision: uint256.NewInt(staticExtra.FeePrecision),
+		fee:          uint256.NewInt(extra.Fee),
 
 		gas: defaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.isPaused {
+	if s.isPaused && !s.isMemecoreDEX {
 		return nil, ErrPoolIsPaused
 	}
 
@@ -114,7 +117,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 }
 
 func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
-	if s.isPaused {
+	if s.isPaused && !s.isMemecoreDEX {
 		return nil, ErrPoolIsPaused
 	}
 

@@ -7,3 +7,6 @@ var poolABIJson []byte
 
 //go:embed abis/Factory.json
 var factoryABIJson []byte
+
+//go:embed abis/Memecore.json
+var memecoreABIJson []byte
