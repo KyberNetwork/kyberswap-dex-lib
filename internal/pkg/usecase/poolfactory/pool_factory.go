@@ -536,7 +536,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVelodrome(entityPool)
 	case pooltypes.PoolTypes.Ramses, pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
 		return f.newVelodromeLegacy(entityPool)
-	case pooltypes.PoolTypes.VelodromeV2:
+	case pooltypes.PoolTypes.VelodromeV2, pooltypes.PoolTypes.SwapXV2:
 		return f.newVelodromeV2(entityPool)
 	case pooltypes.PoolTypes.Velocimeter:
 		return f.newVelocimeter(entityPool)
@@ -1160,6 +1160,7 @@ func (f *PoolFactory) newVelodromeLegacy(entityPool entity.Pool) (*velodromelega
 
 func (f *PoolFactory) newVelodromeV2(entityPool entity.Pool) (*velodromev2.PoolSimulator, error) {
 	corePool, err := velodromev2.NewPoolSimulator(entityPool)
+
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,

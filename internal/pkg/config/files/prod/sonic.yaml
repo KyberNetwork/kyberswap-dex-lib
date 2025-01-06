@@ -40,6 +40,7 @@ common:
     - "dyor-swap"
     - "beets-ss"
     - "woofi-v3"
+    - "swap-x-v2"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
