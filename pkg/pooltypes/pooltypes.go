@@ -58,6 +58,7 @@ import (
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
+	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
@@ -275,6 +276,7 @@ type Types struct {
 	LO1inch                        string
 	VirtualFun                     string
 	BeetsSS                        string
+	SwapXV2                        string
 }
 
 var (
@@ -420,5 +422,6 @@ var (
 		LO1inch:                        lo1inch.DexType,
 		VirtualFun:                     virtualfun.DexType,
 		BeetsSS:                        beetsss.DexType,
+		SwapXV2:                        swapxv2.DexType,
 	}
 )
