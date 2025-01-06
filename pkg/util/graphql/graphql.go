@@ -29,17 +29,14 @@ type Client struct {
 
 	chainInterceptor []ClientInterceptor
 
-	// Log is called with various debug information.
-	// To log to standard out, use:
-	//  client.Log = func(s string) { log.Println(s) }
-	Log func(s string)
+	Log func(format string, args ...interface{})
 }
 
 // NewClient makes a new Client capable of making GraphQL requests.
 func NewClient(endpoint string, opts ...ClientOption) *Client {
 	c := &Client{
 		endpoint: endpoint,
-		Log:      func(string) {},
+		Log:      func(format string, args ...interface{}) {},
 	}
 	for _, optionFunc := range opts {
 		optionFunc(c)
@@ -52,7 +49,7 @@ func NewClient(endpoint string, opts ...ClientOption) *Client {
 }
 
 func (c *Client) logf(format string, args ...interface{}) {
-	c.Log(fmt.Sprintf(format, args...))
+	c.Log(format, args...)
 }
 
 // Run executes the query and unmarshals the response from the data field
