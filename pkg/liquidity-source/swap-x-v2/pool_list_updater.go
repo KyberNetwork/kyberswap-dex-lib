@@ -1,4 +1,4 @@
-package solidlyv2
+package swapxv2
 
 import (
 	"context"
@@ -18,10 +18,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
-type PoolsListUpdater struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
-}
+type (
+	PoolsListUpdater struct {
+		config       *Config
+		ethrpcClient *ethrpc.Client
+	}
+
+	PoolsListUpdaterMetadata struct {
+		Offset int `json:"offset"`
+	}
+)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -118,6 +124,13 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (velodromev2.
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
+		Method: factoryMethodIsPaused,
+		Params: nil,
+	}, []interface{}{&pairFactoryData.IsPaused})
+
+	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
 	}, []interface{}{&pairFactoryData.AllPairsLength})
@@ -135,7 +148,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 		return 0, nil
 	}
 
-	var metadata velodromev2.PoolsListUpdaterMetadata
+	var metadata PoolsListUpdaterMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 		return 0, err
 	}
@@ -148,6 +161,7 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 	listPoolAddressesResult := make([]common.Address, batchSize)
 
 	listPoolAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+
 	for i := 0; i < batchSize; i++ {
 		index := big.NewInt(int64(offset + i))
 
@@ -189,7 +203,7 @@ func (u *PoolsListUpdater) initPools(
 
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 	for i, poolAddress := range poolAddresses {
-		fee := volatileFee
+		var fee = volatileFee
 		if metadataList[i].St {
 			fee = stableFee
 		}
@@ -241,12 +255,11 @@ func (u *PoolsListUpdater) initPools(
 func (u *PoolsListUpdater) listPoolData(
 	ctx context.Context,
 	poolAddresses []common.Address,
-) ([]PoolMetadata, *big.Int, *big.Int, *big.Int, error) {
+) ([]velodromev2.PoolMetadata, *big.Int, *big.Int, *big.Int, error) {
 	var (
-		stableFee    = ZERO
-		volatileFees = ZERO
+		stableFee, volatileFee *big.Int
 
-		poolMetadataList = make([]PoolMetadata, len(poolAddresses))
+		poolMetadataList = make([]velodromev2.PoolMetadata, len(poolAddresses))
 	)
 
 	listPoolMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -254,15 +267,15 @@ func (u *PoolsListUpdater) listPoolData(
 	listPoolMetadataRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodStableFees,
+		Method: factoryMethodStableFee,
 		Params: []interface{}{},
 	}, []interface{}{&stableFee})
 	listPoolMetadataRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodVolatileFees,
+		Method: factoryMethodVolatileFee,
 		Params: []interface{}{},
-	}, []interface{}{&volatileFees})
+	}, []interface{}{&volatileFee})
 
 	for i, poolAddress := range poolAddresses {
 		listPoolMetadataRequest.AddCall(&ethrpc.Call{
@@ -278,11 +291,11 @@ func (u *PoolsListUpdater) listPoolData(
 		return nil, nil, nil, nil, err
 	}
 
-	return poolMetadataList, stableFee, volatileFees, resp.BlockNumber, nil
+	return poolMetadataList, stableFee, volatileFee, resp.BlockNumber, nil
 }
 
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
-	metadata := velodromev2.PoolsListUpdaterMetadata{
+	metadata := PoolsListUpdaterMetadata{
 		Offset: newOffset,
 	}
 
@@ -303,7 +316,7 @@ func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error)
 	return json.Marshal(extra)
 }
 
-func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, error) {
+func (u *PoolsListUpdater) newStaticExtra(poolMetadata velodromev2.PoolMetadata) ([]byte, error) {
 	decimal0, overflow := uint256.FromBig(poolMetadata.Dec0)
 	if overflow {
 		return nil, errors.New("dec0 overflow")

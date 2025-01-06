@@ -1,14 +1,10 @@
 package maverickv1
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
 
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"

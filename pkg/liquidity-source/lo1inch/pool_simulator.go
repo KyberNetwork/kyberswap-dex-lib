@@ -4,14 +4,19 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
@@ -31,7 +36,7 @@ type (
 
 		// store min(balance, allowance) for all unique pairs of maker:makerAsset in this pool
 		// will be aggregated up by router-service to be a global value for all maker:makerAsset in LO
-		minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*big.Int
+		minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*uint256.Int
 
 		routerAddress string
 	}
@@ -46,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	var staticExtra StaticExtra
@@ -63,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	takeToken1OrdersMapping := make(map[string]int, len(extra.TakeToken1Orders))
 
 	numOrders := len(extra.TakeToken0Orders) + len(extra.TakeToken1Orders)
-	minBalanceAllowanceByMakerAndAsset := make(map[makerAndAsset]*big.Int, numOrders)
+	minBalanceAllowanceByMakerAndAsset := make(map[makerAndAsset]*uint256.Int, numOrders)
 
 	for i, takeToken0Order := range extra.TakeToken0Orders {
 		takeToken0OrdersMapping[takeToken0Order.OrderHash] = i
@@ -117,8 +122,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrNoOrderAvailable
 	}
 
-	totalAmountOut := integer.Zero()
-	remainingAmountIn := tokenAmountIn.Amount
+	totalAmountOut := number.Set(number.Zero)
+	remainingAmountIn := number.SetFromBig(tokenAmountIn.Amount)
 
 	swapInfo := SwapInfo{
 		AmountIn:     tokenAmountIn.Amount.String(),
@@ -133,11 +138,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// because in LO we have multiple makers, and also because we still need to allow orders that have part of the balance available
 	// the problem is that in this func we cannot update the limit,
 	// so we'll use this map to track filled amount for each maker, then subtract from the original balance, to have the remaining balance available
-	filledMakingAmountByMaker := make(map[string]*big.Int, len(p.minBalanceAllowanceByMakerAndAsset))
+	filledMakingAmountByMaker := make(map[string]*uint256.Int, len(p.minBalanceAllowanceByMakerAndAsset))
 
-	totalMakingAmount := new(big.Int)
+	totalMakingAmount := number.Set(number.Zero)
+
+	// calculate current time once so we don't have to re-calculate it for each order
+	currentTime := time.Now().Unix()
 
 	for i, order := range orders {
+		makerTraits := helper1inch.NewMakerTraits(order.MakerTraits)
+		// Filter out expired orders
+		// Note: This is different from pool-service, we don't have any buffer here because when we simulate the order, real-time is important
+		if makerTraits.IsExpired(currentTime) {
+			continue
+		}
+
 		orderRemainingMakingAmount := order.RemainingMakerAmount
 
 		// the actual available balance might be less than `order.RemainingMakerAmount`
@@ -158,7 +173,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		// calculate order's remaining taking amount
 		// orderRemainingTakingAmount = order.TakingAmount * orderRemainingMakingAmount / order.MakingAmount
-		orderRemainingTakingAmount := new(big.Int).Set(order.TakingAmount)
+		orderRemainingTakingAmount := number.Set(order.TakingAmount)
 		orderRemainingTakingAmount.Mul(orderRemainingTakingAmount, orderRemainingMakingAmount)
 		orderRemainingTakingAmount.Div(orderRemainingTakingAmount, order.MakingAmount)
 
@@ -166,12 +181,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		// Case 1: This order can fulfill the remaining amount in
 		if orderRemainingTakingAmount.Cmp(remainingAmountIn) >= 0 {
-			takerRateBF := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-			orderAmountOutBF := new(big.Float).Mul(
-				new(big.Float).SetInt(remainingAmountIn),
-				takerRateBF,
+			orderAmountOut, overflow := new(uint256.Int).MulDivOverflow(
+				remainingAmountIn,
+				order.MakingAmount,
+				order.TakingAmount,
 			)
-			orderAmountOut, _ := orderAmountOutBF.Int(nil)
+
+			if overflow {
+				continue
+			}
 
 			// order too small
 			if orderAmountOut.Sign() <= 0 {
@@ -180,8 +198,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 			totalAmountOut.Add(totalAmountOut, orderAmountOut)
 
-			orderFilledMakingAmount := orderAmountOut
-			orderFilledTakingAmount := remainingAmountIn
+			orderFilledMakingAmount := number.Set(orderAmountOut)
+			orderFilledTakingAmount := number.Set(remainingAmountIn)
 			filledOrderInfo := newFilledOrderInfo(
 				order,
 				orderFilledMakingAmount,
@@ -192,21 +210,25 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			isAmountInFulfilled = true
 
 			// orderAmountOut is the filled making amount for this order because this order is partially filled
-			addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, orderAmountOut)
+			addFilledMakingAmount(
+				filledMakingAmountByMaker,
+				order.Maker,
+				orderAmountOut,
+			)
 
 			// Currently, the aggregator finds route, returns some orders and sends them to the smart contract to execute.
 			// We often meet edge cases that these orders can be fulfilled by a trading bot or another taker on the aggregator beforehand.
 			// From that, the estimated amount out and filled orders are not correct. So we need to add more "backup" orders when sending to SC to the executor.
 			// In this case, we will send some orders util total MakingAmount(remainMakingAmount)/estimated amountOut >= 1.3 (130%)
-			totalAmountOutBF := new(big.Float).SetInt(totalAmountOut)
+			totalAmountOutBF := new(big.Float).SetInt(totalAmountOut.ToBig())
 			for j := i + 1; j < len(orders); j++ {
-				if new(big.Float).SetInt(totalMakingAmount).Cmp(new(big.Float).Mul(totalAmountOutBF, FallbackPercentageOfTotalMakingAmount)) >= 0 {
+				if new(big.Float).SetInt(totalMakingAmount.ToBig()).Cmp(new(big.Float).Mul(totalAmountOutBF, FallbackPercentageOfTotalMakingAmount)) >= 0 {
 					break
 				}
 
 				order := orders[j]
 
-				orderRemainingMakingAmount := new(big.Int).Set(order.RemainingMakerAmount)
+				orderRemainingMakingAmount := number.Set(order.RemainingMakerAmount)
 				if makerRemainingBalance := getMakerRemainingBalance(
 					param.Limit,
 					filledMakingAmountByMaker,
@@ -234,10 +256,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 
 		// Case 2: This order can't fulfill the remaining amount in
-		remainingAmountIn = new(big.Int).Sub(remainingAmountIn, orderRemainingTakingAmount)
+		remainingAmountIn = number.Sub(remainingAmountIn, orderRemainingTakingAmount)
 		orderFilledMakingAmount := orderRemainingMakingAmount // because this order is fully filled
 		orderFilledTakingAmount := orderRemainingTakingAmount // because this order is fully filled
-		totalAmountOut = new(big.Int).Add(totalAmountOut, orderFilledMakingAmount)
+		totalAmountOut = number.Add(totalAmountOut, orderFilledMakingAmount)
 		filledOrderInfo := newFilledOrderInfo(
 			order,
 			orderFilledMakingAmount,
@@ -255,7 +277,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: totalAmountOut,
+			Amount: totalAmountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
@@ -268,16 +290,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func newFilledOrderInfo(
 	order *Order,
-	orderFilledMakingAmount *big.Int,
-	orderFilledTakingAmount *big.Int,
+	orderFilledMakingAmount *uint256.Int,
+	orderFilledTakingAmount *uint256.Int,
 ) *FilledOrderInfo {
 	return &FilledOrderInfo{
 		Signature:            order.Signature,
 		OrderHash:            order.OrderHash,
-		CreateDateTime:       order.CreateDateTime,
-		RemainingMakerAmount: new(big.Int).Sub(order.RemainingMakerAmount, orderFilledMakingAmount),
-		MakerBalance:         new(big.Int).Sub(order.MakerBalance, orderFilledMakingAmount),
-		MakerAllowance:       new(big.Int).Sub(order.MakerAllowance, orderFilledMakingAmount),
+		RemainingMakerAmount: number.Sub(order.RemainingMakerAmount, orderFilledMakingAmount),
+		MakerBalance:         number.Sub(order.MakerBalance, orderFilledMakingAmount),
+		MakerAllowance:       number.Sub(order.MakerAllowance, orderFilledMakingAmount),
 		MakerAsset:           order.MakerAsset,
 		TakerAsset:           order.TakerAsset,
 		Salt:                 order.Salt,
@@ -287,8 +308,6 @@ func newFilledOrderInfo(
 		Maker:                order.Maker,
 		Extension:            order.Extension,
 		MakerTraits:          order.MakerTraits,
-		MakerRate:            order.MakerRate,
-		TakerRate:            order.TakerRate,
 		IsMakerContract:      order.IsMakerContract,
 
 		// REMEMBER: these 2 values are the amounts of maker/taker asset that has been filled, but this is just the amount that has been filled after ONE CalcAmountOut call, not the total amount that has been filled in this order
@@ -299,39 +318,41 @@ func newFilledOrderInfo(
 }
 
 func addFilledMakingAmount(
-	filledMakingAmountByMaker map[string]*big.Int,
+	filledMakingAmountByMaker map[string]*uint256.Int,
 	maker string,
-	filledMakingAmount *big.Int,
+	filledMakingAmount *uint256.Int,
 ) {
 	if totalFilled, ok := filledMakingAmountByMaker[maker]; ok {
-		filledMakingAmountByMaker[maker] = new(big.Int).Add(totalFilled, filledMakingAmount)
+		filledMakingAmountByMaker[maker] = number.Add(totalFilled, filledMakingAmount)
 	} else {
-		filledMakingAmountByMaker[maker] = new(big.Int).Set(filledMakingAmount)
+		filledMakingAmountByMaker[maker] = number.Set(filledMakingAmount)
 	}
 }
 
 func getMakerRemainingBalance(
 	limit pool.SwapLimit,
-	filledMakingAmountByMaker map[string]*big.Int,
+	filledMakingAmountByMaker map[string]*uint256.Int,
 	maker, makerAsset string,
-) *big.Int {
+) *uint256.Int {
 	if limit == nil {
 		// can happen if this change get deployed to router-service before pool-service, just ignore
 		return nil
 	}
 
 	makerBalanceAllowance := limit.GetLimit(newMakerAndAsset(maker, makerAsset))
+	makerBalanceAllowanceUint256 := number.SetFromBig(makerBalanceAllowance)
+
 	if makerBalanceAllowance == nil {
 		// should not happen, but anw just return 0 as if this maker has no balance left
-		// Do not return bignumber.ZeroBI because if the `makerRemainingBalance` is updated somewhere else,
-		// it will also alter the original value of bignumber.ZeroBI
-		return integer.Zero()
+		// Do not return number.Zero directly because if the `makerRemainingBalance` is updated somewhere else,
+		// it will also alter the original value of number.Zero
+		return number.Set(number.Zero)
 	}
 
 	if totalFilled := filledMakingAmountByMaker[maker]; totalFilled != nil {
-		return new(big.Int).Sub(makerBalanceAllowance, totalFilled)
+		return number.Sub(makerBalanceAllowanceUint256, totalFilled)
 	} else {
-		return makerBalanceAllowance
+		return makerBalanceAllowanceUint256
 	}
 }
 
@@ -373,8 +394,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			_, _, _ = params.SwapLimit.UpdateLimit(
 				newMakerAndAsset(order.Maker, order.MakerAsset),
 				newMakerAndAsset(order.Maker, order.TakerAsset),
-				filledOrderInfo.FilledMakingAmount,
-				filledOrderInfo.FilledTakingAmount,
+				filledOrderInfo.FilledMakingAmount.ToBig(),
+				filledOrderInfo.FilledTakingAmount.ToBig(),
 			)
 		}
 	}
@@ -433,7 +454,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 
 	res := make(map[string]*big.Int, count)
 	for k, v := range p.minBalanceAllowanceByMakerAndAsset {
-		res[k] = new(big.Int).Set(v)
+		res[k] = v.ToBig()
 	}
 
 	return res
