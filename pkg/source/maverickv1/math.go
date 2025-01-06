@@ -1,89 +1,80 @@
 package maverickv1
 
 import (
-	"math/big"
+	"math/bits"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kutils"
+	"github.com/holiman/uint256"
+
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L72
 func swap(
 	state *MaverickPoolState,
-	amount *big.Int,
+	amount *uint256.Int,
 	tokenAIn bool,
 	exactOutput bool,
 	isForPricing bool,
-) (*big.Int, *big.Int, int, error) {
+) (amtIn, amtOut *uint256.Int, ticksSwapped int, err error) {
 	delta := &Delta{
-		DeltaInBinInternal: new(big.Int),
-		DeltaInErc:         new(big.Int),
-		DeltaOutErc:        new(big.Int),
-		Excess:             new(big.Int).Set(amount),
+		DeltaInBinInternal: new(uint256.Int),
+		DeltaInErc:         new(uint256.Int),
+		DeltaOutErc:        new(uint256.Int),
+		Excess:             new(uint256.Int).Set(amount),
+		SqrtPriceLimit:     new(uint256.Int),
+		SqrtLowerTickPrice: new(uint256.Int),
+		SqrtUpperTickPrice: new(uint256.Int),
+		SqrtPrice:          new(uint256.Int),
 		TokenAIn:           tokenAIn,
-		EndSqrtPrice:       new(big.Int),
 		ExactOutput:        exactOutput,
-		SwappedToMaxPrice:  false,
-		SkipCombine:        false,
-		DecrementTick:      false,
-		SqrtPriceLimit:     new(big.Int),
-		SqrtLowerTickPrice: new(big.Int),
-		SqrtUpperTickPrice: new(big.Int),
-		SqrtPrice:          new(big.Int),
 	}
 
-	var counter = 0
 	for delta.Excess.Sign() > 0 {
 		newDelta, err := swapTick(delta, state)
 		if err != nil {
 			return nil, nil, 0, err
 		}
 		combine(delta, newDelta)
+		ticksSwapped++
 
-		// We can not do too much iteration. This variable chosen
-		// as reasonable threshold
-		counter += 1
-		if isForPricing && counter > MaxSwapIterationCalculation {
-			return zeroBI, zeroBI, counter, nil
+		if isForPricing && ticksSwapped > MaxSwapCalcIterForPricing || ticksSwapped > MaxSwapCalcIter {
+			return uZero, uZero, ticksSwapped, nil
 		}
 	}
-	var amountIn = delta.DeltaInErc
-	var amountOut = delta.DeltaOutErc
 
-	return amountIn, amountOut, counter, nil
+	return delta.DeltaInErc, delta.DeltaOutErc, ticksSwapped, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L121
 func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
-	var activeTick = new(big.Int)
+	activeTick := state.ActiveTick
 	if delta.DecrementTick {
-		activeTick.Sub(state.ActiveTick, bignumber.One)
-	} else {
-		activeTick.Set(state.ActiveTick)
+		activeTick--
 	}
 
-	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
+	var active = getKindsAtTick(state.BinMap, activeTick)
 
-	if active.Word.Sign() == 0 {
-		activeTick = nextActive(state.BinMap, state.BinMapHex, activeTick, delta.TokenAIn, state.minBinMapIndex,
-			state.maxBinMapIndex)
+	if active.Word == 0 {
+		activeTick = nextActive(state.BinMap, activeTick, delta.TokenAIn, state.minBinMapIndex, state.maxBinMapIndex)
 	}
 
-	var currentReserveA, currentReserveB, currentLiquidity *big.Int
-	var currentBins []Bin
-	var err error
+	if activeTick > MaxTick || activeTick < -MaxTick {
+		return nil, ErrLargerThanMaxTick
+	}
 
-	oldActiveTick := new(big.Int).Set(activeTick)
-	currentReserveA, currentReserveB, delta.SqrtPrice, currentLiquidity, currentBins, err = currentTickLiquidity(activeTick,
-		state)
+	oldActiveTick := activeTick
+	currReserveA, currReserveB, currSqrtPrice, currLiq, currBins, err := currentTickLiquidity(activeTick, state)
 	if err != nil {
 		return nil, err
 	}
+	delta.SqrtPrice = currSqrtPrice
 
 	delta.SqrtLowerTickPrice, err = tickPrice(state.TickSpacing, activeTick)
 	if err != nil {
 		return nil, err
 	}
-	delta.SqrtUpperTickPrice, err = tickPrice(state.TickSpacing, new(big.Int).Add(activeTick, bignumber.One))
+	delta.SqrtUpperTickPrice, err = tickPrice(state.TickSpacing, activeTick+1)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +98,9 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	if delta.ExactOutput {
 		newDelta, err = computeSwapExactOut(
 			delta.SqrtPrice,
-			currentLiquidity,
-			currentReserveA,
-			currentReserveB,
+			currLiq,
+			currReserveA,
+			currReserveB,
 			delta.Excess,
 			delta.TokenAIn,
 			state,
@@ -125,9 +116,9 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 		newDelta, err = computeSwapExactIn(
 			edgePrice,
 			delta.SqrtPrice,
-			currentLiquidity,
-			currentReserveA,
-			currentReserveB,
+			currLiq,
+			currReserveA,
+			currReserveB,
 			delta.Excess,
 			limitInBin,
 			delta.TokenAIn,
@@ -138,25 +129,25 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 		}
 	}
 
-	for i := range currentBins {
-		var thisBinAmount = currentBins[i].ReserveA
-		if currentReserveB.Sign() > 0 {
-			thisBinAmount = currentBins[i].ReserveB
+	for i := range currBins {
+		var thisBinAmount = currBins[i].ReserveA
+		if currReserveB.Sign() > 0 {
+			thisBinAmount = currBins[i].ReserveB
 		}
 
-		var totalAmount = currentReserveA
-		if currentReserveB.Sign() > 0 {
-			totalAmount = currentReserveB
+		var totalAmount = currReserveA
+		if currReserveB.Sign() > 0 {
+			totalAmount = currReserveB
 		}
 
-		if err := adjustAB(&currentBins[i], newDelta, thisBinAmount, totalAmount, oldActiveTick, state); err != nil {
+		if err := adjustAB(&currBins[i], newDelta, thisBinAmount, totalAmount, oldActiveTick, state); err != nil {
 			return nil, err
 		}
 	}
 
-	if newDelta.Excess.Sign() != 0 {
+	if !newDelta.Excess.IsZero() {
 		if newDelta.TokenAIn {
-			state.ActiveTick = state.ActiveTick.Add(state.ActiveTick, bignumber.One)
+			state.ActiveTick++
 		}
 		newDelta.DecrementTick = !delta.TokenAIn
 	}
@@ -166,11 +157,11 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L336
 func computeSwapExactOut(
-	sqrtPrice, liquidity, reserveA, reserveB, amountOut *big.Int,
+	sqrtP, liquidity, reserveA, reserveB, amountOut *uint256.Int,
 	tokenAIn bool,
 	state *MaverickPoolState,
 ) (*Delta, error) {
-	amountOutAvailable := new(big.Int)
+	amountOutAvailable := new(uint256.Int)
 	if tokenAIn {
 		amountOutAvailable.Set(reserveB)
 	} else {
@@ -179,63 +170,50 @@ func computeSwapExactOut(
 
 	swapped := amountOutAvailable.Cmp(amountOut) <= 0
 	delta := &Delta{
-		DeltaInBinInternal: new(big.Int),
-		DeltaInErc:         new(big.Int),
-		DeltaOutErc:        new(big.Int),
-		Excess:             new(big.Int),
+		DeltaInBinInternal: new(uint256.Int),
+		DeltaInErc:         new(uint256.Int),
+		DeltaOutErc:        new(uint256.Int),
+		Excess:             new(uint256.Int),
+		SqrtPriceLimit:     new(uint256.Int),
+		SqrtLowerTickPrice: new(uint256.Int),
+		SqrtUpperTickPrice: new(uint256.Int),
+		SqrtPrice:          new(uint256.Int),
 		TokenAIn:           tokenAIn,
-		EndSqrtPrice:       new(big.Int),
 		ExactOutput:        true,
 		DecrementTick:      false,
 		SwappedToMaxPrice:  false,
 		SkipCombine:        false,
-		SqrtPriceLimit:     new(big.Int),
-		SqrtLowerTickPrice: new(big.Int),
-		SqrtUpperTickPrice: new(big.Int),
-		SqrtPrice:          new(big.Int),
 	}
 
-	delta.DeltaOutErc.Set(min(amountOut, amountOutAvailable))
+	delta.DeltaOutErc.Set(minU(amountOut, amountOutAvailable))
 
-	var binAmountIn *big.Int
-	var err error
-
-	tmpB := sqrtPrice
-	tmpC, err := inv(sqrtPrice)
+	endSqrtP, err := inv(sqrtP)
 	if err != nil {
 		return nil, err
 	}
 	if !tokenAIn {
-		tmpB, tmpC = tmpC, tmpB
+		sqrtP, endSqrtP = endSqrtP, sqrtP
 	}
 	deltaOutErcDivLiquidity, err := div(delta.DeltaOutErc, liquidity)
 	if err != nil {
 		return nil, err
 	}
-	tmpC = tmpC.Sub(tmpC, deltaOutErcDivLiquidity)
+	endSqrtP = endSqrtP.Sub(endSqrtP, deltaOutErcDivLiquidity)
 
-	binAmountIn, err = mulDiv(
+	binAmountIn, err := mulDiv(
 		delta.DeltaOutErc,
-		tmpB,
-		tmpC,
+		sqrtP,
+		endSqrtP,
 		true,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	delta.EndSqrtPrice = tmpC
-	if tokenAIn {
-		delta.EndSqrtPrice, err = inv(delta.EndSqrtPrice)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	feeBasis, err := mulDiv(
 		binAmountIn,
 		state.Fee,
-		new(big.Int).Sub(bignumber.BONE, state.Fee),
+		new(uint256.Int).Sub(bignumber.BONE, state.Fee),
 		true,
 	)
 	if err != nil {
@@ -249,7 +227,7 @@ func computeSwapExactOut(
 	if swapped {
 		delta.Excess = clip(amountOut, delta.DeltaOutErc)
 	} else {
-		delta.Excess = new(big.Int)
+		delta.Excess = new(uint256.Int)
 	}
 
 	return delta, nil
@@ -257,50 +235,39 @@ func computeSwapExactOut(
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L261
 func computeSwapExactIn(
-	sqrtEdgePrice, sqrtPrice, liquidity, reserveA, reserveB, amountIn *big.Int,
+	sqrtEdgePrice, sqrtPrice, liquidity, reserveA, reserveB, amountIn *uint256.Int,
 	limitInBin, tokenAIn bool,
 	state *MaverickPoolState,
 ) (*Delta, error) {
-	var binAmountIn *big.Int
-	var err error
-
-	if tokenAIn {
-		binAmountIn, err = deltaAmount(liquidity, sqrtPrice, sqrtEdgePrice, true)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		binAmountIn, err = deltaAmount(liquidity, sqrtEdgePrice, sqrtPrice, false)
-		if err != nil {
-			return nil, err
-		}
+	binAmountIn, err := deltaAmount(liquidity, sqrtPrice, sqrtEdgePrice, tokenAIn)
+	if err != nil {
+		return nil, err
 	}
 
 	delta := &Delta{
-		DeltaInBinInternal: new(big.Int),
-		DeltaInErc:         new(big.Int),
-		DeltaOutErc:        new(big.Int),
-		Excess:             new(big.Int),
+		DeltaInBinInternal: new(uint256.Int),
+		DeltaInErc:         new(uint256.Int),
+		DeltaOutErc:        new(uint256.Int),
+		Excess:             new(uint256.Int),
+		SqrtPriceLimit:     new(uint256.Int),
+		SqrtLowerTickPrice: new(uint256.Int),
+		SqrtUpperTickPrice: new(uint256.Int),
+		SqrtPrice:          new(uint256.Int),
 		TokenAIn:           tokenAIn,
-		EndSqrtPrice:       new(big.Int),
 		ExactOutput:        false,
 		DecrementTick:      false,
 		SwappedToMaxPrice:  false,
 		SkipCombine:        false,
-		SqrtPriceLimit:     new(big.Int),
-		SqrtLowerTickPrice: new(big.Int),
-		SqrtUpperTickPrice: new(big.Int),
-		SqrtPrice:          new(big.Int),
 	}
 
-	var feeBasis *big.Int
+	var feeBasis *uint256.Int
 
-	tmp, err := mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
+	tmp, err := mul(amountIn, new(uint256.Int).Sub(bignumber.BONE, state.Fee))
 	if err != nil {
 		return nil, err
 	}
 	if tmp.Cmp(binAmountIn) >= 0 {
-		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(big.Int).Sub(bignumber.BONE, state.Fee), true)
+		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(uint256.Int).Sub(bignumber.BONE, state.Fee), true)
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +275,6 @@ func computeSwapExactIn(
 		if limitInBin {
 			delta.SwappedToMaxPrice = true
 		} else {
-			delta.EndSqrtPrice = sqrtEdgePrice
 			delta.DeltaOutErc = reserveA
 			if tokenAIn {
 				delta.DeltaOutErc = reserveB
@@ -316,18 +282,18 @@ func computeSwapExactIn(
 			delta.Excess = clip(amountIn, delta.DeltaInErc)
 		}
 	} else {
-		binAmountIn, err = mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
+		binAmountIn, err = mul(amountIn, new(uint256.Int).Sub(bignumber.BONE, state.Fee))
 		if err != nil {
 			return nil, err
 		}
 		delta.DeltaInErc = delta.DeltaInErc.Set(amountIn)
-		feeBasis = new(big.Int).Sub(delta.DeltaInErc, binAmountIn)
+		feeBasis = new(uint256.Int).Sub(delta.DeltaInErc, binAmountIn)
 	}
 	delta.DeltaInBinInternal, err = amountToBin(delta.DeltaInErc, feeBasis, state)
 	if err != nil {
 		return nil, err
 	}
-	if delta.Excess.Sign() != 0 || liquidity.Sign() == 0 {
+	if !delta.Excess.IsZero() || liquidity.IsZero() {
 		return delta, nil
 	}
 
@@ -336,73 +302,58 @@ func computeSwapExactIn(
 		tmpReserve = reserveB
 	}
 
-	tmpB := new(big.Int).Set(sqrtPrice)
-	tmpC, err := inv(sqrtPrice)
+	sqrtP := new(uint256.Int).Set(sqrtPrice)
+	endSqrtP, err := inv(sqrtPrice)
 	if err != nil {
 		return nil, err
 	}
 	if tokenAIn {
-		tmpB, tmpC = tmpC, tmpB
+		sqrtP, endSqrtP = endSqrtP, sqrtP
 	}
 	tmpDiv, err := div(binAmountIn, liquidity)
 	if err != nil {
 		return nil, err
 	}
-	tmpEndSqrtPrice := tmpC.Add(tmpDiv, tmpC)
-	tmpMulDiv, err := mulDiv(binAmountIn, tmpB, tmpC, false)
+	endSqrtP = endSqrtP.Add(tmpDiv, endSqrtP)
+	tmpMulDiv, err := mulDiv(binAmountIn, sqrtP, endSqrtP, false)
 	if err != nil {
 		return nil, err
 	}
 
-	delta.DeltaOutErc = min(tmpReserve, tmpMulDiv)
-	delta.EndSqrtPrice = tmpEndSqrtPrice
-
-	if !tokenAIn {
-		delta.EndSqrtPrice, err = inv(delta.EndSqrtPrice)
-		if err != nil {
-			return nil, err
-		}
-	}
+	delta.DeltaOutErc = minU(tmpReserve, tmpMulDiv)
 
 	return delta, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L252
-func amountToBin(deltaInErc, feeBases *big.Int, state *MaverickPoolState) (*big.Int, error) {
-	if state.ProtocolFeeRatio.Sign() != 0 {
+func amountToBin(deltaInErc, feeBases *uint256.Int, state *MaverickPoolState) (*uint256.Int, error) {
+	if !state.ProtocolFeeRatio.IsZero() {
 		tmp := bignumber.TenPowInt(15)
 		tmpMul, err := mul(feeBases, tmp.Mul(state.ProtocolFeeRatio, tmp))
 		if err != nil {
 			return nil, err
 		}
-		return clip(deltaInErc, tmpMul.Add(tmpMul, bignumber.One)), nil
+		return clip(deltaInErc, tmpMul.AddUint64(tmpMul, 1)), nil
 	}
 
 	return deltaInErc, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L240
-func deltaAmount(liquidity, lowerSqrtPrice, upperSqrtPrice *big.Int, isA bool) (*big.Int, error) {
+func deltaAmount(liquidity, sqrtPrice, sqrtEdgePrice *uint256.Int, isA bool) (*uint256.Int, error) {
 	if isA {
-		res, err := mul(liquidity, new(big.Int).Sub(upperSqrtPrice, lowerSqrtPrice))
-		if err != nil {
-			return nil, err
-		}
-
-		return res, nil
-	} else {
-		liquidityDivLower, err := div(liquidity, lowerSqrtPrice)
-		if err != nil {
-			return nil, err
-		}
-		liquidityDivUpper, err := div(liquidity, upperSqrtPrice)
-		if err != nil {
-			return nil, err
-		}
-		res := new(big.Int).Sub(liquidityDivLower, liquidityDivUpper)
-
-		return res, nil
+		return mul(liquidity, new(uint256.Int).Sub(sqrtEdgePrice, sqrtPrice))
 	}
+
+	liquidityDivLower, err := div(liquidity, sqrtEdgePrice)
+	if err != nil {
+		return nil, err
+	}
+	liquidityDivUpper, err := div(liquidity, sqrtPrice)
+	if err != nil {
+		return nil, err
+	}
+	return new(uint256.Int).Sub(liquidityDivLower, liquidityDivUpper), nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L45
@@ -414,25 +365,19 @@ func combine(delta, newDelta *Delta) {
 	}
 	delta.Excess = newDelta.Excess
 	delta.DecrementTick = newDelta.DecrementTick
-	delta.EndSqrtPrice = newDelta.EndSqrtPrice
 	delta.SwappedToMaxPrice = newDelta.SwappedToMaxPrice
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L390C3-L390C23
-func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.Int, *big.Int, *big.Int, *big.Int, []Bin,
-	error) {
-	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
+func currentTickLiquidity(activeTick int32,
+	state *MaverickPoolState) (reserveA, reserveB, sqrtPrice, liquidity *uint256.Int, bins []Bin, err error) {
+	active := getKindsAtTick(state.BinMap, activeTick)
+	reserveA, reserveB = new(uint256.Int), new(uint256.Int)
 
-	var reserveA = new(big.Int)
-	var reserveB = new(big.Int)
-	var bins = make([]Bin, 0)
-
-	for i := 0; i < 4; i++ {
-		bigI := big.NewInt(int64(i))
-		if active.Word.Bit(i) > 0 {
-			var binID = state.BinPositions[activeTick.String()][bigI.String()]
-			if binID != nil && binID.Sign() > 0 {
-				bin := state.Bins[binID.String()]
+	for i := uint8(0); i < Kinds; i++ {
+		if active.Word&(1<<i) != 0 {
+			if binID, ok := state.BinPositions[activeTick][i]; ok {
+				bin := state.Bins[binID]
 				reserveA = reserveA.Add(reserveA, bin.ReserveA)
 				reserveB = reserveB.Add(reserveB, bin.ReserveB)
 				bins = append(bins, bin)
@@ -440,156 +385,135 @@ func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.I
 		}
 	}
 
-	var sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int
-	var err error
-	sqrtLowerTickPrice, err = tickPrice(state.TickSpacing, activeTick)
-	if err != nil {
+	var lowerSqrtP, upperSqrtP *uint256.Int
+	if lowerSqrtP, err = tickPrice(state.TickSpacing, activeTick); err != nil {
 		return nil, nil, nil, nil, nil, err
-	}
-	sqrtUpperTickPrice, err = tickPrice(state.TickSpacing, new(big.Int).Add(activeTick, bignumber.One))
-	if err != nil {
+	} else if upperSqrtP, err = tickPrice(state.TickSpacing, activeTick+1); err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
-	sqrtPrice, liquidity, err := getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-
-	return reserveA, reserveB, sqrtPrice, liquidity, bins, nil
+	sqrtPrice, liquidity, err = getTickSqrtPAndLiq(reserveA, reserveB, lowerSqrtP, upperSqrtP)
+	return reserveA, reserveB, sqrtPrice, liquidity, bins, err
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L511C3-L511C12
-func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
-	var tick big.Int
-	tick.Abs(activeTick).Mul(&tick, tickSpacing)
-	if tick.Cmp(MaxTickBI) > 0 {
+func tickPrice(tickSpacing int32, activeTick int32) (*uint256.Int, error) {
+	tick := kutils.Abs(activeTick) * tickSpacing
+	if tick > MaxTick {
 		return nil, ErrLargerThanMaxTick
 	}
 
-	ratio := new(big.Int)
-	if tick.Bit(0) != 0 {
+	ratio := new(uint256.Int)
+	if tick&1 != 0 {
 		ratio.Set(CompareConst1)
 	} else {
 		ratio.Set(CompareConst2)
 	}
-
-	if tick.Bit(1) != 0 {
-		ratio.Mul(ratio, MulConst1)
-		ratio.Rsh(ratio, 128)
+	if tick&0x2 != 0 {
+		ratio.Mul(ratio, MulConst1).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(2) != 0 {
-		ratio.Mul(ratio, MulConst2)
-		ratio.Rsh(ratio, 128)
+	if tick&0x4 != 0 {
+		ratio.Mul(ratio, MulConst2).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(3) != 0 {
-		ratio.Mul(ratio, MulConst3)
-		ratio.Rsh(ratio, 128)
+	if tick&0x8 != 0 {
+		ratio.Mul(ratio, MulConst3).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(4) != 0 {
-		ratio.Mul(ratio, MulConst4)
-		ratio.Rsh(ratio, 128)
+	if tick&0x10 != 0 {
+		ratio.Mul(ratio, MulConst4).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(5) != 0 {
-		ratio.Mul(ratio, MulConst5)
-		ratio.Rsh(ratio, 128)
+	if tick&0x20 != 0 {
+		ratio.Mul(ratio, MulConst5).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(6) != 0 {
-		ratio.Mul(ratio, MulConst6)
-		ratio.Rsh(ratio, 128)
+	if tick&0x40 != 0 {
+		ratio.Mul(ratio, MulConst6).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(7) != 0 {
-		ratio.Mul(ratio, MulConst7)
-		ratio.Rsh(ratio, 128)
+	if tick&0x80 != 0 {
+		ratio.Mul(ratio, MulConst7).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(8) != 0 {
-		ratio.Mul(ratio, MulConst8)
-		ratio.Rsh(ratio, 128)
+	if tick&0x100 != 0 {
+		ratio.Mul(ratio, MulConst8).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(9) != 0 {
-		ratio.Mul(ratio, MulConst9)
-		ratio.Rsh(ratio, 128)
+	if tick&0x200 != 0 {
+		ratio.Mul(ratio, MulConst9).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(10) != 0 {
-		ratio.Mul(ratio, MulConst10)
-		ratio.Rsh(ratio, 128)
+	if tick&0x400 != 0 {
+		ratio.Mul(ratio, MulConst10).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(11) != 0 {
-		ratio.Mul(ratio, MulConst11)
-		ratio.Rsh(ratio, 128)
+	if tick&0x800 != 0 {
+		ratio.Mul(ratio, MulConst11).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(12) != 0 {
-		ratio.Mul(ratio, MulConst12)
-		ratio.Rsh(ratio, 128)
+	if tick&0x1000 != 0 {
+		ratio.Mul(ratio, MulConst12).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(13) != 0 {
-		ratio.Mul(ratio, MulConst13)
-		ratio.Rsh(ratio, 128)
+	if tick&0x2000 != 0 {
+		ratio.Mul(ratio, MulConst13).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(14) != 0 {
-		ratio.Mul(ratio, MulConst14)
-		ratio.Rsh(ratio, 128)
+	if tick&0x4000 != 0 {
+		ratio.Mul(ratio, MulConst14).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(15) != 0 {
-		ratio.Mul(ratio, MulConst15)
-		ratio.Rsh(ratio, 128)
+	if tick&0x8000 != 0 {
+		ratio.Mul(ratio, MulConst15).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(16) != 0 {
-		ratio.Mul(ratio, MulConst16)
-		ratio.Rsh(ratio, 128)
+	if tick&0x10000 != 0 {
+		ratio.Mul(ratio, MulConst16).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(17) != 0 {
-		ratio.Mul(ratio, MulConst17)
-		ratio.Rsh(ratio, 128)
+	if tick&0x20000 != 0 {
+		ratio.Mul(ratio, MulConst17).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(18) != 0 {
-		ratio.Mul(ratio, MulConst18)
-		ratio.Rsh(ratio, 128)
+	if tick&0x40000 != 0 {
+		ratio.Mul(ratio, MulConst18).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(19) != 0 {
-		ratio.Mul(ratio, MulConst19)
-		ratio.Rsh(ratio, 128)
+	if tick&0x80000 != 0 {
+		ratio.Mul(ratio, MulConst19).
+			Rsh(ratio, 128)
 	}
-	if tick.Bit(20) != 0 {
-		ratio.Mul(ratio, MulConst20)
-		ratio.Rsh(ratio, 128)
-	}
-
-	if activeTick.Sign() > 0 {
-		var tmp big.Int
-		ratio.Div(
-			tmp.Sub(
-				tmp.Lsh(tmp.SetInt64(1), 256),
-				bignumber.One),
-			ratio,
-		)
+	if tick&0x100000 != 0 {
+		ratio.Mul(ratio, MulConst20).
+			Rsh(ratio, 128)
 	}
 
-	ratio.Mul(ratio, bignumber.BONE)
-	ratio.Rsh(ratio, 128)
+	if activeTick > 0 {
+		ratio.Div(MaxUint256, ratio)
+	}
+
+	ratio.Mul(ratio, bignumber.BONE).
+		Rsh(ratio, 128)
 
 	return ratio, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L56
 func pastMaxPrice(delta *Delta) {
-	cmp := delta.SqrtPriceLimit.Cmp(delta.SqrtPrice)
-	tmpBool := cmp >= 0
-	if delta.TokenAIn {
-		tmpBool = cmp <= 0
-	}
-	delta.SwappedToMaxPrice = delta.SqrtPriceLimit.Sign() != 0 && tmpBool
+	delta.SwappedToMaxPrice = !delta.SqrtPriceLimit.IsZero() &&
+		delta.TokenAIn == (delta.SqrtPriceLimit.Cmp(delta.SqrtPrice) <= 0)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L66
 func noSwapReset(delta *Delta) {
-	delta.Excess = new(big.Int)
+	delta.Excess.Clear()
 	delta.SkipCombine = true
-	delta.EndSqrtPrice = delta.SqrtPrice
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L63
-func sqrtEdgePrice(delta *Delta) *big.Int {
+func sqrtEdgePrice(delta *Delta) *uint256.Int {
 	if delta.TokenAIn {
 		return delta.SqrtUpperTickPrice
 	}
@@ -597,18 +521,19 @@ func sqrtEdgePrice(delta *Delta) *big.Int {
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L210
-func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *big.Int, state *MaverickPoolState) error {
+func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount *uint256.Int, activeTick int32,
+	state *MaverickPoolState) error {
 	deltaIn, err := mulDiv(delta.DeltaInBinInternal, thisBinAmount, totalAmount, false)
 	if err != nil {
 		return err
 	}
-	var deltaOut *big.Int
-	if delta.Excess.Sign() != 0 {
-		deltaOut = new(big.Int)
+	var deltaOut *uint256.Int
+	if !delta.Excess.IsZero() {
+		deltaOut = new(uint256.Int)
 	} else {
 		if deltaOut, err = mulDiv(delta.DeltaOutErc, thisBinAmount, totalAmount, true); err != nil {
 			return err
-		} else if deltaOut.Sign() == 0 {
+		} else if deltaOut.IsZero() {
 			return ErrInvalidDeltaOut
 		}
 	}
@@ -619,7 +544,7 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 		if delta.Excess.Sign() <= 0 {
 			bin.ReserveB = clip(bin.ReserveB, deltaOut)
 		} else {
-			bin.ReserveB = new(big.Int)
+			bin.ReserveB = new(uint256.Int)
 		}
 	} else {
 		bin.ReserveB = bin.ReserveB.Add(bin.ReserveB, deltaIn)
@@ -627,16 +552,15 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 		if delta.Excess.Sign() <= 0 {
 			bin.ReserveA = clip(bin.ReserveA, deltaOut)
 		} else {
-			bin.ReserveA = new(big.Int)
+			bin.ReserveA = new(uint256.Int)
 		}
 	}
 
 	// Custom code to update state.Bin
-	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
-	if active.Word.Bit(int(bin.Kind.Int64())) > 0 {
-		binID := state.BinPositions[activeTick.String()][bin.Kind.String()]
-		if binID != nil && binID.Sign() > 0 {
-			state.Bins[binID.String()] = *bin
+	var active = getKindsAtTick(state.BinMap, activeTick)
+	if active.Word&(1<<bin.Kind) != 0 {
+		if binID, ok := state.BinPositions[activeTick][bin.Kind]; ok {
+			state.Bins[binID] = *bin
 		}
 	}
 
@@ -644,29 +568,23 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L484C3-L484C23
-func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int) (*big.Int, *big.Int,
-	error) {
-	liquidity, err := getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice)
+func getTickSqrtPAndLiq(reserveA, reserveB, lowerSqrtP, upperSqrtP *uint256.Int) (sqrtP, liq *uint256.Int, err error) {
+	liq, err = getTickL(reserveA, reserveB, lowerSqrtP, upperSqrtP)
 	if err != nil {
 		return nil, nil, err
-	}
-	if liquidity.Sign() < 0 {
+	} else if liq.Sign() < 0 {
 		return nil, nil, ErrInvalidLiquidity
+	} else if reserveA.IsZero() {
+		return lowerSqrtP, liq, nil
+	} else if reserveB.IsZero() {
+		return upperSqrtP, liq, nil
 	}
 
-	if reserveA.Sign() == 0 {
-		return sqrtLowerTickPrice, liquidity, nil
-	}
-
-	if reserveB.Sign() == 0 {
-		return sqrtUpperTickPrice, liquidity, nil
-	}
-
-	qo, err := mul(liquidity, sqrtLowerTickPrice)
+	qo, err := mul(liq, lowerSqrtP)
 	if err != nil {
 		return nil, nil, err
 	}
-	bo, err := div(liquidity, sqrtUpperTickPrice)
+	bo, err := div(liq, upperSqrtP)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -677,23 +595,23 @@ func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickP
 	}
 	sqrtPrice := sqrt(tmpDiv)
 
-	return sqrtPrice, liquidity, nil
+	return sqrtPrice, liq, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L434
 func getTickL(
-	reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int,
-) (*big.Int, error) {
+	reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint256.Int,
+) (*uint256.Int, error) {
 	precisionBump := uint(0)
 
-	var tmp big.Int
-	if tmp.Rsh(reserveA, 60).Sign() == 0 && tmp.Rsh(reserveB, 60).Sign() == 0 {
+	var tmp uint256.Int
+	if tmp.Rsh(reserveA, 60).IsZero() && tmp.Rsh(reserveB, 60).IsZero() {
 		precisionBump = 40
-		reserveA = new(big.Int).Lsh(reserveA, precisionBump)
-		reserveB = new(big.Int).Lsh(reserveB, precisionBump)
+		reserveA = new(uint256.Int).Lsh(reserveA, precisionBump)
+		reserveB = new(uint256.Int).Lsh(reserveB, precisionBump)
 	}
 
-	if reserveA.Sign() == 0 || reserveB.Sign() == 0 {
+	if reserveA.IsZero() || reserveB.IsZero() {
 		tmpDiv, err := div(reserveA, sqrtUpperTickPrice)
 		if err != nil {
 			return nil, err
@@ -750,92 +668,69 @@ func getTickL(
 // ------------- maverick bin map -----------------------
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L139
-func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int, isRight bool,
-	minBinMapIndex, maxBinMapIndex *big.Int) *big.Int {
-	var refTick, shift, tack, subIndex, nextTick *big.Int
-
-	refTick = new(big.Int)
+func nextActive(binMap map[int16]*uint256.Int, tick int32, isRight bool, minBinMapIndex, maxBinMapIndex int16) int32 {
+	refTick := tick
 	if isRight {
-		refTick = refTick.Add(tick, bignumber.One)
+		refTick++
 	} else {
-		refTick = refTick.Sub(tick, bignumber.One)
+		refTick--
 	}
-	var tmp big.Int
-	var offset, mapIndex = getMapPointer(tmp.Mul(refTick, Kinds))
+	mapIndex, shift := getMapPointer(refTick * Kinds)
+
+	var tack int16
+	var nextTick int32
 	if isRight {
-		shift = offset
-		tack = big.NewInt(1)
-		nextTick = big.NewInt(1000000000)
+		tack = 1
+		nextTick = 1000000000
 	} else {
-		shift = tmp.Sub(WordSize, offset)
-		tack = big.NewInt(-1)
-		nextTick = big.NewInt(-1000000000)
+		shift = WordSize - shift
+		tack = -1
+		nextTick = -1000000000
 	}
 
-	binMapCount := len(binMap)
-	binMapHexCount := len(binMapHex)
-	if binMapHexCount == 0 && binMapCount == 0 {
-		// we can never find anything so don't bother going to the expensive loop
+	if len(binMap) == 0 { // we can never find anything so don't bother going to the expensive loop
 		return nextTick
 	}
 
-	// we'll use a single bigInt for nextWord through the loop, instead of allocating every times
-	var nextWord big.Int
-	var bin *big.Int
+	var nextWord uint256.Int
+	var found bool
 	for i := 0; i < 4000; i++ {
-		if binMapHexCount > 0 {
-			bin = binMapHex[mapIndex.Text(16)]
-		} else {
-			bin = binMap[mapIndex.String()]
-		}
-		if bin == nil {
-			nextWord.Set(zeroBI)
-		} else {
-			nextWord.Set(bin)
-		}
-		if i == 0 {
-			// after the 1st iteration `shift` will be set to 0, so we can skip this to avoid over allocating
+		if bin := binMap[mapIndex]; bin != nil {
 			if isRight {
-				nextWord.Rsh(&nextWord, uint(shift.Uint64()))
+				nextWord.Rsh(bin, shift)
 			} else {
-				nextWord.Lsh(&nextWord, uint(shift.Uint64()))
+				nextWord.Lsh(bin, shift)
+			}
+			if !nextWord.IsZero() {
+				found = true
+				break
 			}
 		}
-		nextWord.And(&nextWord, BitMask)
-		if nextWord.Sign() != 0 {
-			break
-		}
-		if i == 0 {
-			shift = zeroBI
-		}
-		// mapIndex already get allocated within `getMapPointer`, so we can safely overwrite it here
-		mapIndex = mapIndex.Add(mapIndex, tack)
+
+		shift = 0
+		mapIndex += tack
 		// mapIndex will always either increase or decrease, not both
 		// so we can check against min/max index and terminate early
-		if tack.Sign() > 0 && mapIndex.Cmp(maxBinMapIndex) > 0 {
-			break
-		}
-		if tack.Sign() < 0 && mapIndex.Cmp(minBinMapIndex) < 0 {
+		if tack > 0 && mapIndex > maxBinMapIndex || tack < 0 && mapIndex < minBinMapIndex {
 			break
 		}
 	}
 
-	if nextWord.Sign() != 0 {
-		subIndex = new(big.Int)
+	var subIndex int32
+	if found {
 		if isRight {
-			subIndex = subIndex.Add(lsb(&nextWord), shift)
+			subIndex = int32(lsb(&nextWord)) + int32(shift)
 		} else {
-			subIndex = subIndex.Sub(msb(&nextWord), shift)
+			subIndex = int32(msb(&nextWord)) - int32(shift)
 		}
-		posFirst := tmp.Add(tmp.Mul(mapIndex, WordSize), subIndex)
-		pos := new(big.Int).Set(posFirst)
-		if posFirst.Sign() < 0 {
-			pos = pos.Add(pos, bignumber.One)
+		pos := int32(mapIndex)*WordSize + subIndex
+		neg := pos < 0
+		if neg {
+			pos++
 		}
-		nextTick = pos.Quo(pos,
-			Kinds) // use truncated div here instead of Euclidean div (-1427/4 = -356 instead of -357)
-		if posFirst.Sign() < 0 {
-			nextTick = nextTick.Sub(nextTick, bignumber.One)
+		nextTick = pos / Kinds // use truncated div here instead of Euclidean div (-1427/4 = -356 instead of -357)
+		if neg {
+			nextTick--
 		}
 	}
 
@@ -843,183 +738,97 @@ func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick 
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L126
-func getKindsAtTick(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int) Active {
-	offset, mapIndex := getMapPointer(new(big.Int).Mul(tick, Kinds))
-	var subMap *big.Int
-	if len(binMapHex) > 0 {
-		subMap = binMapHex[mapIndex.Text(16)]
-	} else {
-		subMap = binMap[mapIndex.String()]
-	}
-	if subMap == nil {
-		subMap = big.NewInt(0)
-	}
-	presentBits := new(big.Int).And(new(big.Int).Rsh(subMap, uint(offset.Int64())), Mask)
-
+func getKindsAtTick(binMap map[int16]*uint256.Int, tick int32) Active {
+	mapIndex, offset := getMapPointer(tick * Kinds)
+	var tmp uint256.Int
 	return Active{
-		Word: presentBits,
-		Tick: new(big.Int).Set(tick),
+		Word: uint8(tmp.Rsh(binMap[mapIndex], offset).Uint64() & KindMask),
+		Tick: tick,
 	}
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L97
-func getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
-	offset := new(big.Int).And(tick, OffsetMask)
-	mapIndex := new(big.Int).Rsh(tick, 8)
-
-	return offset, mapIndex
+func getMapPointer(tick int32) (mapIndex int16, offset uint) {
+	return int16(tick >> Offsets), uint(tick & OffsetMask)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L54
-func lsb(x *big.Int) *big.Int {
-	r := big.NewInt(255)
-	// bigint in typescript is pass by value. So I do not want this function change the input X
-	var tmp big.Int
-	tmpX := new(big.Int).Set(x)
-
-	if tmp.And(tmpX, bignumber.NewBig("0xffffffffffffffffffffffffffffffff")).Sign() > 0 {
-		r.Sub(r, big.NewInt(128))
-	} else {
-		tmpX.Rsh(tmpX, 128)
+func lsb(x *uint256.Int) uint {
+	for i := 0; i < len(x); i++ {
+		if w := x[i]; w != 0 {
+			return uint(i*64 + bits.TrailingZeros64(w))
+		}
 	}
-	if tmp.And(tmpX, bignumber.NewBig("0xffffffffffffffff")).Sign() > 0 {
-		r.Sub(r, big.NewInt(64))
-	} else {
-		tmpX.Rsh(tmpX, 64)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0xffffffff")).Sign() > 0 {
-		r.Sub(r, big.NewInt(32))
-	} else {
-		tmpX.Rsh(tmpX, 32)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0xffff")).Sign() > 0 {
-		r.Sub(r, big.NewInt(16))
-	} else {
-		tmpX.Rsh(tmpX, 16)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0xff")).Sign() > 0 {
-		r.Sub(r, big.NewInt(8))
-	} else {
-		tmpX.Rsh(tmpX, 8)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0xf")).Sign() > 0 {
-		r.Sub(r, big.NewInt(4))
-	} else {
-		tmpX.Rsh(tmpX, 4)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0x3")).Sign() > 0 {
-		r.Sub(r, big.NewInt(2))
-	} else {
-		tmpX.Rsh(tmpX, 2)
-	}
-	if tmp.And(tmpX, bignumber.NewBig("0x1")).Sign() > 0 {
-		r.Sub(r, big.NewInt(1))
-	}
-
-	return r
+	return 255
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L17
-func msb(x *big.Int) *big.Int {
-	r := new(big.Int)
-
-	// bigint in typescript is pass by value. So I do not want this function change the input X
-	tmpX := new(big.Int).Set(x)
-
-	if tmpX.Cmp(bignumber.NewBig("0x100000000000000000000000000000000")) >= 0 {
-		tmpX.Rsh(tmpX, 128)
-		r.Add(r, big.NewInt(128))
+func msb(x *uint256.Int) uint {
+	for i := len(x) - 1; i >= 0; i-- {
+		if w := x[i]; w != 0 {
+			return uint(i*64 + 63 - bits.LeadingZeros64(w))
+		}
 	}
-	if tmpX.Cmp(bignumber.NewBig("0x10000000000000000")) >= 0 {
-		tmpX.Rsh(tmpX, 64)
-		r.Add(r, big.NewInt(64))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x100000000")) >= 0 {
-		tmpX.Rsh(tmpX, 32)
-		r.Add(r, big.NewInt(32))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x10000")) >= 0 {
-		tmpX.Rsh(tmpX, 16)
-		r.Add(r, big.NewInt(16))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x100")) >= 0 {
-		tmpX.Rsh(tmpX, 8)
-		r.Add(r, big.NewInt(8))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x10")) >= 0 {
-		tmpX.Rsh(tmpX, 4)
-		r.Add(r, big.NewInt(4))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x4")) >= 0 {
-		tmpX.Rsh(tmpX, 2)
-		r.Add(r, big.NewInt(2))
-	}
-	if tmpX.Cmp(bignumber.NewBig("0x2")) >= 0 {
-		r.Add(r, big.NewInt(1))
-	}
-
-	return r
+	return 0
 }
 
 // ------------- maverick basic math --------------------
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L131
-func mulDiv(a, b, c *big.Int, ceil bool) (*big.Int, error) {
-	product := new(big.Int).Mul(a, b)
-	if product.Sign() == 0 {
+func mulDiv(a, b, c *uint256.Int, ceil bool) (*uint256.Int, error) {
+	product := new(uint256.Int).Mul(a, b)
+	if product.IsZero() {
 		return product, nil
 	}
-	var tmp big.Int
-	if ceil && tmp.Mod(product, c).Sign() != 0 {
-		return product.Add(product.Div(product, c), bignumber.One), nil
+	var tmp uint256.Int
+	if ceil && !tmp.Mod(product, c).IsZero() {
+		return product.AddUint64(product.Div(product, c), 1), nil
 	}
 	return product.Div(product, c), nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L46
-func clip(x, y *big.Int) *big.Int {
+func clip(x, y *uint256.Int) *uint256.Int {
 	if x.Cmp(y) < 0 {
-		return new(big.Int)
+		return new(uint256.Int)
 	}
-	return new(big.Int).Sub(x, y)
+	return new(uint256.Int).Sub(x, y)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L42
-func inv(a *big.Int) (*big.Int, error) {
-	return div(One, a)
+func inv(a *uint256.Int) (*uint256.Int, error) {
+	return div(Bone, a)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L68
-func div(a, b *big.Int) (*big.Int, error) {
+func div(a, b *uint256.Int) (*uint256.Int, error) {
 	return divDownFixed(a, b)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L120
-func divDownFixed(a, b *big.Int) (*big.Int, error) {
-	if b.Sign() != 0 {
-		if a.Sign() == 0 {
-			return new(big.Int), nil
-		} else {
-			aInflated := new(big.Int).Mul(a, One)
-			return aInflated.Div(aInflated, b), nil
-		}
+func divDownFixed(a, b *uint256.Int) (*uint256.Int, error) {
+	if b.IsZero() {
+		return nil, ErrDividedByZero
+	} else if a.IsZero() {
+		return new(uint256.Int), nil
+	} else {
+		aInflated := new(uint256.Int).Mul(a, Bone)
+		return aInflated.Div(aInflated, b), nil
 	}
-
-	return nil, ErrDividedByZero
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L72
-func sqrt(x *big.Int) *big.Int {
-	if x.Sign() == 0 {
-		return new(big.Int)
+func sqrt(x *uint256.Int) *uint256.Int {
+	if x.IsZero() {
+		return new(uint256.Int)
 	}
 
-	x = new(big.Int).Mul(x, Unit)
+	x = new(uint256.Int).Mul(x, Bone)
 
 	// Set the initial guess to the least power of two that is greater than or equal to sqrt(x).
-	var xAux big.Int
+	var xAux uint256.Int
 	xAux.Set(x)
-	result := big.NewInt(1)
+	result := uint256.NewInt(1)
 	if xAux.Cmp(XAuxConst64) >= 0 {
 		xAux.Rsh(&xAux, 128)
 		result.Lsh(result, 64)
@@ -1062,7 +871,7 @@ func sqrt(x *big.Int) *big.Int {
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L14
-func min(a, b *big.Int) *big.Int {
+func minU(a, b *uint256.Int) *uint256.Int {
 	if a.Cmp(b) < 0 {
 		return a
 	}
@@ -1070,11 +879,11 @@ func min(a, b *big.Int) *big.Int {
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L34
-func mul(a, b *big.Int) (*big.Int, error) {
-	var tmp big.Int
+func mul(a, b *uint256.Int) (*uint256.Int, error) {
+	var tmp, tmo uint256.Int
 	if tmp.Mod(
-		tmp.Mul(abs(a), abs(b)),
-		Unit,
+		tmp.Mul(tmp.Abs(a), tmo.Abs(b)),
+		Bone,
 	).Cmp(MulConst49_17) > 0 {
 		return mulUpFixed(a, b)
 	} else {
@@ -1083,67 +892,57 @@ func mul(a, b *big.Int) (*big.Int, error) {
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L50
-func mulUpFixed(a, b *big.Int) (*big.Int, error) {
-	product := new(big.Int).Mul(a, b)
+func mulUpFixed(a, b *uint256.Int) (*uint256.Int, error) {
+	product := new(uint256.Int).Mul(a, b)
 	isNegative := product.Sign() == -1
 
-	if product.Sign() == 0 {
+	if product.IsZero() {
 		return product, nil
-	} else {
-		result := product.Sub(abs(product), bignumber.One)
-		result.Div(result, One)
-		result.Add(result, bignumber.One)
-
-		if isNegative {
-			result.Neg(result)
-		}
-
-		return result, nil
 	}
+
+	result := product.Abs(product).SubUint64(product, 1)
+	result.Div(result, Bone)
+	result.AddUint64(result, 1)
+
+	if isNegative {
+		result.Neg(result)
+	}
+
+	return result, nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L181
-func sMulDownFixed(a, b *big.Int) (*big.Int, error) {
-	var product = new(big.Int).Mul(a, b)
-	return product.Div(product, One), nil
-}
-
-// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L10
-func abs(x *big.Int) *big.Int {
-	if x.Sign() < 0 {
-		return new(big.Int).Neg(x)
-	}
-	return x
+func sMulDownFixed(a, b *uint256.Int) (*uint256.Int, error) {
+	var product = new(uint256.Int).Mul(a, b)
+	return product.Div(product, Bone), nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L146
-func sDivDownFixed(a, b *big.Int) (*big.Int, error) {
+func sDivDownFixed(a, b *uint256.Int) (*uint256.Int, error) {
 	return divDownFixed(a, b)
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L158
-func sMulUpFixed(a, b *big.Int) (*big.Int, error) {
-	product := new(big.Int).Mul(a, b)
-	var tmp big.Int
-	if a.Sign() == 0 || tmp.Div(product, a).Cmp(b) == 0 {
-		if product.Sign() == 0 {
-			return product, nil
-		}
-		return product.Add(
-			product.Div(product.Sub(product, bignumber.One), One),
-			bignumber.One,
-		), nil
+func sMulUpFixed(a, b *uint256.Int) (*uint256.Int, error) {
+	product := new(uint256.Int).Mul(a, b)
+	var tmp uint256.Int
+	if !a.IsZero() && tmp.Div(product, a).Cmp(b) != 0 {
+		return nil, ErrMulOverflow
+	} else if product.IsZero() {
+		return product, nil
 	}
-
-	return nil, ErrMulOverflow
+	return product.AddUint64(
+		product.Div(product.SubUint64(product, 1), Bone),
+		1,
+	), nil
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-v1-pool.ts#L369
-func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
+func scaleFromAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	if decimals == 18 {
 		return amount, nil
 	}
-	var scalingFactor big.Int
+	var scalingFactor uint256.Int
 	if decimals > 18 {
 		scalingFactor.Mul(
 			bignumber.BONE,
@@ -1160,11 +959,11 @@ func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-v1-pool.ts#L382
-func ScaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
+func scaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	if decimals == 18 {
 		return amount, nil
 	}
-	var scalingFactor big.Int
+	var scalingFactor uint256.Int
 	if decimals > 18 {
 		scalingFactor.Mul(
 			bignumber.BONE,

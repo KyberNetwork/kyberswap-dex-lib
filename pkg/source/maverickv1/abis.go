@@ -2,6 +2,7 @@ package maverickv1
 
 import (
 	"bytes"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 

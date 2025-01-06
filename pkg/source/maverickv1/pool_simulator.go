@@ -3,10 +3,12 @@ package maverickv1
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,7 +20,6 @@ type Pool struct {
 	pool.Pool
 	decimals []uint8
 	state    *MaverickPoolState
-	gas      Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
@@ -36,218 +37,148 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		return nil, err
 	}
 
-	var tokens = make([]string, 2)
-	tokens[0] = entityPool.Tokens[0].Address
-	tokens[1] = entityPool.Tokens[1].Address
-
-	var decimals = make([]uint8, 2)
-	decimals[0] = entityPool.Tokens[0].Decimals
-	decimals[1] = entityPool.Tokens[1].Decimals
-
-	var minBinMapIndex, maxBinMapIndex *big.Int
-	if extra.MinBinMapIndex != nil && extra.MaxBinMapIndex != nil {
-		minBinMapIndex = extra.MinBinMapIndex
-		maxBinMapIndex = extra.MaxBinMapIndex
-	} else {
-		// after new pool-service deployed we'll have extra.MinBinMapIndex and extra.MaxBinMapIndex
-		// if missing then calculate here
-		binMap := extra.BinMap
-		binIndexBase := 10
-		if len(extra.BinMapHex) > 0 {
-			binMap = extra.BinMapHex
-			binIndexBase = 16
-		}
-		var binIndex big.Int
-		for k := range binMap {
-			binIndex.SetString(k, binIndexBase)
-			if minBinMapIndex == nil {
-				minBinMapIndex = new(big.Int).Set(&binIndex)
-			} else if minBinMapIndex.Cmp(&binIndex) > 0 {
-				minBinMapIndex.Set(&binIndex)
-			}
-			if maxBinMapIndex == nil {
-				maxBinMapIndex = new(big.Int).Set(&binIndex)
-			} else if maxBinMapIndex.Cmp(&binIndex) < 0 {
-				maxBinMapIndex.Set(&binIndex)
-			}
-		}
-		if minBinMapIndex == nil || maxBinMapIndex == nil {
-			return nil, ErrEmptyBinMap
-		}
-	}
+	binMap := extra.BinMap
+	binMapIds := lo.Keys(binMap)
 
 	return &Pool{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  entityPool.Address,
-				SwapFee:  extra.Fee,
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
-				Checked:  false,
+				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+				Reserves: []*big.Int{utils.NewBig10(entityPool.Reserves[0]), utils.NewBig10(entityPool.Reserves[1])},
 			},
 		},
-		decimals: decimals,
+		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
 		state: &MaverickPoolState{
-			TickSpacing:      staticExtra.TickSpacing,
 			Fee:              extra.Fee,
 			ProtocolFeeRatio: extra.ProtocolFeeRatio,
-			ActiveTick:       extra.ActiveTick,
-			BinCounter:       extra.BinCounter,
 			Bins:             extra.Bins,
 			BinPositions:     extra.BinPositions,
-			BinMap:           extra.BinMap,
-			BinMapHex:        extra.BinMapHex,
-			minBinMapIndex:   minBinMapIndex,
-			maxBinMapIndex:   maxBinMapIndex,
+			BinMap:           binMap,
+			TickSpacing:      staticExtra.TickSpacing,
+			ActiveTick:       extra.ActiveTick,
+			minBinMapIndex:   slices.Min(binMapIds),
+			maxBinMapIndex:   slices.Max(binMapIds),
 		},
-		gas: DefaultGas,
 	}, nil
 }
 
 func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
-	var tokenOutIndex = p.GetTokenIndex(tokenOut)
-
-	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		var tokenAIn bool
-		var scaleAmount *big.Int
-		var err error
-
-		// in paraswap code, side is the input of exactOutput. In our CalcAmountOut simulation, exactOutput always equals false
-		// https://github.com/paraswap/paraswap-dex-lib/blob/master/src/dex/maverick-v1/maverick-v1-pool.ts#L329
-
-		if strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0]) {
-			tokenAIn = true
-			scaleAmount, err = scaleFromAmount(tokenAmountIn.Amount, p.decimals[0])
-			if err != nil {
-				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		} else {
-			tokenAIn = false
-			scaleAmount, err = scaleFromAmount(tokenAmountIn.Amount, p.decimals[1])
-			if err != nil {
-				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		}
-
-		newState := p.state.Clone()
-
-		_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
-		if err != nil {
-			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not get amount out, err: %v", err)
-		}
-
-		var scaleAmountOut *big.Int
-		if strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0]) {
-			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
-			if err != nil {
-				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		} else {
-			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[0])
-			if err != nil {
-				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		}
-
-		// this is not really correct, because some tick required `nextActive` while some doesn't
-		// but should be good enough for now
-		crossBinGas := p.gas.CrossBin * int64(binCrossed)
-
-		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{
-				Token:  tokenOut,
-				Amount: scaleAmountOut,
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenAmountIn.Token,
-				Amount: nil,
-			},
-			Gas: p.gas.Swap + crossBinGas,
-			SwapInfo: maverickSwapInfo{
-				activeTick: newState.ActiveTick,
-				bins:       newState.Bins,
-			},
-		}, nil
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+	tokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0])
+
+	var scaleAmount *uint256.Int
+	var err error
+	if tokenAIn {
+		scaleAmount, err = scaleFromAmount(amountIn, p.decimals[0])
+	} else {
+		scaleAmount, err = scaleFromAmount(amountIn, p.decimals[1])
+	}
+	if err != nil {
+		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
+	}
+
+	newState := p.state.Clone()
+	_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
+	if err != nil {
+		return nil, fmt.Errorf("can not get amount out, err: %v", err)
+	}
+
+	var scaleAmountOut *uint256.Int
+	if tokenAIn {
+		scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[1])
+	} else {
+		scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[0])
+	}
+	if err != nil {
+		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: scaleAmountOut.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token: tokenAmountIn.Token,
+		},
+		// this is not really correct, because some ticks required `nextActive` while some doesn't
+		// but should be good enough for now
+		Gas: GasSwap + GasCrossBin*int64(binCrossed),
+		SwapInfo: maverickSwapInfo{
+			activeTick: newState.ActiveTick,
+			bins:       newState.Bins,
+		},
+	}, nil
 }
 
 func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenIn := param.TokenIn
-	tokenAmountOut := param.TokenAmountOut
-	var tokenInIndex = p.GetTokenIndex(tokenIn)
-	var tokenOutIndex = p.GetTokenIndex(tokenAmountOut.Token)
-
-	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		var tokenAIn bool
-		var scaleAmount *big.Int
-		var err error
-
-		// in paraswap code, side is the input of exactOutput. In our CalcAmountIn simulation, exactOutput always equals true
-		// https://github.com/paraswap/paraswap-dex-lib/blob/master/src/dex/maverick-v1/maverick-v1-pool.ts#L329
-
-		if strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0]) {
-			tokenAIn = true
-			scaleAmount, err = scaleFromAmount(tokenAmountOut.Amount, p.decimals[1])
-			if err != nil {
-				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		} else {
-			tokenAIn = false
-			scaleAmount, err = scaleFromAmount(tokenAmountOut.Amount, p.decimals[0])
-			if err != nil {
-				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		}
-
-		newState := p.state.Clone()
-
-		amountIn, _, binCrossed, err := swap(newState, scaleAmount, tokenAIn, true, false)
-		if err != nil {
-			return &pool.CalcAmountInResult{}, fmt.Errorf("swap failed, err: %v", err)
-		}
-
-		var scaleAmountIn *big.Int
-		if strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0]) {
-			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[0])
-			if err != nil {
-				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		} else {
-			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[1])
-			if err != nil {
-				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
-			}
-		}
-
-		// this is not really correct, because some tick required `nextActive` while some doesn't
-		// but should be good enough for now
-		crossBinGas := p.gas.CrossBin * int64(binCrossed)
-
-		return &pool.CalcAmountInResult{
-			TokenAmountIn: &pool.TokenAmount{
-				Token:  tokenIn,
-				Amount: scaleAmountIn,
-			},
-			Fee: &pool.TokenAmount{
-				Token:  tokenIn,
-				Amount: nil,
-			},
-			Gas: p.gas.Swap + crossBinGas,
-			SwapInfo: maverickSwapInfo{
-				activeTick: newState.ActiveTick,
-				bins:       newState.Bins,
-			},
-		}, nil
+	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
+	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+	tokenAIn := strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0])
+
+	var scaleAmount *uint256.Int
+	var err error
+	if tokenAIn {
+		scaleAmount, err = scaleToAmount(amountOut, p.decimals[1])
+	} else {
+		scaleAmount, err = scaleToAmount(amountOut, p.decimals[0])
+	}
+	if err != nil {
+		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
+	}
+
+	newState := p.state.Clone()
+	amountIn, _, binCrossed, err := swap(newState, scaleAmount, tokenAIn, true, false)
+	if err != nil {
+		return nil, fmt.Errorf("swap failed, err: %v", err)
+	}
+
+	var scaleAmountIn *uint256.Int
+	if tokenAIn {
+		scaleAmountIn, err = scaleFromAmount(amountIn, p.decimals[0])
+	} else {
+		scaleAmountIn, err = scaleFromAmount(amountIn, p.decimals[1])
+	}
+	if err != nil {
+		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: scaleAmountIn.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token: tokenIn,
+		},
+		// this is not really correct, because some tick required `nextActive` while some doesn't
+		// but should be good enough for now
+		Gas: GasSwap + GasCrossBin*int64(binCrossed),
+		SwapInfo: maverickSwapInfo{
+			activeTick: newState.ActiveTick,
+			bins:       newState.Bins,
+		},
+	}, nil
 }
 
 func (p *Pool) CloneState() pool.IPoolSimulator {
@@ -267,17 +198,16 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.ActiveTick = newState.activeTick
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *Pool) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
 func (state *MaverickPoolState) Clone() *MaverickPoolState {
 	cloned := *state
-	cloned.Bins = lo.MapValues(state.Bins, func(bin Bin, _ string) Bin {
-		bin.ReserveA = new(big.Int).Set(bin.ReserveA)
-		bin.ReserveB = new(big.Int).Set(bin.ReserveB)
+	cloned.Bins = lo.MapValues(state.Bins, func(bin Bin, _ uint32) Bin {
+		bin.ReserveA = bin.ReserveA.Clone()
+		bin.ReserveB = bin.ReserveB.Clone()
 		return bin
 	})
-	cloned.ActiveTick = new(big.Int).Set(state.ActiveTick)
 	return &cloned
 }
