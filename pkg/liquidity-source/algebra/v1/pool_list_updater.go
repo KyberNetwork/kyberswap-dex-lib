@@ -38,7 +38,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 		Pools []SubgraphPool `json:"pools"`
 	}
 
-	if err, _ := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		if allowSubgraphError && len(response.Pools) > 0 {
 			return response.Pools, nil
 		}

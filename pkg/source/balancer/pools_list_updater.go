@@ -229,7 +229,7 @@ func (d *PoolsListUpdater) getPoolsListByType(
 		Pairs []*SubgraphPool `json:"pools"`
 	}
 
-	if err, _ := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  poolType,
 			"error": err,

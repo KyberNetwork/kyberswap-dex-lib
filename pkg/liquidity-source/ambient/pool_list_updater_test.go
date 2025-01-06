@@ -8,9 +8,8 @@ import (
 	"testing"
 	"time"
 
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
@@ -53,11 +52,8 @@ func TestPoolListUpdater(t *testing.T) {
 			MulticallContractAddress: multicallAddress,
 		}
 
-		graphqlClientCfg = &graphqlpkg.Config{
-			Url:     config.SubgraphAPI,
-			Timeout: config.SubgraphTimeout.Duration,
-		}
-		graphqlClient = graphqlpkg.NewGraphQLClient(*graphqlClientCfg)
+		httpClient    = graphqlpkg.NewHttpClient(config.SubgraphTimeout.Duration)
+		graphqlClient = graphqlpkg.NewClient(config.SubgraphAPI, graphqlpkg.WithHTTPClient(httpClient))
 	)
 
 	{

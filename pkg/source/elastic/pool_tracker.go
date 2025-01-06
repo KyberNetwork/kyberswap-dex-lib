@@ -188,7 +188,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			logger.Errorf("failed to query subgraph for pool: %v, err: %v", poolAddress, err)
 			return nil, err
 		}

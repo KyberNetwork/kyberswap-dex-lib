@@ -82,7 +82,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 	)
 	req := graphqlpkg.NewRequest(query)
 
-	if err, _ := u.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		return nil, nil, err
 	}
 

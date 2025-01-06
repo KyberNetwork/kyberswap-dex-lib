@@ -3,6 +3,7 @@ package ambient
 import (
 	"context"
 	"fmt"
+
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 
 	"strings"
@@ -134,7 +135,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		resp SubgraphPoolsResponse
 	)
 
-	if err, _ := u.graphqlClient.Run(ctx, req, &resp); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 

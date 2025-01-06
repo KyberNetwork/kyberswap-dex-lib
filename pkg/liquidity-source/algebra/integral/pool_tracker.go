@@ -573,7 +573,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
-		if err, _ := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if allowSubgraphError {
 				if resp.Pool == nil {
 					l.WithFields(logger.Fields{

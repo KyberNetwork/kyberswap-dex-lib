@@ -1,5 +1,3 @@
-// Package graphql provides a low level GraphQL client.
-// machinebox/graphql https://github.com/machinebox/graphql/blob/3a92531802258604bd12793465c2e28bc4b2fc85/graphql.go
 package graphql
 
 import (
@@ -14,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-type IClient interface {
-	Invoke(ctx context.Context, req *Request, resp interface{}) (error, *Metadata)
-}
+type RunFunc func(ctx context.Context, req *Request, resp interface{}) error
+
+type ClientInterceptor func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error
 
 // Client is a client for interacting with a GraphQL API.
 type Client struct {
@@ -24,21 +22,17 @@ type Client struct {
 	httpClient       *http.Client
 	useMultipartForm bool
 
-	interceptors []Interceptor
+	chainedInt ClientInterceptor
 
 	// closeReq will close the request body immediately allowing for reuse of client
 	closeReq bool
+
+	chainInterceptor []ClientInterceptor
 
 	// Log is called with various debug information.
 	// To log to standard out, use:
 	//  client.Log = func(s string) { log.Println(s) }
 	Log func(s string)
-}
-
-type Metadata struct {
-	RespHeader http.Header
-	StatusCode int
-	RawErr     error
 }
 
 // NewClient makes a new Client capable of making GraphQL requests.
@@ -53,6 +47,7 @@ func NewClient(endpoint string, opts ...ClientOption) *Client {
 	if c.httpClient == nil {
 		c.httpClient = http.DefaultClient
 	}
+	chainClientInterceptors(c)
 	return c
 }
 
@@ -65,18 +60,22 @@ func (c *Client) logf(format string, args ...interface{}) {
 // Pass in a nil response object to skip response parsing.
 // If the request fails or the server returns an error, the first error
 // will be returned.
-func (c *Client) Run(ctx context.Context, req *Request, resp interface{}) (error, *Metadata) {
-	return ComposeInvokeInterceptor(c, c.interceptors...).Invoke(ctx, req, resp)
-}
-
-func (c *Client) Invoke(ctx context.Context, req *Request, resp interface{}) (error, *Metadata) {
+func (c *Client) Run(ctx context.Context, req *Request, resp interface{}) error {
 	select {
 	case <-ctx.Done():
-		return ctx.Err(), nil
+		return ctx.Err()
 	default:
 	}
+
+	if c.chainedInt != nil {
+		return c.chainedInt(ctx, req, resp, c.invoke)
+	}
+	return c.invoke(ctx, req, resp)
+}
+
+func (c *Client) invoke(ctx context.Context, req *Request, resp interface{}) error {
 	if len(req.files) > 0 && !c.useMultipartForm {
-		return errors.New("cannot send files with PostFields option"), nil
+		return errors.New("cannot send files with PostFields option")
 	}
 	if c.useMultipartForm {
 		return c.runWithPostFields(ctx, req, resp)
@@ -84,7 +83,7 @@ func (c *Client) Invoke(ctx context.Context, req *Request, resp interface{}) (er
 	return c.runWithJSON(ctx, req, resp)
 }
 
-func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}) (error, *Metadata) {
+func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}) error {
 	var requestBody bytes.Buffer
 	requestBodyObj := struct {
 		Query     string                 `json:"query"`
@@ -94,17 +93,17 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 		Variables: req.vars,
 	}
 	if err := json.NewEncoder(&requestBody).Encode(requestBodyObj); err != nil {
-		return errors.Wrap(err, "encode body"), nil
+		return errors.Wrap(err, "encode body")
+
 	}
 	c.logf(">> variables: %v", req.vars)
 	c.logf(">> query: %s", req.q)
 	gr := &graphResponse{
-		Data:   resp,
-		Header: make(http.Header),
+		Data: resp,
 	}
 	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
 	if err != nil {
-		return err, nil
+		return err
 	}
 	r.Close = c.closeReq
 	r.Header.Set("Content-Type", "application/json; charset=utf-8")
@@ -117,61 +116,56 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	metadata := &Metadata{}
-	if res != nil {
-		metadata.RespHeader = res.Header
-		metadata.StatusCode = res.StatusCode
-	}
+	req.Header = r.Header // replace request headers with actual headers sent
 	if err != nil {
-		return err, nil
+		return err
 	}
 	defer res.Body.Close()
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, res.Body); err != nil {
-		return errors.Wrap(err, "reading body"), metadata
+		return errors.Wrap(err, "reading body")
 	}
 	c.logf("<< %s", buf.String())
 	if err := json.NewDecoder(&buf).Decode(&gr); err != nil {
-		metadata.RawErr = err
 		if res.StatusCode != http.StatusOK {
-			return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode), metadata
+			return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode)
 		}
-		return errors.Wrap(err, "decoding response"), metadata
+		return errors.Wrap(err, "decoding response")
 	}
 	if len(gr.Errors) > 0 {
 		// return first error
-		return gr.Errors[0], metadata
+		return gr.Errors[0]
 	}
-	return nil, metadata
+	return nil
 }
 
-func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp interface{}) (error, *Metadata) {
+func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp interface{}) error {
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 	if err := writer.WriteField("query", req.q); err != nil {
-		return errors.Wrap(err, "write query field"), nil
+		return errors.Wrap(err, "write query field")
 	}
 	var variablesBuf bytes.Buffer
 	if len(req.vars) > 0 {
 		variablesField, err := writer.CreateFormField("variables")
 		if err != nil {
-			return errors.Wrap(err, "create variables field"), nil
+			return errors.Wrap(err, "create variables field")
 		}
 		if err := json.NewEncoder(io.MultiWriter(variablesField, &variablesBuf)).Encode(req.vars); err != nil {
-			return errors.Wrap(err, "encode variables"), nil
+			return errors.Wrap(err, "encode variables")
 		}
 	}
 	for i := range req.files {
 		part, err := writer.CreateFormFile(req.files[i].Field, req.files[i].Name)
 		if err != nil {
-			return errors.Wrap(err, "create form file"), nil
+			return errors.Wrap(err, "create form file")
 		}
 		if _, err := io.Copy(part, req.files[i].R); err != nil {
-			return errors.Wrap(err, "preparing file"), nil
+			return errors.Wrap(err, "preparing file")
 		}
 	}
 	if err := writer.Close(); err != nil {
-		return errors.Wrap(err, "close writer"), nil
+		return errors.Wrap(err, "close writer")
 	}
 	c.logf(">> variables: %s", variablesBuf.String())
 	c.logf(">> files: %d", len(req.files))
@@ -181,7 +175,7 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	}
 	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
 	if err != nil {
-		return err, nil
+		return err
 	}
 	r.Close = c.closeReq
 	r.Header.Set("Content-Type", writer.FormDataContentType())
@@ -194,37 +188,63 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	metadata := &Metadata{}
-	if res != nil {
-		metadata.RespHeader = res.Header
-		metadata.StatusCode = res.StatusCode
-	}
+	req.Header = r.Header // replace request headers with actual headers sent
 	if err != nil {
-		return err, nil
+		return err
 	}
 	defer res.Body.Close()
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, res.Body); err != nil {
-		return errors.Wrap(err, "reading body"), metadata
+		return errors.Wrap(err, "reading body")
 	}
 	c.logf("<< %s", buf.String())
 	if err := json.NewDecoder(&buf).Decode(&gr); err != nil {
-		metadata.RawErr = err
 		if res.StatusCode != http.StatusOK {
-			return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode), metadata
+			return fmt.Errorf("graphql: server returned a non-200 status code: %v", res.StatusCode)
 		}
-		return errors.Wrap(err, "decoding response"), metadata
+		return errors.Wrap(err, "decoding response")
 	}
 	if len(gr.Errors) > 0 {
 		// return first error
-		return gr.Errors[0], metadata
+		return gr.Errors[0]
 	}
-	return nil, metadata
+	return nil
 }
 
-func WithRunInterceptors(interceptors ...Interceptor) ClientOption {
+// chainClientInterceptors chains all client interceptors into one
+func chainClientInterceptors(client *Client) {
+	interceptors := client.chainInterceptor
+
+	if client.chainedInt != nil {
+		interceptors = append([]ClientInterceptor{client.chainedInt}, interceptors...)
+	}
+
+	var chainedInt ClientInterceptor
+	if len(interceptors) == 0 {
+		chainedInt = nil
+	} else if len(interceptors) == 1 {
+		chainedInt = interceptors[0]
+	} else {
+		chainedInt = func(ctx context.Context, req *Request, resp interface{}, runFn RunFunc) error {
+			return interceptors[0](ctx, req, resp, getChainRunFunc(interceptors, 0, runFn))
+		}
+	}
+	client.chainedInt = chainedInt
+}
+
+// getChainRunFunc recursively generate chained RunFunc
+func getChainRunFunc(interceptors []ClientInterceptor, curr int, finalFn RunFunc) RunFunc {
+	if curr == len(interceptors)-1 {
+		return finalFn
+	}
+	return func(ctx context.Context, req *Request, resp interface{}) error {
+		return interceptors[curr+1](ctx, req, resp, getChainRunFunc(interceptors, curr+1, finalFn))
+	}
+}
+
+func WithChainClientInterceptor(interceptors ...ClientInterceptor) ClientOption {
 	return func(client *Client) {
-		client.interceptors = append(client.interceptors, interceptors...)
+		client.chainInterceptor = append(client.chainInterceptor, interceptors...)
 	}
 }
 
@@ -266,7 +286,6 @@ func (e graphErr) Error() string {
 }
 
 type graphResponse struct {
-	Header http.Header
 	Data   interface{}
 	Errors []graphErr
 }
