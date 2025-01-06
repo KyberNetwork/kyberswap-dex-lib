@@ -16,7 +16,7 @@ const (
 	factoryMethodIsPaused       = "isPaused"
 	factoryMethodAllPairs       = "allPairs"
 	factoryMethodAllPairsLength = "allPairsLength"
-	factoryMethodStableFee      = "stableFees"
+	factoryMethodStableFees     = "stableFees"
 	factoryMethodVolatileFees   = "volatileFees"
 
 	poolMethodMetadata    = "metadata"
