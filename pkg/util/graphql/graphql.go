@@ -68,12 +68,12 @@ func (c *Client) Run(ctx context.Context, req *Request, resp interface{}) error 
 	}
 
 	if c.chainedInt != nil {
-		return c.chainedInt(ctx, req, resp, c.invoke)
+		return c.chainedInt(ctx, req, resp, c.run)
 	}
-	return c.invoke(ctx, req, resp)
+	return c.run(ctx, req, resp)
 }
 
-func (c *Client) invoke(ctx context.Context, req *Request, resp interface{}) error {
+func (c *Client) run(ctx context.Context, req *Request, resp interface{}) error {
 	if len(req.files) > 0 && !c.useMultipartForm {
 		return errors.New("cannot send files with PostFields option")
 	}
@@ -101,7 +101,11 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	gr := &graphResponse{
 		Data: resp,
 	}
-	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
+	endpoint := c.endpoint
+	if req.URL != "" {
+		endpoint = req.URL
+	}
+	r, err := http.NewRequest(http.MethodPost, endpoint, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -116,7 +120,6 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	req.Header = r.Header // replace request headers with actual headers sent
 	if err != nil {
 		return err
 	}
@@ -173,7 +176,11 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	gr := &graphResponse{
 		Data: resp,
 	}
-	r, err := http.NewRequest(http.MethodPost, c.endpoint, &requestBody)
+	endpoint := c.endpoint
+	if req.URL != "" {
+		endpoint = req.URL
+	}
+	r, err := http.NewRequest(http.MethodPost, endpoint, &requestBody)
 	if err != nil {
 		return err
 	}
@@ -188,7 +195,6 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	c.logf(">> headers: %v", r.Header)
 	r = r.WithContext(ctx)
 	res, err := c.httpClient.Do(r)
-	req.Header = r.Header // replace request headers with actual headers sent
 	if err != nil {
 		return err
 	}
@@ -299,6 +305,10 @@ type Request struct {
 	// Header represent any request headers that will be set
 	// when the request is made.
 	Header http.Header
+
+	// If the URL is not empty when the request is made,
+	// it will be used instead of the client's endpoint.
+	URL string
 }
 
 // NewRequest makes a new Request with the specified string.

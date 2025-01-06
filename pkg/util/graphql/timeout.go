@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	httppkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/http"
 	"github.com/machinebox/graphql"
 )
 
@@ -52,15 +51,13 @@ func NewWithTimeout(url string, timeout time.Duration) *graphql.Client {
 
 func NewHttpClient(
 	timeout time.Duration,
-	transportOpts ...httppkg.RoundTripperOption,
 ) *http.Client {
 	if timeout == 0 {
 		timeout = DefaultGraphQLRequestTimeout
 	}
 
 	httpClient := &http.Client{
-		Timeout:   timeout,
-		Transport: httppkg.NewTransportWithOptions(http.DefaultTransport, transportOpts...),
+		Timeout: timeout,
 	}
 
 	return httpClient
