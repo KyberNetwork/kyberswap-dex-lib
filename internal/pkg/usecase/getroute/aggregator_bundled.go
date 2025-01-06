@@ -117,6 +117,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 			poolSim := poolSims[pool.Address]
 			if poolSim == nil {
 				logger.Errorf(ctx, "could not get pool simulator for pool %v", pool.Address)
+				delete(state.Pools, pool.Address)
 				continue
 			}
 			logger.Debugf(ctx, "overriding pool %v: %v | %v", pool.Address, state.Pools[pool.Address], poolSim)
