@@ -3,12 +3,12 @@ package graphql
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 )
 
