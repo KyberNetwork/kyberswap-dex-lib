@@ -21,8 +21,9 @@ type PoolsListUpdater struct {
 
 func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, processBatch func(ctx context.Context, poolAddresses []common.Address, masterAddresses []string) ([]entity.Pool, error)) ([]entity.Pool, []byte, error) {
 	var oldMetadata syncswap.Metadata
-	var metadata Metadata
-
+	metadata := Metadata{
+		Offset: make(map[string]int),
+	}
 	if len(metadataBytes) != 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			if err1 := json.Unmarshal(metadataBytes, &oldMetadata); err1 != nil {
@@ -30,14 +31,8 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 			}
 			metadata.Offset[d.Config.MasterAddress[0]] = oldMetadata.Offset
 		}
-	} else {
-		metadata = Metadata{
-			Offset: make(map[string]int),
-		}
-		for _, masterAddress := range d.Config.MasterAddress {
-			metadata.Offset[masterAddress] = 0
-		}
 	}
+
 	ctx = util.NewContextWithTimestamp(ctx)
 	calls := d.EthrpcClient.NewRequest().SetContext(ctx)
 	lengthBI := make([]*big.Int, len(d.Config.MasterAddress))
