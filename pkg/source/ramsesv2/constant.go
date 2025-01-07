@@ -8,7 +8,7 @@ import (
 const (
 	DexTypeRamsesV2       = "ramses-v2"
 	graphSkipLimit        = 5000
-	graphFirstLimit       = 1
+	graphFirstLimit       = 1000
 	defaultTokenDecimals  = 18
 	defaultTokenWeight    = 50
 	graphQLRequestTimeout = 20 * time.Second

@@ -89,7 +89,7 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx 
 			}
 			orderBy: tickIdx,
 			orderDirection: asc,
-			first: 1
+			first: 1000
 		) {
 			tickIdx
 			liquidityNet

@@ -175,16 +175,16 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 
 	if d.config.IsPoolV3 {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV2PoolABI,
+			ABI:    ramsesV3PoolABI,
 			Target: p.Address,
-			Method: methodV2CurrentFee,
+			Method: methodV3Fee,
 			Params: nil,
 		}, []interface{}{&feeTier})
 	} else {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV3PoolABI,
+			ABI:    ramsesV2PoolABI,
 			Target: p.Address,
-			Method: methodV3Fee,
+			Method: methodV2CurrentFee,
 			Params: nil,
 		}, []interface{}{&feeTier})
 	}
