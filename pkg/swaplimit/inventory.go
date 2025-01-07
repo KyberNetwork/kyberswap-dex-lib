@@ -58,7 +58,7 @@ func (i *Inventory) GetSwapped() map[string]*big.Int {
 	return nil
 }
 
-func (i *Inventory) GetAllowSenders() string {
+func (i *Inventory) GetAllowedSenders() string {
 	return ""
 }
 

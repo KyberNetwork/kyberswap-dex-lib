@@ -48,7 +48,7 @@ func (l *SingleSwapLimit) GetSwapped() map[string]*big.Int {
 	return nil
 }
 
-func (i *SingleSwapLimit) GetAllowSenders() string {
+func (i *SingleSwapLimit) GetAllowedSenders() string {
 	return ""
 }
 

@@ -8,44 +8,44 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type InventoryWithAllowSenders struct {
+type InventoryWithAllowedSenders struct {
 	Inventory
-	AllowSenders string
+	AllowedSenders string
 }
 
-func NewInventoryWithAllowSenders(
+func NewInventoryWithAllowedSenders(
 	exchange string,
 	balance map[string]*big.Int,
-	allowSenders string,
-) *InventoryWithAllowSenders {
-	return &InventoryWithAllowSenders{
+	allowedSenders string,
+) *InventoryWithAllowedSenders {
+	return &InventoryWithAllowedSenders{
 		Inventory: Inventory{
 			exchange: exchange,
 			lock:     &sync.RWMutex{},
 			balance:  balance,
 		},
-		AllowSenders: allowSenders,
+		AllowedSenders: allowedSenders,
 	}
 }
 
-func (i *InventoryWithAllowSenders) GetAllowSenders() string {
-	return i.AllowSenders
+func (i *InventoryWithAllowedSenders) GetAllowedSenders() string {
+	return i.AllowedSenders
 }
 
-func (i *InventoryWithAllowSenders) UpdateLimit(
+func (i *InventoryWithAllowedSenders) UpdateLimit(
 	decreaseTokenAddress, increaseTokenAddress string,
 	decreaseDelta, increaseDelta *big.Int,
 ) (*big.Int, *big.Int, error) {
 	return i.Inventory.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
-func (i *InventoryWithAllowSenders) Clone() pool.SwapLimit {
-	return &InventoryWithAllowSenders{
+func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimit {
+	return &InventoryWithAllowedSenders{
 		Inventory: Inventory{
 			exchange: i.exchange,
 			lock:     &sync.RWMutex{},
 			balance:  maps.Clone(i.balance),
 		},
-		AllowSenders: i.AllowSenders,
+		AllowedSenders: i.AllowedSenders,
 	}
 }

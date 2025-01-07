@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -59,7 +60,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	numOrders := len(extra.BuyOrders) + len(extra.SellOrders)
 	allMakersBalanceAllowance := make(map[makerAndAsset]*big.Int, numOrders)
 	ordersMapping := make(map[int64]*order, numOrders)
@@ -218,6 +218,8 @@ func getMakerRemainingBalance(
 
 func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
+	// EX-2684: Filter orders that in allowedSenders list
+	orderIDs = p.filterOrdersByAllowedSenders(orderIDs, limit.GetAllowedSenders())
 	if len(orderIDs) == 0 {
 		return big.NewInt(0), SwapInfo{}, nil, nil
 	}
@@ -408,6 +410,25 @@ func (p *PoolSimulator) getSwapSide(tokenIn string, TokenOut string) SwapSide {
 		return Sell
 	}
 	return Buy
+}
+
+// filterOrdersByAllowedSenders returns orderIDs that have order.allowedSender
+// either in the allowedSenders, or is empty value.
+func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSenders string) []int64 {
+	allowedSendersSlice := lo.Filter(strings.Split(allowedSenders, ","), func(s string, _ int) bool {
+		return s != ""
+	})
+
+	allowedSendersAddress := lo.Map(allowedSendersSlice, func(s string, _ int) common.Address {
+		return common.HexToAddress(s)
+	})
+
+	return lo.Filter(orderIDs, func(orderID int64, _ int) bool {
+		order := p.ordersMapping[orderID]
+		orderAllowedSender := common.HexToAddress(order.AllowedSenders)
+
+		return orderAllowedSender == (common.Address{}) || lo.Contains(allowedSendersAddress, orderAllowedSender)
+	})
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
