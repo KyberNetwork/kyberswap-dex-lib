@@ -1,4 +1,4 @@
-package ramsesv2
+package v3
 
 import (
 	_ "embed"
@@ -6,9 +6,6 @@ import (
 
 //go:embed abis/RamsesV2Pool.json
 var ramsesV2PoolJson []byte
-
-//go:embed abis/RamsesV3Pool.json
-var ramsesV3PoolJson []byte
 
 //go:embed abis/ERC20.json
 var erc20Json []byte

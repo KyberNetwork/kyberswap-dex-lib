@@ -1,4 +1,4 @@
-package ramsesv2
+package v3
 
 import (
 	"math/big"
@@ -17,12 +17,10 @@ const (
 )
 
 const (
-	methodV3Fee = "fee"
-
-	methodV2GetLiquidity = "liquidity"
-	methodV2GetSlot0     = "slot0"
-	methodV2CurrentFee   = "currentFee"
-	methodV2TickSpacing  = "tickSpacing"
+	methodGetLiquidity   = "liquidity"
+	methodGetSlot0       = "slot0"
+	methodCurrentFee     = "currentFee"
+	methodTickSpacing    = "tickSpacing"
 	erc20MethodBalanceOf = "balanceOf"
 )
 

@@ -1,4 +1,4 @@
-package ramsesv2
+package v3
 
 import (
 	"context"
@@ -173,40 +173,31 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		rpcRequest.SetBlockNumber(&blockNumberBI)
 	}
 
-	if d.config.IsPoolV3 {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV2PoolABI,
-			Target: p.Address,
-			Method: methodV2CurrentFee,
-			Params: nil,
-		}, []interface{}{&feeTier})
-	} else {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV3PoolABI,
-			Target: p.Address,
-			Method: methodV3Fee,
-			Params: nil,
-		}, []interface{}{&feeTier})
-	}
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodV2GetLiquidity,
+		Method: methodGetLiquidity,
 		Params: nil,
 	}, []interface{}{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodV2GetSlot0,
+		Method: methodGetSlot0,
 		Params: nil,
 	}, []interface{}{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodV2TickSpacing,
+		Method: methodCurrentFee,
+		Params: nil,
+	}, []interface{}{&feeTier})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    ramsesV2PoolABI,
+		Target: p.Address,
+		Method: methodTickSpacing,
 		Params: nil,
 	}, []interface{}{&tickSpacing})
 

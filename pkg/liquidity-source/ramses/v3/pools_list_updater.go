@@ -1,4 +1,4 @@
-package ramsesv2
+package v3
 
 import (
 	"context"
@@ -89,7 +89,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
 		ramsesV2PoolABI,
-		methodV2TickSpacing,
+		methodTickSpacing,
 	)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
