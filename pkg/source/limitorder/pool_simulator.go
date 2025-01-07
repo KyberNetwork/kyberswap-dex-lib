@@ -421,6 +421,10 @@ func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSe
 		return s != ""
 	})
 
+	if len(allowedSendersSlice) == 0 {
+		return orderIDs
+	}
+
 	allowedSendersAddress := lo.Map(allowedSendersSlice, func(s string, _ int) common.Address {
 		return common.HexToAddress(s)
 	})
@@ -428,6 +432,8 @@ func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSe
 	return lo.Filter(orderIDs, func(orderID int64, _ int) bool {
 		order := p.ordersMapping[orderID]
 		orderAllowedSender := common.HexToAddress(order.AllowedSenders)
+		// order.AllowedSenders can be multiple, separate by ','.
+		// We only check for single allowedSenders address for now.
 
 		return orderAllowedSender == (common.Address{}) || lo.Contains(allowedSendersAddress, orderAllowedSender)
 	})
