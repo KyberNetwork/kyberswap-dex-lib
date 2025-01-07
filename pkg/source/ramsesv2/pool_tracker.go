@@ -51,7 +51,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		rpcData   FetchRPCResult
-		poolTicks []TickResp
+		poolTicks []ticklens.TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -245,16 +245,16 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	}, err
 }
 
-func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
+func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 	lastTickIdx := ""
-	var ticks []TickResp
+	var ticks []ticklens.TickResp
 
 	for {
 		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Ticks []TickResp                `json:"ticks"`
+			Ticks []ticklens.TickResp       `json:"ticks"`
 			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
