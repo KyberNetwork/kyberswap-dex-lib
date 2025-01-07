@@ -48,17 +48,3 @@ func NewWithTimeout(url string, timeout time.Duration) *graphql.Client {
 		Timeout: timeout,
 	})
 }
-
-func NewHttpClient(
-	timeout time.Duration,
-) *http.Client {
-	if timeout == 0 {
-		timeout = DefaultGraphQLRequestTimeout
-	}
-
-	httpClient := &http.Client{
-		Timeout: timeout,
-	}
-
-	return httpClient
-}

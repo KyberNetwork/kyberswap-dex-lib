@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type mockPoolDataStore struct {
@@ -52,8 +53,10 @@ func TestPoolListUpdater(t *testing.T) {
 			MulticallContractAddress: multicallAddress,
 		}
 
-		httpClient    = graphqlpkg.NewHttpClient(config.SubgraphTimeout.Duration)
-		graphqlClient = graphqlpkg.NewClient(config.SubgraphAPI, graphqlpkg.WithHTTPClient(httpClient))
+		httpCfg = &kutils.HttpCfg{
+			Timeout: config.SubgraphTimeout.Duration,
+		}
+		graphqlClient = graphqlpkg.NewClient(config.SubgraphAPI, graphqlpkg.WithRestyClient(httpCfg.NewRestyClient()))
 	)
 
 	{
