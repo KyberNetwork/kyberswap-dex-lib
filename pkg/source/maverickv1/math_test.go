@@ -673,3 +673,48 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "4629465618898435945", amountOut.String())
 }
+
+func Test_getKindsAtTick(t *testing.T) {
+	type args struct {
+		binMap map[int16]*uint256.Int
+		tick   int32
+	}
+	tests := []struct {
+		name string
+		args args
+		want Active
+	}{
+		{
+			"happy",
+			args{
+				map[int16]*uint256.Int{
+					1: uint256.MustFromHex("0x1123456789abcdef"),
+				},
+				65,
+			},
+			Active{
+				Word: 0xe,
+				Tick: 65,
+			},
+		},
+		{
+			"no existing submap",
+			args{
+				map[int16]*uint256.Int{
+					1: uint256.MustFromHex("0x1123456789abcdef"),
+				},
+				63,
+			},
+			Active{
+				Word: 0x0,
+				Tick: 63,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, getKindsAtTick(tt.args.binMap, tt.args.tick), "getKindsAtTick(%v, %v)",
+				tt.args.binMap, tt.args.tick)
+		})
+	}
+}
