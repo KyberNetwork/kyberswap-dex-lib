@@ -97,9 +97,9 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 
 	var scaleAmountOut *uint256.Int
 	if tokenAIn {
-		scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[1])
+		scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
 	} else {
-		scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[0])
+		scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[0])
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
@@ -139,9 +139,9 @@ func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInRe
 	var scaleAmount *uint256.Int
 	var err error
 	if tokenAIn {
-		scaleAmount, err = scaleToAmount(amountOut, p.decimals[1])
+		scaleAmount, err = ScaleToAmount(amountOut, p.decimals[1])
 	} else {
-		scaleAmount, err = scaleToAmount(amountOut, p.decimals[0])
+		scaleAmount, err = ScaleToAmount(amountOut, p.decimals[0])
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)

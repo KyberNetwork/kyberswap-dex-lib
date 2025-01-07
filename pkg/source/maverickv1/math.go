@@ -959,7 +959,7 @@ func scaleFromAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) 
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-v1-pool.ts#L382
-func scaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
+func ScaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	if decimals == 18 {
 		return amount, nil
 	}
