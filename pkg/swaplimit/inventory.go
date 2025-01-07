@@ -58,6 +58,10 @@ func (i *Inventory) GetSwapped() map[string]*big.Int {
 	return nil
 }
 
+func (i *Inventory) GetAllowSenders() string {
+	return ""
+}
+
 // CheckLimit returns the balance for the token in Inventory. Do not modify the result.
 func (i *Inventory) CheckLimit(tokenAddress string, amount *big.Int) error {
 	i.lock.RLock()
