@@ -847,7 +847,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewPoolSimulator(tt.poolEntity, "")
+			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
@@ -943,7 +943,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 			StaticExtra: `{"ContractAddress":""}`,
 			Extra:       string(sExtra),
 		}
-		p, err := NewPoolSimulator(poolEnt, "")
+		p, err := NewPoolSimulator(poolEnt)
 		require.Nil(t, err)
 		return p
 	})
@@ -1048,7 +1048,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 				StaticExtra: `{"ContractAddress":""}`,
 				Extra:       string(sExtra),
 			}
-			p, err := NewPoolSimulator(poolEnt, "")
+			p, err := NewPoolSimulator(poolEnt)
 			require.Nil(t, err)
 			return p
 		})
@@ -1206,7 +1206,7 @@ func TestPool_Inventory(t *testing.T) {
 				StaticExtra: `{"ContractAddress":""}`,
 				Extra:       string(sExtra),
 			}
-			p, err := NewPoolSimulator(poolEnt, "")
+			p, err := NewPoolSimulator(poolEnt)
 			require.Nil(t, err)
 			// fake spent balance
 			p.allMakersBalanceAllowance = makerAssetBalance
@@ -1334,7 +1334,7 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 			StaticExtra: `{"ContractAddress":""}`,
 			Extra:       string(sExtra),
 		}
-		p, err := NewPoolSimulator(poolEnt, "")
+		p, err := NewPoolSimulator(poolEnt)
 		require.Nil(t, err)
 		return p
 	})
@@ -1374,46 +1374,4 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 			fmt.Println(oinfo)
 		})
 	}
-}
-
-func TestPool_FilterOutPrivateOrders(t *testing.T) {
-	extra := Extra{
-		BuyOrders: []*order{
-			{
-				ID:             1,
-				AllowedSenders: "0x0000000000000000000000000000000000000000",
-			},
-			{
-				ID:             2,
-				AllowedSenders: "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67",
-			},
-			{
-				ID:             3,
-				AllowedSenders: "0xf081470f5c6fbccf48cc4e5b82dd926409dcdd67",
-			},
-			{
-				ID:             4,
-				AllowedSenders: "0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854",
-			},
-		},
-	}
-	sExtra, _ := json.Marshal(extra)
-	poolEnt := entity.Pool{
-		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
-		Reserves:    entity.PoolReserves{"0", "0"},
-		StaticExtra: `{"ContractAddress":""}`,
-		Extra:       string(sExtra),
-	}
-
-	p, err := NewPoolSimulator(poolEnt, "")
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(p.buyOrderIDs))
-
-	p, err = NewPoolSimulator(poolEnt, "0xf081470f5c6fbccf48cc4e5b82dd926409dcdd67")
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(p.buyOrderIDs))
-
-	p, err = NewPoolSimulator(poolEnt, "0xf081470f5c6fbccf48cc4e5b82dd926409dcdd67,0x11ddd59c33c73c44733b4123a86ea5ce57f6e854")
-	assert.NoError(t, err)
-	assert.Equal(t, 4, len(p.buyOrderIDs))
 }

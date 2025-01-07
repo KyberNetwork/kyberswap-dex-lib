@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -34,7 +33,7 @@ type (
 	}
 )
 
-func NewPoolSimulator(entityPool entity.Pool, allowSenders string) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
@@ -60,33 +59,6 @@ func NewPoolSimulator(entityPool entity.Pool, allowSenders string) (*PoolSimulat
 	if err != nil {
 		return nil, err
 	}
-
-	// EX-2684: Filter out orders that are not in allowedSenders list.
-	allowSendersSlice := lo.Filter(strings.Split(allowSenders, ","), func(s string, _ int) bool {
-		return s != ""
-	})
-
-	allowSendersAddress := lo.Map(allowSendersSlice, func(s string, _ int) common.Address {
-		return common.HexToAddress(s)
-	})
-
-	filterOrderFunc := func(o *order, _ int) bool {
-		orderAllowSender := common.HexToAddress(o.AllowedSenders)
-		if orderAllowSender == (common.Address{}) {
-			return true
-		}
-
-		for _, allowSender := range allowSendersAddress {
-			if allowSender == orderAllowSender {
-				return true
-			}
-		}
-
-		return false
-	}
-
-	extra.BuyOrders = lo.Filter(extra.BuyOrders, filterOrderFunc)
-	extra.SellOrders = lo.Filter(extra.SellOrders, filterOrderFunc)
 
 	numOrders := len(extra.BuyOrders) + len(extra.SellOrders)
 	allMakersBalanceAllowance := make(map[makerAndAsset]*big.Int, numOrders)

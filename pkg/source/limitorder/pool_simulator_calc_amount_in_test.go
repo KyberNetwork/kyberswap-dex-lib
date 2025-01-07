@@ -250,7 +250,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewPoolSimulator(tt.poolEntity, "")
+			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
@@ -344,7 +344,7 @@ func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewPoolSimulator(tt.poolEntity, "")
+			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			calcAmountOutResult, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 				limit := swaplimit.NewInventory("", p.CalculateLimit())
