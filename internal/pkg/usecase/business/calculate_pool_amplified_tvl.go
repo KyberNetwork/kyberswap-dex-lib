@@ -185,7 +185,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		}
 
 		// maverick actually used D18 representation (sqrtPrice * 1e18)
-		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceD18(extra.SqrtPriceX96)
+		liquidity, sqrtPrice = extra.Liquidity.ToBig(), fromSqrtPriceD18(extra.SqrtPriceX96.ToBig())
 	case algebrav1.DexTypeAlgebraV1:
 		extra := algebrav1.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)

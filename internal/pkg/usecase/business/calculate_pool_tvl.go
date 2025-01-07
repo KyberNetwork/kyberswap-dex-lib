@@ -2,14 +2,15 @@ package business
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -67,12 +68,18 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 	switch p.Type {
 	case maverickv1.DexTypeMaverickV1:
 		// maverick's reserves need to be scaled up/down first
-		reserveRaw, err := maverickv1.ScaleToAmount(bignumber.NewBig10(p.Reserves[i]), decimals)
+		reserveRaw, err := maverickv1.ScaleToAmount(number.NewUint256(p.Reserves[i]), decimals)
 		if err != nil {
 			logger.Debugf(ctx, "invalid pool reserve %v %v", p.Address, p.Reserves[i])
 			return nil, ErrorInvalidReserve
 		}
-		return new(big.Float).SetInt(reserveRaw), nil
+
+		reserveBF, ok := new(big.Float).SetString(reserveRaw.String())
+		if !ok {
+			return nil, fmt.Errorf("fail to convert pool reserve to big float: %v", p.Reserves[i])
+		}
+
+		return reserveBF, nil
 
 	case composablestable.DexType:
 		// need to ignore the pool token itself

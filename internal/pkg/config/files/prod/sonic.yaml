@@ -41,6 +41,7 @@ common:
     - "beets-ss"
     - "woofi-v3"
     - "swap-x-v2"
+    - "shadow-dex"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
