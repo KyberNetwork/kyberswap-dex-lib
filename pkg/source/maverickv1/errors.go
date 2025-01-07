@@ -10,4 +10,5 @@ var (
 	ErrInvalidLiquidity  = errors.New("invalid liquidity")
 	ErrInvalidDeltaOut   = errors.New("invalid delta out") // L
 	ErrEmptyBins         = errors.New("maverick pool has no bin")
+	ErrEmptyBinMap       = errors.New("maverick bin map is empty")
 )
