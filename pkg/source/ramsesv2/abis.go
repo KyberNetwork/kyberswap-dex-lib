@@ -8,6 +8,7 @@ import (
 
 var (
 	ramsesV2PoolABI abi.ABI
+	ramsesV3PoolABI abi.ABI
 	erc20ABI        abi.ABI
 )
 
@@ -17,6 +18,7 @@ func init() {
 		data []byte
 	}{
 		{&ramsesV2PoolABI, ramsesV2PoolJson},
+		{&ramsesV3PoolABI, ramsesV3PoolJson},
 		{&erc20ABI, erc20Json},
 	}
 

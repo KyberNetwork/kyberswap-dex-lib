@@ -89,7 +89,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
 		ramsesV2PoolABI,
-		methodTickSpacing,
+		methodV2TickSpacing,
 	)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
@@ -101,7 +101,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			TickSpacing: tickSpacings[p.ID],
 		}
 
-		if p.Token0.Address != emptyString {
+		if p.Token0.Address != "" {
 			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
 
 			if err != nil {
@@ -118,10 +118,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
-		if p.Token1.Address != emptyString {
+		if p.Token1.Address != "" {
 			token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
 
 			if err != nil {
@@ -138,7 +138,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
