@@ -98,6 +98,15 @@ common:
     - "clipper"
     - "lo1inch"
     - "virtual-fun"
+  excludedSourcesByClient: &excludedSourcesByClient
+    # llamaswap:
+    #   - "swaap-v2"
+    #   - "hashflow-v3"
+    #   - "native-v1"
+    #   - "bebop"
+    #   - "clipper"
+    #   - "dexalot"
+    #   - "mx-trading"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -248,6 +257,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    excludedSourcesByClient: *excludedSourcesByClient
     defaultPoolsIndex: nativeTvl
     salt: &salt
     aggregator:
@@ -386,40 +396,40 @@ useCase:
     chainId: *chainId
     salt: *salt
     rfq:
-      - id: kyberswap-limit-order-v2
+      kyberswap-limit-order-v2:
         handler: limit-order
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
-      - id: swaap-v2
+      swaap-v2:
         handler: swaap-v2
         properties:
           http:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
-      - id: native-v1
+      native-v1:
         handler: native-v1
         properties:
           http:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
-      - id: bebop
+      bebop:
         handler: bebop
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/base"
             timeout: 10s
             retry_count: 3
-      - id: dexalot
+      dexalot:
         handler: dexalot
         properties:
           http:
             base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3
-      - id: clipper
+      clipper:
         handler: clipper
         properties:
           http:

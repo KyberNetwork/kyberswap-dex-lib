@@ -364,13 +364,13 @@ func apiAction(c *cli.Context) (err error) {
 	)
 
 	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
-	for _, s := range cfg.UseCase.BuildRoute.RFQ {
-		rfqHandler, err := bootstrap.NewRFQHandler(s, cfg.Common)
+	for dexId, dex := range cfg.UseCase.BuildRoute.RFQ {
+		rfqHandler, err := bootstrap.NewRFQHandler(dexId, dex, cfg.Common)
 		if err != nil {
-			return fmt.Errorf("can not create RFQ handler: %v, err: %v", s.Handler, err)
+			return fmt.Errorf("can not create RFQ handler: %v, err: %v", dex.Handler, err)
 		}
 
-		rfqHandlerByPoolType[s.Handler] = rfqHandler
+		rfqHandlerByPoolType[dex.Handler] = rfqHandler
 	}
 
 	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,

@@ -18,8 +18,10 @@ const (
 )
 
 type ConfigResponseDataConfig struct {
-	AvailableSources      []valueobject.Source            `json:"availableSources"`
-	UnscalableSources     []valueobject.Source            `json:"unscalableSources"`
+	AvailableSources        []valueobject.Source            `json:"availableSources"`
+	UnscalableSources       []valueobject.Source            `json:"unscalableSources"`
+	ExcludedSourcesByClient map[string][]valueobject.Source `json:"excludedSourcesByClient"`
+
 	WhitelistedTokens     []valueobject.WhitelistedToken  `json:"whitelistedTokens"`
 	BlacklistedPools      []string                        `json:"blacklistedPools"`
 	FeatureFlags          valueobject.FeatureFlags        `json:"featureFlags"`
@@ -94,20 +96,21 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string,
 	}
 
 	return valueobject.RemoteConfig{
-		Hash:                  cfgResp.Data.Hash,
-		AvailableSources:      cfgResp.Data.Config.AvailableSources,
-		UnscalableSources:     cfgResp.Data.Config.UnscalableSources,
-		WhitelistedTokens:     cfgResp.Data.Config.WhitelistedTokens,
-		BlacklistedPools:      cfgResp.Data.Config.BlacklistedPools,
-		FeatureFlags:          cfgResp.Data.Config.FeatureFlags,
-		Log:                   cfgResp.Data.Config.Log,
-		GetBestPoolsOptions:   cfgResp.Data.Config.GetBestPoolsOptions,
-		FinderOptions:         cfgResp.Data.Config.FinderOptions,
-		PregenFinderOptions:   cfgResp.Data.Config.PregenFinderOptions,
-		CacheConfig:           cfgResp.Data.Config.CacheConfig,
-		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
-		FaultyPoolsConfig:     cfgResp.Data.Config.FaultyPoolsConfig,
-		SafetyQuoteReduction:  cfgResp.Data.Config.SafetyQuoteReduction,
+		Hash:                    cfgResp.Data.Hash,
+		AvailableSources:        cfgResp.Data.Config.AvailableSources,
+		UnscalableSources:       cfgResp.Data.Config.UnscalableSources,
+		ExcludedSourcesByClient: cfgResp.Data.Config.ExcludedSourcesByClient,
+		WhitelistedTokens:       cfgResp.Data.Config.WhitelistedTokens,
+		BlacklistedPools:        cfgResp.Data.Config.BlacklistedPools,
+		FeatureFlags:            cfgResp.Data.Config.FeatureFlags,
+		Log:                     cfgResp.Data.Config.Log,
+		GetBestPoolsOptions:     cfgResp.Data.Config.GetBestPoolsOptions,
+		FinderOptions:           cfgResp.Data.Config.FinderOptions,
+		PregenFinderOptions:     cfgResp.Data.Config.PregenFinderOptions,
+		CacheConfig:             cfgResp.Data.Config.CacheConfig,
+		BlacklistedRecipients:   cfgResp.Data.Config.BlacklistedRecipients,
+		FaultyPoolsConfig:       cfgResp.Data.Config.FaultyPoolsConfig,
+		SafetyQuoteReduction:    cfgResp.Data.Config.SafetyQuoteReduction,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 		RFQAcceptableSlippageFraction:  cfgResp.Data.Config.RFQAcceptableSlippageFraction,

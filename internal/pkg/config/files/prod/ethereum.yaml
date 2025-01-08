@@ -152,6 +152,15 @@ common:
     - "etherfi-vampire"
     - "mx-trading"
     - "lo1inch"
+  excludedSourcesByClient: &excludedSourcesByClient
+    # llamaswap:
+    #   - "swaap-v2"
+    #   - "hashflow-v3"
+    #   - "native-v1"
+    #   - "bebop"
+    #   - "clipper"
+    #   - "dexalot"
+    #   - "mx-trading"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -268,6 +277,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    excludedSourcesByClient: *excludedSourcesByClient
     defaultPoolsIndex: nativeTvl
     salt: &salt
     aggregator:
@@ -413,7 +423,7 @@ useCase:
     chainId: *chainId
     salt: *salt
     rfq:
-      - id: kyber-pmm
+      kyber-pmm:
         handler: kyber-pmm
         properties:
           http:
@@ -421,19 +431,19 @@ useCase:
             timeout: 5s
             retry_count: 3
           rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
-      - id: kyberswap-limit-order-v2
+      kyberswap-limit-order-v2:
         handler: limit-order
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
-      - id: swaap-v2
+      swaap-v2:
         handler: swaap-v2
         properties:
           http:
             base_url: "https://api.swaap.finance"
             timeout: 5s
             retry_count: 3
-      - id: hashflow-v3
+      hashflow-v3:
         handler: hashflow-v3
         properties:
           http:
@@ -443,28 +453,28 @@ useCase:
             retry_count: 3
           excludeMarketMakers:
             - mm22
-      - id: native-v1
+      native-v1:
         handler: native-v1
         properties:
           http:
             base_url: "https://newapi.native.org"
             timeout: 5s
             retry_count: 3
-      - id: bebop
+      bebop:
         handler: bebop
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
             retry_count: 3
-      - id: clipper
+      clipper:
         handler: clipper
         properties:
           http:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
-      - id: mx-trading
+      mx-trading:
         handler: mx-trading
         properties:
           router: 0x111111125421ca6dc452d289314280a0f8842a65

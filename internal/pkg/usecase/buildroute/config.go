@@ -7,7 +7,7 @@ import (
 type (
 	Config struct {
 		ChainID                       valueobject.ChainID      `mapstructure:"chainId"`
-		RFQ                           []RFQConfig              `mapstructure:"rfq"`
+		RFQ                           map[string]RFQConfig     `mapstructure:"rfq"`
 		FeatureFlags                  valueobject.FeatureFlags `mapstructure:"featureFlags"`
 		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
 		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
@@ -15,7 +15,6 @@ type (
 		Salt                          string                   `mapstructure:"salt"`
 	}
 	RFQConfig struct {
-		Id         string                 `mapstructure:"id"`
 		Handler    string                 `mapstructure:"handler"`
 		Properties map[string]interface{} `mapstructure:"properties"`
 	}

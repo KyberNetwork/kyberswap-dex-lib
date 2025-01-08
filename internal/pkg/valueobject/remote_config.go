@@ -7,18 +7,19 @@ import (
 
 type (
 	RemoteConfig struct {
-		Hash                  string              `json:"hash"`
-		AvailableSources      []Source            `json:"availableSources"`
-		UnscalableSources     []Source            `json:"unscalableSources"`
-		WhitelistedTokens     []WhitelistedToken  `json:"whitelistedTokens"`
-		FeatureFlags          FeatureFlags        `json:"featureFlags"`
-		BlacklistedPools      []string            `json:"blacklistedPools"`
-		Log                   Log                 `json:"log"`
-		GetBestPoolsOptions   GetBestPoolsOptions `json:"getBestPoolsOptions"`
-		FinderOptions         FinderOptions       `json:"finderOptions"`
-		PregenFinderOptions   FinderOptions       `json:"pregenFinderOptions"`
-		CacheConfig           CacheConfig         `json:"cache"`
-		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
+		Hash                    string              `json:"hash"`
+		AvailableSources        []Source            `json:"availableSources"`
+		UnscalableSources       []Source            `json:"unscalableSources"`
+		ExcludedSourcesByClient map[string][]Source `json:"excludedSourcesByClient"`
+		WhitelistedTokens       []WhitelistedToken  `json:"whitelistedTokens"`
+		FeatureFlags            FeatureFlags        `json:"featureFlags"`
+		BlacklistedPools        []string            `json:"blacklistedPools"`
+		Log                     Log                 `json:"log"`
+		GetBestPoolsOptions     GetBestPoolsOptions `json:"getBestPoolsOptions"`
+		FinderOptions           FinderOptions       `json:"finderOptions"`
+		PregenFinderOptions     FinderOptions       `json:"pregenFinderOptions"`
+		CacheConfig             CacheConfig         `json:"cache"`
+		BlacklistedRecipients   []string            `json:"blacklistedRecipients"`
 
 		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`

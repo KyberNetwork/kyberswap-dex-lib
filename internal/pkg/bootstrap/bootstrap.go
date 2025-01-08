@@ -45,6 +45,7 @@ func (h *NoopRFQHandler) SupportBatch() bool {
 }
 
 func NewRFQHandler(
+	dexId string,
 	rfqCfg buildroute.RFQConfig,
 	commonCfg config.Common,
 ) (pool.IPoolRFQ, error) {
@@ -55,7 +56,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 
 		httpClient := kyberpmmclient.NewHTTPClient(&cfg.HTTP)
 
@@ -66,7 +67,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 
 		return limitorder.NewRFQHandler(&cfg), nil
 	case swaapv2.DexType:
@@ -75,7 +76,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.APIKey = commonCfg.SwaapAPIKey
 		httpClient := swaapv2client.NewHTTPClient(&cfg.HTTP)
 
@@ -87,7 +88,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.APIKey = commonCfg.HashflowAPIKey
 		httpClient := hashflowv3client.NewHTTPClient(&cfg.HTTP)
 
@@ -99,7 +100,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.APIKey = commonCfg.NativeAPIKey
 		httpClient := nativev1client.NewHTTPClient(&cfg.HTTP)
 
@@ -111,7 +112,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.Name = commonCfg.BebopAPIName
 		cfg.HTTP.Authorization = commonCfg.BebopAPIAuth
 		httpClient := bebopclient.NewHTTPClient(&cfg.HTTP)
@@ -124,7 +125,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.BasicAuthKey = commonCfg.ClipperAPIAuth
 		httpClient := clipperclient.NewHTTPClient(cfg.HTTP)
 
@@ -135,7 +136,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		cfg.HTTP.APIKey = commonCfg.DexalotAPIKey
 		cfg.UpscalePercent = commonCfg.DexalotUpscalePercent
 		httpClient := dexalotclient.NewHTTPClient(&cfg.HTTP)
@@ -147,7 +148,7 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = rfqCfg.Id
+		cfg.DexID = dexId
 		httpClient := mxtradingclient.NewHTTPClient(&cfg.HTTP)
 
 		return mxtrading.NewRFQHandler(&cfg, httpClient), nil

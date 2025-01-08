@@ -148,7 +148,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		TokenOutPriceUSD: tokenOutPriceUSD,
 		GasTokenPriceUSD: gasTokenPriceUSD,
 		AmountIn:         query.AmountIn,
-		Sources:          u.getSources(query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources),
+		Sources:          u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources),
 		SaveGas:          query.SaveGas,
 		GasInclude:       query.GasInclude,
 		GasPrice:         gasPrice,
@@ -208,7 +208,7 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
-func (u *useCase) getSources(includedSources []string, excludedSources []string, onlyScalableSources bool) []string {
+func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string, onlyScalableSources bool) []string {
 	var sources mapset.Set[string]
 	if len(includedSources) > 0 {
 		sources = mapset.NewThreadUnsafeSet(includedSources...)
@@ -217,6 +217,10 @@ func (u *useCase) getSources(includedSources []string, excludedSources []string,
 	}
 
 	sources.RemoveAll(excludedSources...)
+
+	if excludedSourcesByClient, ok := u.config.ExcludedSourcesByClient[clientId]; ok {
+		sources.RemoveAll(excludedSourcesByClient...)
+	}
 
 	if onlyScalableSources {
 		sources.RemoveAll(u.config.UnscalableSources...)

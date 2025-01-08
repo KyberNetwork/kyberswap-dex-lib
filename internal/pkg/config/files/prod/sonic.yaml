@@ -42,6 +42,15 @@ common:
     - "woofi-v3"
     - "swap-x-v2"
     - "shadow-dex"
+  excludedSourcesByClient: &excludedSourcesByClient
+    # llamaswap:
+    #   - "swaap-v2"
+    #   - "hashflow-v3"
+    #   - "native-v1"
+    #   - "bebop"
+    #   - "clipper"
+    #   - "dexalot"
+    #   - "mx-trading"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -144,6 +153,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    excludedSourcesByClient: *excludedSourcesByClient
     defaultPoolsIndex: nativeTvl
     salt: &salt
     aggregator:
@@ -283,7 +293,7 @@ useCase:
     chainId: *chainId
     salt: *salt
     rfq:
-      - id: kyberswap-limit-order-v2
+      kyberswap-limit-order-v2:
         handler: limit-order
         properties:
           chainID: *chainId

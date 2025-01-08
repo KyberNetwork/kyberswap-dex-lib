@@ -172,6 +172,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		// Set each field so that it does not override the address of the pointer cl.config
 		cl.setAvailableSources(remoteCfg.AvailableSources)
 		cl.setUnscalableSources(remoteCfg.UnscalableSources)
+		cl.setExcludedSourcesByClient(remoteCfg.ExcludedSourcesByClient)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
@@ -214,7 +215,6 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 	cl.config.Common.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
-	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.TradeDataGenerator.AvailableSources = strAvailableSources
 	cl.config.UseCase.PoolManager.AvailableSources = strAvailableSources
 }
@@ -230,6 +230,22 @@ func (cl *ConfigLoader) setUnscalableSources(unscalableSources []valueobject.Sou
 	cl.config.UseCase.GetRoute.UnscalableSources = strUnscalableSources
 }
 
+func (cl *ConfigLoader) setExcludedSourcesByClient(sourcesByClient map[string][]valueobject.Source) {
+	newSourcesByClient := make(map[string][]string, len(sourcesByClient))
+
+	for client, sources := range sourcesByClient {
+		strSources := make([]string, 0, len(sources))
+		for _, source := range sources {
+			strSources = append(strSources, string(source))
+		}
+		newSourcesByClient[client] = strSources
+	}
+
+	cl.config.Common.ExcludedSourcesByClient = newSourcesByClient
+	cl.config.UseCase.GetCustomRoute.ExcludedSourcesByClient = newSourcesByClient
+	cl.config.UseCase.GetRoute.ExcludedSourcesByClient = newSourcesByClient
+}
+
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
 	whitelistedTokenSet := make(map[string]bool, len(whitelistedTokens))
 	for _, whitelistedToken := range whitelistedTokens {
@@ -239,7 +255,6 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetCustomRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
-	cl.config.UseCase.GetCustomRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.TradeDataGenerator.WhitelistedTokenSet = whitelistedTokenSet
