@@ -41,12 +41,8 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 			orderDirection: asc
 		) {
 			id
-			liquidity
-			sqrtPrice
 			createdAtTimestamp
-			tick
 			feeTier
-			tickSpacing
 			token0 {
 				id
 				name

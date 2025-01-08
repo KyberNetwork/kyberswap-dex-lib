@@ -740,9 +740,13 @@ func nextActive(binMap map[int16]*uint256.Int, tick int32, isRight bool, minBinM
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L126
 func getKindsAtTick(binMap map[int16]*uint256.Int, tick int32) Active {
 	mapIndex, offset := getMapPointer(tick * Kinds)
-	var tmp uint256.Int
+	var word uint8
+	if subMap := binMap[mapIndex]; subMap != nil {
+		var tmp uint256.Int
+		word = uint8(tmp.Rsh(subMap, offset).Uint64() & KindMask)
+	}
 	return Active{
-		Word: uint8(tmp.Rsh(binMap[mapIndex], offset).Uint64() & KindMask),
+		Word: word,
 		Tick: tick,
 	}
 }

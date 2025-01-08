@@ -10,6 +10,7 @@ type Config struct {
 
 	AlwaysUseTickLens bool // instead of fetching from subgraph
 	TickLensAddress   string
+	IsPoolV3          bool `json:"isPoolV3"`
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
