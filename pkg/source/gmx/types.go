@@ -13,6 +13,6 @@ type ChainID uint
 type SecondaryPriceFeedVersion int
 
 const (
-	secondaryPriceFeedVersion1 SecondaryPriceFeedVersion = 1
-	secondaryPriceFeedVersion2 SecondaryPriceFeedVersion = 2
+	SecondaryPriceFeedVersion1 SecondaryPriceFeedVersion = 1
+	SecondaryPriceFeedVersion2 SecondaryPriceFeedVersion = 2
 )

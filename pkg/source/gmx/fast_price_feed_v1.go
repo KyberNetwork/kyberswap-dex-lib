@@ -19,7 +19,7 @@ type FastPriceFeedV1 struct {
 }
 
 func (fp FastPriceFeedV1) GetVersion() int {
-	return int(secondaryPriceFeedVersion1)
+	return int(SecondaryPriceFeedVersion1)
 }
 
 func NewFastPriceFeedV1() *FastPriceFeedV1 {

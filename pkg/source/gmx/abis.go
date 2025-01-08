@@ -11,7 +11,7 @@ var (
 	fastPriceFeedV1ABI abi.ABI
 	fastPriceFeedV2ABI abi.ABI
 	pancakePairABI     abi.ABI
-	priceFeedABI       abi.ABI
+	PriceFeedABI       abi.ABI
 	priceFeedMantleABI abi.ABI
 	vaultABI           abi.ABI
 	vaultPriceFeedABI  abi.ABI
@@ -27,7 +27,7 @@ func init() {
 		{&fastPriceFeedV1ABI, fastPriceFeedV1Json},
 		{&fastPriceFeedV2ABI, fastPriceFeedV2Json},
 		{&pancakePairABI, pancakePairJson},
-		{&priceFeedABI, priceFeedJson},
+		{&PriceFeedABI, priceFeedJson},
 		{&priceFeedMantleABI, priceFeedMantleJson},
 		{&vaultABI, vaultJson},
 		{&vaultPriceFeedABI, vaultPriceFeedJson},

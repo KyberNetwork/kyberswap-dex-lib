@@ -52,29 +52,29 @@ func NewVault() *Vault {
 }
 
 const (
-	vaultMethodHasDynamicFees           = "hasDynamicFees"
-	vaultMethodIncludeAmmPrice          = "includeAmmPrice"
-	vaultMethodIsSwapEnabled            = "isSwapEnabled"
-	vaultMethodPriceFeed                = "priceFeed"
-	vaultMethodStableSwapFeeBasisPoints = "stableSwapFeeBasisPoints"
-	vaultMethodStableTaxBasisPoints     = "stableTaxBasisPoints"
-	vaultMethodSwapFeeBasisPoints       = "swapFeeBasisPoints"
-	vaultMethodTaxBasisPoints           = "taxBasisPoints"
-	vaultMethodTotalTokenWeights        = "totalTokenWeights"
-	vaultMethodUSDG                     = "usdg"
+	VaultMethodHasDynamicFees           = "hasDynamicFees"
+	vaultMethodIncludeAmmPrice          = "includeAmmPrice" // [1] no need
+	VaultMethodIsSwapEnabled            = "isSwapEnabled"
+	VaultMethodPriceFeed                = "priceFeed" // [1]
+	VaultMethodStableSwapFeeBasisPoints = "stableSwapFeeBasisPoints"
+	VaultMethodStableTaxBasisPoints     = "stableTaxBasisPoints"
+	VaultMethodSwapFeeBasisPoints       = "swapFeeBasisPoints"
+	VaultMethodTaxBasisPoints           = "taxBasisPoints"
+	VaultMethodTotalTokenWeights        = "totalTokenWeights"
+	vaultMethodUSDG                     = "usdg" // [2] usdw
 
-	vaultMethodAllWhitelistedTokensLength = "allWhitelistedTokensLength"
-	vaultMethodAllWhitelistedTokens       = "allWhitelistedTokens"
-	vaultMethodWhitelistedTokens          = "whitelistedTokens"
+	VaultMethodAllWhitelistedTokensLength = "allWhitelistedTokensLength"
+	VaultMethodAllWhitelistedTokens       = "allWhitelistedTokens"
+	vaultMethodWhitelistedTokens          = "whitelistedTokens" // [3] no need to check (all whitelisted tokens available)
 
-	vaultMethodPoolAmounts     = "poolAmounts"
-	vaultMethodBufferAmounts   = "bufferAmounts"
-	vaultMethodReservedAmounts = "reservedAmounts"
-	vaultMethodTokenDecimals   = "tokenDecimals"
-	vaultMethodStableTokens    = "stableTokens"
-	vaultMethodUSDGAmounts     = "usdgAmounts"
-	vaultMethodMaxUSDGAmounts  = "maxUsdgAmounts"
-	vaultMethodTokenWeights    = "tokenWeights"
+	VaultMethodPoolAmount      = "poolAmounts"
+	VaultMethodBufferAmounts   = "bufferAmounts"
+	vaultMethodReservedAmounts = "reservedAmounts" // [4] -> circuit breaker -> affect isSwapEnabled -> no action since it's kept syncing
+	VaultMethodTokenDecimals   = "tokenDecimals"
+	VaultMethodStableTokens    = "stableTokens"
+	vaultMethodUSDGAmounts     = "usdgAmounts"    // [2] usdw
+	vaultMethodMaxUSDGAmounts  = "maxUsdgAmounts" // [2] usdw
+	VaultMethodTokenWeights    = "tokenWeights"
 )
 
 func (v *Vault) GetMinPrice(token string) (*big.Int, error) {

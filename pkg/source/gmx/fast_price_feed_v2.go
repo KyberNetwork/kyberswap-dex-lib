@@ -30,7 +30,7 @@ type PriceDataItem struct {
 }
 
 func (fp FastPriceFeedV2) GetVersion() int {
-	return int(secondaryPriceFeedVersion2)
+	return int(SecondaryPriceFeedVersion2)
 }
 
 func NewFastPriceFeedV2() *FastPriceFeedV2 {

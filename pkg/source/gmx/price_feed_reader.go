@@ -24,7 +24,7 @@ type PriceFeedReader struct {
 func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 	return NewPriceFeedReaderWithParam(ethrpcClient, Param{
 		UseLegacyMethod: true,
-		ABI:             priceFeedABI,
+		ABI:             PriceFeedABI,
 	})
 }
 

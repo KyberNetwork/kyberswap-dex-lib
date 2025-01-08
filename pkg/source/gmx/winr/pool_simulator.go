@@ -1,0 +1,213 @@
+package winr
+
+import (
+	"encoding/json"
+	"math/big"
+	"strings"
+
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
+
+type Gas struct {
+	Swap int64
+}
+
+type PoolSimulator struct {
+	pool.Pool
+
+	vault      *Vault
+	vaultUtils *VaultUtils
+	gas        gmx.Gas
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var extra Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	tokens := make([]string, 0, len(entityPool.Tokens))
+	for _, poolToken := range entityPool.Tokens {
+		tokens = append(tokens, poolToken.Address)
+	}
+
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
+	info := pool.PoolInfo{
+		Address:  entityPool.Address,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
+	}
+
+	return &PoolSimulator{
+		Pool: pool.Pool{
+			Info: info,
+		},
+		vault:      extra.Vault,
+		vaultUtils: NewVaultUtils(extra.Vault),
+		gas:        gmx.DefaultGas,
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
+	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
+	if err != nil {
+		return &pool.CalcAmountOutResult{}, err
+	}
+
+	tokenAmountOut := &pool.TokenAmount{
+		Token:  tokenOut,
+		Amount: amountOutAfterFees,
+	}
+	tokenAmountFee := &pool.TokenAmount{
+		Token:  tokenOut,
+		Amount: feeAmount,
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: tokenAmountOut,
+		Fee:            tokenAmountFee,
+		Gas:            p.gas.Swap,
+	}, nil
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	whitelistedTokens := p.vault.WhitelistedTokens
+
+	isTokenExists := false
+	for _, token := range whitelistedTokens {
+		if strings.EqualFold(token, address) {
+			isTokenExists = true
+		}
+	}
+
+	if !isTokenExists {
+		return nil
+	}
+
+	swappableTokens := make([]string, 0, len(whitelistedTokens)-1)
+	for _, token := range whitelistedTokens {
+		tokenAddress := token
+
+		if address == tokenAddress {
+			continue
+		}
+
+		swappableTokens = append(swappableTokens, tokenAddress)
+	}
+
+	return swappableTokens
+}
+
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+
+func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
+	if !p.vault.IsSwapEnabled {
+		return nil, nil, gmx.ErrVaultSwapsNotEnabled
+	}
+
+	priceIn, err := p.vault.GetMinPrice(tokenIn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	priceOut, err := p.vault.GetMaxPrice(tokenOut)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
+	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
+
+	usdgAmount := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), PricePrecision)
+	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, tokenIn, p.vault.USDW.Address)
+
+	// in smart contract, this validation is implemented inside _increaseUsdgAmount method
+	if err = p.validateMaxUsdgExceed(tokenIn, usdgAmount); err != nil {
+		return nil, nil, err
+	}
+
+	// in smart contract, this validation is implemented inside _decreasePoolAmount method
+	if err = p.validateMinPoolAmount(tokenOut, amountOut); err != nil {
+		return nil, nil, err
+	}
+
+	// in smart contract, this validation is implemented inside _validateBufferAmount method
+	if err = p.validateBufferAmount(tokenOut, amountOut); err != nil {
+		return nil, nil, err
+	}
+
+	feeBasisPoints := p.vaultUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdgAmount)
+	amountOutAfterFees := new(big.Int).Div(
+		new(big.Int).Mul(
+			amountOut,
+			new(big.Int).Sub(gmx.BasisPointsDivisor, feeBasisPoints),
+		),
+		gmx.BasisPointsDivisor,
+	)
+
+	feeAmount := new(big.Int).Sub(amountOut, amountOutAfterFees)
+
+	return amountOutAfterFees, feeAmount, nil
+}
+
+func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) error {
+	currentUsdgAmount := p.vault.USDWAmounts[token]
+	newUsdgAmount := new(big.Int).Add(currentUsdgAmount, amount)
+
+	maxUsdgAmount := p.vault.MaxUSDWAmounts[token]
+
+	if maxUsdgAmount.Cmp(bignumber.ZeroBI) == 0 {
+		return nil
+	}
+
+	if newUsdgAmount.Cmp(maxUsdgAmount) < 0 {
+		return nil
+	}
+
+	return gmx.ErrVaultMaxUsdgExceeded
+}
+
+func (p *PoolSimulator) validateMinPoolAmount(token string, amount *big.Int) error {
+	currentPoolAmount := p.vault.PoolAmounts[token]
+
+	if currentPoolAmount.Cmp(amount) < 0 {
+		return gmx.ErrVaultPoolAmountExceeded
+	}
+
+	// No further action, since the decducted amount will trigger the vault's manager to update the policy accordingly
+	// Then latest vault state will be updated by next interval
+
+	return nil
+}
+
+func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) error {
+	currentPoolAmount := p.vault.PoolAmounts[token]
+	newPoolAmount := new(big.Int).Sub(currentPoolAmount, amount)
+
+	bufferAmount := p.vault.BufferAmounts[token]
+
+	if newPoolAmount.Cmp(bufferAmount) < 0 {
+		return gmx.ErrVaultPoolAmountLessThanBufferAmount
+	}
+
+	return nil
+}
