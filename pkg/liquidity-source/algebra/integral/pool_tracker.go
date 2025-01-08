@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -24,19 +23,14 @@ import (
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -537,7 +531,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 		end = begin
 		begin = end - timepointPageSize
 		if begin <= currentIndex && currentIndex < end {
-			//we've wrapped around full circle, so break here
+			// we've wrapped around full circle, so break here
 			break
 		}
 	}
@@ -571,7 +565,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
 
 		var resp struct {
 			Pool *SubgraphPoolTicks        `json:"pool"`

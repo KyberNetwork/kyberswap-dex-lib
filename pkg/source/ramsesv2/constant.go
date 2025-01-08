@@ -2,7 +2,6 @@ package ramsesv2
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
@@ -11,7 +10,6 @@ const (
 	graphFirstLimit       = 1000
 	defaultTokenDecimals  = 18
 	defaultTokenWeight    = 50
-	graphQLRequestTimeout = 20 * time.Second
 )
 
 const (

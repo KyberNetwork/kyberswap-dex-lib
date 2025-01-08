@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/KyberNetwork/kutils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type mockPoolDataStore struct {
@@ -41,8 +43,8 @@ func TestPoolListUpdater(t *testing.T) {
 
 		config = ambient.Config{
 			DexID:                    "ambient",
-			SubgraphURL:              "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
-			SubgraphRequestTimeout:   durationjson.Duration{Duration: time.Second * 10},
+			SubgraphAPI:              "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
+			SubgraphTimeout:          durationjson.Duration{Duration: time.Second * 10},
 			SubgraphLimit:            10,
 			PoolIdx:                  big.NewInt(420),
 			NativeTokenAddress:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -50,12 +52,17 @@ func TestPoolListUpdater(t *testing.T) {
 			SwapDexContractAddress:   "0xAaAaAAAaA24eEeb8d57D431224f73832bC34f688",
 			MulticallContractAddress: multicallAddress,
 		}
+
+		httpCfg = &kutils.HttpCfg{
+			Timeout: config.SubgraphTimeout.Duration,
+		}
+		graphqlClient = graphqlpkg.NewClient(config.SubgraphAPI, graphqlpkg.WithRestyClient(httpCfg.NewRestyClient()))
 	)
 
 	{
 		t.Logf("first run with limit = 10")
 
-		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{})
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{}, graphqlClient)
 		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)
@@ -71,7 +78,7 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Logf("second run with metadata from first run and limit = 1000")
 
 		config.SubgraphLimit = 1000
-		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool})
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool}, graphqlClient)
 		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)

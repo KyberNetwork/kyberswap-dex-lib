@@ -10,11 +10,11 @@ import (
 )
 
 type Config struct {
-	DexID                  string                `json:"dexID"`
-	SubgraphURL            string                `json:"subgraphUrl"`
-	SubgraphHeaders        http.Header           `json:"subgraphHeaders"`
-	SubgraphRequestTimeout durationjson.Duration `json:"subgraphRequestTimeout"`
-	SubgraphLimit          uint64                `json:"subgraphLimit"`
+	DexID           string                `json:"dexID"`
+	SubgraphAPI     string                `json:"subgraphAPI"`
+	SubgraphHeaders http.Header           `json:"subgraphHeaders"`
+	SubgraphTimeout durationjson.Duration `json:"subgraphTimeout"`
+	SubgraphLimit   uint64                `json:"subgraphLimit"`
 
 	// Ambient doesn't use ERC20 wrapped native token when swapping with native token, it uses 0x0 address instead.
 	// kyberswap-dex-lib uses ERC20 wrapped native token to store pool's tokens that are native.

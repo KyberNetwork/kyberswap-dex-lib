@@ -1,20 +1,17 @@
 package integral
 
 import (
-	"time"
-
 	"github.com/holiman/uint256"
 )
 
 const (
-	DexType               = "algebra-integral"
-	graphSkipLimit        = 5000
-	graphFirstLimit       = 1000
-	defaultTokenDecimals  = 18
-	defaultTokenWeight    = 50
-	zeroString            = "0"
-	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
+	DexType              = "algebra-integral"
+	graphSkipLimit       = 5000
+	graphFirstLimit      = 1000
+	defaultTokenDecimals = 18
+	defaultTokenWeight   = 50
+	zeroString           = "0"
+	emptyString          = ""
 
 	timepointPageSize = uint16(300)
 	maxSwapLoop       = 1000000
