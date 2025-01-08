@@ -36,6 +36,15 @@ type TickResp struct {
 	LiquidityNet   string `json:"liquidityNet"`
 }
 
+type Tick struct {
+	LiquidityTotal       *big.Int
+	LiquidityDelta       *big.Int
+	PrevTick             *big.Int
+	NextTick             *big.Int
+	OuterFeeGrowth0Token *big.Int
+	OuterFeeGrowth1Token *big.Int
+}
+
 func (t TickResp) transformTickRespToTick() (v3Entities.Tick, error) {
 	liquidityGross := new(big.Int)
 	liquidityGross, ok := liquidityGross.SetString(t.LiquidityGross, 10)
