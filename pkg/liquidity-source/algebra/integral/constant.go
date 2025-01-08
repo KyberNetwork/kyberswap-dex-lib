@@ -23,6 +23,7 @@ const (
 	poolGlobalStateMethod = "globalState"
 	poolTickSpacingMethod = "tickSpacing"
 	poolPluginMethod      = "plugin"
+	poolTicksMethod       = "ticks"
 
 	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
 
@@ -34,8 +35,6 @@ const (
 	votalityOraclePluginIsInitializedMethod          = "isInitialized"
 
 	erc20BalanceOfMethod = "balanceOf"
-
-	ticklensGetPopulatedTicksInWordMethod = "getPopulatedTicksInWord"
 
 	BEFORE_SWAP_FLAG = 1
 	RESOLUTION       = 96
