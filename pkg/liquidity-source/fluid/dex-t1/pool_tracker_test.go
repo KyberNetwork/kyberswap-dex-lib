@@ -25,7 +25,7 @@ func TestPoolTracker(t *testing.T) {
 
 	var (
 		config = Config{
-			DexReservesResolver: "0x45f4ad57e300da55c33dea579a40fcee000d7b94",
+			DexReservesResolver: "0xF38082d58bF0f1e07C04684FF718d69a70f21e62",
 		}
 	)
 
@@ -97,9 +97,12 @@ func TestPoolTracker(t *testing.T) {
 		require.True(t, extra.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
+		require.True(t, extra.CenterPrice.Cmp(big.NewInt(0)) > 0)
 
 		logger.Debugf("Reserve0: %s", newPool.Reserves[0])
 		logger.Debugf("Reserve1: %s", newPool.Reserves[1])
+
+		logger.Debugf("CenterPrice: %s", extra.CenterPrice.String())
 
 		logger.Debugf("Debt Reserves: Token0Debt: %s", extra.DebtReserves.Token0Debt.String())
 		logger.Debugf("Debt Reserves: Token1Debt: %s", extra.DebtReserves.Token1Debt.String())

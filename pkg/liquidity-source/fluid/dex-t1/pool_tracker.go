@@ -61,6 +61,7 @@ func (t *PoolTracker) getNewPoolState(
 		DebtReserves:             debtReserves,
 		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
 		DexLimits:                poolReserves.Limits,
+		CenterPrice:              poolReserves.CenterPrice,
 	}
 
 	extraBytes, err := json.Marshal(extra)

@@ -15,6 +15,7 @@ type PoolExtra struct {
 	DebtReserves             DebtReserves
 	IsSwapAndArbitragePaused bool
 	DexLimits                DexLimits
+	CenterPrice              *big.Int
 }
 
 type CollateralReserves struct {
@@ -51,6 +52,7 @@ type PoolWithReserves struct {
 	Token0Address      common.Address     `json:"token0Address"`
 	Token1Address      common.Address     `json:"token1Address"`
 	Fee                *big.Int           `json:"fee"`
+	CenterPrice        *big.Int           `json:"centerPrice"`
 	CollateralReserves CollateralReserves `json:"collateralReserves"`
 	DebtReserves       DebtReserves       `json:"debtReserves"`
 	Limits             DexLimits          `json:"limits"`

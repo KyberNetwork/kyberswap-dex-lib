@@ -84,6 +84,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			CollateralReserves: curPool.CollateralReserves,
 			DebtReserves:       curPool.DebtReserves,
 			DexLimits:          curPool.Limits,
+			CenterPrice:        curPool.CenterPrice,
 		}
 
 		extraBytes, err := json.Marshal(extra)

@@ -29,7 +29,7 @@ const (
 
 	MaxPriceDiff int64 = 5 // 5%
 
-	MinSwapLiquidity int64 = 6667 // on-chain we use 1e4 but use extra buffer for potential price diff using pool price vs center price at the check
+	MinSwapLiquidity int64 = 2e4 // on-chain we use 1e4 but use extra buffer to avoid reverts
 )
 
 var bI1e18, _ = new(big.Int).SetString(String1e18, 10) // 1e18

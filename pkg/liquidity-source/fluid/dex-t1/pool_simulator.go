@@ -35,6 +35,7 @@ type PoolSimulator struct {
 	CollateralReserves CollateralReserves
 	DebtReserves       DebtReserves
 	DexLimits          DexLimits
+	CenterPrice        *big.Int
 
 	Token0Decimals uint8
 	Token1Decimals uint8
@@ -79,6 +80,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		CollateralReserves:       extra.CollateralReserves,
 		DebtReserves:             extra.DebtReserves,
 		DexLimits:                extra.DexLimits,
+		CenterPrice:              extra.CenterPrice,
 		Token0Decimals:           entityPool.Tokens[0].Decimals,
 		Token1Decimals:           entityPool.Tokens[1].Decimals,
 		StaticExtra:              staticExtra,
@@ -151,9 +153,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	syncTimestamp := s.SyncTimestamp
+	centerPrice := s.CenterPrice
 
 	tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, centerPrice, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -245,9 +248,10 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}
 
 	syncTimestamp := s.SyncTimestamp
+	centerPrice := s.CenterPrice
 
 	tokenAmountIn, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, centerPrice, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -446,11 +450,12 @@ func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
  * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
  * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
  * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} centerPrice - current center price used to verify reserves ratio
  * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, outDecimals int64, currentLimits DexLimits, syncTime int64) (*big.Int, error) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, outDecimals int64, currentLimits DexLimits, centerPrice *big.Int, syncTime int64) (*big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveIn, colReserveOut, debtReserveIn, debtReserveOut     *big.Int
@@ -565,6 +570,29 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		return nil, errors.New(ErrInsufficientWithdrawable.Error())
 	}
 
+	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
+		reservesRatioValid := false
+		if swap0To1 {
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
+		} else {
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
+		}
+		if !reservesRatioValid {
+			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+		}
+	}
+	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
+		reservesRatioValid := false
+		if swap0To1 {
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
+		} else {
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
+		}
+		if !reservesRatioValid {
+			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+		}
+	}
+
 	oldPrice := big.NewInt(0)
 	newPrice := big.NewInt(0)
 	priceDiff := big.NewInt(0)
@@ -594,29 +622,6 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
-	}
-
-	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
-		reservesRatioValid := false
-		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), oldPrice)
-		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), oldPrice)
-		}
-		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
-		}
-	}
-	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
-		reservesRatioValid := false
-		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), oldPrice)
-		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), oldPrice)
-		}
-		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
-		}
 	}
 
 	if triggerUpdateColReserves && triggerUpdateDebtReserves {
@@ -663,6 +668,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
  * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
  * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
  * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} centerPrice - current center price used to verify reserves ratio
  * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
@@ -675,6 +681,7 @@ func swapIn(
 	inDecimals int64,
 	outDecimals int64,
 	currentLimits DexLimits,
+	centerPrice *big.Int,
 	syncTime int64,
 ) (*big.Int, error) {
 	var amountInAdjusted *big.Int
@@ -685,7 +692,7 @@ func swapIn(
 		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
-	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
+	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits, centerPrice, syncTime)
 
 	if err != nil {
 		return nil, err
@@ -732,6 +739,7 @@ func swapIn(
  * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
  * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
  * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} centerPrice - current center price used to verify reserves ratio
  * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountIn - The calculated input amount required for the swap.
  * @returns {error} - An error object if the operation fails.
@@ -743,6 +751,7 @@ func swapOutAdjusted(
 	debtReserves DebtReserves,
 	outDecimals int64,
 	currentLimits DexLimits,
+	centerPrice *big.Int,
 	syncTime int64,
 ) (*big.Int, error) {
 	var (
@@ -860,6 +869,29 @@ func swapOutAdjusted(
 		return nil, errors.New(ErrInsufficientWithdrawable.Error())
 	}
 
+	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
+		reservesRatioValid := false
+		if swap0To1 {
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
+		} else {
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
+		}
+		if !reservesRatioValid {
+			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+		}
+	}
+	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
+		reservesRatioValid := false
+		if swap0To1 {
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
+		} else {
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
+		}
+		if !reservesRatioValid {
+			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+		}
+	}
+
 	oldPrice := big.NewInt(0)
 	newPrice := big.NewInt(0)
 	priceDiff := big.NewInt(0)
@@ -889,29 +921,6 @@ func swapOutAdjusted(
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
-	}
-
-	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
-		reservesRatioValid := false
-		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), oldPrice)
-		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), oldPrice)
-		}
-		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
-		}
-	}
-	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
-		reservesRatioValid := false
-		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), oldPrice)
-		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), oldPrice)
-		}
-		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
-		}
 	}
 
 	if triggerUpdateColReserves && triggerUpdateDebtReserves {
@@ -958,6 +967,7 @@ func swapOutAdjusted(
  * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
  * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
  * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} centerPrice - current center price used to verify reserves ratio
  * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountIn - The calculated input amount required for the swap.
  * @returns {error} - An error object if the operation fails.
@@ -970,6 +980,7 @@ func swapOut(
 	inDecimals int64,
 	outDecimals int64,
 	currentLimits DexLimits,
+	centerPrice *big.Int,
 	syncTime int64,
 ) (*big.Int, error) {
 	var amountOutAdjusted *big.Int
@@ -982,7 +993,7 @@ func swapOut(
 			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
-	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
+	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits, centerPrice, syncTime)
 
 	if err != nil {
 		return nil, err

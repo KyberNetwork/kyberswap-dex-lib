@@ -29,7 +29,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			DexReservesResolver: "0x45f4ad57e300da55c33dea579a40fcee000d7b94",
+			DexReservesResolver: "0xF38082d58bF0f1e07C04684FF718d69a70f21e62",
 		}
 	)
 
@@ -93,6 +93,7 @@ func TestPoolListUpdater(t *testing.T) {
 	require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
 	require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
 	require.True(t, extra.DebtReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
+	require.True(t, extra.CenterPrice.Cmp(big.NewInt(0)) > 0)
 
 	// Log all pools
 	// for i, pool := range pools {
