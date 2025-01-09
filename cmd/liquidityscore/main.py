@@ -4,6 +4,7 @@ import ast
 import csv
 import math
 import os
+import sys
 
 import numpy
 
@@ -14,6 +15,7 @@ DEV_ENV = "dev"
 
 
 def main():
+    # Get configs from environments
     env = os.environ.get('ENV')
     trade_data_filename = os.environ.get('TRADE__DATA__FILE')
     score_filename = os.environ.get('FULL__SCORE__FILE')
@@ -21,7 +23,15 @@ def main():
     target_factor_entropy = os.environ.get('TARGET__FACTOR__ENTROPY')
     min_threshold_amount_out_percentage = os.environ.get('MIN__THRESHOLD__PERCENTAGE')
     min_filtered_pools_len = os.environ.get('MIN__FILTERED__POOL__LEN')
+    filter_score_filename = os.environ.get('USECASE__UPDATELIQUIDITYSCORE__INPUTFILENAME')
 
+    # Get configs from params
+    args = sys.argv
+    if len(args) == 4:
+        target_factor_entropy = args[1]
+        trade_data_filename = args[2]
+        filter_score_filename = args[3]
+    
     pools = read_trade_data(trade_data_filename, float(min_threshold_amount_out_percentage))
     if len(pools) == 0:
         print('Read pools from trade data file results empty list')
@@ -32,12 +42,13 @@ def main():
     if env == DEV_ENV:
         pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
         save_scores(score_filename, pool_scores)
+    
+    if float(target_factor_entropy) == 1:
+        save_scores(filter_score_filename, pool_scores)
+        return
 
     # run filter score by calculating entropy
     min_score = entropy.get_top_pools(pool_scores, mean_type, float(target_factor_entropy))
-
-    filter_score_filename = os.environ.get('USECASE__UPDATELIQUIDITYSCORE__INPUTFILENAME')
-
     final_scores = filter_scores(pool_scores, mean_type, min_score, int(min_filtered_pools_len))
     print(f'Length of final scores after filtering: {len(final_scores)}')
     save_scores(filter_score_filename, final_scores)

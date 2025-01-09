@@ -1,4 +1,4 @@
-env: "production"
+env: &env "pre-release"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -127,6 +127,8 @@ common:
   dexalotUpscalePercent: 20
   clipperAPIAuth:
   useAEVM: &useAEVM false
+  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
+  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
 log:
@@ -474,7 +476,7 @@ useCase:
     maxDataPointNumber: 12
     availableSources: *availableSources
   updateLiquidityScore:
-    inputFileName: "./scores.csv"
+    inputFileName: *liquidityScoreInputFileName
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
 job:
@@ -499,12 +501,28 @@ job:
   trackExecutorBalance:
     interval: 1h
   liquidityScoreIndexPools:
+    env: *env
     batchSize: 200
     interval: 1h
-    successedFileName: "./trade_data.txt"
+    successedFileName: *liquidityTradesDataFileName
     failedFileName: "./failed_trade_data.txt"
+    liquidityScoreInputFileName: *liquidityScoreInputFileName
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
+    targetFactorEntropy: 0.995
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_events"
+        group: "router_liqIndexPools"
+        key: "message"
+        block: 300ms
+        count: 200
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
 repository:
   gas:
     redis:

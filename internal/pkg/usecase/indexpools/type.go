@@ -15,6 +15,11 @@ type TradesGenerationOutput struct {
 	Blacklist mapset.Set[string]
 }
 
+type TradesGenerationInput struct {
+	Pool     string
+	Exchange string
+}
+
 type price struct {
 	buyPrice  float64
 	sellPrice float64

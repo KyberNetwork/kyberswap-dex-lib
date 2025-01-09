@@ -126,7 +126,45 @@ func (gen *TradeDataGenerator) getBlacklistPools(ctx context.Context) (mapset.Se
 }
 
 func (gen *TradeDataGenerator) Handle(ctx context.Context,
-	output chan<- TradesGenerationOutput, indexBlacklistWlPools mapset.Set[string]) {
+	output chan<- TradesGenerationOutput,
+	indexBlacklistWlPools mapset.Set[string],
+	input mapset.Set[TradesGenerationInput]) {
+	if input.IsEmpty() {
+		addresses, err := gen.poolRepo.FindAllAddresses(ctx)
+		if err != nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"struct": "TradeDataGenerator",
+					"method": "Handle",
+					"error":  err,
+				}).Errorf("FindAllAddresses failed")
+			return
+		}
+		gen.handleAllPools(ctx, output, indexBlacklistWlPools, constant.DexUseSwapLimit, addresses)
+		return
+	}
+
+	// pre-process input to seperate rfq dexes and others
+	rfqDexes := mapset.NewThreadUnsafeSet[string]()
+	addresses := make([]string, 0, input.Cardinality())
+	dexUseSwapLimit := mapset.NewThreadUnsafeSet(constant.DexUseSwapLimit...)
+	input.Each(func(tgi TradesGenerationInput) bool {
+		if dexUseSwapLimit.ContainsOne(tgi.Exchange) {
+			rfqDexes.Add(tgi.Exchange)
+		}
+		addresses = append(addresses, tgi.Pool)
+		return false
+	})
+
+	gen.handleAllPools(ctx, output, indexBlacklistWlPools, rfqDexes.ToSlice(), addresses)
+
+}
+
+func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
+	output chan<- TradesGenerationOutput,
+	indexBlacklistWlPools mapset.Set[string],
+	rfqDexes []string,
+	addresses []string) {
 	defer close(output)
 	// 1. Prepare data for handle chunk by chunk
 	availableSourceSet := mapset.NewThreadUnsafeSet(gen.config.AvailableSources...)
@@ -176,7 +214,7 @@ func (gen *TradeDataGenerator) Handle(ctx context.Context,
 	}
 	alreadyProceed := gen.handleRFQDexes(
 		ctx,
-		constant.DexUseSwapLimit,
+		rfqDexes,
 		output,
 		prices,
 		tokens,
@@ -191,13 +229,15 @@ func (gen *TradeDataGenerator) Handle(ctx context.Context,
 			!dynamicBlacklistPools.ContainsOne(lowerAddr) &&
 			!indexBlacklistWlPools.ContainsOne(lowerAddr)
 	}
-	gen.handleAllDexes(
+	gen.handlePools(
 		ctx,
 		output,
 		prices,
 		tokens,
 		poolFilter,
-		nonRFQPoolAddressFilter)
+		nonRFQPoolAddressFilter,
+		addresses,
+	)
 }
 
 func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
@@ -257,24 +297,14 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 
 }
 
-func (u *TradeDataGenerator) handleAllDexes(ctx context.Context,
+func (u *TradeDataGenerator) handlePools(ctx context.Context,
 	output chan<- TradesGenerationOutput,
 	prices map[string]*price,
 	tokens map[string]*entity.Token,
 	poolFilter getpools.PoolFilter,
-	poolAddressFilter getpools.PoolAddressFilter) mapset.Set[string] {
+	poolAddressFilter getpools.PoolAddressFilter,
+	addresses []string) mapset.Set[string] {
 	indexBlacklistTrack := mapset.NewThreadUnsafeSet[string]()
-
-	addresses, err := u.poolRepo.FindAllAddresses(ctx)
-	if err != nil {
-		logger.WithFields(ctx,
-			logger.Fields{
-				"struct": "TradeDataGenerator",
-				"method": "Handle",
-				"error":  err,
-			}).Errorf("FindAllAddresses failed")
-		return indexBlacklistTrack
-	}
 
 	addresses = lo.Filter(addresses, poolAddressFilter)
 

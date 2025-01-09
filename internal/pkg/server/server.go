@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 type server struct {
@@ -32,7 +33,7 @@ func NewServer(httpServer *http.Server,
 		cfg:                  cfg,
 		reloadConfigReporter: reloadConfigReporter,
 		reloadManager:        reloadManager,
-		isRunningProduction:  isProductionMode(cfg.Env),
+		isRunningProduction:  env.IsProductionMode(cfg.Env),
 	}
 }
 
@@ -89,9 +90,4 @@ func (s *server) run(ctx context.Context) error {
 			return err
 		}
 	}
-}
-
-// TODO: need to improve app mode by enum.
-func isProductionMode(env string) bool {
-	return env == "production"
 }
