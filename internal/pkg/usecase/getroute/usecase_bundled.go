@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -131,18 +132,24 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		}
 	}
 
+	var kyberLimitOrderAllowedSenders string
+	if query.ClientId == clientid.KyberSwap {
+		kyberLimitOrderAllowedSenders = u.config.ExecutorAddress
+	}
+
 	return &types.AggregateBundledParams{
-		Pairs:                  pairs,
-		GasToken:               u.config.GasTokenAddress,
-		Sources:                sources,
-		SaveGas:                query.SaveGas,
-		GasInclude:             query.GasInclude,
-		GasPrice:               gasPrice,
-		IsHillClimbEnabled:     u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
-		Index:                  index,
-		ExcludedPools:          query.ExcludedPools,
-		ClientId:               query.ClientId,
-		OverridePools:          overridePools,
-		ExtraWhitelistedTokens: query.ExtraWhitelistedTokens,
+		Pairs:                         pairs,
+		GasToken:                      u.config.GasTokenAddress,
+		Sources:                       sources,
+		SaveGas:                       query.SaveGas,
+		GasInclude:                    query.GasInclude,
+		GasPrice:                      gasPrice,
+		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:                         index,
+		ExcludedPools:                 query.ExcludedPools,
+		ClientId:                      query.ClientId,
+		OverridePools:                 overridePools,
+		ExtraWhitelistedTokens:        query.ExtraWhitelistedTokens,
+		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 	}, nil
 }

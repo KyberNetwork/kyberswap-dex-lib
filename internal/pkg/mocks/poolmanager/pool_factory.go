@@ -16,6 +16,7 @@ import (
 
 	entity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	types "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -73,15 +74,15 @@ func (mr *MockIPoolFactoryMockRecorder) NewPools(ctx, pools, stateRoot any) *gom
 }
 
 // NewSwapLimit mocks base method.
-func (m *MockIPoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int) map[string]pool.SwapLimit {
+func (m *MockIPoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]pool.SwapLimit {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewSwapLimit", limits)
+	ret := m.ctrl.Call(m, "NewSwapLimit", limits, poolManagerExtraData)
 	ret0, _ := ret[0].(map[string]pool.SwapLimit)
 	return ret0
 }
 
 // NewSwapLimit indicates an expected call of NewSwapLimit.
-func (mr *MockIPoolFactoryMockRecorder) NewSwapLimit(limits any) *gomock.Call {
+func (mr *MockIPoolFactoryMockRecorder) NewSwapLimit(limits, poolManagerExtraData any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSwapLimit", reflect.TypeOf((*MockIPoolFactory)(nil).NewSwapLimit), limits)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewSwapLimit", reflect.TypeOf((*MockIPoolFactory)(nil).NewSwapLimit), limits, poolManagerExtraData)
 }

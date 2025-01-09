@@ -264,6 +264,9 @@ func (c *cache) summarizeSimpleRoute(
 		simpleRoute.ExtractPoolAddresses(),
 		params.Sources,
 		common.Hash(stateRoot),
+		types.PoolManagerExtraData{
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+		},
 	)
 	if err != nil {
 		return nil, err

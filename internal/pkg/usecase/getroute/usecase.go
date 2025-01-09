@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -192,24 +193,30 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		}
 	}
 
+	var kyberLimitOrderAllowedSenders string
+	if query.ClientId == clientid.KyberSwap {
+		kyberLimitOrderAllowedSenders = u.config.ExecutorAddress
+	}
+
 	return &types.AggregateParams{
-		TokenIn:            tokenIn,
-		TokenOut:           tokenOut,
-		GasToken:           tokenByAddress[u.config.GasTokenAddress],
-		TokenInPriceUSD:    tokenInPriceUSD,
-		TokenOutPriceUSD:   tokenOutPriceUSD,
-		GasTokenPriceUSD:   gasTokenPriceUSD,
-		AmountIn:           query.AmountIn,
-		Sources:            sources,
-		SaveGas:            query.SaveGas,
-		OnlySinglePath:     query.OnlySinglePath,
-		GasInclude:         query.GasInclude,
-		GasPrice:           gasPrice,
-		ExtraFee:           query.ExtraFee,
-		IsHillClimbEnabled: u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
-		Index:              index,
-		ExcludedPools:      query.ExcludedPools,
-		ClientId:           query.ClientId,
+		TokenIn:                       tokenIn,
+		TokenOut:                      tokenOut,
+		GasToken:                      tokenByAddress[u.config.GasTokenAddress],
+		TokenInPriceUSD:               tokenInPriceUSD,
+		TokenOutPriceUSD:              tokenOutPriceUSD,
+		GasTokenPriceUSD:              gasTokenPriceUSD,
+		AmountIn:                      query.AmountIn,
+		Sources:                       sources,
+		SaveGas:                       query.SaveGas,
+		OnlySinglePath:                query.OnlySinglePath,
+		GasInclude:                    query.GasInclude,
+		GasPrice:                      gasPrice,
+		ExtraFee:                      query.ExtraFee,
+		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:                         index,
+		ExcludedPools:                 query.ExcludedPools,
+		ClientId:                      query.ClientId,
+		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 	}, nil
 }
 

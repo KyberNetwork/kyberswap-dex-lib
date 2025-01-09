@@ -32,6 +32,7 @@ type IPoolManager interface {
 		ctx context.Context,
 		addresses, dex []string,
 		stateRoot common.Hash,
+		extraData types.PoolManagerExtraData,
 	) (*types.FindRouteState, error)
 	// GetAEVMClient if using AEVM pools, return the AEVM client, otherwise, return nil. Caller should check for nil.
 	GetAEVMClient() aevmclient.Client

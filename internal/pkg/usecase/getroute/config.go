@@ -7,6 +7,7 @@ import (
 type Config struct {
 	ChainID                 valueobject.ChainID `mapstructure:"chainId" json:"chainId"`
 	RouterAddress           string              `mapstructure:"routerAddress" json:"routerAddress"`
+	ExecutorAddress         string              `mapstructure:"executorAddress" json:"executorAddress"`
 	GasTokenAddress         string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
 	AvailableSources        []string            `mapstructure:"availableSources" json:"availableSources"`
 	UnscalableSources       []string            `mapstructure:"unscalableSources" json:"unscalableSources"`

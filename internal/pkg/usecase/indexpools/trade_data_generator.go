@@ -16,6 +16,7 @@ import (
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -338,7 +339,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 	// However swap limit can only be calculated by fetch all pools belong to a single source set
 	// So this is a little tricky, when we proceed rfq pools, we must pack all pools belong to 1 source in a single chunk, otherwise swap limit is calculated not correctly
 	poolInterfaces := gen.poolFactory.NewPools(ctx, whitelistPools, common.Hash(stateRoot))
-	swapLimits := gen.poolFactory.NewSwapLimit(calculateSwapLimit(poolInterfaces))
+	swapLimits := gen.poolFactory.NewSwapLimit(calculateSwapLimit(poolInterfaces), types.PoolManagerExtraData{})
 
 	// record pools that has swap errors, format: <pool:tokenA-tokenB:[]TradeData>
 	hasError := map[string]map[TradePair][]TradeData{}

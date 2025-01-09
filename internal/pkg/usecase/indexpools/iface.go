@@ -8,6 +8,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -65,7 +66,7 @@ type IPoolRankRepository interface {
 type IPoolFactory interface {
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
-	NewSwapLimit(limits map[string]map[string]*big.Int) map[string]poolpkg.SwapLimit
+	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 }
 
 type IGetPoolsIncludingBasePools interface {

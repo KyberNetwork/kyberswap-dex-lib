@@ -28,6 +28,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -222,7 +223,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return([]string{}, nil).AnyTimes()
 	getPoolsUsecase.EXPECT().Handle(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
 	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolList).AnyTimes()
-	poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+	poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 	poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolByAddresses).AnyTimes()
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
@@ -232,7 +233,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	require.NoError(t, err)
 	// let sleep for 3 sec
 	time.Sleep(3 * time.Second)
-	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, whitelistDexes, common.Hash{0x00})
+	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, whitelistDexes, common.Hash{0x00}, types.PoolManagerExtraData{})
 	require.Error(t, err)
 	assert.Equal(t, true, state == nil)
 }
@@ -458,7 +459,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -512,7 +513,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -565,7 +566,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -617,7 +618,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -669,7 +670,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -723,7 +724,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -778,7 +779,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 					}
 					return res
 				}).AnyTimes()
-				poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+				poolFactory.EXPECT().NewSwapLimit(gomock.Any(), gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 				poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(memPoolSimulatorsByAddresses).AnyTimes()
 
 				poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -824,7 +825,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 			defer ctrl.Finish()
 
 			pm := tc.prepare(ctrl, tc.blacklist, tc.faultyPools)
-			state, err := pm.GetStateByPoolAddresses(context.Background(), tc.inputPoolAddr.ToSlice(), tc.dex.ToSlice(), common.Hash{0x00})
+			state, err := pm.GetStateByPoolAddresses(context.Background(), tc.inputPoolAddr.ToSlice(), tc.dex.ToSlice(), common.Hash{0x00}, types.PoolManagerExtraData{})
 
 			// verify result
 			if state != nil {

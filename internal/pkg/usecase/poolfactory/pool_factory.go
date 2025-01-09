@@ -148,6 +148,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
+	usecasetypes "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -438,10 +439,13 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 	return basePoolByAddress, basePoolAddresses
 }
 
-func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
+func newSwapLimit(
+	dex string,
+	limit map[string]*big.Int,
+	poolManagerExtraData usecasetypes.PoolManagerExtraData,
+) poolpkg.SwapLimit {
 	switch dex {
 	case pooltypes.PoolTypes.Synthetix,
-		pooltypes.PoolTypes.LimitOrder,
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.RingSwap,
@@ -451,15 +455,25 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 
 	case pooltypes.PoolTypes.KyberPMM:
 		return swaplimit.NewSwappedInventory(dex, limit)
+
+	case pooltypes.PoolTypes.LimitOrder:
+		return swaplimit.NewInventoryWithAllowedSenders(
+			dex,
+			limit,
+			poolManagerExtraData.KyberLimitOrderAllowedSenders,
+		)
 	}
 
 	return nil
 }
 
-func (f *PoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int) map[string]poolpkg.SwapLimit {
+func (f *PoolFactory) NewSwapLimit(
+	limits map[string]map[string]*big.Int,
+	poolManagerExtraData usecasetypes.PoolManagerExtraData,
+) map[string]poolpkg.SwapLimit {
 	var limitMap = make(map[string]poolpkg.SwapLimit, len(limits))
 	for dex, limit := range limits {
-		limitMap[dex] = newSwapLimit(dex, limit)
+		limitMap[dex] = newSwapLimit(dex, limit, poolManagerExtraData)
 	}
 	return limitMap
 }

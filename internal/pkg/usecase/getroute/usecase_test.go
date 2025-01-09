@@ -179,9 +179,9 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock IPoolManager
 	poolManager := getroute.NewMockIPoolManager(ctrl)
 	poolManager.EXPECT().
-		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
-			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
+			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash, extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
 				addressesSet := mapset.NewThreadUnsafeSet(addresses...)
 				dexesSet := mapset.NewThreadUnsafeSet(dex...)
 				tokenToPoolAddress := make(map[string]*types.AddressList)
@@ -223,7 +223,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					Pools: lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
 						return item.GetAddress(), item
 					}),
-					SwapLimit: poolFactory.NewSwapLimit(limits),
+					SwapLimit: poolFactory.NewSwapLimit(limits, types.PoolManagerExtraData{}),
 				}, nil
 			},
 		).

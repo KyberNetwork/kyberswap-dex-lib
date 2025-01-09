@@ -112,15 +112,16 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 	for _, cachePoint := range g.config.TTLByAmount {
 		if utils.Float64AlmostEqual(cachePoint.Amount, amountInWithoutDecimalsFloat64) {
 			return &valueobject.RouteCacheKey{
-				CacheMode:     valueobject.RouteCacheModePoint,
-				TokenIn:       params.TokenIn.Address,
-				TokenOut:      params.TokenOut.Address,
-				AmountIn:      strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
-				SaveGas:       params.SaveGas,
-				GasInclude:    params.GasInclude,
-				Dexes:         params.Sources,
-				ExcludedPools: setToSlice(params.ExcludedPools),
-				Index:         string(params.Index),
+				CacheMode:                 valueobject.RouteCacheModePoint,
+				TokenIn:                   params.TokenIn.Address,
+				TokenOut:                  params.TokenOut.Address,
+				AmountIn:                  strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
+				SaveGas:                   params.SaveGas,
+				GasInclude:                params.GasInclude,
+				Dexes:                     params.Sources,
+				ExcludedPools:             setToSlice(params.ExcludedPools),
+				Index:                     string(params.Index),
+				UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 			}, cachePoint.TTL, nil
 		}
 	}
@@ -140,15 +141,16 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams, a
 
 	return mapset.NewThreadUnsafeSet(valueobject.RouteCacheKeyTTL{
 		Key: &valueobject.RouteCacheKey{
-			CacheMode:     valueobject.RouteCacheModeRangeByUSD,
-			TokenIn:       params.TokenIn.Address,
-			TokenOut:      params.TokenOut.Address,
-			AmountIn:      strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-			SaveGas:       params.SaveGas,
-			GasInclude:    params.GasInclude,
-			Dexes:         params.Sources,
-			ExcludedPools: setToSlice(params.ExcludedPools),
-			Index:         string(params.Index),
+			CacheMode:                 valueobject.RouteCacheModeRangeByUSD,
+			TokenIn:                   params.TokenIn.Address,
+			TokenOut:                  params.TokenOut.Address,
+			AmountIn:                  strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
+			SaveGas:                   params.SaveGas,
+			GasInclude:                params.GasInclude,
+			Dexes:                     params.Sources,
+			ExcludedPools:             setToSlice(params.ExcludedPools),
+			Index:                     string(params.Index),
+			UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 		},
 		TTL: ttl,
 	}), nil
@@ -180,15 +182,16 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 			seenAmount.Add(amount)
 			shrunkAmountInSet.Add(valueobject.RouteCacheKeyTTL{
 				Key: &valueobject.RouteCacheKey{
-					CacheMode:     valueobject.RouteCacheModeRangeByAmount,
-					TokenIn:       params.TokenIn.Address,
-					TokenOut:      params.TokenOut.Address,
-					AmountIn:      amount,
-					SaveGas:       params.SaveGas,
-					GasInclude:    params.GasInclude,
-					Dexes:         params.Sources,
-					ExcludedPools: setToSlice(params.ExcludedPools),
-					Index:         string(params.Index),
+					CacheMode:                 valueobject.RouteCacheModeRangeByAmount,
+					TokenIn:                   params.TokenIn.Address,
+					TokenOut:                  params.TokenOut.Address,
+					AmountIn:                  amount,
+					SaveGas:                   params.SaveGas,
+					GasInclude:                params.GasInclude,
+					Dexes:                     params.Sources,
+					ExcludedPools:             setToSlice(params.ExcludedPools),
+					Index:                     string(params.Index),
+					UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 				},
 				TTL: ttl,
 			})

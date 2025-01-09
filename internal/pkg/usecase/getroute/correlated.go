@@ -220,6 +220,9 @@ func (c *correlatedPairs) getStateByAddress(
 		filteredPoolIDs,
 		params.Sources,
 		stateRoot,
+		types.PoolManagerExtraData{
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+		},
 	)
 }
 

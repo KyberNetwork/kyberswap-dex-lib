@@ -19,7 +19,7 @@ type IAggregator interface {
 
 type IPoolFactory interface {
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
-	NewSwapLimit(limits map[string]map[string]*big.Int) map[string]poolpkg.SwapLimit
+	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 }
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)

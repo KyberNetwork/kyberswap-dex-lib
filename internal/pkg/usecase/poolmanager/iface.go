@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -14,7 +15,7 @@ import (
 type IPoolFactory interface {
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
-	NewSwapLimit(limits map[string]map[string]*big.Int) map[string]poolpkg.SwapLimit
+	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/poolmanager/pool_repository.go -package poolmanager github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager IPoolRepository

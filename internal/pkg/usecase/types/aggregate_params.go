@@ -59,6 +59,10 @@ type AggregateParams struct {
 	ExcludedPools mapset.Set[string]
 
 	ClientId string
+
+	// KyberLimitOrderAllowedSenders is a comma-separated list of addresses used to filter
+	// Kyber private limit orders.
+	KyberLimitOrderAllowedSenders string
 }
 
 type AggregateBundledParamsPair struct {
@@ -107,4 +111,6 @@ type AggregateBundledParams struct {
 
 	// ExtraWhitelistedTokens list of token addresses are included in whitelisted when finding route
 	ExtraWhitelistedTokens []string
+
+	KyberLimitOrderAllowedSenders string
 }

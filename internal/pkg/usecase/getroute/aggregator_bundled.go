@@ -182,6 +182,9 @@ func (a *bundledAggregator) getStateByBundledAddress(
 		filteredPoolIDs,
 		params.Sources,
 		stateRoot,
+		types.PoolManagerExtraData{
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+		},
 	)
 }
 
@@ -223,22 +226,23 @@ func (a *bundledAggregator) findBestBundledRoute(
 		tokenOutPrice := GetPrice(pair.TokenOut, priceByAddress, true) // use buy price for token out and gas
 
 		pairParams := types.AggregateParams{
-			TokenIn:            *tokenIn,
-			TokenOut:           *tokenOut,
-			GasToken:           *gasToken,
-			TokenInPriceUSD:    tokenInPrice,
-			TokenOutPriceUSD:   tokenOutPrice,
-			GasTokenPriceUSD:   gasTokenPrice,
-			AmountIn:           pair.AmountIn,
-			AmountInUsd:        pair.AmountInUsd,
-			Sources:            params.Sources,
-			SaveGas:            params.SaveGas,
-			GasInclude:         params.GasInclude,
-			GasPrice:           params.GasPrice,
-			IsHillClimbEnabled: params.IsHillClimbEnabled,
-			ExcludedPools:      params.ExcludedPools,
-			ClientId:           params.ClientId,
-			ExtraFee:           valueobject.ZeroExtraFee,
+			TokenIn:                       *tokenIn,
+			TokenOut:                      *tokenOut,
+			GasToken:                      *gasToken,
+			TokenInPriceUSD:               tokenInPrice,
+			TokenOutPriceUSD:              tokenOutPrice,
+			GasTokenPriceUSD:              gasTokenPrice,
+			AmountIn:                      pair.AmountIn,
+			AmountInUsd:                   pair.AmountInUsd,
+			Sources:                       params.Sources,
+			SaveGas:                       params.SaveGas,
+			GasInclude:                    params.GasInclude,
+			GasPrice:                      params.GasPrice,
+			IsHillClimbEnabled:            params.IsHillClimbEnabled,
+			ExcludedPools:                 params.ExcludedPools,
+			ClientId:                      params.ClientId,
+			ExtraFee:                      valueobject.ZeroExtraFee,
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
 		}
 
 		if lastSwapState != nil {

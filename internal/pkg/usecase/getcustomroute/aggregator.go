@@ -109,7 +109,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	// Step 3: finds best route
 	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, &types.FindRouteState{
 		Pools:     poolByAddress,
-		SwapLimit: a.poolFactory.NewSwapLimit(limits),
+		SwapLimit: a.poolFactory.NewSwapLimit(limits, types.PoolManagerExtraData{}),
 	})
 }
 

@@ -305,7 +305,12 @@ func (p *PointerSwapPoolManager) filterInvalidPoolAddresses(poolAddresses []stri
 
 // GetStateByPoolAddresses return a reference to pool simulators maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned from here, clone IPoolSimulator before UpdateBalance
-func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
+func (p *PointerSwapPoolManager) GetStateByPoolAddresses(
+	ctx context.Context,
+	poolAddresses, dex []string,
+	stateRoot common.Hash,
+	extraData types.PoolManagerExtraData,
+) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
@@ -321,7 +326,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
-	state, err := p.getPoolStates(ctx, filteredPoolAddress, dex, stateRoot)
+	state, err := p.getPoolStates(ctx, filteredPoolAddress, dex, stateRoot, extraData)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +338,12 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	return state, err
 }
 
-func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresses, whitelistDexes []string, stateRoot common.Hash) (*types.FindRouteState, error) {
+func (p *PointerSwapPoolManager) getPoolStates(
+	ctx context.Context,
+	poolAddresses, whitelistDexes []string,
+	stateRoot common.Hash,
+	extraData types.PoolManagerExtraData,
+) (*types.FindRouteState, error) {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		resultLimits        = make(map[string]map[string]*big.Int)
@@ -381,7 +391,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 	if len(poolsToFetchFromDB) == 0 {
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
-			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -397,7 +407,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err : %v", err)
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
-			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -411,7 +421,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 	if len(poolEntitiesFromDB) == 0 {
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
-			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -432,7 +442,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 
 	return &types.FindRouteState{
 		Pools:                   resultPoolByAddress,
-		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits), // TODO: do we need to update swap limit here for pools from DB?
+		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData), // TODO: do we need to update swap limit here for pools from DB?
 		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
 }

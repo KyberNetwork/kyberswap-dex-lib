@@ -341,6 +341,10 @@ func apiAction(c *cli.Context) (err error) {
 
 	customRouteFinderEngine := finderengine.NewPathFinderEngine(customRoutePathFinder, customRouteRouteFinalizer)
 
+	cfg.UseCase.GetRoute.ExecutorAddress = cfg.Encoder.ExecutorAddress
+	if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
+		cfg.UseCase.GetRoute.ExecutorAddress = cfg.Encoder.L2ExecutorAddress
+	}
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,

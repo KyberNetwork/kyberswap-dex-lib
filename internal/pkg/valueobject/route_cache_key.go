@@ -31,11 +31,12 @@ type RouteCacheKey struct {
 	SaveGas   bool
 	CacheMode string
 	// AmountIn can be calculated in usd (if token in has price) or amountIn without decimal (if token in has no price)
-	AmountIn      string
-	Dexes         []string
-	GasInclude    bool
-	ExcludedPools []string
-	Index         string
+	AmountIn                  string
+	Dexes                     []string
+	GasInclude                bool
+	ExcludedPools             []string
+	Index                     string
+	UseKyberPrivateLimitOrder bool
 }
 
 type RouteCacheKeyTTL struct {
