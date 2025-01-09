@@ -32,11 +32,14 @@ var basePoolABIBytes []byte
 //go:embed abi/Two.json
 var twoABIBytes []byte
 
-//go:embed abi/Two_sonic.json
-var twoSonicABIBytes []byte
+//go:embed abi/TwoV2.json
+var twoV2ABIBytes []byte
 
 //go:embed abi/Tricrypto.json
 var tricryptoABIBytes []byte
+
+//go:embed abi/TricryptoV2.json
+var tricryptoV2ABIBytes []byte
 
 //go:embed abi/Oracle.json
 var oracleABIBytes []byte

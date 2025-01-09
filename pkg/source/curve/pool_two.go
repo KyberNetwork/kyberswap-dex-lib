@@ -238,25 +238,24 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 
 	if d.config.ChainID == int(valueobject.ChainIDSonic) {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    twoSonicABI,
+			ABI:    twoV2ABI,
 			Target: p.Address,
 			Method: "last_timestamp",
 			Params: nil,
 		}, []interface{}{&lastPriceTimestamp})
 		calls.AddCall(&ethrpc.Call{
-			ABI:    twoSonicABI,
+			ABI:    twoV2ABI,
 			Target: p.Address,
 			Method: "ma_time",
 			Params: nil,
-		}, []interface{}{&lastPriceTimestamp})
-
+		}, []interface{}{&maHalfTime})
 	} else {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: p.Address,
-			Method: poolMethodMaHalfTime,
+			Method: poolMethodLastPricesTimestamp,
 			Params: nil,
-		}, []interface{}{&maHalfTime})
+		}, []interface{}{&lastPriceTimestamp})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: p.Address,
