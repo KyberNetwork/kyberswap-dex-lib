@@ -1,0 +1,50 @@
+[
+    {
+      "id": "0x337F67d8F51f96b287ceb2a262f568Cac0C526A7",
+      "name": "CGAi/WS",
+      "type": "curve-two",
+      "tokens": [
+        {
+          "address": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+          "precision": "1"
+        },
+        {
+          "address": "0x8adfDb078cA8b41F91501Fec35F21Db31EBBEDd0",
+          "precision": "1"
+        }
+      ],
+      "lpToken": "0x337F67d8F51f96b287ceb2a262f568Cac0C526A7"
+    },
+    {
+      "id": "0x074f336508598b9D34e5FA0b6441B2dEC1f309fE",
+      "name": "S/USDC",
+      "type": "curve-two",
+      "tokens": [
+        {
+          "address": "0x29219dd400f2Bf60E5a23d13Be72B486D4038894",
+          "precision": "1000000000000"
+        },
+        {
+          "address": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+          "precision": "1"
+        }
+      ],
+      "lpToken": "0x074f336508598b9D34e5FA0b6441B2dEC1f309fE"
+    },
+    {
+      "id": "0x88412aef42E46eB9d44d5Ea075BF82A01c75E1aB",
+      "name": "K/wS",
+      "type": "curve-two",
+      "tokens": [
+        {
+          "address": "0x7732Cda61C9f7852c8A016B815f07ccD067A918f",
+          "precision": "1"
+        },
+        {
+          "address": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+          "precision": "1"
+        }
+      ],
+      "lpToken": "0x88412aef42E46eB9d44d5Ea075BF82A01c75E1aB"
+    }
+  ]

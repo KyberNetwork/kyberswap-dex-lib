@@ -13,6 +13,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeTwo(
@@ -189,13 +190,6 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
-		Method: poolMethodLastPricesTimestamp,
-		Params: nil,
-	}, []interface{}{&lastPriceTimestamp})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    twoABI,
-		Target: p.Address,
 		Method: poolMethodXcpProfit,
 		Params: nil,
 	}, []interface{}{&xcpProfit})
@@ -224,13 +218,6 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
-		Method: poolMethodMaHalfTime,
-		Params: nil,
-	}, []interface{}{&maHalfTime})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    twoABI,
-		Target: p.Address,
 		Method: poolMethodPriceScale,
 		Params: nil,
 	}, []interface{}{&priceScale})
@@ -248,6 +235,35 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 		Method: poolMethodLastPrices,
 		Params: nil,
 	}, []interface{}{&lastPrices})
+
+	if d.config.ChainID == int(valueobject.ChainIDSonic) {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    twoSonicABI,
+			Target: p.Address,
+			Method: "last_timestamp",
+			Params: nil,
+		}, []interface{}{&lastPriceTimestamp})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    twoSonicABI,
+			Target: p.Address,
+			Method: "ma_time",
+			Params: nil,
+		}, []interface{}{&lastPriceTimestamp})
+
+	} else {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    twoABI,
+			Target: p.Address,
+			Method: poolMethodMaHalfTime,
+			Params: nil,
+		}, []interface{}{&maHalfTime})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    twoABI,
+			Target: p.Address,
+			Method: poolMethodMaHalfTime,
+			Params: nil,
+		}, []interface{}{&maHalfTime})
+	}
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {

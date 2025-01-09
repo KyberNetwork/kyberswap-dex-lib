@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -25,9 +26,14 @@ func InitDataSourceAddresses(lg logger.Logger, config *Config, ethrpcClient *eth
 
 	calls := ethrpcClient.NewRequest()
 
+	curveAddressProvider := CurveAddressProvider
+	if config.ChainID == valueobject.ChainIDSonic {
+		curveAddressProvider = CurveAddressProvider_Sonic
+	}
+
 	calls.AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
-		Target: CurveAddressProvider,
+		Target: curveAddressProvider,
 		Method: addressProviderMethodGetAddress,
 		Params: []interface{}{big.NewInt(0)},
 	}, []interface{}{&mainRegistryAddress})

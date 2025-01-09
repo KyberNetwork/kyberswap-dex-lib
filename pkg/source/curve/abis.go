@@ -18,6 +18,7 @@ var (
 	plainOracleABI     abi.ABI
 	baseABI            abi.ABI
 	twoABI             abi.ABI
+	twoSonicABI        abi.ABI
 	tricryptoABI       abi.ABI
 	oracleABI          abi.ABI
 	compoundABI        abi.ABI
@@ -39,6 +40,7 @@ func init() {
 		{&plainOracleABI, plainOraclePoolABIBytes},
 		{&baseABI, basePoolABIBytes},
 		{&twoABI, twoABIBytes},
+		{&twoSonicABI, twoSonicABIBytes},
 		{&tricryptoABI, tricryptoABIBytes},
 		{&oracleABI, oracleABIBytes},
 		{&compoundABI, compoundABIBytes},
