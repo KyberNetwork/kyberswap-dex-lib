@@ -11,11 +11,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type Config struct {
-	DexID string           `json:"dexId"`
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
-}
-
 type IClient interface {
 	QuoteSingleOrderResult(ctx context.Context, params QuoteParams) (QuoteSingleOrderResult, error)
 }

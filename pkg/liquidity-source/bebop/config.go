@@ -9,3 +9,9 @@ type HTTPClientConfig struct {
 	Name          string                `mapstructure:"name" json:"name"`
 	Authorization string                `mapstructure:"authorization" json:"authorization"`
 }
+
+type Config struct {
+	APIName string           `json:"apiName"`
+	DexID   string           `json:"dexId"`
+	HTTP    HTTPClientConfig `mapstructure:"http" json:"http"`
+}
