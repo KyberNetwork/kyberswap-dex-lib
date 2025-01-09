@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestHTTPClient(t *testing.T) {
 	t.Skip("has rate-limit for non-authorization requests")
 
-	c := client.NewHTTPClient(
+	c := client.NewClient(
 		&bebop.HTTPClientConfig{
 			BaseURL: "https://api.bebop.xyz/pmm/ethereum",
 			Timeout: durationjson.Duration{

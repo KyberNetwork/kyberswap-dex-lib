@@ -17,26 +17,24 @@ var (
 	ErrQuoteFailed = errors.New("quote failed")
 )
 
-type HTTPClient struct {
-	config *HTTPClientConfig
-	client *resty.Client
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+func NewClient(config *HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetHeader(headerAPIKey, config.APIKey).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
 
-	return &HTTPClient{
-		config: config,
-		client: client,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params QuoteParams) (QuoteResult, error) {
-	req := c.client.R().
+func (c *client) Quote(ctx context.Context, params QuoteParams) (QuoteResult, error) {
+	req := c.restyClient.R().
 		SetContext(ctx).
 		SetBody(params)
 

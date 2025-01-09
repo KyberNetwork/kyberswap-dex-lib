@@ -6,8 +6,9 @@ import (
 
 	"github.com/KyberNetwork/logger"
 
-	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 	"github.com/go-resty/resty/v2"
+
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 )
 
 const (
@@ -22,25 +23,23 @@ var (
 	ErrOrderIsTooSmall = errors.New("rfq: order is too small")
 )
 
-type HTTPClient struct {
-	client *resty.Client
-	config *mxtrading.HTTPClientConfig
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config *mxtrading.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+func NewClient(config *mxtrading.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
 
-	return &HTTPClient{
-		config: config,
-		client: client,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c HTTPClient) Quote(ctx context.Context, params mxtrading.OrderParams) (mxtrading.SignedOrderResult, error) {
-	req := c.client.R().SetContext(ctx).SetBody(params)
+func (c *client) Quote(ctx context.Context, params mxtrading.OrderParams) (mxtrading.SignedOrderResult, error) {
+	req := c.restyClient.R().SetContext(ctx).SetBody(params)
 
 	var result mxtrading.SignedOrderResult
 	var errResult any

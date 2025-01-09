@@ -16,11 +16,11 @@ import (
 
 type PoolTracker struct {
 	config           *Config
-	limitOrderClient *httpClient
+	limitOrderClient *client
 }
 
 func NewPoolTracker(cfg *Config) *PoolTracker {
-	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
+	limitOrderClient := NewClient(cfg.LimitOrderHTTPUrl)
 
 	return &PoolTracker{
 		config:           cfg,

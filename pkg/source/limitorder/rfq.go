@@ -15,11 +15,11 @@ import (
 type RFQHandler struct {
 	pool.RFQHandler
 	config *Config
-	client *httpClient
+	client *client
 }
 
 func NewRFQHandler(config *Config) *RFQHandler {
-	client := NewHTTPClient(config.LimitOrderHTTPUrl)
+	client := NewClient(config.LimitOrderHTTPUrl)
 	return &RFQHandler{
 		config: config,
 		client: client,
