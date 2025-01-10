@@ -42,6 +42,11 @@ common:
     - "woofi-v3"
     - "swap-x-v2"
     - "shadow-dex"
+    - "curve-stable-meta-ng"
+    - "curve-stable-ng"
+    - "curve-stable-plain"
+    - "curve-tricrypto-ng"
+    - "curve-twocrypto-ng"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
