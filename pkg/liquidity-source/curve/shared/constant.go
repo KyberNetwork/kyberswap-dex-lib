@@ -41,7 +41,5 @@ const (
 
 	addressProviderMethodGetAddress = "get_address"
 
-	getPoolsEndpoint = "/api/getPools/%s/%s" // <chain>/<registry>
-
-	getPoolsEndpoint_Sonic = "/v1/getPools/%s/%s" // <chain>/<registry>
+	getPoolsEndpoint = "/v1/getPools/%s/%s" // <chain>/<registry>
 )

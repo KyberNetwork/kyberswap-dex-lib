@@ -120,12 +120,7 @@ func (u *PoolsListUpdater) GetNewPoolsFromDataSource(ctx context.Context, dataSo
 
 	var result GetPoolsResult
 
-	endpoint := getPoolsEndpoint
-	if u.config.ChainID == valueobject.ChainIDSonic {
-		endpoint = getPoolsEndpoint_Sonic
-	}
-
-	resp, err := req.SetResult(&result).Get(fmt.Sprintf(endpoint, u.config.ChainCode, dataSource))
+	resp, err := req.SetResult(&result).Get(fmt.Sprintf(getPoolsEndpoint, u.config.ChainCode, dataSource))
 	if err != nil {
 		return nil, err
 	}
