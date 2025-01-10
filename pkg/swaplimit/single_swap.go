@@ -48,6 +48,10 @@ func (l *SingleSwapLimit) GetSwapped() map[string]*big.Int {
 	return nil
 }
 
+func (i *SingleSwapLimit) GetAllowedSenders() string {
+	return ""
+}
+
 // UpdateLimit updates the atomic bool to mark swap done
 func (l *SingleSwapLimit) UpdateLimit(_, _ string, _, _ *big.Int) (*big.Int, *big.Int, error) {
 	l.swapped.Store(true)

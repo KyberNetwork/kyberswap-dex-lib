@@ -1375,3 +1375,90 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 		})
 	}
 }
+
+func TestPool_FilterAllowedSenders(t *testing.T) {
+	extra := Extra{
+		BuyOrders: []*order{
+			{
+				ID:             1,
+				AllowedSenders: "0x0000000000000000000000000000000000000000",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             2,
+				AllowedSenders: "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             3,
+				AllowedSenders: "0xf081470f5c6fbccf48cc4e5b82dd926409dcdd67",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+			{
+				ID:             4,
+				AllowedSenders: "0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854",
+				MakerAsset:     "A", TakerAsset: "B",
+				MakingAmount:          parseBigInt("1"),
+				TakingAmount:          parseBigInt("1"),
+				AvailableMakingAmount: parseBigInt("100"),
+				MakerBalanceAllowance: parseBigInt("100000000000000000000"),
+			},
+		},
+	}
+	sExtra, _ := json.Marshal(extra)
+	poolEnt := entity.Pool{
+		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Reserves:    entity.PoolReserves{"10000", "10000"},
+		StaticExtra: `{"ContractAddress":""}`,
+		Extra:       string(sExtra),
+	}
+
+	p, err := NewPoolSimulator(poolEnt)
+	assert.NoError(t, err)
+
+	// Use all orders if we don't pass swapLimit
+	res, _ := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("400"),
+		},
+		TokenOut: "B",
+		Limit:    nil,
+	})
+
+	assert.Equal(t, "400", res.TokenAmountOut.Amount.String())
+
+	// Use the first 3 orders when filter allowedSenders
+	// Use all orders if we don't pass swapLimit
+	_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("400"),
+		},
+		TokenOut: "B",
+		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+	})
+	assert.Equal(t, ErrCannotFulfillAmountIn, err)
+
+	res, _ = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "A",
+			Amount: parseBigInt("300"),
+		},
+		TokenOut: "B",
+		Limit:    swaplimit.NewInventoryWithAllowedSenders("", p.CalculateLimit(), "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"),
+	})
+	assert.Equal(t, "300", res.TokenAmountOut.Amount.String())
+}

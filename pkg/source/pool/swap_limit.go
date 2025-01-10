@@ -14,6 +14,8 @@ type SwapLimit interface {
 	GetLimit(key string) *big.Int
 	// GetSwapped returns the amount has been swapped through pools
 	GetSwapped() map[string]*big.Int
+	// GetAllowedSenders returns a list of addresses that are allowed to swap through Limit Order.
+	GetAllowedSenders() string
 	// UpdateLimit updates both limits for a trade (assuming each trade is from 1 token to another token)
 	// It returns the new limits for other purposes
 	UpdateLimit(decreaseKey, increasedKey string, decreasedDelta, increasedDelta *big.Int) (increasedLimitAfter *big.Int, decreasedLimitAfter *big.Int, err error)

@@ -38,6 +38,9 @@ func (p *PoolSimulator) calcAmountIn(
 
 func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountOut pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
+	if limit != nil {
+		orderIDs = p.filterOrdersByAllowedSenders(orderIDs, limit.GetAllowedSenders())
+	}
 	if len(orderIDs) == 0 {
 		return big.NewInt(0), SwapInfo{}, nil, nil
 	}
