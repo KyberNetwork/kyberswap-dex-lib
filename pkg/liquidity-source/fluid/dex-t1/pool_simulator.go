@@ -25,7 +25,7 @@ var (
 
 	ErrInsufficientMaxPrice = errors.New("insufficient reserve: tokenOut amount exceeds max price limit")
 
-	ErrVerifyReservesRatiosInvalid = errors.New(("invalid reserves ratio"))
+	ErrVerifyReservesRatiosInvalid = errors.New("invalid reserves ratio")
 )
 
 type PoolSimulator struct {
@@ -62,8 +62,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	fee := new(big.Int)
-	fee.SetInt64(int64(entityPool.SwapFee * float64(FeePercentPrecision)))
+	fee := big.NewInt(int64(entityPool.SwapFee * FeePercentPrecision))
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
@@ -94,7 +93,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrSwapAndArbitragePaused
 	}
 
-	if param.TokenAmountIn.Amount.Cmp(bignumber.ZeroBI) <= 0 {
+	if param.TokenAmountIn.Amount.Sign() <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
 
@@ -111,47 +110,13 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
-	fee = new(big.Int).Div(fee, big.NewInt(Fee100PercentPrecision))
+	fee = fee.Div(fee, Fee100PercentPrecision)
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	collateralReserves := CollateralReserves{
-		Token0RealReserves:      new(big.Int).Set(s.CollateralReserves.Token0RealReserves),
-		Token1RealReserves:      new(big.Int).Set(s.CollateralReserves.Token1RealReserves),
-		Token0ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token0ImaginaryReserves),
-		Token1ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token1ImaginaryReserves),
-	}
-
-	debtReserves := DebtReserves{
-		Token0RealReserves:      new(big.Int).Set(s.DebtReserves.Token0RealReserves),
-		Token1RealReserves:      new(big.Int).Set(s.DebtReserves.Token1RealReserves),
-		Token0ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token0ImaginaryReserves),
-		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
-	}
-
-	dexLimits := DexLimits{
-		BorrowableToken0: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
-		},
-		BorrowableToken1: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
-		},
-		WithdrawableToken0: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
-		},
-		WithdrawableToken1: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
-		},
-	}
-
+	collateralReserves := s.CollateralReserves.Clone()
+	debtReserves := s.DebtReserves.Clone()
+	dexLimits := s.DexLimits.Clone()
 	syncTimestamp := s.SyncTimestamp
 	centerPrice := s.CenterPrice
 
@@ -191,7 +156,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, ErrSwapAndArbitragePaused
 	}
 
-	if param.TokenAmountOut.Amount.Cmp(bignumber.ZeroBI) <= 0 {
+	if param.TokenAmountOut.Amount.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
 	}
 
@@ -210,43 +175,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	collateralReserves := CollateralReserves{
-		Token0RealReserves:      new(big.Int).Set(s.CollateralReserves.Token0RealReserves),
-		Token1RealReserves:      new(big.Int).Set(s.CollateralReserves.Token1RealReserves),
-		Token0ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token0ImaginaryReserves),
-		Token1ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token1ImaginaryReserves),
-	}
-
-	debtReserves := DebtReserves{
-		Token0RealReserves:      new(big.Int).Set(s.DebtReserves.Token0RealReserves),
-		Token1RealReserves:      new(big.Int).Set(s.DebtReserves.Token1RealReserves),
-		Token0ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token0ImaginaryReserves),
-		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
-	}
-
-	dexLimits := DexLimits{
-		BorrowableToken0: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
-		},
-		BorrowableToken1: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
-		},
-		WithdrawableToken0: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
-		},
-		WithdrawableToken1: TokenLimit{
-			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
-			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
-			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
-		},
-	}
-
+	collateralReserves := s.CollateralReserves.Clone()
+	debtReserves := s.DebtReserves.Clone()
+	dexLimits := s.DexLimits.Clone()
 	syncTimestamp := s.SyncTimestamp
 	centerPrice := s.CenterPrice
 
@@ -258,7 +189,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)
-	fee = new(big.Int).Div(fee, big.NewInt(Fee100PercentPrecision))
+	fee = fee.Div(fee, Fee100PercentPrecision)
 
 	amountInAfterFee := new(big.Int).Add(tokenAmountIn, fee)
 
@@ -277,8 +208,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var outputAmount = output.Amount
+	inputAmount, outputAmount := input.Amount, output.Amount
 
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
@@ -323,7 +253,7 @@ func getAmountOut(amountIn *big.Int, iReserveIn *big.Int, iReserveOut *big.Int) 
 	denominator := new(big.Int).Add(iReserveIn, amountIn)
 
 	// Using the swap formula: (AmountIn * iReserveY) / (iReserveX + AmountIn)
-	return new(big.Int).Div(numerator, denominator)
+	return numerator.Div(numerator, denominator)
 }
 
 /**
@@ -339,7 +269,7 @@ func getAmountIn(amountOut *big.Int, iReserveIn *big.Int, iReserveOut *big.Int) 
 	denominator := new(big.Int).Sub(iReserveOut, amountOut)
 
 	// Using the swap formula: (AmountOut * iReserveX) / (iReserveY - AmountOut)
-	return new(big.Int).Div(numerator, denominator)
+	return numerator.Div(numerator, denominator)
 }
 
 /**
@@ -400,7 +330,7 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  */
 func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
 	numerator := new(big.Int).Mul(token1Reserves, bI1e27)
-	denominator := new(big.Int).Mul(price, big.NewInt(MinSwapLiquidity))
+	denominator := new(big.Int).Mul(price, MinSwapLiquidity)
 	return token0Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 
@@ -414,7 +344,7 @@ func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
  */
 func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
 	numerator := new(big.Int).Mul(token0Reserves, price)
-	denominator := new(big.Int).Mul(bI1e27, big.NewInt(MinSwapLiquidity))
+	denominator := new(big.Int).Mul(bI1e27, MinSwapLiquidity)
 	return token1Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 
@@ -455,7 +385,8 @@ func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, outDecimals int64, currentLimits DexLimits, centerPrice *big.Int, syncTime int64) (*big.Int, error) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves,
+	outDecimals int64, currentLimits DexLimits, centerPrice *big.Int, syncTime int64) (*big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveIn, colReserveOut, debtReserveIn, debtReserveOut     *big.Int
@@ -489,26 +420,26 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if DexAmountsDecimals > outDecimals {
-		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
+		factor = bignumber.TenPowInt(DexAmountsDecimals - outDecimals)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
+		factor = bignumber.TenPowInt(outDecimals - DexAmountsDecimals)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Sign() > 0 &&
+		colReserves.Token1RealReserves.Sign() > 0 &&
+		colReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		colReserves.Token1ImaginaryReserves.Sign() > 0
 
 	// Check if all reserves of debt pool are greater than 0
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Sign() > 0 &&
+		debtReserves.Token1RealReserves.Sign() > 0 &&
+		debtReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		debtReserves.Token1ImaginaryReserves.Sign() > 0
 
 	var a *big.Int
 	if colPoolEnabled && debtPoolEnabled {
@@ -516,20 +447,20 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	} else if debtPoolEnabled {
 		a = big.NewInt(-1) // Route from debt pool
 	} else if colPoolEnabled {
-		a = new(big.Int).Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
+		a = new(big.Int).Add(amountToSwap, bignumber.One) // Route from collateral pool
 	} else {
 		return nil, errors.New("no pools are enabled")
 	}
 
-	amountInCollateral := big.NewInt(0)
-	amountOutCollateral := big.NewInt(0)
-	amountInDebt := big.NewInt(0)
-	amountOutDebt := big.NewInt(0)
+	amountInCollateral := new(big.Int)
+	amountOutCollateral := new(big.Int)
+	amountInDebt := new(big.Int)
+	amountOutDebt := new(big.Int)
 
 	triggerUpdateDebtReserves := false
 	triggerUpdateColReserves := false
 
-	if a.Cmp(bignumber.ZeroBI) <= 0 {
+	if a.Sign() <= 0 {
 		// Entire trade routes through debt pool
 		amountInDebt = amountToSwap
 		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
@@ -555,84 +486,90 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 
 	if amountOutDebt.Cmp(debtReserveOut) > 0 {
-		return nil, errors.New(ErrInsufficientReserve.Error())
+		return nil, ErrInsufficientReserve
 	}
 
 	if amountOutCollateral.Cmp(colReserveOut) > 0 {
-		return nil, errors.New(ErrInsufficientReserve.Error())
+		return nil, ErrInsufficientReserve
 	}
 
 	if amountOutDebt.Cmp(borrowable) > 0 {
-		return nil, errors.New(ErrInsufficientBorrowable.Error())
+		return nil, ErrInsufficientBorrowable
 	}
 
 	if amountOutCollateral.Cmp(withdrawable) > 0 {
-		return nil, errors.New(ErrInsufficientWithdrawable.Error())
+		return nil, ErrInsufficientWithdrawable
 	}
 
-	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
+	if amountInCollateral.Sign() > 0 {
 		reservesRatioValid := false
 		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral),
+				new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
 		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral),
+				new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
 		}
 		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+			return nil, ErrVerifyReservesRatiosInvalid
 		}
 	}
-	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
+	if amountInDebt.Sign() > 0 {
 		reservesRatioValid := false
 		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt),
+				new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
 		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt),
+				new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
 		}
 		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+			return nil, ErrVerifyReservesRatiosInvalid
 		}
 	}
 
-	oldPrice := big.NewInt(0)
-	newPrice := big.NewInt(0)
-	priceDiff := big.NewInt(0)
-	maxPriceDiff := big.NewInt(0)
+	oldPrice, newPrice := new(big.Int), new(big.Int)
+	priceDiff, maxPriceDiff := new(big.Int), new(big.Int)
 	// from whatever pool higher amount of swap is routing we are taking that as final price, does not matter much because both pools final price should be same
 	if amountInCollateral.Cmp(amountInDebt) > 0 {
 		// new pool price from col pool
 		if swap0To1 {
 			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
-			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+			newPrice.Div(newPrice.Mul(newPrice.Sub(colIReserveOut, amountOutCollateral), bI1e27),
+				new(big.Int).Add(colIReserveIn, amountInCollateral))
 		} else {
 			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
-			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+			newPrice.Div(newPrice.Mul(newPrice.Add(colIReserveIn, amountInCollateral), bI1e27),
+				new(big.Int).Sub(colIReserveOut, amountOutCollateral))
 		}
 	} else {
 		// new pool price from debt pool
 		if swap0To1 {
 			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
-			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+			newPrice.Div(newPrice.Mul(newPrice.Sub(debtIReserveOut, amountOutDebt), bI1e27),
+				new(big.Int).Add(debtIReserveIn, amountInDebt))
 		} else {
 			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
-			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+			newPrice.Div(newPrice.Mul(newPrice.Add(debtIReserveIn, amountInDebt), bI1e27),
+				new(big.Int).Sub(debtIReserveOut, amountOutDebt))
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
-		return nil, errors.New(ErrInsufficientMaxPrice.Error())
+		return nil, ErrInsufficientMaxPrice
 	}
 
-	if triggerUpdateColReserves && triggerUpdateDebtReserves {
-		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
-	} else if triggerUpdateColReserves {
+	if triggerUpdateColReserves {
 		updateCollateralReservesAndLimits(swap0To1, amountToSwap, amountOutCollateral, colReserves, currentLimits)
-	} else if triggerUpdateDebtReserves {
+	}
+
+	if triggerUpdateDebtReserves {
 		updateDebtReservesAndLimits(swap0To1, amountToSwap, amountOutDebt, debtReserves, currentLimits)
 	}
 
-	return new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
+	return amountOutCollateral.Add(amountOutCollateral, amountOutDebt), nil
 }
 
 /**
@@ -687,21 +624,22 @@ func swapIn(
 	var amountInAdjusted *big.Int
 
 	if inDecimals > DexAmountsDecimals {
-		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountInAdjusted = new(big.Int).Div(amountIn, bignumber.TenPowInt(inDecimals-DexAmountsDecimals))
 	} else {
-		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountInAdjusted = new(big.Int).Mul(amountIn, bignumber.TenPowInt(DexAmountsDecimals-inDecimals))
 	}
 
-	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits, centerPrice, syncTime)
+	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits,
+		centerPrice, syncTime)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if outDecimals > DexAmountsDecimals {
-		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
+		amountOut = new(big.Int).Mul(amountOut, bignumber.TenPowInt(outDecimals-DexAmountsDecimals))
 	} else {
-		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
+		amountOut = new(big.Int).Div(amountOut, bignumber.TenPowInt(DexAmountsDecimals-outDecimals))
 	}
 
 	return amountOut, nil
@@ -787,26 +725,26 @@ func swapOutAdjusted(
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if DexAmountsDecimals > outDecimals {
-		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
+		factor = bignumber.TenPowInt(DexAmountsDecimals - outDecimals)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
+		factor = bignumber.TenPowInt(outDecimals - DexAmountsDecimals)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Sign() > 0 &&
+		colReserves.Token1RealReserves.Sign() > 0 &&
+		colReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		colReserves.Token1ImaginaryReserves.Sign() > 0
 
 	// Check if all reserves of debt pool are greater than 0
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Sign() > 0 &&
+		debtReserves.Token1RealReserves.Sign() > 0 &&
+		debtReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		debtReserves.Token1ImaginaryReserves.Sign() > 0
 
 	var a *big.Int
 	if colPoolEnabled && debtPoolEnabled {
@@ -814,26 +752,24 @@ func swapOutAdjusted(
 	} else if debtPoolEnabled {
 		a = big.NewInt(-1) // Route from debt pool
 	} else if colPoolEnabled {
-		a = new(big.Int).Add(amountOut, big.NewInt(1)) // Route from collateral pool
+		a = new(big.Int).Add(amountOut, bignumber.One) // Route from collateral pool
 	} else {
 		return nil, errors.New("no pools are enabled")
 	}
 
-	amountInCollateral := big.NewInt(0)
-	amountOutCollateral := big.NewInt(0)
-	amountInDebt := big.NewInt(0)
-	amountOutDebt := big.NewInt(0)
+	amountInCollateral, amountOutCollateral := new(big.Int), new(big.Int)
+	amountInDebt, amountOutDebt := new(big.Int), new(big.Int)
 
 	triggerUpdateDebtReserves := false
 	triggerUpdateColReserves := false
 
-	if a.Cmp(bignumber.ZeroBI) <= 0 {
+	if a.Sign() <= 0 {
 		// Entire trade routes through debt pool
 		amountOutDebt = amountOut
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
 
 		if amountOut.Cmp(debtReserveOut) > 0 {
-			return nil, errors.New(ErrInsufficientReserve.Error())
+			return nil, ErrInsufficientReserve
 		}
 
 		triggerUpdateDebtReserves = true
@@ -842,7 +778,7 @@ func swapOutAdjusted(
 		amountOutCollateral = amountOut
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
 		if amountOut.Cmp(colReserveOut) > 0 {
-			return nil, errors.New(ErrInsufficientReserve.Error())
+			return nil, ErrInsufficientReserve
 		}
 
 		triggerUpdateColReserves = true
@@ -854,7 +790,7 @@ func swapOutAdjusted(
 		amountInDebt = getAmountIn(amountOutDebt, debtIReserveIn, debtIReserveOut)
 
 		if amountOutDebt.Cmp(debtReserveOut) > 0 || amountOutCollateral.Cmp(colReserveOut) > 0 {
-			return nil, errors.New(ErrInsufficientReserve.Error())
+			return nil, ErrInsufficientReserve
 		}
 
 		triggerUpdateDebtReserves = true
@@ -862,76 +798,82 @@ func swapOutAdjusted(
 	}
 
 	if amountOutDebt.Cmp(borrowable) > 0 {
-		return nil, errors.New(ErrInsufficientBorrowable.Error())
+		return nil, ErrInsufficientBorrowable
 	}
 
 	if amountOutCollateral.Cmp(withdrawable) > 0 {
-		return nil, errors.New(ErrInsufficientWithdrawable.Error())
+		return nil, ErrInsufficientWithdrawable
 	}
 
-	if amountInCollateral.Cmp(bignumber.ZeroBI) > 0 {
+	if amountInCollateral.Sign() > 0 {
 		reservesRatioValid := false
 		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral), new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(colReserveIn, amountInCollateral),
+				new(big.Int).Sub(colReserveOut, amountOutCollateral), centerPrice)
 		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral), new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(colReserveOut, amountOutCollateral),
+				new(big.Int).Add(colReserveIn, amountInCollateral), centerPrice)
 		}
 		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+			return nil, ErrVerifyReservesRatiosInvalid
 		}
 	}
-	if amountInDebt.Cmp(bignumber.ZeroBI) > 0 {
+	if amountInDebt.Sign() > 0 {
 		reservesRatioValid := false
 		if swap0To1 {
-			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt), new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
+			reservesRatioValid = verifyToken1Reserves(new(big.Int).Add(debtReserveIn, amountInDebt),
+				new(big.Int).Sub(debtReserveOut, amountOutDebt), centerPrice)
 		} else {
-			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt), new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
+			reservesRatioValid = verifyToken0Reserves(new(big.Int).Sub(debtReserveOut, amountOutDebt),
+				new(big.Int).Add(debtReserveIn, amountInDebt), centerPrice)
 		}
 		if !reservesRatioValid {
-			return nil, errors.New(ErrVerifyReservesRatiosInvalid.Error())
+			return nil, ErrVerifyReservesRatiosInvalid
 		}
 	}
 
-	oldPrice := big.NewInt(0)
-	newPrice := big.NewInt(0)
-	priceDiff := big.NewInt(0)
-	maxPriceDiff := big.NewInt(0)
+	oldPrice, newPrice := new(big.Int), new(big.Int)
+	priceDiff, maxPriceDiff := new(big.Int), new(big.Int)
 	// from whatever pool higher amount of swap is routing we are taking that as final price, does not matter much because both pools final price should be same
 	if amountOutCollateral.Cmp(amountOutDebt) > 0 {
 		// new pool price from col pool
 		if swap0To1 {
 			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
-			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+			newPrice.Div(newPrice.Mul(newPrice.Sub(colIReserveOut, amountOutCollateral), bI1e27),
+				new(big.Int).Add(colIReserveIn, amountInCollateral))
 		} else {
 			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
-			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+			newPrice.Div(newPrice.Mul(newPrice.Add(colIReserveIn, amountInCollateral), bI1e27),
+				new(big.Int).Sub(colIReserveOut, amountOutCollateral))
 		}
 	} else {
 		// new pool price from debt pool
 		if swap0To1 {
 			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
-			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+			newPrice.Div(newPrice.Mul(newPrice.Sub(debtIReserveOut, amountOutDebt), bI1e27),
+				new(big.Int).Add(debtIReserveIn, amountInDebt))
 		} else {
 			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
-			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+			newPrice.Div(newPrice.Mul(newPrice.Add(debtIReserveIn, amountInDebt), bI1e27),
+				new(big.Int).Sub(debtIReserveOut, amountOutDebt))
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
-		return nil, errors.New(ErrInsufficientMaxPrice.Error())
+		return nil, ErrInsufficientMaxPrice
 	}
 
-	if triggerUpdateColReserves && triggerUpdateDebtReserves {
-		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
-	} else if triggerUpdateColReserves {
+	if triggerUpdateColReserves {
 		updateCollateralReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, colReserves, currentLimits)
-	} else if triggerUpdateDebtReserves {
+	}
+
+	if triggerUpdateDebtReserves {
 		updateDebtReservesAndLimits(swap0To1, amountInDebt, amountOutDebt, debtReserves, currentLimits)
 	}
 
-	return new(big.Int).Add(amountInCollateral, amountInDebt), nil
+	return amountInCollateral.Add(amountInCollateral, amountInDebt), nil
 }
 
 /**
@@ -987,24 +929,23 @@ func swapOut(
 
 	if outDecimals > DexAmountsDecimals {
 		amountOutAdjusted = new(big.Int).Div(amountOut,
-			new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
+			bignumber.TenPowInt(outDecimals-DexAmountsDecimals))
 	} else {
 		amountOutAdjusted = new(big.Int).Mul(amountOut,
-			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
+			bignumber.TenPowInt(DexAmountsDecimals-outDecimals))
 	}
 
-	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits, centerPrice, syncTime)
+	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits,
+		centerPrice, syncTime)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if inDecimals > DexAmountsDecimals {
-		amountIn = new(big.Int).Mul(amountIn,
-			new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountIn = new(big.Int).Mul(amountIn, bignumber.TenPowInt(inDecimals-DexAmountsDecimals))
 	} else {
-		amountIn = new(big.Int).Div(amountIn,
-			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountIn = new(big.Int).Div(amountIn, bignumber.TenPowInt(DexAmountsDecimals-inDecimals))
 	}
 
 	return amountIn, nil
@@ -1015,28 +956,46 @@ func getExpandedLimit(syncTime int64, limit TokenLimit) *big.Int {
 	currentTime := time.Now().Unix() // get current time in seconds
 	elapsedTime := currentTime - syncTime
 
-	expandedAmount := big.NewInt(0).Set(limit.Available)
+	expandedAmount := limit.Available
 
 	if elapsedTime < 10 {
 		// if almost no time has elapsed, return available amount
 		return expandedAmount
-	}
-
-	if elapsedTime >= limit.ExpandDuration.Int64() {
+	} else if elapsedTime >= limit.ExpandDuration.Int64() {
 		// if duration has passed, return max amount
-		expandedAmount = limit.ExpandsTo
-		return expandedAmount
+		return limit.ExpandsTo
 	}
 
 	expandedAmount = new(big.Int).Sub(limit.ExpandsTo, limit.Available)
 	expandedAmount.Mul(expandedAmount, big.NewInt(elapsedTime))
 	expandedAmount.Div(expandedAmount, limit.ExpandDuration)
 	expandedAmount.Add(expandedAmount, limit.Available)
-
 	return expandedAmount
 }
 
-func updateDebtReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves, limits DexLimits) {
+func updateCollateralReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves,
+	limits DexLimits) {
+	if swap0To1 {
+		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountIn)
+		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountIn)
+		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOut)
+		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOut)
+
+		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOut)
+		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOut)
+	} else {
+		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOut)
+		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOut)
+		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountIn)
+		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountIn)
+
+		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOut)
+		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOut)
+	}
+}
+
+func updateDebtReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves,
+	limits DexLimits) {
 	if swap0To1 {
 		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountIn)
 		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountIn)
@@ -1059,60 +1018,5 @@ func updateDebtReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, de
 
 		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOut)
 		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOut)
-	}
-}
-
-func updateCollateralReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves, limits DexLimits) {
-	if swap0To1 {
-		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountIn)
-		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountIn)
-		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOut)
-		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOut)
-
-		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOut)
-		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOut)
-	} else {
-		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOut)
-		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOut)
-		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountIn)
-		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountIn)
-
-		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOut)
-		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOut)
-	}
-}
-
-func updateBothReservesAndLimits(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
-	colReserves CollateralReserves, debtReserves DebtReserves, limits DexLimits) {
-	if swap0To1 {
-		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOutCollateral)
-		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOutCollateral)
-		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountInCollateral)
-		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountInCollateral)
-
-		debtReserves.Token1RealReserves.Sub(debtReserves.Token1RealReserves, amountOutDebt)
-		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOutDebt)
-		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountInDebt)
-		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountInDebt)
-
-		limits.BorrowableToken1.Available.Sub(limits.BorrowableToken1.Available, amountOutDebt)
-		limits.BorrowableToken1.ExpandsTo.Sub(limits.BorrowableToken1.ExpandsTo, amountOutDebt)
-		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOutCollateral)
-		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOutCollateral)
-	} else {
-		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountInCollateral)
-		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountInCollateral)
-		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOutCollateral)
-		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOutCollateral)
-
-		debtReserves.Token1RealReserves.Add(debtReserves.Token1RealReserves, amountInDebt)
-		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountInDebt)
-		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOutDebt)
-		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOutDebt)
-
-		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOutDebt)
-		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOutDebt)
-		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOutCollateral)
-		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOutCollateral)
 	}
 }

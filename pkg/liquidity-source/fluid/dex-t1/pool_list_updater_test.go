@@ -2,7 +2,6 @@ package dexT1
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"strings"
 	"testing"
@@ -83,17 +82,17 @@ func TestPoolListUpdater(t *testing.T) {
 	require.NotEqual(t, "0", pools[0].Reserves[0], "Reserve should not be zero")
 	require.NotEqual(t, "0", pools[0].Reserves[1], "Reserve should not be zero")
 
-	require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.CollateralReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.CollateralReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token0Debt.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token1Debt.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.DebtReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-	require.True(t, extra.CenterPrice.Cmp(big.NewInt(0)) > 0)
+	require.True(t, extra.CollateralReserves.Token0RealReserves.Sign() > 0)
+	require.True(t, extra.CollateralReserves.Token1RealReserves.Sign() > 0)
+	require.True(t, extra.CollateralReserves.Token0ImaginaryReserves.Sign() > 0)
+	require.True(t, extra.CollateralReserves.Token1ImaginaryReserves.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token0Debt.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token1Debt.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token0RealReserves.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token1RealReserves.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Sign() > 0)
+	require.True(t, extra.DebtReserves.Token1ImaginaryReserves.Sign() > 0)
+	require.True(t, extra.CenterPrice.Sign() > 0)
 
 	// Log all pools
 	// for i, pool := range pools {

@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolTracker(t *testing.T) {
@@ -85,19 +86,19 @@ func TestPoolTracker(t *testing.T) {
 		reserve0, _ := new(big.Int).SetString(newPool.Reserves[0], 10)
 		reserve1, _ := new(big.Int).SetString(newPool.Reserves[1], 10)
 
-		require.True(t, reserve0.Cmp(big.NewInt(0)) > 0)
-		require.True(t, reserve1.Cmp(big.NewInt(0)) > 0)
+		require.True(t, reserve0.Sign() > 0)
+		require.True(t, reserve1.Sign() > 0)
 
-		require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.CollateralReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.CollateralReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token0Debt.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token1Debt.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.CenterPrice.Cmp(big.NewInt(0)) > 0)
+		require.True(t, extra.CollateralReserves.Token0RealReserves.Sign() > 0)
+		require.True(t, extra.CollateralReserves.Token1RealReserves.Sign() > 0)
+		require.True(t, extra.CollateralReserves.Token0ImaginaryReserves.Sign() > 0)
+		require.True(t, extra.CollateralReserves.Token1ImaginaryReserves.Sign() > 0)
+		require.True(t, extra.DebtReserves.Token0Debt.Sign() > 0)
+		require.True(t, extra.DebtReserves.Token1Debt.Sign() > 0)
+		require.True(t, extra.DebtReserves.Token0RealReserves.Sign() > 0)
+		require.True(t, extra.DebtReserves.Token1RealReserves.Sign() > 0)
+		require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Sign() > 0)
+		require.True(t, extra.CenterPrice.Sign() > 0)
 
 		logger.Debugf("Reserve0: %s", newPool.Reserves[0])
 		logger.Debugf("Reserve1: %s", newPool.Reserves[1])

@@ -70,7 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	p.SwapFee = float64(poolReserves.Fee.Int64()) / float64(FeePercentPrecision)
+	p.SwapFee = float64(poolReserves.Fee.Int64()) / FeePercentPrecision
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
@@ -99,7 +99,7 @@ func (t *PoolTracker) getPoolReserves(
 ) (*PoolWithReserves, bool, uint64, error) {
 	pool := &PoolWithReserves{}
 
-	dexVariables2 := bignumber.ZeroBI
+	dexVariables2 := new(big.Int)
 
 	req := t.ethrpcClient.R().SetContext(ctx)
 	if overrides != nil {
@@ -130,7 +130,7 @@ func (t *PoolTracker) getPoolReserves(
 		return nil, false, 0, err
 	}
 
-	isSwapAndArbitragePaused := dexVariables2.Rsh(dexVariables2, 255).Cmp(bignumber.One) == 0
+	isSwapAndArbitragePaused := dexVariables2.Bit(255) == 1
 
 	return pool, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
 }

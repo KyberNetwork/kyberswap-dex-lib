@@ -39,15 +39,15 @@ func calculateReservesOutsideRange(geometricMeanPrice, priceAtRange, reserveX, r
 }
 
 func getApproxCenterPriceIn(amountToSwap *big.Int, swap0To1 bool, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, error) {
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Sign() > 0 &&
+		colReserves.Token1RealReserves.Sign() > 0 &&
+		colReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		colReserves.Token1ImaginaryReserves.Sign() > 0
 
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Sign() > 0 &&
+		debtReserves.Token1RealReserves.Sign() > 0 &&
+		debtReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		debtReserves.Token1ImaginaryReserves.Sign() > 0
 
 	var colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 
@@ -74,10 +74,10 @@ func getApproxCenterPriceIn(amountToSwap *big.Int, swap0To1 bool, colReserves Co
 		return nil, errors.New("No pools are enabled")
 	}
 
-	amountInCollateral := big.NewInt(0)
-	amountInDebt := big.NewInt(0)
+	amountInCollateral := new(big.Int)
+	amountInDebt := new(big.Int)
 
-	if a.Cmp(big.NewInt(0)) <= 0 {
+	if a.Sign() <= 0 {
 		amountInDebt = amountToSwap
 	} else if a.Cmp(amountToSwap) >= 0 {
 		amountInCollateral = amountToSwap
@@ -105,15 +105,15 @@ func getApproxCenterPriceIn(amountToSwap *big.Int, swap0To1 bool, colReserves Co
 }
 
 func getApproxCenterPriceOut(amountOut *big.Int, swap0To1 bool, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, error) {
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Sign() > 0 &&
+		colReserves.Token1RealReserves.Sign() > 0 &&
+		colReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		colReserves.Token1ImaginaryReserves.Sign() > 0
 
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Sign() > 0 &&
+		debtReserves.Token1RealReserves.Sign() > 0 &&
+		debtReserves.Token0ImaginaryReserves.Sign() > 0 &&
+		debtReserves.Token1ImaginaryReserves.Sign() > 0
 
 	var colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 
@@ -140,10 +140,10 @@ func getApproxCenterPriceOut(amountOut *big.Int, swap0To1 bool, colReserves Coll
 		return nil, errors.New("No pools are enabled")
 	}
 
-	amountInCollateral := big.NewInt(0)
-	amountInDebt := big.NewInt(0)
+	amountInCollateral := new(big.Int)
+	amountInDebt := new(big.Int)
 
-	if a.Cmp(big.NewInt(0)) <= 0 {
+	if a.Sign() <= 0 {
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
 	} else if a.Cmp(amountOut) >= 0 {
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
@@ -300,7 +300,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
 				DexLimits:      limitsWide,
-				CenterPrice:    big.NewInt(0).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
+				CenterPrice:    new(big.Int).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
 				Token1Decimals: 18,
@@ -514,7 +514,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
 				DexLimits:      limitsWide,
-				CenterPrice:    big.NewInt(0).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
+				CenterPrice:    new(big.Int).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
 				Token1Decimals: 18,
@@ -597,22 +597,22 @@ var limitExpandTight, _ = new(big.Int).SetString("711907234052361388866", 10)
 var limitsTight = DexLimits{
 	WithdrawableToken0: TokenLimit{
 		Available:      big.NewInt(456740438880263),
-		ExpandsTo:      big.NewInt(0).Set(limitExpandTight),
+		ExpandsTo:      new(big.Int).Set(limitExpandTight),
 		ExpandDuration: big.NewInt(600),
 	},
 	WithdrawableToken1: TokenLimit{
 		Available:      big.NewInt(825179383432029),
-		ExpandsTo:      big.NewInt(0).Set(limitExpandTight),
+		ExpandsTo:      new(big.Int).Set(limitExpandTight),
 		ExpandDuration: big.NewInt(600),
 	},
 	BorrowableToken0: TokenLimit{
 		Available:      big.NewInt(941825058374170),
-		ExpandsTo:      big.NewInt(0).Set(limitExpandTight),
+		ExpandsTo:      new(big.Int).Set(limitExpandTight),
 		ExpandDuration: big.NewInt(600),
 	},
 	BorrowableToken1: TokenLimit{
 		Available:      big.NewInt(941825058374170),
-		ExpandsTo:      big.NewInt(0).Set(limitExpandTight),
+		ExpandsTo:      new(big.Int).Set(limitExpandTight),
 		ExpandDuration: big.NewInt(600),
 	},
 }
@@ -620,23 +620,23 @@ var limitsTight = DexLimits{
 var limitWide, _ = new(big.Int).SetString("34242332879776515083099999", 10)
 var limitsWide = DexLimits{
 	WithdrawableToken0: TokenLimit{
-		Available:      big.NewInt(0).Set(limitWide),
-		ExpandsTo:      big.NewInt(0).Set(limitWide),
+		Available:      new(big.Int).Set(limitWide),
+		ExpandsTo:      new(big.Int).Set(limitWide),
 		ExpandDuration: bignumber.ZeroBI,
 	},
 	WithdrawableToken1: TokenLimit{
-		Available:      big.NewInt(0).Set(limitWide),
-		ExpandsTo:      big.NewInt(0).Set(limitWide),
+		Available:      new(big.Int).Set(limitWide),
+		ExpandsTo:      new(big.Int).Set(limitWide),
 		ExpandDuration: big.NewInt(22),
 	},
 	BorrowableToken0: TokenLimit{
-		Available:      big.NewInt(0).Set(limitWide),
-		ExpandsTo:      big.NewInt(0).Set(limitWide),
+		Available:      new(big.Int).Set(limitWide),
+		ExpandsTo:      new(big.Int).Set(limitWide),
 		ExpandDuration: bignumber.ZeroBI,
 	},
 	BorrowableToken1: TokenLimit{
-		Available:      big.NewInt(0).Set(limitWide),
-		ExpandsTo:      big.NewInt(0).Set(limitWide),
+		Available:      new(big.Int).Set(limitWide),
+		ExpandsTo:      new(big.Int).Set(limitWide),
 		ExpandDuration: big.NewInt(308),
 	},
 }
@@ -652,19 +652,19 @@ func NewColReservesOne() CollateralReserves {
 
 func NewColReservesEmpty() CollateralReserves {
 	return CollateralReserves{
-		Token0RealReserves:      big.NewInt(0),
-		Token1RealReserves:      big.NewInt(0),
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0RealReserves:      new(big.Int),
+		Token1RealReserves:      new(big.Int),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 
 func NewDebtReservesEmpty() DebtReserves {
 	return DebtReserves{
-		Token0RealReserves:      big.NewInt(0),
-		Token1RealReserves:      big.NewInt(0),
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0RealReserves:      new(big.Int),
+		Token1RealReserves:      new(big.Int),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 
@@ -754,7 +754,7 @@ func TestPoolSimulator_swapInAdjusted(t *testing.T) {
 		price, _ := getApproxCenterPriceIn(amountIn, true, colReserves, debtReserves)
 		outAmt, _ := swapInAdjusted(true, amountIn, colReserves, debtReserves, 18, limitsWide, price, time.Now().Unix()-10)
 
-		require.Equal(t, expectedAmountOut, big.NewInt(0).Mul(outAmt, big.NewInt(1e6)).String())
+		require.Equal(t, expectedAmountOut, new(big.Int).Mul(outAmt, big.NewInt(1e6)).String())
 	})
 }
 
@@ -837,16 +837,16 @@ func NewVerifyRatioColReserves() CollateralReserves {
 	return CollateralReserves{
 		Token0RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
 		Token1RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 func NewVerifyRatioDebtReserves() DebtReserves {
 	return DebtReserves{
 		Token0RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
 		Token1RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 func TestSwapInVerifyReservesInRange(t *testing.T) {
@@ -926,16 +926,16 @@ func NewVerifyRatioColReservesSwapOut() CollateralReserves {
 	return CollateralReserves{
 		Token0RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
 		Token1RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 func NewVerifyRatioDebtReservesSwapOut() DebtReserves {
 	return DebtReserves{
 		Token0RealReserves:      big.NewInt(15_000 * 1e6 * 1e6),    // e.g. 15 USDT
 		Token1RealReserves:      big.NewInt(2_000_000 * 1e6 * 1e6), // e.g. 2M USDC
-		Token0ImaginaryReserves: big.NewInt(0),
-		Token1ImaginaryReserves: big.NewInt(0),
+		Token0ImaginaryReserves: new(big.Int),
+		Token1ImaginaryReserves: new(big.Int),
 	}
 }
 
