@@ -71,7 +71,7 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
 		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution
-		SetQueryParam(querySourceKey, c.config.Name)
+		SetQueryParam(querySourceKey, c.config.APIName)
 
 	var result bebop.QuoteSingleOrderResult
 	var fail bebop.QuoteFail

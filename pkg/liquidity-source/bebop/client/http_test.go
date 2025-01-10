@@ -21,7 +21,7 @@ func TestHTTPClient(t *testing.T) {
 				Duration: time.Second * 5,
 			},
 			RetryCount:    1,
-			Name:          "",
+			APIName:       "",
 			Authorization: "",
 		},
 	)
