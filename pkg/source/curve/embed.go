@@ -32,14 +32,8 @@ var basePoolABIBytes []byte
 //go:embed abi/Two.json
 var twoABIBytes []byte
 
-//go:embed abi/TwoV2.json
-var twoV2ABIBytes []byte
-
 //go:embed abi/Tricrypto.json
 var tricryptoABIBytes []byte
-
-//go:embed abi/TricryptoV2.json
-var tricryptoV2ABIBytes []byte
 
 //go:embed abi/Oracle.json
 var oracleABIBytes []byte
@@ -71,9 +65,6 @@ var polygonPoolsBytes []byte
 //go:embed pools/base.json
 var basePoolsBytes []byte
 
-//go:embed pools/sonic.json
-var sonicPoolsBytes []byte
-
 // Ellipsis pool bytes
 
 //go:embed pools/ellipsis/bsc.json
@@ -100,7 +91,6 @@ var bytesByPath = map[string][]byte{
 	"pools/optimism.json":  optimismPoolsBytes,
 	"pools/polygon.json":   polygonPoolsBytes,
 	"pools/base.json":      basePoolsBytes,
-	"pools/sonic.json":     sonicPoolsBytes,
 
 	"pools/ellipsis/bsc.json":            ellipsisBscPoolsBytes,
 	"pools/pancake-stable/arbitrum.json": arbitrumPancakeStablePoolsBytes,

@@ -14,7 +14,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
@@ -201,6 +200,13 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    tricryptoABI,
 		Target: p.Address,
+		Method: poolMethodLastPricesTimestamp,
+		Params: nil,
+	}, []interface{}{&lastPriceTimestamp})
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    tricryptoABI,
+		Target: p.Address,
 		Method: poolMethodXcpProfit,
 		Params: nil,
 	}, []interface{}{&xcpProfit})
@@ -226,33 +232,12 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		Params: nil,
 	}, []interface{}{&adjustmentStep})
 
-	if d.config.ChainID == int(valueobject.ChainIDSonic) {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    tricryptoV2ABI,
-			Target: p.Address,
-			Method: "last_timestamp",
-			Params: nil,
-		}, []interface{}{&lastPriceTimestamp})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    tricryptoV2ABI,
-			Target: p.Address,
-			Method: "ma_time",
-			Params: nil,
-		}, []interface{}{&maHalfTime})
-	} else {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    tricryptoABI,
-			Target: p.Address,
-			Method: poolMethodLastPricesTimestamp,
-			Params: nil,
-		}, []interface{}{&lastPriceTimestamp})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    tricryptoABI,
-			Target: p.Address,
-			Method: poolMethodMaHalfTime,
-			Params: nil,
-		}, []interface{}{&maHalfTime})
-	}
+	calls.AddCall(&ethrpc.Call{
+		ABI:    tricryptoABI,
+		Target: p.Address,
+		Method: poolMethodMaHalfTime,
+		Params: nil,
+	}, []interface{}{&maHalfTime})
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {
