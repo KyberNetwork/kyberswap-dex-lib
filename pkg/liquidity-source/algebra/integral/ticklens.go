@@ -90,7 +90,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 				combined = append(combined, TickResp{
 					TickIdx:        strconv.Itoa(t.Index),
 					LiquidityGross: t.LiquidityGross.String(),
-					LiquidityNet:   t.LiquidityNet.String(),
+					LiquidityNet:   t.LiquidityNet.Dec(),
 				})
 			}
 		}
