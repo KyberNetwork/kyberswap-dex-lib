@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/holiman/uint256"
 )
 
@@ -46,16 +46,14 @@ type Tick struct {
 }
 
 func (t TickResp) transformTickRespToTick() (v3Entities.Tick, error) {
-	liquidityGross := new(big.Int)
-	liquidityGross, ok := liquidityGross.SetString(t.LiquidityGross, 10)
-	if !ok {
-		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", t.TickIdx)
+	liquidityGross, err := uint256.FromDecimal(t.LiquidityGross)
+	if err != nil {
+		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityGross string to uint256, tick: %v", t.TickIdx)
 	}
 
-	liquidityNet := new(big.Int)
-	liquidityNet, ok = liquidityNet.SetString(t.LiquidityNet, 10)
-	if !ok {
-		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", t.TickIdx)
+	liquidityNet, err := int256.FromDec(t.LiquidityNet)
+	if err != nil {
+		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityNet string to uint256, tick: %v", t.TickIdx)
 	}
 
 	tickIdx, err := strconv.Atoi(t.TickIdx)
@@ -131,7 +129,7 @@ type TimepointRPC struct {
 }
 
 type Extra struct {
-	Liquidity        *big.Int               `json:"liq"`
+	Liquidity        *uint256.Int           `json:"liq"`
 	GlobalState      GlobalState            `json:"gS"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
 	TickSpacing      int32                  `json:"tS"`
@@ -170,8 +168,9 @@ type StaticExtra struct {
 
 // StateUpdate to be returned instead of updating state when calculating amountOut
 type StateUpdate struct {
-	Liquidity   *uint256.Int
-	GlobalState GlobalState
+	Liquidity *uint256.Int
+	Price     *uint256.Int
+	Tick      int32
 }
 
 type PoolMeta struct {
@@ -198,12 +197,12 @@ type FeesAmount struct {
 }
 
 type SwapCalculationCache struct {
+	amountRequiredInitial *uint256.Int // The initial value of the exact input/output amount
+	amountCalculated      *uint256.Int // The additive amount of total output/input calculated through the swap
+	pluginFee             *uint256.Int // The plugin fee
 	communityFee          *uint256.Int // The community fee of the selling token, uint256 to minimize casts
-	amountRequiredInitial *int256.Int  // The initial value of the exact input/output amount
-	amountCalculated      *int256.Int  // The additive amount of total output/input calculated through the swap
+	fee                   uint64 // The current fee value in hundredths of a bip, i.e. 1e-6
 	exactInput            bool         // Whether the exact input or output is specified
-	fee                   uint32       // The current fee value in hundredths of a bip, i.e. 1e-6
-	pluginFee             uint32       // The plugin fee
 }
 
 type PriceMovementCache struct {

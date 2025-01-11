@@ -7,7 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -15,7 +15,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -107,7 +106,7 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 
 		// LiquidityGross = 0 means that the tick is uninitialized
-		if tick.LiquidityGross.Cmp(bignumber.ZeroBI) == 0 {
+		if tick.LiquidityGross.IsZero() {
 			continue
 		}
 
@@ -115,7 +114,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		Liquidity:        rpcData.Liquidity,
+		Liquidity:        uint256.MustFromBig(rpcData.Liquidity),
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
@@ -403,7 +402,8 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 	return result, nil
 }
 
-func (d *PoolTracker) fetchTimepoints(ctx context.Context, pluginAddress string, blockNumber *big.Int, currentIndex uint16) (map[uint16]Timepoint, error) {
+func (d *PoolTracker) fetchTimepoints(ctx context.Context, pluginAddress string, blockNumber *big.Int,
+	currentIndex uint16) (map[uint16]Timepoint, error) {
 	blockTimestamp := uint32(time.Now().Unix())
 	yesterday := blockTimestamp - WINDOW
 	timepoints, err := d.getPoolTimepoints(ctx, blockNumber, pluginAddress, currentIndex, yesterday)
@@ -414,7 +414,8 @@ func (d *PoolTracker) fetchTimepoints(ctx context.Context, pluginAddress string,
 	return timepoints, nil
 }
 
-func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.Int, pluginAddress string, currentIndex uint16, yesterday uint32) (map[uint16]Timepoint, error) {
+func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.Int, pluginAddress string,
+	currentIndex uint16, yesterday uint32) (map[uint16]Timepoint, error) {
 	timepoints := make(map[uint16]Timepoint, UINT16_MODULO)
 
 	currentIndexPrev := currentIndex - 1

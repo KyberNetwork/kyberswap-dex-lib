@@ -1,11 +1,14 @@
 package integral
 
 import (
+	"fmt"
 	"math/big"
+	"math/rand"
 	"sync"
 	"testing"
 
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	"github.com/KyberNetwork/int256"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
@@ -13,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -32,21 +36,21 @@ var (
 	mockTickmax     int32 = 887220
 
 	mockTicks, _ = v3Entities.NewTickListDataProvider([]v3Entities.Tick{
-		{Index: -887220, LiquidityGross: big.NewInt(35733795), LiquidityNet: big.NewInt(35733795)},
-		{Index: -4500, LiquidityGross: big.NewInt(1469002688), LiquidityNet: big.NewInt(1469002688)},
-		{Index: -1740, LiquidityGross: big.NewInt(815264000), LiquidityNet: big.NewInt(815264000)},
-		{Index: -1080, LiquidityGross: big.NewInt(4716862354), LiquidityNet: big.NewInt(4716862354)},
-		{Index: -960, LiquidityGross: big.NewInt(2130488), LiquidityNet: big.NewInt(2130488)},
-		{Index: -540, LiquidityGross: big.NewInt(59681565), LiquidityNet: big.NewInt(59681565)},
-		{Index: -120, LiquidityGross: big.NewInt(173321441467), LiquidityNet: big.NewInt(173321441467)},
-		{Index: -60, LiquidityGross: big.NewInt(265085097155), LiquidityNet: big.NewInt(-81557785779)},
-		{Index: 60, LiquidityGross: big.NewInt(91763655688), LiquidityNet: big.NewInt(-91763655688)},
-		{Index: 540, LiquidityGross: big.NewInt(2130488), LiquidityNet: big.NewInt(-2130488)},
-		{Index: 960, LiquidityGross: big.NewInt(59681565), LiquidityNet: big.NewInt(-59681565)},
-		{Index: 1080, LiquidityGross: big.NewInt(3555869904), LiquidityNet: big.NewInt(-3555869904)},
-		{Index: 1800, LiquidityGross: big.NewInt(1976256450), LiquidityNet: big.NewInt(-1976256450)},
-		{Index: 1860, LiquidityGross: big.NewInt(1469002688), LiquidityNet: big.NewInt(-1469002688)},
-		{Index: 887220, LiquidityGross: big.NewInt(35733795), LiquidityNet: big.NewInt(-35733795)},
+		{Index: -887220, LiquidityGross: uint256.NewInt(35733795), LiquidityNet: int256.NewInt(35733795)},
+		{Index: -4500, LiquidityGross: uint256.NewInt(1469002688), LiquidityNet: int256.NewInt(1469002688)},
+		{Index: -1740, LiquidityGross: uint256.NewInt(815264000), LiquidityNet: int256.NewInt(815264000)},
+		{Index: -1080, LiquidityGross: uint256.NewInt(4716862354), LiquidityNet: int256.NewInt(4716862354)},
+		{Index: -960, LiquidityGross: uint256.NewInt(2130488), LiquidityNet: int256.NewInt(2130488)},
+		{Index: -540, LiquidityGross: uint256.NewInt(59681565), LiquidityNet: int256.NewInt(59681565)},
+		{Index: -120, LiquidityGross: uint256.NewInt(173321441467), LiquidityNet: int256.NewInt(173321441467)},
+		{Index: -60, LiquidityGross: uint256.NewInt(265085097155), LiquidityNet: int256.NewInt(-81557785779)},
+		{Index: 60, LiquidityGross: uint256.NewInt(91763655688), LiquidityNet: int256.NewInt(-91763655688)},
+		{Index: 540, LiquidityGross: uint256.NewInt(2130488), LiquidityNet: int256.NewInt(-2130488)},
+		{Index: 960, LiquidityGross: uint256.NewInt(59681565), LiquidityNet: int256.NewInt(-59681565)},
+		{Index: 1080, LiquidityGross: uint256.NewInt(3555869904), LiquidityNet: int256.NewInt(-3555869904)},
+		{Index: 1800, LiquidityGross: uint256.NewInt(1976256450), LiquidityNet: int256.NewInt(-1976256450)},
+		{Index: 1860, LiquidityGross: uint256.NewInt(1469002688), LiquidityNet: int256.NewInt(-1469002688)},
+		{Index: 887220, LiquidityGross: uint256.NewInt(35733795), LiquidityNet: int256.NewInt(-35733795)},
 	}, mockTickSpacing)
 
 	mockTimepoints = NewTimepointStorage(map[uint16]Timepoint{
@@ -191,21 +195,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(984666), // Expected amount after swap
+					Amount: big.NewInt(984666),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(2250), // Expected fees
+					Amount: big.NewInt(2250),
 				},
 				SwapInfo: StateUpdate{
-					GlobalState: GlobalState{
-						Unlocked:     true,
-						LastFee:      15000,
-						Tick:         -4,
-						PluginConfig: mockPluginConfig,
-						CommunityFee: mockCommunityFee,
-					},
-					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+					Liquidity: uint256.NewInt(98862330578),
+					Price:     uint256.MustFromDecimal("79214348439875248928556576945"),
+					Tick:      -4,
 				},
 				Gas: mockGas,
 			},
@@ -274,21 +273,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(985314), // Expected amount after swap
+					Amount: big.NewInt(985314),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(2250), // Expected fees
+					Amount: big.NewInt(2250),
 				},
 				SwapInfo: StateUpdate{
-					GlobalState: GlobalState{
-						Unlocked:     true,
-						LastFee:      15000,
-						Tick:         -4,
-						PluginConfig: mockPluginConfig,
-						CommunityFee: mockCommunityFee,
-					},
-					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+					Liquidity: uint256.NewInt(98862330578),
+					Price:     uint256.MustFromDecimal("79215926928314930666100919082"),
+					Tick:      -4,
 				},
 				Gas: mockGas,
 			},
@@ -357,21 +351,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1425476892), // Expected amount after swap
+					Amount: big.NewInt(1425476892),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(3207826239749998), // Expected fees
+					Amount: big.NewInt(3207826239749998),
 				},
 				SwapInfo: StateUpdate{
-					GlobalState: GlobalState{
-						Unlocked:     true,
-						LastFee:      15000,
-						Tick:         -487914,
-						PluginConfig: mockPluginConfig,
-						CommunityFee: mockCommunityFee,
-					},
-					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+					Liquidity: uint256.NewInt(35733795),
+					Price:     uint256.MustFromDecimal("2016016943697492749"),
+					Tick:      -487914,
 				},
 				Gas: mockGas,
 			},
@@ -440,21 +429,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(768004061), // Expected amount after swap
+					Amount: big.NewInt(768004061),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1839166), // Expected fees
+					Amount: big.NewInt(1839166),
 				},
 				SwapInfo: StateUpdate{
-					GlobalState: GlobalState{
-						Unlocked:     true,
-						LastFee:      15000,
-						Tick:         1721,
-						PluginConfig: mockPluginConfig,
-						CommunityFee: mockCommunityFee,
-					},
-					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+					Liquidity: uint256.NewInt(3480992933),
+					Price:     uint256.MustFromDecimal("86350404125395664252363004498"),
+					Tick:      1721,
 				},
 				Gas: mockGas,
 			},
@@ -482,12 +466,7 @@ func TestCalcAmountOut(t *testing.T) {
 				expectedSwapInfo := tt.expectedResult.SwapInfo.(StateUpdate)
 				actualSwapInfo := result.SwapInfo.(StateUpdate)
 
-				require.NotEmpty(t, actualSwapInfo.GlobalState)
-				assert.Equal(t, expectedSwapInfo.GlobalState.CommunityFee, actualSwapInfo.GlobalState.CommunityFee)
-				assert.Equal(t, expectedSwapInfo.GlobalState.PluginConfig, actualSwapInfo.GlobalState.PluginConfig)
-				assert.Equal(t, expectedSwapInfo.GlobalState.Unlocked, actualSwapInfo.GlobalState.Unlocked)
-				assert.Equal(t, expectedSwapInfo.GlobalState.LastFee, actualSwapInfo.GlobalState.LastFee)
-				assert.Equal(t, expectedSwapInfo.GlobalState.Tick, actualSwapInfo.GlobalState.Tick)
+				assert.Equal(t, expectedSwapInfo, actualSwapInfo)
 
 				require.NotEmpty(t, result.SwapInfo)
 				assert.Equal(t, tt.expectedResult.TokenAmountOut, result.TokenAmountOut)
@@ -498,14 +477,13 @@ func TestCalcAmountOut(t *testing.T) {
 
 var mockPool = []byte(`{"address":"0xbe9c1d237d002c8d9402f30c16ace1436d008f0c","exchange":"silverswap","type":"algebra-integral","timestamp":1733225338,"reserves":["9999999999999944","2620057588865"],"tokens":[{"address":"0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83","name":"Wrapped Fantom","symbol":"WFTM","decimals":18,"weight":50,"swappable":true},{"address":"0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b","name":"Axelar Wrapped ETH","symbol":"axlETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liq\":161865919478591,\"gS\":{\"price\":\"1282433937397070526017841373\",\"tick\":82476,\"lF\":100,\"pC\":193,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":161865919478591},{\"Index\":887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":-161865919478591}],\"tS\":60,\"tP\":{\"0\":{\"init\":true,\"ts\":1712116096,\"cum\":0,\"vo\":\"0\",\"tick\":-82476,\"avgT\":-82476,\"wsI\":0},\"1\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"2\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"65535\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0}},\"vo\":{\"tpIdx\":0,\"lastTs\":1712116096,\"init\":true},\"sF\":{\"0to1fF\":null,\"1to0fF\":null},\"dF\":{\"a1\":2900,\"a2\":12000,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"vB\":0,\"vG\":0,\"bF\":100}}","staticExtra":"{\"pluginV2\":false}","blockNumber":99019509}`)
 
+var (
+	p       entity.Pool
+	_       = json.Unmarshal(mockPool, &p)
+	ps, err = NewPoolSimulator(p, 280000)
+)
+
 func TestCalcAmountOut_FromPool(t *testing.T) {
-	var p entity.Pool
-	err := json.Unmarshal(mockPool, &p)
-	require.NoError(t, err)
-
-	ps, err := NewPoolSimulator(p, 280000)
-	require.NoError(t, err)
-
 	res, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return ps.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
@@ -518,4 +496,56 @@ func TestCalcAmountOut_FromPool(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(25555842204), res.TokenAmountOut.Amount)
+}
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	for i := 0; i < 64; i++ {
+		tokenIn := p.Tokens[i%2].Address
+		tokenOut := p.Tokens[(i+1)%2].Address
+		amountOut := big.NewInt(int64(rand.Uint32()))
+		t.Run(fmt.Sprintf("token%d -> %s token%d", i%2, amountOut, (i+1)%2), func(t *testing.T) {
+			resIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+				return ps.CalcAmountIn(pool.CalcAmountInParams{
+					TokenAmountOut: pool.TokenAmount{
+						Token:  tokenOut,
+						Amount: amountOut,
+					},
+					TokenIn: tokenIn,
+				})
+			})
+			require.NoError(t, err)
+
+			if resIn.RemainingTokenAmountOut.Amount.Sign() > 0 {
+				resIn, err = testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+					return ps.CalcAmountIn(pool.CalcAmountInParams{
+						TokenAmountOut: pool.TokenAmount{
+							Token: tokenOut,
+							Amount: amountOut.Sub(amountOut, resIn.RemainingTokenAmountOut.Amount).Div(amountOut,
+								bignumber.Two),
+						},
+						TokenIn: tokenIn,
+					})
+				})
+				require.NoError(t, err)
+			}
+
+			resOut, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return ps.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  tokenIn,
+						Amount: resIn.TokenAmountIn.Amount,
+					},
+					TokenOut: tokenOut,
+				})
+			})
+			require.NoError(t, err)
+
+			finalAmtOut := resOut.TokenAmountOut.Amount
+			finalAmtOut.Sub(finalAmtOut, resIn.RemainingTokenAmountOut.Amount)
+			origAmountOutF, _ := amountOut.Float64()
+			finalAmountOutF, _ := finalAmtOut.Float64()
+			assert.InEpsilonf(t, origAmountOutF, finalAmountOutF, 1e-4,
+				"expected ~%s, got %s", amountOut, finalAmtOut)
+		})
+	}
 }
