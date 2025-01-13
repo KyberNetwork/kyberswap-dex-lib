@@ -22,7 +22,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 )
 
@@ -47,7 +46,6 @@ func (h *NoopRFQHandler) SupportBatch() bool {
 func NewRFQHandler(
 	dexId string,
 	rfqCfg buildroute.RFQConfig,
-	commonCfg config.Common,
 ) (pool.IPoolRFQ, error) {
 	switch rfqCfg.Handler {
 	case kyberpmm.DexTypeKyberPMM:
@@ -56,28 +54,30 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = dexId
 
+		cfg.DexID = dexId
 		httpClient := kyberpmmclient.NewHTTPClient(&cfg.HTTP)
 
 		return kyberpmm.NewRFQHandler(&cfg, httpClient), nil
+
 	case limitorder.DexTypeLimitOrder:
 		var cfg limitorder.Config
 		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
-		cfg.DexID = dexId
 
+		cfg.DexID = dexId
 		return limitorder.NewRFQHandler(&cfg), nil
+
 	case swaapv2.DexType:
 		var cfg swaapv2.Config
 		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.APIKey = commonCfg.SwaapAPIKey
 		httpClient := swaapv2client.NewHTTPClient(&cfg.HTTP)
 
 		return swaapv2.NewRFQHandler(&cfg, httpClient), nil
@@ -88,8 +88,8 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.APIKey = commonCfg.HashflowAPIKey
 		httpClient := hashflowv3client.NewHTTPClient(&cfg.HTTP)
 
 		return hashflowv3.NewRFQHandler(&cfg, httpClient), nil
@@ -100,8 +100,8 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.APIKey = commonCfg.NativeAPIKey
 		httpClient := nativev1client.NewHTTPClient(&cfg.HTTP)
 
 		return nativev1.NewRFQHandler(&cfg, httpClient), nil
@@ -112,9 +112,8 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.Name = commonCfg.BebopAPIName
-		cfg.HTTP.Authorization = commonCfg.BebopAPIAuth
 		httpClient := bebopclient.NewHTTPClient(&cfg.HTTP)
 
 		return bebop.NewRFQHandler(&cfg, httpClient), nil
@@ -125,33 +124,36 @@ func NewRFQHandler(
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.BasicAuthKey = commonCfg.ClipperAPIAuth
 		httpClient := clipperclient.NewHTTPClient(cfg.HTTP)
 
 		return clipper.NewRFQHandler(&cfg, httpClient), nil
+
 	case dexalot.DexType:
 		var cfg dexalot.Config
 		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
-		cfg.HTTP.APIKey = commonCfg.DexalotAPIKey
-		cfg.UpscalePercent = commonCfg.DexalotUpscalePercent
 		httpClient := dexalotclient.NewHTTPClient(&cfg.HTTP)
 
 		return dexalot.NewRFQHandler(&cfg, httpClient), nil
+
 	case mxtrading.DexType:
 		var cfg mxtrading.Config
 		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
+
 		cfg.DexID = dexId
 		httpClient := mxtradingclient.NewHTTPClient(&cfg.HTTP)
 
 		return mxtrading.NewRFQHandler(&cfg, httpClient), nil
+
 	default:
 		return NewNoopRFQHandler(), nil
 	}

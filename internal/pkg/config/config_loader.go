@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kutils/klog"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	"github.com/goccy/go-json"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
@@ -79,7 +80,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 		}
 	}
 
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__", "-", "_"))
 	viper.AutomaticEnv()
 
 	// Load and merge additional custom path configuration
@@ -334,5 +335,9 @@ func (cl *ConfigLoader) setRFQAcceptableSlippageFraction(rfqAcceptableSlippageFr
 }
 
 func (cl *ConfigLoader) setDexalotUpscalePercent(dexalotUpscalePercent int) {
-	cl.config.Common.DexalotUpscalePercent = dexalotUpscalePercent
+	if rfqCfg, ok := cl.config.UseCase.BuildRoute.RFQ[dexalot.DexType]; ok {
+		if dexalotCfg := rfqCfg.Properties; dexalotCfg != nil {
+			dexalotCfg["upscale_percent"] = dexalotUpscalePercent
+		}
+	}
 }

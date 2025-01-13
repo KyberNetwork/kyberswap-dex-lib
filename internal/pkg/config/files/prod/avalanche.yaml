@@ -99,11 +99,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
-  swaapAPIKey:
-  hashflowAPIKey:
-  nativeAPIKey:
-  dexalotAPIKey:
-  dexalotUpscalePercent: 20
   dexUseAEVM: &dexUseAEVM
     liquiditybook-v20: true
     liquiditybook-v21: true
@@ -350,6 +345,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
@@ -357,6 +353,7 @@ useCase:
         handler: hashflow-v3
         properties:
           http:
+            api_key:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
@@ -365,6 +362,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
@@ -372,6 +370,8 @@ useCase:
         handler: dexalot
         properties:
           http:
+            api_key:
+            upscale_percent:
             base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3

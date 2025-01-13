@@ -24,14 +24,6 @@ type Common struct {
 	AvailableSources        []string                 `mapstructure:"availableSources"`
 	ExcludedSourcesByClient map[string][]string      `mapstructure:"excludedSourcesByClient"`
 	FeatureFlags            valueobject.FeatureFlags `mapstructure:"featureFlags"`
-	SwaapAPIKey             string                   `mapstructure:"swaapAPIKey" json:"-"`
-	HashflowAPIKey          string                   `mapstructure:"hashflowAPIKey" json:"-"`
-	NativeAPIKey            string                   `mapstructure:"nativeAPIKey" json:"-"`
-	BebopAPIName            string                   `mapstructure:"bebopAPIName" json:"-"`
-	BebopAPIAuth            string                   `mapstructure:"bebopAPIAuth" json:"-"`
-	ClipperAPIAuth          string                   `mapstructure:"clipperAPIAuth" json:"-"`
-	DexalotAPIKey           string                   `mapstructure:"dexalotAPIKey" json:"-"`
-	DexalotUpscalePercent   int                      `mapstructure:"dexalotUpscalePercent" json:"-"`
 }
 
 type AEVM struct {

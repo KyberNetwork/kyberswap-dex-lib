@@ -76,8 +76,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
-  swaapAPIKey:
-  nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
     ambient: true
     maverick-v2: true
@@ -315,6 +313,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
@@ -322,6 +321,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3

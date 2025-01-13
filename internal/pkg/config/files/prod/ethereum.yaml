@@ -173,12 +173,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
-  swaapAPIKey:
-  hashflowAPIKey:
-  nativeAPIKey:
-  bebopAPIName:
-  bebopAPIAuth:
-  clipperAPIAuth:
   dexUseAEVM: &dexUseAEVM
     uniswap: false
     uniswapv3: false
@@ -444,6 +438,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 5s
             retry_count: 3
@@ -451,6 +446,7 @@ useCase:
         handler: hashflow-v3
         properties:
           http:
+            api_key:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
@@ -461,6 +457,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 5s
             retry_count: 3
@@ -468,6 +465,8 @@ useCase:
         handler: bebop
         properties:
           http:
+            name: 
+            authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
             retry_count: 3
@@ -475,6 +474,7 @@ useCase:
         handler: clipper
         properties:
           http:
+            basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3

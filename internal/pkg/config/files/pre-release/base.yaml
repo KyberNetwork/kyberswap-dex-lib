@@ -119,13 +119,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: 10000
-  swaapAPIKey:
-  nativeAPIKey:
-  bebopAPIName:
-  bebopAPIAuth:
-  dexalotAPIKey:
-  dexalotUpscalePercent: 20
-  clipperAPIAuth:
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
@@ -413,6 +406,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
@@ -420,6 +414,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
@@ -427,6 +422,8 @@ useCase:
         handler: bebop
         properties:
           http:
+            name: 
+            authorization:
             base_url: "https://api.bebop.xyz/pmm/base"
             timeout: 10s
             retry_count: 3
@@ -434,6 +431,8 @@ useCase:
         handler: dexalot
         properties:
           http:
+            api_key:
+            upscale_percent:
             base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3
@@ -441,6 +440,7 @@ useCase:
         handler: clipper
         properties:
           http:
+            basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3

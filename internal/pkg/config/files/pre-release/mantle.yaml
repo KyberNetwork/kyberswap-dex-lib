@@ -67,9 +67,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
-  swaapAPIKey:
-  nativeAPIKey:
-  clipperAPIAuth:
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
@@ -303,6 +300,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
@@ -310,6 +308,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
@@ -317,6 +316,7 @@ useCase:
         handler: clipper
         properties:
           http:
+            basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3

@@ -66,7 +66,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
-  clipperAPIAuth:
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
@@ -302,6 +301,7 @@ useCase:
         handler: clipper
         properties:
           http:
+            basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3

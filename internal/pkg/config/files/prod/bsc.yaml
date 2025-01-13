@@ -98,11 +98,6 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: 10000
-  swaapAPIKey:
-  hashflowAPIKey:
-  nativeAPIKey:
-  bebopAPIName:
-  bebopAPIAuth:
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
@@ -344,6 +339,7 @@ useCase:
         handler: swaap-v2
         properties:
           http:
+            api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
@@ -351,6 +347,7 @@ useCase:
         handler: hashflow-v3
         properties:
           http:
+            api_key:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
@@ -359,6 +356,7 @@ useCase:
         handler: native-v1
         properties:
           http:
+            api_key:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
@@ -366,6 +364,8 @@ useCase:
         handler: bebop
         properties:
           http:
+            name: 
+            authorization:
             base_url: "https://api.bebop.xyz/pmm/bsc"
             timeout: 10s
             retry_count: 3
