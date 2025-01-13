@@ -171,7 +171,10 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  l2ExecutorAddress: &l2ExecutorAddress 0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854
+  l2ExecutorAddress: &l2ExecutorAddress 0xC7D3AB410d49b664D03Fe5B1038852ac852b1B29
+  l2ExecutorAddressOld: &l2ExecutorAddressOld 0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854
+  newEncoder: true
+  psWallet: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
