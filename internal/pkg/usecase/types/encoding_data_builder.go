@@ -149,7 +149,7 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 				swap.TokenIn != b.data.TokenIn &&
 				pathIdx != len(route)-1 &&
 				swap.TokenIn != route[pathIdx+1][0].TokenIn {
-				route[pathIdx][swapIdx].CollectAmount = bignumber.MAX_UINT_256
+				route[pathIdx][swapIdx].CollectAmount = bignumber.MAX_UINT_128
 			}
 		}
 	}
