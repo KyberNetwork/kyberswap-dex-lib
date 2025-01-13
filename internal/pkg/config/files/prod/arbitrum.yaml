@@ -208,7 +208,7 @@ encoder:
     unibot-tg: *l2ExecutorAddress
     defillama: *l2ExecutorAddress
     llamaswap: *l2ExecutorAddress
-    kyberswap: 0xB2A2648Dc6962016501EeDbB47C32a50aB777B7A
+    kyberswap: *l2ExecutorAddress
   partnerPositiveSlippageInfo:
     defillama:
       receiver:
