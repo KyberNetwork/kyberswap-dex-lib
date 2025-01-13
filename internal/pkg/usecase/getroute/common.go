@@ -7,6 +7,7 @@ import (
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/mergeswap"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	"github.com/samber/lo"
@@ -236,30 +237,31 @@ func InitializeFinderEngine(
 	baseFinder = spfaFinder
 
 	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
-		retryFinder := retry.NewRetryFinder(baseFinder)
-		baseFinder = retryFinder
+		baseFinder = retry.NewRetryFinder(baseFinder)
 	}
 
 	if config.Aggregator.FeatureFlags.IsHillClimbEnabled {
-		hillClimbFinder := hillclimb.NewHillClimbFinder(
+		baseFinder = hillclimb.NewHillClimbFinder(
 			baseFinder,
 			int(finderOptions.HillClimbIteration),
 			finderOptions.HillClimbMinPartUSD,
 		)
-		baseFinder = hillClimbFinder
 	}
 
 	if config.Aggregator.FeatureFlags.IsDerivativeHillClimbEnabled {
-		derivativeHillClimbFinder := hillclimb.NewDerivativeFinder(
+		baseFinder = hillclimb.NewDerivativeFinder(
 			baseFinder,
 			finderOptions.DerivativeHillClimbIteration,
 			finderOptions.DerivativeHillClimbImproveThreshold,
 			config.Aggregator.DexUseAEVM,
 		)
-		baseFinder = derivativeHillClimbFinder
 	}
 
-	aevmLocalFinder := aevm.NewAEVMLocalFinder(
+	if config.Aggregator.FeatureFlags.IsMergeDuplicateSwapEnabled {
+		baseFinder = mergeswap.NewFinder(baseFinder)
+	}
+
+	baseFinder = aevm.NewAEVMLocalFinder(
 		baseFinder,
 		aevmClient,
 		finderOptions,
@@ -270,5 +272,5 @@ func InitializeFinderEngine(
 		customFuncs,
 	)
 
-	return aevmLocalFinder, routeFinalizer, nil
+	return baseFinder, routeFinalizer, nil
 }

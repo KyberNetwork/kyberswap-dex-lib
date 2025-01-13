@@ -7,6 +7,7 @@ import (
 
 	encodeValueObject "github.com/KyberNetwork/aggregator-encoding/pkg/constant/valueobject"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/goccy/go-json"
 
@@ -136,6 +137,20 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 			route[pathIdx][swapIdx].Flags = flags[pathIdx][swapIdx]
 			route[pathIdx][swapIdx].Recipient = getRecipient(swap, nextSwap, executorAddress)
 			route[pathIdx][swapIdx].CollectAmount = getCollectAmount(swap, prevSwap, encodingMode)
+
+			// After EX-2542: Merge duplicate swap in route sequence,
+			// if the first swap in a path doesn't start from tokenIn,
+			// and it's also the last path that start from that token,
+			// we need to set the SwapAmount to max uint256 value,
+			// indicating that executor will use all the balance of that token
+			// for this swap to avoid dust token left in the executor / insufficient
+			// amount for the swap.
+			if swapIdx == 0 &&
+				swap.TokenIn != b.data.TokenIn &&
+				pathIdx != len(route)-1 &&
+				swap.TokenIn != route[pathIdx+1][0].TokenIn {
+				route[pathIdx][swapIdx].CollectAmount = bignumber.MAX_UINT_256
+			}
 		}
 	}
 

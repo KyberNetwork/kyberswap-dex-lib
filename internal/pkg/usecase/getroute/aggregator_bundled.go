@@ -261,6 +261,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			priceByAddress,
 			state,
 		)
+		findRouteParams.SkipMergeSwap = lo.Contains(a.config.FinderOptions.ScaleHelperClients, params.ClientId)
 
 		route, err := a.finderEngine.Find(ctx, findRouteParams)
 

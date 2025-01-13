@@ -50,6 +50,7 @@ type (
 		IsFaultyPoolDetectorEnable     bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
 		IsLiquidityScoreIndexEnable    bool `mapstructure:"isLiquidityScoreEnable" json:"isLiquidityScoreEnable"`
 		IsRouteCachedEnable            bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`
+		IsMergeDuplicateSwapEnabled    bool `mapstructure:"isMergeDuplicateSwapEnabled" json:"isMergeDuplicateSwapEnabled"`
 	}
 
 	Log struct {
@@ -89,6 +90,8 @@ type (
 
 		DerivativeHillClimbIteration        int     `mapstructure:"derivativeHillClimbIteration" json:"derivativeHillClimbIteration"`
 		DerivativeHillClimbImproveThreshold float64 `mapstructure:"derivativeHillClimbImproveThreshold" json:"derivativeHillClimbImproveThreshold"`
+
+		ScaleHelperClients []string `mapstructure:"scaleHelperClients" json:"scaleHelperClients"`
 
 		// If true then route finding is performed remotely in AEVM server
 		UseAEVMRemoteFinder bool `mapstructure:"useAEVMRemoteFinder" json:"useAEVMRemoteFinder"`

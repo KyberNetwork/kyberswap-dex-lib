@@ -274,7 +274,7 @@ func (c *cache) summarizeSimpleRoute(
 
 	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
 
-	constructRoute := finderCommon.NewConstructRoute(c.finderEngine.GetFinder().CustomFuncs())
+	constructRoute := finderCommon.NewConstructRoute(params.TokenIn.Address, params.TokenOut.Address, c.finderEngine.GetFinder().CustomFuncs())
 	for pathIdx, simplePath := range simpleRoute.Paths {
 		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx], c.finderEngine.GetFinder().CustomFuncs())
 		constructPath.AddToken(params.TokenIn.Address)
