@@ -78,7 +78,13 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 			return nil, err
 		}
 		// If the amount in USD is nearly insignificant (or 0), price impact is -Inf, so ignore price impact check if cache point is base on amountIn (not amountInUSD)
-		if routeSummary.AmountInUSD < c.config.MinAmountInUSD || routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
+		// We don't support cache merged swaps route for now.
+		// TODO: Improve caching solution to support merged swaps route,
+		// and other more general routes that each path may not always
+		// start from params.TokenIn -> params.TokenOut.
+		if (routeSummary.AmountInUSD < c.config.MinAmountInUSD ||
+			routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold) &&
+			!isMergeSwapRoute(params, routeSummary) {
 			c.setRouteToCache(ctx, routeSummary, keys)
 		}
 	} else {
@@ -259,9 +265,10 @@ func (c *cache) summarizeSimpleRoute(
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
+	poolAddresses := simpleRoute.ExtractPoolAddresses()
 	state, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
-		simpleRoute.ExtractPoolAddresses(),
+		poolAddresses,
 		params.Sources,
 		common.Hash(stateRoot),
 		types.PoolManagerExtraData{
@@ -270,6 +277,9 @@ func (c *cache) summarizeSimpleRoute(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if len(state.Pools) != len(poolAddresses) {
+		return nil, errors.New("could not get all pools from pool manager")
 	}
 
 	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
@@ -325,4 +335,16 @@ func (c *cache) summarizeSimpleRoute(
 	}
 
 	return ConvertToRouteSummary(params, route), nil
+}
+
+func isMergeSwapRoute(params *types.AggregateParams, routeSummary *valueobject.RouteSummary) bool {
+	for _, path := range routeSummary.Route {
+		tokenIn := path[0].TokenIn
+		tokenOut := path[len(path)-1].TokenOut
+		if tokenIn != params.TokenIn.Address || tokenOut != params.TokenOut.Address {
+			return true
+		}
+	}
+
+	return false
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
@@ -50,7 +51,8 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 			logger.WithFields(logger.Fields{
 				"recover":     r,
 				"route.Paths": constructRoute.Paths,
-			}).Error("panic in ClonePool")
+				"stackTrace":  string(debug.Stack()),
+			}).Error("panic in Finalize route")
 		}
 	}()
 

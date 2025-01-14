@@ -30,6 +30,11 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 			name: "",
 			param: &types.AggregateParams{
 				TokenIn: entity.Token{
+					Address:  "x",
+					Decimals: 18,
+				},
+				TokenOut: entity.Token{
+					Address:  "y",
 					Decimals: 18,
 				},
 				AmountIn:        bigIntFromScientificNotation("200e18"),
@@ -82,14 +87,14 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 			},
 			bestKey: &valueobject.RouteCacheKeyTTL{
 				Key: &valueobject.RouteCacheKey{
-					CacheMode:     string(valueobject.RouteCacheModeRangeByAmount),
-					AmountIn:      strconv.FormatFloat(float64(198), 'f', -1, 64),
-					TokenIn:       "",
-					TokenOut:      "",
-					SaveGas:       false,
-					GasInclude:    false,
-					Dexes:         nil,
-					ExcludedPools: nil,
+					CacheMode:      string(valueobject.RouteCacheModeRangeByAmount),
+					AmountIn:       strconv.FormatFloat(float64(198), 'f', -1, 64),
+					TokenIn:        "",
+					TokenOut:       "",
+					OnlySinglePath: false,
+					GasInclude:     false,
+					Dexes:          nil,
+					ExcludedPools:  nil,
 				},
 				TTL: 10 * time.Second,
 			},

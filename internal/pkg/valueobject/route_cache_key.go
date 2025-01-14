@@ -26,10 +26,10 @@ const (
 
 // RouteCacheKey contains data to build route cache key
 type RouteCacheKey struct {
-	TokenIn   string
-	TokenOut  string
-	SaveGas   bool
-	CacheMode string
+	TokenIn        string
+	TokenOut       string
+	OnlySinglePath bool
+	CacheMode      string
 	// AmountIn can be calculated in usd (if token in has price) or amountIn without decimal (if token in has no price)
 	AmountIn                  string
 	Dexes                     []string
@@ -49,7 +49,7 @@ func (k *RouteCacheKey) String(prefix string) string {
 	args := []interface{}{
 		prefix,
 		strings.Join([]string{k.TokenIn, k.TokenOut}, RouteCacheKeyTokensDelimiter),
-		k.SaveGas,
+		k.OnlySinglePath,
 		k.CacheMode,
 		k.AmountIn,
 		strings.Join(k.Dexes, RouteCacheKeyDexesDelimiter),
@@ -68,7 +68,7 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	_, _ = d.WriteString(prefix)
 	_, _ = d.WriteString(k.TokenIn)
 	_, _ = d.WriteString(k.TokenOut)
-	if k.SaveGas {
+	if k.OnlySinglePath {
 		_, _ = d.Write([]byte{1})
 	}
 	_, _ = d.WriteString(k.CacheMode)

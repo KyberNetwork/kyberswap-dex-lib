@@ -23,14 +23,14 @@ var dexes = []string{"lido-steth", "curve", "synapse", "maker-psm", "lido", "fra
 func TestRouteCacheKey_String(t *testing.T) {
 	t.Run("it should return correct key", func(t *testing.T) {
 		key := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"gmx", "uniswap"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x"},
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"gmx", "uniswap"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x"},
 		}
 
 		assert.Equal(t, key.String("prefix"),
@@ -38,15 +38,15 @@ func TestRouteCacheKey_String(t *testing.T) {
 	})
 	t.Run("it should return correct key with index", func(t *testing.T) {
 		key := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"gmx", "uniswap"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x"},
-			Index:         "composite",
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"gmx", "uniswap"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x"},
+			Index:          "composite",
 		}
 
 		assert.Equal(t, key.String("prefix"),
@@ -57,51 +57,51 @@ func TestRouteCacheKey_String(t *testing.T) {
 func TestRouteCacheKey_Hash(t *testing.T) {
 	t.Run("same dexes should return same hashes", func(t *testing.T) {
 		key1 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"gmx", "uniswap"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x1", "0x2"},
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"gmx", "uniswap"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x1", "0x2"},
 		}
 
 		key2 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"uniswap", "gmx"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x2", "0x1"},
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"uniswap", "gmx"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x2", "0x1"},
 		}
 
 		assert.Equal(t, key1.Hash("prefix"), key2.Hash("prefix"))
 	})
 	t.Run("different dexes should return different hashes", func(t *testing.T) {
 		key1 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         dexes,
-			GasInclude:    true,
-			ExcludedPools: []string{"0x1", "0x2"},
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          dexes,
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x1", "0x2"},
 		}
 
 		for extraDex := range 256 {
 			key2 := RouteCacheKey{
-				TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-				TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-				SaveGas:       true,
-				CacheMode:     RouteCacheModePoint,
-				AmountIn:      "5000000000000000000000",
-				Dexes:         append(dexes, "dex"+kutils.Itoa(extraDex)),
-				GasInclude:    true,
-				ExcludedPools: []string{"0x2", "0x1"},
+				TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+				TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+				OnlySinglePath: true,
+				CacheMode:      RouteCacheModePoint,
+				AmountIn:       "5000000000000000000000",
+				Dexes:          append(dexes, "dex"+kutils.Itoa(extraDex)),
+				GasInclude:     true,
+				ExcludedPools:  []string{"0x2", "0x1"},
 			}
 
 			assert.NotEqual(t, key1.Hash("prefix"), key2.Hash("prefix"),
@@ -110,54 +110,54 @@ func TestRouteCacheKey_Hash(t *testing.T) {
 	})
 	t.Run("same indexes should return same hashes", func(t *testing.T) {
 		key1 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"gmx", "uniswap"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x1", "0x2"},
-			Index:         "composite",
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"gmx", "uniswap"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x1", "0x2"},
+			Index:          "composite",
 		}
 
 		key2 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"uniswap", "gmx"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x2", "0x1"},
-			Index:         "composite",
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"uniswap", "gmx"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x2", "0x1"},
+			Index:          "composite",
 		}
 
 		assert.Equal(t, key1.Hash("prefix"), key2.Hash("prefix"))
 	})
 	t.Run("different indexes should return different hashes", func(t *testing.T) {
 		key1 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"gmx", "uniswap"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x1", "0x2"},
-			Index:         "composite",
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"gmx", "uniswap"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x1", "0x2"},
+			Index:          "composite",
 		}
 
 		key2 := RouteCacheKey{
-			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-			SaveGas:       true,
-			CacheMode:     RouteCacheModePoint,
-			AmountIn:      "5000000000000000000000",
-			Dexes:         []string{"uniswap", "gmx"},
-			GasInclude:    true,
-			ExcludedPools: []string{"0x2", "0x1"},
-			Index:         "nativeTvl",
+			TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			OnlySinglePath: true,
+			CacheMode:      RouteCacheModePoint,
+			AmountIn:       "5000000000000000000000",
+			Dexes:          []string{"uniswap", "gmx"},
+			GasInclude:     true,
+			ExcludedPools:  []string{"0x2", "0x1"},
+			Index:          "nativeTvl",
 		}
 
 		assert.NotEqual(t, key1.Hash("prefix"), key2.Hash("prefix"))
@@ -173,14 +173,14 @@ func TestRouteCacheKey_Hash(t *testing.T) {
 // BenchmarkRouteCacheKey_Hash-16 (current)         	 1999945	       521.9 ns/op
 func BenchmarkRouteCacheKey_Hash(b *testing.B) {
 	key := RouteCacheKey{
-		TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
-		TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-		SaveGas:       true,
-		CacheMode:     RouteCacheModePoint,
-		AmountIn:      "5000000000000000000000",
-		Dexes:         dexes,
-		GasInclude:    true,
-		ExcludedPools: []string{"0x3dabc75ffd70695852da101b0c0d018781320551"},
+		TokenIn:        "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+		TokenOut:       "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+		OnlySinglePath: true,
+		CacheMode:      RouteCacheModePoint,
+		AmountIn:       "5000000000000000000000",
+		Dexes:          dexes,
+		GasInclude:     true,
+		ExcludedPools:  []string{"0x3dabc75ffd70695852da101b0c0d018781320551"},
 	}
 
 	b.ResetTimer()

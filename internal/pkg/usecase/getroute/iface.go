@@ -6,7 +6,6 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -42,9 +41,9 @@ type IPoolFactory interface {
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
 	CloneCurveMetaForBasePools(
 		ctx context.Context,
-		allPools map[string]pool.IPoolSimulator,
-		basePools map[string]pool.IPoolSimulator,
-	) []pool.IPoolSimulator
+		allPools map[string]poolpkg.IPoolSimulator,
+		basePools map[string]poolpkg.IPoolSimulator,
+	) []poolpkg.IPoolSimulator
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/gas_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IGasRepository
