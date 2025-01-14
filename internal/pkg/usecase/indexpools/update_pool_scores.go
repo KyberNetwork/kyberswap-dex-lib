@@ -38,8 +38,8 @@ func NewUpdatePoolsScore(rankingRepo IPoolRankRepository, config UpdateLiquidity
 	}
 }
 
-func (u *UpdatePoolScores) Handle(ctx context.Context) error {
-	scores, err := u.readLiquidityScores(ctx, u.config.InputFileName)
+func (u *UpdatePoolScores) Handle(ctx context.Context, inputFile string) error {
+	scores, err := u.readLiquidityScores(ctx, inputFile)
 	if err != nil {
 		return err
 	}

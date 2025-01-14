@@ -207,7 +207,7 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
 			Error("job failed in liquidity score calculation step")
 	}
 
-	err = job.updatePoolScores.Handle(ctx)
+	err = job.updatePoolScores.Handle(ctx, scoresFileName)
 	if err != nil {
 		logger.WithFields(ctx,
 			logger.Fields{

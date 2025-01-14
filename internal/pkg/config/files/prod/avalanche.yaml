@@ -411,7 +411,6 @@ useCase:
     maxDataPointNumber: 12
     availableSources: *availableSources
   updateLiquidityScore:
-    inputFileName: *liquidityScoreInputFileName
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
 job:

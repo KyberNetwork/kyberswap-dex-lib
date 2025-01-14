@@ -24,7 +24,6 @@ type TradeDataGeneratorConfig struct {
 }
 
 type UpdateLiquidityScoreConfig struct {
-	InputFileName       string                          `mapstructure:"inputFileName"`
 	MeanType            string                          `mapstructure:"meanType" json:"meanType"`
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
 }
