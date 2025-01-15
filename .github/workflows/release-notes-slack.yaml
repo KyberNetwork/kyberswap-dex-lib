@@ -1,0 +1,31 @@
+name: 'Post Release Notes to Slack'
+
+on:
+  release:
+    types:
+      - released
+
+jobs:
+  prepare:
+    runs-on: ${{ github.event.repository.private && 'self-hosted' || 'ubuntu-latest' }}
+    outputs:
+      release_notes: ${{ steps.filter_notes.outputs.release_notes }}
+    steps:
+      - name: Filter release notes
+        id: filter_notes
+        run: |
+          {
+            echo "release_notes<<EOF"
+            <<<"${{ github.event.release.body }}" grep -vP '^chore\b'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  post_release_note:
+    needs: prepare
+    uses: KyberNetwork/service-framework/.github/workflows/post-to-slack.yaml@main
+    with:
+      channel_id: C06EXALUR51
+      title: New _${{ github.event.repository.name }}_ release *<${{ github.event.release.html_url }}|${{ github.event.release.name }}>*
+      body: ${{ needs.prepare.outputs.release_notes }}
+    secrets: inherit
+
