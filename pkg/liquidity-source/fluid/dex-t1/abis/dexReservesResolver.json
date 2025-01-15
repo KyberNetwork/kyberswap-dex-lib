@@ -118,6 +118,11 @@
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
+          {
             "components": [
               {
                 "internalType": "uint256",
@@ -295,6 +300,11 @@
           { "internalType": "address", "name": "token0", "type": "address" },
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -977,6 +987,11 @@
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
+          {
             "components": [
               {
                 "internalType": "uint256",
@@ -1156,6 +1171,11 @@
           { "internalType": "address", "name": "token0", "type": "address" },
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -1349,6 +1369,11 @@
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
+          {
             "components": [
               {
                 "internalType": "uint256",
@@ -1528,6 +1553,11 @@
           { "internalType": "address", "name": "token0", "type": "address" },
           { "internalType": "address", "name": "token1", "type": "address" },
           { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "uint256",
+            "name": "centerPrice",
+            "type": "uint256"
+          },
           {
             "components": [
               {

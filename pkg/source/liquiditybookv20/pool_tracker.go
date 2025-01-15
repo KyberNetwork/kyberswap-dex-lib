@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -25,16 +24,14 @@ import (
 type PoolTracker struct {
 	cfg           *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
-func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolTracker(
+	cfg *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) (*PoolTracker, error) {
 	return &PoolTracker{
 		cfg:           cfg,
 		ethrpcClient:  ethrpcClient,
@@ -205,7 +202,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		// query
 		var (
 			query = buildQueryGetBins(p.Address, binIDGT)
-			req   = graphql.NewRequest(query)
+			req   = graphqlpkg.NewRequest(query)
 
 			resp struct {
 				Pair *lbpairSubgraphResp       `json:"lbpair"`

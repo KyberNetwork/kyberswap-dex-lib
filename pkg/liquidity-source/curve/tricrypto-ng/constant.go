@@ -101,7 +101,7 @@ var (
 	NumTokensU256 = uint256.NewInt(NumTokens)
 
 	// only support CurveTricryptoOptimizedWETH.vy for now
-	SupportedImplementation = mapset.NewSet("tricrypto-1")
+	SupportedImplementation = mapset.NewSet("tricrypto-1", "tricrypto-optimized")
 
 	Precision = U_1e18
 )

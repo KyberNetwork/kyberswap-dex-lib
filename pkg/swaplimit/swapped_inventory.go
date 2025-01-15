@@ -36,12 +36,16 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	k.lock.Lock()
 	defer k.lock.Unlock()
 
-	swappedOut, ok := k.swapped[decreaseTokenAddress]
-	if !ok {
-		swappedOut = new(big.Int)
-	}
-	swappedOut = swappedOut.Sub(swappedOut, decreaseDelta)
-	k.swapped[decreaseTokenAddress] = swappedOut
+	// Comment out these, since we only keep track of swapped in.
+	// Subtract swapped out may make the future swap in value
+	// reduce, cause the swap limit to be lower than expected.
+
+	// swappedOut, ok := k.swapped[decreaseTokenAddress]
+	// if !ok {
+	// 	swappedOut = new(big.Int)
+	// }
+	// swappedOut = swappedOut.Sub(swappedOut, decreaseDelta)
+	// k.swapped[decreaseTokenAddress] = swappedOut
 
 	swappedIn, ok := k.swapped[increaseTokenAddress]
 	if !ok {

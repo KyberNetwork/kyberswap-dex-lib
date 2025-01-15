@@ -254,7 +254,7 @@ func (u *PoolsListUpdater) listPoolData(
 	listPoolMetadataRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodStableFee,
+		Method: factoryMethodStableFees,
 		Params: []interface{}{},
 	}, []interface{}{&stableFee})
 	listPoolMetadataRequest.AddCall(&ethrpc.Call{

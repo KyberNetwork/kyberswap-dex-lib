@@ -2,7 +2,6 @@ package ramsesv2
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
@@ -11,16 +10,15 @@ const (
 	graphFirstLimit       = 1000
 	defaultTokenDecimals  = 18
 	defaultTokenWeight    = 50
-	zeroString            = "0"
-	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
 )
 
 const (
-	methodGetLiquidity   = "liquidity"
-	methodGetSlot0       = "slot0"
-	methodCurrentFee     = "currentFee"
-	methodTickSpacing    = "tickSpacing"
+	methodV3Fee = "fee"
+
+	methodV2GetLiquidity = "liquidity"
+	methodV2GetSlot0     = "slot0"
+	methodV2CurrentFee   = "currentFee"
+	methodV2TickSpacing  = "tickSpacing"
 	erc20MethodBalanceOf = "balanceOf"
 )
 

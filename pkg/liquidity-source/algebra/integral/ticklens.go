@@ -2,15 +2,14 @@ package integral
 
 import (
 	"context"
+	"math/big"
 	"sort"
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -18,54 +17,45 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
-const (
-	batchSize   = 500
-	maxWordSize = 256
-)
-
 func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
-	var wordIndexes []int16
-
 	changedTicks := ticklens.GetChangedTicks(param.Logs)
-	if len(changedTicks) > 0 {
-		// only refetch changed tick if possible
-		wordIndexes = lo.Uniq(lo.Map(changedTicks, func(t int64, _ int) int16 { return int16(t >> 8) }))
-	} else {
+	if len(changedTicks) == 0 {
 		// Algebra doesn't compact the tick table, so it's not feasible to fetch all for now
 		return nil, ErrNotSupportFetchFullTick
 	}
 
-	logger.Infof("Fetch tick from wordPosition %v to %v (%v)", wordIndexes[0], wordIndexes[len(wordIndexes)-1], changedTicks)
+	logger.Infof("Fetch changed ticks (%v)", changedTicks)
 
-	chunkedWordIndexes := lo.Chunk(wordIndexes, batchSize)
-
-	var ticks []TickResp
-
-	for _, chunk := range chunkedWordIndexes {
-		rpcRequest := d.ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
-
-		var populatedTicks []ticklens.PopulatedTick
+	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+	populatedTicks := make([]Tick, len(changedTicks))
+	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ticklensABI,
-			Target: d.config.TickLensAddress,
-			Method: ticklensGetPopulatedTicksInWordMethod,
-			Params: []interface{}{common.HexToAddress(pool.Address), chunk},
-		}, []interface{}{&populatedTicks})
+			ABI:    algebraIntegralPoolABI,
+			Target: pool.Address,
+			Method: poolTicksMethod,
+			Params: []interface{}{new(big.Int).SetInt64(tick)},
+		}, []interface{}{&populatedTicks[i]})
+	}
 
-		_, err := rpcRequest.Call()
-		if err != nil {
-			return nil, err
+	resp, err := rpcRequest.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	ticks := make([]TickResp, 0, len(resp.Request.Calls))
+	for i, result := range resp.Result {
+		if !result {
+			logger.Errorf("failed to try multicall with param: %v", resp.Request.Calls[i].Params)
+			continue
 		}
 
-		if len(populatedTicks) > 0 {
-			for _, pt := range populatedTicks {
-				ticks = append(ticks, TickResp{
-					TickIdx:        pt.Tick.String(),
-					LiquidityGross: pt.LiquidityGross.String(),
-					LiquidityNet:   pt.LiquidityNet.String(),
-				})
-			}
+		if populatedTicks[i].LiquidityTotal.Sign() == 1 {
+			ticks = append(ticks, TickResp{
+				TickIdx:        strconv.FormatInt(changedTicks[i], 10),
+				LiquidityGross: populatedTicks[i].LiquidityTotal.String(),
+				LiquidityNet:   populatedTicks[i].LiquidityDelta.String(),
+			})
 		}
 	}
 
@@ -100,7 +90,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 				combined = append(combined, TickResp{
 					TickIdx:        strconv.Itoa(t.Index),
 					LiquidityGross: t.LiquidityGross.String(),
-					LiquidityNet:   t.LiquidityNet.String(),
+					LiquidityNet:   t.LiquidityNet.Dec(),
 				})
 			}
 		}
@@ -119,5 +109,5 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 		return iTick < jTick
 	})
 
-	return nil, nil
+	return ticks, nil
 }

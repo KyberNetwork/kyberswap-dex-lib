@@ -1,6 +1,10 @@
 package maverickv1
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 type Metadata struct {
 	LastCreateTime uint64
@@ -20,55 +24,47 @@ type SubgraphToken struct {
 	Decimals uint8  `json:"decimals"`
 }
 
-type StaticExtra struct {
-	TickSpacing *big.Int `json:"tickSpacing"`
-}
-
 type Extra struct {
-	Fee              *big.Int                       `json:"fee"`
-	ProtocolFeeRatio *big.Int                       `json:"protocolFeeRatio"`
-	ActiveTick       *big.Int                       `json:"activeTick"`
-	BinCounter       *big.Int                       `json:"binCounter"`
-	Bins             map[string]Bin                 `json:"bins"`
-	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
-	BinMap           map[string]*big.Int            `json:"binMap"`
-	BinMapHex        map[string]*big.Int            `json:"binMapHex"`
+	Fee              *uint256.Int               `json:"fee"` // 18 decimals
+	ProtocolFeeRatio *uint256.Int               `json:"protocFeeRatio"`
+	Bins             map[uint32]Bin             `json:"bins"`
+	BinPositions     map[int32]map[uint8]uint32 `json:"binPosMap"`
+	BinMap           map[int16]*uint256.Int     `json:"binMap"`
+	ActiveTick       int32                      `json:"tick"`
 
 	// State to calculate TVL
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	Liquidity    *uint256.Int `json:"liquidity"`
+	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
+}
 
-	MinBinMapIndex *big.Int `json:"minBinMapIndex"`
-	MaxBinMapIndex *big.Int `json:"maxBinMapIndex"`
+type StaticExtra struct {
+	TickSpacing int32 `json:"tickSpacing"`
 }
 
 type MaverickPoolState struct {
-	TickSpacing      *big.Int                       `json:"tickSpacing"`
-	Fee              *big.Int                       `json:"fee"`
-	ProtocolFeeRatio *big.Int                       `json:"protocolFeeRatio"`
-	ActiveTick       *big.Int                       `json:"activeTick"`
-	BinCounter       *big.Int                       `json:"binCounter"`
-	Bins             map[string]Bin                 `json:"bins"`
-	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
-	BinMap           map[string]*big.Int            `json:"binMap"`
-	BinMapHex        map[string]*big.Int            `json:"binMapHex"`
+	Fee              *uint256.Int // 18 decimals
+	ProtocolFeeRatio *uint256.Int
+	Bins             map[uint32]Bin
+	BinPositions     map[int32]map[uint8]uint32
+	BinMap           map[int16]*uint256.Int
+	TickSpacing      int32
+	ActiveTick       int32
 
-	minBinMapIndex *big.Int
-	maxBinMapIndex *big.Int
+	minBinMapIndex int16
+	maxBinMapIndex int16
 }
 
 // maverickSwapInfo present the after state of a swap
 type maverickSwapInfo struct {
-	bins       map[string]Bin
-	activeTick *big.Int
+	bins       map[uint32]Bin
+	activeTick int32
 }
 
 type Bin struct {
-	ReserveA  *big.Int `json:"reserveA"`
-	ReserveB  *big.Int `json:"reserveB"`
-	LowerTick *big.Int `json:"lowerTick"`
-	Kind      *big.Int `json:"kind"`
-	MergeID   *big.Int `json:"mergeId"`
+	ReserveA  *uint256.Int `json:"rA"`
+	ReserveB  *uint256.Int `json:"rB"`
+	LowerTick int32        `json:"lT"`
+	Kind      uint8        `json:"k"`
 }
 
 type Gas struct {
@@ -77,44 +73,43 @@ type Gas struct {
 }
 
 type Delta struct {
-	DeltaInBinInternal *big.Int
-	DeltaInErc         *big.Int
-	DeltaOutErc        *big.Int
-	Excess             *big.Int
+	DeltaInBinInternal *uint256.Int
+	DeltaInErc         *uint256.Int
+	DeltaOutErc        *uint256.Int
+	Excess             *uint256.Int
+	SqrtPriceLimit     *uint256.Int
+	SqrtLowerTickPrice *uint256.Int
+	SqrtUpperTickPrice *uint256.Int
+	SqrtPrice          *uint256.Int
 	TokenAIn           bool
-	EndSqrtPrice       *big.Int
 	ExactOutput        bool
 	SwappedToMaxPrice  bool
 	SkipCombine        bool
 	DecrementTick      bool
-	SqrtPriceLimit     *big.Int
-	SqrtLowerTickPrice *big.Int
-	SqrtUpperTickPrice *big.Int
-	SqrtPrice          *big.Int
 }
 
 type Active struct {
-	Word *big.Int
-	Tick *big.Int
+	Word uint8 // 4 bits
+	Tick int32
 }
 
 type GetStateResult struct {
 	State struct {
-		ActiveTick       int32    `json:"activeTick"`
-		Status           uint8    `json:"status"`
-		BinCounter       *big.Int `json:"binCounter"`
-		ProtocolFeeRatio uint64   `json:"protocolFeeRatio"`
+		ActiveTick       int32
+		Status           uint8
+		BinCounter       *big.Int
+		ProtocolFeeRatio uint64
 	}
 }
 
 type GetBinResult struct {
 	BinState struct {
-		ReserveA        *big.Int `json:"reserveA"`
-		ReserveB        *big.Int `json:"reserveB"`
-		MergeBinBalance *big.Int `json:"mergeBinBalance"`
-		MergeID         *big.Int `json:"mergeId"`
-		TotalSupply     *big.Int `json:"totalSupply"`
-		Kind            uint8    `json:"kind"`
-		LowerTick       int32    `json:"lowerTick"`
+		ReserveA        *big.Int
+		ReserveB        *big.Int
+		MergeBinBalance *big.Int
+		MergeID         *big.Int
+		TotalSupply     *big.Int
+		Kind            uint8
+		LowerTick       int32
 	}
 }

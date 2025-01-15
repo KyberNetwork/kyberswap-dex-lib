@@ -34,17 +34,14 @@ type Token struct {
 type SubgraphPool struct {
 	ID                 string `json:"id"`
 	FeeTier            string `json:"feeTier"`
-	PoolType           string `json:"poolType"`
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp = ticklens.TickResp
-
 type SubgraphPoolTicks struct {
-	ID    string     `json:"id"`
-	Ticks []TickResp `json:"ticks"`
+	ID    string              `json:"id"`
+	Ticks []ticklens.TickResp `json:"ticks"`
 }
 
 type StaticExtra struct {
@@ -89,7 +86,7 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int
 }
 
-func transformTickRespToTick(tickResp TickResp) (Tick, error) {
+func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 	liquidityGross := new(big.Int)
 	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
 	if !ok {

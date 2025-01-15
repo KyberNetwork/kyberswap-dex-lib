@@ -3,7 +3,6 @@ package maverickv1
 import (
 	"context"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -11,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -120,8 +120,8 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	binCounter := getStateResult.State.BinCounter
-	activeTick := big.NewInt(int64(getStateResult.State.ActiveTick))
-	protocolFeeRatio := big.NewInt(int64(getStateResult.State.ProtocolFeeRatio))
+	activeTick := getStateResult.State.ActiveTick
+	protocolFeeRatio := uint256.NewInt(getStateResult.State.ProtocolFeeRatio)
 
 	binLength := int(binCounter.Int64())
 	binRaws := make([]GetBinResult, binLength+1)
@@ -178,40 +178,32 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	// Generate bins, binPosition, binMap from binRaws
-	bins := make(map[string]Bin)
-	binPositions := make(map[string]map[string]*big.Int)
-	binMap := make(map[string]*big.Int)
-	binMapHex := make(map[string]*big.Int)
-	var minBinMapIndex, maxBinMapIndex *big.Int
+	bins := make(map[uint32]Bin)
+	binPositions := make(map[int32]map[uint8]uint32)
+	binMap := make(map[int16]*uint256.Int)
 	for i, binRaw := range binRaws {
+		i := uint32(i)
 		if binRaw.BinState.MergeID.Sign() != 0 ||
 			(binRaw.BinState.ReserveA.Sign() == 0 && binRaw.BinState.ReserveB.Sign() == 0) {
 			continue
 		}
 
-		strI := strconv.Itoa(i)
 		bin := Bin{
-			ReserveA:  binRaw.BinState.ReserveA,
-			ReserveB:  binRaw.BinState.ReserveB,
-			LowerTick: big.NewInt(int64(binRaw.BinState.LowerTick)),
-			Kind:      big.NewInt(int64(binRaw.BinState.Kind)),
-			MergeID:   binRaw.BinState.MergeID,
+			ReserveA:  uint256.MustFromBig(binRaw.BinState.ReserveA),
+			ReserveB:  uint256.MustFromBig(binRaw.BinState.ReserveB),
+			LowerTick: binRaw.BinState.LowerTick,
+			Kind:      binRaw.BinState.Kind,
 		}
-		bins[strI] = bin
+		bins[i] = bin
 
-		if bin.MergeID.Int64() == 0 {
-			binIndex := d.putTypeAtTick(binMap, binMapHex, bin.Kind, bin.LowerTick)
-			if binPositions[bin.LowerTick.String()] == nil {
-				binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
+		if binRaw.BinState.MergeID.Sign() == 0 {
+			_ = d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
+			binPosition := binPositions[bin.LowerTick]
+			if binPosition == nil {
+				binPosition = make(map[uint8]uint32)
+				binPositions[bin.LowerTick] = binPosition
 			}
-			binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
-
-			if minBinMapIndex == nil || minBinMapIndex.Cmp(binIndex) > 0 {
-				minBinMapIndex = binIndex
-			}
-			if maxBinMapIndex == nil || maxBinMapIndex.Cmp(binIndex) < 0 {
-				maxBinMapIndex = binIndex
-			}
+			binPosition[bin.Kind] = i
 		}
 	}
 
@@ -220,39 +212,31 @@ func (d *PoolTracker) getNewPoolState(
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-		}).Errorf("faield to unmarshal static extra")
+		}).Errorf("failed to unmarshal static extra")
 
 		return entity.Pool{}, err
 	}
+	feeU := uint256.MustFromBig(fee)
 	_, _, sqrtPrice, liquidity, _, _ := currentTickLiquidity(activeTick, &MaverickPoolState{
 		TickSpacing:      staticExtra.TickSpacing,
-		Fee:              fee,
+		Fee:              feeU,
 		ProtocolFeeRatio: protocolFeeRatio,
 		ActiveTick:       activeTick,
-		BinCounter:       binCounter,
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
-		BinMapHex:        binMapHex,
-		minBinMapIndex:   minBinMapIndex,
-		maxBinMapIndex:   maxBinMapIndex,
 	})
 
 	var extra = Extra{
-		Fee:              fee,
+		Fee:              feeU,
 		ProtocolFeeRatio: protocolFeeRatio,
 		ActiveTick:       activeTick,
-		BinCounter:       binCounter,
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
-		BinMapHex:        binMapHex,
 
 		SqrtPriceX96: sqrtPrice,
 		Liquidity:    liquidity,
-
-		MinBinMapIndex: minBinMapIndex,
-		MaxBinMapIndex: maxBinMapIndex,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -275,32 +259,13 @@ func (d *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) putTypeAtTick(
-	binMap map[string]*big.Int,
-	binMapHex map[string]*big.Int,
-	kind, tick *big.Int,
-) *big.Int {
-	var tmp big.Int
-	offset, mapIndex := d.getMapPointer(
-		tmp.Add(
-			tmp.Mul(tick, Kinds),
-			kind,
-		))
-	subMap := binMap[mapIndex.String()]
+func (d *PoolTracker) putTypeAtTick(binMap map[int16]*uint256.Int, kind uint8, tick int32) int16 {
+	mapIndex, offset := getMapPointer(tick*Kinds + int32(kind))
+	subMap := binMap[mapIndex]
 	if subMap == nil {
-		subMap = big.NewInt(0)
+		subMap = new(uint256.Int)
 	}
-
-	value := subMap.SetBit(subMap, int(offset.Int64()), 1)
-
-	binMap[mapIndex.String()] = value
-	binMapHex[mapIndex.Text(16)] = value
+	subMap[offset/64] |= 1 << (offset % 64)
+	binMap[mapIndex] = subMap
 	return mapIndex
-}
-
-func (d *PoolTracker) getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
-	offset := new(big.Int).And(tick, OffsetMask)
-	mapIndex := new(big.Int).Rsh(tick, 8)
-
-	return offset, mapIndex
 }

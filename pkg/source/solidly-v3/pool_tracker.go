@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,19 +20,14 @@ import (
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -222,7 +216,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
 			Pool *SubgraphPoolTicks        `json:"pool"`

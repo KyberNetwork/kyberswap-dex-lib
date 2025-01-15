@@ -1,8 +1,6 @@
 package integral
 
 import (
-	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
@@ -10,10 +8,6 @@ import (
 
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
-)
-
-var (
-	ErrTargetIsTooOld = errors.New("target is too old")
 )
 
 type TimepointStorage struct {
@@ -481,19 +475,19 @@ func getOutputTokenDelta10(to, from, liquidity *uint256.Int) (*uint256.Int, erro
 
 func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, errors.New("price upper must not be less than price lower")
+		return nil, ErrInvalidPriceUpperLower
 	}
 	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
-
 	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
 
 	if roundUp {
-		division, err := v3Utils.MulDivRoundingUp(priceDelta, liquidityShifted, priceUpper)
+		delta, err := v3Utils.MulDivRoundingUp(priceDelta, liquidityShifted, priceUpper)
 		if err != nil {
 			return nil, err
 		}
 
-		return unsafeDivRoundingUp(division, priceLower), nil
+		v3Utils.DivRoundingUp(delta, priceLower, delta)
+		return delta, nil
 	}
 
 	mulDivResult, overflow := priceDelta.MulDivOverflow(priceDelta, liquidityShifted, priceUpper)
@@ -505,7 +499,7 @@ func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 
 func getToken1Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, errors.New("price upper must not be less than price lower")
+		return nil, ErrInvalidPriceUpperLower
 	}
 	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
 
@@ -534,13 +528,11 @@ func getNewPrice(
 	zeroToOne, fromInput bool,
 ) (*uint256.Int, error) {
 	if price.IsZero() {
-		return nil, fmt.Errorf("price cannot be zero")
-	}
-	if liquidity.IsZero() {
-		return nil, fmt.Errorf("liquidity cannot be zero")
-	}
-	if amount.IsZero() {
-		return new(uint256.Int).Set(price), nil
+		return nil, ErrZeroPrice
+	} else if liquidity.IsZero() {
+		return nil, ErrZeroLiquidity
+	} else if amount.IsZero() {
+		return price.Clone(), nil
 	}
 
 	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
@@ -571,17 +563,13 @@ func getNewPrice(
 		return resultPrice, nil
 	} else {
 		if fromInput {
-			var (
-				shiftedAmount *uint256.Int
-				overflow      bool
-			)
+			shiftedAmount := new(uint256.Int)
 			if amount.BitLen() < 160 {
-				shiftedAmount = new(uint256.Int).Lsh(amount, RESOLUTION)
+				shiftedAmount.Lsh(amount, RESOLUTION)
 				shiftedAmount.Div(shiftedAmount, liquidity)
 			} else {
-				shiftedAmount, overflow = new(uint256.Int).MulDivOverflow(amount,
-					new(uint256.Int).Lsh(uONE, RESOLUTION), liquidity)
-				if overflow {
+				shiftedAmount.Lsh(uONE, RESOLUTION)
+				if _, overflow := shiftedAmount.MulDivOverflow(amount, shiftedAmount, liquidity); overflow {
 					return nil, ErrOverflow
 				}
 			}
@@ -598,7 +586,7 @@ func getNewPrice(
 			)
 			if amount.BitLen() < 160 {
 				shiftedAmount = new(uint256.Int).Lsh(amount, RESOLUTION)
-				shiftedAmount = unsafeDivRoundingUp(shiftedAmount, liquidity)
+				v3Utils.DivRoundingUp(shiftedAmount, liquidity, shiftedAmount)
 			} else {
 				shiftedAmount, err = v3Utils.MulDivRoundingUp(amount, new(uint256.Int).Lsh(uONE, RESOLUTION), liquidity)
 				if err != nil {
