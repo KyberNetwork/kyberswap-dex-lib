@@ -1,0 +1,5 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot
+      - kyber-ci-bot
