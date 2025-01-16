@@ -51,9 +51,8 @@ type StablePoolDynamicData struct {
 }
 
 type PoolMetaInfo struct {
-	Vault         string `json:"vault"`
-	TokenOutIndex int    `json:"tokenOutIndex"`
-	BlockNumber   uint64 `json:"blockNumber"`
+	Vault       string `json:"vault"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type RpcResult struct {
