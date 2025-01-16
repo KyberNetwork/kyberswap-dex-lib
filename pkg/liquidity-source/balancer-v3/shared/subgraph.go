@@ -30,6 +30,7 @@ func BuildSubgraphPoolsQuery(
 			where : {
 				factory: "%s",
 				blockTimestamp_gte: %v
+				symbol_not: "TEST"
 			},
 			first: %d,
 			skip: %d,
