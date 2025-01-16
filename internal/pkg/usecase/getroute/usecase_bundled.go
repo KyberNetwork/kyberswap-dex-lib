@@ -134,7 +134,7 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 
 	var kyberLimitOrderAllowedSenders string
 	if query.ClientId == clientid.KyberSwap {
-		kyberLimitOrderAllowedSenders = u.config.ExecutorAddress
+		kyberLimitOrderAllowedSenders = u.config.KyberExecutorAddress
 	}
 
 	return &types.AggregateBundledParams{

@@ -65,6 +65,7 @@ import (
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
@@ -344,9 +345,11 @@ func apiAction(c *cli.Context) (err error) {
 
 	customRouteFinderEngine := finderengine.NewPathFinderEngine(customRoutePathFinder, customRouteRouteFinalizer)
 
-	cfg.UseCase.GetRoute.ExecutorAddress = cfg.Encoder.ExecutorAddress
-	if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
-		cfg.UseCase.GetRoute.ExecutorAddress = cfg.Encoder.L2ExecutorAddress
+	cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.ExecutorAddress
+	if cfg.Encoder.ExecutorAddressByClientID[clientid.KyberSwap] != "" {
+		cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.ExecutorAddressByClientID[clientid.KyberSwap]
+	} else if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
+		cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.L2ExecutorAddress
 	}
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
@@ -816,7 +819,7 @@ func applyLatestConfigForAPI(
 }
 
 func applyLatestConfigForIndexer(
-	ctx context.Context,
+	_ context.Context,
 	indexPoolsUseCase *indexpools.IndexPoolsUseCase,
 	indexPoolsJob *job.IndexPoolsJob,
 	configLoader *config.ConfigLoader,
