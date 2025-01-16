@@ -453,6 +453,7 @@ useCase:
     useAEVM: *useAEVM
     dexUseAEVM: *dexUseAEVM
   poolManager:
+    availableSources: *availableSources
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     faultyPoolsRenewalInterval: 5s
