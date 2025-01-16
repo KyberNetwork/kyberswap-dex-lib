@@ -180,6 +180,11 @@ var (
 	ExchangeGyroscope3CLP              Exchange = "gyroscope-3clp"
 	ExchangeGyroscopeECLP              Exchange = "gyroscope-eclp"
 
+	ExchangeBalancerV3Weighted   Exchange = "balancer-v3-weighted"
+	ExchangeBalancerV3Stable     Exchange = "balancer-v3-stable"
+	ExchangeBeethovenXV3Weighted Exchange = "beethovenx-v3-weighted"
+	ExchangeBeethovenXV3Stable   Exchange = "beethovenx-v3-stable"
+
 	ExchangeSynthSwapPerp Exchange = "synthswap-perp"
 	ExchangeSwapBasedPerp Exchange = "swapbased-perp"
 	ExchangeBMX           Exchange = "bmx"
@@ -539,6 +544,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV2Stable:           {},
 	ExchangeBalancerV2ComposableStable: {},
+	ExchangeBalancerV3Weighted:         {},
+	ExchangeBalancerV3Stable:           {},
+	ExchangeBeethovenXV3Weighted:       {},
+	ExchangeBeethovenXV3Stable:         {},
 	ExchangeBeethovenXWeighted:         {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXComposableStable: {},
