@@ -20,6 +20,8 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
+	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
@@ -644,6 +646,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newBalancerV2Stable(entityPool)
 	case pooltypes.PoolTypes.BalancerV2ComposableStable:
 		return f.newBalancerV2ComposableStable(entityPool)
+	case pooltypes.PoolTypes.BalancerV3Weighted:
+		return f.newBalancerV3Weighted(entityPool)
+	case pooltypes.PoolTypes.BalancerV3Stable:
+		return f.newBalancerV3Stable(entityPool)
 	case pooltypes.PoolTypes.VelocoreV2CPMM:
 		return f.newVelocoreV2CPMM(entityPool)
 	case pooltypes.PoolTypes.VelocoreV2WombatStable:
@@ -1854,6 +1860,34 @@ func (f *PoolFactory) newBalancerV2ComposableStable(entityPool entity.Pool) (*ba
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV2ComposableStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerV3Weighted(entityPool entity.Pool) (*balancerv3weighted.PoolSimulator, error) {
+	corePool, err := balancerv3weighted.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerV3Weighted] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerV3Stable(entityPool entity.Pool) (*balancerv3stable.PoolSimulator, error) {
+	corePool, err := balancerv3stable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerV3Stable] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
