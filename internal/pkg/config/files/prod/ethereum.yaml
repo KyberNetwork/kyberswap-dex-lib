@@ -499,6 +499,7 @@ useCase:
       uniswapv3:
         router-address: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
+    availableSources: *availableSources
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     faultyPoolsRenewalInterval: 5s
