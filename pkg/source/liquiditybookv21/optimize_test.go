@@ -14,7 +14,10 @@ var entityStr = "{\"address\":\"0x576b3179e58de0c91cb15aeaadeb4ecfee3620af\",\"a
 
 func initPoolSimulator() *PoolSimulator {
 	var poolEntity entity.Pool
-	json.Unmarshal([]byte(entityStr), &poolEntity)
+	err := json.Unmarshal([]byte(entityStr), &poolEntity)
+	if err != nil {
+		panic(err)
+	}
 	simulator, _ := NewPoolSimulator(poolEntity)
 	return simulator
 }
@@ -34,7 +37,8 @@ func BenchmarkOptimizePoolSimulator(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		simulator.CalcAmountOut(params) // 2817957 USDC
+		_, err := simulator.CalcAmountOut(params) // 2817957 USDC
+		assert.Nil(b, err)
 	}
 }
 
@@ -55,6 +59,7 @@ func TestOptimizeGetPriceFromIDWorkCorrectly(t *testing.T) {
 // BenchmarkOptimizeGetPriceFromID-10    	  809637	      1594 ns/op	     728 B/op	      20 allocs/op
 func BenchmarkOptimizeGetPriceFromID(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		getPriceFromID(8349152, 5)
+		_, err := getPriceFromID(8349152, 5)
+		assert.Nil(b, err)
 	}
 }
