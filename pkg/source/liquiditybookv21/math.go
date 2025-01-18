@@ -21,63 +21,61 @@ func getExponent(id uint32) *big.Int {
 	return new(big.Int).Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
 func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	var (
-		invert bool
-		absY   *big.Int
-		result = big.NewInt(0)
+		invert  bool
+		absY    big.Int
+		result  big.Int
+		tmp     big.Int
+		squared big.Int
+		and     big.Int
 	)
 
-	if y.Cmp(integer.Zero()) == 0 {
+	if y.Sign() == 0 {
 		return scale, nil
 	}
 
-	absY = new(big.Int).Abs(y)
+	absY.Abs(y)
 	if y.Sign() < 0 {
 		invert = !invert
 	}
 
-	u, _ := new(big.Int).SetString("100000", 16)
-	if absY.Cmp(u) < 0 {
-		result = scale
+	var u, v big.Int
+	u.SetString("100000", 16)
+	v.SetString("ffffffffffffffffffffffffffffffff", 16)
 
-		squared := x
-		v, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffff", 16)
-		if x.Cmp(v) > 0 {
-			not0 := maxUint256
-			squared = new(big.Int).Div(not0, squared)
+	if absY.Cmp(&u) < 0 {
+		result.Set(scale)
 
+		squared.Set(x)
+
+		if x.Cmp(&v) > 0 {
+			squared.Div(maxUint256, &squared)
 			invert = !invert
 		}
 
 		for i := 0x1; i <= 0x80000; i <<= 1 {
-			and := new(big.Int).And(absY, big.NewInt(int64(i)))
-			if and.Cmp(integer.Zero()) != 0 {
-				result = new(big.Int).Rsh(
-					new(big.Int).Mul(result, squared),
-					128,
-				)
+			tmp.SetInt64(int64(i))
+			and.And(&absY, &tmp)
+			if and.Sign() != 0 {
+				result.Rsh(tmp.Mul(&result, &squared), 128)
 			}
 			if i < 0x80000 {
-				squared = new(big.Int).Rsh(
-					new(big.Int).Mul(squared, squared),
-					128,
-				)
+				squared.Rsh(tmp.Mul(&squared, &squared), 128)
 			}
 		}
 	}
 
-	if result.Cmp(integer.Zero()) == 0 {
+	if result.Sign() == 0 {
 		return nil, ErrPowUnderflow
 	}
 
 	if invert {
-		v := new(big.Int).Sub(new(big.Int).Lsh(integer.One(), 256), integer.One())
-		result = new(big.Int).Div(v, result)
+		v.Sub(new(big.Int).Lsh(integer.One(), 256), integer.One())
+		result.Div(&v, &result)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L95
