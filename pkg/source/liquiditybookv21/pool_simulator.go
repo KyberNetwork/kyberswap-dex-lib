@@ -228,7 +228,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
  */
 func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapInResult, error) {
 	var (
-		amountsOutLeft     = amountOut
+		amountsOutLeft     = new(big.Int).Set(amountOut)
 		binStep            = p.binStep
 		amountIn           = integer.Zero()
 		swapFee            = integer.Zero()
@@ -328,7 +328,7 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapIn
  */
 func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
 	var (
-		amountsInLeft      = amountIn
+		amountsInLeft      = new(big.Int).Set(amountIn)
 		binStep            = p.binStep
 		amountOut          = integer.Zero()
 		swapFee            = integer.Zero()
