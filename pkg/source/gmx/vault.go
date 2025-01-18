@@ -3,39 +3,40 @@ package gmx
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Vault struct {
-	HasDynamicFees           bool     `json:"hasDynamicFees"`
-	IncludeAmmPrice          bool     `json:"includeAmmPrice"`
-	IsSwapEnabled            bool     `json:"isSwapEnabled"`
-	StableSwapFeeBasisPoints *big.Int `json:"stableSwapFeeBasisPoints"`
-	StableTaxBasisPoints     *big.Int `json:"stableTaxBasisPoints"`
-	SwapFeeBasisPoints       *big.Int `json:"swapFeeBasisPoints"`
-	TaxBasisPoints           *big.Int `json:"taxBasisPoints"`
-	TotalTokenWeights        *big.Int `json:"totalTokenWeights"`
+	HasDynamicFees           bool     `json:"hasDynamicFees,omitempty"`
+	IncludeAmmPrice          bool     `json:"includeAmmPrice,omitempty"`
+	IsSwapEnabled            bool     `json:"isSwapEnabled,omitempty"`
+	StableSwapFeeBasisPoints *big.Int `json:"stableSwapFeeBasisPoints,omitempty"`
+	StableTaxBasisPoints     *big.Int `json:"stableTaxBasisPoints,omitempty"`
+	SwapFeeBasisPoints       *big.Int `json:"swapFeeBasisPoints,omitempty"`
+	TaxBasisPoints           *big.Int `json:"taxBasisPoints,omitempty"`
+	TotalTokenWeights        *big.Int `json:"totalTokenWeights,omitempty"`
 
-	WhitelistedTokens []string            `json:"whitelistedTokens"`
-	PoolAmounts       map[string]*big.Int `json:"poolAmounts"`
-	BufferAmounts     map[string]*big.Int `json:"bufferAmounts"`
-	ReservedAmounts   map[string]*big.Int `json:"reservedAmounts"`
-	TokenDecimals     map[string]*big.Int `json:"tokenDecimals"`
-	StableTokens      map[string]bool     `json:"stableTokens"`
-	USDGAmounts       map[string]*big.Int `json:"usdgAmounts"`
-	MaxUSDGAmounts    map[string]*big.Int `json:"maxUsdgAmounts"`
-	TokenWeights      map[string]*big.Int `json:"tokenWeights"`
+	WhitelistedTokens []string            `json:"whitelistedTokens,omitempty"`
+	PoolAmounts       map[string]*big.Int `json:"poolAmounts,omitempty"`
+	BufferAmounts     map[string]*big.Int `json:"bufferAmounts,omitempty"`
+	ReservedAmounts   map[string]*big.Int `json:"reservedAmounts,omitempty"`
+	TokenDecimals     map[string]*big.Int `json:"tokenDecimals,omitempty"`
+	StableTokens      map[string]bool     `json:"stableTokens,omitempty"`
+	USDGAmounts       map[string]*big.Int `json:"usdgAmounts,omitempty"`
+	MaxUSDGAmounts    map[string]*big.Int `json:"maxUsdgAmounts,omitempty"`
+	TokenWeights      map[string]*big.Int `json:"tokenWeights,omitempty"`
 
 	PriceFeedAddress common.Address  `json:"-"`
-	PriceFeed        *VaultPriceFeed `json:"priceFeed"`
+	PriceFeed        *VaultPriceFeed `json:"priceFeed,omitempty"`
 
 	USDGAddress common.Address `json:"-"`
-	USDG        *USDG          `json:"usdg"`
+	USDG        *USDG          `json:"usdg,omitempty"`
 
 	WhitelistedTokensCount *big.Int `json:"-"`
 
-	UseSwapPricing bool // not used, always false for now
+	UseSwapPricing bool `json:"useSwapPricing,omitempty"` // not used, always false for now
 }
 
 func NewVault() *Vault {
@@ -61,7 +62,6 @@ const (
 	vaultMethodSwapFeeBasisPoints       = "swapFeeBasisPoints"
 	vaultMethodTaxBasisPoints           = "taxBasisPoints"
 	vaultMethodTotalTokenWeights        = "totalTokenWeights"
-	vaultMethodUSDG                     = "usdg"
 
 	vaultMethodAllWhitelistedTokensLength = "allWhitelistedTokensLength"
 	vaultMethodAllWhitelistedTokens       = "allWhitelistedTokens"
@@ -72,8 +72,6 @@ const (
 	vaultMethodReservedAmounts = "reservedAmounts"
 	vaultMethodTokenDecimals   = "tokenDecimals"
 	vaultMethodStableTokens    = "stableTokens"
-	vaultMethodUSDGAmounts     = "usdgAmounts"
-	vaultMethodMaxUSDGAmounts  = "maxUsdgAmounts"
 	vaultMethodTokenWeights    = "tokenWeights"
 )
 
@@ -88,13 +86,14 @@ func (v *Vault) GetMaxPrice(token string) (*big.Int, error) {
 func (v *Vault) GetTargetUSDGAmount(token string) *big.Int {
 	supply := v.USDG.TotalSupply
 
-	if supply.Cmp(bignumber.ZeroBI) == 0 {
+	if supply.Sign() == 0 {
 		return bignumber.ZeroBI
 	}
 
 	weight := v.TokenWeights[token]
 
-	return new(big.Int).Div(new(big.Int).Mul(weight, supply), v.TotalTokenWeights)
+	target := new(big.Int).Mul(weight, supply)
+	return target.Div(target, v.TotalTokenWeights)
 }
 
 func (v *Vault) AdjustForDecimals(amount *big.Int, tokenDiv string, tokenMul string) *big.Int {

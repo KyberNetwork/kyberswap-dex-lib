@@ -621,6 +621,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEtherfiEETH:                {},
 	ExchangeEtherfiWEETH:               {},
 	ExchangeZkEraFinance:               {},
+	ExchangeNavigator:                  {},
 	ExchangeKelpRSETH:                  {},
 	ExchangeRocketPoolRETH:             {},
 	ExchangeEthenaSusde:                {},

@@ -3,18 +3,15 @@
     "constant": true,
     "inputs": [
       {
-        "name": "",
         "type": "address"
       }
     ],
     "name": "getFlag",
     "outputs": [
       {
-        "name": "",
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function"
   }

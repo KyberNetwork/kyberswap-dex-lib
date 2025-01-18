@@ -3,7 +3,7 @@ package gmx
 import (
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // VaultUtils
@@ -55,7 +55,7 @@ func (u *VaultUtils) GetFeeBasisPoints(token string, usdgDelta *big.Int, feeBasi
 
 	if !increment {
 		if usdgDelta.Cmp(initialAmount) > 0 {
-			nextAmount = constant.ZeroBI
+			nextAmount = bignumber.ZeroBI
 		} else {
 			nextAmount = new(big.Int).Sub(initialAmount, usdgDelta)
 		}
@@ -63,7 +63,7 @@ func (u *VaultUtils) GetFeeBasisPoints(token string, usdgDelta *big.Int, feeBasi
 
 	targetAmount := u.vault.GetTargetUSDGAmount(token)
 
-	if targetAmount.Cmp(constant.ZeroBI) == 0 {
+	if targetAmount.Cmp(bignumber.ZeroBI) == 0 {
 		return feeBasisPoints
 	}
 
@@ -82,22 +82,25 @@ func (u *VaultUtils) GetFeeBasisPoints(token string, usdgDelta *big.Int, feeBasi
 	}
 
 	if nextDiff.Cmp(initialDiff) < 0 {
-		rebateBps := new(big.Int).Div(new(big.Int).Mul(taxBasisPoints, initialDiff), targetAmount)
+		rebateBps := new(big.Int).Mul(taxBasisPoints, initialDiff)
+		rebateBps = rebateBps.Div(rebateBps, targetAmount)
 
 		if rebateBps.Cmp(feeBasisPoints) > 0 {
-			return constant.ZeroBI
+			return bignumber.ZeroBI
 		} else {
 			return new(big.Int).Sub(feeBasisPoints, rebateBps)
 		}
 	}
 
-	averageDiff := new(big.Int).Div(new(big.Int).Add(initialDiff, nextDiff), constant.Two)
+	averageDiff := new(big.Int).Add(initialDiff, nextDiff)
+	averageDiff = new(big.Int).Div(averageDiff, bignumber.Two)
 
 	if averageDiff.Cmp(targetAmount) > 0 {
 		averageDiff = targetAmount
 	}
 
-	taxBps := new(big.Int).Div(new(big.Int).Mul(taxBasisPoints, averageDiff), targetAmount)
+	taxBps := new(big.Int).Mul(taxBasisPoints, averageDiff)
+	taxBps = taxBps.Div(taxBps, targetAmount)
 
-	return new(big.Int).Add(feeBasisPoints, taxBps)
+	return taxBps.Add(feeBasisPoints, taxBps)
 }

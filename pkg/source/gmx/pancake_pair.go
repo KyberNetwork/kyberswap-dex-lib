@@ -3,8 +3,8 @@ package gmx
 import "math/big"
 
 type PancakePair struct {
-	Reserves      []*big.Int `json:"reserves"`
-	TimestampLast uint32     `json:"timestampLast"`
+	Reserves      []*big.Int `json:"reserves,omitempty"`
+	TimestampLast uint32     `json:"timestampLast,omitempty"`
 }
 
 func NewPancakePair() *PancakePair {
