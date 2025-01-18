@@ -17,7 +17,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.9
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.87.5
+	github.com/KyberNetwork/kyberswap-dex-lib v0.87.7-0.20250117200607-61d9a522b152
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -55,7 +55,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.7.0
-	github.com/samber/lo v1.46.0
+	github.com/samber/lo v1.47.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0

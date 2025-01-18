@@ -24,8 +24,8 @@ github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXA
 github.com/KyberNetwork/kutils v0.3.8/go.mod h1:n8qRo+TkBkqspGRKu52h/UP5GvIxoSxWueTpgvHMuvo=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.87.5 h1:srxIlbMs1G9BPbGpJl/3PY/C9BOWt9yuipcfHnJIlCY=
-github.com/KyberNetwork/kyberswap-dex-lib v0.87.5/go.mod h1:Q61dJExBqQXxxkXKMJ3Ou9Yb2H4klSV8xV0pEbxjha0=
+github.com/KyberNetwork/kyberswap-dex-lib v0.87.7-0.20250117200607-61d9a522b152 h1:KCI1Xt88cBdZm5fJovZLeHLsvbs127sPNfYk9SvV7tQ=
+github.com/KyberNetwork/kyberswap-dex-lib v0.87.7-0.20250117200607-61d9a522b152/go.mod h1:3FJQ9j4GvhY48lb8Eqfny7Gf8N3VeWqf/23HAooOjMA=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0 h1:j5bQk6vgFyzbtyVZfuLSzlP/st4yQmTqeRrx8h2ZBqM=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0/go.mod h1:N02KxZO8LWxowVLH8kDDl/H5gEllsl60oxZVdVvdzCY=
 github.com/KyberNetwork/logger v0.2.1 h1:ZkP/I7PN8Dx1lWRiEw8pfuhiG6BXTAfcuQTzU/3Z0DQ=
@@ -389,8 +389,8 @@ github.com/sagikazarmark/locafero v0.4.0 h1:HApY1R9zGo4DBgr7dqsTH/JJxLTTsOt7u6ke
 github.com/sagikazarmark/locafero v0.4.0/go.mod h1:Pe1W6UlPYUk/+wc/6KFhbORCfqzgYEpgQ3O5fPuL3H4=
 github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=
 github.com/sagikazarmark/slog-shim v0.1.0/go.mod h1:SrcSrq8aKtyuqEI1uvTDTK1arOWRIczQRv+GVI1AkeQ=
-github.com/samber/lo v1.46.0 h1:w8G+oaCPgz1PoCJztqymCFaKwXt+5cCXn51uPxExFfQ=
-github.com/samber/lo v1.46.0/go.mod h1:RmDH9Ct32Qy3gduHQuKJ3gW1fMHAnE/fAzQuf6He5cU=
+github.com/samber/lo v1.47.0 h1:z7RynLwP5nbyRscyvcD043DWYoOcYRv3mV8lBeqOCLc=
+github.com/samber/lo v1.47.0/go.mod h1:RmDH9Ct32Qy3gduHQuKJ3gW1fMHAnE/fAzQuf6He5cU=
 github.com/shirou/gopsutil v3.21.11+incompatible h1:+1+c1VGhc88SSonWP6foOcLhvnKlUeu/erjjvaPEYiI=
 github.com/shirou/gopsutil v3.21.11+incompatible/go.mod h1:5b4v6he4MtMOwMlS0TUMTu2PcXUg8+E1lC7eC3UO/RA=
 github.com/shopspring/decimal v1.4.0 h1:bxl37RwXBklmTi0C79JfXCEBD1cqqHt0bbgBAGFp81k=
