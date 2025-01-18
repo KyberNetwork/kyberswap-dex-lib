@@ -8,9 +8,18 @@ import (
 )
 
 func getPriceFromIDBackup(id uint32, binStep uint16) (*big.Int, error) {
-	base := getBase(binStep)
-	exponent := getExponent(id)
+	base := getBaseBackup(binStep)
+	exponent := getExponentBackup(id)
 	return powBackup(base, exponent)
+}
+
+func getBaseBackup(binStep uint16) *big.Int {
+	u := new(big.Int).Lsh(big.NewInt(int64(binStep)), scaleOffset)
+	return new(big.Int).Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
+}
+
+func getExponentBackup(id uint32) *big.Int {
+	return new(big.Int).Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95

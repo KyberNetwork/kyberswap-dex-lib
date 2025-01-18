@@ -69,21 +69,22 @@ func (p *parameters) updateVolatilityAccumulator(activeID uint32) *parameters {
 }
 
 func (p *parameters) getTotalFee(binStep uint16) *big.Int {
-	baseFee := p.getBaseFee(binStep)
-	variableFee := p.getVariableFee(binStep)
-	return new(big.Int).Add(baseFee, variableFee)
+	var baseFee, variableFee big.Int
+	baseFee = *p.getBaseFee(binStep, &baseFee)
+	variableFee = *p.getVariableFee(binStep, &variableFee)
+	return new(big.Int).Add(&baseFee, &variableFee)
 }
 
-func (p *parameters) getBaseFee(binStep uint16) *big.Int {
+func (p *parameters) getBaseFee(binStep uint16, baseFee *big.Int) *big.Int {
 	baseFactor := p.StaticFeeParams.BaseFactor
-	result := new(big.Int).Mul(
+	baseFee.Mul(
 		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(binStep))),
 		big.NewInt(1e10),
 	)
-	return result
+	return baseFee
 }
 
-func (p *parameters) getVariableFee(binStep uint16) *big.Int {
+func (p *parameters) getVariableFee(binStep uint16, variableFee *big.Int) *big.Int {
 	variableFeeControl := p.StaticFeeParams.VariableFeeControl
 	if variableFeeControl == 0 {
 		return bignumber.ZeroBI
@@ -91,7 +92,7 @@ func (p *parameters) getVariableFee(binStep uint16) *big.Int {
 
 	volAcc := p.VariableFeeParams.VolatilityAccumulator
 	prod := new(big.Int).Mul(big.NewInt(int64(volAcc)), big.NewInt(int64(binStep)))
-	variableFee := new(big.Int).Div(
+	variableFee.Div(
 		new(big.Int).Add(
 			new(big.Int).Mul(
 				new(big.Int).Mul(prod, prod),

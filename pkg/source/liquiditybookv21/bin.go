@@ -135,16 +135,16 @@ func newBinReserveChanges(
 		return binReserveChanges{
 			BinID:      binID,
 			AmountXIn:  new(big.Int),
-			AmountXOut: new(big.Int).Set(amountOut), // avoid leaking
-			AmountYIn:  new(big.Int).Set(amountIn),
+			AmountXOut: amountOut,
+			AmountYIn:  amountIn,
 			AmountYOut: new(big.Int),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
-		AmountXIn:  new(big.Int).Set(amountIn),
+		AmountXIn:  amountIn,
 		AmountXOut: new(big.Int),
 		AmountYIn:  new(big.Int),
-		AmountYOut: new(big.Int).Set(amountOut),
+		AmountYOut: amountOut,
 	}
 }

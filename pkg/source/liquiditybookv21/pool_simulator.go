@@ -174,10 +174,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if !ok {
 			changes = binReserveChanges{
 				BinID:      b.BinID,
-				AmountXIn:  integer.Zero(),
-				AmountXOut: integer.Zero(),
-				AmountYIn:  integer.Zero(),
-				AmountYOut: integer.Zero(),
+				AmountXIn:  new(big.Int),
+				AmountXOut: new(big.Int),
+				AmountYIn:  new(big.Int),
+				AmountYOut: new(big.Int),
 			}
 		}
 		changes.AmountXIn.Add(changes.AmountXIn, b.AmountXIn)
@@ -330,8 +330,8 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 	var (
 		amountsInLeft      = new(big.Int).Set(amountIn)
 		binStep            = p.binStep
-		amountOut          = integer.Zero()
-		swapFee            = integer.Zero()
+		amountOut          = new(big.Int)
+		swapFee            = new(big.Int)
 		binsReserveChanges []binReserveChanges
 	)
 
@@ -356,7 +356,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 				return nil, err
 			}
 
-			if amountsInWithFees.Cmp(bignumber.ZeroBI) > 0 {
+			if amountsInWithFees.Sign() > 0 {
 				amountsInLeft.Sub(amountsInLeft, amountsInWithFees)
 				amountOut.Add(amountOut, amountsOutOfBin)
 				swapFee.Add(swapFee, totalFees)
@@ -368,7 +368,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 				if err != nil {
 					return nil, err
 				}
-				amountsInWithFees = new(big.Int).Sub(amountsInWithFees, pFee)
+				amountsInWithFees.Sub(amountsInWithFees, pFee)
 				newBinReserveChanges := newBinReserveChanges(
 					id, !swapForY, amountsInWithFees, amountsOutOfBin,
 				)

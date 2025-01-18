@@ -3,23 +3,25 @@ package liquiditybookv21
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func getPriceFromID(id uint32, binStep uint16) (*big.Int, error) {
-	base := getBase(binStep)
-	exponent := getExponent(id)
-	return pow(base, exponent)
+	var base, exponent big.Int
+	getBase(binStep, &base)
+	getExponent(id, &exponent)
+	return pow(&base, &exponent)
 }
 
-func getBase(binStep uint16) *big.Int {
+func getBase(binStep uint16, base *big.Int) *big.Int {
 	u := new(big.Int).Lsh(big.NewInt(int64(binStep)), scaleOffset)
-	return new(big.Int).Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
+	base.Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
+	return base
 }
 
-func getExponent(id uint32) *big.Int {
-	return new(big.Int).Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
+func getExponent(id uint32, exponent *big.Int) *big.Int {
+	exponent.Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
+	return exponent
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
@@ -91,7 +93,7 @@ func shiftDivRoundUp(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, 
 	// mulmod(x, y, m): (x * y) % m with arbitrary precision arithmetic, 0 if m == 0
 
 	if denominator.Sign() == 0 {
-		return integer.Zero(), nil
+		return new(big.Int), nil
 	}
 	v := new(big.Int).Mod(
 		new(big.Int).Mul(x, new(big.Int).Lsh(bignumber.One, uint(offset))),
@@ -194,7 +196,8 @@ func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L67
 func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
-	prod0, prod1 := getMulProds(x, y)
+	prod0, prod1 := new(big.Int), new(big.Int)
+	getMulProds(x, y, prod0, prod1)
 	result := new(big.Int)
 	if prod0.Sign() != 0 {
 		result.Rsh(prod0, uint(offset))
@@ -213,10 +216,10 @@ func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L152
-func getMulProds(x *big.Int, y *big.Int) (*big.Int, *big.Int) {
+func getMulProds(x *big.Int, y *big.Int, prod0, prod1 *big.Int) (*big.Int, *big.Int) {
 	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), bignumber.MAX_UINT_256)
-	prod0 := new(big.Int).Mul(x, y)
-	prod1 := new(big.Int).Sub(
+	prod0.Mul(x, y)
+	prod1.Sub(
 		new(big.Int).Sub(mm, prod0),
 		lt(mm, prod0),
 	)
@@ -282,7 +285,7 @@ func verifyFee(fee *big.Int) error {
 
 func scalarMulDivBasisPointRoundDown(totalFee *big.Int, multiplier *big.Int) (*big.Int, error) {
 	if multiplier.Sign() == 0 {
-		return integer.Zero(), nil
+		return new(big.Int), nil
 	}
 
 	if multiplier.Cmp(big.NewInt(basisPointMax)) > 0 {

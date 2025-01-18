@@ -25,7 +25,7 @@ func initPoolSimulator() *PoolSimulator {
 // Before optimized
 // BenchmarkOptimizePoolSimulator-10    	    4346	    284726 ns/op	  336061 B/op	    8675 allocs/op
 // After optimized
-// BenchmarkOptimizePoolSimulator-10    	  362793	      3157 ns/op	    2531 B/op	      65 allocs/op
+// BenchmarkOptimizePoolSimulator-10    	    7730	    153730 ns/op	  111986 B/op	    2734 allocs/op
 func BenchmarkOptimizePoolSimulator(b *testing.B) {
 	simulator := initPoolSimulator()
 	params := pool.CalcAmountOutParams{
@@ -56,7 +56,7 @@ func TestOptimizeGetPriceFromIDWorkCorrectly(t *testing.T) {
 // Before optimized (getPriceFromIDBackup)
 // BenchmarkOptimizeGetPriceFromID-10    	  366819	      3094 ns/op	    3987 B/op	     105 allocs/op
 // After optimized
-// BenchmarkOptimizeGetPriceFromID-10    	  809637	      1594 ns/op	     728 B/op	      20 allocs/op
+// BenchmarkOptimizeGetPriceFromID-10    	  827961	      1424 ns/op	     664 B/op	      18 allocs/op
 func BenchmarkOptimizeGetPriceFromID(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, err := getPriceFromID(8349152, 5)
