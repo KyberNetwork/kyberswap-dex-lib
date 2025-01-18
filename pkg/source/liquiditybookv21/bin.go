@@ -13,16 +13,14 @@ type Bin struct {
 }
 
 func (b *Bin) isEmptyForSwap(swapForX bool) bool {
-	zero := integer.Zero()
 	if swapForX {
-		return b.ReserveX.Cmp(zero) == 0
+		return b.ReserveX.Sign() == 0
 	}
-	return b.ReserveY.Cmp(zero) == 0
+	return b.ReserveY.Sign() == 0
 }
 
 func (b *Bin) isEmpty() bool {
-	zero := integer.Zero()
-	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
+	return b.ReserveX.Sign() == 0 && b.ReserveY.Sign() == 0
 }
 
 func (b *Bin) getAmounts(

@@ -246,7 +246,7 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapIn
 			return nil, err
 		}
 		binReserves := p.bins[binArrIdx].decode(!swapForY)
-		if binReserves.Cmp(integer.Zero()) > 0 {
+		if binReserves.Sign() > 0 {
 			price, err := getPriceFromID(id, binStep)
 			if err != nil {
 				return nil, err
@@ -290,7 +290,7 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapIn
 			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
 		}
 
-		if amountsOutLeft.Cmp(integer.Zero()) == 0 {
+		if amountsOutLeft.Sign() == 0 {
 			break
 		}
 
@@ -377,7 +377,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 
 		}
 
-		if amountsInLeft.Cmp(integer.Zero()) == 0 {
+		if amountsInLeft.Sign() == 0 {
 			break
 		}
 
