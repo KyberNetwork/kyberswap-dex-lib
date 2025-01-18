@@ -3,6 +3,8 @@ package liquiditybookv21
 import (
 	"math"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/LBPair.sol#L60
@@ -84,7 +86,7 @@ func (p *parameters) getBaseFee(binStep uint16) *big.Int {
 func (p *parameters) getVariableFee(binStep uint16) *big.Int {
 	variableFeeControl := p.StaticFeeParams.VariableFeeControl
 	if variableFeeControl == 0 {
-		return big.NewInt(0)
+		return bignumber.ZeroBI
 	}
 
 	volAcc := p.VariableFeeParams.VolatilityAccumulator

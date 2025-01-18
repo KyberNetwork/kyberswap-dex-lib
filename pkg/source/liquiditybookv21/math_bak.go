@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func getPriceFromIDBackup(id uint32, binStep uint16) (*big.Int, error) {
@@ -36,8 +37,7 @@ func powBackup(x *big.Int, y *big.Int) (*big.Int, error) {
 		squared := x
 		v, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffff", 16)
 		if x.Cmp(v) > 0 {
-			not0 := maxUint256
-			squared = new(big.Int).Div(not0, squared)
+			squared = new(big.Int).Div(bignumber.MAX_UINT_256, squared)
 
 			invert = !invert
 		}

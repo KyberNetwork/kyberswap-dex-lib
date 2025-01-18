@@ -90,7 +90,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		},
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: integer.Zero(),
+			Amount: bignumber.ZeroBI,
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
@@ -127,7 +127,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		},
 		RemainingTokenAmountOut: &pool.TokenAmount{
 			Token:  tokenAmountOut.Token,
-			Amount: integer.Zero(),
+			Amount: bignumber.ZeroBI,
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -153,10 +153,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// update total reserves
 	for idx, reserve := range p.Info.Reserves {
 		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountIn.Token) {
-			p.Info.Reserves[idx] = new(big.Int).Add(reserve, params.TokenAmountIn.Amount)
+			p.Info.Reserves[idx].Add(reserve, params.TokenAmountIn.Amount)
 		}
 		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountOut.Token) {
-			p.Info.Reserves[idx] = new(big.Int).Sub(reserve, params.TokenAmountOut.Amount)
+			p.Info.Reserves[idx].Sub(reserve, params.TokenAmountOut.Amount)
 		}
 	}
 
@@ -180,10 +180,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 				AmountYOut: integer.Zero(),
 			}
 		}
-		changes.AmountXIn = new(big.Int).Add(changes.AmountXIn, b.AmountXIn)
-		changes.AmountXOut = new(big.Int).Add(changes.AmountXOut, b.AmountXOut)
-		changes.AmountYIn = new(big.Int).Add(changes.AmountYIn, b.AmountYIn)
-		changes.AmountYOut = new(big.Int).Add(changes.AmountYOut, b.AmountYOut)
+		changes.AmountXIn.Add(changes.AmountXIn, b.AmountXIn)
+		changes.AmountXOut.Add(changes.AmountXOut, b.AmountXOut)
+		changes.AmountYIn.Add(changes.AmountYIn, b.AmountYIn)
+		changes.AmountYOut.Add(changes.AmountYOut, b.AmountYOut)
 
 		totalBinReserveChanges[b.BinID] = changes
 	}
@@ -197,8 +197,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 		changes, ok := totalBinReserveChanges[newBin.ID]
 		if ok {
-			newBin.ReserveX = new(big.Int).Add(new(big.Int).Sub(newBin.ReserveX, changes.AmountXOut), changes.AmountXIn)
-			newBin.ReserveY = new(big.Int).Add(new(big.Int).Sub(newBin.ReserveY, changes.AmountYOut), changes.AmountYIn)
+			newBin.ReserveX.Add(new(big.Int).Sub(newBin.ReserveX, changes.AmountXOut), changes.AmountXIn)
+			newBin.ReserveY.Add(new(big.Int).Sub(newBin.ReserveY, changes.AmountYOut), changes.AmountYIn)
 		}
 
 		if !newBin.isEmpty() {
@@ -280,9 +280,9 @@ func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapIn
 			}
 
 			amountIn.Add(amountIn, new(big.Int).Add(amountInWithoutFee, feeAmount))
-			amountsOutLeft = new(big.Int).Sub(amountsOutLeft, amountOutOfBin)
+			amountsOutLeft.Sub(amountsOutLeft, amountOutOfBin)
 
-			swapFee = new(big.Int).Add(swapFee, feeAmount)
+			swapFee.Add(swapFee, feeAmount)
 
 			newBinReserveChanges := newBinReserveChanges(
 				id, !swapForY, amountIn, amountOutOfBin,
@@ -357,9 +357,9 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 			}
 
 			if amountsInWithFees.Cmp(bignumber.ZeroBI) > 0 {
-				amountsInLeft = new(big.Int).Sub(amountsInLeft, amountsInWithFees)
-				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
-				swapFee = new(big.Int).Add(swapFee, totalFees)
+				amountsInLeft.Sub(amountsInLeft, amountsInWithFees)
+				amountOut.Add(amountOut, amountsOutOfBin)
+				swapFee.Add(swapFee, totalFees)
 
 				pFee, err := scalarMulDivBasisPointRoundDown(
 					totalFees,

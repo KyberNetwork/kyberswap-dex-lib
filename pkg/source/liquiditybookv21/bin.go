@@ -2,8 +2,6 @@ package liquiditybookv21
 
 import (
 	"math/big"
-
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
 type Bin struct {
@@ -54,9 +52,9 @@ func (b *Bin) getAmounts(
 		return nil, nil, nil, err
 	}
 
-	maxAmountIn = new(big.Int).Add(maxAmountIn, maxFee)
+	maxAmountIn.Add(maxAmountIn, maxFee)
 
-	amountIn128 := amountsInLeft
+	amountIn128 := new(big.Int).Set(amountsInLeft)
 	var fee128, amountOut128 *big.Int
 
 	if amountIn128.Cmp(maxAmountIn) >= 0 {
@@ -136,17 +134,17 @@ func newBinReserveChanges(
 	if swapForX {
 		return binReserveChanges{
 			BinID:      binID,
-			AmountXIn:  integer.Zero(),
-			AmountXOut: amountOut,
-			AmountYIn:  amountIn,
-			AmountYOut: integer.Zero(),
+			AmountXIn:  new(big.Int),
+			AmountXOut: new(big.Int).Set(amountOut), // avoid leaking
+			AmountYIn:  new(big.Int).Set(amountIn),
+			AmountYOut: new(big.Int),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
-		AmountXIn:  amountIn,
-		AmountXOut: integer.Zero(),
-		AmountYIn:  integer.Zero(),
-		AmountYOut: amountOut,
+		AmountXIn:  new(big.Int).Set(amountIn),
+		AmountXOut: new(big.Int),
+		AmountYIn:  new(big.Int),
+		AmountYOut: new(big.Int).Set(amountOut),
 	}
 }
