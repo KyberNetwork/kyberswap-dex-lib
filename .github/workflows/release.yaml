@@ -9,6 +9,10 @@ on:
         description: 'Release version'
         type: string
         required: true
+      create_tag:
+        description: 'Create tag'
+        type: boolean
+        default: true
 
 jobs:
   release:
@@ -17,6 +21,7 @@ jobs:
       service: ${{ github.event.repository.name }}
       version: '${{ inputs.version }}'
       file: docker/Dockerfile
+      create_tag: ${{ inputs.create_tag }}
     secrets: inherit
   release_liqIndexer:
     uses: KyberNetwork/service-framework/.github/workflows/release.yaml@main
