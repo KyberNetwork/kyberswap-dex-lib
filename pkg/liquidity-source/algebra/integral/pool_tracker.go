@@ -328,19 +328,19 @@ func (d *PoolTracker) getVolatilityOracleData(ctx context.Context, pluginAddress
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    algebraBasePluginV1ABI,
+		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginIsInitializedMethod,
 		Params: nil,
 	}, []interface{}{&result.IsInitialized})
 	req.AddCall(&ethrpc.Call{
-		ABI:    algebraBasePluginV1ABI,
+		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginLastTimepointTimestampMethod,
 		Params: nil,
 	}, []interface{}{&result.LastTimepointTimestamp})
 	req.AddCall(&ethrpc.Call{
-		ABI:    algebraBasePluginV1ABI,
+		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginTimepointIndexMethod,
 		Params: nil,
@@ -356,7 +356,7 @@ func (d *PoolTracker) getVolatilityOracleData(ctx context.Context, pluginAddress
 
 func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string,
 	blockNumber *big.Int) (SlidingFeeConfig, error) {
-	var result SlidingFeeConfig
+	var result SlidingFeeConfigRPC
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
@@ -364,7 +364,7 @@ func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress strin
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    algebraBasePluginV1ABI,
+		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeFactorsMethod,
 		Params: nil,
@@ -375,7 +375,10 @@ func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress strin
 		return SlidingFeeConfig{}, err
 	}
 
-	return result, nil
+	return SlidingFeeConfig{
+		ZeroToOneFeeFactor: uint256.MustFromBig(result.OneToZeroFeeFactor),
+		OneToZeroFeeFactor: uint256.MustFromBig(result.ZeroToOneFeeFactor),
+	}, nil
 }
 
 func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress string,
@@ -388,7 +391,7 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 	}
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    algebraBasePluginV1ABI,
+		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: dynamicFeeManagerPluginFeeConfigMethod,
 		Params: nil,
@@ -441,7 +444,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 		for i := uint16(0); i < timepointPageSize; i += 1 {
 			tpIdx := (int64(i) + int64(begin)) % UINT16_MODULO
 			req.AddCall(&ethrpc.Call{
-				ABI:    algebraBasePluginV1ABI,
+				ABI:    algebraBasePluginV2ABI,
 				Target: pluginAddress,
 				Method: votalityOraclePluginTimepointsMethod,
 				Params: []interface{}{big.NewInt(tpIdx)},
@@ -474,7 +477,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 			req.Calls = req.Calls[:0]
 			req.AddCall(
 				&ethrpc.Call{
-					ABI:    algebraBasePluginV1ABI,
+					ABI:    algebraBasePluginV2ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
 					Params: []interface{}{big.NewInt(0)},
@@ -482,7 +485,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 				[]interface{}{&tp0},
 			).AddCall(
 				&ethrpc.Call{
-					ABI:    algebraBasePluginV1ABI,
+					ABI:    algebraBasePluginV2ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
 					Params: []interface{}{big.NewInt(int64(currentIndexNext))},
@@ -490,7 +493,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 				[]interface{}{&tpCurNext},
 			).AddCall(
 				&ethrpc.Call{
-					ABI:    algebraBasePluginV1ABI,
+					ABI:    algebraBasePluginV2ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
 					Params: []interface{}{big.NewInt(int64(currentIndexNextNext))},
@@ -498,7 +501,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 				[]interface{}{&tpCurNextNext},
 			).AddCall(
 				&ethrpc.Call{
-					ABI:    algebraBasePluginV1ABI,
+					ABI:    algebraBasePluginV2ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
 					Params: []interface{}{big.NewInt(int64(enoughAtIdx))},
@@ -506,7 +509,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blockNumber *big.In
 				[]interface{}{&tpLowest},
 			).AddCall(
 				&ethrpc.Call{
-					ABI:    algebraBasePluginV1ABI,
+					ABI:    algebraBasePluginV2ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
 					Params: []interface{}{big.NewInt(int64(currentIndexPrev))},

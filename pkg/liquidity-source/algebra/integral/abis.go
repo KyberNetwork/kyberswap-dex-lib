@@ -9,7 +9,7 @@ import (
 var (
 	erc20ABI               abi.ABI
 	algebraIntegralPoolABI abi.ABI
-	algebraBasePluginV1ABI abi.ABI
+	algebraBasePluginV2ABI abi.ABI
 	ticklensABI            abi.ABI
 )
 
@@ -20,7 +20,7 @@ func init() {
 	}{
 		{&erc20ABI, erc20Json},
 		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
-		{&algebraBasePluginV1ABI, algebraBasePluginV1Json},
+		{&algebraBasePluginV2ABI, algebraBasePluginV2Json},
 		{&ticklensABI, ticklenJson},
 	}
 
