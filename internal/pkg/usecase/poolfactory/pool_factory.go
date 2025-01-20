@@ -41,6 +41,7 @@ import (
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
+	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
@@ -754,6 +755,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVirtualFun(entityPool)
 	case pooltypes.PoolTypes.BeetsSS:
 		return f.newBeetsSS(entityPool)
+	case pooltypes.PoolTypes.EtherFieBTC:
+		return f.newEtherFieBTC(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2619,6 +2622,19 @@ func (f *PoolFactory) newBeetsSS(entityPool entity.Pool) (*beetsss.PoolSimulator
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBeetsSS] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newEtherFieBTC(entityPool entity.Pool) (*etherfiebtc.PoolSimulator, error) {
+	corePool, err := etherfiebtc.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newEtherFieBTC] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type)
 	}

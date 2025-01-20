@@ -98,6 +98,7 @@ common:
     - "clipper"
     - "lo1inch"
     - "virtual-fun"
+    - "etherfi-ebtc"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -251,6 +252,7 @@ encoder:
     executeClipperRfq: 58
     executeEtherVista: 60
     executeVirtualBC: 61
+    executeEtherFieBtc: 63
 useCase:
   getRoute:
     chainId: *chainId

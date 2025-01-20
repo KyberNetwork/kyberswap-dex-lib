@@ -118,6 +118,7 @@ common:
     - "maverick-v2"
     - "mx-trading"
     - "lo1inch"
+    - "etherfi-ebtc"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -272,6 +273,7 @@ encoder:
     executeDexalot: 57
     executeClipperRfq: 58
     executeKtx: 59
+    executeEtherFieBtc: 63
 useCase:
   getRoute:
     chainId: *chainId
