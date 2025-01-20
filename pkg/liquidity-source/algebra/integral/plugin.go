@@ -473,9 +473,10 @@ func getOutputTokenDelta10(to, from, liquidity *uint256.Int) (*uint256.Int, erro
 	return getToken0Delta(from, to, liquidity, false)
 }
 
+// https://github.com/cryptoalgebra/Algebra/blob/357ae6b/src/core/contracts/libraries/TokenDeltaMath.sol#L20
 func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
-	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, ErrInvalidPriceUpperLower
+	if priceLower.Sign() < 0 {
+		return nil, ErrInvalidPriceLower
 	}
 	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
 	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
@@ -497,6 +498,7 @@ func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 	return mulDivResult.Div(mulDivResult, priceLower), nil
 }
 
+// https://github.com/cryptoalgebra/Algebra/blob/357ae6b/src/core/contracts/libraries/TokenDeltaMath.sol#L39
 func getToken1Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if priceUpper.Cmp(priceLower) < 0 {
 		return nil, ErrInvalidPriceUpperLower
