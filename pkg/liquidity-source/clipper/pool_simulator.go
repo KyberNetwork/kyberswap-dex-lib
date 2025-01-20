@@ -132,7 +132,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	pX := assetIn.PriceInUSD
 
-	if inX*pX < 0.01 {
+	if inX*pX < 0.1 {
 		return nil, ErrMinAmountInNotEnough
 	}
 
