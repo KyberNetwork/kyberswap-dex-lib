@@ -2,12 +2,10 @@ package etherfiebtc
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -36,12 +34,9 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	pools, _, _ := ts.updater.GetNewPools(context.Background(), nil)
 	require.NotNil(ts.T(), pools)
-
-	str, _ := json.Marshal(pools)
-	fmt.Println(string(str))
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	// t.Skip("Skipping testing in CI environment")
+	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }
