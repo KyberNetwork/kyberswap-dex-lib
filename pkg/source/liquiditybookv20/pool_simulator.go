@@ -99,6 +99,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
 	var (
 		id                 = p.activeBinID
+		amountInLeft       = new(big.Int).Set(amountIn)
 		amountOut          = new(big.Int)
 		swapFee            = new(big.Int)
 		binsReserveChanges []binReserveChanges
@@ -115,14 +116,14 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 		}
 		bin := p.bins[binArrIdx]
 		if !bin.isEmptyForSwap(!swapForY) {
-			amountInToBin, amountOutOfBin, totalFee, _, err := bin.getAmounts(&fp, id, swapForY, amountIn)
+			amountInToBin, amountOutOfBin, totalFee, _, err := bin.getAmounts(&fp, id, swapForY, amountInLeft)
 			if err != nil {
 				return nil, err
 			}
 
 			swapFee.Add(swapFee, totalFee)
 
-			amountIn.Sub(amountIn, new(big.Int).Add(amountInToBin, totalFee))
+			amountInLeft.Sub(amountInLeft, new(big.Int).Add(amountInToBin, totalFee))
 			amountOut.Add(amountOut, amountOutOfBin)
 
 			newBinReserveChanges := newBinReserveChanges(
@@ -131,7 +132,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
 		}
 
-		if amountIn.Sign() == 0 {
+		if amountInLeft.Sign() == 0 {
 			break
 		}
 
