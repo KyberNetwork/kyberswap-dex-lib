@@ -208,6 +208,7 @@ var (
 	ExchangeRetro         Exchange = "retro"
 	ExchangeThena         Exchange = "thena"
 	ExchangeThenaFusion   Exchange = "thena-fusion"
+	ExchangeThenaFusionV3 Exchange = "thena-fusion-v3"
 	ExchangePearlV2       Exchange = "pearl-v2"
 	ExchangeBaso          Exchange = "baso"
 	ExchangeLyve          Exchange = "lyve"
@@ -575,6 +576,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRetro:                      {},
 	ExchangeThena:                      {},
 	ExchangeThenaFusion:                {},
+	ExchangeThenaFusionV3:              {},
 	ExchangePearlV2:                    {},
 	ExchangeBaso:                       {},
 	ExchangeLyve:                       {},
