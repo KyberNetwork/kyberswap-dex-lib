@@ -8,9 +8,6 @@ var tellerABIData []byte
 //go:embed abis/AccountantWithRateProviders.json
 var accountantABIData []byte
 
-//go:embed abis/BoringVault.json
-var eBTCABIData []byte
-
 //go:embed pools/ethereum.json
 var ethereumPoolData []byte
 

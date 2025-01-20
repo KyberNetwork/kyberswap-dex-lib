@@ -38,6 +38,7 @@ var entityPoolData = entity.Pool{
 
 func TestNewPoolSimulator(t *testing.T) {
 	entityPoolDataBytes, err := json.Marshal(entityPoolData)
+	assert.NoError(t, err)
 	assert.Equal(t, entityPoolStrData, string(entityPoolDataBytes))
 
 	p, err := NewPoolSimulator(entity.Pool{

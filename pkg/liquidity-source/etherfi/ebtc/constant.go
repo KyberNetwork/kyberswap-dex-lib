@@ -1,8 +1,6 @@
 package etherfiebtc
 
 import (
-	"github.com/holiman/uint256"
-
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -13,8 +11,7 @@ const (
 )
 
 var (
-	oneShare        = big256.TenPowInt(vaultDecimals)
-	maxSharePremium = uint256.NewInt(1000)
+	oneShare = big256.TenPowInt(vaultDecimals)
 
 	defaultReserves = "10000000000"
 
