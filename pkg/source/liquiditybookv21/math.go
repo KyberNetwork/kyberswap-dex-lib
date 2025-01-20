@@ -15,13 +15,11 @@ func getPriceFromID(id uint32, binStep uint16) (*big.Int, error) {
 
 func getBase(binStep uint16, base *big.Int) *big.Int {
 	u := new(big.Int).Lsh(big.NewInt(int64(binStep)), scaleOffset)
-	base.Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
-	return base
+	return base.Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
 }
 
 func getExponent(id uint32, exponent *big.Int) *big.Int {
-	exponent.Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
-	return exponent
+	return exponent.Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
@@ -30,8 +28,8 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		invert  bool
 		absY    big.Int
 		result  big.Int
-		tmp     big.Int
 		squared big.Int
+		tmp     big.Int
 		and     big.Int
 	)
 
@@ -50,7 +48,6 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 
 	if absY.Cmp(&u) < 0 {
 		result.Set(scale)
-
 		squared.Set(x)
 
 		if x.Cmp(&v) > 0 {
@@ -59,8 +56,7 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		}
 
 		for i := 0x1; i <= 0x80000; i <<= 1 {
-			tmp.SetInt64(int64(i))
-			and.And(&absY, &tmp)
+			and.And(&absY, big.NewInt(int64(i)))
 			if and.Sign() != 0 {
 				result.Rsh(tmp.Mul(&result, &squared), 128)
 			}

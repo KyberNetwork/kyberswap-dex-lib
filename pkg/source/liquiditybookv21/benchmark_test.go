@@ -56,7 +56,7 @@ func TestOptimizeGetPriceFromIDWorkCorrectly(t *testing.T) {
 // Before optimized (getPriceFromIDBackup)
 // BenchmarkOptimizeGetPriceFromID-10    	  366819	      3094 ns/op	    3987 B/op	     105 allocs/op
 // After optimized
-// BenchmarkOptimizeGetPriceFromID-10    	  827961	      1424 ns/op	     664 B/op	      18 allocs/op
+// BenchmarkOptimizeGetPriceFromID-10    	  876746	      1362 ns/op	     656 B/op	      17 allocs/op
 func BenchmarkOptimizeGetPriceFromID(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, err := getPriceFromID(8349152, 5)
