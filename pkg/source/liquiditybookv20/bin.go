@@ -2,8 +2,6 @@ package liquiditybookv20
 
 import (
 	"math/big"
-
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
 type Bin struct {
@@ -13,16 +11,14 @@ type Bin struct {
 }
 
 func (b *Bin) isEmptyForSwap(swapForX bool) bool {
-	zero := integer.Zero()
 	if swapForX {
-		return b.ReserveX.Cmp(zero) == 0
+		return b.ReserveX.Sign() == 0
 	}
-	return b.ReserveY.Cmp(zero) == 0
+	return b.ReserveY.Sign() == 0
 }
 
 func (b *Bin) isEmpty() bool {
-	zero := integer.Zero()
-	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
+	return b.ReserveX.Sign() == 0 && b.ReserveY.Sign() == 0
 }
 
 func (b *Bin) getReserveOut(swapForX bool) *big.Int {
@@ -110,17 +106,17 @@ func newBinReserveChanges(
 	if swapForX {
 		return binReserveChanges{
 			BinID:      binID,
-			AmountXIn:  integer.Zero(),
+			AmountXIn:  new(big.Int),
 			AmountXOut: amountOut,
 			AmountYIn:  amountIn,
-			AmountYOut: integer.Zero(),
+			AmountYOut: new(big.Int),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
 		AmountXIn:  amountIn,
-		AmountXOut: integer.Zero(),
-		AmountYIn:  integer.Zero(),
+		AmountXOut: new(big.Int),
+		AmountYIn:  new(big.Int),
 		AmountYOut: amountOut,
 	}
 }
