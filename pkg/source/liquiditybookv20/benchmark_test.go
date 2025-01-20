@@ -23,6 +23,7 @@ func initPoolSimulator() *PoolSimulator {
 }
 
 // Before optimized
+// BenchmarkOptimizePoolSimulator-10    	   12337	    100675 ns/op	  109411 B/op	    2828 allocs/op
 // After optimized
 // BenchmarkOptimizePoolSimulator-10    	  328146	      3494 ns/op	    2902 B/op	      73 allocs/op
 func BenchmarkOptimizePoolSimulator(b *testing.B) {
