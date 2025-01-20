@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 var ErrInvalidWeight = errors.New("invalid weight")
@@ -27,14 +28,18 @@ type PoolsListUpdater struct {
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(
+	config *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolTypeWeighted},
-	})
+	}, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,

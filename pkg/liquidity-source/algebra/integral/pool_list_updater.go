@@ -10,7 +10,6 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -18,18 +17,13 @@ import (
 
 type PoolsListUpdater struct {
 	config        *Config
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolsListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
@@ -39,7 +33,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, lastPoolIds []string, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.AllowSubgraphError
 
-	req := graphql.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, lastPoolIds, first, skip))
+	req := graphqlpkg.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, lastPoolIds, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`

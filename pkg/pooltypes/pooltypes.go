@@ -6,6 +6,8 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
+	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
@@ -58,6 +60,7 @@ import (
 	solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
+	swapxv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swap-x-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
@@ -212,6 +215,8 @@ type Types struct {
 	BalancerV2Weighted             string
 	BalancerV2Stable               string
 	BalancerV2ComposableStable     string
+	BalancerV3Stable               string
+	BalancerV3Weighted             string
 	VelocoreV2CPMM                 string
 	VelocoreV2WombatStable         string
 	Fulcrom                        string
@@ -275,6 +280,7 @@ type Types struct {
 	LO1inch                        string
 	VirtualFun                     string
 	BeetsSS                        string
+	SwapXV2                        string
 }
 
 var (
@@ -357,6 +363,8 @@ var (
 		BalancerV2Weighted:             balancerv2weighted.DexType,
 		BalancerV2Stable:               balancerv2stable.DexType,
 		BalancerV2ComposableStable:     balancerv2composablestable.DexType,
+		BalancerV3Stable:               balancerv3stable.DexType,
+		BalancerV3Weighted:             balancerv3weighted.DexType,
 		VelocoreV2CPMM:                 velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:         velocorev2wombatstable.DexType,
 		Fulcrom:                        fulcrom.DexTypeFulcrom,
@@ -420,5 +428,6 @@ var (
 		LO1inch:                        lo1inch.DexType,
 		VirtualFun:                     virtualfun.DexType,
 		BeetsSS:                        beetsss.DexType,
+		SwapXV2:                        swapxv2.DexType,
 	}
 )

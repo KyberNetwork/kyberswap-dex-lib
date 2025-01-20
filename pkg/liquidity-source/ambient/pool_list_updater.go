@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -20,12 +19,13 @@ import (
 type PoolListUpdater struct {
 	cfg           Config
 	poolDatastore IPoolDatastore
-	subgraph      *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg Config,
 	poolDatastore IPoolDatastore,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolListUpdater, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -33,11 +33,7 @@ func NewPoolsListUpdater(
 	return &PoolListUpdater{
 		cfg:           cfg,
 		poolDatastore: poolDatastore,
-		subgraph: graphqlpkg.New(graphqlpkg.Config{
-			Url:     cfg.SubgraphURL,
-			Header:  cfg.SubgraphHeaders,
-			Timeout: cfg.SubgraphRequestTimeout.Duration,
-		}),
+		graphqlClient: graphqlClient,
 	}, nil
 }
 
@@ -118,7 +114,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		limit = u.cfg.SubgraphLimit
 	}
 	var (
-		req = graphql.NewRequest(fmt.Sprintf(`{
+		req = graphqlpkg.NewRequest(fmt.Sprintf(`{
 	pools(
 		where: {
 			timeCreate_gt: %d,
@@ -138,7 +134,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		resp SubgraphPoolsResponse
 	)
 
-	if err := u.subgraph.Run(ctx, req, &resp); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 

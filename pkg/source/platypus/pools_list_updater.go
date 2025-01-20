@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -20,21 +19,19 @@ import (
 
 type PoolsListUpdater struct {
 	config        *Config
-	graphqlClient *graphql.Client
 	ethClient     *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
-func NewPoolsListUpdater(cfg *Config, ethClient *ethrpc.Client) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
+func NewPoolsListUpdater(
+	cfg *Config,
+	ethClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:        cfg,
-		graphqlClient: graphqlClient,
 		ethClient:     ethClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
@@ -99,7 +96,7 @@ func (p *PoolsListUpdater) getPoolAddresses(
 	ctx context.Context,
 	lastUpdate string,
 ) ([]SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools (
 			where: {
 				lastUpdate_gte: "%s"

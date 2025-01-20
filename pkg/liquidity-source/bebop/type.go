@@ -1,5 +1,7 @@
 package bebop
 
+import "github.com/goccy/go-json"
+
 type QueryParams = string
 
 const (
@@ -16,6 +18,13 @@ const (
 	ParamsSellTokensRatios QueryParams = "sell_tokens_ratios"
 	ParamsGasLess          QueryParams = "gasless"
 	ParamsSourceAuth       QueryParams = "source-auth"
+)
+
+const (
+	OnchainOrderTypeSingleOrder           = "SingleOrder"
+	OnchainOrderTypeAggregateOrder        = "AggregateOrder"
+	OnchainOrderTypeOrderWithPermit2      = "OrderWithPermit2"
+	OnchainOrderTypeOrderWithBatchPermit2 = "OrderWithBatchPermit2"
 )
 
 type QuoteParams struct {
@@ -93,7 +102,16 @@ type QuoteSingleOrderResult struct {
 		Gas      int    `json:"gas"`
 		GasPrice int64  `json:"gasPrice"`
 	} `json:"tx"`
-	ToSign struct { // the toSign part uses snake_case
+	ToSign            json.RawMessage `json:"toSign"`
+	OnchainOrderType  string          `json:"onchainOrderType"`
+	PartialFillOffset int             `json:"partialFillOffset"`
+}
+
+// ToSign struct will depend on the OnchainOrderType field of the QuoteSingleOrderResult.
+// Although, bebop support get quote for one to many and many to one, but we will only use one to one for now.
+// So, we will only define the ToSign struct for one to one.
+type (
+	SingleOrderToSign struct {
 		PartnerID      int    `json:"partner_id"`
 		Expiry         int    `json:"expiry"`
 		TakerAddress   string `json:"taker_address"`
@@ -105,7 +123,67 @@ type QuoteSingleOrderResult struct {
 		MakerAmount    string `json:"maker_amount"`
 		Receiver       string `json:"receiver"`
 		PackedCommands string `json:"packed_commands"`
-	} `json:"toSign"`
-	OnchainOrderType  string `json:"onchainOrderType"`
-	PartialFillOffset int    `json:"partialFillOffset"`
-}
+	}
+
+	AggregateOrderToSign struct {
+		PartnerID      int        `json:"partner_id"`
+		Expiry         int        `json:"expiry"`
+		TakerAddress   string     `json:"taker_address"`
+		MakerAddresses []string   `json:"maker_addresses"`
+		MakerNonces    []string   `json:"maker_nonces"`
+		TakerTokens    [][]string `json:"taker_tokens"`
+		MakerTokens    [][]string `json:"maker_tokens"`
+		TakerAmounts   [][]string `json:"taker_amounts"`
+		MakerAmounts   [][]string `json:"maker_amounts"`
+		Receiver       string     `json:"receiver"`
+		Commands       string     `json:"commands"`
+	}
+
+	OrderWithPermit2ToSign struct {
+		Permitted struct {
+			Token  string `json:"token"`
+			Amount string `json:"amount"`
+		} `json:"permitted"`
+		Spender  string `json:"spender"`
+		Nonce    string `json:"nonce"`
+		Deadline int64  `json:"deadline"`
+		Witness  struct {
+			PartnerID      int    `json:"partner_id"`
+			Expiry         int    `json:"expiry"`
+			TakerAddress   string `json:"taker_address"`
+			MakerAddress   string `json:"maker_address"`
+			MakerNonce     string `json:"maker_nonce"`
+			TakerToken     string `json:"taker_token"`
+			MakerToken     string `json:"maker_token"`
+			TakerAmount    string `json:"taker_amount"`
+			MakerAmount    string `json:"maker_amount"`
+			Receiver       string `json:"receiver"`
+			PackedCommands string `json:"packed_commands"`
+			HooksHash      string `json:"hooksHash"`
+		} `json:"witness"`
+	}
+
+	OrderWithBatchPermit2ToSign struct {
+		Permitted []struct {
+			Token  string `json:"token"`
+			Amount string `json:"amount"`
+		} `json:"permitted"`
+		Spender  string `json:"spender"`
+		Nonce    string `json:"nonce"`
+		Deadline int64  `json:"deadline"`
+		Witness  struct {
+			PartnerID      int        `json:"partner_id"`
+			Expiry         int        `json:"expiry"`
+			TakerAddress   string     `json:"taker_address"`
+			MakerAddresses []string   `json:"maker_addresses"`
+			MakerNonces    []string   `json:"maker_nonces"`
+			TakerTokens    [][]string `json:"taker_tokens"`
+			MakerTokens    [][]string `json:"maker_tokens"`
+			TakerAmounts   [][]string `json:"taker_amounts"`
+			MakerAmounts   [][]string `json:"maker_amounts"`
+			Receiver       string     `json:"receiver"`
+			Commands       string     `json:"commands"`
+			HooksHash      string     `json:"hooksHash"`
+		} `json:"witness"`
+	}
+)

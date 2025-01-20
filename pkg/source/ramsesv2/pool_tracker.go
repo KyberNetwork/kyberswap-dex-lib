@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -22,18 +21,14 @@ import (
 type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
 
 	return &PoolTracker{
 		config:        cfg,
@@ -51,7 +46,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var (
 		rpcData   FetchRPCResult
-		poolTicks []TickResp
+		poolTicks []ticklens.TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -173,31 +168,40 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		rpcRequest.SetBlockNumber(&blockNumberBI)
 	}
 
+	if d.config.IsPoolV3 {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    ramsesV3PoolABI,
+			Target: p.Address,
+			Method: methodV3Fee,
+			Params: nil,
+		}, []interface{}{&feeTier})
+	} else {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    ramsesV2PoolABI,
+			Target: p.Address,
+			Method: methodV2CurrentFee,
+			Params: nil,
+		}, []interface{}{&feeTier})
+	}
+
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodGetLiquidity,
+		Method: methodV2GetLiquidity,
 		Params: nil,
 	}, []interface{}{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodGetSlot0,
+		Method: methodV2GetSlot0,
 		Params: nil,
 	}, []interface{}{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    ramsesV2PoolABI,
 		Target: p.Address,
-		Method: methodCurrentFee,
-		Params: nil,
-	}, []interface{}{&feeTier})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    ramsesV2PoolABI,
-		Target: p.Address,
-		Method: methodTickSpacing,
+		Method: methodV2TickSpacing,
 		Params: nil,
 	}, []interface{}{&tickSpacing})
 
@@ -236,16 +240,16 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	}, err
 }
 
-func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
+func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 	lastTickIdx := ""
-	var ticks []TickResp
+	var ticks []ticklens.TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Ticks []TickResp                `json:"ticks"`
+			Ticks []ticklens.TickResp       `json:"ticks"`
 			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 

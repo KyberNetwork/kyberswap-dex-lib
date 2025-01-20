@@ -7,32 +7,26 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolListUpdater struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolListUpdater{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
@@ -107,7 +101,7 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 		}
 		var reserves = []string{zeroString, zeroString}
 
-		tickSpacing := bignumber.NewBig10(p.TickSpacing)
+		tickSpacing, _ := kutils.Atoi[int32](p.TickSpacing)
 		var staticExtra = StaticExtra{
 			TickSpacing: tickSpacing,
 		}
@@ -158,7 +152,7 @@ func (d *PoolListUpdater) querySubgraph(
 	first int,
 	skip int,
 ) ([]*SubgraphPool, error) {
-	req := graphql.NewRequest(fmt.Sprintf(`{
+	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
 		pools(
 			where : {
 				timestamp_gte: %v,

@@ -61,6 +61,7 @@ func (t *PoolTracker) getNewPoolState(
 		DebtReserves:             debtReserves,
 		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
 		DexLimits:                poolReserves.Limits,
+		CenterPrice:              poolReserves.CenterPrice,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -69,7 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	p.SwapFee = float64(poolReserves.Fee.Int64()) / float64(FeePercentPrecision)
+	p.SwapFee = float64(poolReserves.Fee.Int64()) / FeePercentPrecision
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
@@ -96,9 +97,9 @@ func (t *PoolTracker) getPoolReserves(
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolWithReserves, bool, uint64, error) {
-	pool := &PoolWithReserves{}
+	poolReserves := &PoolWithReserves{}
 
-	dexVariables2 := bignumber.ZeroBI
+	dexVariables2 := new(big.Int)
 
 	req := t.ethrpcClient.R().SetContext(ctx)
 	if overrides != nil {
@@ -110,7 +111,7 @@ func (t *PoolTracker) getPoolReserves(
 		Target: t.config.DexReservesResolver,
 		Method: DRRMethodGetPoolReservesAdjusted,
 		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&pool})
+	}, []interface{}{&poolReserves})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    storageReadABI,
@@ -129,9 +130,9 @@ func (t *PoolTracker) getPoolReserves(
 		return nil, false, 0, err
 	}
 
-	isSwapAndArbitragePaused := dexVariables2.Rsh(dexVariables2, 255).Cmp(bignumber.One) == 0
+	isSwapAndArbitragePaused := dexVariables2.Bit(255) == 1
 
-	return pool, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
+	return poolReserves, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
 }
 
 func getMaxReserves(
@@ -147,9 +148,9 @@ func getMaxReserves(
 	// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
 	// or utilization limit. In that case expandTo can not be summed up. Otherwise it's the case of expanding withdrawal
 	// and borrow limits, for which we must sum up the max available reserve amount.
-	maxLimitReserves := new(big.Int).Add(borrowableLimit.ExpandsTo, withdrawableLimit.ExpandsTo)
-	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) == 0 {
-		maxLimitReserves.Set(borrowableLimit.ExpandsTo)
+	maxLimitReserves := new(big.Int).Set(borrowableLimit.ExpandsTo)
+	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) != 0 {
+		maxLimitReserves.Add(maxLimitReserves, withdrawableLimit.ExpandsTo)
 	}
 
 	maxRealReserves := new(big.Int).Add(realColReserves, realDebtReserves)
@@ -159,10 +160,8 @@ func getMaxReserves(
 		maxRealReserves.Div(maxRealReserves, bignumber.TenPowInt(DexAmountsDecimals-int8(decimals)))
 	}
 
-	var maxReserve = maxLimitReserves
 	if maxRealReserves.Cmp(maxLimitReserves) < 0 {
-		maxReserve = maxRealReserves
+		return maxRealReserves
 	}
-
-	return maxReserve
+	return maxLimitReserves
 }

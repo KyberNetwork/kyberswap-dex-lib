@@ -1,6 +1,8 @@
 package lo1inch
 
-import "math/big"
+import (
+	"github.com/holiman/uint256"
+)
 
 type ChainID uint
 
@@ -13,24 +15,22 @@ const (
 )
 
 type Order struct {
-	Signature            string   `json:"signature"`
-	OrderHash            string   `json:"orderHash"`
-	CreateDateTime       string   `json:"createDateTime"`
-	RemainingMakerAmount *big.Int `json:"remainingMakerAmount"`
-	MakerBalance         *big.Int `json:"makerBalance"`
-	MakerAllowance       *big.Int `json:"makerAllowance"`
-	MakerAsset           string   `json:"makerAsset"`
-	TakerAsset           string   `json:"takerAsset"`
-	Salt                 string   `json:"salt"`
-	Receiver             string   `json:"receiver"`
-	MakingAmount         *big.Int `json:"makingAmount"`
-	TakingAmount         *big.Int `json:"takingAmount"`
-	Maker                string   `json:"maker"`
-	Extension            string   `json:"extension"`
-	MakerTraits          string   `json:"makerTraits"`
-	MakerRate            string   `json:"makerRate"`
-	TakerRate            string   `json:"takerRate"`
-	IsMakerContract      bool     `json:"isMakerContract"`
+	Signature            string       `json:"signature"`
+	OrderHash            string       `json:"orderHash"`
+	RemainingMakerAmount *uint256.Int `json:"remainingMakerAmount"`
+	MakerBalance         *uint256.Int `json:"makerBalance"`
+	MakerAllowance       *uint256.Int `json:"makerAllowance"`
+	MakerAsset           string       `json:"makerAsset"`
+	TakerAsset           string       `json:"takerAsset"`
+	Salt                 string       `json:"salt"`
+	Receiver             string       `json:"receiver"`
+	MakingAmount         *uint256.Int `json:"makingAmount"`
+	TakingAmount         *uint256.Int `json:"takingAmount"`
+	Maker                string       `json:"maker"`
+	Extension            string       `json:"extension"`
+	MakerTraits          string       `json:"makerTraits"`
+	IsMakerContract      bool         `json:"isMakerContract"`
+	TakerRate            float64      `json:"-"` // We will not save this field in the datastore, but we need it for filtering the orders
 }
 
 type StaticExtra struct {
@@ -51,34 +51,31 @@ type SwapInfo struct {
 }
 
 type FilledOrderInfo struct {
-	Signature            string   `json:"signature"`
-	OrderHash            string   `json:"orderHash"`
-	CreateDateTime       string   `json:"createDateTime"`
-	RemainingMakerAmount *big.Int `json:"remainingMakerAmount"`
-	MakerBalance         *big.Int `json:"makerBalance"`
-	MakerAllowance       *big.Int `json:"makerAllowance"`
-	MakerAsset           string   `json:"makerAsset"`
-	TakerAsset           string   `json:"takerAsset"`
-	Salt                 string   `json:"salt"`
-	Receiver             string   `json:"receiver"`
-	MakingAmount         *big.Int `json:"makingAmount"`
-	TakingAmount         *big.Int `json:"takingAmount"`
-	Maker                string   `json:"maker"`
-	Extension            string   `json:"extension"`
-	MakerTraits          string   `json:"makerTraits"`
-	MakerRate            string   `json:"makerRate"`
-	TakerRate            string   `json:"takerRate"`
-	IsMakerContract      bool     `json:"isMakerContract"`
+	Signature            string       `json:"signature"`
+	OrderHash            string       `json:"orderHash"`
+	RemainingMakerAmount *uint256.Int `json:"remainingMakerAmount"`
+	MakerBalance         *uint256.Int `json:"makerBalance"`
+	MakerAllowance       *uint256.Int `json:"makerAllowance"`
+	MakerAsset           string       `json:"makerAsset"`
+	TakerAsset           string       `json:"takerAsset"`
+	Salt                 string       `json:"salt"`
+	Receiver             string       `json:"receiver"`
+	MakingAmount         *uint256.Int `json:"makingAmount"`
+	TakingAmount         *uint256.Int `json:"takingAmount"`
+	Maker                string       `json:"maker"`
+	Extension            string       `json:"extension"`
+	MakerTraits          string       `json:"makerTraits"`
+	IsMakerContract      bool         `json:"isMakerContract"`
 
 	// Some extra fields compared to Order
 
 	// FilledMakingAmount is the amount of maker asset that has been filled
 	// But keep in mind that this is just the amount that has been filled after ONE CalcAmountOut call, not the total amount that has been filled in this order
-	FilledMakingAmount *big.Int `json:"filledMakingAmount"`
+	FilledMakingAmount *uint256.Int `json:"filledMakingAmount"`
 
 	// FilledTakingAmount is the amount of taker asset that has been filled
 	// But keep in mind that this is just the amount that has been filled after ONE CalcAmountOut call, not the total amount that has been filled in this order
-	FilledTakingAmount *big.Int `json:"filledTakingAmount"`
+	FilledTakingAmount *uint256.Int `json:"filledTakingAmount"`
 
 	IsBackup bool `json:"isBackup"`
 }

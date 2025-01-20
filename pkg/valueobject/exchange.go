@@ -180,6 +180,11 @@ var (
 	ExchangeGyroscope3CLP              Exchange = "gyroscope-3clp"
 	ExchangeGyroscopeECLP              Exchange = "gyroscope-eclp"
 
+	ExchangeBalancerV3Weighted   Exchange = "balancer-v3-weighted"
+	ExchangeBalancerV3Stable     Exchange = "balancer-v3-stable"
+	ExchangeBeethovenXV3Weighted Exchange = "beethovenx-v3-weighted"
+	ExchangeBeethovenXV3Stable   Exchange = "beethovenx-v3-stable"
+
 	ExchangeSynthSwapPerp Exchange = "synthswap-perp"
 	ExchangeSwapBasedPerp Exchange = "swapbased-perp"
 	ExchangeBMX           Exchange = "bmx"
@@ -191,6 +196,7 @@ var (
 	ExchangeFulcrom       Exchange = "fulcrom"
 	ExchangeVodoo         Exchange = "vodoo"
 	ExchangeZkEraFinance  Exchange = "zkera-finance"
+	ExchangeNavigator     Exchange = "navigator"
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
@@ -217,6 +223,7 @@ var (
 	ExchangeMantisSwap Exchange = "mantisswap"
 
 	ExchangeSyncSwap          Exchange = "syncswap"
+	ExchangeSyncSwapCL        Exchange = "syncswap-cl"
 	ExchangeSyncSwapV2Classic Exchange = "syncswapv2-classic"
 	ExchangeSyncSwapV2Stable  Exchange = "syncswapv2-stable"
 	ExchangeSyncSwapV2Aqua    Exchange = "syncswapv2-aqua"
@@ -538,6 +545,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV2Stable:           {},
 	ExchangeBalancerV2ComposableStable: {},
+	ExchangeBalancerV3Weighted:         {},
+	ExchangeBalancerV3Stable:           {},
+	ExchangeBeethovenXV3Weighted:       {},
+	ExchangeBeethovenXV3Stable:         {},
 	ExchangeBeethovenXWeighted:         {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXComposableStable: {},
@@ -572,12 +583,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                     {},
 	ExchangeMantisSwap:                 {},
 	ExchangeSyncSwap:                   {},
+	ExchangeSyncSwapCL:                 {},
 	ExchangeSyncSwapV2Classic:          {},
 	ExchangeSyncSwapV2Stable:           {},
 	ExchangeSyncSwapV2Aqua:             {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
-	ExchangeKyberPMM:                   {},
 	ExchangeTraderJoeV20:               {},
 	ExchangeTraderJoeV21:               {},
 	ExchangeTraderJoeV22:               {},

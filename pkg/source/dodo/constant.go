@@ -2,7 +2,6 @@ package dodo
 
 import (
 	"math/big"
-	"time"
 )
 
 const (
@@ -34,9 +33,8 @@ const (
 	poolMethodGetPMMStateForCall = "getPMMStateForCall"
 	poolMethodGetUserFeeRate     = "getUserFeeRate"
 
-	defaultTokenWeight           = 50
-	defaultGraphQLRequestTimeout = 20 * time.Second
-	defaultTokenDecimals         = 18
+	defaultTokenWeight   = 50
+	defaultTokenDecimals = 18
 
 	zeroString = "0"
 

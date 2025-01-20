@@ -12,6 +12,7 @@ import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -153,7 +154,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(param.TokenAmountOut.Token, p.V3Pool.Token0.Address.String()) {
+		if strings.EqualFold(param.TokenAmountOut.Token, hexutil.Encode(p.V3Pool.Token0.Address[:])) {
 			zeroForOne = false
 			tokenOut = p.V3Pool.Token0
 		} else {
@@ -209,7 +210,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(tokenOut, p.V3Pool.Token0.Address.String()) {
+		if strings.EqualFold(tokenOut, hexutil.Encode(p.V3Pool.Token0.Address[:])) {
 			zeroForOne = false
 		} else {
 			zeroForOne = true
@@ -285,7 +286,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	zeroForOne := strings.EqualFold(tokenIn, p.V3Pool.Token0.Address.String())
+	zeroForOne := strings.EqualFold(tokenIn, hexutil.Encode(p.V3Pool.Token0.Address[:]))
 	var priceLimit v3Utils.Uint160
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{

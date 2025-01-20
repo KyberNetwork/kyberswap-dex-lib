@@ -33,10 +33,13 @@ const (
 	// might not available for all chains, but we only need for some chains so it's ok
 	CurveAddressProvider = "0x0000000022d53366457f9d5e68ec105046fc4383"
 
+	// https://sonicscan.org/address/0x87fe17697d0f14a222e8bef386a0860ecffdd617#code
+	CurveAddressProvider_Sonic = "0x87fe17697d0f14a222e8bef386a0860ecffdd617"
+
 	poolMethodGamma           = "gamma"
 	poolMethodUnderlyingCoins = "underlying_coins"
 
 	addressProviderMethodGetAddress = "get_address"
 
-	getPoolsEndpoint = "/api/getPools/%s/%s" // <chain>/<registry>
+	getPoolsEndpoint = "/v1/getPools/%s/%s" // <chain>/<registry>
 )

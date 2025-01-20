@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
@@ -16,8 +17,11 @@ type PoolsListUpdater struct {
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *shared.Config) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(config)
+func NewPoolsListUpdater(
+	config *shared.Config,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,

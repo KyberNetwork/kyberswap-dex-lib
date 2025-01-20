@@ -15,6 +15,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
@@ -23,14 +24,18 @@ type PoolsListUpdater struct {
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(
+	config *Config,
+	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
+) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:           config.DexID,
 		SubgraphAPI:     config.SubgraphAPI,
 		SubgraphHeaders: config.SubgraphHeaders,
 		NewPoolLimit:    config.NewPoolLimit,
 		PoolTypes:       []string{poolTypeStable, poolTypeMetaStable},
-	})
+	}, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        config,

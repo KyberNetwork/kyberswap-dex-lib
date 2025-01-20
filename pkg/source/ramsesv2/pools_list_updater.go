@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,31 +20,26 @@ import (
 
 type PoolsListUpdater struct {
 	config        *Config
-	graphqlClient *graphql.Client
 	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
-		Url:     cfg.SubgraphAPI,
-		Header:  cfg.SubgraphHeaders,
-		Timeout: graphQLRequestTimeout,
-	})
-
 	return &PoolsListUpdater{
 		config:        cfg,
-		graphqlClient: graphqlClient,
 		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 
-	req := graphql.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
+	req := graphqlpkg.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
@@ -89,7 +83,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
 		ramsesV2PoolABI,
-		methodTickSpacing,
+		methodV2TickSpacing,
 	)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
@@ -101,7 +95,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			TickSpacing: tickSpacings[p.ID],
 		}
 
-		if p.Token0.Address != emptyString {
+		if p.Token0.Address != "" {
 			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
 
 			if err != nil {
@@ -118,10 +112,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
-		if p.Token1.Address != emptyString {
+		if p.Token1.Address != "" {
 			token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
 
 			if err != nil {
@@ -138,7 +132,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)

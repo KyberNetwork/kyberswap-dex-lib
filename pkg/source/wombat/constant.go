@@ -1,7 +1,5 @@
 package wombat
 
-import "time"
-
 const (
 	DexTypeWombat = "wombat"
 
@@ -21,8 +19,6 @@ const (
 	poolMethodStartCovRatio          = "startCovRatio"
 	poolMethodPaused                 = "paused"
 	poolMethodCreditForTokensHaircut = "creditForTokensHaircut"
-
-	graphQLRequestTimeout = 20 * time.Second
 )
 
 var (
