@@ -40,8 +40,9 @@ const (
 )
 
 var (
-	scale    = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
-	precison = big.NewInt(1e18)
+	scale     = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
+	precision = big.NewInt(1e18)
 
 	maxFee = big.NewInt(1e17)
+	u, _   = new(big.Int).SetString("100000", 16)
 )

@@ -19,7 +19,7 @@ func getBase(binStep uint16, base *big.Int) *big.Int {
 }
 
 func getExponent(id uint32, exponent *big.Int) *big.Int {
-	return exponent.Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
+	return exponent.SetInt64(int64(id) - realIDShift)
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
@@ -42,15 +42,11 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		invert = !invert
 	}
 
-	var u, v big.Int
-	u.SetString("100000", 16)
-	v.SetString("ffffffffffffffffffffffffffffffff", 16)
-
-	if absY.Cmp(&u) < 0 {
+	if absY.Cmp(u) < 0 {
 		result.Set(scale)
 		squared.Set(x)
 
-		if x.Cmp(&v) > 0 {
+		if x.Cmp(bignumber.MAX_UINT_128) > 0 {
 			squared.Div(bignumber.MAX_UINT_256, &squared)
 			invert = !invert
 		}
@@ -71,8 +67,7 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	}
 
 	if invert {
-		v.Sub(new(big.Int).Lsh(bignumber.One, 256), bignumber.One)
-		result.Div(&v, &result)
+		result.Div(bignumber.MAX_UINT_256, &result)
 	}
 
 	return &result, nil
@@ -235,7 +230,7 @@ func getFeeAmount(amount *big.Int, totalFee *big.Int) (*big.Int, error) {
 		return nil, err
 	}
 
-	denominator := new(big.Int).Sub(precison, totalFee)
+	denominator := new(big.Int).Sub(precision, totalFee)
 	result := new(big.Int).Div(
 		new(big.Int).Sub(
 			new(big.Int).Add(
@@ -259,11 +254,11 @@ func getFeeAmountFrom(amountWithFees *big.Int, totalFee *big.Int) (*big.Int, err
 		new(big.Int).Sub(
 			new(big.Int).Add(
 				new(big.Int).Mul(amountWithFees, totalFee),
-				precison,
+				precision,
 			),
 			bignumber.One,
 		),
-		precison,
+		precision,
 	)
 	return result, nil
 }

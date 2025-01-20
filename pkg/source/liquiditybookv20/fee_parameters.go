@@ -74,7 +74,7 @@ func (fp *feeParameters) getBaseFee(baseFee *big.Int) *big.Int {
 	baseFactor := fp.BaseFactor
 	return baseFee.Mul(
 		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(fp.BinStep))),
-		big.NewInt(1e10),
+		bignumber.TenPowInt(10), // 1e10
 	)
 }
 
@@ -95,7 +95,7 @@ func (fp *feeParameters) getVariableFee(variableFee *big.Int) *big.Int {
 			),
 			big.NewInt(99),
 		),
-		big.NewInt(100),
+		bignumber.TenPowInt(2), // 100
 	)
 }
 

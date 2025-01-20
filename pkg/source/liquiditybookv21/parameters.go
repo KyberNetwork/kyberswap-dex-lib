@@ -79,7 +79,7 @@ func (p *parameters) getBaseFee(binStep uint16, baseFee *big.Int) *big.Int {
 	baseFactor := p.StaticFeeParams.BaseFactor
 	baseFee.Mul(
 		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(binStep))),
-		big.NewInt(1e10),
+		bignumber.TenPowInt(10), // 1e10
 	)
 	return baseFee
 }
@@ -100,7 +100,7 @@ func (p *parameters) getVariableFee(binStep uint16, variableFee *big.Int) *big.I
 			),
 			big.NewInt(99),
 		),
-		big.NewInt(100),
+		bignumber.TenPowInt(2), // 100
 	)
 	return variableFee
 }

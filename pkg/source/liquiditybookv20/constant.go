@@ -36,4 +36,6 @@ const (
 var (
 	scale    = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
 	precison = big.NewInt(1e18)
+
+	u, _ = new(big.Int).SetString("100000", 16)
 )
