@@ -968,16 +968,16 @@ func TestSwapOutVerifyReservesInRange(t *testing.T) {
 
 		// expected required ratio:
 		// token0Reserves >= (token1Reserves * 1e27) / (price * MIN_SWAP_LIQUIDITY)
-		// so 2M / 2e4, which is 100
+		// so 2M / 0.85e4, which is 235.29 -> swap amount @~14_764
 
-		// Test for swap amount 14_905, revert should hit
-		swapAmount := big.NewInt(14_905 * 1e6 * 1e6)
+		// Test for swap amount 14_766, revert should hit
+		swapAmount := big.NewInt(14_766 * 1e6 * 1e6)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, colReserves, NewDebtReservesEmpty())
 		result, _ := swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
-		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_905)
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_766)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, NewColReservesEmpty(), debtReserves)
 		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
-		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_905)
+		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_766)
 
 		// refresh reserves
 		colReserves = NewVerifyRatioColReservesSwapOut()
@@ -999,15 +999,15 @@ func TestSwapOutVerifyReservesInRange(t *testing.T) {
 		debtReserves.Token0ImaginaryReserves = new(big.Int).Add(reserveXOutside, debtReserves.Token0RealReserves)
 		debtReserves.Token1ImaginaryReserves = new(big.Int).Add(reserveYOutside, debtReserves.Token1RealReserves)
 
-		// Test for swap amount 14_895, revert should NOT hit
-		swapAmount = big.NewInt(14_895 * 1e6 * 1e6)
+		// Test for swap amount 14_762, revert should NOT hit
+		swapAmount = big.NewInt(14_762 * 1e6 * 1e6)
 		err := error(nil)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, colReserves, NewDebtReservesEmpty())
 		result, err = swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
 		require.NoError(t, err, "Error during swapOutAdjusted for col reserves")
-		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_895)
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_762)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, NewColReservesEmpty(), debtReserves)
 		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
-		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_895)
+		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_762)
 	})
 }
