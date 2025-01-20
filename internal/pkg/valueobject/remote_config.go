@@ -40,17 +40,18 @@ type (
 
 	// should include variable which need not to restart pods.
 	FeatureFlags struct {
-		IsHillClimbEnabled             bool `mapstructure:"isHillClimbEnabled" json:"isHillClimbEnabled"`
-		IsDerivativeHillClimbEnabled   bool `mapstructure:"isDerivativeHillClimbEnabled" json:"isDerivativeHillClimbEnabled"`
-		IsGasEstimatorEnabled          bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
-		IsBlackjackEnabled             bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
-		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
-		ShouldValidateSender           bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
-		IsAEVMEnabled                  bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
-		IsFaultyPoolDetectorEnable     bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
-		IsLiquidityScoreIndexEnable    bool `mapstructure:"isLiquidityScoreEnable" json:"isLiquidityScoreEnable"`
-		IsRouteCachedEnable            bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`
-		IsMergeDuplicateSwapEnabled    bool `mapstructure:"isMergeDuplicateSwapEnabled" json:"isMergeDuplicateSwapEnabled"`
+		IsHillClimbEnabled               bool `mapstructure:"isHillClimbEnabled" json:"isHillClimbEnabled"`
+		IsDerivativeHillClimbEnabled     bool `mapstructure:"isDerivativeHillClimbEnabled" json:"isDerivativeHillClimbEnabled"`
+		IsGasEstimatorEnabled            bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
+		IsBlackjackEnabled               bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
+		IsOptimizeExecutorFlagsEnabled   bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
+		ShouldValidateSender             bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
+		IsAEVMEnabled                    bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
+		IsFaultyPoolDetectorEnable       bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
+		IsLiquidityScoreIndexEnable      bool `mapstructure:"isLiquidityScoreEnable" json:"isLiquidityScoreEnable"`
+		IsRouteCachedEnable              bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`
+		IsMergeDuplicateSwapEnabled      bool `mapstructure:"isMergeDuplicateSwapEnabled" json:"isMergeDuplicateSwapEnabled"`
+		IsKyberPrivateLimitOrdersEnabled bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
 	}
 
 	Log struct {

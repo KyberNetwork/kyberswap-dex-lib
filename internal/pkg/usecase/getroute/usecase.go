@@ -194,7 +194,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	}
 
 	var kyberLimitOrderAllowedSenders string
-	if query.ClientId == clientid.KyberSwap {
+	if u.config.Aggregator.FeatureFlags.IsKyberPrivateLimitOrdersEnabled && query.ClientId == clientid.KyberSwap {
 		kyberLimitOrderAllowedSenders = u.config.KyberExecutorAddress
 	}
 
