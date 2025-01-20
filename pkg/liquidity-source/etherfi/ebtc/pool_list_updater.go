@@ -72,10 +72,11 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 
 	teller := strings.ToLower(initialPool.Teller)
 	accountant := strings.ToLower(initialPool.Accountant)
+	base := strings.ToLower(initialPool.Base)
 
 	staticExtra := StaticExtra{
 		Accountant: accountant,
-		Base:       initialPool.Base,
+		Base:       base,
 		Decimals:   initialPool.Decimals,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
@@ -93,7 +94,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 	}
 
 	poolEntity := entity.Pool{
-		Address:     strings.ToLower(initialPool.Teller),
+		Address:     teller,
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),
