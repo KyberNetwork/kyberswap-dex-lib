@@ -256,10 +256,8 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) (*uint256.Int, error)
 		return nil, err
 	}
 
-	if zeroForOne {
-		sqrtPriceX96Limit.AddUint64(&sqrtPriceX96Limit, 1) // = (sqrtPrice at minTick) + 1
-	} else {
-		sqrtPriceX96Limit.SubUint64(&sqrtPriceX96Limit, 1) // = (sqrtPrice at maxTick) - 1
+	if tickLimit == v3Utils.MinTick || tickLimit == v3Utils.MaxTick {
+		lo.Ternary(zeroForOne, sqrtPriceX96Limit.AddUint64, sqrtPriceX96Limit.SubUint64)(&sqrtPriceX96Limit, 1)
 	}
 
 	return &sqrtPriceX96Limit, nil
