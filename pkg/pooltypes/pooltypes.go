@@ -28,6 +28,7 @@ import (
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
+	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
@@ -281,6 +282,7 @@ type Types struct {
 	VirtualFun                     string
 	BeetsSS                        string
 	SwapXV2                        string
+	EtherFieBTC                    string
 }
 
 var (
@@ -429,5 +431,6 @@ var (
 		VirtualFun:                     virtualfun.DexType,
 		BeetsSS:                        beetsss.DexType,
 		SwapXV2:                        swapxv2.DexType,
+		EtherFieBTC:                    etherfiebtc.DexType,
 	}
 )

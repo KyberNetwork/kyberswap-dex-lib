@@ -18,6 +18,8 @@ var (
 	Four   = uint256.NewInt(4)
 	Five   = uint256.NewInt(5)
 	Six    = uint256.NewInt(6)
+
+	BasisPointUint256 = uint256.NewInt(10000)
 )
 
 var BONE = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18))
