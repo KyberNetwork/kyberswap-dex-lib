@@ -468,7 +468,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
