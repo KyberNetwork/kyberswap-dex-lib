@@ -135,8 +135,8 @@ type Extra struct {
 	TickSpacing      int32                  `json:"tS"`
 	Timepoints       map[uint16]Timepoint   `json:"tP"`
 	VolatilityOracle VolatilityOraclePlugin `json:"vo"`
-	SlidingFee       SlidingFeeConfig       `json:"sF"`
 	DynamicFee       DynamicFeeConfig       `json:"dF"`
+	SlidingFee       SlidingFeeConfig       `json:"sF"`
 }
 
 type VolatilityOraclePlugin struct {
@@ -160,6 +160,11 @@ type DynamicFeeConfig struct {
 type SlidingFeeConfig struct {
 	ZeroToOneFeeFactor *uint256.Int `json:"0to1fF,omitempty"`
 	OneToZeroFeeFactor *uint256.Int `json:"1to0fF,omitempty"`
+}
+
+type SlidingFeeConfigRPC struct {
+	ZeroToOneFeeFactor *big.Int
+	OneToZeroFeeFactor *big.Int
 }
 
 type StaticExtra struct {
