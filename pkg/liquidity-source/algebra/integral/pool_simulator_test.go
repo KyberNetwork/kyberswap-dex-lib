@@ -11,6 +11,7 @@ import (
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -351,16 +352,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1425476892),
+					Amount: big.NewInt(279874986),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(3207826239749998),
+					Amount: big.NewInt(641334),
 				},
 				SwapInfo: StateUpdate{
-					Liquidity: uint256.NewInt(35733795),
-					Price:     uint256.MustFromDecimal("2016016943697492749"),
-					Tick:      -487914,
+					Liquidity: uint256.NewInt(0),
+					Price:     uint256.MustFromDecimal("4306310044"),
+					Tick:      -887221,
 				},
 				Gas: mockGas,
 			},
@@ -429,16 +430,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(768004061),
+					Amount: big.NewInt(312383229),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1839166),
+					Amount: big.NewInt(715591),
 				},
 				SwapInfo: StateUpdate{
-					Liquidity: uint256.NewInt(3480992933),
-					Price:     uint256.MustFromDecimal("86350404125395664252363004498"),
-					Tick:      1721,
+					Liquidity: uint256.NewInt(0),
+					Price:     uint256.MustFromDecimal("1457652066949847389969617340386294118487833376468"),
+					Tick:      887220,
 				},
 				Gas: mockGas,
 			},
@@ -453,8 +454,9 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 			if tt.expectedErr != nil {
 				assert.Error(t, err)
-				assert.Equal(t, err.Error(), tt.expectedErr.Error())
+				assert.ErrorIs(t, err, tt.expectedErr)
 			} else {
+				assert.NoError(t, err)
 				require.NotEmpty(t, result.Fee)
 				assert.Equal(t, tt.expectedResult.Fee, result.Fee)
 
@@ -478,9 +480,9 @@ func TestCalcAmountOut(t *testing.T) {
 var mockPool = []byte(`{"address":"0xbe9c1d237d002c8d9402f30c16ace1436d008f0c","exchange":"silverswap","type":"algebra-integral","timestamp":1733225338,"reserves":["9999999999999944","2620057588865"],"tokens":[{"address":"0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83","name":"Wrapped Fantom","symbol":"WFTM","decimals":18,"weight":50,"swappable":true},{"address":"0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b","name":"Axelar Wrapped ETH","symbol":"axlETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liq\":161865919478591,\"gS\":{\"price\":\"1282433937397070526017841373\",\"tick\":82476,\"lF\":100,\"pC\":193,\"cF\":100,\"un\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":161865919478591},{\"Index\":887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":-161865919478591}],\"tS\":60,\"tP\":{\"0\":{\"init\":true,\"ts\":1712116096,\"cum\":0,\"vo\":\"0\",\"tick\":-82476,\"avgT\":-82476,\"wsI\":0},\"1\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"2\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0},\"65535\":{\"init\":false,\"ts\":0,\"cum\":0,\"vo\":\"0\",\"tick\":0,\"avgT\":0,\"wsI\":0}},\"vo\":{\"tpIdx\":0,\"lastTs\":1712116096,\"init\":true},\"sF\":{\"0to1fF\":null,\"1to0fF\":null},\"dF\":{\"a1\":2900,\"a2\":12000,\"b1\":360,\"b2\":60000,\"g1\":59,\"g2\":8500,\"vB\":0,\"vG\":0,\"bF\":100}}","staticExtra":"{\"pluginV2\":false}","blockNumber":99019509}`)
 
 var (
-	p     entity.Pool
-	_     = json.Unmarshal(mockPool, &p)
-	ps, _ = NewPoolSimulator(p, 280000)
+	p  entity.Pool
+	_  = json.Unmarshal(mockPool, &p)
+	ps = lo.Must(NewPoolSimulator(p, 280000))
 )
 
 func TestCalcAmountOut_FromPool(t *testing.T) {

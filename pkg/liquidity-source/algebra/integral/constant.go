@@ -25,14 +25,14 @@ const (
 	poolPluginMethod      = "plugin"
 	poolTicksMethod       = "ticks"
 
-	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
-
-	slidingFeePluginFeeFactorsMethod = "s_feeFactors"
-
 	votalityOraclePluginTimepointsMethod             = "timepoints"
 	votalityOraclePluginTimepointIndexMethod         = "timepointIndex"
 	votalityOraclePluginLastTimepointTimestampMethod = "lastTimepointTimestamp"
 	votalityOraclePluginIsInitializedMethod          = "isInitialized"
+
+	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
+
+	slidingFeePluginFeeFactorsMethod = "s_feeFactors"
 
 	erc20BalanceOfMethod = "balanceOf"
 

@@ -3,81 +3,74 @@ package liquiditybookv21
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func getPriceFromID(id uint32, binStep uint16) (*big.Int, error) {
-	base := getBase(binStep)
-	exponent := getExponent(id)
-	return pow(base, exponent)
+	var base, exponent big.Int
+	getBase(binStep, &base)
+	getExponent(id, &exponent)
+	return pow(&base, &exponent)
 }
 
-func getBase(binStep uint16) *big.Int {
+func getBase(binStep uint16, base *big.Int) *big.Int {
 	u := new(big.Int).Lsh(big.NewInt(int64(binStep)), scaleOffset)
-	return new(big.Int).Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
+	return base.Add(scale, new(big.Int).Div(u, big.NewInt(basisPointMax)))
 }
 
-func getExponent(id uint32) *big.Int {
-	return new(big.Int).Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
+func getExponent(id uint32, exponent *big.Int) *big.Int {
+	return exponent.SetInt64(int64(id) - realIDShift)
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
 func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	var (
-		invert bool
-		absY   *big.Int
-		result = big.NewInt(0)
+		invert  bool
+		absY    big.Int
+		result  big.Int
+		squared big.Int
+		tmp     big.Int
+		and     big.Int
 	)
 
-	if y.Cmp(integer.Zero()) == 0 {
+	if y.Sign() == 0 {
 		return scale, nil
 	}
 
-	absY = new(big.Int).Abs(y)
+	absY.Abs(y)
 	if y.Sign() < 0 {
 		invert = !invert
 	}
 
-	u, _ := new(big.Int).SetString("100000", 16)
 	if absY.Cmp(u) < 0 {
-		result = scale
+		result.Set(scale)
+		squared.Set(x)
 
-		squared := x
-		v, _ := new(big.Int).SetString("ffffffffffffffffffffffffffffffff", 16)
-		if x.Cmp(v) > 0 {
-			not0 := maxUint256
-			squared = new(big.Int).Div(not0, squared)
-
+		if x.Cmp(bignumber.MAX_UINT_128) > 0 {
+			squared.Div(bignumber.MAX_UINT_256, &squared)
 			invert = !invert
 		}
 
 		for i := 0x1; i <= 0x80000; i <<= 1 {
-			and := new(big.Int).And(absY, big.NewInt(int64(i)))
-			if and.Cmp(integer.Zero()) != 0 {
-				result = new(big.Int).Rsh(
-					new(big.Int).Mul(result, squared),
-					128,
-				)
+			and.And(&absY, big.NewInt(int64(i)))
+			if and.Sign() != 0 {
+				result.Rsh(tmp.Mul(&result, &squared), 128)
 			}
 			if i < 0x80000 {
-				squared = new(big.Int).Rsh(
-					new(big.Int).Mul(squared, squared),
-					128,
-				)
+				squared.Rsh(tmp.Mul(&squared, &squared), 128)
 			}
 		}
 	}
 
-	if result.Cmp(integer.Zero()) == 0 {
+	if result.Sign() == 0 {
 		return nil, ErrPowUnderflow
 	}
 
 	if invert {
-		v := new(big.Int).Sub(new(big.Int).Lsh(integer.One(), 256), integer.One())
-		result = new(big.Int).Div(v, result)
+		result.Div(bignumber.MAX_UINT_256, &result)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L95
@@ -90,15 +83,15 @@ func shiftDivRoundUp(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, 
 	// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L97
 	// mulmod(x, y, m): (x * y) % m with arbitrary precision arithmetic, 0 if m == 0
 
-	if denominator.Cmp(integer.Zero()) == 0 {
-		return integer.Zero(), nil
+	if denominator.Sign() == 0 {
+		return new(big.Int), nil
 	}
 	v := new(big.Int).Mod(
-		new(big.Int).Mul(x, new(big.Int).Lsh(integer.One(), uint(offset))),
+		new(big.Int).Mul(x, new(big.Int).Lsh(bignumber.One, uint(offset))),
 		denominator,
 	)
-	if v.Cmp(integer.Zero()) != 0 {
-		result = new(big.Int).Add(result, integer.One())
+	if v.Sign() != 0 {
+		result.Add(result, bignumber.One)
 	}
 
 	return result, nil
@@ -113,7 +106,7 @@ func shiftDivRoundDown(x *big.Int, offset uint8, denominator *big.Int) (*big.Int
 	prod0 = new(big.Int).Lsh(x, uint(offset))
 	prod1 = new(big.Int).Rsh(x, uint(256-int(offset)))
 
-	y := new(big.Int).Lsh(integer.One(), uint(offset))
+	y := new(big.Int).Lsh(bignumber.One, uint(offset))
 
 	return getEndOfDivRoundDown(x, y, denominator, prod0, prod1)
 }
@@ -126,7 +119,7 @@ func getEndOfDivRoundDown(
 	prod0 *big.Int,
 	prod1 *big.Int,
 ) (*big.Int, error) {
-	if prod1.Cmp(integer.Zero()) == 0 {
+	if prod1.Sign() == 0 {
 		return new(big.Int).Div(prod0, denominator), nil
 	}
 
@@ -134,26 +127,24 @@ func getEndOfDivRoundDown(
 		return nil, ErrMulDivOverflow
 	}
 
-	var remainder *big.Int
-	if denominator.Cmp(integer.Zero()) == 0 {
-		remainder = integer.Zero()
-	} else {
-		remainder = new(big.Int).Mod(new(big.Int).Mul(x, y), denominator)
+	var remainder big.Int
+	if denominator.Sign() != 0 {
+		remainder.Mod(new(big.Int).Mul(x, y), denominator)
 	}
 
-	prod1 = new(big.Int).Sub(prod1, gt(remainder, prod0))
-	prod0 = new(big.Int).Sub(prod0, remainder)
+	prod1 = new(big.Int).Sub(prod1, gt(&remainder, prod0))
+	prod0 = new(big.Int).Sub(prod0, &remainder)
 
 	// bitwiseNotDenominator = ~denominator, denominator has type uint256
-	lpotdod := new(big.Int).And(denominator, new(big.Int).Add(bitwiseNotUint256(denominator), integer.One()))
+	lpotdod := new(big.Int).And(denominator, new(big.Int).Add(bitwiseNotUint256(denominator), bignumber.One))
 
 	denominator = new(big.Int).Div(denominator, lpotdod)
 
 	prod0 = new(big.Int).Div(prod0, lpotdod)
 
 	lpotdod = new(big.Int).Add(
-		new(big.Int).Div(new(big.Int).Sub(integer.Zero(), lpotdod), lpotdod),
-		integer.One(),
+		new(big.Int).Div(new(big.Int).Sub(bignumber.ZeroBI, lpotdod), lpotdod),
+		bignumber.One,
 	)
 
 	prod0 = new(big.Int).Or(prod0, new(big.Int).Mul(prod1, lpotdod))
@@ -161,9 +152,9 @@ func getEndOfDivRoundDown(
 	inverse := new(big.Int).Mul(new(big.Int).Mul(denominator, denominator), big.NewInt(9))
 
 	for i := 0; i < 6; i++ {
-		inverse = new(big.Int).Mul(
+		inverse.Mul(
 			inverse,
-			new(big.Int).Sub(integer.Two(), new(big.Int).Mul(denominator, inverse)),
+			new(big.Int).Sub(bignumber.Two, new(big.Int).Mul(denominator, inverse)),
 		)
 	}
 
@@ -173,9 +164,9 @@ func getEndOfDivRoundDown(
 
 func gt(x *big.Int, y *big.Int) *big.Int {
 	if x.Cmp(y) > 0 {
-		return integer.One()
+		return bignumber.One
 	}
-	return integer.Zero()
+	return bignumber.ZeroBI
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L95
@@ -186,26 +177,27 @@ func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	}
 	v := new(big.Int).Mod(
 		new(big.Int).Mul(x, y),
-		new(big.Int).Lsh(integer.One(), uint(offset)),
+		new(big.Int).Lsh(bignumber.One, uint(offset)),
 	)
-	if v.Cmp(integer.Zero()) != 0 {
-		result = new(big.Int).Add(result, integer.One())
+	if v.Sign() != 0 {
+		result.Add(result, bignumber.One)
 	}
 	return result, nil
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L67
 func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
-	prod0, prod1 := getMulProds(x, y)
-	result := big.NewInt(0)
-	if prod0.Cmp(integer.Zero()) != 0 {
-		result = new(big.Int).Rsh(prod0, uint(offset))
+	prod0, prod1 := new(big.Int), new(big.Int)
+	getMulProds(x, y, prod0, prod1)
+	result := new(big.Int)
+	if prod0.Sign() != 0 {
+		result.Rsh(prod0, uint(offset))
 	}
-	if prod1.Cmp(integer.Zero()) != 0 {
-		if prod1.Cmp(new(big.Int).Lsh(integer.One(), uint(offset))) >= 0 {
+	if prod1.Sign() != 0 {
+		if prod1.Cmp(new(big.Int).Lsh(bignumber.One, uint(offset))) >= 0 {
 			return nil, ErrMulShiftOverflow
 		}
-		result = new(big.Int).Add(
+		result.Add(
 			result,
 			new(big.Int).Lsh(prod1, uint(256-int(offset))),
 		)
@@ -215,11 +207,10 @@ func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L152
-func getMulProds(x *big.Int, y *big.Int) (*big.Int, *big.Int) {
-	not0 := maxUint256
-	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), not0)
-	prod0 := new(big.Int).Mul(x, y)
-	prod1 := new(big.Int).Sub(
+func getMulProds(x *big.Int, y *big.Int, prod0, prod1 *big.Int) (*big.Int, *big.Int) {
+	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), bignumber.MAX_UINT_256)
+	prod0.Mul(x, y)
+	prod1.Sub(
 		new(big.Int).Sub(mm, prod0),
 		lt(mm, prod0),
 	)
@@ -228,9 +219,9 @@ func getMulProds(x *big.Int, y *big.Int) (*big.Int, *big.Int) {
 
 func lt(x *big.Int, y *big.Int) *big.Int {
 	if x.Cmp(y) < 0 {
-		return integer.One()
+		return bignumber.One
 	}
-	return integer.Zero()
+	return bignumber.ZeroBI
 }
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/FeeHelper.sol#L58
@@ -239,14 +230,14 @@ func getFeeAmount(amount *big.Int, totalFee *big.Int) (*big.Int, error) {
 		return nil, err
 	}
 
-	denominator := new(big.Int).Sub(precison, totalFee)
+	denominator := new(big.Int).Sub(precision, totalFee)
 	result := new(big.Int).Div(
 		new(big.Int).Sub(
 			new(big.Int).Add(
 				new(big.Int).Mul(amount, totalFee),
 				denominator,
 			),
-			integer.One(),
+			bignumber.One,
 		),
 		denominator,
 	)
@@ -263,17 +254,17 @@ func getFeeAmountFrom(amountWithFees *big.Int, totalFee *big.Int) (*big.Int, err
 		new(big.Int).Sub(
 			new(big.Int).Add(
 				new(big.Int).Mul(amountWithFees, totalFee),
-				precison,
+				precision,
 			),
-			integer.One(),
+			bignumber.One,
 		),
-		precison,
+		precision,
 	)
 	return result, nil
 }
 
 func bitwiseNotUint256(x *big.Int) *big.Int {
-	return new(big.Int).Xor(x, maxUint256)
+	return new(big.Int).Xor(x, bignumber.MAX_UINT_256)
 }
 
 func verifyFee(fee *big.Int) error {
@@ -284,8 +275,8 @@ func verifyFee(fee *big.Int) error {
 }
 
 func scalarMulDivBasisPointRoundDown(totalFee *big.Int, multiplier *big.Int) (*big.Int, error) {
-	if multiplier.Cmp(integer.Zero()) == 0 {
-		return integer.Zero(), nil
+	if multiplier.Sign() == 0 {
+		return new(big.Int), nil
 	}
 
 	if multiplier.Cmp(big.NewInt(basisPointMax)) > 0 {

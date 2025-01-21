@@ -15,11 +15,12 @@ import (
 )
 
 var (
-	ErrInvalidTokenIn  = errors.New("invalid token in")
-	ErrInvalidTokenOut = errors.New("invalid token out")
-	ErrInvalidPair     = errors.New("invalid pair")
-	ErrFMVCheckFailed  = errors.New("FMV check failed")
-	ErrAmountOutNaN    = errors.New("amountOut is NaN")
+	ErrInvalidTokenIn       = errors.New("invalid token in")
+	ErrInvalidTokenOut      = errors.New("invalid token out")
+	ErrInvalidPair          = errors.New("invalid pair")
+	ErrFMVCheckFailed       = errors.New("FMV check failed")
+	ErrAmountOutNaN         = errors.New("amountOut is NaN")
+	ErrMinAmountInNotEnough = errors.New("minAmountIn is not enough")
 
 	basisPoint float64 = 10000
 )
@@ -130,6 +131,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	inX /= math.Pow10(int(assetIn.Decimals))
 
 	pX := assetIn.PriceInUSD
+
+	if inX*pX < 0.1 {
+		return nil, ErrMinAmountInNotEnough
+	}
+
 	qX, _ := assetIn.Quantity.Float64()
 	qX /= math.Pow10(int(assetIn.Decimals))
 	wX := float64(assetIn.ListingWeight)
