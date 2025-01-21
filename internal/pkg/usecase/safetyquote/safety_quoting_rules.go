@@ -7,9 +7,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	mapset "github.com/deckarep/golang-set/v2"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type SafetyQuoteReduction struct {
@@ -71,7 +72,7 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 	switch params.Exchange {
 	case dexValueObject.ExchangeFrxETH, dexValueObject.ExchangeDaiUsds,
 		dexValueObject.ExchangeUsd0PP, dexValueObject.ExchangeOETH,
-		dexValueObject.ExchangePolMatic:
+		dexValueObject.ExchangePolMatic, dexValueObject.ExchangeEtherFieBTC:
 		return f.deductionFactorInBps[types.Converter]
 	}
 
