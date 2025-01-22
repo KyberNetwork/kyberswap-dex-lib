@@ -181,7 +181,6 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolLiquidityMethod,
-		Params: nil,
 	}, []interface{}{&res.Liquidity})
 
 	rpcState := &GlobalStateFromRPC{}
@@ -189,14 +188,12 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolGlobalStateMethod,
-		Params: nil,
 	}, []interface{}{rpcState})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolTickSpacingMethod,
-		Params: nil,
 	}, []interface{}{&res.TickSpacing})
 
 	if len(p.Tokens) == 2 {
@@ -269,7 +266,6 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string, blo
 		ABI:    algebraIntegralPoolABI,
 		Target: poolAddress,
 		Method: poolPluginMethod,
-		Params: nil,
 	}, []interface{}{&plugin})
 
 	_, err := req.Call()
@@ -331,19 +327,16 @@ func (d *PoolTracker) getVolatilityOracleData(ctx context.Context, pluginAddress
 		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginIsInitializedMethod,
-		Params: nil,
 	}, []interface{}{&result.IsInitialized})
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginLastTimepointTimestampMethod,
-		Params: nil,
 	}, []interface{}{&result.LastTimepointTimestamp})
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginTimepointIndexMethod,
-		Params: nil,
 	}, []interface{}{&result.TimepointIndex})
 
 	_, err := req.Aggregate()
@@ -355,30 +348,41 @@ func (d *PoolTracker) getVolatilityOracleData(ctx context.Context, pluginAddress
 }
 
 func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string,
-	blockNumber *big.Int) (SlidingFeeConfig, error) {
-	var result SlidingFeeConfigRPC
-
+	blockNumber *big.Int) (cfg SlidingFeeConfig, err error) {
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber != nil && blockNumber.Sign() > 0 {
 		req.SetBlockNumber(blockNumber)
 	}
 
+	var result SlidingFeeConfigRPC
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeFactorsMethod,
-		Params: nil,
 	}, []interface{}{&result})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginPriceChangeFactorMethod,
+	}, []interface{}{&cfg.PriceChangeFactor})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginBaseFeeMethod,
+	}, []interface{}{&cfg.BaseFee})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV2ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginFeeTypeMethod,
+	}, []interface{}{&cfg.FeeType})
 
-	_, err := req.Call()
-	if err != nil {
+	if _, err = req.Call(); err != nil {
 		return SlidingFeeConfig{}, err
 	}
 
-	return SlidingFeeConfig{
-		ZeroToOneFeeFactor: uint256.MustFromBig(result.OneToZeroFeeFactor),
-		OneToZeroFeeFactor: uint256.MustFromBig(result.ZeroToOneFeeFactor),
-	}, nil
+	cfg.ZeroToOneFeeFactor = uint256.MustFromBig(result.OneToZeroFeeFactor)
+	cfg.OneToZeroFeeFactor = uint256.MustFromBig(result.ZeroToOneFeeFactor)
+	return cfg, nil
 }
 
 func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress string,
@@ -394,7 +398,6 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 		ABI:    algebraBasePluginV2ABI,
 		Target: pluginAddress,
 		Method: dynamicFeeManagerPluginFeeConfigMethod,
-		Params: nil,
 	}, []interface{}{&result})
 
 	_, err := req.Call()

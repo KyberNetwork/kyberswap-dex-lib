@@ -160,6 +160,9 @@ type DynamicFeeConfig struct {
 type SlidingFeeConfig struct {
 	ZeroToOneFeeFactor *uint256.Int `json:"0to1fF,omitempty"`
 	OneToZeroFeeFactor *uint256.Int `json:"1to0fF,omitempty"`
+	PriceChangeFactor  uint16       `json:"pCF,omitempty"`
+	BaseFee            uint16       `json:"bF,omitempty"`
+	FeeType            bool         `json:"feeType,omitempty"` // false = v1, true = v2 - used by thena fusion v3
 }
 
 type SlidingFeeConfigRPC struct {
@@ -206,7 +209,7 @@ type SwapCalculationCache struct {
 	amountCalculated      *uint256.Int // The additive amount of total output/input calculated through the swap
 	pluginFee             *uint256.Int // The plugin fee
 	communityFee          *uint256.Int // The community fee of the selling token, uint256 to minimize casts
-	fee                   uint64 // The current fee value in hundredths of a bip, i.e. 1e-6
+	fee                   uint64       // The current fee value in hundredths of a bip, i.e. 1e-6
 	exactInput            bool         // Whether the exact input or output is specified
 }
 

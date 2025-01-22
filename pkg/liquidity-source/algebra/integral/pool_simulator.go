@@ -49,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 	}
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -187,7 +187,8 @@ func (p *PoolSimulator) swap(tokenIn, tokenOut string, amtRequired *uint256.Int)
 	}
 
 	zeroForOne := tokenInIndex == 0
-	overrideFee, pluginFee, err := lo.Ternary(p.useBasePluginV2, p.beforeSwapV2, p.beforeSwapV1)(zeroForOne)
+	overrideFee, pluginFee, err := lo.Ternary(p.useBasePluginV2 && p.slidingFee.FeeType,
+		p.beforeSwapV2, p.beforeSwapV1)(zeroForOne)
 	if err != nil {
 		return
 	}
@@ -263,6 +264,8 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) (*uint256.Int, error)
 	return &sqrtPriceX96Limit, nil
 }
 
+var blockTimestamp = func() uint32 { return uint32(time.Now().Unix()) }
+
 // writeTimepoint locks and writes timepoint only once, triggering onWrite only if said write happened.
 // By right we should re-update the timepoint every new second, but the difference should be small enough, and
 // new pool should have already been created and used in replacement of this pool.
@@ -273,7 +276,7 @@ func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
 	}
 
 	p.writeTimePointOnce.Do(func() {
-		volatilityOracle.LastTimepointTimestamp = uint32(time.Now().Unix())
+		volatilityOracle.LastTimepointTimestamp = blockTimestamp()
 		volatilityOracle.TimepointIndex, _, err = p.timepoints.write(
 			volatilityOracle.TimepointIndex, volatilityOracle.LastTimepointTimestamp, p.globalState.Tick)
 		if err != nil || onWrite == nil {
@@ -325,7 +328,7 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 
 	if currentTick != lastTick {
 		var err error
-		currentFeeFactors, err = calculateFeeFactors(currentTick, lastTick, s_priceChangeFactor)
+		currentFeeFactors, err = p.calculateFeeFactors(currentTick, lastTick, p.slidingFee.PriceChangeFactor)
 		if err != nil {
 			return 0, err
 		}
@@ -335,19 +338,19 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 		currentFeeFactors = p.slidingFee
 	}
 
-	var adjustedFee *uint256.Int
-	baseFeeBig := uint256.NewInt(s_baseFee)
-	adjustedFee = baseFeeBig.Rsh(
-		baseFeeBig.Mul(baseFeeBig,
+	adjustedFee := uint256.NewInt(uint64(p.slidingFee.BaseFee))
+	adjustedFee = adjustedFee.Rsh(
+		adjustedFee.Mul(adjustedFee,
 			lo.Ternary(zeroToOne, currentFeeFactors.ZeroToOneFeeFactor, currentFeeFactors.OneToZeroFeeFactor),
 		),
 		FEE_FACTOR_SHIFT,
 	)
 
-	if adjustedFee.BitLen() > 15 || adjustedFee.IsZero() {
-		adjustedFee.SetUint64(math.MaxUint16)
+	if adjustedFee.BitLen() > 16 {
+		return math.MaxUint16, nil
+	} else if adjustedFee.IsZero() {
+		return 1, nil
 	}
-
 	return uint16(adjustedFee.Uint64()), nil
 }
 
@@ -397,13 +400,9 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	if pluginFee > 0 {
 		cache.pluginFee = uint256.NewInt(uint64(pluginFee))
 	}
-	if overrideFee != 0 {
-		cache.fee = uint64(overrideFee + pluginFee)
-	} else if fee := uint32(p.globalState.LastFee) + pluginFee; fee != 0 {
-		if fee >= 1e6 {
-			return nil, nil, nil, 0, nil, FeesAmount{}, ErrIncorrectPluginFee
-		}
-		cache.fee = uint64(fee)
+	cache.fee = uint64(lo.Ternary(overrideFee != 0, overrideFee, uint32(p.globalState.LastFee)) + pluginFee)
+	if cache.fee >= 1e6 {
+		return nil, nil, nil, 0, nil, FeesAmount{}, ErrIncorrectPluginFee
 	}
 	feeU := uint256.NewInt(cache.fee)
 	cache.communityFee = uint256.NewInt(uint64(p.globalState.CommunityFee))
@@ -545,7 +544,7 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 		}
 
 		if amountAvailableAfterFee.Cmp(input) >= 0 {
-			resultPrice = targetPrice
+			resultPrice = targetPrice.Clone()
 			feeAmount, err = v3Utils.MulDivRoundingUp(input, uint256.NewInt(fee), feeDenoMinusFee)
 			if err != nil {
 				return nil, nil, nil, nil, err
@@ -585,7 +584,7 @@ func movePriceTowardsTarget(zeroToOne bool, currentPrice, targetPrice, liquidity
 		}
 
 		if amountAvailable.Cmp(output) >= 0 {
-			resultPrice = targetPrice
+			resultPrice = targetPrice.Clone()
 		} else {
 			resultPrice, err = getNewPriceAfterOutput(currentPrice, liquidity, amountAvailable, zeroToOne)
 			if err != nil {

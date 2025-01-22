@@ -4,10 +4,9 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
-	"github.com/samber/lo"
-
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 type TimepointStorage struct {
@@ -414,7 +413,7 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 	}
 }
 
-func calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (*SlidingFeeConfig, error) {
+func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (*SlidingFeeConfig, error) {
 	tickDelta := lo.Clamp(currentTick-lastTick, utils.MinTick, utils.MaxTick)
 
 	var sqrtPriceDelta v3Utils.Uint160
@@ -423,37 +422,27 @@ func calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) 
 		return nil, err
 	}
 
-	priceRatioSquared, err := v3Utils.MulDiv(&sqrtPriceDelta, &sqrtPriceDelta, DOUBLE_FEE_MULTIPLIER)
+	priceRatioSquared, err := v3Utils.MulDiv(&sqrtPriceDelta, &sqrtPriceDelta, FEE_FACTOR_MULTIPLIER)
 	if err != nil {
 		return nil, err
 	}
-
-	priceChangeRatio := priceRatioSquared.Sub(priceRatioSquared, BASE_FEE_MULTIPLIER)
+	priceChangeRatio := priceRatioSquared.Sub(priceRatioSquared, FEE_FACTOR_MULTIPLIER)
 
 	factor := uint256.NewInt(uint64(priceChangeFactor))
-	feeFactorImpact := priceChangeRatio.Div(priceChangeRatio.Mul(priceChangeRatio, factor),
-		uint256.NewInt(FACTOR_DENOMINATOR))
+	feeFactorImpact := priceChangeRatio.Mul(priceChangeRatio, factor).Div(priceChangeRatio, FACTOR_DENOMINATOR)
 
-	feeFactors := &SlidingFeeConfig{
-		ZeroToOneFeeFactor: BASE_FEE_MULTIPLIER,
-		OneToZeroFeeFactor: BASE_FEE_MULTIPLIER,
-	}
-
-	newZeroToOneFeeFactor := new(uint256.Int).Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
-
-	twoShift := DOUBLE_FEE_MULTIPLIER
-
-	if newZeroToOneFeeFactor.Sign() > 0 && newZeroToOneFeeFactor.Cmp(twoShift) < 0 {
+	feeFactors := p.slidingFee
+	newZeroToOneFeeFactor := feeFactors.ZeroToOneFeeFactor.Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
+	if 0 < newZeroToOneFeeFactor.Sign() && newZeroToOneFeeFactor.Cmp(DOUBLE_FEE_MULTIPLIER) < 0 {
 		feeFactors.ZeroToOneFeeFactor = newZeroToOneFeeFactor
-		feeFactors.OneToZeroFeeFactor = new(uint256.Int).Add(feeFactors.OneToZeroFeeFactor, feeFactorImpact)
+		feeFactors.OneToZeroFeeFactor.Add(feeFactors.OneToZeroFeeFactor, feeFactorImpact)
 	} else if newZeroToOneFeeFactor.Sign() <= 0 {
-		feeFactors.ZeroToOneFeeFactor = uZERO
-		feeFactors.OneToZeroFeeFactor = twoShift
+		feeFactors.ZeroToOneFeeFactor.Clear()
+		feeFactors.OneToZeroFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
 	} else {
-		feeFactors.ZeroToOneFeeFactor = twoShift
-		feeFactors.OneToZeroFeeFactor = uZERO
+		feeFactors.ZeroToOneFeeFactor.Set(DOUBLE_FEE_MULTIPLIER)
+		feeFactors.OneToZeroFeeFactor.Clear()
 	}
-
 	return feeFactors, nil
 }
 
