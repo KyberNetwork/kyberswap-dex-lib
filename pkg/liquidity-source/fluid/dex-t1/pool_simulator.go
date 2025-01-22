@@ -108,19 +108,13 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	// fee is applied on token in
-	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
-	fee = fee.Div(fee, Fee100PercentPrecision)
-
-	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
-
 	collateralReserves := s.CollateralReserves.Clone()
 	debtReserves := s.DebtReserves.Clone()
 	dexLimits := s.DexLimits.Clone()
 	syncTimestamp := s.SyncTimestamp
 	centerPrice := s.CenterPrice
 
-	tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
+	tokenAmountOut, err := swapIn(swap0To1, param.TokenAmountIn.Amount, s.Pool.Info.SwapFee, collateralReserves, debtReserves,
 		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, centerPrice, syncTimestamp)
 	if err != nil {
 		return nil, err
@@ -132,7 +126,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
-		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
+		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas.Swap,
 		SwapInfo: SwapInfo{
 			HasNative:             s.HasNative,
@@ -331,6 +325,7 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
 func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
 	numerator := new(big.Int).Mul(token1Reserves, bI1e27)
 	denominator := new(big.Int).Mul(price, MinSwapLiquidity)
+
 	return token0Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 
@@ -345,6 +340,7 @@ func verifyToken0Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
 func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, price *big.Int) bool {
 	numerator := new(big.Int).Mul(token0Reserves, price)
 	denominator := new(big.Int).Mul(bI1e27, MinSwapLiquidity)
+
 	return token1Reserves.Cmp(numerator.Div(numerator, denominator)) >= 0
 }
 
@@ -385,8 +381,17 @@ func verifyToken1Reserves(token0Reserves *big.Int, token1Reserves *big.Int, pric
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves,
-	outDecimals int64, currentLimits DexLimits, centerPrice *big.Int, syncTime int64) (*big.Int, error) {
+func swapInAdjusted(
+	swap0To1 bool,
+	amountToSwap *big.Int,
+	fee *big.Int,
+	colReserves CollateralReserves,
+	debtReserves DebtReserves,
+	outDecimals int64,
+	currentLimits DexLimits,
+	centerPrice *big.Int,
+	syncTime int64,
+) (*big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveIn, colReserveOut, debtReserveIn, debtReserveOut     *big.Int
@@ -452,6 +457,10 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		return nil, errors.New("no pools are enabled")
 	}
 
+	swapFee := new(big.Int).Mul(amountToSwap, fee)
+	swapFee = swapFee.Div(swapFee, Fee100PercentPrecision)
+	amountToSwapAfterFee := new(big.Int).Sub(amountToSwap, swapFee)
+
 	amountInCollateral := new(big.Int)
 	amountOutCollateral := new(big.Int)
 	amountInDebt := new(big.Int)
@@ -462,23 +471,25 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 
 	if a.Sign() <= 0 {
 		// Entire trade routes through debt pool
-		amountInDebt = amountToSwap
-		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
+		amountInDebt = amountToSwapAfterFee
+		amountOutDebt = getAmountOut(amountToSwapAfterFee, debtIReserveIn, debtIReserveOut)
 
 		triggerUpdateDebtReserves = true
-	} else if a.Cmp(amountToSwap) >= 0 {
+	} else if a.Cmp(amountToSwapAfterFee) >= 0 {
 		// Entire trade routes through collateral pool
-		amountInCollateral = amountToSwap
-		amountOutCollateral = getAmountOut(amountToSwap, colIReserveIn, colIReserveOut)
+		amountInCollateral = amountToSwapAfterFee
+		amountOutCollateral = getAmountOut(amountToSwapAfterFee, colIReserveIn, colIReserveOut)
 
 		triggerUpdateColReserves = true
 	} else {
 		// Trade routes through both pools
-		amountInDebt.Sub(amountToSwap, a)
+		swapFee := new(big.Int).Mul(a, fee)
+		swapFee = swapFee.Div(swapFee, Fee100PercentPrecision)
+		amountInCollateral := amountInCollateral.Sub(a, swapFee)
 
-		amountInCollateral = a
-		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
-		amountInDebt.Sub(amountToSwap, a)
+		amountOutCollateral = getAmountOut(amountInCollateral, colIReserveIn, colIReserveOut)
+
+		amountInDebt.Sub(amountToSwapAfterFee, amountInCollateral)
 		amountOutDebt = getAmountOut(amountInDebt, debtIReserveIn, debtIReserveOut)
 
 		triggerUpdateDebtReserves = true
@@ -556,17 +567,18 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
 	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), bI100)
+
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, ErrInsufficientMaxPrice
 	}
 
 	if triggerUpdateColReserves {
-		updateCollateralReservesAndLimits(swap0To1, amountToSwap, amountOutCollateral, colReserves, currentLimits)
+		updateCollateralReservesAndLimits(swap0To1, amountToSwapAfterFee, amountOutCollateral, colReserves, currentLimits)
 	}
 
 	if triggerUpdateDebtReserves {
-		updateDebtReservesAndLimits(swap0To1, amountToSwap, amountOutDebt, debtReserves, currentLimits)
+		updateDebtReservesAndLimits(swap0To1, amountToSwapAfterFee, amountOutDebt, debtReserves, currentLimits)
 	}
 
 	return amountOutCollateral.Add(amountOutCollateral, amountOutDebt), nil
@@ -613,6 +625,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 func swapIn(
 	swap0To1 bool,
 	amountIn *big.Int,
+	fee *big.Int,
 	colReserves CollateralReserves,
 	debtReserves DebtReserves,
 	inDecimals int64,
@@ -629,7 +642,7 @@ func swapIn(
 		amountInAdjusted = new(big.Int).Mul(amountIn, bignumber.TenPowInt(DexAmountsDecimals-inDecimals))
 	}
 
-	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits,
+	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, fee, colReserves, debtReserves, outDecimals, currentLimits,
 		centerPrice, syncTime)
 
 	if err != nil {
