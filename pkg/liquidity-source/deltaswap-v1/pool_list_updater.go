@@ -59,7 +59,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	batchSize := getBatchSize(allPairsLength, u.config.NewPoolLimit, offset)
+	batchSize := u.getBatchSize(allPairsLength, u.config.NewPoolLimit, offset)
 
 	pairAddresses, err := u.listPairAddresses(ctx, offset, batchSize)
 	if err != nil {
@@ -255,13 +255,20 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 // @params limit number of pairs to be fetched in one run
 // @params offset index of the last pair has been fetched
 // @returns batchSize
-func getBatchSize(length int, limit int, offset int) int {
+func (u *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
 	if offset == length {
 		return 0
 	}
 
 	if offset+limit >= length {
-		return length - offset
+		if offset > length {
+			logger.WithFields(logger.Fields{
+				"dex":    u.config.DexID,
+				"offset": offset,
+				"length": length,
+			}).Warn("[getBatchSize] offset is greater than length")
+		}
+		return max(length-offset, 0)
 	}
 
 	return limit
