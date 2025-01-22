@@ -261,7 +261,7 @@ func getBatchSize(length int, limit int, offset int) int {
 	}
 
 	if offset+limit >= length {
-		return length - offset
+		return max(length-offset, 0)
 	}
 
 	return limit
