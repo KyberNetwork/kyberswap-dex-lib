@@ -376,7 +376,7 @@ func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress strin
 		Method: slidingFeePluginFeeTypeMethod,
 	}, []interface{}{&cfg.FeeType})
 
-	if _, err = req.Call(); err != nil {
+	if _, err = req.Aggregate(); err != nil {
 		return SlidingFeeConfig{}, err
 	}
 
