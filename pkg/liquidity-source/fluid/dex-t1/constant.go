@@ -28,11 +28,12 @@ const (
 )
 
 var (
-	MaxPriceDiff           = big.NewInt(5)   // 5%
-	MinSwapLiquidity       = big.NewInt(0.85e4) // on-chain we use 1e4 but use extra buffer to avoid reverts
-	Fee100PercentPrecision = big.NewInt(1e6)
+	MaxPriceDiff     = big.NewInt(5)      // 5%
+	MinSwapLiquidity = big.NewInt(0.85e4) // on-chain we use 1e4 but use extra buffer to avoid reverts
 
-	bI100  = big.NewInt(100)
+	SIX_DECIMALS = big.NewInt(1e6)
+	TWO_DECIMALS = big.NewInt(1e2)
+
 	bI1e18 = bignumber.TenPowInt(18)
 	bI1e27 = bignumber.TenPowInt(27)
 )
