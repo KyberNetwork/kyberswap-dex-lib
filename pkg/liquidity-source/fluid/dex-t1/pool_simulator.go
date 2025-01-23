@@ -110,7 +110,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
-	fee = fee.Div(fee, Fee100PercentPrecision)
+	fee = fee.Div(fee, SIX_DECIMALS)
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
@@ -189,7 +189,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)
-	fee = fee.Div(fee, Fee100PercentPrecision)
+	fee = fee.Div(fee, SIX_DECIMALS)
 
 	amountInAfterFee := new(big.Int).Add(tokenAmountIn, fee)
 
@@ -555,7 +555,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), bI100)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TWO_DECIMALS)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, ErrInsufficientMaxPrice
@@ -627,6 +627,10 @@ func swapIn(
 		amountInAdjusted = new(big.Int).Div(amountIn, bignumber.TenPowInt(inDecimals-DexAmountsDecimals))
 	} else {
 		amountInAdjusted = new(big.Int).Mul(amountIn, bignumber.TenPowInt(DexAmountsDecimals-inDecimals))
+	}
+
+	if amountInAdjusted.Cmp(SIX_DECIMALS) < 0 || amountIn.Cmp(TWO_DECIMALS) < 0 {
+		return nil, ErrInvalidAmountIn
 	}
 
 	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits,
@@ -859,7 +863,7 @@ func swapOutAdjusted(
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), bI100)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TWO_DECIMALS)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, ErrInsufficientMaxPrice
