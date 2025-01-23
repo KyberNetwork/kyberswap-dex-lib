@@ -352,16 +352,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(279874986),
+					Amount: big.NewInt(1425476892),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(641334),
+					Amount: big.NewInt(3207826239749998),
 				},
 				SwapInfo: StateUpdate{
-					Liquidity: uint256.NewInt(0),
-					Price:     uint256.MustFromDecimal("4306310044"),
-					Tick:      -887221,
+					Liquidity: uint256.NewInt(35733795),
+					Price:     uint256.MustFromDecimal("2016016943697492749"),
+					Tick:      -487914,
 				},
 				Gas: mockGas,
 			},
@@ -430,16 +430,16 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(312383229),
+					Amount: big.NewInt(768004061),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(715591),
+					Amount: big.NewInt(1839166),
 				},
 				SwapInfo: StateUpdate{
-					Liquidity: uint256.NewInt(0),
-					Price:     uint256.MustFromDecimal("1457652066949847389969617340386294118487833376468"),
-					Tick:      887220,
+					Liquidity: uint256.NewInt(3480992933),
+					Price:     uint256.MustFromDecimal("86350404125395664252363004498"),
+					Tick:      1721,
 				},
 				Gas: mockGas,
 			},
