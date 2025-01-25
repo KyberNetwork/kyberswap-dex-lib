@@ -24,5 +24,4 @@ type StaticExtra struct {
 	UniversalRouterAddress common.Address `json:"universalRouterAddress"`
 	Permit2Address         common.Address `json:"permit2Address"`
 	Multicall3Address      common.Address `json:"multicall3Address"`
-	NativeTokenAddress     common.Address `json:"nativeTokenAddress"`
 }
