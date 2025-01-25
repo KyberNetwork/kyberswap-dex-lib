@@ -24,6 +24,7 @@ func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend 
 		startTime := time.Now()
 		requestID := requestid.ExtractRequestID(c)
 		clientID := clientid.ExtractClientID(c)
+		ja4 := requestid.ExtractJa4(c)
 
 		ctx := c.Request.Context()
 		span := trace.SpanFromContext(ctx)
@@ -60,6 +61,7 @@ func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend 
 			"request.body":       string(reqBody),
 			"request.client_ip":  c.ClientIP(),
 			"request.user_agent": c.Request.UserAgent(),
+			"request.ja4":        ja4,
 			"client.id":          clientID,
 			"span.id":            span.SpanContext().TraceID().String(),
 		}).Info("inbound request")
@@ -78,7 +80,7 @@ func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend 
 				"response.duration_ms": time.Since(startTime).Milliseconds(),
 			}).
 			Info("inbound response")
-		metrics.CountRequest(c, clientID, blw.Status())
+		metrics.CountRequest(c, clientID, ja4, blw.Status())
 	}
 }
 

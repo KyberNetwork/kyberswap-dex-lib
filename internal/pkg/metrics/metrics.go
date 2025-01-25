@@ -57,8 +57,9 @@ func CountFindRouteCache(ctx context.Context, cacheHit bool, kvTags ...string) {
 	add(ctx, counterFindRouteCache, 1, append(kvTags, "hit", strconv.FormatBool(cacheHit))...)
 }
 
-func CountRequest(ctx context.Context, clientID string, responseStatus int) {
-	add(ctx, counterRequestCount, 1, "client_id", clientID, "http_status", kutils.Itoa(responseStatus))
+func CountRequest(ctx context.Context, clientID, ja4 string, responseStatus int) {
+	add(ctx, counterRequestCount, 1, "client_id", clientID, "ja4", ja4,
+		"http_status", kutils.Itoa(responseStatus))
 }
 
 func CountInvalidSynthetixVolume(ctx context.Context) {
