@@ -69,6 +69,7 @@ import (
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -283,6 +284,7 @@ type Types struct {
 	BeetsSS                        string
 	SwapXV2                        string
 	EtherFieBTC                    string
+	UniswapV4                      string
 }
 
 var (
@@ -432,5 +434,6 @@ var (
 		BeetsSS:                        beetsss.DexType,
 		SwapXV2:                        swapxv2.DexType,
 		EtherFieBTC:                    etherfiebtc.DexType,
+		UniswapV4:                      uniswapv4.DexType,
 	}
 )
