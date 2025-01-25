@@ -1,8 +1,11 @@
 package uniswapv4
 
 type Config struct {
-	DexID              string `json:"dexID"`
-	SubgraphAPI        string `json:"subgraphAPI"`
-	PoolManagerAddress string `json:"poolManagerAddress"`
-	NewPoolLimit       int    `json:"newPoolLimit"`
+	ChainID                int    `json:"chainID"`
+	DexID                  string `json:"dexID"`
+	SubgraphAPI            string `json:"subgraphAPI"`
+	UniversalRouterAddress string `json:"universalRouterAddress"`
+	Permit2Address         string `json:"permit2Address"`
+	Multicall3Address      string `json:"multicall3Address"`
+	NewPoolLimit           int    `json:"newPoolLimit"`
 }
