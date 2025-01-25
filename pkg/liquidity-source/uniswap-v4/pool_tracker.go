@@ -50,14 +50,14 @@ func (t *PoolTracker) GetNewPoolState(
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
-		Target: staticExtra.StateViewAddress.Hex(),
+		Target: t.config.StateViewAddress,
 		Method: "getLiquidity",
 		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
 	}, []interface{}{&liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
-		Target: staticExtra.StateViewAddress.Hex(),
+		Target: t.config.StateViewAddress,
 		Method: "getSlot0",
 		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
 	}, []interface{}{&slot0})
