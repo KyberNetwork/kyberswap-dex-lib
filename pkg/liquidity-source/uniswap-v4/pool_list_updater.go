@@ -86,6 +86,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Permit2Address:         common.HexToAddress(u.config.Permit2Address),
 			Multicall3Address:      common.HexToAddress(u.config.Multicall3Address),
 			NativeTokenAddress:     common.HexToAddress(valueobject.WrappedNativeMap[chainID]),
+			StateViewAddress:       common.HexToAddress(u.config.StateViewAddress),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

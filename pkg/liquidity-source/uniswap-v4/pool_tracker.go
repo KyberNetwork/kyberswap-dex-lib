@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolTracker struct {
@@ -40,35 +41,34 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var slot0 struct {
 		SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-		// Tick         int64    `json:"tick"`
-		// ProtocolFee  *big.Int `json:"protocolFee"`
-		// LpFee        *big.Int `json:"lpFee"`
+		Tick         *big.Int `json:"tick"`
+		ProtocolFee  *big.Int `json:"protocolFee"`
+		LpFee        *big.Int `json:"lpFee"`
 	}
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
 
-	calls.AddCall(&ethrpc.Call{
+	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: staticExtra.StateViewAddress.Hex(),
 		Method: "getLiquidity",
-		Params: []interface{}{staticExtra.PoolId},
+		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
 	}, []interface{}{&liquidity})
 
-	calls.AddCall(&ethrpc.Call{
+	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: staticExtra.StateViewAddress.Hex(),
 		Method: "getSlot0",
-		Params: []interface{}{staticExtra.PoolId},
+		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
 	}, []interface{}{&slot0})
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := rpcRequests.Aggregate(); err != nil {
 		return p, nil
 	}
 
-	// reserve0 = liquidity * Q192 / sqrtPriceX96 / Q96
-	reserve0 := new(big.Int).Mul(liquidity, Q192)
+	// reserve0 = liquidity / sqrtPriceX96 * Q96
+	reserve0 := new(big.Int).Mul(liquidity, Q96)
 	reserve0.Div(reserve0, slot0.SqrtPriceX96)
-	reserve0.Div(reserve0, Q96)
 
 	// reserve1 = liquidity * sqrtPriceX96 / Q96
 	reserve1 := new(big.Int).Mul(liquidity, slot0.SqrtPriceX96)
