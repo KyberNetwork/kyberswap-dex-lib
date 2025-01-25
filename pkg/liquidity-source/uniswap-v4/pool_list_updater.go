@@ -100,6 +100,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Exchange:    u.config.DexID,
 			Type:        DexType,
+			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 			Timestamp:   time.Now().Unix(),
 		}
