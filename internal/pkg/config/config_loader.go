@@ -174,6 +174,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setAvailableSources(remoteCfg.AvailableSources)
 		cl.setUnscalableSources(remoteCfg.UnscalableSources)
 		cl.setExcludedSourcesByClient(remoteCfg.ExcludedSourcesByClient)
+		cl.setDexUseAEVM(remoteCfg.DexUseAEVM)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
@@ -245,6 +246,15 @@ func (cl *ConfigLoader) setExcludedSourcesByClient(sourcesByClient map[string][]
 	cl.config.Common.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetCustomRoute.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetRoute.ExcludedSourcesByClient = newSourcesByClient
+}
+
+func (cl *ConfigLoader) setDexUseAEVM(dexUseAEVM map[string]bool) {
+	if cl.config.UseCase.PoolFactory.DexUseAEVM == nil {
+		cl.config.UseCase.PoolFactory.DexUseAEVM = make(map[string]bool)
+	}
+	for dex, useAEVM := range dexUseAEVM {
+		cl.config.UseCase.PoolFactory.DexUseAEVM[dex] = useAEVM
+	}
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {

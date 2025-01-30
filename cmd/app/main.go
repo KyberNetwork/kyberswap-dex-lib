@@ -21,6 +21,8 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/reload"
+	"github.com/KyberNetwork/service-framework/pkg/client"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
@@ -203,6 +205,24 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
+	batchableEthCli, err := (&client.BatchableEthCfg{
+		EthCfg: client.EthCfg{
+			Url: cfg.Common.RPC,
+		},
+		BatchRate: 5 * time.Millisecond,
+		BatchCnt:  32,
+		BackOff: &client.BackoffCfg{
+			ExponentialBackOff: backoff.ExponentialBackOff{
+				InitialInterval: 1 * time.Microsecond,
+				Multiplier:      16,
+			},
+			MaxRetries: 2,
+		},
+	}).Dial(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "fail to init batchable eth client, err: %v", err)
+		return err
+	}
 
 	// init repositories
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
@@ -217,7 +237,8 @@ func apiAction(c *cli.Context) (err error) {
 	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, common.HexToAddress(cfg.Encoder.RouterAddress))
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -322,7 +343,7 @@ func apiAction(c *cli.Context) (err error) {
 		defer aevmClient.Close()
 	}
 
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, batchableEthCli, aevmClient, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
 		GetPoolsIncludingBasePools, cfg.UseCase.PoolManager, aevmClient, poolsPublisher, balanceSlotsUseCase)
 	if err != nil {
@@ -572,7 +593,8 @@ func indexerAction(c *cli.Context) (err error) {
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -726,7 +748,7 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	}
 
 	// init repository
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil, nil)
 	executorBalanceRepository := executorbalance.NewRedisRepository(
 		routerRedisClient.Client,
 		executorbalance.Config{
@@ -907,7 +929,8 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
 
 	tokenRepository := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)),
+		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
@@ -933,15 +956,17 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+		cfg.Repository.OnchainPrice.Ristretto)
 	if err != nil {
 		return err
 	}
 	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	getPools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
-	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, aevmClient, balanceSlotsUseCase)
+	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository,
+		getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
 	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
 	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)
@@ -952,7 +977,8 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	}
 	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,
 		&cfg.Job.LiquidityScoreIndexPools.PoolEvent.ConsumerConfig)
-	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools, removePoolUsecase, poolEventStreamConsumer, cfg.Job.LiquidityScoreIndexPools)
+	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools,
+		removePoolUsecase, poolEventStreamConsumer, cfg.Job.LiquidityScoreIndexPools)
 
 	reloadManager := reload.NewManager()
 
@@ -998,7 +1024,9 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	return g.Wait()
 }
 
-func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRedisClient *redis.Redis) (erc20balanceslotuc.ICache, aevmclientuc.IAEVMClientUseCase, poolmanager.IPoolsPublisher, error) {
+func initializeAEVMComponents(ctx context.Context, cfg *config.Config,
+	routerRedisClient *redis.Redis) (erc20balanceslotuc.ICache, aevmclientuc.IAEVMClientUseCase,
+	poolmanager.IPoolsPublisher, error) {
 	balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
 		cfg.Repository.ERC20BalanceSlot.Redis)
 	rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
@@ -1041,9 +1069,10 @@ func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRed
 			MaxRetry:                  cfg.AEVM.MaxRetry,
 		},
 		func(serverURL string) (aevmclient.Client, error) {
-			return aevmclientuc.NewFixedPooledClient(clientPoolSize, serverURL, func(serverURL string) (aevmclient.Client, error) {
-				return aevmclient.NewGRPCClient(serverURL)
-			})
+			return aevmclientuc.NewFixedPooledClient(clientPoolSize, serverURL,
+				func(serverURL string) (aevmclient.Client, error) {
+					return aevmclient.NewGRPCClient(serverURL)
+				})
 		},
 	)
 	if err != nil {

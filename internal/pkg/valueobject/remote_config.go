@@ -11,6 +11,7 @@ type (
 		AvailableSources        []Source            `json:"availableSources"`
 		UnscalableSources       []Source            `json:"unscalableSources"`
 		ExcludedSourcesByClient map[string][]Source `json:"excludedSourcesByClient"`
+		DexUseAEVM              map[string]bool     `json:"dexUseAEVM"`
 		WhitelistedTokens       []WhitelistedToken  `json:"whitelistedTokens"`
 		FeatureFlags            FeatureFlags        `json:"featureFlags"`
 		BlacklistedPools        []string            `json:"blacklistedPools"`

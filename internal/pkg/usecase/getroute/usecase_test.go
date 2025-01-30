@@ -137,7 +137,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 			},
 		},
 	}
-	poolFactory := poolfactory.NewPoolFactory(poolfactory.Config{}, nil, nil)
+	poolFactory := poolfactory.NewPoolFactory(poolfactory.Config{}, nil, nil, nil)
 	pools := poolFactory.NewPools(context.Background(), entityPools, common.Hash{})
 
 	// Mock IPoolRankRepository

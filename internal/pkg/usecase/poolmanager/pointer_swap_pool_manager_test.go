@@ -390,7 +390,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 	factory := poolfactory.NewPoolFactory(poolfactory.Config{
 		ChainID: 1,
 		UseAEVM: false,
-	}, nil, nil)
+	}, nil, nil, nil)
 	memPoolSimulators := factory.NewPools(context.TODO(), memPools, common.Hash{})
 	for _, si := range memPoolSimulators {
 		memPoolSimulatorsByAddresses[si.GetAddress()] = si
