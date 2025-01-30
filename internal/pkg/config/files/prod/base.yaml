@@ -99,6 +99,7 @@ common:
     - "lo1inch"
     - "virtual-fun"
     - "etherfi-ebtc"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -122,6 +123,7 @@ common:
     amountInThreshold: 10000
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
+    uniswap-v4: true
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
@@ -253,6 +255,7 @@ encoder:
     executeEtherVista: 60
     executeVirtualBC: 61
     executeEtherFieBtc: 63
+    executeUniV4: 65
 useCase:
   getRoute:
     chainId: *chainId
@@ -423,7 +426,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/base"
             timeout: 10s

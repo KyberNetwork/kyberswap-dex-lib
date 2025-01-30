@@ -99,6 +99,7 @@ common:
     - "lo1inch"
     - "virtual-fun"
     - "etherfi-ebtc"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -125,6 +126,7 @@ common:
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
+    uniswap-v4: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -254,6 +256,7 @@ encoder:
     executeEtherVista: 60
     executeVirtualBC: 61
     executeEtherFieBtc: 63
+    executeUniV4: 65
 useCase:
   getRoute:
     chainId: *chainId
@@ -425,7 +428,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/base"
             timeout: 10s

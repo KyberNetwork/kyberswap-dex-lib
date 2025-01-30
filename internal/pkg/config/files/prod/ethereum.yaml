@@ -155,6 +155,7 @@ common:
     - "mx-trading"
     - "lo1inch"
     - "etherfi-ebtc"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -183,6 +184,7 @@ common:
     liquiditybook-v21: false
     ambient: true
     maverick-v2: true
+    uniswap-v4: true
   useAEVM: &useAEVM false
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"

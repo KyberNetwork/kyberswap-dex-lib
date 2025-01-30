@@ -11,6 +11,7 @@ import (
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
 	ambientaevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/ambient"
 	maverickv2aevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/maverick-v2"
+	uniswapv4aevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
@@ -122,7 +123,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
@@ -308,10 +308,10 @@ func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*typ
 
 func (f *PoolFactory) CloneCurveMetaForBasePools(
 	ctx context.Context,
-	allPools map[string]pool.IPoolSimulator,
-	basePools map[string]pool.IPoolSimulator,
-) []pool.IPoolSimulator {
-	var cloned []pool.IPoolSimulator
+	allPools map[string]poolpkg.IPoolSimulator,
+	basePools map[string]poolpkg.IPoolSimulator,
+) []poolpkg.IPoolSimulator {
+	var cloned []poolpkg.IPoolSimulator
 
 	for _, pool := range allPools {
 		if pool.GetType() == pooltypes.PoolTypes.CurveMeta {
@@ -757,6 +757,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newBeetsSS(entityPool)
 	case pooltypes.PoolTypes.EtherFieBTC:
 		return f.newEtherFieBTC(entityPool)
+	case pooltypes.PoolTypes.UniswapV4:
+		return f.getAEVMDexHandler(pooltypes.PoolTypes.UniswapV4, entityPool, stateRoot, f.newUniswapV4AEVM, nil)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2640,4 +2642,26 @@ func (f *PoolFactory) newEtherFieBTC(entityPool entity.Pool) (*etherfiebtc.PoolS
 	}
 
 	return corePool, nil
+}
+
+func (f *PoolFactory) newUniswapV4AEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
+	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
+
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	aevmPool, err := uniswapv4aevm.NewPoolAEVM(
+		entityPool,
+		f.client,
+		stateRoot,
+		balanceSlots,
+	)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUniswapV4AEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.client), nil
 }

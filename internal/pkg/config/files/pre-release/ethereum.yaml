@@ -145,6 +145,7 @@ common:
     - "mx-trading"
     - "lo1inch"
     - "etherfi-ebtc"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -179,6 +180,7 @@ common:
     liquiditybook-v21: false
     ambient: true
     maverick-v2: true
+    uniswap-v4: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -464,7 +466,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s

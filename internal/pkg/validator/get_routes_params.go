@@ -46,9 +46,6 @@ func (v *getRoutesParamsValidator) ValidateBundled(params params.GetBundledRoute
 		return err
 	}
 
-	if err := v.validateExcludedPools(params.ExcludedPools); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -81,9 +78,6 @@ func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error
 		return err
 	}
 
-	if err := v.validateExcludedPools(params.ExcludedPools); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -187,16 +181,6 @@ func (v *getRoutesParamsValidator) validateSources(sources string) error {
 	for _, dex := range dexes {
 		if !valueobject.IsAnExchange(valueobject.Exchange(dex)) {
 			return NewValidationError("AvailableSources", "invalid")
-		}
-	}
-	return nil
-}
-
-func (v *getRoutesParamsValidator) validateExcludedPools(excludedPools string) error {
-	pools := utils.TransformSliceParams(excludedPools)
-	for _, pool := range pools {
-		if !IsEthereumAddress(pool) {
-			return NewValidationError("excludedPools", "invalid")
 		}
 	}
 	return nil

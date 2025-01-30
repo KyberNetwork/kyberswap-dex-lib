@@ -119,6 +119,7 @@ common:
     - "mx-trading"
     - "lo1inch"
     - "etherfi-ebtc"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -145,6 +146,7 @@ common:
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
+    uniswap-v4: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: debug
@@ -275,6 +277,7 @@ encoder:
     executeClipperRfq: 58
     executeKtx: 59
     executeEtherFieBtc: 63
+    executeUniV4: 65
 useCase:
   getRoute:
     chainId: *chainId
@@ -459,7 +462,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/arbitrum"
             timeout: 10s
