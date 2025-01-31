@@ -21,13 +21,14 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/reload"
-	"github.com/KyberNetwork/service-framework/pkg/client"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/sync/errgroup"
 
@@ -204,13 +205,12 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
-	gethCli, err := (&client.EthCfg{
-		Url: cfg.Common.RPC,
-	}).Dial(ctx)
+	rpcClient, err := rpc.DialOptions(ctx, cfg.Common.RPC,
+		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil), Timeout: 100*time.Millisecond}))
 	if err != nil {
 		logger.Errorf(ctx, "fail to init geth client, err: %v", err)
-		return err
 	}
+	gethCli := ethclient.NewClient(rpcClient)
 
 	// init repositories
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
