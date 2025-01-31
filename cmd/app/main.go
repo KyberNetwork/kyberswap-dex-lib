@@ -205,7 +205,7 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
-	batchableEthCli, err := (&client.BatchableEthCfg{
+	batchableEthCfg := &client.BatchableEthCfg{
 		EthCfg: client.EthCfg{
 			Url: cfg.Common.RPC,
 		},
@@ -218,8 +218,10 @@ func apiAction(c *cli.Context) (err error) {
 			},
 			MaxRetries: 2,
 		},
-	}).Dial(ctx)
-	if err != nil {
+	}
+	batchableEthCfg.OnUpdate(nil, batchableEthCfg)
+	batchableEthCli := batchableEthCfg.C
+	if batchableEthCli == nil {
 		logger.Errorf(ctx, "fail to init batchable eth client, err: %v", err)
 		return err
 	}
