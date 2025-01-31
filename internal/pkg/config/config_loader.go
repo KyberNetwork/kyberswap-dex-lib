@@ -252,8 +252,16 @@ func (cl *ConfigLoader) setDexUseAEVM(dexUseAEVM map[string]bool) {
 	if cl.config.UseCase.PoolFactory.DexUseAEVM == nil {
 		cl.config.UseCase.PoolFactory.DexUseAEVM = make(map[string]bool)
 	}
+	if cl.config.UseCase.GetRoute.Aggregator.DexUseAEVM == nil {
+		cl.config.UseCase.GetRoute.Aggregator.DexUseAEVM = make(map[string]bool)
+	}
+	if cl.config.UseCase.TradeDataGenerator.DexUseAEVM == nil {
+		cl.config.UseCase.TradeDataGenerator.DexUseAEVM = make(map[string]bool)
+	}
 	for dex, useAEVM := range dexUseAEVM {
 		cl.config.UseCase.PoolFactory.DexUseAEVM[dex] = useAEVM
+		cl.config.UseCase.GetRoute.Aggregator.DexUseAEVM[dex] = useAEVM
+		cl.config.UseCase.TradeDataGenerator.DexUseAEVM[dex] = useAEVM
 	}
 }
 
