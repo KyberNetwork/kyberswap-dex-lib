@@ -22,7 +22,6 @@ import (
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/reload"
 	"github.com/KyberNetwork/service-framework/pkg/client"
-	"github.com/cenkalti/backoff/v4"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
@@ -205,24 +204,11 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
-	batchableEthCfg := &client.BatchableEthCfg{
-		EthCfg: client.EthCfg{
-			Url: cfg.Common.RPC,
-		},
-		BatchRate: 5 * time.Millisecond,
-		BatchCnt:  32,
-		BackOff: &client.BackoffCfg{
-			ExponentialBackOff: backoff.ExponentialBackOff{
-				InitialInterval: 1 * time.Microsecond,
-				Multiplier:      16,
-			},
-			MaxRetries: 2,
-		},
-	}
-	batchableEthCfg.OnUpdate(nil, batchableEthCfg)
-	batchableEthCli := batchableEthCfg.C
-	if batchableEthCli == nil {
-		logger.Errorf(ctx, "fail to init batchable eth client, err: %v", err)
+	gethCli, err := (&client.EthCfg{
+		Url: cfg.Common.RPC,
+	}).Dial(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "fail to init geth client, err: %v", err)
 		return err
 	}
 
@@ -345,7 +331,7 @@ func apiAction(c *cli.Context) (err error) {
 		defer aevmClient.Close()
 	}
 
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, batchableEthCli, aevmClient, balanceSlotsUseCase)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, gethCli, aevmClient, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
 		GetPoolsIncludingBasePools, cfg.UseCase.PoolManager, aevmClient, poolsPublisher, balanceSlotsUseCase)
 	if err != nil {

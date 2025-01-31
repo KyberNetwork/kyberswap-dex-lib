@@ -33,7 +33,6 @@ type Config struct {
 	PregenRedis    redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
 	PoolRedis      redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
 	PoolEventRedis redis.Config              `mapstructure:"poolEventRedis" json:"poolEventRedis"`
-	DogstatsdHost  string                    `mapstructure:"ddAgentHost" json:"ddAgentHost"`
 	KeyPair        KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
 	ReloadConfig   reloadconfig.ReloadConfig `mapstructure:"reloadConfig" json:"reloadConfig"`
 	SecretKey      string                    `mapstructure:"secretKey" json:"-"`

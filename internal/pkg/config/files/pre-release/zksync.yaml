@@ -118,7 +118,6 @@ poolEventRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
-ddAgentHost: ""
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:

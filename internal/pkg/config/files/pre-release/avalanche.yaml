@@ -151,7 +151,6 @@ poolEventRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
-ddAgentHost: ""
 enableGRPC: false
 keyPair:
   storageFilePath: ""
