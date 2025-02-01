@@ -221,6 +221,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeEtherFieBtc
 	dexValueObject.ExchangeEtherFieBTC: {},
+
+	// executeUniV4
+	dexValueObject.ExchangeUniswapV4: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
