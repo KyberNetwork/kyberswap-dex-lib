@@ -18,7 +18,7 @@ require (
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
 	github.com/KyberNetwork/kyberswap-dex-lib v0.88.0
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.5.1-0.20250130190725-98bcab42675a
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.5.2-0.20250201070734-6b9dead21ebb
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pathfinder-lib v0.1.8
@@ -62,6 +62,7 @@ require (
 	github.com/tdewolff/minify/v2 v2.12.4
 	github.com/urfave/cli/v2 v2.27.3
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.52.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
 	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/metric v1.28.0
 	go.opentelemetry.io/otel/trace v1.28.0
@@ -158,7 +159,6 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
