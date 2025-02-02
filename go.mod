@@ -18,7 +18,7 @@ require (
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
 	github.com/KyberNetwork/kyberswap-dex-lib v0.88.0
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.5.2-0.20250202084029-059081eef7b1
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.5.2-0.20250202093830-f1cf34a85394
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pathfinder-lib v0.1.8
