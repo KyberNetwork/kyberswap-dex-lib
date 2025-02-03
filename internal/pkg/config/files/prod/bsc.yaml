@@ -78,6 +78,7 @@ common:
     - "ktx"
     - "lo1inch"
     - "thena-fusion-v3"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

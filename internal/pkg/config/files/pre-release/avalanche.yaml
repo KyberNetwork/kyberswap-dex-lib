@@ -79,6 +79,7 @@ common:
     - "bebop"
     - "dexalot"
     - "lo1inch"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

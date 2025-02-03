@@ -78,6 +78,7 @@ common:
     - "bebop"
     - "clipper"
     - "lo1inch"
+    - "uniswap-v4"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -214,6 +215,7 @@ encoder:
     executeBebop: 46
     executeBatchOneInchV6: 54
     executeClipperRfq: 58
+    executeUniV4: 65
 useCase:
   getRoute:
     chainId: *chainId
