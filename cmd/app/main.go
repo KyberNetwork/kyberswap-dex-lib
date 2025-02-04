@@ -205,8 +205,12 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
+	rpcTimeout := cfg.Common.RPCTimeout
+	if rpcTimeout == 0 {
+		rpcTimeout = 100 * time.Millisecond
+	}
 	rpcClient, err := rpc.DialOptions(ctx, cfg.Common.RPC,
-		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil), Timeout: 100 * time.Millisecond}))
+		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil), Timeout: rpcTimeout}))
 	if err != nil {
 		logger.Errorf(ctx, "fail to init geth client, err: %v", err)
 	}

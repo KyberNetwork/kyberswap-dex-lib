@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
@@ -15,6 +16,7 @@ type Common struct {
 	ChainID                 valueobject.ChainID      `mapstructure:"chainId"`
 	ChainName               string                   `mapstructure:"chainName"`
 	RPC                     string                   `mapstructure:"rpc"`
+	RPCTimeout              time.Duration            `mapstructure:"rpcTimeout"`
 	ExecutorAddress         string                   `mapstructure:"executorAddress"`
 	RouterAddress           string                   `mapstructure:"routerAddress"`
 	GasTokenAddress         string                   `mapstructure:"gasTokenAddress"`
