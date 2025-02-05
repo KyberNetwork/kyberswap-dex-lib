@@ -48,6 +48,8 @@ common:
     - "curve-stable-plain"
     - "curve-tricrypto-ng"
     - "curve-twocrypto-ng"
+    - "navigator"
+    - "memebox"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
