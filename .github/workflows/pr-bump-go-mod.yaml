@@ -10,4 +10,4 @@ jobs:
     uses: KyberNetwork/service-framework/.github/workflows/pr-bump-go-mod.yaml@main
     secrets: inherit
     with:
-      repos: '["aggregator-encoding", "pool-service", "router-service"]'
+      repos: '["aggregator-encoding", "pool-service", "router-service", "zap-service"]'
