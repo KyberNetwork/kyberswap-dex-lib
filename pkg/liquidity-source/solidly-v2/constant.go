@@ -22,4 +22,8 @@ const (
 	poolMethodMetadata    = "metadata"
 	poolMethodGetReserves = "getReserves"
 	poolMethodFeeRatio    = "feeRatio"
+
+	memecoreMethodPoolFee = "poolFee"
+	memecoreMethodToken0  = "token0"
+	memecoreMethodToken1  = "token1"
 )

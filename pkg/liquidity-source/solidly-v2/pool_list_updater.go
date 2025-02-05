@@ -52,7 +52,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if poolFactoryData.IsPaused {
+	if poolFactoryData.IsPaused && !u.config.IsMemecoreDEX {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID}).
 			Info("factory is paused")
@@ -122,7 +122,7 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (velodromev2.
 		Params: nil,
 	}, []interface{}{&pairFactoryData.AllPairsLength})
 
-	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
+	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return velodromev2.PoolFactoryData{}, err
 	}
 
@@ -182,7 +182,49 @@ func (u *PoolsListUpdater) initPools(
 	poolAddresses []common.Address,
 	poolFactoryData velodromev2.PoolFactoryData,
 ) ([]entity.Pool, error) {
-	metadataList, stableFee, volatileFee, blockNumber, err := u.listPoolData(ctx, poolAddresses)
+	if u.config.IsMemecoreDEX {
+		return u.listMemecorePools(ctx, poolAddresses)
+	}
+
+	return u.listStandardPools(ctx, poolAddresses, poolFactoryData)
+}
+
+func (u *PoolsListUpdater) listStandardPools(
+	ctx context.Context,
+	poolAddresses []common.Address,
+	poolFactoryData velodromev2.PoolFactoryData,
+) ([]entity.Pool, error) {
+	var (
+		stableFee   = ZERO
+		volatileFee = ZERO
+
+		poolMetadataList = make([]PoolMetadata, len(poolAddresses))
+	)
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodStableFees,
+		Params: []interface{}{},
+	}, []interface{}{&stableFee})
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodVolatileFees,
+		Params: []interface{}{},
+	}, []interface{}{&volatileFee})
+
+	for i, poolAddress := range poolAddresses {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress.Hex(),
+			Method: poolMethodMetadata,
+			Params: nil,
+		}, []interface{}{&poolMetadataList[i]})
+	}
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +232,7 @@ func (u *PoolsListUpdater) initPools(
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 	for i, poolAddress := range poolAddresses {
 		fee := volatileFee
-		if metadataList[i].St {
+		if poolMetadataList[i].St {
 			fee = stableFee
 		}
 
@@ -202,7 +244,7 @@ func (u *PoolsListUpdater) initPools(
 			continue
 		}
 
-		staticExtra, err := u.newStaticExtra(metadataList[i])
+		staticExtra, err := u.newStaticExtra(poolMetadataList[i])
 		if err != nil {
 			logger.
 				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
@@ -214,16 +256,16 @@ func (u *PoolsListUpdater) initPools(
 			Address:     strings.ToLower(poolAddress.Hex()),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
-			BlockNumber: blockNumber.Uint64(),
+			BlockNumber: resp.BlockNumber.Uint64(),
 			Timestamp:   time.Now().Unix(),
-			Reserves:    []string{metadataList[i].R0.String(), metadataList[i].R1.String()},
+			Reserves:    []string{poolMetadataList[i].R0.String(), poolMetadataList[i].R1.String()},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(metadataList[i].T0.String()),
+					Address:   strings.ToLower(poolMetadataList[i].T0.String()),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(metadataList[i].T1.String()),
+					Address:   strings.ToLower(poolMetadataList[i].T1.String()),
 					Swappable: true,
 				},
 			},
@@ -238,60 +280,74 @@ func (u *PoolsListUpdater) initPools(
 }
 
 // listPairTokens receives list of pair addresses and returns their token0 and token1
-func (u *PoolsListUpdater) listPoolData(
+func (u *PoolsListUpdater) listMemecorePools(
 	ctx context.Context,
 	poolAddresses []common.Address,
-) ([]PoolMetadata, *big.Int, *big.Int, *big.Int, error) {
+) ([]entity.Pool, error) {
 	var (
-		stableFee    = ZERO
-		volatileFees = ZERO
-
-		poolMetadataList = make([]PoolMetadata, len(poolAddresses))
+		token0List = make([]common.Address, len(poolAddresses))
+		token1List = make([]common.Address, len(poolAddresses))
 	)
 
-	listPoolMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	listPoolMetadataRequest.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: u.config.FactoryAddress,
-		Method: factoryMethodStableFees,
-		Params: []interface{}{},
-	}, []interface{}{&stableFee})
-	listPoolMetadataRequest.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: u.config.FactoryAddress,
-		Method: factoryMethodVolatileFees,
-		Params: []interface{}{},
-	}, []interface{}{&volatileFees})
-
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, poolAddress := range poolAddresses {
-		listPoolMetadataRequest.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
+		req.AddCall(&ethrpc.Call{
+			ABI:    memecoreABI,
 			Target: poolAddress.Hex(),
-			Method: poolMethodMetadata,
-			Params: nil,
-		}, []interface{}{&poolMetadataList[i]})
+			Method: memecoreMethodToken0,
+			Params: []interface{}{},
+		}, []interface{}{&token0List[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI:    memecoreABI,
+			Target: poolAddress.Hex(),
+			Method: memecoreMethodToken1,
+			Params: []interface{}{},
+		}, []interface{}{&token1List[i]})
 	}
-
-	resp, err := listPoolMetadataRequest.Aggregate()
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return poolMetadataList, stableFee, volatileFees, resp.BlockNumber, nil
-}
-
-func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
-	metadata := velodromev2.PoolsListUpdaterMetadata{
-		Offset: newOffset,
-	}
-
-	metadataBytes, err := json.Marshal(metadata)
+	resp, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
 
-	return metadataBytes, nil
+	pools := make([]entity.Pool, 0, len(poolAddresses))
+	for i, poolAddress := range poolAddresses {
+		staticExtra, err := json.Marshal(&PoolStaticExtra{
+			PoolStaticExtra: velodromev2.PoolStaticExtra{
+				FeePrecision: u.config.FeePrecision,
+			},
+			IsMemecoreDEX: true,
+		})
+		if err != nil {
+			logger.
+				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
+				Error("failed to marshal staticExtra")
+			continue
+		}
+
+		newPool := entity.Pool{
+			Address:     strings.ToLower(poolAddress.Hex()),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			BlockNumber: resp.BlockNumber.Uint64(),
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens: []*entity.PoolToken{
+				{
+					Address:   strings.ToLower(token0List[i].Hex()),
+					Swappable: true,
+				},
+				{
+					Address:   strings.ToLower(token1List[i].Hex()),
+					Swappable: true,
+				},
+			},
+			StaticExtra: string(staticExtra),
+		}
+
+		pools = append(pools, newPool)
+	}
+
+	return pools, nil
 }
 
 func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error) {
@@ -314,14 +370,29 @@ func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, er
 		return nil, errors.New("dec1 overflow")
 	}
 
-	staticExtra := velodromev2.PoolStaticExtra{
-		FeePrecision: u.config.FeePrecision,
-		Decimal0:     decimal0,
-		Decimal1:     decimal1,
-		Stable:       poolMetadata.St,
+	staticExtra := PoolStaticExtra{
+		PoolStaticExtra: velodromev2.PoolStaticExtra{
+			FeePrecision: u.config.FeePrecision,
+			Decimal0:     decimal0,
+			Decimal1:     decimal1,
+			Stable:       poolMetadata.St,
+		},
 	}
 
 	return json.Marshal(staticExtra)
+}
+
+func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
+	metadata := velodromev2.PoolsListUpdaterMetadata{
+		Offset: newOffset,
+	}
+
+	metadataBytes, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadataBytes, nil
 }
 
 // getBatchSize

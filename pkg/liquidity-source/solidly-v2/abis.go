@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	poolABI    abi.ABI
-	factoryABI abi.ABI
+	poolABI     abi.ABI
+	factoryABI  abi.ABI
+	memecoreABI abi.ABI
 )
 
 func init() {
@@ -21,6 +22,9 @@ func init() {
 		},
 		{
 			&factoryABI, factoryABIJson,
+		},
+		{
+			&memecoreABI, memecoreABIJson,
 		},
 	}
 

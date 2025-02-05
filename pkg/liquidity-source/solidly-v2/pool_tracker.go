@@ -67,19 +67,63 @@ func (d *PoolTracker) getNewPoolState(
 			Info("Finished getting new pool state")
 	}()
 
-	reserveData, isPaused, fee, blockNumber, err := d.getPoolData(ctx, p.Address, overrides)
-	if err != nil {
-		return p, err
+	if d.config.IsMemecoreDEX {
+		return d.updateMemecorePool(ctx, p, overrides)
 	}
 
-	return d.updatePool(p, reserveData, isPaused, fee, blockNumber)
+	return d.updateStandardPool(ctx, p, overrides)
 }
 
-func (d *PoolTracker) getPoolData(
+func (d *PoolTracker) updateMemecorePool(
 	ctx context.Context,
-	poolAddress string,
+	pool entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (velodromev2.ReserveData, bool, uint64, uint64, error) {
+) (entity.Pool, error) {
+	var (
+		poolFee           uint16
+		getReservesResult MemecoreReserves
+	)
+
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    memecoreABI,
+		Target: pool.Address,
+		Method: memecoreMethodPoolFee,
+		Params: []interface{}{},
+	}, []interface{}{&poolFee})
+	req.AddCall(&ethrpc.Call{
+		ABI:    memecoreABI,
+		Target: pool.Address,
+		Method: poolMethodGetReserves,
+		Params: nil,
+	}, []interface{}{&getReservesResult})
+
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	reserves := velodromev2.ReserveData{
+		Reserve0: getReservesResult.Reserve0,
+		Reserve1: getReservesResult.Reserve1,
+	}
+
+	poolExtra := velodromev2.PoolExtra{
+		Fee: uint64(poolFee),
+	}
+
+	return d.updatePool(pool, reserves, poolExtra, resp.BlockNumber.Uint64())
+}
+
+func (d *PoolTracker) updateStandardPool(
+	ctx context.Context,
+	pool entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	var (
 		isPaused          bool
 		fee               *big.Int
@@ -99,42 +143,42 @@ func (d *PoolTracker) getPoolData(
 	}, []interface{}{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddress,
+		Target: pool.Address,
 		Method: poolMethodFeeRatio,
 		Params: []interface{}{},
 	}, []interface{}{&fee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: poolAddress,
+		Target: pool.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
 	}, []interface{}{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return velodromev2.ReserveData{}, false, 0, 0, err
+		return entity.Pool{}, err
 	}
 
-	return velodromev2.ReserveData{
+	reserves := velodromev2.ReserveData{
 		Reserve0: getReservesResult.Reserve0,
 		Reserve1: getReservesResult.Reserve1,
-	}, isPaused, fee.Uint64(), resp.BlockNumber.Uint64(), nil
+	}
 
+	poolExtra := velodromev2.PoolExtra{
+		IsPaused: isPaused,
+		Fee:      fee.Uint64(),
+	}
+
+	return d.updatePool(pool, reserves, poolExtra, resp.BlockNumber.Uint64())
 }
 
 func (d *PoolTracker) updatePool(
 	pool entity.Pool,
 	reserveData velodromev2.ReserveData,
-	isPaused bool,
-	fee uint64,
+	poolExtra velodromev2.PoolExtra,
 	blockNumber uint64) (entity.Pool, error) {
 	if pool.BlockNumber > blockNumber {
 		return pool, nil
-	}
-
-	poolExtra := velodromev2.PoolExtra{
-		IsPaused: isPaused,
-		Fee:      fee,
 	}
 
 	poolExtraBytes, err := json.Marshal(poolExtra)
