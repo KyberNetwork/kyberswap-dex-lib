@@ -25,30 +25,30 @@ const (
 	poolPluginMethod      = "plugin"
 	poolTicksMethod       = "ticks"
 
-	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
-
-	slidingFeePluginFeeFactorsMethod = "s_feeFactors"
-
 	votalityOraclePluginTimepointsMethod             = "timepoints"
 	votalityOraclePluginTimepointIndexMethod         = "timepointIndex"
 	votalityOraclePluginLastTimepointTimestampMethod = "lastTimepointTimestamp"
 	votalityOraclePluginIsInitializedMethod          = "isInitialized"
+
+	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
+
+	slidingFeePluginFeeFactorsMethod        = "s_feeFactors"
+	slidingFeePluginPriceChangeFactorMethod = "s_priceChangeFactor"
+	slidingFeePluginBaseFeeMethod           = "s_baseFee"
+	slidingFeePluginFeeTypeMethod           = "feeType"
 
 	erc20BalanceOfMethod = "balanceOf"
 
 	BEFORE_SWAP_FLAG = 1
 	RESOLUTION       = 96
 
-	s_priceChangeFactor = 1000
-	s_baseFee           = 500
-
-	FACTOR_DENOMINATOR = 1000
-	FEE_FACTOR_SHIFT   = 96
+	FEE_FACTOR_SHIFT = 96
 )
 
 var (
 	FEE_DENOMINATOR           = uint256.NewInt(1e6)
 	COMMUNITY_FEE_DENOMINATOR = uint256.NewInt(1e3)
+	FACTOR_DENOMINATOR        = uint256.NewInt(1e3)
 
 	uZERO       = uint256.NewInt(0)
 	uONE        = uint256.NewInt(1)
@@ -62,8 +62,8 @@ var (
 
 	Q96 = new(uint256.Int).Lsh(uONE, 96) // 1 << 96
 
-	BASE_FEE_MULTIPLIER   = new(uint256.Int).Lsh(uONE, FEE_FACTOR_SHIFT)   // 1 << 96
-	DOUBLE_FEE_MULTIPLIER = new(uint256.Int).Lsh(uONE, 2*FEE_FACTOR_SHIFT) // 1 << 2*96
+	FEE_FACTOR_MULTIPLIER = new(uint256.Int).Lsh(uONE, FEE_FACTOR_SHIFT) // 1 << 96
+	DOUBLE_FEE_MULTIPLIER = new(uint256.Int).Lsh(uTWO, FEE_FACTOR_SHIFT) // 2 << 96
 
 	// Predefined e values multiplied by 10^20 as constants
 	CLOSEST_VALUE_0, _       = uint256.FromDecimal("100000000000000000000")   // 1

@@ -2,30 +2,35 @@ package gmx
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type VaultPriceFeed struct {
-	BNB                        string   `json:"bnb"`
-	BTC                        string   `json:"btc"`
-	ETH                        string   `json:"eth"`
-	FavorPrimaryPrice          bool     `json:"favorPrimaryPrice"`
-	IsAmmEnabled               bool     `json:"isAmmEnabled"`
-	IsSecondaryPriceEnabled    bool     `json:"isSecondaryPriceEnabled"`
-	MaxStrictPriceDeviation    *big.Int `json:"maxStrictPriceDeviation"`
-	PriceSampleSpace           *big.Int `json:"priceSampleSpace"`
-	SpreadThresholdBasisPoints *big.Int `json:"spreadThresholdBasisPoints"`
-	UseV2Pricing               bool     `json:"useV2Pricing"`
+	Address string `json:"-"`
 
-	PriceDecimals         map[string]*big.Int `json:"priceDecimals"`
-	SpreadBasisPoints     map[string]*big.Int `json:"spreadBasisPoints"`
-	AdjustmentBasisPoints map[string]*big.Int `json:"adjustmentBasisPoints"`
-	StrictStableTokens    map[string]bool     `json:"strictStableTokens"`
-	IsAdjustmentAdditive  map[string]bool     `json:"isAdjustmentAdditive"`
+	BNB                        string        `json:"bnb,omitempty"`
+	BTC                        string        `json:"btc,omitempty"`
+	ETH                        string        `json:"eth,omitempty"`
+	FavorPrimaryPrice          bool          `json:"favorPrimaryPrice,omitempty"`
+	IsAmmEnabled               bool          `json:"isAmmEnabled,omitempty"`
+	IsSecondaryPriceEnabled    bool          `json:"isSecondaryPriceEnabled,omitempty"`
+	MaxStrictPriceDeviation    *big.Int      `json:"maxStrictPriceDeviation,omitempty"`
+	PriceSampleSpace           *big.Int      `json:"priceSampleSpace,omitempty"`
+	SpreadThresholdBasisPoints *big.Int      `json:"spreadThresholdBasisPoints,omitempty"`
+	UseV2Pricing               bool          `json:"useV2Pricing,omitempty"`
+	PriceFeedType              PriceFeedType `json:"priceFeedType,omitempty"`
+
+	PriceDecimals         map[string]*big.Int `json:"priceDecimals,omitempty"`
+	SpreadBasisPoints     map[string]*big.Int `json:"spreadBasisPoints,omitempty"`
+	AdjustmentBasisPoints map[string]*big.Int `json:"adjustmentBasisPoints,omitempty"`
+	StrictStableTokens    map[string]bool     `json:"strictStableTokens,omitempty"`
+	IsAdjustmentAdditive  map[string]bool     `json:"isAdjustmentAdditive,omitempty"`
 
 	BNBBUSDAddress common.Address `json:"-"`
 	BNBBUSD        *PancakePair   `json:"bnbBusd,omitempty"`
@@ -40,11 +45,11 @@ type VaultPriceFeed struct {
 	ChainlinkFlags        *ChainlinkFlags `json:"chainlinkFlags,omitempty"`
 
 	SecondaryPriceFeedAddress common.Address `json:"-"`
-	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
-	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
+	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed,omitempty"`
+	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion,omitempty"`
 
 	PriceFeedsAddresses map[string]common.Address `json:"-"`
-	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds"`
+	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds,omitempty"`
 }
 
 func NewVaultPriceFeed() *VaultPriceFeed {
@@ -82,6 +87,7 @@ const (
 	vaultPriceFeedMethodAdjustmentBasisPoints = "adjustmentBasisPoints"
 	vaultPriceFeedMethodStrictStableTokens    = "strictStableTokens"
 	vaultPriceFeedMethodIsAdjustmentAdditive  = "isAdjustmentAdditive"
+	vaultPriceFeedMethodGetPrimaryPrice       = "getPrimaryPrice"
 )
 
 func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
@@ -96,15 +102,16 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 		PriceSampleSpace           *big.Int              `json:"priceSampleSpace"`
 		SpreadThresholdBasisPoints *big.Int              `json:"spreadThresholdBasisPoints"`
 		UseV2Pricing               bool                  `json:"useV2Pricing"`
+		PriceFeedType              PriceFeedType         `json:"priceFeedType"`
 		PriceDecimals              map[string]*big.Int   `json:"priceDecimals"`
 		SpreadBasisPoints          map[string]*big.Int   `json:"spreadBasisPoints"`
 		AdjustmentBasisPoints      map[string]*big.Int   `json:"adjustmentBasisPoints"`
 		StrictStableTokens         map[string]bool       `json:"strictStableTokens"`
 		IsAdjustmentAdditive       map[string]bool       `json:"isAdjustmentAdditive"`
-		BNBBUSD                    *PancakePair          `json:"bnbBusd,omitempty"`
-		BTCBNB                     *PancakePair          `json:"btcBnb,omitempty"`
-		ETHBNB                     *PancakePair          `json:"ethBnb,omitempty"`
-		ChainlinkFlags             *ChainlinkFlags       `json:"chainlinkFlags,omitempty"`
+		BNBBUSD                    *PancakePair          `json:"bnbBusd"`
+		BTCBNB                     *PancakePair          `json:"btcBnb"`
+		ETHBNB                     *PancakePair          `json:"ethBnb"`
+		ChainlinkFlags             *ChainlinkFlags       `json:"chainlinkFlags"`
 		SecondaryPriceFeedVersion  int                   `json:"secondaryPriceFeedVersion"`
 		PriceFeeds                 map[string]*PriceFeed `json:"priceFeeds"`
 	}
@@ -123,6 +130,7 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 	pf.PriceSampleSpace = priceFeed.PriceSampleSpace
 	pf.SpreadThresholdBasisPoints = priceFeed.SpreadThresholdBasisPoints
 	pf.UseV2Pricing = priceFeed.UseV2Pricing
+	pf.PriceFeedType = priceFeed.PriceFeedType
 	pf.PriceDecimals = priceFeed.PriceDecimals
 	pf.SpreadBasisPoints = priceFeed.SpreadBasisPoints
 	pf.AdjustmentBasisPoints = priceFeed.AdjustmentBasisPoints
@@ -189,7 +197,7 @@ func (pf *VaultPriceFeed) GetPrice(token string, maximise bool, includeAmmPrice 
 
 	adjustmentBps := pf.AdjustmentBasisPoints[token]
 
-	if adjustmentBps.Cmp(bignumber.ZeroBI) > 0 {
+	if adjustmentBps.Sign() > 0 {
 		isAdditive := pf.IsAdjustmentAdditive[token]
 
 		if isAdditive {
@@ -222,8 +230,8 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 
 	if includeAmmPrice && pf.IsAmmEnabled {
 		ammPrice := pf.getAmmPrice(token)
-		if ammPrice.Cmp(bignumber.ZeroBI) > 0 {
-			if maximise && ammPrice.Cmp(price) > 0 {
+		if ammPrice.Sign() > 0 {
+			if maximise == (ammPrice.Cmp(price) > 0) {
 				price = ammPrice
 			}
 			if !maximise && ammPrice.Cmp(price) < 0 {
@@ -237,14 +245,8 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 	}
 
 	if pf.StrictStableTokens[token] {
-		var delta *big.Int
-		if price.Cmp(OneUSD) > 0 {
-			delta = new(big.Int).Sub(price, OneUSD)
-		} else {
-			delta = new(big.Int).Sub(OneUSD, price)
-		}
-
-		if delta.Cmp(pf.MaxStrictPriceDeviation) <= 0 {
+		delta := new(big.Int).Sub(price, OneUSD)
+		if delta.Abs(delta).Cmp(pf.MaxStrictPriceDeviation) <= 0 {
 			return OneUSD, nil
 		}
 
@@ -262,22 +264,17 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 	spreadBasisPoint := pf.SpreadBasisPoints[token]
 
 	if maximise {
-		return new(big.Int).Div(
-			new(big.Int).Mul(
-				price,
-				new(big.Int).Add(BasisPointsDivisor, spreadBasisPoint),
-			),
-			BasisPointsDivisor,
-		), nil
-	}
-
-	return new(big.Int).Div(
-		new(big.Int).Mul(
+		price = new(big.Int).Mul(
+			price,
+			new(big.Int).Add(BasisPointsDivisor, spreadBasisPoint),
+		)
+	} else {
+		price = new(big.Int).Mul(
 			price,
 			new(big.Int).Sub(BasisPointsDivisor, spreadBasisPoint),
-		),
-		BasisPointsDivisor,
-	), nil
+		)
+	}
+	return price.Div(price, BasisPointsDivisor), nil
 }
 
 func (pf *VaultPriceFeed) getPriceV2(token string, maximise bool, includeAmmPrice bool) (*big.Int, error) {
@@ -295,14 +292,8 @@ func (pf *VaultPriceFeed) getPriceV2(token string, maximise bool, includeAmmPric
 	}
 
 	if pf.StrictStableTokens[token] {
-		var delta *big.Int
-		if price.Cmp(OneUSD) > 0 {
-			delta = new(big.Int).Sub(price, OneUSD)
-		} else {
-			delta = new(big.Int).Sub(OneUSD, price)
-		}
-
-		if delta.Cmp(pf.MaxStrictPriceDeviation) <= 0 {
+		delta := new(big.Int).Sub(price, OneUSD)
+		if delta.Abs(delta).Cmp(pf.MaxStrictPriceDeviation) <= 0 {
 			return OneUSD, nil
 		}
 
@@ -320,22 +311,17 @@ func (pf *VaultPriceFeed) getPriceV2(token string, maximise bool, includeAmmPric
 	spreadBasisPoint := pf.SpreadBasisPoints[token]
 
 	if maximise {
-		return new(big.Int).Div(
-			new(big.Int).Mul(
-				price,
-				new(big.Int).Add(BasisPointsDivisor, spreadBasisPoint),
-			),
-			BasisPointsDivisor,
-		), nil
-	}
-
-	return new(big.Int).Div(
-		new(big.Int).Mul(
+		price = new(big.Int).Mul(
+			price,
+			new(big.Int).Add(BasisPointsDivisor, spreadBasisPoint),
+		)
+	} else {
+		price = new(big.Int).Mul(
 			price,
 			new(big.Int).Sub(BasisPointsDivisor, spreadBasisPoint),
-		),
-		BasisPointsDivisor,
-	), nil
+		)
+	}
+	return price.Div(price, BasisPointsDivisor), nil
 }
 
 func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int, error) {
@@ -352,30 +338,41 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 		}
 	}
 
+	if pf.PriceFeedType == PriceFeedTypeDirect {
+		return lo.CoalesceOrEmpty(priceFeed.Answers[strconv.FormatBool(maximise)], bignumber.ZeroBI), nil
+	} else if pf.PriceSampleSpace == nil {
+		return priceFeed.LatestAnswer(), nil
+	}
+
 	price := bignumber.ZeroBI
 	roundID := priceFeed.LatestRound()
 
-	for i := big.NewInt(0); i.Cmp(pf.PriceSampleSpace) < 0; i = new(big.Int).Add(i, big.NewInt(1)) {
+	for i := new(big.Int); i.Cmp(pf.PriceSampleSpace) < 0; i.Add(i, bignumber.One) {
 		if roundID.Cmp(i) <= 0 {
 			break
 		}
 
 		var p *big.Int
-		if i.Cmp(bignumber.ZeroBI) == 0 {
+		if i.Sign() == 0 {
 			p = priceFeed.LatestAnswer()
 
-			if p.Cmp(bignumber.ZeroBI) <= 0 {
+			if p.Sign() <= 0 {
 				return nil, ErrVaultPriceFeedInvalidPrice
 			}
 		} else {
-			_, p, _, _, _ = priceFeed.GetRoundData(new(big.Int).Sub(roundID, bignumber.One))
+			_, p, _, _, _ = priceFeed.GetRoundData(new(big.Int).Sub(roundID, i))
 
-			if p.Cmp(bignumber.ZeroBI) <= 0 {
+			if p.Sign() <= 0 {
 				return nil, ErrVaultPriceFeedInvalidPrice
 			}
 		}
 
-		if price.Cmp(bignumber.ZeroBI) == 0 {
+		if price.Sign() == 0 {
+			price = p
+			continue
+		}
+
+		if maximise && p.Cmp(price) > 0 {
 			price = p
 			continue
 		}
@@ -385,16 +382,13 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 		}
 	}
 
-	if price.Cmp(bignumber.ZeroBI) <= 0 {
+	if price.Sign() <= 0 {
 		return nil, ErrVaultPriceFeedCouldNotFetchPrice
 	}
 
 	priceDecimal := pf.PriceDecimals[token]
-
-	return new(big.Int).Div(
-		new(big.Int).Mul(price, PricePrecision),
-		new(big.Int).Exp(big.NewInt(10), priceDecimal, nil),
-	), nil
+	price = new(big.Int).Mul(price, PricePrecision)
+	return price.Div(price, bignumber.TenPowInt(priceDecimal.Int64())), nil
 }
 
 func (pf *VaultPriceFeed) getSecondaryPrice(token string, referencePrice *big.Int, maximise bool) *big.Int {
@@ -414,14 +408,16 @@ func (pf *VaultPriceFeed) getAmmPrice(token string) *big.Int {
 		price0 := pf.getPairPrice(pf.BNBBUSD, true)
 		price1 := pf.getPairPrice(pf.ETHBNB, true)
 
-		return new(big.Int).Div(new(big.Int).Mul(price0, price1), PricePrecision)
+		price := new(big.Int).Mul(price0, price1)
+		return price.Div(price, PricePrecision)
 	}
 
 	if token == pf.BTC {
 		price0 := pf.getPairPrice(pf.BNBBUSD, true)
 		price1 := pf.getPairPrice(pf.BTCBNB, true)
 
-		return new(big.Int).Div(new(big.Int).Mul(price0, price1), PricePrecision)
+		price := new(big.Int).Mul(price0, price1)
+		return price.Div(price, PricePrecision)
 	}
 
 	return bignumber.ZeroBI
@@ -429,18 +425,13 @@ func (pf *VaultPriceFeed) getAmmPrice(token string) *big.Int {
 
 func (pf *VaultPriceFeed) getAmmPriceV2(token string, maximise bool, primaryPrice *big.Int) *big.Int {
 	ammPrice := pf.getAmmPrice(token)
-	if ammPrice.Cmp(bignumber.ZeroBI) == 0 {
+	if ammPrice.Sign() == 0 {
 		return primaryPrice
 	}
 
-	var diff *big.Int
-	if ammPrice.Cmp(primaryPrice) > 0 {
-		diff = new(big.Int).Sub(ammPrice, primaryPrice)
-	} else {
-		diff = new(big.Int).Sub(primaryPrice, ammPrice)
-	}
-
-	if new(big.Int).Mul(diff, BasisPointsDivisor).Cmp(new(big.Int).Mul(primaryPrice, pf.SpreadThresholdBasisPoints)) < 0 {
+	diff := new(big.Int).Sub(ammPrice, primaryPrice)
+	if diff.Mul(diff.Abs(diff), BasisPointsDivisor).Cmp(
+		new(big.Int).Mul(primaryPrice, pf.SpreadThresholdBasisPoints)) < 0 {
 		if pf.FavorPrimaryPrice {
 			return primaryPrice
 		}
@@ -462,16 +453,18 @@ func (pf *VaultPriceFeed) getPairPrice(pair *PancakePair, divByReserve0 bool) *b
 	reserve0, reserve1, _ := pair.GetReserves()
 
 	if divByReserve0 {
-		if reserve0.Cmp(bignumber.ZeroBI) == 0 {
+		if reserve0.Sign() == 0 {
 			return bignumber.ZeroBI
 		}
 
-		return new(big.Int).Div(new(big.Int).Mul(reserve1, PricePrecision), reserve0)
+		price := new(big.Int).Mul(reserve1, PricePrecision)
+		return price.Div(price, reserve0)
 	}
 
-	if reserve1.Cmp(bignumber.ZeroBI) == 0 {
+	if reserve1.Sign() == 0 {
 		return bignumber.ZeroBI
 	}
 
-	return new(big.Int).Div(new(big.Int).Mul(reserve0, PricePrecision), reserve1)
+	price := new(big.Int).Mul(reserve0, PricePrecision)
+	return price.Div(price, reserve1)
 }

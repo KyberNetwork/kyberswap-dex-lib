@@ -153,7 +153,7 @@ func (vs *VaultScanner) getPriceFeeds(
 	return priceFeeds, nil
 }
 
-func (vs VaultScanner) getFastPriceFeed(
+func (vs *VaultScanner) getFastPriceFeed(
 	ctx context.Context,
 	version SecondaryPriceFeedVersion,
 	address string,

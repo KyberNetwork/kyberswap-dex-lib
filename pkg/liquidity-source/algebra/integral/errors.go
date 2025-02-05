@@ -22,6 +22,7 @@ var (
 	ErrZeroPrice              = errors.New("price cannot be zero")
 	ErrZeroLiquidity          = errors.New("liquidity cannot be zero")
 	ErrInvalidPriceUpperLower = errors.New("price upper must not be less than price lower")
+	ErrInvalidPriceLower      = errors.New("price lower must be positive")
 
 	ErrLiquiditySub = errors.New("liquidity sub error")
 	ErrLiquidityAdd = errors.New("liquidity add error")

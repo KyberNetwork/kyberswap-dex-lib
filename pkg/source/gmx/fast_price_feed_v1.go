@@ -3,22 +3,20 @@ package gmx
 import (
 	"math/big"
 	"time"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type FastPriceFeedV1 struct {
-	DisableFastPriceVoteCount *big.Int            `json:"disableFastPriceVoteCount"`
-	IsSpreadEnabled           bool                `json:"isSpreadEnabled"`
-	LastUpdatedAt             *big.Int            `json:"lastUpdatedAt"`
-	MaxDeviationBasisPoints   *big.Int            `json:"maxDeviationBasisPoints"`
-	MinAuthorizations         *big.Int            `json:"minAuthorizations"`
-	PriceDuration             *big.Int            `json:"priceDuration"`
-	VolBasisPoints            *big.Int            `json:"volBasisPoints"`
-	Prices                    map[string]*big.Int `json:"prices"`
+	DisableFastPriceVoteCount *big.Int            `json:"disableFastPriceVoteCount,omitempty"`
+	IsSpreadEnabled           bool                `json:"isSpreadEnabled,omitempty"`
+	LastUpdatedAt             *big.Int            `json:"lastUpdatedAt,omitempty"`
+	MaxDeviationBasisPoints   *big.Int            `json:"maxDeviationBasisPoints,omitempty"`
+	MinAuthorizations         *big.Int            `json:"minAuthorizations,omitempty"`
+	PriceDuration             *big.Int            `json:"priceDuration,omitempty"`
+	VolBasisPoints            *big.Int            `json:"volBasisPoints,omitempty"`
+	Prices                    map[string]*big.Int `json:"prices,omitempty"`
 }
 
-func (fp FastPriceFeedV1) GetVersion() int {
+func (pf *FastPriceFeedV1) GetVersion() int {
 	return int(secondaryPriceFeedVersion1)
 }
 
@@ -40,23 +38,26 @@ const (
 )
 
 func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int {
-	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.PriceDuration)) > 0 {
+	if time.Now().Unix() > pf.LastUpdatedAt.Int64()+pf.PriceDuration.Int64() {
 		return refPrice
 	}
 
 	fastPrice := pf.Prices[token]
-	if fastPrice.Cmp(bignumber.ZeroBI) == 0 {
+	if fastPrice.Sign() == 0 {
 		return refPrice
 	}
 
-	maxPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Add(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
-	minPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Sub(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
+	maxPrice := new(big.Int).Add(BasisPointsDivisor, pf.MaxDeviationBasisPoints)
+	maxPrice = maxPrice.Div(maxPrice.Mul(refPrice, maxPrice), BasisPointsDivisor)
+	minPrice := new(big.Int).Sub(BasisPointsDivisor, pf.MaxDeviationBasisPoints)
+	minPrice = minPrice.Div(minPrice.Mul(refPrice, minPrice), BasisPointsDivisor)
 
 	if pf.favorFastPrice() {
 		if fastPrice.Cmp(minPrice) >= 0 && fastPrice.Cmp(maxPrice) <= 0 {
 			if maximise {
 				if refPrice.Cmp(fastPrice) > 0 {
-					volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Add(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+					volPrice := new(big.Int).Add(BasisPointsDivisor, pf.VolBasisPoints)
+					volPrice = volPrice.Div(volPrice.Mul(fastPrice, volPrice), BasisPointsDivisor)
 
 					if volPrice.Cmp(refPrice) > 0 {
 						return refPrice
@@ -69,7 +70,8 @@ func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bo
 			}
 
 			if refPrice.Cmp(fastPrice) < 0 {
-				volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Sub(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+				volPrice := new(big.Int).Sub(BasisPointsDivisor, pf.VolBasisPoints)
+				volPrice = volPrice.Div(volPrice.Mul(fastPrice, volPrice), BasisPointsDivisor)
 
 				if volPrice.Cmp(refPrice) < 0 {
 					return refPrice

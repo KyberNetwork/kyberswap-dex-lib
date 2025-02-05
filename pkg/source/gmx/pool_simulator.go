@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Gas struct {
@@ -96,7 +95,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(input.Amount, priceIn), PricePrecision)
+	usdgAmount := new(big.Int).Mul(input.Amount, priceIn)
+	usdgAmount = usdgAmount.Div(usdgAmount, PricePrecision)
 	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, input.Token, p.vault.USDG.Address)
 
 	p.vault.IncreaseUSDGAmount(input.Token, usdgAmount)
@@ -114,6 +114,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	for _, token := range whitelistedTokens {
 		if strings.EqualFold(token, address) {
 			isTokenExists = true
+			break
 		}
 	}
 
@@ -153,11 +154,11 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 		return nil, nil, err
 	}
 
-	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
-	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
-
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), PricePrecision)
+	amountOut := new(big.Int).Mul(amountIn, priceIn)
+	usdgAmount := new(big.Int).Div(amountOut, PricePrecision)
 	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, tokenIn, p.vault.USDG.Address)
+	amountOut = amountOut.Div(amountOut, priceOut)
+	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
 
 	// in smart contract, this validation is implemented inside _increaseUsdgAmount method
 	if err = p.validateMaxUsdgExceed(tokenIn, usdgAmount); err != nil {
@@ -194,7 +195,7 @@ func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) err
 
 	maxUsdgAmount := p.vault.MaxUSDGAmounts[token]
 
-	if maxUsdgAmount.Cmp(bignumber.ZeroBI) == 0 {
+	if maxUsdgAmount.Sign() == 0 {
 		return nil
 	}
 
