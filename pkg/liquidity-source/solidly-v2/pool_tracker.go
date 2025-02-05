@@ -68,13 +68,13 @@ func (d *PoolTracker) getNewPoolState(
 	}()
 
 	if d.config.IsMemecoreDEX {
-		return d.updatePoolMemecore(ctx, p, overrides)
+		return d.updateMemecorePool(ctx, p, overrides)
 	}
 
-	return d.updatePoolV2(ctx, p, overrides)
+	return d.updateStandardPool(ctx, p, overrides)
 }
 
-func (d *PoolTracker) updatePoolMemecore(
+func (d *PoolTracker) updateMemecorePool(
 	ctx context.Context,
 	pool entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,
@@ -119,7 +119,7 @@ func (d *PoolTracker) updatePoolMemecore(
 	return d.updatePool(pool, reserves, poolExtra, resp.BlockNumber.Uint64())
 }
 
-func (d *PoolTracker) updatePoolV2(
+func (d *PoolTracker) updateStandardPool(
 	ctx context.Context,
 	pool entity.Pool,
 	overrides map[common.Address]gethclient.OverrideAccount,

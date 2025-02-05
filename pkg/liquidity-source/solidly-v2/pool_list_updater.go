@@ -122,7 +122,7 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (velodromev2.
 		Params: nil,
 	}, []interface{}{&pairFactoryData.AllPairsLength})
 
-	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
+	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return velodromev2.PoolFactoryData{}, err
 	}
 
