@@ -44,6 +44,6 @@ jobs:
     needs: build_liqIndexer
     uses: KyberNetwork/service-framework/.github/workflows/deploy.yaml@main
     with:
-      services: router-service/*/liquidity-score-indexer
+      services: router-service/[^e]*/liquidity-score-indexer
       tag: ${{ needs.build_liqIndexer.outputs.tag }}
     secrets: inherit
