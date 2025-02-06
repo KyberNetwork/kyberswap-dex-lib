@@ -77,6 +77,12 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeGyroscope3CLP:              {},
 	dexValueObject.ExchangeGyroscopeECLP:              {},
 
+	// executeBalancerV3
+	dexValueObject.ExchangeBalancerV3Weighted:   {},
+	dexValueObject.ExchangeBalancerV3Stable:     {},
+	dexValueObject.ExchangeBeethovenXV3Weighted: {},
+	dexValueObject.ExchangeBeethovenXV3Stable:   {},
+
 	// executeBalancerV1
 	dexValueObject.ExchangeBalancerV1: {},
 

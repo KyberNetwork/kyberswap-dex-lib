@@ -257,6 +257,7 @@ encoder:
     executeClipperRfq: 58
     executeEtherVista: 60
     executeVirtualBC: 61
+    executeBalancerV3: 62
     executeEtherFieBtc: 63
     executeUniV4: 65
 useCase:

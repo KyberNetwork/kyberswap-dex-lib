@@ -278,6 +278,7 @@ encoder:
     executeDexalot: 57
     executeClipperRfq: 58
     executeKtx: 59
+    executeBalancerV3: 62
     executeEtherFieBtc: 63
     executeUniV4: 65
 useCase:
