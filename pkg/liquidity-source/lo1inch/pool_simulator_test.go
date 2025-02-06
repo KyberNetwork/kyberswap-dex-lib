@@ -582,7 +582,7 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 		"pool1": {
 			{"1001", "maker1", "100", "1000", "100"},
 			{"1002", "maker1", "100", "2000", "100"},
-			{"1003", "maker1", "100", "4000", "50"},
+			{"1003", "maker1", "100", "4000", "0"},
 			{"1004", "maker2", "100", "5000", "100"},
 		},
 	}
@@ -612,19 +612,19 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 		{"case 2", "pool1", []testswap{
 			{"1000", "100", []string{"1001", "1002"}}, // 1st swap full fill 1001 (1002 included as backup)
 			{"500", "25", []string{"1002"}},           // after update balance, 1001 has been fully used , can only use 1002
-			{"600", "27", []string{"1002", "1004"}},   // 500-25 from 1002 and 100-2 from 1004
+			{"600", "12", []string{"1004"}},           // 600-12 from 1004 only (500-25 from 1002 is not valid, cause 1inch will count entire 600 for 1002, then violate max-25 allowance)
 		}},
 
 		{"case 3", "pool1", []testswap{
 			{"1000", "100", []string{"1001", "1002"}}, // 1st swap full fill 1001 (1002 included as backup)
 			{"500", "25", []string{"1002"}},           // after update balance, 1001 has been fully used , can only use 1002
-			{"3000", "75", []string{"1002", "1004"}},  // 500-25 from 1002 and 2500-50 from 1004 (fully filled)
+			{"2500", "50", []string{"1004"}},          // 2500-50 from 1004 only (fully filled) (500-25 from 1002 is not valid, cause 1inch will count entire 2500 for 1002, then violate max-25 allowance)
 		}},
 
 		{"case 4", "pool1", []testswap{
 			{"1000", "100", []string{"1001", "1002"}}, // 1st swap full fill 1001 (1002 included as backup)
 			{"500", "25", []string{"1002"}},           // after update balance, 1001 has been fully used , can only use 1002
-			{"3001", "", nil},                         // a bit larger than case 3 above, so no balance left and swap fail
+			{"2501", "", nil},                         // a bit larger than case 3 above, so no balance left and swap fail
 		}},
 	}
 

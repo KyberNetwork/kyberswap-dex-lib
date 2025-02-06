@@ -256,6 +256,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 
 		// Case 2: This order can't fulfill the remaining amount in
+
+		// Skip this order if orderRemainingMakingAmount (limited by maker's balance/allowance)
+		// is less than order's original RemainingMakerAmount. This is because when executing,
+		// the contract will attempt to transfer the full original RemainingMakerAmount from the maker,
+		// so we need to ensure the maker has at least that much balance/allowance available.
+		if orderRemainingMakingAmount.Lt(order.RemainingMakerAmount) {
+			continue
+		}
+
 		remainingAmountIn = number.Sub(remainingAmountIn, orderRemainingTakingAmount)
 		orderFilledMakingAmount := orderRemainingMakingAmount // because this order is fully filled
 		orderFilledTakingAmount := orderRemainingTakingAmount // because this order is fully filled
