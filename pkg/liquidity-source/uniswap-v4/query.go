@@ -59,3 +59,42 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 
 	return tpl.String()
 }
+
+func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx string) string {
+	var tpl bytes.Buffer
+	td := PoolTicksQueryParams{
+		allowSubgraphError,
+		poolAddress,
+		lastTickIdx,
+	}
+
+	t, err := template.New("poolTicksQuery").Parse(`{
+		ticks(
+			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}
+			where: {
+				pool: "{{.PoolAddress}}"
+				{{ if .LastTickIdx }}tickIdx_gt: {{.LastTickIdx}},{{ end }}
+				liquidityGross_not: 0
+			},
+			orderBy: tickIdx,
+			orderDirection: asc,
+			first: 1000
+		) {
+			tickIdx
+			liquidityNet
+			liquidityGross
+		}
+	}`)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = t.Execute(&tpl, td)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return tpl.String()
+}

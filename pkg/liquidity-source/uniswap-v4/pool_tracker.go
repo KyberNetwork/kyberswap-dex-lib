@@ -6,6 +6,9 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -14,19 +17,22 @@ import (
 )
 
 type PoolTracker struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
+	config        Config
+	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphqlpkg.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolTracker {
 	return &PoolTracker{
-		config:       config,
-		ethrpcClient: ethrpcClient,
+		config:        config,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
@@ -80,4 +86,60 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 
 	return p, nil
+}
+
+// getPoolTicks
+// Since uniswapv4 = uniswapv3 + hook, so we reuse same tick struct from uniswapv3
+func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]uniswapv3.TickResp, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
+	allowSubgraphError := d.config.IsAllowSubgraphError()
+	lastTickIdx := ""
+	var ticks []uniswapv3.TickResp
+
+	for {
+		req := graphqlpkg.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
+
+		var resp struct {
+			Ticks []uniswapv3.TickResp `json:"ticks"`
+		}
+
+		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+			// Workaround at the moment to live with the error subgraph on Arbitrum
+			if allowSubgraphError {
+				if resp.Ticks == nil {
+					l.WithFields(logger.Fields{
+						"error":              err,
+						"allowSubgraphError": allowSubgraphError,
+					}).Error("failed to query subgraph")
+
+					return nil, err
+				}
+			} else {
+				l.WithFields(logger.Fields{
+					"error":              err,
+					"allowSubgraphError": allowSubgraphError,
+				}).Error("failed to query subgraph")
+
+				return nil, err
+			}
+		}
+
+		if len(resp.Ticks) == 0 {
+			break
+		}
+
+		ticks = append(ticks, resp.Ticks...)
+
+		if len(resp.Ticks) < graphFirstLimit {
+			break
+		}
+
+		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].TickIdx
+	}
+
+	return ticks, nil
 }
