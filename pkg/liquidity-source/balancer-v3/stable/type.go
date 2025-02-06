@@ -21,33 +21,15 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Vault       string `json:"vault"`
-	DefaultHook string `json:"defaultHook"`
+	Vault             string `json:"vault"`
+	DefaultHook       string `json:"defaultHook"`
+	IsPoolInitialized bool   `json:"isPoolInitialized"`
 }
 
 type AmplificationParameter struct {
 	Value      *big.Int
 	IsUpdating bool
 	Precision  *big.Int
-}
-
-type StablePoolDynamicData struct {
-	Data struct {
-		BalancesLiveScaled18    []*big.Int
-		TokenRates              []*big.Int
-		StaticSwapFeePercentage *big.Int
-		TotalSupply             *big.Int
-		BptRate                 *big.Int
-		AmplificationParameter  *big.Int
-		StartValue              *big.Int
-		EndValue                *big.Int
-		StartTime               uint32
-		EndTime                 uint32
-		IsAmpUpdating           bool
-		IsPoolInitialized       bool
-		IsPoolPaused            bool
-		IsPoolInRecoveryMode    bool
-	}
 }
 
 type PoolMetaInfo struct {
