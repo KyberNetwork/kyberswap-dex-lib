@@ -20,7 +20,6 @@ func (h *BaseHook) OnBeforeSwap(shared.PoolSwapParams) (bool, error) {
 
 func (h *BaseHook) OnAfterSwap(shared.AfterSwapParams) (bool, *uint256.Int, error) {
 	return false, math.ZERO, nil
-
 }
 
 func (h *BaseHook) OnComputeDynamicSwapFeePercentage(shared.PoolSwapParams) (bool, *uint256.Int, error) {
