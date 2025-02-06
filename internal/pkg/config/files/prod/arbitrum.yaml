@@ -58,6 +58,8 @@ common:
     - "balancer-v2-weighted"
     - "balancer-v2-stable"
     - "balancer-v2-composable-stable"
+    - "balancer-v3-weighted"
+    - "balancer-v3-stable"
     - "mummy-finance"
     - "gyroscope-2clp"
     - "gyroscope-3clp"

@@ -29,6 +29,8 @@ common:
     - "beethovenx-weighted"
     - "beethovenx-stable"
     - "beethovenx-composable-stable"
+    - "beethovenx-v3-weighted"
+    - "beethovenx-v3-stable"
     - "metropolis-lb"
     - "uniswapv3"
     - "wagmi"
