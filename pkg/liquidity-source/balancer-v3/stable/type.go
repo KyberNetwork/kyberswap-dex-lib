@@ -32,25 +32,6 @@ type AmplificationParameter struct {
 	Precision  *big.Int
 }
 
-type StablePoolDynamicData struct {
-	Data struct {
-		BalancesLiveScaled18    []*big.Int
-		TokenRates              []*big.Int
-		StaticSwapFeePercentage *big.Int
-		TotalSupply             *big.Int
-		BptRate                 *big.Int
-		AmplificationParameter  *big.Int
-		StartValue              *big.Int
-		EndValue                *big.Int
-		StartTime               uint32
-		EndTime                 uint32
-		IsAmpUpdating           bool
-		IsPoolInitialized       bool
-		IsPoolPaused            bool
-		IsPoolInRecoveryMode    bool
-	}
-}
-
 type PoolMetaInfo struct {
 	Vault       string `json:"vault"`
 	BlockNumber uint64 `json:"blockNumber"`
@@ -68,7 +49,6 @@ type RpcResult struct {
 	IsVaultPaused              bool
 	IsPoolPaused               bool
 	IsPoolInRecoveryMode       bool
-	IsPoolInitialized          bool
 	BlockNumber                uint64
 }
 

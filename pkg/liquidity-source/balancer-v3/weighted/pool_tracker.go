@@ -107,6 +107,8 @@ func (t *PoolTracker) getNewPoolState(
 			return p, nil
 		}
 
+		staticExtra.IsPoolInitialized = true
+
 		staticExtraBytes, err := json.Marshal(&staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
