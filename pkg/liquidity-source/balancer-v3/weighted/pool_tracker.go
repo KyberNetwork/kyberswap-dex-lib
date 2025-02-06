@@ -3,6 +3,7 @@ package weighted
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -72,17 +73,62 @@ func (t *PoolTracker) getNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	res, shouldDisablePool, err := t.queryRPC(ctx, p.Address, overrides)
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	if err != nil {
-		return p, err
-	}
-
-	if len(p.Reserves) != len(res.BalancesRaw) {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Error("can not fetch reserves")
+		}).Errorf("failed to unmarshal StaticExtra data : %s", err.Error())
+
+		return entity.Pool{}, err
+	}
+
+	if !staticExtra.IsPoolInitialized {
+		isPoolInitialized, err := t.IsPoolInitialized(ctx, p.Address, overrides)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Error(err.Error())
+
+			return entity.Pool{}, err
+		}
+
+		if !isPoolInitialized {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Warn("this pool still not be initialized")
+
+			return p, nil
+		}
+
+		staticExtraBytes, err := json.Marshal(&staticExtra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Errorf("failed to marshal StaticExtra data : %s", err.Error())
+
+			return entity.Pool{}, err
+		}
+
+		p.StaticExtra = string(staticExtraBytes)
+	}
+
+	res, shouldDisablePool, err := t.queryRPCData(ctx, p.Address, overrides)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Errorf(err.Error())
+
 		return p, err
 	}
 
@@ -120,7 +166,7 @@ func (t *PoolTracker) getNewPoolState(
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Error(err.Error())
+		}).Errorf("failed to marshal extra data : %s", err.Error())
 
 		return p, err
 	}
@@ -142,7 +188,33 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) queryRPC(
+func (t *PoolTracker) IsPoolInitialized(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (bool, error) {
+	var isPoolInitialized bool
+
+	req := t.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultExplorerABI,
+		Target: t.config.VaultExplorer,
+		Method: shared.VaultMethodIsPoolInitialized,
+		Params: []interface{}{common.HexToAddress(poolAddress)},
+	}, []interface{}{&isPoolInitialized})
+
+	if _, err := req.Call(); err != nil {
+		return false, fmt.Errorf("failed to check if pool is initialized : %s", err.Error())
+	}
+
+	return isPoolInitialized, nil
+}
+
+func (t *PoolTracker) queryRPCData(
 	ctx context.Context,
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
@@ -221,12 +293,7 @@ func (t *PoolTracker) queryRPC(
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": poolAddress,
-		}).Error(err.Error())
-		return nil, false, err
+		return nil, false, fmt.Errorf("failed to query RPC data : %s", err.Error())
 	}
 
 	var shouldDisablePool bool

@@ -21,8 +21,9 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Vault       string `json:"vault"`
-	DefaultHook string `json:"defaultHook"`
+	Vault             string `json:"vault"`
+	DefaultHook       string `json:"defaultHook"`
+	IsPoolInitialized bool
 }
 
 type AmplificationParameter struct {

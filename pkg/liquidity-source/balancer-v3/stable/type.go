@@ -21,8 +21,9 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Vault       string `json:"vault"`
-	DefaultHook string `json:"defaultHook"`
+	Vault             string `json:"vault"`
+	DefaultHook       string `json:"defaultHook"`
+	IsPoolInitialized bool   `json:"isPoolInitialized"`
 }
 
 type AmplificationParameter struct {
@@ -67,6 +68,7 @@ type RpcResult struct {
 	IsVaultPaused              bool
 	IsPoolPaused               bool
 	IsPoolInRecoveryMode       bool
+	IsPoolInitialized          bool
 	BlockNumber                uint64
 }
 
