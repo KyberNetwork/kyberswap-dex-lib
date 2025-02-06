@@ -10,6 +10,7 @@ type SubgraphPool struct {
 	ID             string `json:"id"`
 	Address        string `json:"address"`
 	BlockTimestamp string `json:"blockTimestamp"`
+	IsInitialized  bool   `json:"isInitialized"`
 	Tokens         []struct {
 		Address  string `json:"address"`
 		Decimals int    `json:"decimals"`
@@ -40,6 +41,7 @@ func BuildSubgraphPoolsQuery(
 			id
 			address
 			blockTimestamp
+			isInitialized
 			tokens {
 			  address
 			  decimals

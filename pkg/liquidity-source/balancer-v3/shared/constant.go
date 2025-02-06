@@ -15,6 +15,7 @@ const (
 	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsVaultPaused        = "isVaultPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
+	VaultMethodIsPoolInitialized    = "isPoolInitialized"
 )
 
 type (

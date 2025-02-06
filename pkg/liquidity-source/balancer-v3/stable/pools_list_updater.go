@@ -79,8 +79,9 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool) ([]en
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, subgraphPool := range subgraphPools {
 		staticExtraBytes, err := json.Marshal(&StaticExtra{
-			Vault:       subgraphPool.Vault.ID,
-			DefaultHook: u.config.DefaultHook,
+			Vault:             subgraphPool.Vault.ID,
+			DefaultHook:       u.config.DefaultHook,
+			IsPoolInitialized: subgraphPool.IsInitialized,
 		})
 		if err != nil {
 			return nil, err
