@@ -134,7 +134,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -296,7 +296,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "1210000",
 					SwapSide: Sell,
@@ -456,7 +456,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					Amount:    big.NewInt(4),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -666,7 +666,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 159924,
+				Gas: 426624,
 				SwapInfo: SwapInfo{
 					AmountIn: "700",
 					SwapSide: Sell,
