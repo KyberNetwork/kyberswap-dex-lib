@@ -5,12 +5,13 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -55,7 +56,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -104,7 +105,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "1210000",
 					SwapSide: Sell,
@@ -153,7 +154,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					Amount:    big.NewInt(2),
 					AmountUsd: 0,
 				},
-				Gas: 136616,
+				Gas: 314416,
 				SwapInfo: SwapInfo{
 					AmountIn: "300",
 					SwapSide: Buy,
@@ -202,7 +203,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
-				Gas: 159924,
+				Gas: 426624,
 				SwapInfo: SwapInfo{
 					AmountIn: "700",
 					SwapSide: Sell,

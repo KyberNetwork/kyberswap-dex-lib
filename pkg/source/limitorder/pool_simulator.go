@@ -254,16 +254,18 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 
 		// Get remaining making amount, taking amount
 		remainingMakingAmountWei, remainingTakingAmountWei := order.RemainingAmount(limit, filledMakingAmountByMaker)
-
-		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
-		// Order was filled out.
-		if remainingMakingAmountWei.Sign() <= 0 {
+		if remainingMakingAmountWei.Sign() <= 0 || remainingTakingAmountWei.Sign() <= 0 {
 			continue
 		}
 
-		totalAmountInAfterFee, _ := p.calcTakerAssetFeeAmountExactIn(order, totalAmountIn)
 		// ideally we should return totalFeeAmountWei in takerAsset here
 		// but for now it's not used, and we might get mixed up with makerAsset fee, so will ignore for now
+		totalAmountInAfterFee, _ := p.calcTakerAssetFeeAmountExactIn(order, totalAmountIn)
+		if totalAmountInAfterFee.Sign() <= 0 {
+			continue
+		}
+
+		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 
 		if remainingTakingAmountWei.Cmp(totalAmountInAfterFee) >= 0 {
 			filledTakingAmountWei := totalAmountInAfterFee
@@ -301,8 +303,8 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 				if !ok {
 					continue
 				}
-				remainingMakingAmountWei, _ := order.RemainingAmount(limit, filledMakingAmountByMaker)
-				if remainingMakingAmountWei.Sign() == 0 {
+				remainingMakingAmountWei, remainingTakingAmountWei := order.RemainingAmount(limit, filledMakingAmountByMaker)
+				if remainingMakingAmountWei.Sign() <= 0 || remainingTakingAmountWei.Sign() <= 0 {
 					continue
 				}
 
