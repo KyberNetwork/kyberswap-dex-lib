@@ -57,6 +57,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -108,7 +109,6 @@ import (
 	gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	kokonutcrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kokonut-crypto"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -457,11 +457,9 @@ func newSwapLimit(
 		pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.RingSwap,
 		pooltypes.PoolTypes.MxTrading,
-		pooltypes.PoolTypes.LO1inch:
+		pooltypes.PoolTypes.LO1inch,
+		pooltypes.PoolTypes.KyberPMM:
 		return swaplimit.NewInventory(dex, limit)
-
-	case pooltypes.PoolTypes.KyberPMM:
-		return swaplimit.NewSwappedInventory(dex, limit)
 
 	case pooltypes.PoolTypes.LimitOrder:
 		return swaplimit.NewInventoryWithAllowedSenders(

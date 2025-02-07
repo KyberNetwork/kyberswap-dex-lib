@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 )
@@ -165,31 +165,36 @@ func GenPMMPool(token1, token2 *entity.Token) (*kyberpmm.PoolSimulator, error) {
 				Swappable: true,
 			}},
 		StaticExtra: `{
-		"pairID":            "ID",
+		"pairIDs":            ["base/quote"],
 		"baseTokenAddress":  "base",
-		"quoteTokenAddress": "quote"}`,
+		"quoteTokenAddress": ["quote"]
+		}`,
 		Reserves: []string{"123554545", "5555555"},
 		Extra: `{
-  "baseToQuotePriceLevels": [
-    {
-      "price": 100.5,
-      "amount": 10.0
-    },
-    {
-      "price": 101.2,
-      "amount": 15.0
+    "priceLevels": {
+        "base/quote": {
+            "baseToQuotePriceLevels": [
+                {
+                    "price": 100.5,
+                    "amount": 10.0
+                },
+                {
+                    "price": 101.2,
+                    "amount": 15.0
+                }
+            ],
+            "quoteToBasePriceLevels": [
+                {
+                    "price": 0.0098,
+                    "amount": 500.0
+                },
+                {
+                    "price": 0.0099,
+                    "amount": 700.0
+                }
+            ]
+        }
     }
-  ],
-  "quoteToBasePriceLevels": [
-    {
-      "price": 0.0098,
-      "amount": 500.0
-    },
-    {
-      "price": 0.0099,
-      "amount": 700.0
-    }
-  ]
 }`,
 	}
 	return kyberpmm.NewPoolSimulator(entityPool)
