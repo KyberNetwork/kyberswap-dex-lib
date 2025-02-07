@@ -737,6 +737,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeBox:                    {},
 	ExchangeEtherFieBTC:                {},
 	ExchangeUniswapV4:                  {},
+	ExchangeOvernightUsdp:              {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -750,15 +751,14 @@ var RFQSourceSet = map[Exchange]struct{}{
 
 	ExchangeKyberSwapLimitOrderDS: {},
 
-	ExchangeSwaapV2:       {},
-	ExchangeHashflowV3:    {},
-	ExchangeNativeV1:      {},
-	ExchangeBebop:         {},
-	ExchangeClipper:       {},
-	ExchangeDexalot:       {},
-	ExchangeMxTrading:     {},
-	ExchangeLO1inch:       {},
-	ExchangeOvernightUsdp: {},
+	ExchangeSwaapV2:    {},
+	ExchangeHashflowV3: {},
+	ExchangeNativeV1:   {},
+	ExchangeBebop:      {},
+	ExchangeClipper:    {},
+	ExchangeDexalot:    {},
+	ExchangeMxTrading:  {},
+	ExchangeLO1inch:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
