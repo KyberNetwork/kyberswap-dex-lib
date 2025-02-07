@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -15,33 +17,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func TestNewPoolSimulator(t *testing.T) {
-	t.Run("it should init pool simulator correctly", func(t *testing.T) {
-		entityPool := entity.Pool{
-			Address:   "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
-			Exchange:  "velodrome-v2",
-			Type:      "velodrome-v2",
-			Timestamp: 1700031705,
-			Reserves:  []string{"2455334631692", "48474602535901272544258453"},
-			Tokens: []*entity.PoolToken{
-				{Address: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Swappable: true},
-				{Address: "0x9560e827af36c94d2ac33a39bce1fe78631088db", Swappable: true},
-			},
-			Extra:       "{\"isPaused\":true,\"fee\":5}",
-			StaticExtra: "{\"feePrecision\":10000,\"decimal0\":\"0xf4240\",\"decimal1\":\"0xde0b6b3a7640000\",\"stable\":false}",
-		}
-
-		poolSimulator, err := NewPoolSimulator(entityPool)
-
-		assert.Nil(t, err)
-		assert.True(t, poolSimulator.isPaused)
-		assert.False(t, poolSimulator.stable)
-		assert.EqualValues(t, uint64(5), poolSimulator.fee.Uint64())
-		assert.Zero(t, number.NewUint256("1000000").Cmp(poolSimulator.decimals0))
-		assert.Zero(t, number.NewUint256("1000000000000000000").Cmp(poolSimulator.decimals1))
-
-	})
-}
+var (
+	poolEncoded = `{"address":"0x9e4cb8b916289864321661ce02cf66aa5ba63c94","amplifiedTvl":1996183.055839599,"exchange":"aerodrome","type":"velodrome-v2","timestamp":1738874095,"reserves":["166579067762010917945","30215077318001718108921"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","name":"","symbol":"","decimals":0,"weight":0,"swappable":true},{"address":"0xde5ed76e7c05ec5e4572cfc88d1acea165109e44","name":"","symbol":"","decimals":0,"weight":0,"swappable":true}],"extra":"{\"isPaused\":false,\"fee\":100}","staticExtra":"{\"feePrecision\":10000,\"decimal0\":\"1000000000000000000\",\"decimal1\":\"1000000000000000000\",\"stable\":false,\"decBig\":null}"}`
+	poolEntity  entity.Pool
+	_           = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
+	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
+)
 
 // TestPoolSimulator_getAmountOut
 // [volatile][1to0]: https://optimistic.etherscan.io/address/0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5
@@ -51,16 +32,15 @@ func TestNewPoolSimulator(t *testing.T) {
 func TestPoolSimulator_getAmountOut(t *testing.T) {
 	testCases := []struct {
 		name              string
-		poolSimulator     PoolSimulator
+		poolSimulator     poolpkg.IPoolSimulator
 		tokenAmountIn     poolpkg.TokenAmount
 		tokenOut          string
 		expectedAmountOut *big.Int
 		expectedFee       *big.Int
-		calcInThreshold   int64
 	}{
 		{
 			name: "[volatile][0to1] it should return correct amount",
-			poolSimulator: PoolSimulator{
+			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
@@ -79,11 +59,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			tokenOut:          "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db",
 			expectedAmountOut: utils.NewBig10("658590483453928603087"),
 			expectedFee:       utils.NewBig10("337620"),
-			calcInThreshold:   10,
 		},
 		{
 			name: "[volatile][1to0] it should return correct amount",
-			poolSimulator: PoolSimulator{
+			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
@@ -102,11 +81,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			tokenOut:          "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
 			expectedAmountOut: utils.NewBig10("243341685"),
 			expectedFee:       utils.NewBig10("48437610421475879640"),
-			calcInThreshold:   1,
 		},
 		{
 			name: "[stable][1to0] it should return correct amount",
-			poolSimulator: PoolSimulator{
+			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
@@ -125,11 +103,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			tokenOut:          "0x3e29d3a9316dab217754d13b28646b76607c5f04",
 			expectedAmountOut: utils.NewBig10("8040168956751976"),
 			expectedFee:       utils.NewBig10("3535042662469"),
-			calcInThreshold:   10,
 		},
 		{
 			name: "[stable][0to1] it should return correct amount",
-			poolSimulator: PoolSimulator{
+			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0",
@@ -148,7 +125,14 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			tokenOut:          "0x6806411765af15bddd26f8f544a34cc40cb9838b",
 			expectedAmountOut: utils.NewBig10("6210478971090850"),
 			expectedFee:       utils.NewBig10("3535042662469"),
-			calcInThreshold:   10,
+		},
+		{
+			name:              "[volatile][0to1] aerodrome should return correct amount",
+			poolSimulator:     poolSim,
+			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("10000000000000000")},
+			tokenOut:          "0xde5ed76e7c05ec5e4572cfc88d1acea165109e44",
+			expectedAmountOut: utils.NewBig10("1795612695527072515"),
+			expectedFee:       utils.NewBig10("100000000000000"),
 		},
 	}
 
@@ -160,8 +144,8 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 
 			if tc.expectedAmountOut != nil {
 				assert.Nil(t, err)
-				assert.Zero(t, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
-				assert.Zero(t, tc.expectedFee.Cmp(result.Fee.Amount))
+				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
+				assert.Equal(t, tc.expectedFee, result.Fee.Amount)
 			}
 		})
 	}
@@ -354,4 +338,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			assert.Zero(t, tc.expectedReserves[1].Cmp(tc.poolSimulator.Info.Reserves[1]))
 		})
 	}
+}
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	testutil.TestCalcAmountIn(t, poolSim)
 }
