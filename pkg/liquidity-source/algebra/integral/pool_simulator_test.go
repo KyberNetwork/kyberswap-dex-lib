@@ -1,9 +1,7 @@
 package integral
 
 import (
-	"fmt"
 	"math/big"
-	"math/rand"
 	"sync"
 	"testing"
 
@@ -17,7 +15,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -525,53 +522,5 @@ func TestCalcAmountOut_Ver_1_2(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
-	for i := 0; i < 64; i++ {
-		tokenIn := p.Tokens[i%2].Address
-		tokenOut := p.Tokens[(i+1)%2].Address
-		amountOut := big.NewInt(int64(rand.Uint32()))
-		t.Run(fmt.Sprintf("token%d -> %s token%d", i%2, amountOut, (i+1)%2), func(t *testing.T) {
-			resIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				return ps.CalcAmountIn(pool.CalcAmountInParams{
-					TokenAmountOut: pool.TokenAmount{
-						Token:  tokenOut,
-						Amount: amountOut,
-					},
-					TokenIn: tokenIn,
-				})
-			})
-			require.NoError(t, err)
-
-			if resIn.RemainingTokenAmountOut.Amount.Sign() > 0 {
-				resIn, err = testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-					return ps.CalcAmountIn(pool.CalcAmountInParams{
-						TokenAmountOut: pool.TokenAmount{
-							Token: tokenOut,
-							Amount: amountOut.Sub(amountOut, resIn.RemainingTokenAmountOut.Amount).Div(amountOut,
-								bignumber.Two),
-						},
-						TokenIn: tokenIn,
-					})
-				})
-				require.NoError(t, err)
-			}
-
-			resOut, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return ps.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  tokenIn,
-						Amount: resIn.TokenAmountIn.Amount,
-					},
-					TokenOut: tokenOut,
-				})
-			})
-			require.NoError(t, err)
-
-			finalAmtOut := resOut.TokenAmountOut.Amount
-			finalAmtOut.Sub(finalAmtOut, resIn.RemainingTokenAmountOut.Amount)
-			origAmountOutF, _ := amountOut.Float64()
-			finalAmountOutF, _ := finalAmtOut.Float64()
-			assert.InEpsilonf(t, origAmountOutF, finalAmountOutF, 1e-4,
-				"expected ~%s, got %s", amountOut, finalAmtOut)
-		})
-	}
+	testutil.TestCalcAmountIn(t, ps)
 }

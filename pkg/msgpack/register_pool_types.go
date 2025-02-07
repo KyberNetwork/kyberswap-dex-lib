@@ -134,7 +134,6 @@ import (
 	pkg_source_usdfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	pkg_source_velocimeter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	pkg_source_velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
-	pkg_source_velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	pkg_source_vooi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	pkg_source_wombat_wombatlsd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	pkg_source_wombat_wombatmain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
@@ -271,7 +270,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_usdfi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_velocimeter.Pool{})
 	msgpack.RegisterConcreteType(&pkg_source_velodrome.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_velodromev2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_vooi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_wombat_wombatlsd.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_wombat_wombatmain.PoolSimulator{})
