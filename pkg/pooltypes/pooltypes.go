@@ -53,6 +53,7 @@ import (
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
+	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -80,6 +81,7 @@ import (
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
+
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
@@ -285,6 +287,7 @@ type Types struct {
 	SwapXV2                        string
 	EtherFieBTC                    string
 	UniswapV4                      string
+	OvernightUsdp                  string
 }
 
 var (
@@ -435,5 +438,6 @@ var (
 		SwapXV2:                        swapxv2.DexType,
 		EtherFieBTC:                    etherfiebtc.DexType,
 		UniswapV4:                      uniswapv4.DexType,
+		OvernightUsdp:                  overnightusdp.DexType,
 	}
 )
