@@ -3,6 +3,8 @@ package pooltypes
 import (
 	"testing"
 
+	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
@@ -10,155 +12,18 @@ import (
 )
 
 func TestFactory(t *testing.T) {
-	tests := []struct {
-		name string
-	}{
-		{"curve-base"},
-		{"curve-plain-oracle"},
-		{"curve-meta"},
-		{"curve-aave"},
-		{"curve-compound"},
-		// {"curve-lending"}, // not implemented
-		{"curve-tricrypto"},
-		{"curve-two"},
-		{"uniswap"},
-		{"uniswapv3"},
-		{"biswap"},
-		{"polydex"},
-		{"dmm"},
-		{"elastic"},
-		{"saddle"},
-		{"nerve"},
-		{"oneswap"},
-		{"iron-stable"},
-		{"dodo-classical"},
-		{"dodo-dvm"},
-		{"dodo-dsp"},
-		{"dodo-dpp"},
-		{"velodrome"},
-		{"velodrome-v2"},
-		{"velocimeter"},
-		{"pearl"},
-		{"ramses"},
-		{"ramses-v2"},
-		{"dystopia"},
-		{"platypus-base"},
-		{"platypus-pure"},
-		{"platypus-avax"},
-		{"wombat-main"},
-		{"wombat-lsd"},
-		{"gmx"},
-		{"gmx-glp"},
-		{"maker-psm"},
-		{"synthetix"},
-		{"madmex"},
-		{"metavault"},
-		{"lido"},
-		{"lido-steth"},
-		{"limit-order"},
-		{"fraxswap"},
-		{"camelot"},
-		{"muteswitch"},
-		{"syncswap-classic"},
-		{"syncswap-stable"},
-		{"syncswapv2-classic"},
-		{"syncswapv2-stable"},
-		{"syncswapv2-aqua"},
-		{"pancake-v3"},
-		{"maverick-v1"},
-		{"algebra-v1"},
-		{"kyber-pmm"},
-		{"iziswap"},
-		{"woofi-v2"},
-		{"woofi-v21"},
-		{"equalizer"},
-		{"swapbased-perp"},
-		{"usdfi"},
-		{"mantisswap"},
-		{"vooi"},
-		{"pol-matic"},
-		{"kokonut-crypto"},
-		{"liquiditybook-v21"},
-		{"liquiditybook-v20"},
-		{"smardex"},
-		{"integral"},
-		{"fxdx"},
-		{"uniswap-v1"},
-		{"uniswap-v2"},
-		{"quickperps"},
-		{"balancer-v1"},
-		{"balancer-v2-weighted"},
-		{"balancer-v2-stable"},
-		{"balancer-v2-composable-stable"},
-		{"balancer-v3-stable"},
-		{"balancer-v3-weighted"},
-		{"velocore-v2-cpmm"},
-		{"velocore-v2-wombat-stable"},
-		{"fulcrom"},
-		{"solidly-v2"},
-		{"solidly-v3"},
-		{"gyroscope-2clp"},
-		{"gyroscope-3clp"},
-		{"gyroscope-eclp"},
-		{"zkera-finance"},
-		{"swaap-v2"},
-		{"etherfi-eeth"},
-		{"etherfi-weeth"},
-		{"swell-sweth"},
-		{"swell-rsweth"},
-		{"bedrock-unieth"},
-		{"puffer-pufeth"},
-		// {"bancor-v21"}, // disabled due to inner-pool architecture incompatible with pool ranking
-		{"bancor-v3"},
-		{"curve-stable-plain"},
-		{"curve-stable-ng"},
-		{"curve-stable-meta-ng"},
-		{"curve-tricrypto-ng"},
-		{"curve-twocrypto-ng"},
-		{"kelp-rseth"},
-		{"rocketpool-reth"},
-		{"ethena-susde"},
-		{"maker-savingsdai"},
-		{"hashflow-v3"},
-		{"nomiswap-stable"},
-		{"native-v1"},
-		{"renzo-ezeth"},
-		{"slipstream"},
-		{"nuri-v2"},
-		{"ether-vista"},
-		{"mkr-sky"},
-		{"dai-usds"},
-		{"lite-psm"},
-		{"usd0pp"},
-		{"bebop"},
-		{"dexalot"},
-		{"generic-simple-rate"},
-		{"ringswap"},
-		{"primeeth"},
-		{"staderethx"},
-		{"fluid-vault-t1"},
-		{"fluid-dex-t1"},
-		{"meth"},
-		{"ondo-usdy"},
-		{"clipper"},
-		{"deltaswap-v1"},
-		{"sfrxeth"},
-		{"sfrxeth-convertor"},
-		{"etherfi-vampire"},
-		{"algebra-integral"},
-		{"mx-trading"},
-		{"lo1inch"},
-		{"virtual-fun"},
-		{"beets-ss"},
-		{"swap-x-v2"},
-		{"etherfi-ebtc"},
-		{"overnight-usdp"},
-		// {"maverick-v2"}, // aevm
-		// {"uniswap-v4"}, // aevm
+	excludedPoolTypes := []string{
+		"curve-lending", // not implemented
+		"maverick-v2",   // aevm
+		"uniswap-v4",    // aevm
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := pool.Factory(tt.name)
+	var poolTypesMap map[string]string
+	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
+	poolTypes := lo.OmitByValues(poolTypesMap, excludedPoolTypes)
+
+	for _, poolType := range poolTypes {
+		t.Run(poolType, func(t *testing.T) {
+			got := pool.Factory(poolType)
 			assert.NotNil(t, got)
 		})
 	}
