@@ -1,7 +1,6 @@
 package bancorv21
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -11,24 +10,20 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
-		gas                       Gas
-		innerPoolByAnchor         map[string]*entity.Pool
-		anchorsByConvertibleToken map[string][]string
-		tokensByLpAddress         map[string][]string
-		anchorTokenPathFinder     string
-	}
-)
+type PoolSimulator struct {
+	pool.Pool
+	gas                       Gas
+	innerPoolByAnchor         map[string]*entity.Pool
+	anchorsByConvertibleToken map[string][]string
+	tokensByLpAddress         map[string][]string
+	anchorTokenPathFinder     string
+}
 
-var (
-	ErrInvalidReserve = errors.New("invalid reserve")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -37,7 +32,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -98,7 +93,7 @@ func targetAmountAndFee(sourceToken, targetToken string, sourceBalance, targetBa
 	return targetAmount, fee, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -113,16 +108,16 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee:      &poolpkg.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
+		Fee:      &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:      s.gas.Swap,
 		SwapInfo: SwapInfo{ConversionPath: path},
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var path []string
 	if err := json.Unmarshal([]byte(params.SwapInfo.(string)), &path); err != nil {
 		logger.WithFields(logger.Fields{

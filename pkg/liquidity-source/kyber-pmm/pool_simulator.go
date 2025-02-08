@@ -25,15 +25,7 @@ type PoolSimulator struct {
 	timestamp   int64
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
-	tokens := p.GetTokens()
-	rsv := p.GetReserves()
-	for i, tok := range tokens {
-		pmmInventory[tok] = new(big.Int).Set(rsv[i]) // clone here.
-	}
-	return pmmInventory
-}
+var _ = pool.RegisterFactory0(DexTypeKyberPMM, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
@@ -235,6 +227,16 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	tokens := p.GetTokens()
+	rsv := p.GetReserves()
+	for i, tok := range tokens {
+		pmmInventory[tok] = new(big.Int).Set(rsv[i]) // clone here.
+	}
+	return pmmInventory
 }
 
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, error) {

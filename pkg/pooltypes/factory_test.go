@@ -152,6 +152,7 @@ func TestFactory(t *testing.T) {
 		{"beets-ss"},
 		{"swap-x-v2"},
 		{"etherfi-ebtc"},
+		{"overnight-usdp"},
 		// {"maverick-v2"}, // aevm
 		// {"uniswap-v4"}, // aevm
 	}
