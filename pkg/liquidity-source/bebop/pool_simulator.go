@@ -1,7 +1,6 @@
 package bebop
 
 import (
-	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -14,45 +13,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrEmptyPriceLevels      = errors.New("empty price levels")
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
-)
+type PoolSimulator struct {
+	pool.Pool
+	Token0               entity.PoolToken
+	Token1               entity.PoolToken
+	ZeroToOnePriceLevels []PriceLevel
+	OneToZeroPriceLevels []PriceLevel
+	gas                  Gas
+}
 
-type (
-	PoolSimulator struct {
-		pool.Pool
-		Token0               entity.PoolToken
-		Token1               entity.PoolToken
-		ZeroToOnePriceLevels []PriceLevel
-		OneToZeroPriceLevels []PriceLevel
-		gas                  Gas
-	}
-	SwapInfo struct {
-		BaseToken        string `json:"b" mapstructure:"b"`
-		BaseTokenAmount  string `json:"bAmt" mapstructure:"bAmt"`
-		QuoteToken       string `json:"q" mapstructure:"q"`
-		QuoteTokenAmount string `json:"qAmt" mapstructure:"qAmt"`
-	}
-
-	Gas struct {
-		Quote int64
-	}
-
-	PriceLevel struct {
-		Price float64 `json:"p"`
-		Quote float64 `json:"q"`
-	}
-
-	Extra struct {
-		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
-	}
-
-	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra

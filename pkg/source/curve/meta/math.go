@@ -7,7 +7,7 @@ import (
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func (t *Pool) _xp_mem(_balances []*big.Int, vPrice *big.Int) ([]*big.Int, error) {
+func (t *PoolSimulator) _xp_mem(_balances []*big.Int, vPrice *big.Int) ([]*big.Int, error) {
 	var nCoins = len(_balances)
 	var ret = []*big.Int{t.RateMultiplier, vPrice}
 	for i := 0; i < nCoins; i += 1 {
@@ -16,7 +16,7 @@ func (t *Pool) _xp_mem(_balances []*big.Int, vPrice *big.Int) ([]*big.Int, error
 	return ret, nil
 }
 
-func (t *Pool) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
 	for i := 0; i < numTokens; i++ {
@@ -62,12 +62,12 @@ func (t *Pool) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
 }
 
 //
-//func (t *Pool) _get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
+//func (t *PoolSimulator) _get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 //	var xp = t._xp_mem(balances)
 //	return t._get_D(xp, amp)
 //}
 
-func (t *Pool) _A() *big.Int {
+func (t *PoolSimulator) _A() *big.Int {
 	var t1 = t.FutureATime
 	var a1 = t.FutureA
 	var now = time.Now().Unix()
@@ -101,16 +101,16 @@ func (t *Pool) _A() *big.Int {
 	return a1
 }
 
-func (t *Pool) A() *big.Int {
+func (t *PoolSimulator) A() *big.Int {
 	var a = t._A()
 	return new(big.Int).Div(a, t.APrecision)
 }
 
-func (t *Pool) APrecise() *big.Int {
+func (t *PoolSimulator) APrecise() *big.Int {
 	return t._A()
 }
 
-func (t *Pool) _get_y(
+func (t *PoolSimulator) _get_y(
 	i int,
 	j int,
 	x *big.Int,
@@ -170,7 +170,7 @@ func (t *Pool) _get_y(
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *Pool) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*big.Int, *big.Int, error) {
 	vPrice, _, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
@@ -191,7 +191,7 @@ func (t *Pool) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*b
 	return dy, fee, nil
 }
 
-func (t *Pool) GetDy(
+func (t *PoolSimulator) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
@@ -199,7 +199,7 @@ func (t *Pool) GetDy(
 	return t._get_dy_mem(i, j, dx, t.Info.Reserves)
 }
 
-func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoin = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
@@ -262,7 +262,7 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 	return dy, dy_fee, err
 }
 
-func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	vPrice, _, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
@@ -295,7 +295,7 @@ func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	return dy, nil
 }
 
-func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoins = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)

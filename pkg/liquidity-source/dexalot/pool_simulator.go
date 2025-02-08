@@ -16,62 +16,18 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrEmptyPriceLevels                       = errors.New("empty price levels")
-	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
-	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
-	ErrNoSwapLimit                            = errors.New("swap limit is required for dexalot pools")
-)
+type PoolSimulator struct {
+	pool.Pool
+	Token0               entity.PoolToken
+	Token1               entity.PoolToken
+	ZeroToOnePriceLevels []PriceLevel
+	OneToZeroPriceLevels []PriceLevel
+	gas                  Gas
+	Token0Original       string
+	Token1Original       string
+}
 
-type (
-	PoolSimulator struct {
-		pool.Pool
-		Token0               entity.PoolToken
-		Token1               entity.PoolToken
-		ZeroToOnePriceLevels []PriceLevel
-		OneToZeroPriceLevels []PriceLevel
-		gas                  Gas
-		Token0Original       string
-		Token1Original       string
-	}
-	SwapInfo struct {
-		BaseToken          string `json:"b" mapstructure:"b"`
-		BaseTokenAmount    string `json:"bAmt" mapstructure:"bAmt"`
-		QuoteToken         string `json:"q" mapstructure:"q"`
-		QuoteTokenAmount   string `json:"qAmt" mapstructure:"qAmt"`
-		MarketMaker        string `json:"mm,omitempty" mapstructure:"mm"`
-		ExpirySecs         uint   `json:"exp,omitempty" mapstructure:"exp"`
-		BaseTokenOriginal  string `json:"bo,omitempty" mapstructure:"bo"`
-		QuoteTokenOriginal string `json:"qo,omitempty" mapstructure:"qo"`
-		BaseTokenReserve   string `json:"br,omitempty" mapstructure:"br"`
-		QuoteTokenReserve  string `json:"qr,omitempty" mapstructure:"qr"`
-	}
-
-	Gas struct {
-		Quote int64
-	}
-
-	PriceLevel struct {
-		Quote *big.Float
-		Price *big.Float
-	}
-
-	PriceLevelRaw struct {
-		Price float64 `json:"p"`
-		Quote float64 `json:"q"`
-	}
-
-	Extra struct {
-		ZeroToOnePriceLevels []PriceLevelRaw `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevelRaw `json:"1to0"`
-		Token0Address        string          `json:"token0"`
-		Token1Address        string          `json:"token1"`
-	}
-
-	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra

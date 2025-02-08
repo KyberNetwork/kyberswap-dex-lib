@@ -36,6 +36,8 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	return pmmInventory
 }
 
+var _ = pool.RegisterFactory0(DexTypeKyberPMM, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)

@@ -14,7 +14,7 @@ import (
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	Precisions        []*big.Int
 	A                 *big.Int
@@ -48,7 +48,9 @@ type Gas struct {
 	Exchange int64
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+var _ = pool.RegisterFactory0(curve.PoolTypeTwo, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra curve.PoolTwoStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -73,7 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	lastPricesPacked := utils.NewBig10(extraStr.LastPrices)
 	priceOraclePacked := utils.NewBig10(extraStr.PriceOracle)
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -116,7 +118,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	// swap from token to token
@@ -151,12 +153,12 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 	)
 }
 
-func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	_, _, _, _ = t.Swap(input, output.Token)
 }
 
-func (t *Pool) Swap(
+func (t *PoolSimulator) Swap(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.TokenAmount, *pool.TokenAmount, int64, error) {
@@ -176,7 +178,7 @@ func (t *Pool) Swap(
 		}, t.gas.Exchange, nil
 }
 
-func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

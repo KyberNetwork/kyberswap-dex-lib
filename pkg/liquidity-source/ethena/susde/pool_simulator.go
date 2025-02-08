@@ -5,16 +5,15 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
 	PoolSimulator struct {
-		poolpkg.Pool
+		pool.Pool
 
 		totalAssets *uint256.Int
 		totalSupply *uint256.Int
@@ -29,14 +28,7 @@ type (
 	}
 )
 
-var (
-	ErrInvalidToken = errors.New("invalid token")
-	ErrOverflow     = errors.New("overflow")
-)
-
-var (
-	defaultGas = Gas{Deposit: 58500}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -53,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, ErrInvalidToken
 	}
 
-	poolInfo := poolpkg.PoolInfo{
+	poolInfo := pool.PoolInfo{
 		Address:     entityPool.Address,
 		Exchange:    entityPool.Exchange,
 		Type:        entityPool.Type,
@@ -74,13 +66,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:        poolpkg.Pool{Info: poolInfo},
+		Pool:        pool.Pool{Info: poolInfo},
 		totalAssets: totalAssets,
 		totalSupply: totalSupply,
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	if err := s.validate(tokenAmountIn.Token, tokenOut); err != nil {
@@ -99,12 +91,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		new(uint256.Int).Add(s.totalAssets, number.Number_1),
 	)
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: shares.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: bignumber.ZeroBI,
 		},
@@ -112,7 +104,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	shares, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
 	if overflow {
 		return

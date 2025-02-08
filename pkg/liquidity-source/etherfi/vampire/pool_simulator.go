@@ -1,31 +1,26 @@
 package etherfivampire
 
 import (
-	"errors"
 	"math/big"
 	"time"
 
 	"github.com/goccy/go-json"
-
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrDepositCapReached = errors.New("deposit cap reached")
-	ErrInvalidAmount     = errors.New("invalid amount")
-)
-
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 	PoolExtra
 	curveStETHToETHSimulator *plain.PoolSimulator
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -48,7 +43,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -78,7 +73,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 	return nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	gasUsed := int64(0)
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
@@ -104,13 +99,13 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		gasUsed += wrapWeETHGas
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  param.TokenOut,
 			Amount: amountOut,
 		},
 		Gas: gasUsed,
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  param.TokenAmountIn.Token,
 			Amount: bignumber.ZeroBI,
 		},
@@ -118,7 +113,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	swapInfo := param.SwapInfo.(SwapInfo)
 	s.StETHTokenInfo.TotalDepositedThisPeriod.Add(s.StETHTokenInfo.TotalDepositedThisPeriod, swapInfo.dx)
 	s.StETHTokenInfo.TotalDeposited.Add(s.StETHTokenInfo.TotalDeposited, swapInfo.dx)

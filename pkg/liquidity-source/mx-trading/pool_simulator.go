@@ -1,39 +1,32 @@
 package mxtrading
 
 import (
-	"errors"
 	"math"
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrEmptyPriceLevels                    = errors.New("empty price levels")
-	ErrAmountInIsLessThanLowestPriceLevel  = errors.New("amountIn is less than lowest price level")
-	ErrAmountInIsGreaterThanTotalLevelSize = errors.New("amountIn is greater than total level size")
-	ErrAmountOutIsGreaterThanInventory     = errors.New("amountOut is greater than inventory")
-)
+type PoolSimulator struct {
+	pool.Pool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+	ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
+	OneToZeroPriceLevels []PriceLevel `json:"1to0"`
 
-		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
+	token0, token1 entity.PoolToken
 
-		token0, token1 entity.PoolToken
+	timestamp int64
+	gas       Gas
+}
 
-		timestamp int64
-		gas       Gas
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra

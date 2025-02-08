@@ -1,49 +1,37 @@
 package deltaswapv1
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
-		feePrecision *uint256.Int
+type PoolSimulator struct {
+	pool.Pool
+	feePrecision *uint256.Int
 
-		tradeLiquidityEMA        *uint256.Int
-		liquidityEMA             *uint256.Int
-		lastLiquidityBlockNumber uint64
-		lastTradeLiquiditySum    *uint256.Int
-		lastTradeBlockNumber     uint64
-		dsFee                    *uint256.Int
-		dsFeeThreshold           *uint256.Int
+	tradeLiquidityEMA        *uint256.Int
+	liquidityEMA             *uint256.Int
+	lastLiquidityBlockNumber uint64
+	lastTradeLiquiditySum    *uint256.Int
+	lastTradeBlockNumber     uint64
+	dsFee                    *uint256.Int
+	dsFeeThreshold           *uint256.Int
 
-		gas uniswapv2.Gas
-	}
+	gas uniswapv2.Gas
+}
 
-	SwapInfo struct {
-		Fee            uint32       `json:"fee"`
-		FeePrecision   uint32       `json:"feePrecision"`
-		TradeLiquidity *uint256.Int `json:"tradeLiquidity"`
-	}
-)
-
-var (
-	ErrZeroTradeLiquidity = errors.New("DeltaSwap: ZERO_TRADE_LIQUIDITY")
-	ErrMaxIterations      = errors.New("maximum iterations reached")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -52,7 +40,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -74,7 +62,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -117,9 +105,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:            s.gas.Swap,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -129,7 +117,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	var (
 		tokenAmountOut = param.TokenAmountOut
 		tokenIn        = param.TokenIn
@@ -212,9 +200,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidK
 	}
 
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:           s.gas.Swap,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -224,7 +212,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return

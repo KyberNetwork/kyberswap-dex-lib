@@ -14,18 +14,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		pool.Pool
-		swapFee                   uint32
-		tokenPrecisionMultipliers []*uint256.Int
-		A                         *uint256.Int
-		gas                       Gas
-	}
-	Gas struct {
-		Swap int64
-	}
-)
+type PoolSimulator struct {
+	pool.Pool
+	swapFee                   uint32
+	tokenPrecisionMultipliers []*uint256.Int
+	A                         *uint256.Int
+	gas                       nomiswap.Gas
+}
+
+var _ = pool.RegisterFactory0(nomiswap.DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra nomiswap.ExtraStablePool

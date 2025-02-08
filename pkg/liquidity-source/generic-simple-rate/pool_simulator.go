@@ -1,7 +1,6 @@
 package generic_simple_rate
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -24,10 +23,7 @@ type PoolSimulator struct {
 	isBidirectional bool
 }
 
-var (
-	ErrPoolPaused = errors.New("pool is paused")
-	ErrOverflow   = errors.New("overflow")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)

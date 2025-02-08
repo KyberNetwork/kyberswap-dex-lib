@@ -9,3 +9,7 @@ type PoolExtra struct {
 	StartTime int64 `json:"startTime"`
 	EndTime   int64 `json:"endTime"`
 }
+
+type Gas struct {
+	Mint int64
+}

@@ -8,11 +8,19 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var now = time.Now
+
+type PoolSimulator struct {
+	pool.Pool
+	SmardexPair
+	gas Gas
+}
+
+var _ = pool.RegisterFactory0(DexTypeSmardex, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair SmardexPair
@@ -29,8 +37,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{
-			Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
 				Address:    entityPool.Address,
 				ReserveUsd: entityPool.ReserveUsd,
 				Exchange:   entityPool.Exchange,
@@ -50,7 +58,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -69,13 +77,13 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	var (
-		fictiveReserveIn   *big.Int = p.FictiveReserve.FictiveReserve0
-		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
-		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
-		priceAverageOut    *big.Int = p.PriceAverage.PriceAverage1
-		balanceIn          *big.Int = p.GetReserves()[0]
-		balanceOut         *big.Int = p.GetReserves()[1]
-		userTradeTimestamp          = now().Unix()
+		fictiveReserveIn   = p.FictiveReserve.FictiveReserve0
+		fictiveReserveOut  = p.FictiveReserve.FictiveReserve1
+		priceAverageIn     = p.PriceAverage.PriceAverage0
+		priceAverageOut    = p.PriceAverage.PriceAverage1
+		balanceIn          = p.GetReserves()[0]
+		balanceOut         = p.GetReserves()[1]
+		userTradeTimestamp = now().Unix()
 	)
 	if !zeroForOne {
 		fictiveReserveIn = p.FictiveReserve.FictiveReserve1
@@ -132,12 +140,12 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	if zeroForOne {
-		return &poolpkg.CalcAmountOutResult{
-			TokenAmountOut: &poolpkg.TokenAmount{
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
 				Token:  p.GetTokens()[1],
 				Amount: amount1,
 			},
-			Fee: &poolpkg.TokenAmount{
+			Fee: &pool.TokenAmount{
 				Token:  p.GetTokens()[1],
 				Amount: feeToAmount1,
 			},
@@ -156,12 +164,12 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		}, nil
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  p.GetTokens()[0],
 			Amount: amount0,
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  p.GetTokens()[0],
 			Amount: feeToAmount0,
 		},
@@ -181,14 +189,15 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for Smardex %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		logger.Warnf("failed to UpdateBalance for Smardex %v %v pool, wrong swapInfo type",
+			p.Info.Address, p.Info.Exchange)
 		return
 	}
 	p.Info.Reserves = []*big.Int{si.newReserveIn, si.newReserveOut}

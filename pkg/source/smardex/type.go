@@ -2,15 +2,7 @@ package smardex
 
 import (
 	"math/big"
-
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
-
-type PoolSimulator struct {
-	poolpkg.Pool
-	SmardexPair
-	gas Gas
-}
 
 type Gas struct {
 	Swap int64

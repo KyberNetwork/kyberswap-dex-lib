@@ -24,3 +24,7 @@ type PoolMeta struct {
 	RouterAddress string `json:"routerAddress"`
 	BlockNumber   uint64 `json:"blockNumber"`
 }
+
+type Gas struct {
+	Swap int64
+}

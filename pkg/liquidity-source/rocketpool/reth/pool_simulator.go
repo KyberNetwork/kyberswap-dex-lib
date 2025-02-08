@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -25,7 +25,7 @@ var (
 var calcBase = new(big.Int).Set(bignumber.BONE)
 
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	// depositEnabled: RocketDAOProtocolSettingsDeposit.getDepositEnabled
 	depositEnabled bool
@@ -63,6 +63,8 @@ type PoolSimulator struct {
 	gas Gas
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -70,7 +72,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -94,7 +96,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if param.TokenAmountIn.Token == s.Info.Tokens[0] && param.TokenOut == s.Info.Tokens[1] {
 		// ETH -> rETH
 		return s.deposit(param.TokenAmountIn.Amount)
@@ -104,7 +106,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	return s.burn(param.TokenAmountIn.Amount)
 }
 
-func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	if param.TokenAmountIn.Token == s.Info.Tokens[0] && param.TokenAmountOut.Token == s.Info.Tokens[1] {
 
 		return
@@ -119,7 +121,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 // deposit ETH and mint rETH
-func (s *PoolSimulator) deposit(amount *big.Int) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) deposit(amount *big.Int) (*pool.CalcAmountOutResult, error) {
 	if !s.depositEnabled {
 		return nil, ErrDepositDisabled
 	}
@@ -144,9 +146,9 @@ func (s *PoolSimulator) deposit(amount *big.Int) (*poolpkg.CalcAmountOutResult, 
 	depositNet := new(big.Int).Sub(amount, depositFee)
 
 	if s.totalRETHSupply.Cmp(bignumber.ZeroBI) == 0 {
-		return &poolpkg.CalcAmountOutResult{
-			TokenAmountOut: &poolpkg.TokenAmount{Token: s.Info.Tokens[1], Amount: depositNet},
-			Fee:            &poolpkg.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: depositNet},
+			Fee:            &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
 			Gas:            s.gas.Deposit,
 		}, nil
 	}
@@ -157,15 +159,15 @@ func (s *PoolSimulator) deposit(amount *big.Int) (*poolpkg.CalcAmountOutResult, 
 
 	amountOut := new(big.Int).Div(new(big.Int).Mul(depositNet, s.totalRETHSupply), s.totalETHBalance)
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Info.Tokens[1], Amount: amountOut},
-		Fee:            &poolpkg.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Deposit,
 	}, nil
 }
 
 // burn rETH and withdraw ETH
-func (s *PoolSimulator) burn(amount *big.Int) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) burn(amount *big.Int) (*pool.CalcAmountOutResult, error) {
 	ethAmount := s.getEthValue(amount)
 	ethBalance := new(big.Int).Add(s.excessBalance, s.rETHBalance)
 
@@ -173,9 +175,9 @@ func (s *PoolSimulator) burn(amount *big.Int) (*poolpkg.CalcAmountOutResult, err
 		return nil, ErrInsufficientETHBalance
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Info.Tokens[0], Amount: ethAmount},
-		Fee:            &poolpkg.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: ethAmount},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Burn,
 	}, nil
 }

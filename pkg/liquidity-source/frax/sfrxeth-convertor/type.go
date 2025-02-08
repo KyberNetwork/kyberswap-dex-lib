@@ -13,3 +13,7 @@ type Gas struct {
 	Deposit int64
 	Redeem  int64
 }
+
+type SwapInfo struct {
+	IsDeposit bool `json:"isDeposit"`
+}

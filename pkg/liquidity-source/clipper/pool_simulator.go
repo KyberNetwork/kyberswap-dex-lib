@@ -1,7 +1,6 @@
 package clipper
 
 import (
-	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -14,17 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrInvalidTokenIn       = errors.New("invalid token in")
-	ErrInvalidTokenOut      = errors.New("invalid token out")
-	ErrInvalidPair          = errors.New("invalid pair")
-	ErrFMVCheckFailed       = errors.New("FMV check failed")
-	ErrAmountOutNaN         = errors.New("amountOut is NaN")
-	ErrMinAmountInNotEnough = errors.New("minAmountIn is not enough")
-
-	basisPoint float64 = 10000
-)
-
 type PoolSimulator struct {
 	pool.Pool
 	extra Extra
@@ -32,6 +20,8 @@ type PoolSimulator struct {
 	addressToToken map[string]PoolAsset
 	symbolToToken  map[string]PoolAsset
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra

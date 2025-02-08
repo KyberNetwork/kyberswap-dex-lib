@@ -183,3 +183,8 @@ type Meta struct {
 	TokenInIsNative  *bool
 	TokenOutIsNative *bool
 }
+
+type Gas struct {
+	Exchange           int64
+	ExchangeUnderlying int64
+}

@@ -1,7 +1,6 @@
 package beets_ss
 
 import (
-	"errors"
 	"math/big"
 	"strings"
 
@@ -12,37 +11,22 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	ErrInvalidToken            = errors.New("invalid token")
-	ErrInvalidReserve          = errors.New("invalid reserve")
-	ErrInvalidAmountIn         = errors.New("invalid amount in")
-	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
+type PoolSimulator struct {
+	pool.Pool
 
-	ErrDepositTooSmall = errors.New("deposit too small")
-	ErrDepositPaused   = errors.New("deposit paused")
-	ErrOverflow        = errors.New("overflow")
-)
+	totalSupply   *uint256.Int
+	totalAssets   *uint256.Int
+	depositPaused bool
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+	gas Gas
+}
 
-		totalSupply   *uint256.Int
-		totalAssets   *uint256.Int
-		depositPaused bool
-
-		gas Gas
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -61,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -78,7 +62,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -103,9 +87,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:            s.gas.Swap,
 	}, nil
 }
@@ -135,7 +119,7 @@ func (s *PoolSimulator) convertToShares(assetAmount *uint256.Int) *uint256.Int {
 	)
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return
@@ -168,7 +152,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
-func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.totalAssets = p.totalAssets.Clone()
 	cloned.totalSupply = p.totalSupply.Clone()

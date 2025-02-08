@@ -1,5 +1,9 @@
 package staderethx
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "staderethx"
 
@@ -25,4 +29,11 @@ var (
 	defaultGas = Gas{
 		Deposit: 250000,
 	}
+)
+
+var (
+	ErrPoolPaused           = errors.New("pool is paused")
+	ErrInvalidTokenIn       = errors.New("invalid tokenIn")
+	ErrInvalidTokenOut      = errors.New("invalid tokenOut")
+	ErrInvalidDepositAmount = errors.New("invalid deposit amount")
 )

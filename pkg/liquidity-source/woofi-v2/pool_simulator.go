@@ -11,7 +11,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -29,7 +29,7 @@ var (
 
 type (
 	PoolSimulator struct {
-		poolpkg.Pool
+		pool.Pool
 		quoteToken string
 		tokenInfos map[string]TokenInfo
 		decimals   map[string]uint8
@@ -58,6 +58,8 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory0(DexTypeWooFiV2, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -73,8 +75,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{
-			Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
 				Address:  entityPool.Address,
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
@@ -92,14 +94,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := params.TokenAmountIn
 	tokenOut := params.TokenOut
 	tokenInIndex := s.GetTokenIndex(tokenAmountIn.Token)
 	tokenOutIndex := s.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &poolpkg.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
 	var (
@@ -116,7 +118,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		var newPrice *uint256.Int
 		amountOut, swapFee, newPrice, err = s._sellQuote(tokenOut, amountIn)
 		if err != nil {
-			return &poolpkg.CalcAmountOutResult{}, err
+			return &pool.CalcAmountOutResult{}, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
@@ -126,7 +128,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		var newPrice *uint256.Int
 		amountOut, swapFee, newPrice, err = s._sellBase(tokenAmountIn.Token, amountIn)
 		if err != nil {
-			return &poolpkg.CalcAmountOutResult{}, err
+			return &pool.CalcAmountOutResult{}, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
@@ -136,7 +138,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		var newBase1Price, newBase2Price *uint256.Int
 		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
 		if err != nil {
-			return &poolpkg.CalcAmountOutResult{}, err
+			return &pool.CalcAmountOutResult{}, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
@@ -145,12 +147,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		}
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: swapFee.ToBig(),
 		},
@@ -159,7 +161,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	_, ok := params.SwapInfo.(woofiV2SwapInfo)
 	if !ok {
 		logger.Error("failed to UpdateBalancer for WooFiV2 pool, wrong swapInfo type")
@@ -435,7 +437,7 @@ func (s *PoolSimulator) decimalInfo(baseToken string) DecimalInfo {
 	}
 }
 
-func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) updateBalanceSellBase(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
@@ -549,7 +551,7 @@ func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken strin
 	return refPrice, int64(refTimestamp.Uint64())
 }
 
-func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
@@ -580,7 +582,7 @@ func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParam
 	}
 }
 
-func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)

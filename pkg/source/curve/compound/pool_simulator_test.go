@@ -149,7 +149,7 @@ func TestCalcAmountIn(t *testing.T) {
 		},
 	}
 
-	sims := lo.Map(pools, func(poolRedis string, _ int) *CompoundPool {
+	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
 		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)

@@ -1,5 +1,9 @@
 package ondo_usdy
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "ondo-usdy"
 
@@ -22,4 +26,9 @@ var (
 		Wrap:   100000,
 		Unwrap: 100000,
 	}
+)
+
+var (
+	ErrPoolPaused     = errors.New("pool is paused")
+	ErrUnwrapTooSmall = errors.New("unwrap too small")
 )

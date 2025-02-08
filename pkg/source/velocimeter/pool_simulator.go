@@ -10,14 +10,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	Decimals []*big.Int
 	stable   bool
 	gas      Gas
 }
 
-func NewPool(entityPool entity.Pool) (*Pool, error) {
+var _ = pool.RegisterFactory0(DexTypeVelocimeter, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
 	var swapFee, _ = swapFeeFl.Int(nil)
 
@@ -49,7 +51,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		return nil, err
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool:     pool.Pool{Info: info},
 		Decimals: decimals,
 		stable:   staticExtra.Stable,
@@ -57,7 +59,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
@@ -102,7 +104,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 	}, nil
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = calAmountAfterFee(input.Amount, p.Info.SwapFee)
 	var outputAmount = output.Amount
@@ -117,7 +119,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return StaticExtra{
 		Stable: p.stable,
 	}

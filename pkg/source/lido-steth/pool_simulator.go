@@ -17,6 +17,8 @@ type PoolSimulator struct {
 	chainID valueobject.ChainID
 }
 
+var _ = pool.RegisterFactory1(DexTypeLidoStETH, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
 	if numTokens != 2 || !valueobject.IsWrappedNative(entityPool.Tokens[0].Address, chainID) {

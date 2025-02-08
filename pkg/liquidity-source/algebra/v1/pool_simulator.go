@@ -27,7 +27,9 @@ type PoolSimulator struct {
 	tickSpacing int
 }
 
-func NewPoolSimulator(entityPool entity.Pool, _ int64) (*PoolSimulator, error) {
+var _ = pool.RegisterFactory0(DexTypeAlgebraV1, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra ExtraUint256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err

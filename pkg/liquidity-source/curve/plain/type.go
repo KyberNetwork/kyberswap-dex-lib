@@ -14,7 +14,6 @@ type (
 		// which coins are originally native (before being converted to wrapped)
 		IsNativeCoin []bool
 	}
-
 	Extra struct {
 		InitialA     *uint256.Int
 		FutureA      *uint256.Int
@@ -30,5 +29,9 @@ type (
 		// those rates are not fixed (10^(36-decimal)) like other Plain pools so need to be put in Extra
 		// note that this will be empty for standard rates pool (will be init by NewSimulator)
 		RateMultipliers []uint256.Int `json:",omitempty"`
+	}
+
+	Gas struct {
+		Exchange int64
 	}
 )

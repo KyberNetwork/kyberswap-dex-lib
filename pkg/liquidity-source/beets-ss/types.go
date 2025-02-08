@@ -11,3 +11,7 @@ type Extra struct {
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
 }
+
+type Gas struct {
+	Swap int64
+}

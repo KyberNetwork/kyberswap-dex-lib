@@ -1,6 +1,7 @@
 package nuriv2
 
 import (
+	"errors"
 	"math/big"
 )
 
@@ -28,4 +29,9 @@ var (
 	// https://team-kyber.slack.com/archives/C05V8NL8CSF/p1702621669962399.
 	// For now, keep the BaseGas = 125000 (as the previous config), CrossInitTickGas = 0.
 	defaultGas = Gas{BaseGas: 125000, CrossInitTickGas: 0}
+)
+
+var (
+	ErrTickNil      = errors.New("tick is nil")
+	ErrV3TicksEmpty = errors.New("v3Ticks empty")
 )

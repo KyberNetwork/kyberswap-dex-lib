@@ -11,3 +11,9 @@ type Extra struct {
 	LastTradeLiquiditySum    *uint256.Int `json:"lastTradeLiquiditySum"`
 	LastTradeBlockNumber     uint64       `json:"lastTradeBlockNumber"`
 }
+
+type SwapInfo struct {
+	Fee            uint32       `json:"fee"`
+	FeePrecision   uint32       `json:"feePrecision"`
+	TradeLiquidity *uint256.Int `json:"tradeLiquidity"`
+}

@@ -28,6 +28,8 @@ type wombatSwapInfo struct {
 	newToAssetCash   *big.Int
 }
 
+var _ = pool.RegisterFactory0(wombat.PoolTypeWombatLSD, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra wombat.Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

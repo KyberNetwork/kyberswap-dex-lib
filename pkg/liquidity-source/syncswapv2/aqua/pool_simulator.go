@@ -12,7 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -51,6 +51,8 @@ type PoolSimulator struct {
 	InitialGamma int64
 	FutureGamma  int64
 }
+
+var _ = pool.RegisterFactory0(PoolTypeSyncSwapV2Aqua, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra ExtraAquaPool

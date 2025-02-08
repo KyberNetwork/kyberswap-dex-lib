@@ -14,3 +14,7 @@ type PoolExtra struct {
 	ExchangeAdjustmentRate uint16       `json:"exchangeAdjustmentRate"`
 	METHTotalSupply        *uint256.Int `json:"mETHTotalSupply"`
 }
+
+type Gas struct {
+	Stake int64
+}

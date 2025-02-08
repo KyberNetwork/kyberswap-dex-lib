@@ -29,6 +29,11 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory1(DexTypePlatypus, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusBase, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusAvax, NewPoolSimulator)
+var _ = pool.RegisterFactory1(PoolTypePlatypusPure, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

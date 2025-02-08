@@ -389,16 +389,16 @@ func halfpow(power *big.Int, precision *big.Int) (*big.Int, error) {
 	return nil, errors.New("did not converge")
 }
 
-// func (t *Pool) packedView(k uint, p *big.Int) *big.Int {
+// func (t *PoolSimulator) packedView(k uint, p *big.Int) *big.Int {
 // 	var ret = new(big.Int).Rsh(p, k*128)
 // 	return new(big.Int).And(ret, PriceMask)
 // }
 //
-// func (t *Pool) priceScale(k uint) *big.Int {
+// func (t *PoolSimulator) priceScale(k uint) *big.Int {
 // 	return t.packedView(k, t.PriceScalePacked)
 // }
 
-func (t *Pool) aGamma() []*big.Int {
+func (t *PoolSimulator) aGamma() []*big.Int {
 	var t1 = t.FutureAGammaTime
 	var AGamma1 = t.FutureAGamma
 	var gamma1 = new(big.Int).And(AGamma1, PriceMask)
@@ -434,7 +434,7 @@ func (t *Pool) aGamma() []*big.Int {
 	}
 }
 
-func (t *Pool) FeeCalc(xp []*big.Int) *big.Int {
+func (t *PoolSimulator) FeeCalc(xp []*big.Int) *big.Int {
 	var f = reductionCoefficient(xp, t.FeeGamma)
 	var ret = new(big.Int).Div(
 		new(big.Int).Add(
@@ -445,7 +445,7 @@ func (t *Pool) FeeCalc(xp []*big.Int) *big.Int {
 }
 
 // GetDy https://github.com/curvefi/curve-crypto-contract/blob/d7d04cd9ae038970e40be850df99de8c1ff7241b/contracts/two/CurveCryptoSwap2.vy#L842
-func (t *Pool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
 	if i == j {
 		return nil, nil, fmt.Errorf("tokenIn and tokenOut must not be the same")
 	}
@@ -480,7 +480,7 @@ func (t *Pool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
 	return dy, fee, nil
 }
 
-func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	if i == j {
 		return nil, errors.New("i = j")
@@ -582,7 +582,7 @@ func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	return dy, err
 }
 
-func (t *Pool) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI *big.Int, newD *big.Int) error {
+func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI *big.Int, newD *big.Int) error {
 	var nCoins = len(_xp)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var priceOracle = make([]*big.Int, nCoins-1)

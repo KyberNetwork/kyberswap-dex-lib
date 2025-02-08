@@ -32,12 +32,9 @@ type PoolSimulator struct {
 	staticExtra StaticExtra
 }
 
-type Gas struct {
-	Exchange int64
-}
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-
 	/*
 		Curve StableSwap Plain pools are the most basic Curve pools that implement StableSwap invariant
 		(see the whitepaper for more details https://docs.curve.fi/references/whitepapers/stableswap/#constructing-the-stableswap-invariant )
@@ -90,7 +87,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
 
 	/*
-		most of Plain pools use standard rate 10^(36 - token_decimal)
+		most Plain pools use standard rate 10^(36 - token_decimal)
 		- Factory pools: https://github.com/curvefi/curve-factory/blob/master/contracts/Factory.vy#L558
 		- Curve-owned pools: see explanation of ___RATES___ in https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/README.md
 		some pools (ETH/rETH and ETH/aETH) have rates changed overtime, they have been filled in by pool-tracker already
@@ -117,7 +114,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 
 		/*
-			different Plain variants have slightly different way to deal with this
+			different Plain variants have slightly different way to deal with this,
 			but they can all be expressed as 10^(18 - token_decimal)
 			- Curve-owned pools: see explanation of ___PRECISION_MUL___ in https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/README.md
 			- Factory pools: see code, for example Plain3Basic _calc_withdraw_one_coin function:

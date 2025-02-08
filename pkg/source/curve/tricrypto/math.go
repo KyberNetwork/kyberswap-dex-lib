@@ -356,24 +356,24 @@ func halfpow(power *big.Int, precision *big.Int) (*big.Int, error) {
 	return nil, errors.New("did not converge")
 }
 
-func (t *Pool) _packed_view(k uint, p *big.Int) *big.Int {
+func (t *PoolSimulator) _packed_view(k uint, p *big.Int) *big.Int {
 	var ret = new(big.Int).Rsh(p, k*128)
 	return new(big.Int).And(ret, PriceMask)
 }
 
-func (t *Pool) price_scale(k uint) *big.Int {
+func (t *PoolSimulator) price_scale(k uint) *big.Int {
 	return t._packed_view(k, t.PriceScalePacked)
 }
 
-//func (t *Pool) price_oracle(k uint) *big.Int {
+//func (t *PoolSimulator) price_oracle(k uint) *big.Int {
 //	return t._packed_view(k, t.PriceOraclePacked)
 //}
 
-//func (t *Pool) last_prices(k uint) *big.Int {
+//func (t *PoolSimulator) last_prices(k uint) *big.Int {
 //	return t._packed_view(k, t.LastPricesPacked)
 //}
 
-func (t *Pool) _A_gamma() []*big.Int {
+func (t *PoolSimulator) _A_gamma() []*big.Int {
 	var t1 = t.FutureAGammaTime
 	var A_gamma_1 = t.FutureAGamma
 	var gamma1 = new(big.Int).And(A_gamma_1, PriceMask)
@@ -405,13 +405,13 @@ func (t *Pool) _A_gamma() []*big.Int {
 	}
 }
 
-func (t *Pool) FeeCalc(xp []*big.Int) *big.Int {
+func (t *PoolSimulator) FeeCalc(xp []*big.Int) *big.Int {
 	var f = reductionCoefficient(xp, t.FeeGamma)
 	var ret = new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(t.MidFee, f), new(big.Int).Mul(t.OutFee, new(big.Int).Sub(constant.BONE, f))), constant.BONE)
 	return ret
 }
 
-func (t *Pool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
 	var xp = make([]*big.Int, 3)
 	var price_scale = make([]*big.Int, 2)
 	for k := 0; k < 2; k += 1 {
@@ -442,7 +442,7 @@ func (t *Pool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
 	return dy, fee, nil
 }
 
-func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	if i == j {
 		return nil, errors.New("i = j")
@@ -534,7 +534,7 @@ func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	return dy, err
 }
 
-func (t *Pool) tweak_price(A_gamma []*big.Int, _xp []*big.Int, i int, p_i *big.Int, new_D *big.Int) error {
+func (t *PoolSimulator) tweak_price(A_gamma []*big.Int, _xp []*big.Int, i int, p_i *big.Int, new_D *big.Int) error {
 	var nCoins = len(_xp)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var price_oracle = make([]*big.Int, nCoins-1)

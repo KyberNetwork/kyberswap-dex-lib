@@ -1,5 +1,9 @@
 package pufeth
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "puffer-pufeth"
 )
@@ -26,4 +30,9 @@ var defaultGas = Gas{
 const (
 	// unlimited reserve
 	reserves = "10000000000000000000"
+)
+
+var (
+	ErrUnsupportedSwap = errors.New("unsupported swap")
+	ErrInvalidAmountIn = errors.New("invalid amountIn")
 )

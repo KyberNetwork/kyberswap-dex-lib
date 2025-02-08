@@ -14,3 +14,7 @@ type ExtraStablePool struct {
 type Metadata struct {
 	Offset int `json:"offset"`
 }
+
+type Gas struct {
+	Swap int64
+}

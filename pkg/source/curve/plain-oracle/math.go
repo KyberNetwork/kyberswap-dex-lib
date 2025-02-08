@@ -26,7 +26,7 @@ func _xpMem(
 	return xp, nil
 }
 
-func (t *Pool) _xp() []*big.Int {
+func (t *PoolSimulator) _xp() []*big.Int {
 	var nTokens = len(t.GetInfo().Tokens)
 	result := make([]*big.Int, nTokens)
 	for i := 0; i < nTokens; i += 1 {
@@ -35,7 +35,7 @@ func (t *Pool) _xp() []*big.Int {
 	return result
 }
 
-func (t *Pool) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 	var xp, err = _xpMem(balances, t.Rates)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func (t *Pool) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 	return t.getD(xp, amp)
 }
 
-func (t *Pool) _A() *big.Int {
+func (t *PoolSimulator) _A() *big.Int {
 	var t1 = t.FutureATime
 	var a1 = t.FutureA
 	var now = time.Now().Unix()
@@ -77,7 +77,7 @@ func (t *Pool) _A() *big.Int {
 	return a1
 }
 
-func (t *Pool) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
 	for i := 0; i < numTokens; i++ {
@@ -119,7 +119,7 @@ func (t *Pool) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	return nil, ErrDDoesNotConverge
 }
 
-func (t *Pool) getY(
+func (t *PoolSimulator) getY(
 	tokenIndexFrom int,
 	tokenIndexTo int,
 	x *big.Int,
@@ -194,7 +194,7 @@ func (t *Pool) getY(
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *Pool) GetDy(
+func (t *PoolSimulator) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
@@ -224,7 +224,7 @@ func (t *Pool) GetDy(
 	return dy, fee, nil
 }
 
-func (t *Pool) getYD(
+func (t *PoolSimulator) getYD(
 	a *big.Int,
 	tokenIndex int,
 	xp []*big.Int,
@@ -282,7 +282,7 @@ func (t *Pool) getYD(
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *Pool) CalculateWithdrawOneCoin(
+func (t *PoolSimulator) CalculateWithdrawOneCoin(
 	tokenAmount *big.Int,
 	i int,
 ) (*big.Int, *big.Int, error) {
@@ -321,7 +321,7 @@ func (t *Pool) CalculateWithdrawOneCoin(
 	return dy, new(big.Int).Sub(dy0, dy), nil
 }
 
-func (t *Pool) CalculateTokenAmount(
+func (t *PoolSimulator) CalculateTokenAmount(
 	amounts []*big.Int,
 	deposit bool,
 ) (*big.Int, error) {
@@ -356,7 +356,7 @@ func (t *Pool) CalculateTokenAmount(
 	return new(big.Int).Div(new(big.Int).Mul(diff, totalSupply), d0), nil
 }
 
-func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
+func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoins = len(amounts)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = t._A()
@@ -410,7 +410,7 @@ func (t *Pool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	return mint_amount, nil
 }
 
-func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
+func (t *PoolSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
 	var dy, dy_fee, err = t.CalculateWithdrawOneCoin(tokenAmount, i)
 	if err != nil {
 		return nil, err
@@ -420,7 +420,7 @@ func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, er
 	return dy, nil
 }
 
-func (t *Pool) GetVirtualPrice() (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
 	var D, err = t.getD(xp, A)

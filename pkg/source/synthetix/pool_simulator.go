@@ -36,6 +36,8 @@ type PoolSimulator struct {
 	gas              Gas
 }
 
+var _ = pool.RegisterFactory1(DexTypeSynthetix, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

@@ -1,5 +1,9 @@
 package susde
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "ethena-susde"
 
@@ -9,4 +13,13 @@ const (
 	stakedUSDeV2MethodAsset       = "asset"
 	stakedUSDeV2MethodTotalSupply = "totalSupply"
 	stakedUSDeV2MethodTotalAssets = "totalAssets"
+)
+
+var (
+	ErrInvalidToken = errors.New("invalid token")
+	ErrOverflow     = errors.New("overflow")
+)
+
+var (
+	defaultGas = Gas{Deposit: 58500}
 )

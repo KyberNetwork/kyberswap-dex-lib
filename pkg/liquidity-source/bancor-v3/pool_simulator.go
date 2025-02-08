@@ -21,45 +21,16 @@ var (
 	ErrOverflow     = errors.New("overflow")
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+type PoolSimulator struct {
+	poolpkg.Pool
 
-		collectionByPool map[string]string
-		poolCollections  map[string]*poolCollection
-		bnt              string
-		chainID          valueobject.ChainID
-	}
+	collectionByPool map[string]string
+	poolCollections  map[string]*poolCollection
+	bnt              string
+	chainID          valueobject.ChainID
+}
 
-	tradeTokens struct {
-		SourceToken string
-		TargetToken string
-	}
-
-	tradeParams struct {
-		Amount         *uint256.Int
-		Limit          *uint256.Int
-		BySourceAmount bool
-		IgnoreFees     bool
-	}
-
-	tradeResult struct {
-		SourceAmount     *uint256.Int
-		TargetAmount     *uint256.Int
-		TradingFeeAmount *uint256.Int
-		NetworkFeeAmount *uint256.Int
-
-		PoolCollectionTradeInfo *poolCollectionTradeInfo
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
-
-var (
-	defaultGas = Gas{Swap: 150000}
-)
+var _ = poolpkg.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -90,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:      tokens,
 		Reserves:    reserves,
 		Checked:     true,
-		BlockNumber: uint64(entityPool.BlockNumber),
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{

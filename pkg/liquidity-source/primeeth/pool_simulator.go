@@ -1,39 +1,29 @@
 package primeeth
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+type PoolSimulator struct {
+	pool.Pool
 
-		paused              bool
-		totalAssetDeposit   *big.Int
-		depositLimitByAsset *big.Int
-		minAmountToDeposit  *big.Int
-		primeETHPrice       *big.Int
+	paused              bool
+	totalAssetDeposit   *big.Int
+	depositLimitByAsset *big.Int
+	minAmountToDeposit  *big.Int
+	primeETHPrice       *big.Int
 
-		gas Gas
-	}
-)
+	gas Gas
+}
 
-var (
-	ErrPoolPaused                   = errors.New("pool is paused")
-	ErrInvalidTokenIn               = errors.New("invalid tokenIn")
-	ErrInvalidTokenOut              = errors.New("invalid tokenOut")
-	ErrInvalidAmountToDeposit       = errors.New("invalid amount to deposit")
-	ErrMaximumDepositLimitReached   = errors.New("maximum deposit limit reached")
-	ErrMinimumAmountToReceiveNotMet = errors.New("minimum amount to receive not met")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -42,7 +32,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -60,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -82,14 +72,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	// IPrimeETH(primeETH).mint(msg.sender, amount);
 	// PrimeStakedETH.mint(amount) rate is 1:1
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: primeETHAmount},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: primeETHAmount},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Deposit,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.totalAssetDeposit = new(big.Int).Add(s.totalAssetDeposit, params.TokenAmountIn.Amount)
 }
 

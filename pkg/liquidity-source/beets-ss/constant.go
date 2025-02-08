@@ -1,6 +1,7 @@
 package beets_ss
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/holiman/uint256"
@@ -21,4 +22,15 @@ var (
 	methodTotalSupply   = "totalSupply"
 	methodTotalAssets   = "totalAssets"
 	methodDepositPaused = "depositPaused"
+)
+
+var (
+	ErrInvalidToken            = errors.New("invalid token")
+	ErrInvalidReserve          = errors.New("invalid reserve")
+	ErrInvalidAmountIn         = errors.New("invalid amount in")
+	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
+
+	ErrDepositTooSmall = errors.New("deposit too small")
+	ErrDepositPaused   = errors.New("deposit paused")
+	ErrOverflow        = errors.New("overflow")
 )

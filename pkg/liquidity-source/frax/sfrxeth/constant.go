@@ -1,5 +1,9 @@
 package sfrxeth
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "sfrxeth"
 )
@@ -15,4 +19,9 @@ var (
 	defaultGas = Gas{
 		SubmitAndDeposit: 90000,
 	}
+)
+
+var (
+	ErrInvalidToken = errors.New("invalid token")
+	ErrSubmitPaused = errors.New("submit is paused")
 )

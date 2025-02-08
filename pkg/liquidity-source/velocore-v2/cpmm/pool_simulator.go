@@ -41,6 +41,8 @@ type PoolSimulator struct {
 	nativeTokenIndex int
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		extra       Extra

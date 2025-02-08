@@ -9,27 +9,12 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrInvalidAmountIn  = errors.New("invalid amountIn")
-	ErrInvalidAmountOut = errors.New("invalid amount out")
-
-	ErrInsufficientReserve    = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
-	ErrSwapAndArbitragePaused = errors.New("51043")
-
-	ErrInsufficientWithdrawable = errors.New("insufficient reserve: tokenOut amount exceeds withdrawable limit")
-	ErrInsufficientBorrowable   = errors.New("insufficient reserve: tokenOut amount exceeds borrowable limit")
-
-	ErrInsufficientMaxPrice = errors.New("insufficient reserve: tokenOut amount exceeds max price limit")
-
-	ErrVerifyReservesRatiosInvalid = errors.New("invalid reserves ratio")
-)
-
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 	StaticExtra
 
 	CollateralReserves CollateralReserves
@@ -44,12 +29,7 @@ type PoolSimulator struct {
 	IsSwapAndArbitragePaused bool
 }
 
-var (
-	// Uniswap takes total gas of 125k = 21k base gas & 104k swap (this is when user has token balance)
-	// Fluid takes total gas of 175k = 21k base gas & 154k swap (this is when user has token balance),
-	// with ETH swaps costing less (because no WETH conversion)
-	defaultGas = Gas{Swap: 260000}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -65,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	fee := big.NewInt(int64(entityPool.SwapFee * FeePercentPrecision))
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -88,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.IsSwapAndArbitragePaused {
 		return nil, ErrSwapAndArbitragePaused
 	}
@@ -130,9 +110,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
-		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
+		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
 		Gas:            defaultGas.Swap,
 		SwapInfo: SwapInfo{
 			HasNative:             s.HasNative,
@@ -151,7 +131,7 @@ func (s *PoolSimulator) validateAmountOut(swap0To1 bool, tokenAmountOut *big.Int
 	return nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	if s.IsSwapAndArbitragePaused {
 		return nil, ErrSwapAndArbitragePaused
 	}
@@ -193,9 +173,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	amountInAfterFee := new(big.Int).Add(tokenAmountIn, fee)
 
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
-		Fee:           &poolpkg.TokenAmount{Token: param.TokenIn, Amount: fee},
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
+		Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: fee},
 		Gas:           defaultGas.Swap,
 		SwapInfo: SwapInfo{
 			HasNative:             s.HasNative,
@@ -206,7 +186,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	inputAmount, outputAmount := input.Amount, output.Amount
 

@@ -1,6 +1,10 @@
 package hashflowv3
 
-import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+import (
+	"math/big"
+
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+)
 
 type HTTPClientConfig struct {
 	BaseURL    string                `mapstructure:"base_url" json:"base_url"`
@@ -63,3 +67,40 @@ type Quote struct {
 	} `json:"quoteData"`
 	Signature string `json:"signature"`
 }
+
+type (
+	PriceLevel struct {
+		Quote *big.Float
+		Price *big.Float
+	}
+
+	StaticExtra struct {
+		MarketMaker string `json:"marketMaker"`
+	}
+
+	Extra struct {
+		ZeroToOnePriceLevels []PriceLevelRaw `json:"zeroToOnePriceLevels"`
+		OneToZeroPriceLevels []PriceLevelRaw `json:"oneToZeroPriceLevels"`
+		PriceTolerance       int64           `json:"priceTolerance"`
+	}
+	PriceLevelRaw struct {
+		Quote string `json:"q"`
+		Price string `json:"p"`
+	}
+
+	SwapInfo struct {
+		BaseToken        string `json:"baseToken"`
+		BaseTokenAmount  string `json:"baseTokenAmount"`
+		QuoteToken       string `json:"quoteToken"`
+		QuoteTokenAmount string `json:"quoteTokenAmount"`
+		MarketMaker      string `json:"marketMaker"`
+	}
+
+	Gas struct {
+		Quote int64
+	}
+
+	MetaInfo struct {
+		Timestamp int64 `json:"timestamp"`
+	}
+)

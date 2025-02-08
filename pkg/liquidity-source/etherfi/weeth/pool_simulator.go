@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -17,13 +17,15 @@ var (
 )
 
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	totalShares      *big.Int
 	totalPooledEther *big.Int
 
 	gas Gas
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -32,7 +34,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -47,27 +49,27 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if param.TokenAmountIn.Amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
 
 	if param.TokenAmountIn.Token == s.Info.Tokens[0] {
-		return &poolpkg.CalcAmountOutResult{
-			TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: s.shareForAmount(param.TokenAmountIn.Amount)},
-			Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: s.shareForAmount(param.TokenAmountIn.Amount)},
+			Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 			Gas:            s.gas.Wrap,
 		}, nil
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: s.amountForShare(param.TokenAmountIn.Amount)},
-		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: s.amountForShare(param.TokenAmountIn.Amount)},
+		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Unwrap,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {}
+func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{

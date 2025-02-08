@@ -1,7 +1,6 @@
 package virtualfun
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -11,41 +10,27 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrInvalidToken             = errors.New("invalid token")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInvalidAmountIn          = errors.New("invalid amount in")
-	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInvalidAmountOut         = errors.New("invalid amount out")
-	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
-	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-)
+type PoolSimulator struct {
+	pool.Pool
+	gas Gas
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
-		gas Gas
+	buyTax  *uint256.Int
+	sellTax *uint256.Int
 
-		buyTax  *uint256.Int
-		sellTax *uint256.Int
+	reserveA *uint256.Int
+	reserveB *uint256.Int
 
-		reserveA *uint256.Int
-		reserveB *uint256.Int
+	kLast          *uint256.Int
+	bondingAddress string
 
-		kLast          *uint256.Int
-		bondingAddress string
+	gradThreshold *uint256.Int
+}
 
-		gradThreshold *uint256.Int
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -61,7 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	p := &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -85,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return p, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -159,9 +144,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		gas += bondingCurveApplicationGas
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: ZERO.ToBig()},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: ZERO.ToBig()},
 		Gas:            gas,
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
@@ -175,7 +160,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	var (
 		tokenAmountOut = param.TokenAmountOut
 		tokenIn        = param.TokenIn
@@ -250,9 +235,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		isBuy = true
 	}
 
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountInNeeded.ToBig()},
-		Fee:           &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: ZERO.ToBig()},
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountInNeeded.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: ZERO.ToBig()},
 		Gas:           s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
@@ -266,7 +251,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && len(s.Pool.GetReserves()) == 2 {
 		s.reserveA = swapInfo.NewReserveA
 		s.reserveB = swapInfo.NewReserveB

@@ -187,3 +187,30 @@ type (
 		} `json:"witness"`
 	}
 )
+
+type (
+	SwapInfo struct {
+		BaseToken        string `json:"b" mapstructure:"b"`
+		BaseTokenAmount  string `json:"bAmt" mapstructure:"bAmt"`
+		QuoteToken       string `json:"q" mapstructure:"q"`
+		QuoteTokenAmount string `json:"qAmt" mapstructure:"qAmt"`
+	}
+
+	Gas struct {
+		Quote int64
+	}
+
+	PriceLevel struct {
+		Price float64 `json:"p"`
+		Quote float64 `json:"q"`
+	}
+
+	Extra struct {
+		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
+		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
+	}
+
+	MetaInfo struct {
+		Timestamp int64 `json:"timestamp"`
+	}
+)

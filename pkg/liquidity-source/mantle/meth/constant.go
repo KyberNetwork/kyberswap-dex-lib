@@ -1,5 +1,9 @@
 package meth
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "meth"
 
@@ -27,4 +31,12 @@ var (
 	defaultGas = Gas{
 		Stake: 100000,
 	}
+)
+
+var (
+	ErrStakingPaused                 = errors.New("staking paused")
+	ErrorInvalidTokenIn              = errors.New("invalid tokenIn")
+	ErrorInvalidTokenOut             = errors.New("invalid tokenOut")
+	ErrMinimumStakeBoundNotSatisfied = errors.New("minimum stake bound not satisfied")
+	ErrMaximumMETHSupplyExceeded     = errors.New("maximum METH supply exceeded")
 )

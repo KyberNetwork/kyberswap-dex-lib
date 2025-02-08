@@ -19,28 +19,28 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+type PoolSimulator struct {
+	pool.Pool
 
-		// static extra fields
-		token0 string
-		token1 string
+	// static extra fields
+	token0 string
+	token1 string
 
-		// extra fields
-		takeToken0Orders []*Order
-		takeToken1Orders []*Order
+	// extra fields
+	takeToken0Orders []*Order
+	takeToken1Orders []*Order
 
-		takeToken0OrdersMapping map[string]int
-		takeToken1OrdersMapping map[string]int
+	takeToken0OrdersMapping map[string]int
+	takeToken1OrdersMapping map[string]int
 
-		// store min(balance, allowance) for all unique pairs of maker:makerAsset in this pool
-		// will be aggregated up by router-service to be a global value for all maker:makerAsset in LO
-		minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*uint256.Int
+	// store min(balance, allowance) for all unique pairs of maker:makerAsset in this pool
+	// will be aggregated up by router-service to be a global value for all maker:makerAsset in LO
+	minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*uint256.Int
 
-		routerAddress string
-	}
-)
+	routerAddress string
+}
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)

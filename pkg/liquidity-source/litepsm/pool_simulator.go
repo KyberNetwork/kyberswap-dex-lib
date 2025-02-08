@@ -18,6 +18,8 @@ type PoolSimulator struct {
 	gas     Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeLitePSM, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
