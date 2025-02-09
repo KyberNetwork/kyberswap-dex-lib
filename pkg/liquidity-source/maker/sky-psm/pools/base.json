@@ -1,0 +1,29 @@
+[
+  {
+    "id": "0x1601843c5e9bc251a3272907010afa41fa18347e",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "name": "USD Coin",
+        "symbol": "USDC",
+        "decimals": 6,
+        "swappable": true
+      },
+      {
+        "address": "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
+        "name": "USDS Stablecoin",
+        "symbol": "USDS",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x5875eEE11Cf8398102FdAd704C9E96607675467a",
+        "name": "Savings USDS",
+        "symbol": "sUSDS",
+        "decimals": 18,
+        "swappable": true
+      }
+    ],
+    "rateProvider": "0x65d946e533748a998b1f0e430803e39a6388f7a1"
+  }
+]

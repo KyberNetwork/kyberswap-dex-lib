@@ -1,4 +1,4 @@
-package savingsdai
+package spark
 
 import (
 	"context"
@@ -10,18 +10,23 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
+	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
-func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
-	return &PoolTracker{ethrpcClient: ethrpcClient}
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{
+		config:       config,
+		ethrpcClient: ethrpcClient,
+	}
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -47,19 +52,19 @@ func (t *PoolTracker) getNewPoolState(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
-		"dexType":     DexType,
+		"dexType":     t.config.DexID,
 		"poolAddress": p.Address,
 	}).Info("Start updating state ...")
 
 	defer func() {
 		logger.WithFields(logger.Fields{
-			"dexType":     DexType,
+			"dexType":     t.config.DexID,
 			"poolAddress": p.Address,
 		}).Info("Finish updating state.")
 	}()
 
 	var (
-		dsr, rho, chi            *big.Int
+		savingsRate, rho, chi    *big.Int
 		totalAssets, totalSupply *big.Int
 	)
 
@@ -69,32 +74,32 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
-		Target: pot,
-		Method: potMethodDSR,
-	}, []interface{}{&dsr})
+		Target: t.config.Pot,
+		Method: t.config.SavingsRateSymbol,
+	}, []interface{}{&savingsRate})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
-		Target: pot,
+		Target: t.config.Pot,
 		Method: potMethodRHO,
 	}, []interface{}{&rho})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
-		Target: pot,
+		Target: t.config.Pot,
 		Method: potMethodCHI,
 	}, []interface{}{&chi})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    savingsdaiABI,
-		Target: Savingsdai,
-		Method: savingsdaiMethodTotalAssets,
+		ABI:    savingsABI,
+		Target: t.config.SavingsToken,
+		Method: savingsMethodTotalAssets,
 	}, []interface{}{&totalAssets})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    savingsdaiABI,
-		Target: Savingsdai,
-		Method: savingsdaiMethodTotalSupply,
+		ABI:    savingsABI,
+		Target: t.config.SavingsToken,
+		Method: savingsMethodTotalSupply,
 	}, []interface{}{&totalSupply})
 
 	result, err := req.Aggregate()
@@ -112,15 +117,11 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	dsr_, _ := uint256.FromBig(dsr)
-	rho_, _ := uint256.FromBig(rho)
-	chi_, _ := uint256.FromBig(chi)
-
 	extraBytes, err := json.Marshal(Extra{
-		BlockTimestamp: uint256.NewInt(blockTimestamp + blocktime),
-		DSR:            dsr_,
-		RHO:            rho_,
-		CHI:            chi_,
+		BlockTimestamp: uint256.NewInt(blockTimestamp + Blocktime),
+		SavingsRate:    uint256.MustFromBig(savingsRate),
+		RHO:            uint256.MustFromBig(rho),
+		CHI:            uint256.MustFromBig(chi),
 	})
 	if err != nil {
 		return p, err

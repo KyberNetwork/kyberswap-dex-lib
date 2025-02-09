@@ -1,4 +1,4 @@
-package savingsdai
+package generic_rate
 
 import (
 	"bytes"
@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	potABI        abi.ABI
-	savingsdaiABI abi.ABI
+	skyPSMABI abi.ABI
 )
 
 func init() {
@@ -16,8 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&potABI, potJSON},
-		{&savingsdaiABI, savingsdaiJSON},
+		{&skyPSMABI, skyPSMABIData},
 	}
 
 	for _, b := range builder {
