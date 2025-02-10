@@ -14,7 +14,7 @@ import (
 
 type PoolsListUpdater struct {
 	config           *Config
-	limitOrderClient *httpClient
+	limitOrderClient *client
 
 	includedContractAddresses mapset.Set[string]
 }
@@ -22,7 +22,7 @@ type PoolsListUpdater struct {
 func NewPoolsListUpdater(
 	cfg *Config,
 ) (*PoolsListUpdater, error) {
-	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
+	limitOrderClient := NewClient(cfg.LimitOrderHTTPUrl)
 	contractAddresses := lo.Map(cfg.ContractAddresses, func(c string, _ int) string { return strings.ToLower(c) })
 	return &PoolsListUpdater{
 		config:           cfg,

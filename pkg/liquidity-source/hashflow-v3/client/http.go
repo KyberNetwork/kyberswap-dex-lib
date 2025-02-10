@@ -3,10 +3,11 @@ package client
 import (
 	"context"
 
-	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+
+	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 )
 
 const (
@@ -30,27 +31,27 @@ var (
 	ErrRFQMarketsTooVolatile      = errors.New(errRFQMarketsTooVolatile)
 )
 
-type httpClient struct {
-	client *resty.Client
-	config *hashflowv3.HTTPClientConfig
+type client struct {
+	restyClient *resty.Client
+	source      string
 }
 
-func NewHTTPClient(config *hashflowv3.HTTPClientConfig) *httpClient {
-	client := resty.New().
+func NewClient(config *hashflowv3.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader(authorizationHeaderKey, config.APIKey)
 
-	return &httpClient{
-		client: client,
-		config: config,
+	return &client{
+		restyClient: restyClient,
+		source:      config.Source,
 	}
 }
 
-func (c *httpClient) RFQ(ctx context.Context, params hashflowv3.QuoteParams) (hashflowv3.QuoteResult, error) {
-	params.Source = c.config.Source
-	req := c.client.R().SetContext(ctx).SetBody(params)
+func (c *client) RFQ(ctx context.Context, params hashflowv3.QuoteParams) (hashflowv3.QuoteResult, error) {
+	params.Source = c.source
+	req := c.restyClient.R().SetContext(ctx).SetBody(params)
 
 	var result hashflowv3.QuoteResult
 	resp, err := req.SetResult(&result).Post(rfqPath)

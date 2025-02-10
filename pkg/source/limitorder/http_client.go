@@ -12,24 +12,24 @@ import (
 	"github.com/samber/lo"
 )
 
-type httpClient struct {
-	client *resty.Client
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(baseURL string) *httpClient {
-	client := resty.New()
-	client.SetBaseURL(baseURL)
-	return &httpClient{
-		client: client,
+func NewClient(baseURL string) *client {
+	restyClient := resty.New().SetBaseURL(baseURL)
+
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *httpClient) ListAllPairs(
+func (c *client) ListAllPairs(
 	ctx context.Context,
 	chainID ChainID,
 	supportMultiSCs bool,
 ) ([]*limitOrderPair, error) {
-	req := c.client.R().SetContext(ctx).
+	req := c.restyClient.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
 			"chainId":                    strconv.Itoa(int(chainID)),
@@ -51,11 +51,11 @@ func (c *httpClient) ListAllPairs(
 	return result.Data.Pairs, nil
 }
 
-func (c *httpClient) ListOrders(
+func (c *client) ListOrders(
 	ctx context.Context,
 	filter listOrdersFilter,
 ) ([]*order, error) {
-	req := c.client.R().SetContext(ctx).
+	req := c.restyClient.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
 			"takerAsset":      filter.TakerAsset,
@@ -90,7 +90,7 @@ func (c *httpClient) ListOrders(
 	return toOrder(orders)
 }
 
-func (c *httpClient) pruneExpiredOrders(orders []*orderData) []*orderData {
+func (c *client) pruneExpiredOrders(orders []*orderData) []*orderData {
 	timeNow := time.Now().Unix()
 	result := make([]*orderData, 0, len(orders))
 	for _, o := range orders {
@@ -102,12 +102,12 @@ func (c *httpClient) pruneExpiredOrders(orders []*orderData) []*orderData {
 	return result
 }
 
-func (c *httpClient) GetOpSignatures(
+func (c *client) GetOpSignatures(
 	ctx context.Context,
 	chainId ChainID,
 	orderIds []int64,
 ) ([]*operatorSignatures, error) {
-	req := c.client.R().SetContext(ctx).
+	req := c.restyClient.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("chainId", strconv.Itoa(int(chainId))).
 		SetQueryParamsFromValues(url.Values{

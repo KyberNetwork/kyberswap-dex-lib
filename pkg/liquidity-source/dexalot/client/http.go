@@ -21,27 +21,25 @@ var (
 	ErrRFQFailed = errors.New("rfq failed")
 )
 
-type HTTPClient struct {
-	config *dexalot.HTTPClientConfig
-	client *resty.Client
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+func NewClient(config *dexalot.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader(headerApiKey, config.APIKey)
 
-	return &HTTPClient{
-		config: config,
-		client: client,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, upscalePercent int) (dexalot.FirmQuoteResult, error) {
+func (c *client) Quote(ctx context.Context, params dexalot.FirmQuoteParams, upscalePercent int) (dexalot.FirmQuoteResult, error) {
 	// token address case-sensitive
-	req := c.client.R().
+	req := c.restyClient.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
 		SetBody(map[string]interface{}{

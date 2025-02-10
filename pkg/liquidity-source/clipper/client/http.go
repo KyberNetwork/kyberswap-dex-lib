@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 )
 
 const (
@@ -23,27 +24,25 @@ var (
 	ErrQuoteConflict = errors.New(errQuoteConflictText)
 )
 
-type httpClient struct {
-	client *resty.Client
-	config clipper.HTTPClientConfig
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
-	client := resty.New().
+func NewClient(config *clipper.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
 
-	return &httpClient{
-		client: client,
-		config: config,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipper.SignResponse, error) {
+func (c *client) RFQ(ctx context.Context, params clipper.QuoteParams) (clipper.SignResponse, error) {
 	// 1. Call quote endpoint
-	req := c.client.R().SetContext(ctx).SetBody(params)
+	req := c.restyClient.R().SetContext(ctx).SetBody(params)
 
 	var failRes clipper.FailResponse
 
@@ -64,7 +63,7 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 	}
 
 	// 2. Call sign endpoint with `quote_id` received from step 1
-	req = c.client.R().SetContext(ctx).SetBody(clipper.SignParams{
+	req = c.restyClient.R().SetContext(ctx).SetBody(clipper.SignParams{
 		QuoteID:            quoteRes.ID,
 		DestinationAddress: params.DestinationAddress,
 		SenderAddress:      params.SenderAddress,

@@ -6,23 +6,22 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 )
 
 func TestHTTPClient(t *testing.T) {
 	t.Skip("has rate-limit for non-authorization requests")
 
-	c := NewHTTPClient(
-		&dexalot.HTTPClientConfig{
-			BaseURL: "https://api.dexalot.com",
-			Timeout: durationjson.Duration{
-				Duration: time.Second * 5,
-			},
-			RetryCount: 1,
-			APIKey:     "",
+	c := NewClient(&dexalot.HTTPClientConfig{
+		BaseURL: "https://api.dexalot.com",
+		Timeout: durationjson.Duration{
+			Duration: time.Second * 5,
 		},
-	)
+		RetryCount: 1,
+		APIKey:     "",
+	})
 
 	_, err := c.Quote(context.Background(), dexalot.FirmQuoteParams{
 		ChainID:     43114,

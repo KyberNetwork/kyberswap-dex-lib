@@ -30,26 +30,24 @@ var (
 	ErrRFQAllPricerFailed     = errors.New("rfq: all pricer failed")
 )
 
-type HTTPClient struct {
-	config *nativev1.HTTPClientConfig
-	client *resty.Client
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config *nativev1.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+func NewClient(config *nativev1.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeaderVerbatim(headerApiKey, config.APIKey)
 
-	return &HTTPClient{
-		config: config,
-		client: client,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (nativev1.QuoteResult, error) {
-	req := c.client.R().
+func (c *client) Quote(ctx context.Context, params nativev1.QuoteParams) (nativev1.QuoteResult, error) {
+	req := c.restyClient.R().
 		SetContext(ctx).
 		SetQueryParams(params.ToMap())
 

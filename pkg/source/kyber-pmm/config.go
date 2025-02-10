@@ -12,9 +12,9 @@ type Config struct {
 }
 
 type HTTPConfig struct {
-	BaseURL    string                `mapstructure:"base_url" json:"base_url,omitempty"`
+	BaseURL    string                `mapstructure:"base_url" json:"baseUrl,omitempty"`
 	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
-	RetryCount int                   `mapstructure:"retry_count" json:"retry_count,omitempty"`
+	RetryCount int                   `mapstructure:"retry_count" json:"retryCount,omitempty"`
 }
 
 type MemoryCacheConfig struct {

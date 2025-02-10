@@ -9,7 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 )
 
 const (
@@ -39,27 +39,27 @@ var (
 	ErrRFQUnexpectedPermitsError = errors.New("rfq: Unexpected error when a user approves tokens via Permit or Permit2 signatures")
 )
 
-type HTTPClient struct {
-	config *bebop.HTTPClientConfig
-	client *resty.Client
+type client struct {
+	restyClient *resty.Client
+	sourceName  string
 }
 
-func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
+func NewClient(config *bebop.HTTPClientConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader(headerSourceAuthKey, config.Authorization)
 
-	return &HTTPClient{
-		config: config,
-		client: client,
+	return &client{
+		restyClient: restyClient,
+		sourceName:  config.Name,
 	}
 }
 
-func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
+func (c *client) QuoteSingleOrderResult(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
 	// token address case-sensitive
-	req := c.client.R().
+	req := c.restyClient.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
 		SetQueryParam(bebop.ParamsSellTokens, common.HexToAddress(params.SellTokens).Hex()).
@@ -71,7 +71,7 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
 		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution
-		SetQueryParam(querySourceKey, c.config.Name)
+		SetQueryParam(querySourceKey, c.sourceName)
 
 	var result bebop.QuoteSingleOrderResult
 	var fail bebop.QuoteFail

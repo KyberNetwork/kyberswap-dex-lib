@@ -17,25 +17,23 @@ const (
 	firmEndpoint       = "/kyberswap/v1/firm"
 )
 
-type httpClient struct {
-	client *resty.Client
-	config *kyberpmm.HTTPConfig
+type client struct {
+	restyClient *resty.Client
 }
 
-func NewHTTPClient(config *kyberpmm.HTTPConfig) *httpClient {
-	client := resty.New().
+func NewClient(config *kyberpmm.HTTPConfig) *client {
+	restyClient := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
 
-	return &httpClient{
-		client: client,
-		config: config,
+	return &client{
+		restyClient: restyClient,
 	}
 }
 
-func (c *httpClient) ListTokens(ctx context.Context) (map[string]kyberpmm.TokenItem, error) {
-	req := c.client.R().
+func (c *client) ListTokens(ctx context.Context) (map[string]kyberpmm.TokenItem, error) {
+	req := c.restyClient.R().
 		SetContext(ctx)
 
 	var result kyberpmm.ListTokensResult
@@ -51,8 +49,8 @@ func (c *httpClient) ListTokens(ctx context.Context) (map[string]kyberpmm.TokenI
 	return result.Tokens, nil
 }
 
-func (c *httpClient) ListPairs(ctx context.Context) (map[string]kyberpmm.PairItem, error) {
-	req := c.client.R().
+func (c *client) ListPairs(ctx context.Context) (map[string]kyberpmm.PairItem, error) {
+	req := c.restyClient.R().
 		SetContext(ctx)
 
 	var result kyberpmm.ListPairsResult
@@ -68,8 +66,8 @@ func (c *httpClient) ListPairs(ctx context.Context) (map[string]kyberpmm.PairIte
 	return result.Pairs, nil
 }
 
-func (c *httpClient) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLevelsResult, error) {
-	req := c.client.R().
+func (c *client) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLevelsResult, error) {
+	req := c.restyClient.R().
 		SetContext(ctx)
 
 	var result kyberpmm.ListPriceLevelsResult
@@ -85,8 +83,8 @@ func (c *httpClient) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLev
 	return result, nil
 }
 
-func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams) (kyberpmm.FirmResult, error) {
-	req := c.client.R().
+func (c *client) Firm(ctx context.Context, params kyberpmm.FirmRequestParams) (kyberpmm.FirmResult, error) {
+	req := c.restyClient.R().
 		SetContext(ctx).
 		SetBody(params)
 
