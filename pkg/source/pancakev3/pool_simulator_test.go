@@ -1,12 +1,10 @@
 package pancakev3
 
 import (
-	"fmt"
-	"math/rand"
+	"math/big"
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -52,42 +50,23 @@ var poolEncoded = `{
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	type testcase struct {
-		name     string
-		tokenIn  string
-		amountIn string
-		tokenOut string
+		name        string
+		tokenIn     string
+		amountIn    string
+		tokenOut    string
+		expectedOut *big.Int
 	}
 	testcases := []testcase{
 		{
-			name:     "swap ETH for BTCB",
-			tokenIn:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-			amountIn: "1000000000000000000", // 1
-			tokenOut: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+			name:        "swap ETH for BTCB",
+			tokenIn:     "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+			amountIn:    "1000000000000000000", // 1
+			tokenOut:    "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+			expectedOut: bignumber.NewBig10("36001081454774312"),
 		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(poolEncoded), poolEntity)
-			require.NoError(t, err)
-
-			poolSim, err := NewPoolSimulatorBigInt(*poolEntity, valueobject.ChainIDEthereum)
-			require.NoError(t, err)
-
-			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  tc.tokenIn,
-						Amount: bignumber.NewBig10(tc.amountIn),
-					},
-					TokenOut: tc.tokenOut,
-				})
-			})
-			require.NoError(t, err)
-			_ = result
-		})
-
-		t.Run(tc.name+"new sim", func(t *testing.T) {
 			poolEntity := new(entity.Pool)
 			err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 			require.NoError(t, err)
@@ -105,162 +84,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 				})
 			})
 			require.NoError(t, err)
-			_ = result
+			require.Equal(t, tc.expectedOut, result.TokenAmountOut.Amount)
 		})
 	}
-}
-
-func TestComparePoolSimulatorV2(t *testing.T) {
-	poolEntity := new(entity.Pool)
-	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
-	require.NoError(t, err)
-
-	poolSim, err := NewPoolSimulatorBigInt(*poolEntity, valueobject.ChainIDEthereum)
-	require.NoError(t, err)
-
-	poolSimV2, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
-	require.NoError(t, err)
-
-	for i := 0; i < 500; i++ {
-		amt := RandNumberString(24)
-
-		t.Run(fmt.Sprintf("test %s ETH -> BTCB %d", amt, i), func(t *testing.T) {
-			in := pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenOut: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-			}
-			result, err := poolSim.CalcAmountOut(in)
-			resultV2, errV2 := poolSimV2.CalcAmountOut(in)
-
-			require.Equal(t, err, errV2)
-			if err == nil {
-				assert.Equal(t, result.TokenAmountOut, resultV2.TokenAmountOut)
-				assert.Equal(t, result.Fee, resultV2.Fee)
-				assert.Equal(t, result.RemainingTokenAmountIn.Amount.String(), resultV2.RemainingTokenAmountIn.Amount.String())
-
-				poolSim.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  in.TokenAmountIn,
-					TokenAmountOut: *result.TokenAmountOut,
-					Fee:            *result.Fee,
-					SwapInfo:       result.SwapInfo,
-				})
-				poolSimV2.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  in.TokenAmountIn,
-					TokenAmountOut: *resultV2.TokenAmountOut,
-					Fee:            *resultV2.Fee,
-					SwapInfo:       resultV2.SwapInfo,
-				})
-			} else {
-				fmt.Println(err)
-			}
-		})
-
-		t.Run(fmt.Sprintf("test %s ETH -> BTCB (reversed) %d", amt, i), func(t *testing.T) {
-			result, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
-				TokenAmountOut: pool.TokenAmount{
-					Token:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenIn: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-				Limit:   nil,
-			})
-
-			resultV2, errV2 := poolSimV2.CalcAmountIn(pool.CalcAmountInParams{
-				TokenAmountOut: pool.TokenAmount{
-					Token:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenIn: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-				Limit:   nil,
-			})
-
-			require.Equal(t, err, errV2)
-			if err == nil {
-				assert.Equal(t, result.TokenAmountIn.Amount, resultV2.TokenAmountIn.Amount)
-				assert.Equal(t, result.Fee.Amount, resultV2.Fee.Amount)
-			} else {
-				fmt.Println(err)
-			}
-		})
-
-		t.Run(fmt.Sprintf("test %s BTCB -> ETH %d", amt, i), func(t *testing.T) {
-			in := pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenOut: "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-			}
-			result, err := poolSim.CalcAmountOut(in)
-			resultV2, errV2 := poolSimV2.CalcAmountOut(in)
-
-			require.Equal(t, err, errV2)
-			if err == nil {
-				assert.Equal(t, result.TokenAmountOut, resultV2.TokenAmountOut)
-				assert.Equal(t, result.Fee, resultV2.Fee)
-				assert.Equal(t, result.RemainingTokenAmountIn.Amount.String(), resultV2.RemainingTokenAmountIn.Amount.String())
-
-				poolSim.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  in.TokenAmountIn,
-					TokenAmountOut: *result.TokenAmountOut,
-					Fee:            *result.Fee,
-					SwapInfo:       result.SwapInfo,
-				})
-				poolSimV2.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  in.TokenAmountIn,
-					TokenAmountOut: *resultV2.TokenAmountOut,
-					Fee:            *resultV2.Fee,
-					SwapInfo:       resultV2.SwapInfo,
-				})
-			} else {
-				fmt.Println(err)
-			}
-		})
-
-		t.Run(fmt.Sprintf("test %s BTCB -> ETH (reversed) %d", amt, i), func(t *testing.T) {
-			result, err := poolSim.CalcAmountIn(pool.CalcAmountInParams{
-				TokenAmountOut: pool.TokenAmount{
-					Token:  "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenIn: "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-				Limit:   nil,
-			})
-			resultV2, errV2 := poolSimV2.CalcAmountIn(pool.CalcAmountInParams{
-				TokenAmountOut: pool.TokenAmount{
-					Token:  "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-					Amount: bignumber.NewBig10(amt),
-				},
-				TokenIn: "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-				Limit:   nil,
-			})
-
-			require.Equal(t, err, errV2)
-			if err == nil {
-				assert.Equal(t, result.TokenAmountIn.Amount, resultV2.TokenAmountIn.Amount)
-				assert.Equal(t, result.Fee.Amount, resultV2.Fee.Amount)
-			} else {
-				fmt.Println(err)
-			}
-		})
-	}
-}
-
-// not really random but should be enough for testing
-func RandNumberString(maxLen int) string {
-	sLen := rand.Intn(maxLen-1) + 1
-	var s string
-	for i := 0; i < sLen; i++ {
-		var c int
-		if i == 0 {
-			c = rand.Intn(9) + 1
-		} else {
-			c = rand.Intn(10)
-		}
-		s = fmt.Sprintf("%s%d", s, c)
-	}
-	return s
 }

@@ -52,6 +52,7 @@ func main() {
 	}(outFileBuf)
 
 	emitImports(outFileBuf, pkgNames, importPaths)
+	emitf(outFileBuf, "\n")
 
 	emitf(outFileBuf, "func init() {\n")
 	for _, pkgName := range pkgNames {
@@ -62,7 +63,6 @@ func main() {
 		emitf(outFileBuf, "\tmsgpack.RegisterConcreteType(&%s.%s{})\n", pkgName, poolSimName)
 	}
 	emitf(outFileBuf, "}\n")
-
 }
 
 func emitImports(outFileBuf io.Writer, pkgNames, importPaths []string) {

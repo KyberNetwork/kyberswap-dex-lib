@@ -1,6 +1,7 @@
 package uniswapv3
 
 import (
+	"errors"
 	"math/big"
 )
 
@@ -26,4 +27,9 @@ const (
 var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+
+	ErrOverflow       = errors.New("bigInt overflow int/uint256")
+	ErrInvalidFeeTier = errors.New("invalid feeTier")
+	ErrTickNil        = errors.New("tick is nil")
+	ErrV3TicksEmpty   = errors.New("v3Ticks empty")
 )

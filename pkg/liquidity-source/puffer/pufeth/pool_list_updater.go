@@ -11,6 +11,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -19,6 +20,8 @@ type PoolListUpdater struct {
 
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(
 	ethrpcClient *ethrpc.Client,

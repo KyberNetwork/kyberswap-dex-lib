@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -27,6 +28,8 @@ type PoolTracker struct {
 	chainlinkDataFeedReader               IChainlinkDataFeedReader
 	dexPriceAggregatorUniswapV3Reader     IDexPriceAggregatorUniswapV3Reader
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexTypeSynthetix, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	poolStateVersion := getPoolStateVersion(valueobject.ChainID(cfg.ChainID))

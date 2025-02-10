@@ -22,11 +22,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	ErrOverflow       = errors.New("bigInt overflow int/uint256")
-	ErrInvalidFeeTier = errors.New("invalid feeTier")
-)
-
 type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool

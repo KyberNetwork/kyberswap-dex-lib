@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
@@ -31,6 +32,8 @@ type (
 		HasInitialized bool `json:"hasInitialized"`
 	}
 )
+
+var _ = poollist.RegisterFactoryCE(DexTypeVooi, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,

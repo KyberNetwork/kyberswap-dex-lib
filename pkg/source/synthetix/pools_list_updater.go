@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
@@ -15,6 +16,8 @@ type PoolsListUpdater struct {
 	poolStateReader IPoolStateReader
 	hasInitialized  bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeSynthetix, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{

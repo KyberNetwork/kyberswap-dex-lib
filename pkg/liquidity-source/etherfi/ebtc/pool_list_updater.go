@@ -14,6 +14,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolListUpdater struct {
@@ -21,6 +22,8 @@ type PoolListUpdater struct {
 	config         *Config
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(
 	config *Config,

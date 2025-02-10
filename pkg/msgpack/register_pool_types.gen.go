@@ -83,8 +83,6 @@ import (
 	pkg_liquiditysource_virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
-	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
-	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_camelot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	pkg_source_curve_aave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	pkg_source_curve_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -94,7 +92,6 @@ import (
 	pkg_source_curve_tricrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/tricrypto"
 	pkg_source_curve_two "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/two"
 	pkg_source_dmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
-	pkg_source_dodo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
 	pkg_source_elastic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	pkg_source_equalizer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	pkg_source_fraxswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
@@ -104,7 +101,6 @@ import (
 	pkg_source_gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	pkg_source_iziswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	pkg_source_kokonutcrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kokonut-crypto"
-	pkg_source_kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	pkg_source_lido "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	pkg_source_lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	pkg_source_limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -133,11 +129,9 @@ import (
 	pkg_source_uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	pkg_source_usdfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	pkg_source_velocimeter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
-	pkg_source_velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	pkg_source_vooi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	pkg_source_wombat_wombatlsd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	pkg_source_wombat_wombatmain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
-	pkg_source_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
 
@@ -219,8 +213,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_algebrav1.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_balancercomposablestable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_camelot.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_aave.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_base.PoolSimulator{})
@@ -230,7 +222,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_curve_tricrypto.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_two.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_dmm.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_dodo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_elastic.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_equalizer.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_fraxswap.PoolSimulator{})
@@ -240,7 +231,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_gmxglp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_iziswap.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_kokonutcrypto.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_kyberpmm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_lido.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_lidosteth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_limitorder.PoolSimulator{})
@@ -269,10 +259,8 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_uniswapv3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_usdfi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_velocimeter.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_velodrome.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_vooi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_wombat_wombatlsd.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_wombat_wombatmain.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_woofiv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_zkerafinance.PoolSimulator{})
 }

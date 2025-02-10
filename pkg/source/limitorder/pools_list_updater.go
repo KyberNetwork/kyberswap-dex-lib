@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
@@ -19,9 +20,11 @@ type PoolsListUpdater struct {
 	includedContractAddresses mapset.Set[string]
 }
 
+var _ = poollist.RegisterFactoryC(DexTypeLimitOrder, NewPoolsListUpdater)
+
 func NewPoolsListUpdater(
 	cfg *Config,
-) (*PoolsListUpdater, error) {
+) *PoolsListUpdater {
 	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
 	contractAddresses := lo.Map(cfg.ContractAddresses, func(c string, _ int) string { return strings.ToLower(c) })
 	return &PoolsListUpdater{
@@ -29,7 +32,7 @@ func NewPoolsListUpdater(
 		limitOrderClient: limitOrderClient,
 
 		includedContractAddresses: mapset.NewSet(contractAddresses...),
-	}, nil
+	}
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {

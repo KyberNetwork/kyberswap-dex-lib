@@ -12,12 +12,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	config           *Config
 	limitOrderClient *httpClient
 }
+
+var _ = pooltrack.RegisterFactoryC(DexTypeLimitOrder, NewPoolTracker)
 
 func NewPoolTracker(cfg *Config) *PoolTracker {
 	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)

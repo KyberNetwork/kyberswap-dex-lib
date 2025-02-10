@@ -13,11 +13,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	ethClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryE0(DexTypePlatypus, NewPoolTracker)
 
 func NewPoolTracker(ethClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{

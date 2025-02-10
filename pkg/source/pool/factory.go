@@ -10,58 +10,63 @@ import (
 
 type (
 	FactoryParams struct {
+		EntityPool  entity.Pool
 		BasePoolMap map[string]IPoolSimulator
 		ChainID     valueobject.ChainID
 		EthClient   ethereum.ContractCaller
 	}
-	FactoryFn func(entity.Pool, FactoryParams) (IPoolSimulator, error)
+	FactoryFn func(FactoryParams) (IPoolSimulator, error)
 )
 
 var (
 	factoryMap = make(map[string]FactoryFn, 256) // map of pool types to factory functions
 )
 
-// RegisterFactory registers a factory function for a pool type with entityParams
-func RegisterFactory[P IPoolSimulator](poolType string, factory func(entity.Pool, FactoryParams) (P, error)) bool {
+// RegisterFactory registers a factory function for a pool type with factoryParams
+func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryParams) (P, error)) bool {
 	if factoryMap[poolType] != nil {
-		panic(poolType + " factory already registered")
+		panic(poolType + " pool factory already registered")
 	}
-	factoryMap[poolType] = func(entityPool entity.Pool, entityParams FactoryParams) (IPoolSimulator, error) {
-		pool, err := factory(entityPool, entityParams)
+	factoryMap[poolType] = func(factoryParams FactoryParams) (IPoolSimulator, error) {
+		pool, err := factory(factoryParams)
 		return pool, errors.WithMessagef(err, "failed to init pool %s (%s/%s)",
-			entityPool.Address, entityPool.Exchange, poolType)
+			factoryParams.EntityPool.Address, factoryParams.EntityPool.Exchange, poolType)
 	}
 	return true
 }
 
-// RegisterFactory0 registers a factory function for a pool type with no entityParams
+// RegisterFactory0 registers a factory function for a pool type with no factoryParams.
+// TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory0[P IPoolSimulator](poolType string, factory func(entity.Pool) (P, error)) bool {
-	return RegisterFactory(poolType, func(entityPool entity.Pool, entityParams FactoryParams) (IPoolSimulator, error) {
-		return factory(entityPool)
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+		return factory(factoryParams.EntityPool)
 	})
 }
 
-// RegisterFactory1 registers a factory function for a pool type with chainID
+// RegisterFactory1 registers a factory function for a pool type with chainID.
+// TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory1[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, valueobject.ChainID) (P, error)) bool {
-	return RegisterFactory(poolType, func(entityPool entity.Pool, entityParams FactoryParams) (IPoolSimulator, error) {
-		return factory(entityPool, entityParams.ChainID)
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+		return factory(factoryParams.EntityPool, factoryParams.ChainID)
 	})
 }
 
-// RegisterFactory2 registers a factory function for a pool type with chainID and ethClient
+// RegisterFactory2 registers a factory function for a pool type with chainID and ethClient.
+// TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory2[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, valueobject.ChainID, ethereum.ContractCaller) (P, error)) bool {
-	return RegisterFactory(poolType, func(entityPool entity.Pool, entityParams FactoryParams) (IPoolSimulator, error) {
-		return factory(entityPool, entityParams.ChainID, entityParams.EthClient)
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+		return factory(factoryParams.EntityPool, factoryParams.ChainID, factoryParams.EthClient)
 	})
 }
 
-// RegisterFactoryMeta registers a factory function for a meta pool type with basePoolMap
+// RegisterFactoryMeta registers a factory function for a meta pool type with basePoolMap.
+// TODO: deprecate this in favor of RegisterFactory
 func RegisterFactoryMeta[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, map[string]IPoolSimulator) (P, error)) bool {
-	return RegisterFactory(poolType, func(entityPool entity.Pool, entityParams FactoryParams) (IPoolSimulator, error) {
-		return factory(entityPool, entityParams.BasePoolMap)
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+		return factory(factoryParams.EntityPool, factoryParams.BasePoolMap)
 	})
 }
 

@@ -17,13 +17,6 @@ type Gas struct {
 	CrossInitTickGas int64
 }
 
-// SwapInfoBigInt present the after state of a swap
-type SwapInfoBigInt struct {
-	nextStateSqrtRatioX96 *big.Int
-	nextStateLiquidity    *big.Int
-	nextStateTickCurrent  int
-}
-
 type SwapInfo struct {
 	nextStateSqrtRatioX96 *v3Utils.Uint160
 	nextStateLiquidity    *v3Utils.Uint128

@@ -3,21 +3,24 @@ package algebrav1
 import (
 	"context"
 	"fmt"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-
 	"math/big"
 	"strconv"
 
 	"github.com/KyberNetwork/kutils"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        *Config
 	graphqlClient *graphqlpkg.Client
 }
+
+var _ = poollist.RegisterFactoryCG(DexTypeAlgebraV1, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,

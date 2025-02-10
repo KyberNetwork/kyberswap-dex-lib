@@ -14,6 +14,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
@@ -23,6 +24,8 @@ type PoolsListUpdater struct {
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
 }
+
+var _ = poollist.RegisterFactoryCEG(DexTypeRamsesV2, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,

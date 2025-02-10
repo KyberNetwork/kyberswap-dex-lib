@@ -41,7 +41,7 @@ func TestPoolListUpdater(t *testing.T) {
 		metadataBytes, _            = json.Marshal(ambient.PoolListUpdaterMetadata{LastCreateTime: 0})
 		err                         error
 
-		config = ambient.Config{
+		config = &ambient.Config{
 			DexID:                    "ambient",
 			SubgraphAPI:              "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
 			SubgraphTimeout:          durationjson.Duration{Duration: time.Second * 10},

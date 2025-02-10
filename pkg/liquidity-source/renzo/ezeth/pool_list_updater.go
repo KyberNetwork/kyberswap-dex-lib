@@ -14,6 +14,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -23,6 +24,8 @@ type PoolListUpdater struct {
 
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(
 	ethrpcClient *ethrpc.Client,

@@ -8,11 +8,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
 	sharedPoolTracker *shared.PoolTracker
 }
+
+var _ = pooltrack.RegisterFactoryCE(PoolType, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *shared.Config,

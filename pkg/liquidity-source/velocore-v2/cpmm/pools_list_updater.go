@@ -13,6 +13,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -23,6 +24,8 @@ type PoolsListUpdater struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
@@ -192,7 +195,8 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	return pools, nil
 }
 
-func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
+func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address,
+	error) {
 	poolAddresses := make([]common.Address, batchSize)
 	req := d.ethrpcClient.R().SetContext(ctx)
 	for j := 0; j < batchSize; j++ {

@@ -16,16 +16,19 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
-	config       shared.Config
+	config       *shared.Config
 	ethrpcClient *ethrpc.Client
 	logger       logger.Logger
 }
 
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+
 func NewPoolTracker(
-	config shared.Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	lg := logger.WithFields(logger.Fields{

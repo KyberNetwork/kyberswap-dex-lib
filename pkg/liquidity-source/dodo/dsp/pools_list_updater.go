@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -16,6 +17,8 @@ type PoolsListUpdater struct {
 	config        shared.Config
 	sharedUpdater *shared.PoolsListUpdater
 }
+
+var _ = poollist.RegisterFactoryCG(PoolType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	config *shared.Config,

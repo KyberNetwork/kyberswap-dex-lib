@@ -40,7 +40,6 @@ var (
 	poolEnt entity.Pool
 	_       = json.Unmarshal([]byte(poolRedisBench), &poolEnt)
 
-	sim, _   = NewPoolSimulatorBigInt(poolEnt, valueobject.ChainIDEthereum)
 	simV2, _ = NewPoolSimulator(poolEnt, valueobject.ChainIDEthereum)
 )
 
@@ -66,21 +65,6 @@ func benchmarkCalcAmountOut(b *testing.B, amount *big.Int, sim pool.IPoolSimulat
 	}
 }
 
-func BenchmarkCalcAmountOut(b *testing.B) {
-	// not cross tick
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("1000000000"), sim)
-}
-
-func BenchmarkCalcAmountOutCrossFewTick(b *testing.B) {
-	// cross 6 ticks
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("10000000000000000000"), sim)
-}
-
-func BenchmarkCalcAmountOutCrossManyTick(b *testing.B) {
-	// cross 79 ticks
-	benchmarkCalcAmountOut(b, bignumber.NewBig10("100000000000000000000"), sim)
-}
-
 func BenchmarkCalcAmountOutV2(b *testing.B) {
 	// not cross tick
 	benchmarkCalcAmountOut(b, bignumber.NewBig10("1000000000"), simV2)
@@ -94,12 +78,6 @@ func BenchmarkCalcAmountOutCrossFewTickV2(b *testing.B) {
 func BenchmarkCalcAmountOutCrossManyTickV2(b *testing.B) {
 	// cross 79 ticks
 	benchmarkCalcAmountOut(b, bignumber.NewBig10("100000000000000000000"), simV2)
-}
-
-func BenchmarkNewPoolSimulator(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, _ = NewPoolSimulatorBigInt(poolEnt, valueobject.ChainIDEthereum)
-	}
 }
 
 func BenchmarkNewPoolSimulatorV2(b *testing.B) {
