@@ -76,6 +76,7 @@ type FirmRequestParams struct {
 	MakerAmount string `json:"makerAmount"`
 	TakerAmount string `json:"takerAmount"`
 	UserAddress string `json:"userAddress"`
+	RFQSender   string `json:"rfqSender"`
 }
 
 type FirmResult struct {

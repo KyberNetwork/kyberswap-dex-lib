@@ -50,6 +50,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			MakerAmount: swapExtra.MakingAmount,
 			TakerAmount: swapExtra.TakingAmount,
 			UserAddress: params.Recipient,
+			RFQSender:   params.RFQSender,
 		})
 	if err != nil {
 		logger.WithFields(logger.Fields{
