@@ -411,6 +411,10 @@ var (
 	ExchangeBurrBearStable           Exchange = "burrbear-stable"
 	ExchangeBurrBearComposableStable Exchange = "burrbear-composable-stable"
 	ExchangeBeracaine                Exchange = "beracaine"
+	ExchangeBulla                    Exchange = "bulla"
+	ExchangeMemeswap                 Exchange = "memeswap"
+	ExchangePandaFun                 Exchange = "panda-fun"
+	ExchangeHoney                    Exchange = "honey"
 
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
 	ExchangeUniswapV4     Exchange = "uniswap-v4"
@@ -758,6 +762,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEtherFieBTC:                {},
 	ExchangeUniswapV4:                  {},
 	ExchangeOvernightUsdp:              {},
+	ExchangeBulla:                      {},
+	ExchangeMemeswap:                   {},
+	ExchangePandaFun:                   {},
+	ExchangeHoney:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
