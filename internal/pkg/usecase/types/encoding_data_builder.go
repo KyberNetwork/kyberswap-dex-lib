@@ -79,14 +79,16 @@ func (b *EncodingDataBuilder) SetRoute(
 ) *EncodingDataBuilder {
 	encodingMode := getEncodingMode(routeSummary.TokenIn, routeSummary.Route)
 	encodingRoute := transformRoute(routeSummary.Route)
+
+	b.data.TokenIn = routeSummary.TokenIn
+	b.data.TokenOut = routeSummary.TokenOut
+
 	encodingRoute = b.updateSwapRecipientAndCollectAmount(
 		encodingRoute,
 		encodingMode,
 		executorAddress,
 	)
 
-	b.data.TokenIn = routeSummary.TokenIn
-	b.data.TokenOut = routeSummary.TokenOut
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
 	b.data.TotalAmountOut = getTotalAmountOut(encodingRoute)
