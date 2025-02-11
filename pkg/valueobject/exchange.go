@@ -401,14 +401,20 @@ var (
 	ExchangeSwapXCL          Exchange = "swap-x-cl"
 	ExchangeSwapXV2          Exchange = "swap-x-v2"
 	ExchangeMemeBox          Exchange = "memebox"
-	ExchangeKodiakV2         Exchange = "kodiak-v2"
-	ExchangeKodiakV3         Exchange = "kodiak-v3"
-	ExchangeBeraSwap         Exchange = "beraswap"
-	ExchangeBurrBear         Exchange = "burrbear"
-	ExchangeBeracaine        Exchange = "beracaine"
-	ExchangeEtherFieBTC      Exchange = "etherfi-ebtc"
-	ExchangeUniswapV4        Exchange = "uniswap-v4"
-	ExchangeOvernightUsdp    Exchange = "overnight-usdp"
+
+	ExchangeKodiakV2                 Exchange = "kodiak-v2"
+	ExchangeKodiakV3                 Exchange = "kodiak-v3"
+	ExchangeBeraSwapWeighted         Exchange = "beraswap-weighted"
+	ExchangeBeraSwapStable           Exchange = "beraswap-stable"
+	ExchangeBeraSwapComposableStable Exchange = "beraswap-composable-stable"
+	ExchangeBurrBearWeighted         Exchange = "burrbear-weighted"
+	ExchangeBurrBearStable           Exchange = "burrbear-stable"
+	ExchangeBurrBearComposableStable Exchange = "burrbear-composable-stable"
+	ExchangeBeracaine                Exchange = "beracaine"
+
+	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
+	ExchangeUniswapV4     Exchange = "uniswap-v4"
+	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
