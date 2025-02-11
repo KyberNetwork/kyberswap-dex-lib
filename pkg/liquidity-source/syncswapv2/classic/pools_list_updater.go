@@ -12,11 +12,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
 	syncswapv2shared "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/shared"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolsListUpdater struct {
 	syncswapv2shared.PoolsListUpdater
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeSyncSwapV2Classic, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	config *syncswapv2.Config,

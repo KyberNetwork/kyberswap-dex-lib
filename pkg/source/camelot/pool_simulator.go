@@ -28,6 +28,8 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory0(DexTypeCamelot, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

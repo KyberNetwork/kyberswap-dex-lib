@@ -13,6 +13,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 // PoolsSource is a struct to store the source of the pools, includes:
@@ -31,6 +32,8 @@ type PoolsListUpdater struct {
 	ethrpcClient   *ethrpc.Client
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE1(DexTypeCurve, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,

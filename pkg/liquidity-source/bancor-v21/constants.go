@@ -32,4 +32,5 @@ var (
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrInvalidPath               = errors.New("invalid inner anchor path")
 	ErrInvalidAnchor             = errors.New("invalid anchor")
+	ErrInvalidReserve            = errors.New("invalid reserve")
 )

@@ -22,11 +22,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	ErrOverflow       = errors.New("bigInt overflow int/uint256")
-	ErrInvalidFeeTier = errors.New("invalid feeTier")
-)
-
 type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool
@@ -34,6 +29,8 @@ type PoolSimulator struct {
 	tickMin int
 	tickMax int
 }
+
+var _ = pool.RegisterFactory1(DexTypePancakeV3, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256

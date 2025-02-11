@@ -21,6 +21,8 @@ type PoolSimulator struct {
 	gas          syncswap.Gas
 }
 
+var _ = pool.RegisterFactory0(PoolTypeSyncSwapV2Classic, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra ExtraClassicPool
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

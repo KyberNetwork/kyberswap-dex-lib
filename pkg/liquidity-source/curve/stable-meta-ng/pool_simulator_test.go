@@ -110,7 +110,7 @@ func TestCalcAmountOut(t *testing.T) {
 		{1, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "50000001234", "0x466a756e9a7401b5e2444a3fcb3c2c12fbea0a54", "56807326187619465404522"},
 	}
 
-	baseSimsByAddress := make(map[string]ICurveBasePool, len(basePools))
+	baseSimsByAddress := make(map[string]pool.IPoolSimulator, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
@@ -135,8 +135,7 @@ func TestCalcAmountOut(t *testing.T) {
 		err = json.Unmarshal([]byte(poolEntity.StaticExtra), &e)
 		require.Nil(t, err)
 
-		baseSim := baseSimsByAddress[e.BasePool]
-		p, err := NewPoolSimulator(poolEntity, baseSim)
+		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress)
 		require.Nil(t, err)
 
 		// 1st meta token can be swapped to anything
@@ -263,7 +262,7 @@ func TestUpdateBalance(t *testing.T) {
 		{1, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "50000001234", "0x466a756e9a7401b5e2444a3fcb3c2c12fbea0a54", "56369497076270460945432"},
 	}
 
-	baseSimsByAddress := make(map[string]ICurveBasePool, len(basePools))
+	baseSimsByAddress := make(map[string]pool.IPoolSimulator, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
@@ -288,7 +287,7 @@ func TestUpdateBalance(t *testing.T) {
 		err = json.Unmarshal([]byte(poolEntity.StaticExtra), &e)
 		require.Nil(t, err)
 
-		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress[e.BasePool])
+		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress)
 		require.Nil(t, err)
 		return p
 	})

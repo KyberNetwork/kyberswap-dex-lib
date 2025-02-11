@@ -4,12 +4,14 @@ import (
 	"fmt"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
 )
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool
@@ -23,21 +25,34 @@ type ICurveBasePool interface {
 	CalculateTokenAmountU256(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int, feeAmounts []uint256.Int) error
 	CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i int, dy *uint256.Int, dyFee *uint256.Int) error
 
-	// similar to RemoveLiquidityOneCoinU256, but pass in result from CalculateWithdrawOneCoinU256
+	// ApplyRemoveLiquidityOneCoinU256 is similar to RemoveLiquidityOneCoinU256, but pass in result from CalculateWithdrawOneCoinU256
 	ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, dyFee *uint256.Int) error
 
-	// similar to AddLiquidity, but pass in result from CalculateTokenAmountU256
+	// ApplyAddLiquidity is similar to AddLiquidity, but pass in result from CalculateTokenAmountU256
 	ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error
 }
 
-// the normal swap at meta pool is identical to stable-ng,
-// so we'll inherit from stableng.PoolSimulator to reuse its methods
+// PoolSimulator is a meta pool with identical normal swaps as stable-ng,
+// inheriting from stableng.PoolSimulator to reuse its methods.
 type PoolSimulator struct {
 	stableng.PoolSimulator
 	basePool ICurveBasePool
 }
 
-func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSimulator, error) {
+var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
+	var staticExtra struct {
+		BasePool string `json:"basePool"`
+	}
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+	basePool, ok := basePoolMap[staticExtra.BasePool].(ICurveBasePool)
+	if !ok {
+		return nil, ErrInvalidBasePool
+	}
+
 	sim, err := stableng.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, err

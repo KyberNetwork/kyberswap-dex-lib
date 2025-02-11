@@ -1,6 +1,8 @@
 package dexalot
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/logger"
 	"github.com/mitchellh/mapstructure"
 )
@@ -67,3 +69,43 @@ type Transaction struct {
 	Data     string `json:"data"`
 	GasLimit int    `json:"gasLimit"`
 }
+
+type (
+	SwapInfo struct {
+		BaseToken          string `json:"b" mapstructure:"b"`
+		BaseTokenAmount    string `json:"bAmt" mapstructure:"bAmt"`
+		QuoteToken         string `json:"q" mapstructure:"q"`
+		QuoteTokenAmount   string `json:"qAmt" mapstructure:"qAmt"`
+		MarketMaker        string `json:"mm,omitempty" mapstructure:"mm"`
+		ExpirySecs         uint   `json:"exp,omitempty" mapstructure:"exp"`
+		BaseTokenOriginal  string `json:"bo,omitempty" mapstructure:"bo"`
+		QuoteTokenOriginal string `json:"qo,omitempty" mapstructure:"qo"`
+		BaseTokenReserve   string `json:"br,omitempty" mapstructure:"br"`
+		QuoteTokenReserve  string `json:"qr,omitempty" mapstructure:"qr"`
+	}
+
+	Gas struct {
+		Quote int64
+	}
+
+	PriceLevel struct {
+		Quote *big.Float
+		Price *big.Float
+	}
+
+	PriceLevelRaw struct {
+		Price float64 `json:"p"`
+		Quote float64 `json:"q"`
+	}
+
+	Extra struct {
+		ZeroToOnePriceLevels []PriceLevelRaw `json:"0to1"`
+		OneToZeroPriceLevels []PriceLevelRaw `json:"1to0"`
+		Token0Address        string          `json:"token0"`
+		Token1Address        string          `json:"token1"`
+	}
+
+	MetaInfo struct {
+		Timestamp int64 `json:"timestamp"`
+	}
+)

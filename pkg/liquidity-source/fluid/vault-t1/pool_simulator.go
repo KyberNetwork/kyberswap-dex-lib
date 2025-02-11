@@ -1,7 +1,6 @@
 package vaultT1
 
 import (
-	"errors"
 	"math/big"
 	"strings"
 
@@ -9,25 +8,17 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrInvalidAmountIn     = errors.New("invalid amountIn: must be greater than zero")
-	ErrInsufficientReserve = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
-	ErrTokenNotFound       = errors.New("token not found in the pool")
-)
-
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 	StaticExtra
 	Ratio *big.Int
 }
 
-var (
-	defaultGas = Gas{Liquidate: 1250000}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -41,7 +32,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
@@ -57,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if param.TokenAmountIn.Amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
@@ -79,15 +70,15 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInsufficientReserve
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
-		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
+		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas.Liquidate,
 		SwapInfo:       s.StaticExtra,
 	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount

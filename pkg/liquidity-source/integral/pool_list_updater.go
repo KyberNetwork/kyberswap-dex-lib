@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type (
@@ -23,6 +25,8 @@ type (
 		Offset int `json:"offset"`
 	}
 )
+
+var _ = poollist.RegisterFactoryCE(DexTypeIntegral, NewPoolListUpdater)
 
 func NewPoolListUpdater(config *Config, client *ethrpc.Client) *PoolListUpdater {
 	return &PoolListUpdater{

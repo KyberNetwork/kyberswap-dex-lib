@@ -1,6 +1,10 @@
 package savingsdai
 
-import "github.com/KyberNetwork/blockchain-toolkit/number"
+import (
+	"errors"
+
+	"github.com/KyberNetwork/blockchain-toolkit/number"
+)
 
 const (
 	DexType = "maker-savingsdai"
@@ -21,4 +25,15 @@ const (
 var (
 	one = number.TenPow(27)
 	ray = one
+)
+
+var (
+	defaultGas = Gas{
+		Deposit: 161300,
+		Redeem:  235500,
+	}
+)
+
+var (
+	ErrInvalidToken = errors.New("invalid token")
 )

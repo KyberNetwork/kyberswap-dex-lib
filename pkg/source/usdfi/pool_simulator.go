@@ -18,6 +18,8 @@ type PoolSimulator struct {
 	gas      Gas
 }
 
+var _ = pool.RegisterFactory0(DexTypeUSDFi, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
 	var swapFee, _ = swapFeeFl.Int(nil)

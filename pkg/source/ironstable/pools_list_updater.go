@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
@@ -20,6 +21,8 @@ type PoolsListUpdater struct {
 
 	hasInitialized bool
 }
+
+var _ = poollist.RegisterFactoryCE(DexTypeIronStable, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{

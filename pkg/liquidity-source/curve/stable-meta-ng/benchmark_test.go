@@ -35,7 +35,7 @@ BenchmarkGetDyUnderlying_plainbase_base2meta-8   	  227568	      5134 ns/op	    
 func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount string) {
 	var poolEntity entity.Pool
 	require.Nil(b, json.Unmarshal([]byte(basepoolRedis), &poolEntity))
-	var baseSim ICurveBasePool
+	var baseSim pool.IPoolSimulator
 	var err error
 	if poolEntity.Exchange == stableng.DexType {
 		baseSim, err = stableng.NewPoolSimulator(poolEntity)
@@ -44,9 +44,10 @@ func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount strin
 		baseSim, err = plain.NewPoolSimulator(poolEntity)
 		require.Nil(b, err)
 	}
+	basePoolMap := map[string]pool.IPoolSimulator{"": baseSim}
 
 	require.Nil(b, json.Unmarshal([]byte(poolRedis), &poolEntity))
-	sim, err := NewPoolSimulator(poolEntity, baseSim)
+	sim, err := NewPoolSimulator(poolEntity, basePoolMap)
 	require.Nil(b, err)
 
 	amt := bignumber.NewBig10(amount)

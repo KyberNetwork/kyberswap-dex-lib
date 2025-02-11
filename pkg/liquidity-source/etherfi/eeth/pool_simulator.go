@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -25,13 +25,15 @@ var (
 
 // PoolSimulator only support deposits ETH and get eETH
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	totalPooledEther *big.Int
 	totalShares      *big.Int
 
 	gas Gas
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -40,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -69,7 +71,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 	return []string{}
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	// NOTE: only support tokenIn is WETH and tokenOut is eETH
 	if param.TokenAmountIn.Token != s.Pool.Info.Tokens[0] || param.TokenOut != s.Pool.Info.Tokens[1] {
 		return nil, ErrUnsupportedSwap
@@ -84,14 +86,14 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	amountOut := s.amountForShare(share, amount)
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[1], Amount: amountOut},
-		Fee:            &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[0], Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[1], Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[0], Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Deposit,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	s.totalPooledEther.Add(s.totalPooledEther, param.TokenAmountIn.Amount)
 	s.totalShares.Add(s.totalShares, param.TokenAmountOut.Amount)
 }

@@ -1,7 +1,6 @@
 package usd0pp
 
 import (
-	"errors"
 	"math/big"
 	"time"
 
@@ -9,33 +8,21 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+type PoolSimulator struct {
+	pool.Pool
 
-		paused    bool
-		startTime int64
-		endTime   int64
+	paused    bool
+	startTime int64
+	endTime   int64
 
-		gas Gas
-	}
+	gas Gas
+}
 
-	Gas struct {
-		Mint int64
-	}
-)
-
-var (
-	ErrPoolPaused             = errors.New("pool is paused")
-	ErrBondNotStarted         = errors.New("bond not started")
-	ErrBondEnded              = errors.New("bond ended")
-	ErrorInvalidTokenIn       = errors.New("invalid tokenIn")
-	ErrorInvalidTokenInAmount = errors.New("invalid tokenIn amount")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -44,7 +31,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -60,7 +47,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -82,14 +69,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Mint,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
 
 }
 

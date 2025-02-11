@@ -13,7 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type AavePool struct {
+type PoolSimulator struct {
 	pool.Pool
 	Multipliers []*big.Int
 	// extra fields
@@ -23,16 +23,14 @@ type AavePool struct {
 	FutureATime         int64
 	AdminFee            *big.Int
 	OffpegFeeMultiplier *big.Int
-	gas                 Gas
+	gas                 curve.Gas
 
 	LpSupply *big.Int
 }
 
-type Gas struct {
-	Exchange int64
-}
+var _ = pool.RegisterFactory0(curve.PoolTypeAave, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra curve.PoolAaveStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -58,7 +56,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 		lpSupply = bignumber.NewBig10(entityPool.Reserves[numTokens])
 	}
 
-	return &AavePool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -83,7 +81,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	}, nil
 }
 
-func (t *AavePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
@@ -122,7 +120,7 @@ func (t *AavePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmou
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *AavePool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount
@@ -148,11 +146,11 @@ func (t *AavePool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *AavePool) GetLpToken() string {
+func (t *PoolSimulator) GetLpToken() string {
 	return ""
 }
 
-func (t *AavePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{
@@ -162,7 +160,7 @@ func (t *AavePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	}
 }
 
-func (t *AavePool) getDPrecision(xp []*big.Int, a *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) getDPrecision(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var nCoins = len(xp)
 	_xp := make([]*big.Int, nCoins)
 	for i := 0; i < nCoins; i += 1 {
@@ -171,7 +169,7 @@ func (t *AavePool) getDPrecision(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	return getD(_xp, a)
 }
 
-func (t *AavePool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
+func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoins = len(amounts)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
@@ -226,7 +224,7 @@ func (t *AavePool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	return mint_amount, nil
 }
 
-func (t *AavePool) CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error) {
+func (t *PoolSimulator) CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error) {
 	return calculateTokenAmount(
 		t.Info.Reserves,
 		t.Multipliers,
@@ -239,7 +237,7 @@ func (t *AavePool) CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.
 	)
 }
 
-func (t *AavePool) CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error) {
 	return calculateWithdrawOneTokenDy(
 		t.Info.Reserves,
 		t.Multipliers,
@@ -252,7 +250,7 @@ func (t *AavePool) CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.I
 	)
 }
 
-func (t *AavePool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
+func (t *PoolSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
 	var dy, dy_fee, err = t.CalculateWithdrawOneCoin(tokenAmount, i)
 	if err != nil {
 		return nil, err
@@ -265,7 +263,7 @@ func (t *AavePool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int
 	return dy, nil
 }
 
-func (t *AavePool) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error) {
 	var nTokens = len(t.Info.Tokens)
 	xp := make([]*big.Int, nTokens)
 	for _i := 0; _i < nTokens; _i += 1 {
@@ -300,7 +298,7 @@ func (t *AavePool) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int,
 	return dy, fee, nil
 }
 
-func (t *AavePool) GetVirtualPrice() (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var A = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
 	D, err := t.getDPrecision(t.Info.Reserves, A)
 	if err != nil {

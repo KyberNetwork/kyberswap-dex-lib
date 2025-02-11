@@ -25,7 +25,7 @@ func TestCalcAmountOut(t *testing.T) {
 		{"A", "100000000000", "B", "243206804406"},
 	}
 
-	p, err := NewPool(entity.Pool{
+	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
 		Type:        "",
 		SwapFee:     0.003, // from factory getFee https://ftmscan.com/address/0x472f3c3c9608fe0ae8d702f3f8a2d12c410c881a#readContract#F6

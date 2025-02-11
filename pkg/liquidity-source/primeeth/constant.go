@@ -1,5 +1,9 @@
 package primeeth
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "primeeth"
 
@@ -28,4 +32,13 @@ var (
 	defaultGas = Gas{
 		Deposit: 250000,
 	}
+)
+
+var (
+	ErrPoolPaused                   = errors.New("pool is paused")
+	ErrInvalidTokenIn               = errors.New("invalid tokenIn")
+	ErrInvalidTokenOut              = errors.New("invalid tokenOut")
+	ErrInvalidAmountToDeposit       = errors.New("invalid amount to deposit")
+	ErrMaximumDepositLimitReached   = errors.New("maximum deposit limit reached")
+	ErrMinimumAmountToReceiveNotMet = errors.New("minimum amount to receive not met")
 )

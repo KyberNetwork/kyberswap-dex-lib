@@ -11,3 +11,7 @@ type PoolExtra struct {
 	TotalSupply    *big.Int `json:"totalSupply"`
 	CurrentReserve *big.Int `json:"currentReserve"`
 }
+
+type Gas struct {
+	Mint int64
+}

@@ -1,6 +1,8 @@
 package nativev1
 
 import (
+	"errors"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -21,6 +23,13 @@ var (
 		valueobject.ChainIDPolygon:         "polygon",
 		valueobject.ChainIDScroll:          "scroll",
 	}
+)
+
+var (
+	ErrEmptyPriceLevels                       = errors.New("empty price levels")
+	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
+	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
+	ErrAmountOutIsGreaterThanInventory        = errors.New("amountOut is greater than inventory")
 )
 
 func ChainById(chainId valueobject.ChainID) string {

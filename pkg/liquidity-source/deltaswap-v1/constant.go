@@ -1,8 +1,11 @@
 package deltaswapv1
 
 import (
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	"errors"
+
 	"github.com/holiman/uint256"
+
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 )
 
 const (
@@ -28,4 +31,9 @@ const (
 	pairMethodToken0      = "token0"
 	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
+)
+
+var (
+	ErrZeroTradeLiquidity = errors.New("DeltaSwap: ZERO_TRADE_LIQUIDITY")
+	ErrMaxIterations      = errors.New("maximum iterations reached")
 )

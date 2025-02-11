@@ -34,6 +34,8 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory0(DexTypeLimitOrder, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)

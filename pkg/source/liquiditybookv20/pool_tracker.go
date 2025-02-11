@@ -15,7 +15,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -26,6 +26,8 @@ type PoolTracker struct {
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
 }
+
+var _ = pooltrack.RegisterFactoryCEG(DexTypeLiquidityBookV20, NewPoolTracker)
 
 func NewPoolTracker(
 	cfg *Config,
@@ -184,7 +186,7 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
 		PriceX128:      priceX128,
-		Liquidity:      traderjoecommon.CalculateLiquidity(priceX128, reservesAndID.ReserveX, reservesAndID.ReserveY),
+		Liquidity:      CalculateLiquidity(priceX128, reservesAndID.ReserveX, reservesAndID.ReserveY),
 	}, nil
 }
 

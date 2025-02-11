@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 // const (
@@ -53,6 +54,8 @@ type PoolTracker struct {
 	config       *syncswapv2.Config
 	ethrpcClient *ethrpc.Client
 }
+
+var _ = pooltrack.RegisterFactoryCE0(DexTypeSyncSwapV2Aqua, NewPoolTracker)
 
 func NewPoolTracker(
 	config *syncswapv2.Config,

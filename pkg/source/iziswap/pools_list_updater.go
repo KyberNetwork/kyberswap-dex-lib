@@ -8,23 +8,25 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	iziswapclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/client"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 // This integration is mostly forked from https://github.com/opcc22059/kyberswap-dex-lib/tree/iZiSwap,
 // with minor changes in PoolsListUpdater and PoolSimulator.
 
 type PoolsListUpdater struct {
-	config Config
+	config *Config
 	client IClient
 }
 
-func NewPoolsListUpdater(
-	cfg Config,
-	client IClient,
-) *PoolsListUpdater {
+var _ = poollist.RegisterFactoryC(DexTypeiZiSwap, NewPoolsListUpdater)
+
+func NewPoolsListUpdater(cfg *Config) *PoolsListUpdater {
+	httpClient := iziswapclient.NewHTTPClient(&cfg.HTTP)
 	return &PoolsListUpdater{
 		config: cfg,
-		client: client,
+		client: httpClient,
 	}
 }
 

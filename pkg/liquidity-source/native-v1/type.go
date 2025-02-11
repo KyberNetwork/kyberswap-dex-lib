@@ -61,3 +61,39 @@ type TxRequest struct {
 	Calldata string `json:"calldata"`
 	// Value    string `json:"value"`
 }
+
+type (
+	StaticExtra struct {
+		MarketMaker string `json:"marketMaker"`
+	}
+
+	Extra struct {
+		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
+		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
+		MinIn0               float64      `json:"min0"`
+		MinIn1               float64      `json:"min1"`
+		PriceTolerance       uint         `json:"tlrnce,omitempty"`
+		ExpirySecs           uint         `json:"exp,omitempty"`
+	}
+	PriceLevel struct {
+		Quote float64 `json:"q"`
+		Price float64 `json:"p"`
+	}
+
+	SwapInfo struct {
+		BaseToken        string `json:"b" mapstructure:"b"`
+		BaseTokenAmount  string `json:"bAmt" mapstructure:"bAmt"`
+		QuoteToken       string `json:"q" mapstructure:"q"`
+		QuoteTokenAmount string `json:"qAmt" mapstructure:"qAmt"`
+		MarketMaker      string `json:"mm,omitempty" mapstructure:"mm"`
+		ExpirySecs       uint   `json:"exp,omitempty" mapstructure:"exp"`
+	}
+
+	Gas struct {
+		Quote int64
+	}
+
+	MetaInfo struct {
+		Timestamp int64 `json:"timestamp"`
+	}
+)

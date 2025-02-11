@@ -1,7 +1,6 @@
 package meth
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -11,36 +10,24 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/common"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+type PoolSimulator struct {
+	pool.Pool
 
-		isStakingPaused        bool
-		minimumStakeBound      *uint256.Int
-		maximumMETHSupply      *uint256.Int
-		totalControlled        *uint256.Int
-		exchangeAdjustmentRate uint16
-		mETHTotalSupply        *uint256.Int
+	isStakingPaused        bool
+	minimumStakeBound      *uint256.Int
+	maximumMETHSupply      *uint256.Int
+	totalControlled        *uint256.Int
+	exchangeAdjustmentRate uint16
+	mETHTotalSupply        *uint256.Int
 
-		gas Gas
-	}
+	gas Gas
+}
 
-	Gas struct {
-		Stake int64
-	}
-)
-
-var (
-	ErrStakingPaused                 = errors.New("staking paused")
-	ErrorInvalidTokenIn              = errors.New("invalid tokenIn")
-	ErrorInvalidTokenOut             = errors.New("invalid tokenOut")
-	ErrMinimumStakeBoundNotSatisfied = errors.New("minimum stake bound not satisfied")
-	ErrMaximumMETHSupplyExceeded     = errors.New("maximum METH supply exceeded")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -49,7 +36,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -68,7 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.isStakingPaused {
 		return nil, ErrStakingPaused
 	}
@@ -96,14 +83,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrMaximumMETHSupplyExceeded
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Stake,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.mETHTotalSupply.Add(s.mETHTotalSupply, uint256.MustFromBig(params.TokenAmountOut.Amount))
 }
 

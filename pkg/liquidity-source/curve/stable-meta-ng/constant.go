@@ -35,6 +35,7 @@ var (
 )
 
 var (
+	ErrInvalidBasePool              = errors.New("invalid base pool")
 	ErrInvalidReserve               = errors.New("invalid reserve")
 	ErrInvalidStoredRates           = errors.New("invalid stored rates")
 	ErrInvalidNumToken              = errors.New("invalid number of token")

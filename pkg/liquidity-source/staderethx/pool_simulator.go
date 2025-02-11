@@ -1,7 +1,6 @@
 package staderethx
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -9,31 +8,24 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		poolpkg.Pool
+type PoolSimulator struct {
+	pool.Pool
 
-		paused          bool
-		minDeposit      *uint256.Int
-		maxDeposit      *uint256.Int
-		exchangeRate    *uint256.Int
-		totalETHXSupply *uint256.Int
-		totalETHBalance *uint256.Int
+	paused          bool
+	minDeposit      *uint256.Int
+	maxDeposit      *uint256.Int
+	exchangeRate    *uint256.Int
+	totalETHXSupply *uint256.Int
+	totalETHBalance *uint256.Int
 
-		gas Gas
-	}
-)
+	gas Gas
+}
 
-var (
-	ErrPoolPaused           = errors.New("pool is paused")
-	ErrInvalidTokenIn       = errors.New("invalid tokenIn")
-	ErrInvalidTokenOut      = errors.New("invalid tokenOut")
-	ErrInvalidDepositAmount = errors.New("invalid deposit amount")
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -42,7 +34,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -60,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -88,14 +80,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	// amountOut = new(uint256.Int).Mul(amountIn, number.Number_1e18)
 	// amountOut.Div(amountOut, s.exchangeRate)
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Deposit,
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 }
 

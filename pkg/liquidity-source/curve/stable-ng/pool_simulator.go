@@ -36,6 +36,8 @@ type Gas struct {
 	Exchange int64
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim := &PoolSimulator{}
 

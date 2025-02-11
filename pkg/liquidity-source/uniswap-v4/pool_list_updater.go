@@ -13,13 +13,14 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
 	PoolsListUpdater struct {
-		config        Config
+		config        *Config
 		ethrpcClient  *ethrpc.Client
 		graphqlClient *graphqlpkg.Client
 	}
@@ -30,8 +31,10 @@ type (
 	}
 )
 
+var _ = poollist.RegisterFactoryCEG(DexType, NewPoolListUpdater)
+
 func NewPoolListUpdater(
-	config Config,
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {

@@ -1,6 +1,7 @@
 package pancakev3
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
@@ -31,4 +32,9 @@ var (
 	TickSpacings = lo.Assign(constants.TickSpacings, map[constants.FeeAmount]int{
 		constants.Fee2500: 50,
 	})
+
+	ErrOverflow       = errors.New("bigInt overflow int/uint256")
+	ErrInvalidFeeTier = errors.New("invalid feeTier")
+	ErrTickNil        = errors.New("tick is nil")
+	ErrV3TicksEmpty   = errors.New("v3Ticks empty")
 )

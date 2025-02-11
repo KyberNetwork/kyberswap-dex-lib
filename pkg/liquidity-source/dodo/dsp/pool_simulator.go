@@ -25,6 +25,8 @@ type PoolSimulator struct {
 	gas    shared.V2Gas
 }
 
+var _ = pool.RegisterFactory0(PoolType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if len(entityPool.StaticExtra) == 0 {
 		return nil, shared.ErrStaticExtraEmpty

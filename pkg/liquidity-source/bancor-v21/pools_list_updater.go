@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type (
@@ -19,6 +20,8 @@ type (
 		Offset int `json:"offset"`
 	}
 )
+
+var _ = poollist.RegisterFactoryC(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
 	return &PoolsListUpdater{

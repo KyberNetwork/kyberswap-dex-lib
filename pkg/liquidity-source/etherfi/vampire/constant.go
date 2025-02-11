@@ -1,5 +1,9 @@
 package etherfivampire
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "etherfi-vampire"
 
@@ -7,4 +11,9 @@ const (
 	curveStETHToETHPool = "0xdc24316b9ae028f1497c275eb9192a3ea0f67022"
 
 	unlimitedReserve = "1000000000000000000000"
+)
+
+var (
+	ErrDepositCapReached = errors.New("deposit cap reached")
+	ErrInvalidAmount     = errors.New("invalid amount")
 )

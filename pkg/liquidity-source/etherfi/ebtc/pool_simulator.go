@@ -1,7 +1,6 @@
 package etherfiebtc
 
 import (
-	"errors"
 	"math/big"
 	"strings"
 
@@ -11,20 +10,9 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-)
-
-var (
-	ErrTellerPaused            = errors.New("teller with multi asset support: paused")
-	ErrTellerAssetNotSupported = errors.New("teller with multi asset support: asset not supported")
-	ErrTellerMinimumMintNotMet = errors.New("teller with multi asset support: minimum mint not met")
-	ErrTellerZeroAssets        = errors.New("teller with multi asset support: zero assets")
-	ErrTellerSharesAreLocked   = errors.New("teller with multi asset support: shares are locked")
-	ErrAccountantPaused        = errors.New("accountant with rate providers: paused")
-	ErrMulDivOverflow          = errors.New("mul div overflow")
 )
 
 type PoolSimulator struct {
@@ -42,6 +30,8 @@ type PoolSimulator struct {
 
 	gas Gas
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra

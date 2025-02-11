@@ -1,5 +1,9 @@
 package unieth
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "bedrock-unieth"
 )
@@ -25,4 +29,9 @@ var (
 const (
 	// unlimited reserve
 	reserves = "10000000000000000000"
+)
+
+var (
+	ErrPaused          = errors.New("paused")
+	ErrUnsupportedSwap = errors.New("unsupported swap")
 )

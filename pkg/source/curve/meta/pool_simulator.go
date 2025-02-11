@@ -24,9 +24,9 @@ import (
 type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetTokenIndex(address string) int
-	// return both vPrice and D
+	// GetVirtualPrice returns both vPrice and D
 	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
-	// if `dCached` is nil then will be recalculated
+	// GetDy recalculates `dCached` if it is nil
 	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
@@ -34,7 +34,7 @@ type ICurveBasePool interface {
 	RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error)
 }
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	BasePool       ICurveBasePool
 	RateMultiplier *big.Int
@@ -46,18 +46,20 @@ type Pool struct {
 	LpToken        string
 	LpSupply       *big.Int
 	APrecision     *big.Int
-	gas            Gas
+	gas            curve.Gas
 }
 
-type Gas struct {
-	Exchange           int64
-	ExchangeUnderlying int64
-}
+var _ = pool.RegisterFactoryMeta(curve.PoolTypeMeta, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
 	var staticExtra curve.PoolMetaStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
+	}
+
+	basePool, ok := basePoolMap[staticExtra.BasePool].(ICurveBasePool)
+	if !ok {
+		return nil, ErrInvalidBasePool
 	}
 
 	var extraStr curve.PoolMetaExtra
@@ -82,7 +84,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 		aPrecision = utils.NewBig10(staticExtra.APrecision)
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -109,7 +111,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	// swap from token to token
@@ -182,7 +184,7 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 	}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var inputIndex = t.GetTokenIndex(input.Token)
@@ -208,9 +210,9 @@ func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *Pool) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
 
-func (t *Pool) CanSwapTo(address string) []string {
+func (t *PoolSimulator) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenIndex = t.GetTokenIndex(address)
 	if tokenIndex < 0 {
@@ -241,7 +243,7 @@ func (t *Pool) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	if fromId >= 0 && toId >= 0 {
@@ -260,14 +262,14 @@ func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	}
 }
 
-func (t *Pool) GetTokens() []string {
+func (t *PoolSimulator) GetTokens() []string {
 	var result []string
 	result = append(result, t.GetInfo().Tokens...)
 	result = append(result, t.BasePool.GetInfo().Tokens...)
 	return result
 }
 
-func (t *Pool) getUnderlyingIndex(token string) int {
+func (t *PoolSimulator) getUnderlyingIndex(token string) int {
 	var tokenIndex = t.GetTokenIndex(token)
 	if tokenIndex >= 0 {
 		return tokenIndex

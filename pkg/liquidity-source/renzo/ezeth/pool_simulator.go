@@ -5,38 +5,15 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrInvalidCollateral      = errors.New("invalid collateral")
-	ErrInvalidTokenOut        = errors.New("invalid tokenOut")
-	ErrMaxTVLReached          = errors.New("max tvl reached")
-	ErrMaxTokenTVLReached     = errors.New("max token tvl reached")
-	ErrInvalidTokenAmount     = errors.New("invalid tokenAmount")
-	ErrOracleNotFound         = errors.New("oracle not found")
-	ErrOracleExpired          = errors.New("oracle expired")
-	ErrInvalidOraclePrice     = errors.New("invalid oracle price")
-	ErrPoolPaused             = errors.New("pool paused")
-	ErrStrategyManagerPaused  = errors.New("strategy manager paused")
-	ErrRevertNotFound         = errors.New("revert not found")
-	ErrRevertInvalidZeroInput = errors.New("revert invalid zero input")
-)
-
-var (
-	// Scale factor for all values of prices
-	SCALE_FACTOR = big.NewInt(1e18)
-	// The maxmimum staleness allowed for a price feed from chainlink
-	MAX_TIME_WINDOW int64 = 86400 + 60 // 24 hours + 60 seconds
-)
-
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	paused bool
 
@@ -69,6 +46,8 @@ type PoolSimulator struct {
 	collateralTokenTvlLimits map[string]*big.Int
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -76,7 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -100,7 +79,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -127,9 +106,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		}
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: amountOut},
-		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 	}, nil
 }
 
@@ -157,7 +136,7 @@ func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	return []string{s.Info.Tokens[0]}
 }
 
-func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	s.totalSupply.Add(s.totalSupply, param.TokenAmountOut.Amount)
 }
 

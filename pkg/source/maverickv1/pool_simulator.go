@@ -16,13 +16,15 @@ import (
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	decimals []uint8
 	state    *MaverickPoolState
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+var _ = pool.RegisterFactory0(DexTypeMaverickV1, NewPoolSimulator)
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	binMap := extra.BinMap
 	binMapIds := lo.Keys(binMap)
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  entityPool.Address,
@@ -65,7 +67,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
@@ -123,7 +125,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 	}, nil
 }
 
-func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
 	tokenInIndex, tokenOutIndex := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
@@ -181,13 +183,13 @@ func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInRe
 	}, nil
 }
 
-func (p *Pool) CloneState() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.state = p.state.Clone()
 	return &cloned
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	newState, ok := params.SwapInfo.(maverickSwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalancer for Maverick pool, wrong swapInfo type")
@@ -198,7 +200,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.ActiveTick = newState.activeTick
 }
 
-func (p *Pool) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 

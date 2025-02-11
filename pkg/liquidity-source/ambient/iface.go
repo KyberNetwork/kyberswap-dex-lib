@@ -1,11 +1,7 @@
 package ambient
 
 import (
-	"context"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-type IPoolDatastore interface {
-	Get(ctx context.Context, address string) (entity.Pool, error)
-}
+type IPoolDatastore = poollist.IPoolRepository

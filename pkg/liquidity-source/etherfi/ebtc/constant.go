@@ -1,6 +1,8 @@
 package etherfiebtc
 
 import (
+	"errors"
+
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -26,4 +28,14 @@ const (
 	tellerMethodShareLockPeriod      = "shareLockPeriod"
 	accountantMethodAccountantState  = "accountantState"
 	accountantMethodRateProviderData = "rateProviderData"
+)
+
+var (
+	ErrTellerPaused            = errors.New("teller with multi asset support: paused")
+	ErrTellerAssetNotSupported = errors.New("teller with multi asset support: asset not supported")
+	ErrTellerMinimumMintNotMet = errors.New("teller with multi asset support: minimum mint not met")
+	ErrTellerZeroAssets        = errors.New("teller with multi asset support: zero assets")
+	ErrTellerSharesAreLocked   = errors.New("teller with multi asset support: shares are locked")
+	ErrAccountantPaused        = errors.New("accountant with rate providers: paused")
+	ErrMulDivOverflow          = errors.New("mul div overflow")
 )

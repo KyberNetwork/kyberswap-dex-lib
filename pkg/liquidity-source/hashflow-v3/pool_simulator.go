@@ -1,7 +1,6 @@
 package hashflowv3
 
 import (
-	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -14,66 +13,21 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrEmptyPriceLevels                        = errors.New("empty price levels")
-	ErrInsufficientLiquidity                   = errors.New("insufficient liquidity")
-	ErrParsingBigFloat                         = errors.New("invalid float number")
-	ErrAmountInIsLessThanLowestPriceLevel      = errors.New("amountIn is less than lowest price level")
-	ErrAmountInIsGreaterThanHighestPriceLevel  = errors.New("amountIn is greater than highest price level")
-	ErrAmountOutIsLessThanLowestPriceLevel     = errors.New("amountOut is less than lowest price level")
-	ErrAmountOutIsGreaterThanHighestPriceLevel = errors.New("amountOut is greater than highest price level")
-)
+type PoolSimulator struct {
+	pool.Pool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+	MarketMaker          string
+	Token0               entity.PoolToken
+	Token1               entity.PoolToken
+	ZeroToOnePriceLevels []PriceLevel
+	OneToZeroPriceLevels []PriceLevel
 
-		MarketMaker          string
-		Token0               entity.PoolToken
-		Token1               entity.PoolToken
-		ZeroToOnePriceLevels []PriceLevel
-		OneToZeroPriceLevels []PriceLevel
+	timestamp      int64
+	priceTolerance int64
+	gas            Gas
+}
 
-		timestamp      int64
-		priceTolerance int64
-		gas            Gas
-	}
-
-	PriceLevel struct {
-		Quote *big.Float
-		Price *big.Float
-	}
-
-	StaticExtra struct {
-		MarketMaker string `json:"marketMaker"`
-	}
-
-	Extra struct {
-		ZeroToOnePriceLevels []PriceLevelRaw `json:"zeroToOnePriceLevels"`
-		OneToZeroPriceLevels []PriceLevelRaw `json:"oneToZeroPriceLevels"`
-		PriceTolerance       int64           `json:"priceTolerance"`
-	}
-	PriceLevelRaw struct {
-		Quote string `json:"q"`
-		Price string `json:"p"`
-	}
-
-	SwapInfo struct {
-		BaseToken        string `json:"baseToken"`
-		BaseTokenAmount  string `json:"baseTokenAmount"`
-		QuoteToken       string `json:"quoteToken"`
-		QuoteTokenAmount string `json:"quoteTokenAmount"`
-		MarketMaker      string `json:"marketMaker"`
-	}
-
-	Gas struct {
-		Quote int64
-	}
-
-	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra

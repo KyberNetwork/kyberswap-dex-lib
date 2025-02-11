@@ -2,10 +2,12 @@ package nomiswapstable
 
 import (
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 )
 
 var (
-	defaultGas  = Gas{Swap: 300000}
+	defaultGas  = nomiswap.Gas{Swap: 300000}
 	A_PRECISION = uint256.NewInt(100)
 	MaxFee      = uint256.NewInt(100000)
 	Zero        = uint256.NewInt(0)

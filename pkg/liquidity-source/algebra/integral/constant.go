@@ -43,6 +43,9 @@ const (
 	RESOLUTION       = 96
 
 	FEE_FACTOR_SHIFT = 96
+
+	BaseGas          = int64(272244)
+	CrossInitTickGas = int64(9034)
 )
 
 var (

@@ -1,7 +1,6 @@
 package nativev1
 
 import (
-	"errors"
 	"math"
 	"math/big"
 	"strings"
@@ -15,64 +14,23 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrEmptyPriceLevels                       = errors.New("empty price levels")
-	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
-	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
-	ErrAmountOutIsGreaterThanInventory        = errors.New("amountOut is greater than inventory")
-)
+type PoolSimulator struct {
+	pool.Pool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+	MarketMaker          string
+	Token0               entity.PoolToken
+	Token1               entity.PoolToken
+	ZeroToOnePriceLevels []PriceLevel
+	OneToZeroPriceLevels []PriceLevel
+	MinIn0, MinIn1       float64
 
-		MarketMaker          string
-		Token0               entity.PoolToken
-		Token1               entity.PoolToken
-		ZeroToOnePriceLevels []PriceLevel
-		OneToZeroPriceLevels []PriceLevel
-		MinIn0, MinIn1       float64
+	timestamp      int64
+	priceTolerance uint
+	expirySecs     uint
+	gas            Gas
+}
 
-		timestamp      int64
-		priceTolerance uint
-		expirySecs     uint
-		gas            Gas
-	}
-
-	StaticExtra struct {
-		MarketMaker string `json:"marketMaker"`
-	}
-
-	Extra struct {
-		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
-		MinIn0               float64      `json:"min0"`
-		MinIn1               float64      `json:"min1"`
-		PriceTolerance       uint         `json:"tlrnce,omitempty"`
-		ExpirySecs           uint         `json:"exp,omitempty"`
-	}
-	PriceLevel struct {
-		Quote float64 `json:"q"`
-		Price float64 `json:"p"`
-	}
-
-	SwapInfo struct {
-		BaseToken        string `json:"b" mapstructure:"b"`
-		BaseTokenAmount  string `json:"bAmt" mapstructure:"bAmt"`
-		QuoteToken       string `json:"q" mapstructure:"q"`
-		QuoteTokenAmount string `json:"qAmt" mapstructure:"qAmt"`
-		MarketMaker      string `json:"mm,omitempty" mapstructure:"mm"`
-		ExpirySecs       uint   `json:"exp,omitempty" mapstructure:"exp"`
-	}
-
-	Gas struct {
-		Quote int64
-	}
-
-	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
-	}
-)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra

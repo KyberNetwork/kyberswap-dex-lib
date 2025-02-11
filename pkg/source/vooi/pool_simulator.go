@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -30,7 +30,7 @@ var (
 
 type (
 	PoolSimulator struct {
-		poolpkg.Pool
+		pool.Pool
 
 		a      *big.Int
 		lpFee  *big.Int
@@ -65,6 +65,8 @@ type (
 	}
 )
 
+var _ = pool.RegisterFactory0(DexTypeVooi, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var poolExtra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
@@ -72,8 +74,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{
-			Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
 				Address:  entityPool.Address,
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
@@ -96,8 +98,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 // CalcAmountOut calculate amount out from amount in, token in and token out
 // Reference: https://lineascan.build/address/0xBc7f67fA9C72f9fcCf917cBCEe2a50dEb031462A
 func (s *PoolSimulator) CalcAmountOut(
-	param poolpkg.CalcAmountOutParams,
-) (*poolpkg.CalcAmountOutResult, error) {
+	param pool.CalcAmountOutParams,
+) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	if s.paused {
@@ -139,9 +141,9 @@ func (s *PoolSimulator) CalcAmountOut(
 	actualToAmount = dsmath.FromWAD(actualToAmount, toAsset.Decimals)
 	lpFeeAmount = dsmath.FromWAD(lpFeeAmount, toAsset.Decimals)
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: actualToAmount},
-		Fee:            &poolpkg.TokenAmount{Token: tokenOut, Amount: lpFeeAmount},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: actualToAmount},
+		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: lpFeeAmount},
 		Gas:            s.gas.Swap,
 		SwapInfo: vooiSwapInfo{
 			newFromAssetCash: newFromAssetCash,
@@ -150,7 +152,7 @@ func (s *PoolSimulator) CalcAmountOut(
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(vooiSwapInfo)
 	if !ok {
 		logger.Warnf("failed to UpdateBalance for Vooi %v %v pool, wrong swapInfo type", s.Info.Address, s.Info.Exchange)

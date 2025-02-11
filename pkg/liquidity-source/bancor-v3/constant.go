@@ -14,4 +14,6 @@ const (
 
 var (
 	pmmResolution = uint256.NewInt(1_000_000)
+
+	defaultGas = Gas{Swap: 150000}
 )

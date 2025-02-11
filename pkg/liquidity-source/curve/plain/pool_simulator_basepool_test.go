@@ -6,14 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/meta"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // copy from curve-meta
@@ -54,6 +55,7 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
 	require.Nil(t, err)
+	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
 
 	p, err := meta.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -62,7 +64,7 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		Tokens:      []*entity.PoolToken{{Address: "Am"}, {Address: "Bm"}},
 		Extra:       "{\"initialA\":\"10000\",\"futureA\":\"25000\",\"initialATime\":1649327847,\"futureATime\":1649925962,\"swapFee\":\"4000000\",\"adminFee\":\"0\"}",
 		StaticExtra: "{\"lpToken\":\"LPMeta\",\"basePool\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"rateMultiplier\":\"1000000000000000000\",\"aPrecision\":\"100\",\"underlyingTokens\":[\"0x674c6ad92fd080e4004b2312b45f796a192d27a0\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"precisionMultipliers\":[\"1\",\"1\"],\"rates\":[\"\",\"\"]}",
-	}, base)
+	}, basePoolMap)
 	require.Nil(t, err)
 
 	for idx, tc := range testcases {
@@ -107,6 +109,7 @@ func TestUpdateBalanceAsBasePool(t *testing.T) {
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
 	require.Nil(t, err)
+	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
 
 	p, err := meta.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
@@ -115,7 +118,7 @@ func TestUpdateBalanceAsBasePool(t *testing.T) {
 		Tokens:      []*entity.PoolToken{{Address: "Am"}, {Address: "Bm"}},
 		Extra:       "{\"initialA\":\"10000\",\"futureA\":\"25000\",\"initialATime\":1649327847,\"futureATime\":1649925962,\"swapFee\":\"4000000\",\"adminFee\":\"0\"}",
 		StaticExtra: "{\"lpToken\":\"LPMeta\",\"basePool\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"rateMultiplier\":\"1000000000000000000\",\"aPrecision\":\"100\",\"underlyingTokens\":[\"0x674c6ad92fd080e4004b2312b45f796a192d27a0\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"precisionMultipliers\":[\"1\",\"1\"],\"rates\":[\"\",\"\"]}",
-	}, base)
+	}, basePoolMap)
 	require.Nil(t, err)
 
 	for idx, tc := range testcases {

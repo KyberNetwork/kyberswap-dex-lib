@@ -22,7 +22,7 @@ func _xpMem(
 	return xp, nil
 }
 
-func (t *PoolBaseSimulator) _xp() []*big.Int {
+func (t *PoolSimulator) _xp() []*big.Int {
 	var nTokens = len(t.Info.Tokens)
 	result := make([]*big.Int, nTokens)
 	for i := 0; i < nTokens; i += 1 {
@@ -31,7 +31,7 @@ func (t *PoolBaseSimulator) _xp() []*big.Int {
 	return result
 }
 
-func (t *PoolBaseSimulator) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) get_D_mem(balances []*big.Int, amp *big.Int) (*big.Int, error) {
 	var xp, err = _xpMem(balances, t.Rates)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func (t *PoolBaseSimulator) get_D_mem(balances []*big.Int, amp *big.Int) (*big.I
 	return t.getD(xp, amp)
 }
 
-func (t *PoolBaseSimulator) _A() *big.Int {
+func (t *PoolSimulator) _A() *big.Int {
 	var t1 = t.FutureATime
 	var a1 = t.FutureA
 	var now = time.Now().Unix()
@@ -73,16 +73,16 @@ func (t *PoolBaseSimulator) _A() *big.Int {
 	return a1
 }
 
-func (t *PoolBaseSimulator) A() *big.Int {
+func (t *PoolSimulator) A() *big.Int {
 	var a = t._A()
 	return new(big.Int).Div(a, t.APrecision)
 }
 
-func (t *PoolBaseSimulator) APrecise() *big.Int {
+func (t *PoolSimulator) APrecise() *big.Int {
 	return t._A()
 }
 
-func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
+func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
 	var s = new(big.Int).SetInt64(0)
 	for i := 0; i < numTokens; i++ {
@@ -166,7 +166,7 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	return nil, ErrDDoesNotConverge
 }
 
-func (t *PoolBaseSimulator) getY(
+func (t *PoolSimulator) getY(
 	tokenIndexFrom int,
 	tokenIndexTo int,
 	x *big.Int,
@@ -271,7 +271,7 @@ func (t *PoolBaseSimulator) getY(
 	return nil, ErrAmountOutNotConverge
 }
 
-func (t *PoolBaseSimulator) GetDy(
+func (t *PoolSimulator) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
@@ -302,7 +302,7 @@ func (t *PoolBaseSimulator) GetDy(
 	return dy, fee, nil
 }
 
-func (t *PoolBaseSimulator) getYD(
+func (t *PoolSimulator) getYD(
 	a *big.Int,
 	tokenIndex int,
 	xp []*big.Int,
@@ -380,7 +380,7 @@ func (t *PoolBaseSimulator) getYD(
 //	)
 //}
 
-func (t *PoolBaseSimulator) CalculateWithdrawOneCoin(
+func (t *PoolSimulator) CalculateWithdrawOneCoin(
 	tokenAmount *big.Int,
 	i int,
 ) (*big.Int, *big.Int, error) {
@@ -419,7 +419,7 @@ func (t *PoolBaseSimulator) CalculateWithdrawOneCoin(
 	return dy, new(big.Int).Sub(dy0, dy), nil
 }
 
-func (t *PoolBaseSimulator) CalculateTokenAmount(
+func (t *PoolSimulator) CalculateTokenAmount(
 	amounts []*big.Int,
 	deposit bool,
 ) (*big.Int, error) {
@@ -454,7 +454,7 @@ func (t *PoolBaseSimulator) CalculateTokenAmount(
 	return new(big.Int).Div(new(big.Int).Mul(diff, totalSupply), d0), nil
 }
 
-func (t *PoolBaseSimulator) CalculateAddLiquidityOneToken(
+func (t *PoolSimulator) CalculateAddLiquidityOneToken(
 	tokenIndex int,
 	tokenAmount *big.Int,
 ) (*big.Int, *big.Int, error) {
@@ -470,7 +470,7 @@ func (t *PoolBaseSimulator) CalculateAddLiquidityOneToken(
 	return amount, bignumber.ZeroBI, err
 }
 
-func (t *PoolBaseSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
+func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	var nCoins = len(amounts)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var amp = t._A()
@@ -523,7 +523,7 @@ func (t *PoolBaseSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	return mint_amount, nil
 }
 
-func (t *PoolBaseSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
+func (t *PoolSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error) {
 	var dy, dy_fee, err = t.CalculateWithdrawOneCoin(tokenAmount, i)
 	if err != nil {
 		return nil, err
@@ -533,7 +533,7 @@ func (t *PoolBaseSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) 
 	return dy, nil
 }
 
-func (t *PoolBaseSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
+func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
 	var D, err = t.getD(xp, A)

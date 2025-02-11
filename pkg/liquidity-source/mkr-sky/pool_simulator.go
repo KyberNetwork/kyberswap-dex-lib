@@ -19,6 +19,8 @@ type PoolSimulator struct {
 	rate *uint256.Int
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 

@@ -25,6 +25,8 @@ type PoolSimulator struct {
 	bins              []Bin
 }
 
+var _ = pool.RegisterFactory0(DexTypeLiquidityBookV21, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		tokens   = make([]string, 2)

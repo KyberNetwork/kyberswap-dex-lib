@@ -34,6 +34,8 @@ type PoolSimulator struct {
 	tickMax int
 }
 
+var _ = pool.RegisterFactory1(DexTypeRamsesV2, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

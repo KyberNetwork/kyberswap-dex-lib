@@ -11,19 +11,22 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolListUpdater struct {
-	cfg           Config
+	cfg           *Config
 	poolDatastore IPoolDatastore
 	graphqlClient *graphqlpkg.Client
 }
 
+var _ = poollist.RegisterFactoryCPG(DexTypeAmbient, NewPoolsListUpdater)
+
 func NewPoolsListUpdater(
-	cfg Config,
+	cfg *Config,
 	poolDatastore IPoolDatastore,
 	graphqlClient *graphqlpkg.Client,
 ) (*PoolListUpdater, error) {

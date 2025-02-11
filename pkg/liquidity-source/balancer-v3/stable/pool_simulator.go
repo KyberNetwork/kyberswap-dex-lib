@@ -3,6 +3,7 @@ package stable
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -12,14 +13,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
-
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	vault      *vault.Vault
 	currentAmp *uint256.Int
@@ -32,6 +31,8 @@ type PoolSimulator struct {
 
 	vaultAddress string
 }
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -75,7 +76,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
 		extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
 
-	poolInfo := poolpkg.PoolInfo{
+	poolInfo := pool.PoolInfo{
 		Address:     entityPool.Address,
 		Exchange:    entityPool.Exchange,
 		Type:        entityPool.Type,
@@ -86,7 +87,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                 poolpkg.Pool{Info: poolInfo},
+		Pool:                 pool.Pool{Info: poolInfo},
 		isVaultPaused:        extra.IsVaultPaused,
 		isPoolPaused:         extra.IsPoolPaused,
 		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
@@ -97,7 +98,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if p.isVaultPaused {
 		return nil, shared.ErrVaultIsPaused
 	}
@@ -128,12 +129,12 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: totalSwapFee.ToBig(),
 		},
@@ -144,7 +145,7 @@ func (p *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	if p.isVaultPaused {
 		return nil, shared.ErrVaultIsPaused
 	}
@@ -175,12 +176,12 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: totalSwapFee.ToBig(),
 		},
@@ -191,7 +192,7 @@ func (p *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 	}, nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
 	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
 
@@ -280,7 +281,7 @@ func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, ro
 	return invariant, nil
 }
 
-func (p *PoolSimulator) CloneState() poolpkg.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.vault = p.vault.CloneState()
 	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {

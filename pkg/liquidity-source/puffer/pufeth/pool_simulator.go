@@ -1,7 +1,6 @@
 package pufeth
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -10,19 +9,14 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-)
-
-var (
-	ErrUnsupportedSwap = errors.New("unsupported swap")
-	ErrInvalidAmountIn = errors.New("invalid amountIn")
 )
 
 // Depositor: https://etherscan.io/address/0x4aa799c5dfc01ee7d790e3bf1a7c2257ce1dceff
 // Vault: https://etherscan.io/address/0xD9A442856C234a39a81a089C06451EBAa4306a72
 type PoolSimulator struct {
-	poolpkg.Pool
+	pool.Pool
 
 	// totalSupply: PufferVaultMethodTotalSupply
 	totalSupply *uint256.Int
@@ -39,10 +33,7 @@ type PoolSimulator struct {
 	gas Gas
 }
 
-type Gas struct {
-	depositStETH  int64 // 250000
-	depositWstETH int64 // 280000
-}
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
@@ -51,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
@@ -68,7 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	// NOTE: only support tokenIn = stETH, wstETH and tokenOut is pufETH
 	if !((params.TokenAmountIn.Token == s.Info.Tokens[1] || params.TokenAmountIn.Token == s.Info.Tokens[2]) && params.TokenOut == s.Info.Tokens[0]) {
 		return nil, ErrUnsupportedSwap
@@ -92,9 +83,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 	isStETH := params.TokenAmountIn.Token == s.Info.Tokens[1]
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            gas,
 		SwapInfo: SwapExtra{
 			IsStETH: isStETH,
@@ -102,7 +93,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
 

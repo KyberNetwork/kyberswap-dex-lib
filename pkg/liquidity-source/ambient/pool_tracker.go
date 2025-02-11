@@ -13,15 +13,18 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type PoolTracker struct {
-	cfg          Config
+	cfg          *Config
 	ethrpcClient *ethrpc.Client
 }
 
+var _ = pooltrack.RegisterFactoryCE(DexTypeAmbient, NewPoolTracker)
+
 func NewPoolTracker(
-	cfg Config,
+	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	if err := cfg.Validate(); err != nil {

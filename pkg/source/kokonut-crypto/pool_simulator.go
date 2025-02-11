@@ -51,6 +51,8 @@ type Gas struct {
 	Exchange int64
 }
 
+var _ = pool.RegisterFactory0(DexTypeKokonutCrypto, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {

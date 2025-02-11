@@ -32,6 +32,8 @@ type PoolSimulator struct {
 	wrappers map[string]string
 }
 
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		tokenNbr = len(entityPool.Tokens)

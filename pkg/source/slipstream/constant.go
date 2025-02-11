@@ -1,6 +1,7 @@
 package slipstream
 
 import (
+	"errors"
 	"math/big"
 )
 
@@ -25,4 +26,11 @@ const (
 var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+)
+
+var (
+	ErrOverflow           = errors.New("bigInt overflow int/uint256")
+	ErrInvalidTickSpacing = errors.New("invalid tickSpacing")
+	ErrTickNil            = errors.New("tick is nil")
+	ErrV3TicksEmpty       = errors.New("v3Ticks empty")
 )

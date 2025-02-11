@@ -10,7 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -34,7 +34,7 @@ var (
 
 type (
 	PoolSimulator struct {
-		poolpkg.Pool
+		pool.Pool
 
 		paused bool
 
@@ -57,6 +57,8 @@ type (
 		Swap int64
 	}
 )
+
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
@@ -107,7 +109,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		scaledMaxTotalAmountsOut[idx] = maxOut
 	}
 
-	poolInfo := poolpkg.PoolInfo{
+	poolInfo := pool.PoolInfo{
 		Address:     entityPool.Address,
 		Exchange:    entityPool.Exchange,
 		Type:        entityPool.Type,
@@ -118,7 +120,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                     poolpkg.Pool{Info: poolInfo},
+		Pool:                     pool.Pool{Info: poolInfo},
 		paused:                   extra.Paused,
 		swapFeePercentage:        extra.SwapFeePercentage,
 		scalingFactors:           staticExtra.ScalingFactors,
@@ -134,7 +136,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 // https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
-func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -212,12 +214,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: feeAmount.ToBig(),
 		},
@@ -225,7 +227,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
@@ -303,12 +305,12 @@ func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpk
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{
+		Fee: &pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: feeAmount.ToBig(),
 		},
@@ -410,7 +412,7 @@ func (s *PoolSimulator) validateMaxOutRatio(tokenIndex int, amountOut *uint256.I
 	return nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	for idx, token := range s.Info.Tokens {
 		if token == params.TokenAmountIn.Token {
 			s.Info.Reserves[idx] = new(big.Int).Add(

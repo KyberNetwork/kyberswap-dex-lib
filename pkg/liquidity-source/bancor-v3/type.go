@@ -4,9 +4,14 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+type Gas struct {
+	Swap int64
+}
 
 type SwapInfo struct {
 	IsSourceNative bool                       `json:"isSourceNative"`
@@ -57,5 +62,26 @@ type (
 		BntTradingLiquidity       *big.Int
 		BaseTokenTradingLiquidity *big.Int
 		StakedBalance             *big.Int
+	}
+
+	tradeTokens struct {
+		SourceToken string
+		TargetToken string
+	}
+
+	tradeParams struct {
+		Amount         *uint256.Int
+		Limit          *uint256.Int
+		BySourceAmount bool
+		IgnoreFees     bool
+	}
+
+	tradeResult struct {
+		SourceAmount     *uint256.Int
+		TargetAmount     *uint256.Int
+		TradingFeeAmount *uint256.Int
+		NetworkFeeAmount *uint256.Int
+
+		PoolCollectionTradeInfo *poolCollectionTradeInfo
 	}
 )
