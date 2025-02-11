@@ -46,6 +46,9 @@ func RegisterFactory[C any, P IPoolsLister](poolType string, factory func(PoolsL
 	factoryMap[poolType] = func(exchange string, factoryParams FactoryParams) (IPoolsLister, error) {
 		var cfg C
 		properties := factoryParams.Properties
+		if properties == nil {
+			properties = make(map[string]any, 1)
+		}
 		properties["DexID"] = exchange
 		if err := pool.PropertiesToStruct(properties, &cfg); err != nil {
 			return nil, err
@@ -95,7 +98,7 @@ func RegisterFactoryCEG[C any, P IPoolsLister](poolType string, factory func(*C,
 
 // RegisterFactoryE registers a factory function for a pool lister with ethrpcClient
 func RegisterFactoryE[P IPoolsLister](poolType string, factory func(*ethrpc.Client) P) bool {
-	return RegisterFactory(poolType, func(params PoolsListerParams[[0]any]) (IPoolsLister, error) {
+	return RegisterFactory(poolType, func(params PoolsListerParams[struct{}]) (IPoolsLister, error) {
 		return factory(params.EthrpcClient), nil
 	})
 }

@@ -74,4 +74,33 @@ func BenchmarkPropertiesToStruct(b *testing.B) {
 		}
 	})
 	assert.Equal(b, struct1, struct3)
+
+	var empty1 struct{}
+	var empty2 any
+	b.Run("empty struct{}", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			data, err := json.Marshal(properties)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			err = json.Unmarshal(data, &empty1)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("empty any", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			data, err := json.Marshal(properties)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			err = json.Unmarshal(data, &empty2)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 }
