@@ -22,3 +22,6 @@ var croDefiSwapFactoryABIJson []byte
 
 //go:embed abis/ZFPair.json
 var zkSwapFinancePairABIJson []byte
+
+//go:embed abis/MemeswapPair.json
+var MemeswapPairABIJson []byte
