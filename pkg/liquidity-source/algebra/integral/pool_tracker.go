@@ -402,8 +402,18 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 		Target: pluginAddress,
 		Method: dynamicFeeManagerPluginFeeConfigMethod,
 	}, []interface{}{&result})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV2ABI,
+		Target: pluginAddress,
+		Method: dynamicFeeManagerPluginFeeZeroToOneMethod,
+	}, []interface{}{&result.ZeroToOne})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV2ABI,
+		Target: pluginAddress,
+		Method: dynamicFeeManagerPluginFeeOneToZeroMethod,
+	}, []interface{}{&result.OneToZero})
 
-	_, err := req.Call()
+	_, err := req.TryAggregate()
 	if err != nil {
 		return DynamicFeeConfig{}, err
 	}

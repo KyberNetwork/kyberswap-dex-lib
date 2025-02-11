@@ -30,7 +30,9 @@ const (
 	votalityOraclePluginLastTimepointTimestampMethod = "lastTimepointTimestamp"
 	votalityOraclePluginIsInitializedMethod          = "isInitialized"
 
-	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
+	dynamicFeeManagerPluginFeeConfigMethod    = "feeConfig"
+	dynamicFeeManagerPluginFeeZeroToOneMethod = "feeZeroToOne"
+	dynamicFeeManagerPluginFeeOneToZeroMethod = "feeOneToZero"
 
 	slidingFeePluginFeeFactorsMethod        = "s_feeFactors"
 	slidingFeePluginPriceChangeFactorMethod = "s_priceChangeFactor"

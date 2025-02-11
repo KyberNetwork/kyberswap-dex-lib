@@ -146,6 +146,8 @@ type VolatilityOraclePlugin struct {
 }
 
 type DynamicFeeConfig struct {
+	ZeroToOne   uint16 `json:"01,omitempty"` // plugin v1 feeZeroToOne (bulla dex)
+	OneToZero   uint16 `json:"10,omitempty"` // plugin v1 feeOneToZero (bulla dex)
 	Alpha1      uint16 `json:"a1,omitempty"` // max value of the first sigmoid
 	Alpha2      uint16 `json:"a2,omitempty"` // max value of the second sigmoid
 	Beta1       uint32 `json:"b1,omitempty"` // shift along the x-axis for the first sigmoid

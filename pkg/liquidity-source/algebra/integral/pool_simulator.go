@@ -287,7 +287,7 @@ func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
 	return err
 }
 
-func (p *PoolSimulator) beforeSwapV1(_ bool) (uint32, uint32, error) {
+func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 {
 		return 0, 0, nil
 	}
@@ -297,7 +297,10 @@ func (p *PoolSimulator) beforeSwapV1(_ bool) (uint32, uint32, error) {
 			return err
 		}
 		var newFee uint16
-		if p.dynamicFee.Alpha1 == 0 && p.dynamicFee.Alpha2 == 0 {
+		if p.dynamicFee.ZeroToOne != 0 || p.dynamicFee.OneToZero != 0 {
+			// https://berascan.com/address/0x2393BcDBB298A4905f9885109B19834c50c8038F#code
+			newFee = lo.Ternary(zeroForOne, p.dynamicFee.ZeroToOne, p.dynamicFee.OneToZero)
+		} else if p.dynamicFee.Alpha1 == 0 && p.dynamicFee.Alpha2 == 0 {
 			newFee = p.dynamicFee.BaseFee
 		} else {
 			newFee = getFee(volatilityLast, p.dynamicFee)
