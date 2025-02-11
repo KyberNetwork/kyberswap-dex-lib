@@ -37,6 +37,7 @@ const (
 	ChainIDBlast           ChainID = 81457
 	ChainIDMantle          ChainID = 5000
 	ChainIDSonic           ChainID = 146
+	ChainIDBerachain       ChainID = 80094
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
@@ -112,6 +113,8 @@ func ToString(chainID ChainID) (string, error) {
 		return "mantle", nil
 	case 146:
 		return "sonic", nil
+	case 80094:
+		return "berachain", nil
 	case 0:
 		return "solana", nil
 	default:
