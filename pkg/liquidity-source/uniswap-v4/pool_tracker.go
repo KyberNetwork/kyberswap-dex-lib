@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
@@ -128,6 +127,8 @@ func (t *PoolTracker) GetNewPoolState(
 				"error": err,
 			}).Error("failed to query subgraph for pool ticks")
 		}
+
+		return err
 	})
 
 	if err := g.Wait(); err != nil {
