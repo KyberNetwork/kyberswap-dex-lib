@@ -9,9 +9,9 @@ import (
 	clipperclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	dexalotClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
+	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm/client"
 	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
-	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/gin-gonic/gin"
 

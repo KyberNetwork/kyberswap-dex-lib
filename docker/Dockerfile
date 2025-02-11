@@ -9,7 +9,7 @@ RUN --mount=target=.,rw \
     --mount=type=cache,target=/go/pkg \
     GH_PAT=$(cat /run/secrets/gh_pat) && \
     git config --global url."https://${GH_USER}:${GH_PAT}@github.com/".insteadOf 'https://github.com/' && \
-    GOPRIVATE=github.com/KyberNetwork GOOS=linux go build -ldflags '-s -w' -tags nethttpomithttp2,go_json -o /out/ ./cmd/app
+    GOPRIVATE=github.com/KyberNetwork GOOS=linux CGO_LDFLAGS_ALLOW=.* go build -ldflags '-s -w' -tags nethttpomithttp2,go_json -o /out/ ./cmd/app
 
 # Minimal image
 FROM alpine:3

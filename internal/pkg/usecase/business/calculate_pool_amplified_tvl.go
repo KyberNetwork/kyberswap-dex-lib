@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21"
@@ -16,8 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev20"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/goccy/go-json"
@@ -49,7 +47,8 @@ func CalculatePoolAmplifiedTVL(
 			return 0, false, err
 		}
 
-		v, err := calculateAmplifiedTVL(ctx, poolTokens[0].Address, poolTokens[1].Address, liquidity, sqrtPriceBF, nativePriceByToken)
+		v, err := calculateAmplifiedTVL(ctx, poolTokens[0].Address, poolTokens[1].Address, liquidity, sqrtPriceBF,
+			nativePriceByToken)
 		return v, false, err
 
 	case ambient.DexTypeAmbient:
@@ -100,7 +99,8 @@ func CalculatePoolAmplifiedTVL(
 	}
 }
 
-func calculateAmplifiedTVL(ctx context.Context, token0, token1 string, liquidity *big.Int, sqrtPriceBF *big.Float, nativePriceByToken map[string]*routerEntity.OnchainPrice) (float64, error) {
+func calculateAmplifiedTVL(ctx context.Context, token0, token1 string, liquidity *big.Int, sqrtPriceBF *big.Float,
+	nativePriceByToken map[string]*routerEntity.OnchainPrice) (float64, error) {
 	if liquidity == nil || sqrtPriceBF == nil {
 		return 0, nil
 	}
@@ -194,16 +194,8 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.GlobalState.Price)
-	case traderjoev20.DexTypeTraderJoeV20:
-		extra := traderjoev20.Extra{}
-		var err = json.Unmarshal([]byte(p.Extra), &extra)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX128(extra.PriceX128)
-	case traderjoev21.DexTypeTraderJoeV21:
-		extra := traderjoev21.Extra{}
+	case liquiditybookv21.DexTypeLiquidityBookV21:
+		extra := liquiditybookv21.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
 			return nil, nil, err

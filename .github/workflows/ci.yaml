@@ -17,6 +17,8 @@ on:
 jobs:
   ci:
     uses: KyberNetwork/service-framework/.github/workflows/ci.yaml@main
+    with:
+      env: '{"CGO_LDFLAGS_ALLOW": ".*", "CC": "/usr/bin/cc"}'
     secrets: inherit
   build:
     uses: KyberNetwork/service-framework/.github/workflows/build.yaml@main

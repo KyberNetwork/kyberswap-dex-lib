@@ -8,20 +8,20 @@ replace github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/unisw
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
-	github.com/KyberNetwork/aevm v1.1.18
+	github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af
 	github.com/KyberNetwork/aggregator-encoding v0.37.2
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
 	github.com/KyberNetwork/ethrpc v0.7.3
-	github.com/KyberNetwork/grpc-service v0.3.9
+	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.89.1
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.5.4
+	github.com/KyberNetwork/kyberswap-dex-lib v0.90.4
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.6.0
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pathfinder-lib v0.1.8
+	github.com/KyberNetwork/pathfinder-lib v0.1.9
 	github.com/KyberNetwork/pool-service v0.83.2
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.7.1
@@ -34,7 +34,7 @@ require (
 	github.com/dranikpg/gtrs v0.6.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/envoyproxy/protoc-gen-validate v1.1.0
-	github.com/ethereum/go-ethereum v1.14.12
+	github.com/ethereum/go-ethereum v1.14.13
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/pprof v1.4.0
@@ -98,11 +98,13 @@ require (
 	github.com/daoleno/uniswapv3-sdk v0.4.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/dolthub/maphash v0.1.0 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.3 // indirect
 	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
+	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -121,6 +123,7 @@ require (
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/huandu/go-clone v1.7.2 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
@@ -128,6 +131,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/maypok86/otter v1.2.3 // indirect
 	github.com/mmcloughlin/addchain v0.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -149,6 +153,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/supranational/blst v0.3.13 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
+	github.com/tarndt/shardedsingleflight v0.0.0-20220218033648-6accd591ed39 // indirect
 	github.com/tdewolff/parse/v2 v2.6.6 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.8.0 // indirect
