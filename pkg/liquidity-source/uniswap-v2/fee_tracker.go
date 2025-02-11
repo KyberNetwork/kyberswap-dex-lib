@@ -39,36 +39,15 @@ type (
 	}
 
 	// ZKSwapFinanceFeeTracker gets fee from pair contract `getSwapFee`
-
 	ZKSwapFinanceFeeTracker struct {
 		ethrpcClient *ethrpc.Client
 	}
-)
 
-func (t *ZKSwapFinanceFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee uint16
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    zkSwapFinancePairABI,
-		Target: poolAddress,
-		Method: zkSwapFinancePairMethodGetSwapFee,
-		Params: nil,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
+	// MemeswapFeeTracker gets fee from pair contract `getFee`
+	MemeswapFeeTracker struct {
+		ethrpcClient *ethrpc.Client
 	}
-
-	return uint64(fee), nil
-}
+)
 
 func (t *MDexFeeTracker) GetFee(
 	ctx context.Context,
@@ -168,4 +147,53 @@ func (t *DefiSwapFeeTracker) GetFee(
 	}
 
 	return fee.Uint64(), nil
+}
+
+func (t *ZKSwapFinanceFeeTracker) GetFee(
+	ctx context.Context,
+	poolAddress string,
+	factoryAddress string,
+	blockNumber *big.Int,
+) (uint64, error) {
+	var fee uint16
+
+	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+
+	getFeeRequest.AddCall(&ethrpc.Call{
+		ABI:    zkSwapFinancePairABI,
+		Target: poolAddress,
+		Method: zkSwapFinancePairMethodGetSwapFee,
+		Params: nil,
+	}, []interface{}{&fee})
+
+	_, err := getFeeRequest.Call()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(fee), nil
+}
+
+func (t *MemeswapFeeTracker) GetFee(
+	ctx context.Context,
+	poolAddress string,
+	_ /*factoryAddress*/ string,
+	blockNumber *big.Int,
+) (uint64, error) {
+	var fee uint8
+
+	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+
+	getFeeRequest.AddCall(&ethrpc.Call{
+		ABI:    memeswapPairABI,
+		Target: poolAddress,
+		Method: memeswapPairMethodGetSwapFee,
+	}, []interface{}{&fee})
+
+	_, err := getFeeRequest.Call()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(fee), nil
 }

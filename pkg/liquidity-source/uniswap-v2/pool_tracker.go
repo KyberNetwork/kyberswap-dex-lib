@@ -50,6 +50,7 @@ func NewPoolTracker(
 			FeeTrackerIDShibaswap:   &ShibaswapFeeTracker{ethrpcClient: ethrpcClient},
 			FeeTrackerIDDefiswap:    &DefiSwapFeeTracker{ethrpcClient: ethrpcClient},
 			FeeTrackerZKSwapFinance: &ZKSwapFinanceFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerMemeswap:      &MemeswapFeeTracker{ethrpcClient: ethrpcClient},
 		},
 	}, nil
 }
@@ -102,7 +103,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(p, reserveData, fee, blockNumber)
 }
 
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int, error) {
+func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int,
+	error) {
 	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
 	if err != nil {
 		return d.getReservesFromRPCNode(ctx, poolAddress)
@@ -124,7 +126,8 @@ func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, blockNumbe
 	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress, blockNumber)
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee uint64, blockNumber *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee uint64,
+	blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
 		Fee:          fee,
 		FeePrecision: d.config.FeePrecision,

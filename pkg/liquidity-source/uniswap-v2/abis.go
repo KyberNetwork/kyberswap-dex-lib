@@ -14,6 +14,7 @@ var (
 	shibaswapPairABI      abi.ABI
 	croDefiSwapFactoryABI abi.ABI
 	zkSwapFinancePairABI  abi.ABI
+	memeswapPairABI       abi.ABI
 )
 
 func init() {
@@ -41,6 +42,9 @@ func init() {
 		},
 		{
 			&zkSwapFinancePairABI, zkSwapFinancePairABIJson,
+		},
+		{
+			&memeswapPairABI, MemeswapPairABIJson,
 		},
 	}
 
