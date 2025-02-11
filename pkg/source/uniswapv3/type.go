@@ -88,7 +88,7 @@ type Slot0 struct {
 	ObservationIndex           uint16   `json:"observationIndex"`
 	ObservationCardinality     uint16   `json:"observationCardinality"`
 	ObservationCardinalityNext uint16   `json:"observationCardinalityNext"`
-	FeeProtocol                uint8    `json:"feeProtocol"`
+	FeeProtocol                uint32   `json:"feeProtocol"`
 	Unlocked                   bool     `json:"unlocked"`
 }
 

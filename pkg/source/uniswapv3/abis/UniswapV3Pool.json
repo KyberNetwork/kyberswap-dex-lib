@@ -256,27 +256,27 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol0Old",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol1Old",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol0New",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
         "indexed": false,
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol1New",
-        "type": "uint8"
+        "type": "uint32"
       }
     ],
     "name": "SetFeeProtocol",
@@ -737,14 +737,14 @@
   {
     "inputs": [
       {
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol0",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol1",
-        "type": "uint8"
+        "type": "uint32"
       }
     ],
     "name": "setFeeProtocol",
@@ -782,9 +782,9 @@
         "type": "uint16"
       },
       {
-        "internalType": "uint8",
+        "internalType": "uint32",
         "name": "feeProtocol",
-        "type": "uint8"
+        "type": "uint32"
       },
       {
         "internalType": "bool",
