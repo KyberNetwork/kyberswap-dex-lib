@@ -76,6 +76,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			TakerAmount:        result.Order.TakerAmount,
 			Signature:          result.Order.Signature,
 			Recipient:          params.Recipient,
+			AllowedSender:      result.Order.AllowedSender,
 		},
 	}, nil
 }

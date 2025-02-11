@@ -81,15 +81,16 @@ type FirmRequestParams struct {
 
 type FirmResult struct {
 	Order struct {
-		Info        string `json:"info"`
-		Expiry      int64  `json:"expiry"`
-		MakerAsset  string `json:"makerAsset"`
-		TakerAsset  string `json:"takerAsset"`
-		Maker       string `json:"maker"`
-		Taker       string `json:"taker"`
-		MakerAmount string `json:"makerAmount"`
-		TakerAmount string `json:"takerAmount"`
-		Signature   string `json:"signature"`
+		Info          string `json:"info"`
+		Expiry        int64  `json:"expiry"`
+		MakerAsset    string `json:"makerAsset"`
+		TakerAsset    string `json:"takerAsset"`
+		Maker         string `json:"maker"`
+		Taker         string `json:"taker"`
+		MakerAmount   string `json:"makerAmount"`
+		TakerAmount   string `json:"takerAmount"`
+		Signature     string `json:"signature"`
+		AllowedSender string `json:"allowedSender"`
 	} `json:"order"`
 
 	Error string `json:"error"`
@@ -107,6 +108,7 @@ type RFQExtra struct {
 	TakerAmount        string `json:"takerAmount"`
 	Signature          string `json:"signature"`
 	Recipient          string `json:"recipient"`
+	AllowedSender      string `json:"allowedSender"`
 }
 
 type RFQMeta struct {
