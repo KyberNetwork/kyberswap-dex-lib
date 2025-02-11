@@ -15,7 +15,8 @@ RUN --mount=target=.,rw \
 FROM alpine:3
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates gcompat tzdata
+RUN apk add --no-cache ca-certificates gcompat libgcc tzdata
+ENV CC=gcc
 COPY internal/pkg/config/files internal/pkg/config/files
 COPY --from=build /out/app ./server
 CMD ["./server"]

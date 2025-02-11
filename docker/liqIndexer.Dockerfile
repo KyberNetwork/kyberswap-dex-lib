@@ -15,11 +15,11 @@ RUN --mount=target=.,rw \
 FROM alpine:3
 WORKDIR /app
 
-RUN apk add --no-cache ca-certificates gcompat tzdata
-RUN apk add --no-cache py3-scipy
+RUN apk add --no-cache ca-certificates gcompat libgcc tzdata
+ENV CC=gcc
 COPY internal/pkg/config/files internal/pkg/config/files
 COPY cmd/liquidityscore cmd/liquidityscore
-RUN chmod +x cmd/liquidityscore/main.py
+RUN apk add --no-cache py3-scipy && \
+    chmod +x cmd/liquidityscore/main.py
 COPY --from=build /out/app ./server
 CMD ["./server"]
-
