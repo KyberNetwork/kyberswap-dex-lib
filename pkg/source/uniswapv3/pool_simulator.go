@@ -127,6 +127,22 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
+func NewPoolSimulator2(
+	v3Pool *v3Entities.Pool,
+	p pool.Pool,
+	gas Gas,
+	tickMin int,
+	tickMax int,
+) *PoolSimulator {
+	return &PoolSimulator{
+		V3Pool:  v3Pool,
+		Pool:    p,
+		gas:     gas,
+		tickMin: tickMin,
+		tickMax: tickMax,
+	}
+}
+
 /**
  * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
