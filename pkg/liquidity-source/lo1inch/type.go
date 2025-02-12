@@ -1,6 +1,8 @@
 package lo1inch
 
 import (
+	"math/big"
+
 	"github.com/holiman/uint256"
 )
 
@@ -31,6 +33,10 @@ type Order struct {
 	MakerTraits          string       `json:"makerTraits"`
 	IsMakerContract      bool         `json:"isMakerContract"`
 	TakerRate            float64      `json:"-"` // We will not save this field in the datastore, but we need it for filtering the orders
+
+	RemainingTakerAmount *uint256.Int `json:"-"`
+	RateWithGasFee       float64      `json:"-"`
+	Rate                 float64      `json:"-"`
 }
 
 type StaticExtra struct {
@@ -78,4 +84,52 @@ type FilledOrderInfo struct {
 	FilledTakingAmount *uint256.Int `json:"filledTakingAmount"`
 
 	IsBackup bool `json:"isBackup"`
+}
+
+func (o *Order) GetMakerAsset() string {
+	return o.MakerAsset
+}
+
+func (o *Order) GetTakerAsset() string {
+	return o.TakerAsset
+}
+
+func (o *Order) GetMakingAmount() *big.Int {
+	return o.MakingAmount.ToBig()
+}
+
+func (o *Order) GetTakingAmount() *big.Int {
+	return o.TakingAmount.ToBig()
+}
+
+func (o *Order) GetAvailableMakingAmount() *big.Int {
+	return o.RemainingMakerAmount.ToBig()
+}
+
+func (o *Order) SetAvailableMakingAmount(amount *big.Int) {
+	o.RemainingMakerAmount = uint256.MustFromBig(amount)
+}
+
+func (o *Order) GetRemainingTakingAmount() *big.Int {
+	return o.RemainingMakerAmount.ToBig()
+}
+
+func (o *Order) GetFilledMakingAmount() *big.Int {
+	return big.NewInt(0)
+}
+
+func (o *Order) GetRateWithGasFee() float64 {
+	return o.RateWithGasFee
+}
+
+func (o *Order) SetRateWithGasFee(r float64) {
+	o.RateWithGasFee = r
+}
+
+func (o *Order) GetRate() float64 {
+	return o.Rate
+}
+
+func (o *Order) SetRate(r float64) {
+	o.Rate = r
 }
