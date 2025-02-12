@@ -143,6 +143,34 @@ type Timepoint struct {
 	VolumePerLiquidityCumulative  *big.Int `json:"volumePerLiquidityCumulative"`  // the gmean(volumes)/liquidity accumulator
 }
 
+func (t Timepoint) GetInitialized() bool {
+	return t.Initialized
+}
+
+func (t Timepoint) GetBlockTimestamp() uint32 {
+	return t.BlockTimestamp
+}
+
+func (tp TimepointRPC) GetInitialized() bool {
+	return tp.Initialized
+}
+
+func (tp TimepointRPC) GetBlockTimestamp() uint32 {
+	return tp.BlockTimestamp
+}
+
+func (tp TimepointRPC) ToTimepoint() Timepoint {
+	return Timepoint{
+		Initialized:                   tp.Initialized,
+		BlockTimestamp:                tp.BlockTimestamp,
+		TickCumulative:                tp.TickCumulative.Int64(),
+		SecondsPerLiquidityCumulative: tp.SecondsPerLiquidityCumulative,
+		VolatilityCumulative:          tp.VolatilityCumulative,
+		AverageTick:                   int24(tp.AverageTick.Int64()),
+		VolumePerLiquidityCumulative:  tp.VolumePerLiquidityCumulative,
+	}
+}
+
 // TimepointRPC is same as Timepoint but with bigInt for correct deserialization
 type TimepointRPC struct {
 	Initialized                   bool
@@ -210,16 +238,4 @@ func transformTickRespToTickBigInt(tickResp TickResp) (v3EntitiesBigInt.Tick, er
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,
 	}, nil
-}
-
-func (tp *TimepointRPC) toTimepoint() Timepoint {
-	return Timepoint{
-		Initialized:                   tp.Initialized,
-		BlockTimestamp:                tp.BlockTimestamp,
-		TickCumulative:                tp.TickCumulative.Int64(),
-		SecondsPerLiquidityCumulative: tp.SecondsPerLiquidityCumulative,
-		VolatilityCumulative:          tp.VolatilityCumulative,
-		AverageTick:                   int24(tp.AverageTick.Int64()),
-		VolumePerLiquidityCumulative:  tp.VolumePerLiquidityCumulative,
-	}
 }
