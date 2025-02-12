@@ -15,6 +15,7 @@ import (
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -70,15 +71,14 @@ func (d *PoolTracker) getNewPoolState(
 			Info("Finished getting new pool state")
 	}()
 
-	if d.config.IsMemecoreDEX {
+	switch d.config.DexID {
+	case string(valueobject.ExchangeMemeBox):
 		return d.updateMemecorePool(ctx, p, overrides)
-	}
-
-	if d.config.IsShadowLegacyDEX {
+	case string(valueobject.ExchangeShadowLegacy):
 		return d.updateShadowLegacyPool(ctx, p, overrides)
+	default:
+		return d.updateStandardPool(ctx, p, overrides)
 	}
-
-	return d.updateStandardPool(ctx, p, overrides)
 }
 
 func (d *PoolTracker) updateMemecorePool(

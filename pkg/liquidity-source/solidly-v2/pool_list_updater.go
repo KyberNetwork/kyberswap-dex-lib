@@ -17,6 +17,7 @@ import (
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -55,7 +56,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if poolFactoryData.IsPaused && !u.config.IsMemecoreDEX {
+	if poolFactoryData.IsPaused {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID}).
 			Info("factory is paused")
@@ -185,15 +186,14 @@ func (u *PoolsListUpdater) initPools(
 	poolAddresses []common.Address,
 	poolFactoryData velodromev2.PoolFactoryData,
 ) ([]entity.Pool, error) {
-	if u.config.IsMemecoreDEX {
+	switch u.config.DexID {
+	case string(valueobject.ExchangeMemeBox):
 		return u.listMemecorePools(ctx, poolAddresses)
-	}
-
-	if u.config.IsShadowLegacyDEX {
+	case string(valueobject.ExchangeShadowLegacy):
 		return u.listShadowLegacyPools(ctx, poolAddresses)
+	default:
+		return u.listStandardPools(ctx, poolAddresses, poolFactoryData)
 	}
-
-	return u.listStandardPools(ctx, poolAddresses, poolFactoryData)
 }
 
 func (u *PoolsListUpdater) listStandardPools(
