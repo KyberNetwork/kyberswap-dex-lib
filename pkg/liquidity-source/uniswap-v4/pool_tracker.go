@@ -263,3 +263,17 @@ func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 		LiquidityNet:   liquidityNet,
 	}, nil
 }
+
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
+	rpcData, err := d.fetchRpcState(ctx, &p, blockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcDataBytes, err := json.Marshal(rpcData)
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcDataBytes, nil
+}
