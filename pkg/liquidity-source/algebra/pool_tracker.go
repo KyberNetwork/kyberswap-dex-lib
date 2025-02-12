@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"golang.org/x/exp/constraints"
 )
 
@@ -43,17 +44,19 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 
 	timepointPageSize := maxTimepointPageSize / 4 // optimistically fetch fewer the first time
 	req.Calls = make([]*ethrpc.Call, 0, timepointPageSize)
-	page := make([]TimepointRPC, timepointPageSize)
-	end := currentIndex // current last tp index of the page (inclusive)
+	end := currentIndex + 1 // current last tp index of the page (exclusive)
 	var enoughAtIdx uint16
 	for range maxTimepointPages { // page backwards missing timepoints until we reach uninitialized or older than 1 day
-		tpIdx := end // current start tp index of the page. can underflow (wrap back to end of buffer)
+		tpIdx := end // current start tp index of the page (inclusive). can underflow (wrap back to end of buffer)
 		var enough bool
 		req.Calls = req.Calls[:0]
+		page := make([]TimepointRPC, timepointPageSize)
 		tpIdxToPageIdxMap := make(map[uint16]uint16, timepointPageSize)
 		for i := range timepointPageSize {
-			for tp := timepoints[tpIdx]; tp.GetInitialized(); tpIdx-- { // skip refetching for existing timepoints
-				if tp.GetBlockTimestamp() < yesterday { // stop right away if we found a timepoint older than 1 day
+			for tpIdx--; ; tpIdx-- { // skip refetching for existing timepoints
+				if tp := timepoints[tpIdx]; !tp.GetInitialized() {
+					break
+				} else if tp.GetBlockTimestamp() < yesterday { // stop right away if we found a timepoint older than 1 day
 					enough = true
 					break
 				}
@@ -65,7 +68,6 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 			call.Params = []any{big.NewInt(int64(tpIdx))}
 			req.AddCall(&call, []any{&page[i]})
 			tpIdxToPageIdxMap[tpIdx] = i
-			tpIdx--
 		}
 		if len(req.Calls) > 0 {
 			if _, err := req.Aggregate(); err != nil {
@@ -84,14 +86,16 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 				return tp.GetInitialized() && tp.GetBlockTimestamp() >= yesterday
 			})
 			if enough = smallestUsableTpIdxOffset > 0; enough {
-				enoughAtIdx = tpIdx + uint16(smallestUsableTpIdxOffset)
+				enoughAtIdx = tpIdx + uint16(smallestUsableTpIdxOffset) - 1
 			}
 		}
-		for i := enoughAtIdx; i != end+1; i++ {
+		for i := enoughAtIdx; i != end; i++ {
 			if !timepoints[i].GetInitialized() {
 				timepoints[i] = page[tpIdxToPageIdxMap[i]].ToTimepoint()
 			}
 		}
+		logger.Debugf("fetched %v timepoints from %v to %v, enough=%v, enoughAtIdx=%v, ts=%v, ytd=%v",
+			len(req.Calls), tpIdx, end, enough, enoughAtIdx, timepoints[enoughAtIdx].GetBlockTimestamp(), yesterday)
 
 		if enough { // fetch some additional timepoints
 			req.Calls = req.Calls[:0]
@@ -117,13 +121,13 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 			break
 		}
 
-		end = tpIdx - 1 // next page, can be underflow back to end of buffer
+		end = tpIdx // next page, can be underflow back to end of buffer
 		timepointPageSize = min(maxTimepointPageSize, timepointPageSize*2)
 	}
 
-	// remove old timepoints before enoughAtIdx
+	// remove old timepoints before enoughAtIdxc
 	for idx := range timepoints {
-		if LteConsideringOverflow(idx, enoughAtIdx-1, currentIndex+2) {
+		if idx > 0 && LteConsideringOverflow(idx, enoughAtIdx-1, currentIndex+2) {
 			delete(timepoints, idx)
 		}
 	}
