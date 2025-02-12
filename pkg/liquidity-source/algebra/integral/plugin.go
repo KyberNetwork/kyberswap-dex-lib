@@ -7,6 +7,9 @@ import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+	"golang.org/x/exp/constraints"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
 )
 
 type TimepointStorage struct {
@@ -376,7 +379,7 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 		indexBeforeOrAt = (left + right) >> 1
 	}
 
-	beforeOrAt = s.Get(uint16(indexBeforeOrAt))
+	beforeOrAt = s.Get(uint16(indexBeforeOrAt)) // this downcast takes care of modulo
 	atOrAfter = beforeOrAt
 
 	firstIteration := true
@@ -596,12 +599,13 @@ func getNewPrice(
 	}
 }
 
-func lteConsideringOverflow(a, b, currentTime uint32) bool {
-	res := a > currentTime
-
-	if res == (b > currentTime) {
-		res = a <= b
-	}
-
-	return res
+// lteConsideringOverflow returns true if a <= b with c as greatest value anchor for overflow checking.
+// a <= b <= c | true
+// b <= c <  a | true
+// c <  a <= b | true
+// a <= c <  b | false
+// b <  a <= c | false
+// c <  b <  a | false
+func lteConsideringOverflow[T constraints.Ordered](a, b, currentTime T) bool {
+	return algebra.LteConsideringOverflow(a, b, currentTime)
 }

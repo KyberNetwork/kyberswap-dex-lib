@@ -14,6 +14,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -22,8 +23,8 @@ import (
 )
 
 type PoolTracker struct {
+	algebra.PoolTracker[Timepoint, TimepointRPC]
 	config        *Config
-	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
 }
 
@@ -35,8 +36,8 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
+		PoolTracker:   algebra.PoolTracker[Timepoint, TimepointRPC]{EthrpcClient: ethrpcClient},
 		config:        cfg,
-		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
 	}, nil
 }
@@ -58,7 +59,7 @@ func (d *PoolTracker) GetNewPoolState(
 		poolTicks []TickResp
 	)
 
-	blockNumber, err := d.ethrpcClient.GetBlockNumber(ctx)
+	blockNumber, err := d.EthrpcClient.GetBlockNumber(ctx)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -181,7 +182,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	)
 	res := FetchRPCResult{}
 
-	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
@@ -373,7 +374,7 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 
 func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorAddress string,
 	feeConf *FeeConfiguration) error {
-	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -396,7 +397,7 @@ func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorA
 
 func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStorageOperatorAddress string,
 	feeConfZto *FeeConfiguration, feeConfOtz *FeeConfiguration) error {
-	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -425,151 +426,11 @@ func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStora
 
 func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string,
 	yesterday uint32) (map[uint16]Timepoint, error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"dexID":       d.config.DexID,
-	})
-
-	timepoints := make(map[uint16]Timepoint, UINT16_MODULO)
-
-	currentIndexPrev := currentIndex - 1
-	currentIndexNext := currentIndex + 1
-	currentIndexNextNext := currentIndex + 2
-
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-	rpcRequest.Calls = make([]*ethrpc.Call, 0, timepointPageSize)
-	page := make([]TimepointRPC, timepointPageSize)
-
-	// fetch page by page (backward) until we reach uninitialized or older than 1day
-	end := currentIndex + 1
-	// this can underflow (wrap back to end of buffer)
-	begin := end - timepointPageSize
-	for {
-		logger.Debugf("fetching timepoints page %v - %v", begin, end)
-
-		rpcRequest.Calls = rpcRequest.Calls[:0]
-		for i := uint16(0); i < timepointPageSize; i += 1 {
-			tpIdx := (int64(i) + int64(begin)) % UINT16_MODULO
-			rpcRequest.AddCall(&ethrpc.Call{
-				ABI:    algebraV1PoolABI,
-				Target: poolAddress,
-				Method: methodGetTimepoints,
-				Params: []interface{}{big.NewInt(tpIdx)},
-			}, []interface{}{&page[i]})
-		}
-		_, err := rpcRequest.Aggregate()
-		if err != nil {
-			l.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to fetch pool timepoints")
-			return nil, err
-		}
-
-		enough := false
-		enoughAtIdx := uint16(0)
-		for i, tp := range page {
-			tpIdx := uint16(i) + begin
-			if !tp.Initialized || tp.BlockTimestamp < yesterday {
-				// if this point is too old or not written to yet then skipped
-				// TODO: check if we've wrapped full circle yet
-				enough = true
-				enoughAtIdx = tpIdx
-			} else {
-				timepoints[tpIdx] = tp.toTimepoint()
-			}
-		}
-		logger.Debugf("done fetching timepoints page %v - %v %v %v", begin, end, enough, enoughAtIdx)
-
-		if enough {
-			// fetch some additional timepoints
-			// (some of them might already been fetched but still refetch anyway for simplicity)
-			var tp0, tpCurNext, tpCurNextNext, tpLowest, tpCurPrev TimepointRPC
-			rpcRequest.Calls = rpcRequest.Calls[:0]
-			rpcRequest.AddCall(
-				&ethrpc.Call{
-					ABI:    algebraV1PoolABI,
-					Target: poolAddress,
-					Method: methodGetTimepoints,
-					Params: []interface{}{big.NewInt(0)},
-				},
-				[]interface{}{&tp0},
-			).AddCall(
-				&ethrpc.Call{
-					ABI:    algebraV1PoolABI,
-					Target: poolAddress,
-					Method: methodGetTimepoints,
-					Params: []interface{}{big.NewInt(int64(currentIndexNext))},
-				},
-				[]interface{}{&tpCurNext},
-			).AddCall(
-				&ethrpc.Call{
-					ABI:    algebraV1PoolABI,
-					Target: poolAddress,
-					Method: methodGetTimepoints,
-					Params: []interface{}{big.NewInt(int64(currentIndexNextNext))},
-				},
-				[]interface{}{&tpCurNextNext},
-			).AddCall(
-				&ethrpc.Call{
-					ABI:    algebraV1PoolABI,
-					Target: poolAddress,
-					Method: methodGetTimepoints,
-					Params: []interface{}{big.NewInt(int64(enoughAtIdx))},
-				},
-				[]interface{}{&tpLowest},
-			).AddCall(
-				&ethrpc.Call{
-					ABI:    algebraV1PoolABI,
-					Target: poolAddress,
-					Method: methodGetTimepoints,
-					Params: []interface{}{big.NewInt(int64(currentIndexPrev))},
-				},
-				[]interface{}{&tpCurPrev},
-			)
-
-			_, err = rpcRequest.Aggregate()
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch pool timepoints")
-				return nil, err
-			}
-
-			timepoints[0] = tp0.toTimepoint()
-			timepoints[currentIndexNext] = tpCurNext.toTimepoint()
-			timepoints[currentIndexNextNext] = tpCurNextNext.toTimepoint()
-			timepoints[enoughAtIdx] = tpLowest.toTimepoint() // needed to ensure binary search will terminate
-			timepoints[currentIndexPrev] = tpCurPrev.toTimepoint()
-
-			break
-		}
-
-		// next page, can be underflow back to end of buffer
-		end = begin
-		begin = end - timepointPageSize
-		if begin <= currentIndex && currentIndex < end {
-			// we've wrapped around full circle, so break here
-			break
-		}
-	}
-
-	// the currentIndex might has been increased onchain while we're fetching
-	// so detect staleness here
-	currentTs := timepoints[currentIndex].BlockTimestamp
-	if timepoints[currentIndexNext].Initialized && timepoints[currentIndexNext].BlockTimestamp > currentTs {
-		return nil, ErrStaleTimepoints
-	}
-	if timepoints[currentIndexNextNext].Initialized && timepoints[currentIndexNextNext].BlockTimestamp > currentTs {
-		return nil, ErrStaleTimepoints
-	}
-
-	if !timepoints[currentIndex].Initialized {
-		// some new pools don't have timepoints initialized yet, ignore them
-		return nil, nil
-	}
-
-	return timepoints, nil
+	return d.GetTimepoints(ctx, &ethrpc.Call{
+		ABI:    algebraV1PoolABI,
+		Target: poolAddress,
+		Method: methodGetTimepoints,
+	}, nil, yesterday, currentIndex, nil)
 }
 
 func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int,
@@ -585,7 +446,7 @@ func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, pool
 		{Name: "liquidity_volumePerLiquidityInBlock", Type: abiUint256},
 	}
 
-	resp, err := d.ethrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
+	resp, err := d.EthrpcClient.NewRequest().SetContext(ctx).GetStorageAt(
 		poolAddress,
 		slot3,
 		abi,

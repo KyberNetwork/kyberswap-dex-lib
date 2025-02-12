@@ -26,7 +26,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 
 	logger.Infof("Fetch changed ticks (%v)", changedTicks)
 
-	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {

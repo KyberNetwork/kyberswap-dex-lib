@@ -117,6 +117,14 @@ type Timepoint struct {
 	WindowStartIndex     uint16       `json:"wsI,omitempty"`  // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
 }
 
+func (t Timepoint) GetInitialized() bool {
+	return t.Initialized
+}
+
+func (t Timepoint) GetBlockTimestamp() uint32 {
+	return t.BlockTimestamp
+}
+
 // TimepointRPC same as Timepoint but with bigInt for correct deserialization
 type TimepointRPC struct {
 	Initialized          bool
@@ -128,15 +136,40 @@ type TimepointRPC struct {
 	WindowStartIndex     uint16
 }
 
+func (tp TimepointRPC) GetInitialized() bool {
+	return tp.Initialized
+}
+
+func (tp TimepointRPC) GetBlockTimestamp() uint32 {
+	return tp.BlockTimestamp
+}
+
+func (tp TimepointRPC) ToTimepoint() Timepoint {
+	volatilityCumulative := uint256.MustFromBig(tp.VolatilityCumulative)
+	return Timepoint{
+		Initialized:          tp.Initialized,
+		BlockTimestamp:       tp.BlockTimestamp,
+		TickCumulative:       tp.TickCumulative.Int64(),
+		VolatilityCumulative: volatilityCumulative,
+		Tick:                 int32(tp.Tick.Int64()),
+		AverageTick:          int32(tp.AverageTick.Int64()),
+		WindowStartIndex:     tp.WindowStartIndex,
+	}
+}
+
 type Extra struct {
-	Liquidity        *uint256.Int           `json:"liq"`
-	GlobalState      GlobalState            `json:"gS"`
-	Ticks            []v3Entities.Tick      `json:"ticks"`
-	TickSpacing      int32                  `json:"tS"`
-	Timepoints       map[uint16]Timepoint   `json:"tP"`
+	Liquidity   *uint256.Int      `json:"liq"`
+	GlobalState GlobalState       `json:"gS"`
+	Ticks       []v3Entities.Tick `json:"ticks"`
+	TickSpacing int32             `json:"tS"`
+	ExtraTimepoint
 	VolatilityOracle VolatilityOraclePlugin `json:"vo"`
 	DynamicFee       DynamicFeeConfig       `json:"dF"`
 	SlidingFee       SlidingFeeConfig       `json:"sF"`
+}
+
+type ExtraTimepoint struct {
+	Timepoints map[uint16]Timepoint `json:"tP"`
 }
 
 type VolatilityOraclePlugin struct {
@@ -186,19 +219,6 @@ type StateUpdate struct {
 type PoolMeta struct {
 	BlockNumber uint64       `json:"blockNumber"`
 	PriceLimit  *uint256.Int `json:"priceLimit"`
-}
-
-func (tp *TimepointRPC) toTimepoint() Timepoint {
-	volatilityCumulative := uint256.MustFromBig(tp.VolatilityCumulative)
-	return Timepoint{
-		Initialized:          tp.Initialized,
-		BlockTimestamp:       tp.BlockTimestamp,
-		TickCumulative:       tp.TickCumulative.Int64(),
-		VolatilityCumulative: volatilityCumulative,
-		Tick:                 int32(tp.Tick.Int64()),
-		AverageTick:          int32(tp.AverageTick.Int64()),
-		WindowStartIndex:     tp.WindowStartIndex,
-	}
 }
 
 type FeesAmount struct {

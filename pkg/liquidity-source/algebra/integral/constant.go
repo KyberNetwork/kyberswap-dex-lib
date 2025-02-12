@@ -13,8 +13,7 @@ const (
 	zeroString           = "0"
 	emptyString          = ""
 
-	timepointPageSize = uint16(300)
-	maxSwapLoop       = 1000000
+	maxSwapLoop = 1000000
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
