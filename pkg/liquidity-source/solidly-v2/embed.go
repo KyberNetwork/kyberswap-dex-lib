@@ -10,3 +10,6 @@ var factoryABIJson []byte
 
 //go:embed abis/Memecore.json
 var memecoreABIJson []byte
+
+//go:embed abis/ShadowLegacy.json
+var shadowLegacyABIJson []byte

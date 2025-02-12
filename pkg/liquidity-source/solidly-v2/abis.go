@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	poolABI     abi.ABI
-	factoryABI  abi.ABI
-	memecoreABI abi.ABI
+	poolABI         abi.ABI
+	factoryABI      abi.ABI
+	memecoreABI     abi.ABI
+	shadowLegacyABI abi.ABI
 )
 
 func init() {
@@ -25,6 +26,9 @@ func init() {
 		},
 		{
 			&memecoreABI, memecoreABIJson,
+		},
+		{
+			&shadowLegacyABI, shadowLegacyABIJson,
 		},
 	}
 

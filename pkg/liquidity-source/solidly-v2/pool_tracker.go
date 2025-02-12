@@ -74,6 +74,10 @@ func (d *PoolTracker) getNewPoolState(
 		return d.updateMemecorePool(ctx, p, overrides)
 	}
 
+	if d.config.IsShadowLegacyDEX {
+		return d.updateShadowLegacyPool(ctx, p, overrides)
+	}
+
 	return d.updateStandardPool(ctx, p, overrides)
 }
 
@@ -117,6 +121,51 @@ func (d *PoolTracker) updateMemecorePool(
 
 	poolExtra := velodromev2.PoolExtra{
 		Fee: uint64(poolFee),
+	}
+
+	return d.updatePool(pool, reserves, poolExtra, resp.BlockNumber.Uint64())
+}
+
+func (d *PoolTracker) updateShadowLegacyPool(
+	ctx context.Context,
+	pool entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	var (
+		fee               = ZERO
+		getReservesResult MemecoreReserves
+	)
+
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shadowLegacyABI,
+		Target: pool.Address,
+		Method: shadowLegacyMethodFee,
+		Params: []interface{}{},
+	}, []interface{}{&fee})
+	req.AddCall(&ethrpc.Call{
+		ABI:    shadowLegacyABI,
+		Target: pool.Address,
+		Method: poolMethodGetReserves,
+		Params: nil,
+	}, []interface{}{&getReservesResult})
+
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	reserves := velodromev2.ReserveData{
+		Reserve0: getReservesResult.Reserve0,
+		Reserve1: getReservesResult.Reserve1,
+	}
+
+	poolExtra := velodromev2.PoolExtra{
+		Fee: fee.Uint64(),
 	}
 
 	return d.updatePool(pool, reserves, poolExtra, resp.BlockNumber.Uint64())

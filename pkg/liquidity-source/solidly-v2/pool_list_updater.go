@@ -189,6 +189,10 @@ func (u *PoolsListUpdater) initPools(
 		return u.listMemecorePools(ctx, poolAddresses)
 	}
 
+	if u.config.IsShadowLegacyDEX {
+		return u.listShadowLegacyPools(ctx, poolAddresses)
+	}
+
 	return u.listStandardPools(ctx, poolAddresses, poolFactoryData)
 }
 
@@ -314,12 +318,10 @@ func (u *PoolsListUpdater) listMemecorePools(
 
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 	for i, poolAddress := range poolAddresses {
-		staticExtra, err := json.Marshal(&PoolStaticExtra{
-			PoolStaticExtra: velodromev2.PoolStaticExtra{
-				FeePrecision: u.config.FeePrecision,
-			},
-			IsMemecoreDEX: true,
+		staticExtra, err := json.Marshal(&velodromev2.PoolStaticExtra{
+			FeePrecision: u.config.FeePrecision,
 		})
+
 		if err != nil {
 			logger.
 				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
@@ -353,6 +355,104 @@ func (u *PoolsListUpdater) listMemecorePools(
 	return pools, nil
 }
 
+func (u *PoolsListUpdater) listShadowLegacyPools(
+	ctx context.Context,
+	poolAddresses []common.Address,
+) ([]entity.Pool, error) {
+	var (
+		fees = make([]*big.Int, len(poolAddresses))
+
+		poolMetadataList = make([]ShadowLegacyMetadata, len(poolAddresses))
+	)
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	for i, poolAddress := range poolAddresses {
+		req.AddCall(&ethrpc.Call{
+			ABI:    shadowLegacyABI,
+			Target: poolAddress.Hex(),
+			Method: shadowLegacyMethodFee,
+			Params: []interface{}{},
+		}, []interface{}{&fees[i]})
+
+		req.AddCall(&ethrpc.Call{
+			ABI:    shadowLegacyABI,
+			Target: poolAddress.Hex(),
+			Method: poolMethodMetadata,
+			Params: nil,
+		}, []interface{}{&poolMetadataList[i]})
+	}
+	resp, err := req.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	pools := make([]entity.Pool, 0, len(poolAddresses))
+	for i, poolAddress := range poolAddresses {
+		extra, err := u.newExtra(false, fees[i])
+		if err != nil {
+			logger.
+				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
+				Error("newExtra failed")
+			continue
+		}
+
+		decimal0, overflow := uint256.FromBig(poolMetadataList[i].Dec0)
+		if overflow {
+			return nil, errors.New("dec0 overflow")
+		}
+
+		decimal1, overflow := uint256.FromBig(poolMetadataList[i].Dec1)
+		if overflow {
+			return nil, errors.New("dec1 overflow")
+		}
+
+		staticExtra := velodromev2.PoolStaticExtra{
+			FeePrecision: u.config.FeePrecision,
+			Decimal0:     decimal0,
+			Decimal1:     decimal1,
+			Stable:       poolMetadataList[i].St,
+		}
+
+		staticExtraBytes, err := json.Marshal(staticExtra)
+		if err != nil {
+			logger.
+				WithFields(logger.Fields{
+					"pool_address": poolAddress,
+					"dex_id":       u.config.DexID,
+					"err":          err,
+				}).Error("failed to marshal staticExtra")
+
+			continue
+		}
+
+		newPool := entity.Pool{
+			Address:     strings.ToLower(poolAddress.Hex()),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			BlockNumber: resp.BlockNumber.Uint64(),
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{poolMetadataList[i].R0.String(), poolMetadataList[i].R1.String()},
+			Tokens: []*entity.PoolToken{
+				{
+					Address:   strings.ToLower(poolMetadataList[i].T0.String()),
+					Swappable: true,
+				},
+				{
+					Address:   strings.ToLower(poolMetadataList[i].T1.String()),
+					Swappable: true,
+				},
+			},
+			Extra:       string(extra),
+			StaticExtra: string(staticExtraBytes),
+		}
+
+		pools = append(pools, newPool)
+	}
+
+	return pools, nil
+}
+
 func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error) {
 	extra := velodromev2.PoolExtra{
 		IsPaused: isPaused,
@@ -373,13 +473,11 @@ func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, er
 		return nil, errors.New("dec1 overflow")
 	}
 
-	staticExtra := PoolStaticExtra{
-		PoolStaticExtra: velodromev2.PoolStaticExtra{
-			FeePrecision: u.config.FeePrecision,
-			Decimal0:     decimal0,
-			Decimal1:     decimal1,
-			Stable:       poolMetadata.St,
-		},
+	staticExtra := velodromev2.PoolStaticExtra{
+		FeePrecision: u.config.FeePrecision,
+		Decimal0:     decimal0,
+		Decimal1:     decimal1,
+		Stable:       poolMetadata.St,
 	}
 
 	return json.Marshal(staticExtra)
