@@ -9,13 +9,11 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type (
@@ -59,9 +57,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	subgraphPools = lo.Filter(subgraphPools, func(p SubgraphPool, _ int) bool {
-		return p.ID != metadata.LastProcessedPoolId
-	})
+	// Currently disable filter which will lead to dup process getnewpools, but it's oke
+	// If we enable, we have to change logic of for loop in pool-service where "len(poolsList) < newPoolLimit"
+
+	// subgraphPools = lo.Filter(subgraphPools, func(p SubgraphPool, _ int) bool {
+	//	return p.ID != metadata.LastProcessedPoolId
+	// })
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
