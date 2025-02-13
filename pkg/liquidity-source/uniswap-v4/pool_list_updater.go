@@ -57,7 +57,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	subgraphPools = lo.Filter(subgraphPools, func(p SubgraphPool, _ int) bool {
-		return p.PoolId != metadata.LastProcessedPoolId
+		return p.ID != metadata.LastProcessedPoolId
 	})
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
@@ -65,8 +65,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
 		tokens := []*entity.PoolToken{
-			{Address: p.Currency0, Swappable: true},
-			{Address: p.Currency1, Swappable: true},
+			{Address: p.Token0.ID, Swappable: true},
+			{Address: p.Token1.ID, Swappable: true},
 		}
 		for idx, token := range tokens {
 			if token.Address == EMPTY_ADDRESS {
@@ -75,9 +75,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		staticExtra := StaticExtra{
-			PoolId:      p.PoolId,
-			Currency0:   p.Currency0,
-			Currency1:   p.Currency1,
+			PoolId:      p.ID,
+			Currency0:   p.Token0.ID,
+			Currency1:   p.Token1.ID,
 			Fee:         p.Fee,
 			TickSpacing: p.TickSpacing,
 
@@ -93,7 +93,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		pool := entity.Pool{
-			Address:     p.PoolId,
+			Address:     p.ID,
 			Tokens:      tokens,
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Exchange:    u.config.DexID,
@@ -107,13 +107,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	// Update metadata
 	if len(subgraphPools) > 0 {
-		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].BlockTimestamp)
+		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].CreatedAtTimestamp)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
 		metadata.LastCreatedAtTimestamp = lastCreatedAtTimestamp
-		metadata.LastProcessedPoolId = subgraphPools[len(subgraphPools)-1].PoolId
+		metadata.LastProcessedPoolId = subgraphPools[len(subgraphPools)-1].ID
 		metadataBytes, err = json.Marshal(metadata)
 		if err != nil {
 			return nil, metadataBytes, err

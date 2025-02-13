@@ -6,15 +6,18 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+type Token struct {
+	ID string `json:"id"`
+}
+
 type SubgraphPool struct {
-	ID             string `json:"id"`
-	PoolId         string `json:"poolId"`
-	Currency0      string `json:"currency0"`
-	Currency1      string `json:"currency1"`
-	Fee            int    `json:"fee"`
-	TickSpacing    int    `json:"tickSpacing"`
-	Hooks          string `json:"hooks"`
-	BlockTimestamp string `json:"blockTimestamp"`
+	ID                 string `json:"id"`
+	Token0             Token  `json:"token0"`
+	Token1             Token  `json:"token1"`
+	Fee                int    `json:"fee"`
+	TickSpacing        int    `json:"tickSpacing"`
+	Hooks              string `json:"hooks"`
+	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 }
 
 type StaticExtra struct {

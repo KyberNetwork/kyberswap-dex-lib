@@ -29,21 +29,24 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 	t, err := template.New("poolsListQuery").Parse(`{
 		pools(
 			where: {
-				blockTimestamp_gte: {{ .LastCreatedAtTimestamp }}
+				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
 			},
 			first: {{ .First }},
 			skip: {{ .Skip }},
-			orderBy: blockTimestamp,
+			orderBy: createdAtTimestamp,
 			orderDirection: asc
 		) {
 			id
-			poolId
-			currency0
-			currency1
-			fee
+			token0 {
+			  id
+			}
+			token1 {
+			  id
+			}
+			feeTier
 			tickSpacing
 			hooks
-			blockTimestamp
+			createdAtTimestamp
 		}
 	}`)
 
