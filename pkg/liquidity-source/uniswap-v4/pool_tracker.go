@@ -120,7 +120,6 @@ func (t *PoolTracker) GetNewPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
-		// If pool is not pre-genesis, fetch from subgraph
 		poolTicks, err = t.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{
@@ -184,7 +183,6 @@ func (t *PoolTracker) GetNewPoolState(
 }
 
 // getPoolTicks
-// Since uniswapv4 = uniswapv3 + hook, so we reuse same tick struct from uniswapv3
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
