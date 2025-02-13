@@ -77,12 +77,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
+		tickSpacing, err := strconv.Atoi(p.TickSpacing)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
 		staticExtra := StaticExtra{
 			PoolId:      p.ID,
 			Currency0:   p.Token0.ID,
 			Currency1:   p.Token1.ID,
 			Fee:         p.Fee,
-			TickSpacing: p.TickSpacing,
+			TickSpacing: tickSpacing,
 
 			HooksAddress:           common.HexToAddress(p.Hooks),
 			UniversalRouterAddress: common.HexToAddress(u.config.UniversalRouterAddress),
