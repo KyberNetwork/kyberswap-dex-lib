@@ -110,6 +110,8 @@ common:
     - "maker-psm"
     - "maker-savingsdai"
     - "maverick-v1"
+    - "native-v1"
+    - "native-v2"
     - "pancake"
     - "pancake-v3"
     - "pol-matic"
@@ -465,6 +467,14 @@ useCase:
           http:
             api_key:
             base_url: "https://newapi.native.org"
+            timeout: 5s
+            retry_count: 3
+      native-v2:
+        handler: native-v1
+        properties:
+          http:
+            api_key:
+            base_url: "https://v2.api.native.org/swap-api-v2"
             timeout: 5s
             retry_count: 3
       bebop:
