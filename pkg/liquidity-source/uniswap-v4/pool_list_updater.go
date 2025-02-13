@@ -55,6 +55,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
+	fmt.Println(metadata)
+
 	subgraphPools, err := u.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, u.config.NewPoolLimit)
 	if err != nil {
 		return nil, metadataBytes, err
