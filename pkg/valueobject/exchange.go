@@ -237,6 +237,7 @@ var (
 	ExchangeSwaapV2      Exchange = "swaap-v2"
 	ExchangeHashflowV3   Exchange = "hashflow-v3"
 	ExchangeNativeV1     Exchange = "native-v1"
+	ExchangeNativeV2     Exchange = "native-v2"
 	ExchangeBebop        Exchange = "bebop"
 	ExchangeDexalot      Exchange = "dexalot"
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
@@ -782,6 +783,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeSwaapV2:    {},
 	ExchangeHashflowV3: {},
 	ExchangeNativeV1:   {},
+	ExchangeNativeV2:   {},
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},

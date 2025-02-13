@@ -125,7 +125,7 @@ func (d *PoolTracker[Timepoint, TimepointRPC]) GetTimepoints(ctx context.Context
 		timepointPageSize = min(maxTimepointPageSize, timepointPageSize*2)
 	}
 
-	// remove old timepoints before enoughAtIdxc
+	// remove old timepoints before enoughAtIdx
 	for idx := range timepoints {
 		if idx > 0 && LteConsideringOverflow(idx, enoughAtIdx-1, currentIndex+2) {
 			delete(timepoints, idx)
