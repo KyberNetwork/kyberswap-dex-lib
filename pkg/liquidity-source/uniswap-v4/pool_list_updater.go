@@ -3,6 +3,7 @@ package uniswapv4
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -142,6 +143,8 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
+
+	fmt.Println(req)
 
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
