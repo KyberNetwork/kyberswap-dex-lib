@@ -52,6 +52,7 @@ common:
     - "curve-twocrypto-ng"
     - "navigator"
     - "memebox"
+    - "shadow-legacy"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
