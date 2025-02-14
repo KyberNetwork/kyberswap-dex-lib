@@ -142,6 +142,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return p.v3Simulator.CalcAmountOut(param)
+}
+
 func NewBig10(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 10)
 	return res
