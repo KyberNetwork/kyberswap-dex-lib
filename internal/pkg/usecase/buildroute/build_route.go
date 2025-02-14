@@ -484,7 +484,7 @@ func (uc *BuildRouteUseCase) encode(
 	encodingData := types.NewEncodingDataBuilder(
 		ctx,
 		uc.executorBalanceRepository,
-		uc.config.FeatureFlags.IsOptimizeExecutorFlagsEnabled).
+		uc.config.FeatureFlags).
 		SetRoute(&routeSummary, executorAddress, command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).

@@ -23,22 +23,22 @@ type IExecutorBalanceRepository interface {
 }
 
 type EncodingDataBuilder struct {
-	ctx                            context.Context
-	data                           types.EncodingData
-	executorBalanceRepository      IExecutorBalanceRepository
-	isOptimizeExecutorFlagsEnabled bool
+	ctx                       context.Context
+	data                      types.EncodingData
+	executorBalanceRepository IExecutorBalanceRepository
+	featureFlags              valueobject.FeatureFlags
 }
 
 func NewEncodingDataBuilder(
 	ctx context.Context,
 	executorBalanceRepository IExecutorBalanceRepository,
-	isOptimizeExecutorFlagsEnabled bool,
+	featureFlags valueobject.FeatureFlags,
 ) *EncodingDataBuilder {
 	return &EncodingDataBuilder{
-		ctx:                            ctx,
-		data:                           types.EncodingData{},
-		executorBalanceRepository:      executorBalanceRepository,
-		isOptimizeExecutorFlagsEnabled: isOptimizeExecutorFlagsEnabled,
+		ctx:                       ctx,
+		data:                      types.EncodingData{},
+		executorBalanceRepository: executorBalanceRepository,
+		featureFlags:              featureFlags,
 	}
 }
 
@@ -117,6 +117,10 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 ) [][]types.EncodingSwap {
 	flags := b.getRouteEncodingSwapFlags(route, executorAddress)
 
+	// Assuming the first swap in the first path is from tokenIn,
+	// or the wrap token of native token.
+	routeTokenIn := route[0][0].TokenIn
+
 	for pathIdx, path := range route {
 		for swapIdx, swap := range path {
 			var (
@@ -147,8 +151,9 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 			// indicating that executor will use all the balance of that token
 			// for this swap to avoid dust token left in the executor / insufficient
 			// amount for the swap.
-			if swapIdx == 0 &&
-				swap.TokenIn != b.data.TokenIn &&
+			if b.featureFlags.IsMergeDuplicateSwapEnabled &&
+				swapIdx == 0 &&
+				swap.TokenIn != routeTokenIn &&
 				(pathIdx == len(route)-1 ||
 					swap.TokenIn != route[pathIdx+1][0].TokenIn) {
 				route[pathIdx][swapIdx].CollectAmount = bignumber.MAX_UINT_128
@@ -166,7 +171,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 	}
 
 	// If not use optimization, unset ShouldNotKeepDustTokenOut & set ShouldApproveMax
-	if !b.isOptimizeExecutorFlagsEnabled {
+	if !b.featureFlags.IsOptimizeExecutorFlagsEnabled {
 		for pathIdx, path := range route {
 			for swapIdx := range path {
 				flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], types.EncodingSwapFlagShouldApproveMax)
