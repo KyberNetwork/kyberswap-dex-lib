@@ -49,6 +49,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
+	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
@@ -279,6 +281,8 @@ type Types struct {
 	EtherFieBTC                string
 	UniswapV4                  string
 	OvernightUsdp              string
+	SavingsUSDS                string
+	SkyPSM                     string
 }
 
 var (
@@ -428,5 +432,7 @@ var (
 		EtherFieBTC:                etherfiebtc.DexType,
 		UniswapV4:                  uniswapv4.DexType,
 		OvernightUsdp:              overnightusdp.DexType,
+		SavingsUSDS:                savingsusds.DexType,
+		SkyPSM:                     skypsm.DexType,
 	}
 )
