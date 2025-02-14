@@ -26,4 +26,6 @@ const (
 	memecoreMethodPoolFee = "poolFee"
 	memecoreMethodToken0  = "token0"
 	memecoreMethodToken1  = "token1"
+
+	shadowLegacyMethodFee = "fee"
 )

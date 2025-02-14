@@ -5,5 +5,4 @@ type Config struct {
 	FeePrecision   uint64 `json:"feePrecision"`
 	FactoryAddress string `json:"factoryAddress"`
 	NewPoolLimit   int    `json:"newPoolLimit"`
-	IsMemecoreDEX  bool   `json:"isMemecoreDEX"`
 }

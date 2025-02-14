@@ -3,7 +3,6 @@ package solidlyv2
 import (
 	"math/big"
 
-	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -18,13 +17,18 @@ type PoolMetadata struct {
 	FeeRatio *big.Int
 }
 
+type ShadowLegacyMetadata struct {
+	Dec0 *big.Int       `abi:"_decimals0"`
+	Dec1 *big.Int       `abi:"_decimals1"`
+	R0   *big.Int       `abi:"_reserve0"`
+	R1   *big.Int       `abi:"_reserve1"`
+	St   bool           `abi:"_stable"`
+	T0   common.Address `abi:"_token0"`
+	T1   common.Address `abi:"_token1"`
+}
+
 type MemecoreReserves struct {
 	Reserve0           *big.Int
 	Reserve1           *big.Int
 	BlockTimestampLast uint32
-}
-
-type PoolStaticExtra struct {
-	velodromev2.PoolStaticExtra
-	IsMemecoreDEX bool `json:"isMemecoreDEX"`
 }
