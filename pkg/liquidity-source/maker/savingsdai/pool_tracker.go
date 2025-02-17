@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import (
 	"context"
@@ -13,8 +13,6 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -24,8 +22,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(savingsdai.DexType, NewPoolTracker)
-var _ = pooltrack.RegisterFactoryCE0(savingsusds.DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{

@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import (
 	"context"
@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -33,7 +31,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		{
 			chainID: valueobject.ChainIDEthereum,
 			config: Config{
-				DexID:             savingsdai.DexType,
 				DepositToken:      "0x6b175474e89094c44da98b954eedeac495271d0f",
 				SavingsToken:      "0x83f20f44975d03b1b09e64809b757c47f942beea",
 				Pot:               "0x197e90f9fad81970ba7976f33cbd77088e5d7cf7",
@@ -43,7 +40,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		{
 			chainID: valueobject.ChainIDEthereum,
 			config: Config{
-				DexID:             savingsusds.DexType,
 				DepositToken:      "0xdc035d45d973e3ec169d2276ddab16f1e407384f",
 				SavingsToken:      "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",
 				Pot:               "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd",

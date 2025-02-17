@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import _ "embed"
 

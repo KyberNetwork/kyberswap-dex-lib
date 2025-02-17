@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	skysavings "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-savings"
+	sky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -133,7 +133,7 @@ func (p *PoolSimulator) convertOneToOne(
 func (p *PoolSimulator) convertToSUSDS(amountIn, assetPrecision *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	var amountOut uint256.Int
 	if !roundUp {
-		if _, overflow := amountOut.MulDivOverflow(amountIn, skysavings.RAY, p.rate); overflow {
+		if _, overflow := amountOut.MulDivOverflow(amountIn, sky.RAY, p.rate); overflow {
 			return nil, number.ErrOverflow
 		}
 		if _, overflow := amountOut.MulDivOverflow(&amountOut, p.susdsPrecision, assetPrecision); overflow {
@@ -141,7 +141,7 @@ func (p *PoolSimulator) convertToSUSDS(amountIn, assetPrecision *uint256.Int, ro
 		}
 		return &amountOut, nil
 	}
-	temp, err := CeilDiv(amountOut.Mul(amountIn, skysavings.RAY), p.rate)
+	temp, err := CeilDiv(amountOut.Mul(amountIn, sky.RAY), p.rate)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (p *PoolSimulator) convertToSUSDS(amountIn, assetPrecision *uint256.Int, ro
 func (p *PoolSimulator) convertFromSUSDS(amountIn, assetPrecision *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	var amountOut uint256.Int
 	if !roundUp {
-		if _, overflow := amountOut.MulDivOverflow(amountIn, p.rate, skysavings.RAY); overflow {
+		if _, overflow := amountOut.MulDivOverflow(amountIn, p.rate, sky.RAY); overflow {
 			return nil, number.ErrOverflow
 		}
 		if _, overflow := amountOut.MulDivOverflow(&amountOut, assetPrecision, p.susdsPrecision); overflow {
@@ -159,7 +159,7 @@ func (p *PoolSimulator) convertFromSUSDS(amountIn, assetPrecision *uint256.Int, 
 		}
 		return &amountOut, nil
 	}
-	temp, err := CeilDiv(amountOut.Mul(amountIn, p.rate), skysavings.RAY)
+	temp, err := CeilDiv(amountOut.Mul(amountIn, p.rate), sky.RAY)
 	if err != nil {
 		return nil, err
 	}

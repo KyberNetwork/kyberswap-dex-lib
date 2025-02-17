@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 type Config struct {
 	DexID        string `json:"dexID"`

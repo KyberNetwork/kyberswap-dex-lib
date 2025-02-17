@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import (
 	"github.com/holiman/uint256"

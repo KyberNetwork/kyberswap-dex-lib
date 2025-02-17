@@ -13,7 +13,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	skysavings "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-savings"
+	sky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -62,7 +62,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	blockTimestamp := uint64(time.Now().Unix()) + skysavings.Blocktime
+	blockTimestamp := uint64(time.Now().Unix()) + sky.Blocktime
 
 	var rate *big.Int
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)

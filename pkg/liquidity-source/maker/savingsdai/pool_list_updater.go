@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import (
 	"context"
@@ -9,8 +9,6 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
@@ -20,8 +18,7 @@ type PoolListUpdater struct {
 	initialized  bool
 }
 
-var _ = poollist.RegisterFactoryCE(savingsdai.DexType, NewPoolListUpdater)
-var _ = poollist.RegisterFactoryCE(savingsusds.DexType, NewPoolListUpdater)
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolListUpdater {
 	return &PoolListUpdater{
@@ -60,7 +57,7 @@ func (u *PoolListUpdater) GetNewPools(_ context.Context, metadataBytes []byte) (
 	pool := entity.Pool{
 		Address:  u.config.SavingsToken,
 		Exchange: u.config.DexID,
-		Type:     u.config.DexID,
+		Type:     DexType,
 		Reserves: entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
 			{

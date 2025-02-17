@@ -1,4 +1,4 @@
-package skysavings
+package savingsdai
 
 import (
 	"math/big"
@@ -8,7 +8,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -39,8 +38,7 @@ type (
 	}
 )
 
-var _ = pool.RegisterFactory0(savingsdai.DexType, NewPoolSimulator)
-var _ = pool.RegisterFactory0(savingsusds.DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens := lo.Map(entityPool.Tokens, func(token *entity.PoolToken, _ int) string {
