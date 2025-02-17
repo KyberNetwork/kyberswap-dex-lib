@@ -3,15 +3,59 @@ package skypsm
 import (
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+var (
+	poolEncoded = `{
+			"address": "0x1601843c5e9bc251a3272907010afa41fa18347e",
+			"exchange": "sky-psm",
+			"type": "sky-psm",
+			"timestamp": 1739765780,
+			"reserves": [
+				"100000000000000000000",
+				"100000000000000000000",
+				"100000000000000000000"
+			],
+			"tokens": [
+				{
+					"address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+					"name": "USD Coin",
+					"symbol": "USDC",
+					"decimals": 6,
+					"swappable": true
+				},
+				{
+					"address": "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
+					"name": "USDS Stablecoin",
+					"symbol": "USDS",
+					"decimals": 18,
+					"swappable": true
+				},
+				{
+					"address": "0x5875eee11cf8398102fdad704c9e96607675467a",
+					"name": "Savings USDS",
+					"symbol": "sUSDS",
+					"decimals": 18,
+					"swappable": true
+				}
+			],
+			"extra": "{\"rate\":\"1038105872293887335025106342\",\"blockTimestamp\":1739765785}",
+			"staticExtra": "{\"rateProvider\":\"0x65d946e533748a998b1f0e430803e39a6388f7a1\"}"
+		}`
+	poolEntity entity.Pool
+	_          = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
+	poolSim    = lo.Must(NewPoolSimulator(poolEntity))
 )
 
 func TestPoolSimulator_getSwapQuote(t *testing.T) {
-
 	tests := []struct {
 		name   string
 		inIdx  int
@@ -71,19 +115,17 @@ func TestPoolSimulator_getSwapQuote(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &PoolSimulator{
-				rate:           tt.rate,
-				usdcPrecision:  bignumber.TenPowInt(6),
-				usdsPrecision:  bignumber.TenPowInt(18),
-				susdsPrecision: bignumber.TenPowInt(18),
-			}
-			gotExactIn, err := p.getSwapQuote(tt.inIdx, tt.outIdx, tt.amount, false)
+			poolSim.rate = tt.rate
+
+			gotExactIn, err := poolSim.getSwapQuote(tt.inIdx, tt.outIdx, tt.amount, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.wantExactIn, gotExactIn)
 
-			gotExactOut, err := p.getSwapQuote(tt.outIdx, tt.inIdx, gotExactIn, true)
+			gotExactOut, err := poolSim.getSwapQuote(tt.outIdx, tt.inIdx, gotExactIn, true)
 			require.NoError(t, err)
 			require.Equal(t, tt.wantExactOut, gotExactOut)
+
+			testutil.TestCalcAmountIn(t, poolSim)
 		})
 	}
 }
