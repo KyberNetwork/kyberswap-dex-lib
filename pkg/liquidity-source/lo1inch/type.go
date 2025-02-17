@@ -111,7 +111,11 @@ func (o *Order) SetAvailableMakingAmount(amount *big.Int) {
 }
 
 func (o *Order) GetRemainingTakingAmount() *big.Int {
-	return o.RemainingMakerAmount.ToBig()
+	return o.RemainingTakerAmount.ToBig()
+}
+
+func (o *Order) SetRemainingTakingAmount(amount *big.Int) {
+	o.RemainingTakerAmount = uint256.MustFromBig(amount)
 }
 
 func (o *Order) GetFilledMakingAmount() *big.Int {
