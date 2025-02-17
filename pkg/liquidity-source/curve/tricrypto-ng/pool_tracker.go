@@ -226,6 +226,13 @@ func (t *PoolTracker) getNewPoolState(
 		p.BlockNumber = res.BlockNumber.Uint64()
 	}
 
+	// https://basescan.org/address/0x20ece59d541a752261867641796c1553287513b8#code
+	// Some pools like this do not have a public `get_prices_timestamp` method, so it will fall back to 0 without affecting the simulation logic
+	var lastPriceTimestampInt int64 = 0
+	if lastPriceTimestamp != nil {
+		lastPriceTimestampInt = lastPriceTimestamp.Int64()
+	}
+
 	var extra = Extra{
 		InitialA:            number.SetFromBig(new(big.Int).Rsh(initialAGamma, 128)),
 		InitialGamma:        new(uint256.Int).And(number.SetFromBig(initialAGamma), PriceMask),
@@ -234,7 +241,7 @@ func (t *PoolTracker) getNewPoolState(
 		FutureGamma:         new(uint256.Int).And(number.SetFromBig(futureAGamma), PriceMask),
 		FutureAGammaTime:    futureAGammaTime.Int64(),
 		D:                   number.SetFromBig(d),
-		LastPricesTimestamp: lastPriceTimestamp.Int64(),
+		LastPricesTimestamp: lastPriceTimestampInt,
 		FeeGamma:            number.SetFromBig(feeGamma),
 		MidFee:              number.SetFromBig(midFee),
 		OutFee:              number.SetFromBig(outFee),

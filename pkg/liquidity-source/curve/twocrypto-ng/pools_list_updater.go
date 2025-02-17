@@ -13,7 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -72,11 +71,9 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 			continue
 		}
 
-		if u.config.ChainID != valueobject.ChainIDSonic {
-			if !SupportedImplementation.Contains(curvePool.Implementation) {
-				lg.Debugf("ignore pool with implementation=%s", curvePool.Implementation)
-				continue
-			}
+		if curvePool.Implementation != "" && !SupportedImplementation.Contains(curvePool.Implementation) {
+			lg.Debugf("ignore pool with implementation=%s", curvePool.Implementation)
+			continue
 		}
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))

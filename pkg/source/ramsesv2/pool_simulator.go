@@ -22,16 +22,19 @@ import (
 )
 
 var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
+	ErrTickNil          = errors.New("tick is nil")
+	ErrV3TicksEmpty     = errors.New("v3Ticks empty")
+	ErrInvalidSqrtPrice = errors.New("SPL")
+	ErrPoolIsLocked     = errors.New("LOK")
 )
 
 type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool
-	gas     Gas
-	tickMin int
-	tickMax int
+	tickMin  int
+	tickMax  int
+	unlocked bool
+	gas      Gas
 }
 
 var _ = pool.RegisterFactory1(DexTypeRamsesV2, NewPoolSimulator)
@@ -114,11 +117,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	return &PoolSimulator{
-		Pool:    pool.Pool{Info: info},
-		V3Pool:  v3Pool,
-		gas:     defaultGas,
-		tickMin: tickMin,
-		tickMax: tickMax,
+		Pool:     pool.Pool{Info: info},
+		V3Pool:   v3Pool,
+		tickMin:  tickMin,
+		tickMax:  tickMax,
+		unlocked: extra.Unlocked,
+		gas:      defaultGas,
 	}, nil
 }
 
@@ -143,6 +147,10 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if !p.unlocked {
+		return nil, ErrPoolIsLocked
+	}
+
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
@@ -159,7 +167,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			zeroForOne = true
 		}
 		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOutResult, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+
+		sqrtPriceLimit := p.getSqrtPriceLimit(zeroForOne)
+		if zeroForOne {
+			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) >= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MIN_SQRT_RATIO) <= 0 {
+				return nil, ErrInvalidSqrtPrice
+			}
+		} else {
+			if p.V3Pool.SqrtRatioX96.Cmp(sqrtPriceLimit) <= 0 || p.V3Pool.SqrtRatioX96.Cmp(bignumber.MAX_SQRT_RATIO) >= 0 {
+				return nil, ErrInvalidSqrtPrice
+			}
+		}
+
+		amountOutResult, err := p.V3Pool.GetOutputAmount(amountIn, sqrtPriceLimit)
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
@@ -217,6 +237,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	zeroForOne := strings.EqualFold(tokenIn, hexutil.Encode(p.V3Pool.Token0.Address[:]))
 	return PoolMeta{
-		PriceLimit: bignumber.CapPriceLimit(p.getSqrtPriceLimit(zeroForOne)),
+		PriceLimit:  bignumber.CapPriceLimit(p.getSqrtPriceLimit(zeroForOne)),
+		BlockNumber: p.Pool.GetInfo().BlockNumber,
 	}
 }

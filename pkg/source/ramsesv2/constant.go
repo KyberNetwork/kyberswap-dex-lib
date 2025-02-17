@@ -5,11 +5,11 @@ import (
 )
 
 const (
-	DexTypeRamsesV2       = "ramses-v2"
-	graphSkipLimit        = 5000
-	graphFirstLimit       = 1000
-	defaultTokenDecimals  = 18
-	defaultTokenWeight    = 50
+	DexTypeRamsesV2      = "ramses-v2"
+	graphSkipLimit       = 5000
+	graphFirstLimit      = 1000
+	defaultTokenDecimals = 18
+	defaultTokenWeight   = 50
 )
 
 const (

@@ -206,26 +206,6 @@
     ]
   },
   {
-    "id": "0x6e53131f68a034873b6bfa15502af094ef0c5854",
-    "name": "tricrypto",
-    "type": "curve-tricrypto",
-    "tokens": [
-      {
-        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
-        "precision": "1"
-      },
-      {
-        "address": "0x236aa50979d5f3de3bd1eeb40e81137f22ab794b",
-        "precision": "1"
-      },
-      {
-        "address": "0x4200000000000000000000000000000000000006",
-        "precision": "1"
-      }
-    ],
-    "lpToken": "0x6e53131f68a034873b6bfa15502af094ef0c5854"
-  },
-  {
     "id": "0x11c1fbd4b3de66bc0565779b35171a6cf3e71f59",
     "name": "0x11c1fbd4b3de66bc0565779b35171a6cf3e71f59",
     "type": "curve-two",

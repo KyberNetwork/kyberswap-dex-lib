@@ -61,10 +61,12 @@ type Extra struct {
 	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+	Unlocked     bool     `json:"unlock"`
 }
 
 type PoolMeta struct {
-	PriceLimit *big.Int `json:"priceLimit"`
+	PriceLimit  *big.Int `json:"priceLimit"`
+	BlockNumber uint64   `json:"blockNumber"`
 }
 
 type Slot0 struct {
@@ -84,6 +86,7 @@ type FetchRPCResult struct {
 	TickSpacing uint64
 	Reserve0    *big.Int
 	Reserve1    *big.Int
+	BlockNumber uint64
 }
 
 func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {

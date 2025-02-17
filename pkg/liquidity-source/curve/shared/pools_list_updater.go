@@ -26,7 +26,7 @@ type (
 	}
 
 	Config struct {
-		DexID       string              `mapstructure:"dex_id" json:"dex_id,omitempty"`
+		DexID       string              `mapstructure:"dexID" json:"dexID,omitempty"`
 		ChainCode   string              `mapstructure:"chain_code" json:"chain_code,omitempty"`
 		ChainID     valueobject.ChainID `mapstructure:"chain_id" json:"chain_id,omitempty"`
 		HTTPConfig  HTTPConfig          `mapstructure:"http_config" json:"http_config,omitempty"`
