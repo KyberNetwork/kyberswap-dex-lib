@@ -148,6 +148,7 @@ common:
     - "lo1inch"
     - "etherfi-ebtc"
     - "uniswap-v4"
+    - "savings-usds"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

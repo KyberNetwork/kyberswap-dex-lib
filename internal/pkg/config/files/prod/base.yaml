@@ -103,6 +103,7 @@ common:
     - "virtual-fun"
     - "etherfi-ebtc"
     - "uniswap-v4"
+    - "sky-psm"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -260,6 +261,7 @@ encoder:
     executeBalancerV3: 62
     executeEtherFieBtc: 63
     executeUniV4: 65
+    executeSkyPSM: 66
 useCase:
   getRoute:
     chainId: *chainId
