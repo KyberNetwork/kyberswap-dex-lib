@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -121,7 +122,10 @@ func (p *PoolSimulator) convertOneToOne(
 	amountIn, assetPrecision, convertAssetPrecision *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	var amountOut uint256.Int
 	if !roundUp {
-		return amountOut.Mul(amountIn, convertAssetPrecision).Div(&amountOut, assetPrecision), nil
+		if _, overflow := amountOut.MulDivOverflow(amountIn, convertAssetPrecision, assetPrecision); overflow {
+			return nil, number.ErrOverflow
+		}
+		return &amountOut, nil
 	}
 	return CeilDiv(amountOut.Mul(amountIn, convertAssetPrecision), assetPrecision)
 }
@@ -129,11 +133,13 @@ func (p *PoolSimulator) convertOneToOne(
 func (p *PoolSimulator) convertToSUSDS(amountIn, assetPrecision *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	var amountOut uint256.Int
 	if !roundUp {
-		return amountOut.
-			Mul(amountIn, skysavings.RAY).
-			Div(&amountOut, p.rate).
-			Mul(&amountOut, p.susdsPrecision).
-			Div(&amountOut, assetPrecision), nil
+		if _, overflow := amountOut.MulDivOverflow(amountIn, skysavings.RAY, p.rate); overflow {
+			return nil, number.ErrOverflow
+		}
+		if _, overflow := amountOut.MulDivOverflow(&amountOut, p.susdsPrecision, assetPrecision); overflow {
+			return nil, number.ErrOverflow
+		}
+		return &amountOut, nil
 	}
 	temp, err := CeilDiv(amountOut.Mul(amountIn, skysavings.RAY), p.rate)
 	if err != nil {
@@ -145,11 +151,13 @@ func (p *PoolSimulator) convertToSUSDS(amountIn, assetPrecision *uint256.Int, ro
 func (p *PoolSimulator) convertFromSUSDS(amountIn, assetPrecision *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	var amountOut uint256.Int
 	if !roundUp {
-		return amountOut.
-			Mul(amountIn, p.rate).
-			Div(&amountOut, skysavings.RAY).
-			Mul(&amountOut, assetPrecision).
-			Div(&amountOut, p.susdsPrecision), nil
+		if _, overflow := amountOut.MulDivOverflow(amountIn, p.rate, skysavings.RAY); overflow {
+			return nil, number.ErrOverflow
+		}
+		if _, overflow := amountOut.MulDivOverflow(&amountOut, assetPrecision, p.susdsPrecision); overflow {
+			return nil, number.ErrOverflow
+		}
+		return &amountOut, nil
 	}
 	temp, err := CeilDiv(amountOut.Mul(amountIn, p.rate), skysavings.RAY)
 	if err != nil {

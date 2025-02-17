@@ -116,7 +116,6 @@ func TestPoolSimulator_getSwapQuote(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			poolSim.rate = tt.rate
-
 			gotExactIn, err := poolSim.getSwapQuote(tt.inIdx, tt.outIdx, tt.amount, false)
 			require.NoError(t, err)
 			require.Equal(t, tt.wantExactIn, gotExactIn)
