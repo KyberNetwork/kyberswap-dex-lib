@@ -3,34 +3,34 @@ package savingsdai
 import (
 	"errors"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
 	DexType = "maker-savingsdai"
 
-	Dai        = "0x6b175474e89094c44da98b954eedeac495271d0f"
-	Savingsdai = "0x83f20f44975d03b1b09e64809b757c47f942beea"
-	pot        = "0x197e90f9fad81970ba7976f33cbd77088e5d7cf7"
+	potMethodRHO = "rho"
+	potMethodCHI = "chi"
 
-	potMethodDSR                = "dsr"
-	potMethodRHO                = "rho"
-	potMethodCHI                = "chi"
-	savingsdaiMethodTotalAssets = "totalAssets"
-	savingsdaiMethodTotalSupply = "totalSupply"
+	savingsMethodTotalAssets = "totalAssets"
+	savingsMethodTotalSupply = "totalSupply"
 
-	blocktime = 12
+	Blocktime = 12
 )
 
 var (
-	one = number.TenPow(27)
-	ray = one
+	RAY = big256.TenPowInt(27)
 )
 
 var (
-	defaultGas = Gas{
-		Deposit: 161300,
-		Redeem:  235500,
+	savingsDAIDefaultGas = Gas{
+		Deposit: 160000,
+		Redeem:  146000,
+	}
+
+	savingsUSDSDefaultGas = Gas{
+		Deposit: 137000,
+		Redeem:  145000,
 	}
 )
 

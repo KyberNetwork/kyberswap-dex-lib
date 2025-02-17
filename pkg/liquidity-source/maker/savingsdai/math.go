@@ -13,48 +13,57 @@ var (
 func rpow(x, n, base *uint256.Int) (*uint256.Int, error) {
 	if x.IsZero() {
 		if n.IsZero() {
-			return base, nil
+			return base.Clone(), nil
 		}
 
-		return number.Zero, nil
+		return number.Zero.Clone(), nil
 	}
 
-	z := x
-	if new(uint256.Int).Mod(n, number.Number_2).IsZero() {
-		z = base
+	var (
+		z       uint256.Int
+		xx      uint256.Int
+		xxRound uint256.Int
+		zx      uint256.Int
+		zxRound uint256.Int
+		i       uint256.Int
+		temp    uint256.Int
+	)
+
+	if temp.Mod(n, number.Number_2).IsZero() {
+		z.Set(base)
 	}
 
 	half := new(uint256.Int).Div(base, number.Number_2)
-	for i := new(uint256.Int).Div(n, number.Number_2); i.Gt(number.Zero); i = new(uint256.Int).Div(i, number.Number_2) {
-		xx := new(uint256.Int).Mul(x, x)
+	for ; i.Gt(number.Zero); i.Div(&i, number.Number_2) {
+		xx.Mul(x, x)
 
-		if !new(uint256.Int).Div(xx, x).Eq(x) {
+		if !temp.Div(&xx, x).Eq(x) {
 			return nil, ErrOverflow
 		}
 
-		xxRound := new(uint256.Int).Add(xx, half)
-		if xxRound.Lt(xx) {
+		xxRound.Add(&xx, half)
+		if xxRound.Lt(&xx) {
 			return nil, ErrOverflow
 		}
 
-		x = new(uint256.Int).Div(xxRound, base)
-		if !new(uint256.Int).Mod(i, number.Number_2).IsZero() {
-			zx := new(uint256.Int).Mul(z, x)
+		x = new(uint256.Int).Div(&xxRound, base)
+		if !temp.Mod(&i, number.Number_2).IsZero() {
+			zx.Mul(&z, x)
 
-			if !x.IsZero() && !new(uint256.Int).Div(zx, x).Eq(z) {
+			if !x.IsZero() && !temp.Div(&zx, x).Eq(&z) {
 				return nil, ErrOverflow
 			}
 
-			zxRound := new(uint256.Int).Add(zx, half)
-			if zxRound.Lt(zx) {
+			zxRound.Add(&zx, half)
+			if zxRound.Lt(&zx) {
 				return nil, ErrOverflow
 			}
 
-			z = new(uint256.Int).Div(zxRound, base)
+			z.Div(&zxRound, base)
 		}
 	}
 
-	return z, nil
+	return &z, nil
 }
 
 func rmul(x, y *uint256.Int) (*uint256.Int, error) {
@@ -62,5 +71,5 @@ func rmul(x, y *uint256.Int) (*uint256.Int, error) {
 	if overflow {
 		return nil, ErrOverflow
 	}
-	return z.Div(z, one), nil
+	return z.Div(z, RAY), nil
 }

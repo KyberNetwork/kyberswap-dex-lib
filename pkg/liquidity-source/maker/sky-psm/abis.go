@@ -1,4 +1,4 @@
-package savingsdai
+package skypsm
 
 import (
 	"bytes"
@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	potABI     abi.ABI
-	savingsABI abi.ABI
+	ssrOracleABI abi.ABI
 )
 
 func init() {
@@ -16,8 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&potABI, potJSON},
-		{&savingsABI, savingsJSON},
+		{&ssrOracleABI, ssrOracleABIData},
 	}
 
 	for _, b := range builder {
