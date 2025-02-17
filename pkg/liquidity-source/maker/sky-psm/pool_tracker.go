@@ -62,15 +62,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var blockTimestamp uint64
-	blockTimestamp, err = t.ethrpcClient.NewRequest().
-		SetContext(ctx).
-		GetCurrentBlockTimestamp()
-	if err != nil {
-		blockTimestamp = uint64(time.Now().Unix())
-	}
-	// should use the next block timestamp
-	blockTimestamp += skysavings.Blocktime
+	blockTimestamp := uint64(time.Now().Unix()) + skysavings.Blocktime
 
 	var rate *big.Int
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
