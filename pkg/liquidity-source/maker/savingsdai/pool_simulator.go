@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsusds"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -16,14 +17,15 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 
-		now *uint256.Int
-		dsr *uint256.Int
-		rho *uint256.Int
-		chi *uint256.Int
+		now         *uint256.Int
+		rho         *uint256.Int
+		chi         *uint256.Int
+		savingsRate *uint256.Int
 	}
 
 	SwapInfo struct {
-		chi *uint256.Int
+		chi       *uint256.Int
+		IsDeposit bool `json:"isDeposit"`
 	}
 
 	PoolMetaInfo struct {
@@ -56,22 +58,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	poolInfo := pool.PoolInfo{
-		Address:     entityPool.Address,
-		Exchange:    entityPool.Exchange,
-		Type:        entityPool.Type,
-		Tokens:      tokens,
-		Reserves:    reserves,
-		Checked:     true,
-		BlockNumber: entityPool.BlockNumber,
-	}
-
 	return &PoolSimulator{
-		Pool: pool.Pool{Info: poolInfo},
-		now:  extra.BlockTimestamp,
-		dsr:  extra.DSR,
-		rho:  extra.RHO,
-		chi:  extra.CHI,
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			Checked:     true,
+			BlockNumber: entityPool.BlockNumber,
+		}},
+		now:         extra.BlockTimestamp,
+		rho:         extra.RHO,
+		chi:         extra.CHI,
+		savingsRate: extra.SavingsRate,
 	}, nil
 }
 
@@ -92,8 +92,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
+	isDeposit := tokenAmountIn.Token == s.Info.Tokens[0]
+
 	amountOut := lo.Ternary(
-		tokenAmountIn.Token == Dai,
+		isDeposit,
 		s.deposit(amountIn, chi),
 		s.redeem(amountIn, chi),
 	)
@@ -107,13 +109,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenOut,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: lo.Ternary(
-			tokenAmountIn.Token == Dai,
-			defaultGas.Deposit,
-			defaultGas.Redeem,
-		),
+		Gas: s.estimateGas(isDeposit),
 		SwapInfo: SwapInfo{
-			chi: chi,
+			chi:       chi,
+			IsDeposit: isDeposit,
 		},
 	}, nil
 }
@@ -134,17 +133,13 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
 }
 
 func (s *PoolSimulator) deposit(assets, chi *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Div(
-		new(uint256.Int).Mul(assets, ray),
-		chi,
-	)
+	var shares uint256.Int
+	return shares.Mul(assets, RAY).Div(&shares, chi)
 }
 
-func (s *PoolSimulator) redeem(assets, chi *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Div(
-		new(uint256.Int).Mul(assets, chi),
-		ray,
-	)
+func (s *PoolSimulator) redeem(shares, chi *uint256.Int) *uint256.Int {
+	var assets uint256.Int
+	return assets.Mul(shares, chi).Div(&assets, RAY)
 }
 
 func (s *PoolSimulator) _chi() (*uint256.Int, error) {
@@ -155,17 +150,12 @@ func (s *PoolSimulator) _chi() (*uint256.Int, error) {
 }
 
 func (s *PoolSimulator) drip() (*uint256.Int, error) {
-	x, err := rpow(s.dsr, new(uint256.Int).Sub(s.now, s.rho), one)
+	x, err := rpow(s.savingsRate, new(uint256.Int).Sub(s.now, s.rho), RAY)
 	if err != nil {
 		return nil, err
 	}
 
-	tmp, err := rmul(x, s.chi)
-	if err != nil {
-		return nil, err
-	}
-
-	return tmp, nil
+	return rmul(x, s.chi)
 }
 
 func (s *PoolSimulator) validate(tokenIn, tokenOut string) error {
@@ -177,4 +167,20 @@ func (s *PoolSimulator) validate(tokenIn, tokenOut string) error {
 		return ErrInvalidToken
 	}
 	return nil
+}
+
+func (s *PoolSimulator) estimateGas(isDeposit bool) int64 {
+	var gas Gas
+	switch s.GetExchange() {
+	case savingsusds.DexType:
+		gas = savingsUSDSDefaultGas
+	default:
+		gas = savingsDAIDefaultGas
+	}
+
+	return lo.Ternary(
+		isDeposit,
+		gas.Deposit,
+		gas.Redeem,
+	)
 }
