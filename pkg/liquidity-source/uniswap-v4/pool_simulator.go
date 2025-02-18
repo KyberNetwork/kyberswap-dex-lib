@@ -176,6 +176,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	// if this pool has hook which affect swap result, return err
+	if HasSwapPermissions(p.staticExtra.HooksAddress.String()) {
+		return nil, ErrCannotCalcAmountOutDueToHook
+	}
+
 	return p.v3Simulator.CalcAmountOut(param)
 }
 
