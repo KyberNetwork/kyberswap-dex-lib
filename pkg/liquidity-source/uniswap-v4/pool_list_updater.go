@@ -3,7 +3,6 @@ package uniswapv4
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -69,20 +68,25 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
-		if p.ID == "0x21c67e77068de97969ba93d4aab21826d33ca12bb9f565d8496e8fda8a82ca27" {
-			fmt.Println(p)
+		token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+		token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
+		if err != nil {
+			return nil, metadataBytes, err
 		}
 		tokens := []*entity.PoolToken{
 			{
 				Address:   p.Token0.ID,
 				Swappable: true,
-				Decimals:  uint8(p.Token0.Decimals),
+				Decimals:  uint8(token0Decimals),
 				Name:      p.Token0.Name,
 			},
 			{
 				Address:   p.Token1.ID,
 				Swappable: true,
-				Decimals:  uint8(p.Token0.Decimals),
+				Decimals:  uint8(token1Decimals),
 				Name:      p.Token0.Name,
 			},
 		}

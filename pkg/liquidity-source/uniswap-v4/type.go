@@ -8,7 +8,7 @@ import (
 
 type Token struct {
 	ID       string `json:"id"`
-	Decimals int    `json:"decimals"`
+	Decimals string `json:"decimals"`
 	Name     string `json:"name"`
 	Symbol   string `json:"symbol"`
 }
