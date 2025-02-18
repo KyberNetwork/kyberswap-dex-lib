@@ -39,9 +39,15 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 			id
 			token0 {
 			  id
+			  decimals
+			  symbol
+              name
 			}
 			token1 {
 			  id
+			  decimals
+			  symbol
+              name
 			}
 			feeTier
 			tickSpacing

@@ -73,8 +73,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			fmt.Println(p)
 		}
 		tokens := []*entity.PoolToken{
-			{Address: p.Token0.ID, Swappable: true},
-			{Address: p.Token1.ID, Swappable: true},
+			{
+				Address:   p.Token0.ID,
+				Swappable: true,
+				Decimals:  uint8(p.Token0.Decimals),
+				Name:      p.Token0.Name,
+			},
+			{
+				Address:   p.Token1.ID,
+				Swappable: true,
+				Decimals:  uint8(p.Token0.Decimals),
+				Name:      p.Token0.Name,
+			},
 		}
 		for idx, token := range tokens {
 			if token.Address == EMPTY_ADDRESS {
