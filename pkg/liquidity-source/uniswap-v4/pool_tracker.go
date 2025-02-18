@@ -20,23 +20,23 @@ import (
 )
 
 type PoolTracker struct {
-	config        Config
+	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCEG(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config Config,
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-) *PoolTracker {
+) (*PoolTracker, error) {
 	return &PoolTracker{
 		config:        config,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
-	}
+	}, nil
 }
 
 func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
