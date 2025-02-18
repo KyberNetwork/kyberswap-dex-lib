@@ -20,7 +20,6 @@ type PoolSimulator struct {
 
 	usdPlusDecimals int64
 	assetDecimals   int64 // USDC
-	exchange        string
 
 	gas int64
 }
@@ -53,7 +52,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		redeemFee:       extra.RedeemFee,
 		usdPlusDecimals: staticExtra.UsdPlusDecimals,
 		assetDecimals:   staticExtra.AssetDecimals,
-		exchange:        staticExtra.Exchange,
 		gas:             defaultGas,
 	}, nil
 }
@@ -91,7 +89,8 @@ func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		Exchange:    s.exchange,
+		Asset:       s.Info.Tokens[0],
+		UsdPlus:     s.Info.Tokens[1],
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
 }

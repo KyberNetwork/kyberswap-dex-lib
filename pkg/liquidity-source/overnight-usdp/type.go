@@ -3,7 +3,8 @@ package overnightusdp
 import "math/big"
 
 type PoolMeta struct {
-	Exchange    string `json:"exchange"`
+	Asset       string `json:"asset"`
+	UsdPlus     string `json:"usdPlus"`
 	BlockNumber uint64 `json:"blockNumber"`
 }
 
@@ -14,7 +15,6 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Exchange        string `json:"exchange"`
-	AssetDecimals   int64  `json:"assetDecimals"`
-	UsdPlusDecimals int64  `json:"usdPlusDecimals"`
+	AssetDecimals   int64 `json:"assetDecimals"`
+	UsdPlusDecimals int64 `json:"usdPlusDecimals"`
 }
