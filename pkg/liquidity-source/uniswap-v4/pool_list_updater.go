@@ -128,6 +128,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 			Timestamp:   time.Now().Unix(),
+			SwapFee:     float64(p.Fee),
 		}
 		pools = append(pools, pool)
 	}

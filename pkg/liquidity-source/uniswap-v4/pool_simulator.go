@@ -95,7 +95,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("empty tick")
 	}
 
-	tickSpacing := int(extra.TickSpacing)
+	tickSpacing := int(staticExtra.TickSpacing)
 	// For some pools that not yet initialized tickSpacing in their extra,
 	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
@@ -152,15 +152,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
-			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    big.NewInt(int64(entityPool.SwapFee)),
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-			},
+			Info: info,
 		},
 		v3Simulator: uniswapv3.NewPoolSimulatorV2(v3Pool, pool.Pool{
 			Info: info,
