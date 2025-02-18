@@ -101,11 +101,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
+		fee, err := strconv.Atoi(p.Fee)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
 		staticExtra := StaticExtra{
 			PoolId:      p.ID,
 			Currency0:   p.Token0.ID,
 			Currency1:   p.Token1.ID,
-			Fee:         p.Fee,
+			Fee:         fee,
 			TickSpacing: tickSpacing,
 
 			HooksAddress:           common.HexToAddress(p.Hooks),
@@ -128,7 +133,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 			Timestamp:   time.Now().Unix(),
-			SwapFee:     float64(p.Fee),
+			SwapFee:     float64(fee),
 		}
 		pools = append(pools, pool)
 	}
