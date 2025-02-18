@@ -25,7 +25,7 @@ type SubgraphPool struct {
 	ID                 string `json:"id"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
-	Fee                int    `json:"fee"`
+	Fee                int    `json:"feeTier"`
 	TickSpacing        string `json:"tickSpacing"`
 	Hooks              string `json:"hooks"`
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
