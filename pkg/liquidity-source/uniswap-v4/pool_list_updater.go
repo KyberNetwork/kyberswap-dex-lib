@@ -87,7 +87,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Address:   p.Token1.ID,
 				Swappable: true,
 				Decimals:  uint8(token1Decimals),
-				Name:      p.Token0.Name,
+				Name:      p.Token1.Name,
 			},
 		}
 		for idx, token := range tokens {
