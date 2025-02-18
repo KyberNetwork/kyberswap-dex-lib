@@ -29,10 +29,10 @@ func TestPoolSimulator(t *testing.T) {
 
 	out, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: uniswapv4.NewBig10("1116508221495"),
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: uniswapv4.NewBig10("1000000000000000000"),
 		},
-		TokenOut: "0x0000000000000000000000000000000000000000",
+		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 	})
 	assert.NoError(t, err)
 
