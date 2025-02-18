@@ -61,7 +61,7 @@ type Extra struct {
 	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
-	Unlocked     bool     `json:"unlock"`
+	Unlocked     bool     `json:"unlocked"`
 }
 
 type PoolMeta struct {
