@@ -162,7 +162,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 				Reserves:   reserves,
 			},
 		},
-		v3Simulator: uniswapv3.NewPoolSimulator2(v3Pool, pool.Pool{
+		v3Simulator: uniswapv3.NewPoolSimulatorV2(v3Pool, pool.Pool{
 			Info: info,
 		}, defaultGas, tickMin, tickMax),
 		staticExtra: staticExtra,

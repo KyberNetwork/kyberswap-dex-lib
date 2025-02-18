@@ -127,7 +127,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
-func NewPoolSimulator2(
+func NewPoolSimulatorV2(
 	v3Pool *v3Entities.Pool,
 	p pool.Pool,
 	gas Gas,
