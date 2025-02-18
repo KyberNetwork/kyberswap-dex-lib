@@ -10,6 +10,14 @@ type Token struct {
 	ID string `json:"id"`
 }
 
+type PoolKey struct {
+	Currency0   common.Address
+	Currency1   common.Address
+	Fee         uint32
+	TickSpacing int32
+	Hooks       common.Address
+}
+
 type SubgraphPool struct {
 	ID                 string `json:"id"`
 	Token0             Token  `json:"token0"`
@@ -58,4 +66,15 @@ type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`
 	LiquidityNet   *big.Int `json:"liquidityNet"`
+}
+
+type PoolMetaInfo struct {
+	Router      common.Address `json:"router"`
+	Permit2Addr common.Address `json:"permit2Addr"`
+	TokenIn     common.Address `json:"tokenIn"`
+	TokenOut    common.Address `json:"tokenOut"`
+	Fee         int            `json:"fee"`
+	TickSpacing int            `json:"tickSpacing"`
+	HookAddress common.Address `json:"hookAddress"`
+	HookData    []byte         `json:"hookData"`
 }
