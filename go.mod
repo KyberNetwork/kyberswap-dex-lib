@@ -9,7 +9,7 @@ replace github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/unisw
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af
-	github.com/KyberNetwork/aggregator-encoding v0.37.8
+	github.com/KyberNetwork/aggregator-encoding v0.37.9
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
