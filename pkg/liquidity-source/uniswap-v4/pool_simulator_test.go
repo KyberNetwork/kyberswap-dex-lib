@@ -33,7 +33,7 @@ func TestPoolSimulator(t *testing.T) {
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			Amount: uniswapv4.NewBig10("1000000000000000000"),
 		},
-		TokenOut: "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
+		TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
 	})
 	assert.NoError(t, err)
 
