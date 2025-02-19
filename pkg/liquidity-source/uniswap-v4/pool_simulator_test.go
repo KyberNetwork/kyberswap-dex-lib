@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	//go:embed pool_simulator_test_pool_data_20240213.json
+	//go:embed sample_pool.json
 	poolData string
 )
 
