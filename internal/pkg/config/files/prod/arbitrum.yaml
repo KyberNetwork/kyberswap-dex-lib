@@ -111,6 +111,7 @@ common:
     - "lo1inch"
     - "etherfi-ebtc"
     - "uniswap-v4"
+    - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -269,6 +270,7 @@ encoder:
     executeBalancerV3: 62
     executeEtherFieBtc: 63
     executeUniV4: 65
+    executeOvernight: 67
 useCase:
   getRoute:
     chainId: *chainId

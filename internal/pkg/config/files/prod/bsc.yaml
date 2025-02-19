@@ -81,6 +81,7 @@ common:
     - "lo1inch"
     - "thena-fusion-v3"
     - "uniswap-v4"
+    - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

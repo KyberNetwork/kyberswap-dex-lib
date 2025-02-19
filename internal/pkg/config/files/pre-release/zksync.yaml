@@ -50,6 +50,7 @@ common:
     - "woofi-v3"
     - "lo1inch"
     - "hold-fun"
+    - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

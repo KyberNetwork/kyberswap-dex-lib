@@ -60,6 +60,7 @@ common:
     - "native-v1"
     - "woofi-v3"
     - "horizon-integral"
+    - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"

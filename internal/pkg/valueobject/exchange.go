@@ -95,6 +95,7 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 	l1executor.FunctionSelectorBeetsSS.RawName:           {},
 	l1executor.FunctionSelectorEtherFieBTC.RawName:       {},
 	l1executor.FunctionSelectorUniswapV4.RawName:         {},
+	l1executor.FunctionSelectorOvernightUsdp.RawName:     {},
 	l1executor.FunctionSelectorSavingsUSDS.RawName:       {},
 
 	l2executor.FunctionSelectorLimitOrderDS.RawName:      {},
@@ -119,6 +120,7 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 	l2executor.FunctionSelectorVirtualFun.RawName:        {},
 	l2executor.FunctionSelectorEtherFieBTC.RawName:       {},
 	l2executor.FunctionSelectorUniswapV4.RawName:         {},
+	l2executor.FunctionSelectorOvernightUsdp.RawName:     {},
 	l2executor.FunctionSelectorSkyPSM.RawName:            {},
 }
 

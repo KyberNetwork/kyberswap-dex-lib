@@ -46,6 +46,7 @@ common:
     - "blade"
     - "fenix"
     - "uniswap-v4"
+    - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -175,6 +176,7 @@ encoder:
     executeSwaapV2: 38
     executeRingSwap: 56
     executeUniV4: 65
+    executeOvernight: 67
 useCase:
   getRoute:
     chainId: *chainId

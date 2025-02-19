@@ -103,6 +103,7 @@ common:
     - "virtual-fun"
     - "etherfi-ebtc"
     - "uniswap-v4"
+    - "overnight-usdp"
     - "sky-psm"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
@@ -262,6 +263,7 @@ encoder:
     executeEtherFieBtc: 63
     executeUniV4: 65
     executeSkyPSM: 66
+    executeOvernight: 67
 useCase:
   getRoute:
     chainId: *chainId
