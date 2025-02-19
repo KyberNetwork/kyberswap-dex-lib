@@ -24,6 +24,7 @@ func TestPoolSimulator(t *testing.T) {
 	)
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
 
+	t.Log(poolEnt)
 	pSim, err := uniswapv4.NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
@@ -32,7 +33,7 @@ func TestPoolSimulator(t *testing.T) {
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			Amount: uniswapv4.NewBig10("1000000000000000000"),
 		},
-		TokenOut: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+		TokenOut: "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
 	})
 	assert.NoError(t, err)
 

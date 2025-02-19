@@ -11,11 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
-	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
-	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 )
 
 var (
@@ -52,20 +48,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("invalid reserves count: %d, expect: 2", len(entityPool.Reserves))
 	}
 
-	token0 := coreEntities.NewToken(
-		uint(chainID),
-		common.HexToAddress(entityPool.Tokens[0].Address),
-		uint(entityPool.Tokens[0].Decimals),
-		entityPool.Tokens[0].Symbol,
-		entityPool.Tokens[0].Name,
-	)
-	token1 := coreEntities.NewToken(
-		uint(chainID),
-		common.HexToAddress(entityPool.Tokens[1].Address),
-		uint(entityPool.Tokens[1].Decimals),
-		entityPool.Tokens[1].Symbol,
-		entityPool.Tokens[1].Name,
-	)
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 
 	tokens := []string{
@@ -75,24 +57,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	reserves := []*big.Int{
 		NewBig10(entityPool.Reserves[0]),
 		NewBig10(entityPool.Reserves[1]),
-	}
-
-	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
-	for _, tick := range extra.Ticks {
-		if tick.LiquidityGross.Sign() == 0 {
-			continue
-		}
-
-		liqNet := new(utils.Int128)
-		liqNet.SetFromBig(tick.LiquidityNet)
-		v3Ticks = append(v3Ticks, v3Entities.Tick{
-			Index:          tick.Index,
-			LiquidityGross: new(uint256.Int).SetBytes(tick.LiquidityGross.Bytes()),
-			LiquidityNet:   liqNet,
-		})
-	}
-	if len(v3Ticks) == 0 {
-		return nil, fmt.Errorf("empty tick")
 	}
 
 	tickSpacing := int(staticExtra.TickSpacing)
@@ -105,32 +69,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		}
 		tickSpacing = constants.TickSpacings[feeTier]
 	}
-
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
-	if err != nil {
-		return nil, err
-	}
-
-	sqrtPriceX96 := new(utils.Uint160)
-	sqrtPriceX96.SetFromBig(extra.SqrtPriceX96)
-	liq := new(utils.Uint128)
-	liq.SetFromBig(extra.Liquidity)
-
-	v3Pool, err := v3Entities.NewPoolV2(
-		token0,
-		token1,
-		constants.FeeAmount(entityPool.SwapFee),
-		sqrtPriceX96,
-		liq,
-		int(extra.Tick.Int64()),
-		ticks,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	tickMin := v3Ticks[0].Index
-	tickMax := v3Ticks[len(v3Ticks)-1].Index
 
 	var info = pool.PoolInfo{
 		Address:    strings.ToLower(entityPool.Address),
@@ -150,13 +88,16 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Hooks:       staticExtra.HooksAddress,
 	}
 
+	v3Simulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
-		v3Simulator: uniswapv3.NewPoolSimulatorV2(v3Pool, pool.Pool{
-			Info: info,
-		}, defaultGas, tickMin, tickMax),
+		v3Simulator: v3Simulator,
 		staticExtra: staticExtra,
 		IsNative: [2]bool{
 			poolKey.Currency0 == NativeTokenPlaceholderAddress,
