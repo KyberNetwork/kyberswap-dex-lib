@@ -20,4 +20,5 @@ var (
 	NativeTokenPlaceholderAddress   = common.Address{}
 	Q96                             = big.NewInt(1).Lsh(big.NewInt(1), 96)
 	ErrCannotCalcAmountOutDueToHook = errors.New("cannot calculate amount out due to hook")
+	ErrTokenNotFound                = errors.New("token not found")
 )

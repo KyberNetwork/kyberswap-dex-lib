@@ -3,10 +3,10 @@
   "swapFee": 2750,
   "exchange": "uniswap-v4",
   "type": "uniswap-v4",
-  "timestamp": 1739933843,
+  "timestamp": 1739948283,
   "reserves": [
-    "5634811850274338447515",
-    "59979810704425769610555"
+    "5608323466106355174732",
+    "60263098264043789704632"
   ],
   "tokens": [
     {
@@ -22,7 +22,7 @@
       "swappable": true
     }
   ],
-  "extra": "{\"liquidity\":18384094977303341330718,\"sqrtPriceX96\":258489210153227449331475182004,\"tickSpacing\":55,\"tick\":23651,\"ticks\":[{\"index\":21560,\"liquidityGross\":18328360855202686789054,\"liquidityNet\":18328360855202686789054},{\"index\":21780,\"liquidityGross\":3972129387118531629,\"liquidityNet\":3972129387118531629},{\"index\":22000,\"liquidityGross\":47194836144793583882,\"liquidityNet\":47194836144793583882},{\"index\":23045,\"liquidityGross\":4567156568742426153,\"liquidityNet\":4567156568742426153},{\"index\":24805,\"liquidityGross\":3972129387118531629,\"liquidityNet\":-3972129387118531629},{\"index\":24860,\"liquidityGross\":47194836144793583882,\"liquidityNet\":-47194836144793583882},{\"index\":25080,\"liquidityGross\":18328360855202686789054,\"liquidityNet\":-18328360855202686789054},{\"index\":25245,\"liquidityGross\":4567156568742426153,\"liquidityNet\":-4567156568742426153}]}",
+  "extra": "{\"liquidity\":18384094977303341330718,\"sqrtPriceX96\":259710067249505249251811150372,\"tickSpacing\":55,\"tick\":23745,\"ticks\":[{\"index\":21560,\"liquidityGross\":18328360855202686789054,\"liquidityNet\":18328360855202686789054},{\"index\":21780,\"liquidityGross\":3972129387118531629,\"liquidityNet\":3972129387118531629},{\"index\":22000,\"liquidityGross\":47194836144793583882,\"liquidityNet\":47194836144793583882},{\"index\":23045,\"liquidityGross\":4567156568742426153,\"liquidityNet\":4567156568742426153},{\"index\":24805,\"liquidityGross\":3972129387118531629,\"liquidityNet\":-3972129387118531629},{\"index\":24860,\"liquidityGross\":47194836144793583882,\"liquidityNet\":-47194836144793583882},{\"index\":25080,\"liquidityGross\":18328360855202686789054,\"liquidityNet\":-18328360855202686789054},{\"index\":25245,\"liquidityGross\":4567156568742426153,\"liquidityNet\":-4567156568742426153}]}",
   "staticExtra": "{\"poolId\":\"0xd3a88a5397e0446db33fbaf631e2a4c46ddc4c743ed2c52ba52a74b4084a472c\",\"currency0\":\"0x0000000000000000000000000000000000000000\",\"currency1\":\"0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9\",\"fee\":2750,\"tickSpacing\":55,\"hooksAddress\":\"0x0000000000000000000000000000000000000000\",\"universalRouterAddress\":\"0x66a9893cc07d91d95644aedd05d03f95e1dba8af\",\"permit2Address\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"multicall3Address\":\"0xca11bde05977b3631167028862be2a173976ca11\"}",
-  "blockNumber": 21877577
+  "blockNumber": 21878769
 }

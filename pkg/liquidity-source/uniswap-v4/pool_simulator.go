@@ -11,7 +11,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -27,6 +31,7 @@ type PoolSimulator struct {
 
 	v3Simulator *uniswapv3.PoolSimulator
 	staticExtra StaticExtra
+	chainId     valueobject.ChainID
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
@@ -59,6 +64,51 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		NewBig10(entityPool.Reserves[1]),
 	}
 
+	var info = pool.PoolInfo{
+		Address:    strings.ToLower(entityPool.Address),
+		ReserveUsd: entityPool.ReserveUsd,
+		SwapFee:    swapFee,
+		Exchange:   entityPool.Exchange,
+		Type:       entityPool.Type,
+		Tokens:     tokens,
+		Reserves:   reserves,
+	}
+
+	token0 := coreEntities.NewToken(
+		uint(chainID),
+		// if token0 is native, we will store 0x0 instead of weth into v3Pool
+		common.HexToAddress(staticExtra.Currency0),
+		uint(entityPool.Tokens[0].Decimals),
+		entityPool.Tokens[0].Symbol,
+		entityPool.Tokens[0].Name,
+	)
+	token1 := coreEntities.NewToken(
+		uint(chainID),
+		// if token1 is native, we will store 0x0 instead of weth into v3Pool
+		common.HexToAddress(staticExtra.Currency1),
+		uint(entityPool.Tokens[1].Decimals),
+		entityPool.Tokens[1].Symbol,
+		entityPool.Tokens[1].Name,
+	)
+
+	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
+	for _, tick := range extra.Ticks {
+		if tick.LiquidityGross.Sign() == 0 {
+			continue
+		}
+
+		liqNet := new(utils.Int128)
+		liqNet.SetFromBig(tick.LiquidityNet)
+		v3Ticks = append(v3Ticks, v3Entities.Tick{
+			Index:          tick.Index,
+			LiquidityGross: new(uint256.Int).SetBytes(tick.LiquidityGross.Bytes()),
+			LiquidityNet:   liqNet,
+		})
+	}
+	if len(v3Ticks) == 0 {
+		return nil, fmt.Errorf("empty tick")
+	}
+
 	tickSpacing := int(staticExtra.TickSpacing)
 	// For some pools that not yet initialized tickSpacing in their extra,
 	// we will get the tickSpacing through feeTier mapping.
@@ -70,15 +120,31 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		tickSpacing = constants.TickSpacings[feeTier]
 	}
 
-	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
+	if err != nil {
+		return nil, err
 	}
+
+	sqrtPriceX96 := new(utils.Uint160)
+	sqrtPriceX96.SetFromBig(extra.SqrtPriceX96)
+	liq := new(utils.Uint128)
+	liq.SetFromBig(extra.Liquidity)
+
+	v3Pool, err := v3Entities.NewPoolV2(
+		token0,
+		token1,
+		constants.FeeAmount(entityPool.SwapFee),
+		sqrtPriceX96,
+		liq,
+		int(extra.Tick.Int64()),
+		ticks,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	tickMin := v3Ticks[0].Index
+	tickMax := v3Ticks[len(v3Ticks)-1].Index
 
 	poolKey := PoolKey{
 		Currency0:   common.HexToAddress(staticExtra.Currency0),
@@ -88,16 +154,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Hooks:       staticExtra.HooksAddress,
 	}
 
-	v3Simulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
-	if err != nil {
-		return nil, err
-	}
-
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
-		v3Simulator: v3Simulator,
+		v3Simulator: uniswapv3.NewPoolSimulatorV2(v3Pool, pool.Pool{
+			Info: info,
+		}, defaultGas, tickMin, tickMax),
 		staticExtra: staticExtra,
 		IsNative: [2]bool{
 			poolKey.Currency0 == NativeTokenPlaceholderAddress,
@@ -107,11 +170,21 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		PoolKey:   poolKey,
 	}, nil
 }
-
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	// if this pool has hook which affect swap result, return err
 	if HasSwapPermissions(p.staticExtra.HooksAddress.String()) {
 		return nil, ErrCannotCalcAmountOutDueToHook
+	}
+
+	// the input params token may be WETH, but actually those are native eth, so we need to check and convert if possible
+	var err error
+	param.TokenAmountIn.Token, err = p.convertWETHToNative(param.TokenAmountIn.Token)
+	if err != nil {
+		return nil, err
+	}
+	param.TokenOut, err = p.convertWETHToNative(param.TokenOut)
+	if err != nil {
+		return nil, err
 	}
 
 	return p.v3Simulator.CalcAmountOut(param)
@@ -158,4 +231,19 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		HookAddress: p.staticExtra.HooksAddress,
 		HookData:    []byte{},
 	}
+}
+
+// convertWETHToNative : actually if token[i] == WETH and p.IsNative[i] == true, then return nativeETH
+// then return nativeETH, else return tokenAddress
+func (p *PoolSimulator) convertWETHToNative(tokenAddress string) (string, error) {
+	tokenIndex := p.GetTokenIndex(tokenAddress)
+	if tokenIndex == -1 || tokenIndex >= len(p.IsNative) {
+		return "", ErrTokenNotFound
+	}
+
+	if valueobject.IsWrappedNative(tokenAddress, p.chainId) && (p.IsNative[tokenIndex]) {
+		return NativeTokenPlaceholderAddress.String(), nil
+	}
+
+	return tokenAddress, nil
 }
