@@ -119,7 +119,7 @@ func (s *PoolSimulator) mint(amountIn *big.Int) *big.Int {
 			nil,
 		)
 
-		return new(big.Int).Mul(amountIn, divisor)
+		return new(big.Int).Div(amountIn, divisor)
 	}
 
 	divisor = divisor.Exp(
@@ -128,7 +128,7 @@ func (s *PoolSimulator) mint(amountIn *big.Int) *big.Int {
 		nil,
 	)
 
-	return new(big.Int).Div(amountIn, divisor)
+	return new(big.Int).Mul(amountIn, divisor)
 }
 
 func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
@@ -142,7 +142,7 @@ func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
 			nil,
 		)
 
-		return amountOut.Div(amountIn, divisor)
+		return amountOut.Mul(amountIn, divisor)
 	}
 	divisor = divisor.Exp(
 		bignumber.Ten,
@@ -150,5 +150,5 @@ func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
 		nil,
 	)
 
-	return amountOut.Mul(amountIn, divisor)
+	return amountOut.Div(amountIn, divisor)
 }
