@@ -9,4 +9,9 @@ type Config struct {
 	Multicall3Address      string `json:"multicall3Address"`
 	StateViewAddress       string `json:"stateViewAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
+	AllowSubgraphError     bool   `json:"allowSubgraphError"`
+}
+
+func (c *Config) IsAllowSubgraphError() bool {
+	return c.AllowSubgraphError
 }

@@ -8,14 +8,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type (
@@ -59,17 +57,38 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	subgraphPools = lo.Filter(subgraphPools, func(p SubgraphPool, _ int) bool {
-		return p.PoolId != metadata.LastProcessedPoolId
-	})
+	// Currently disable filter which will lead to dup process getnewpools, but it's oke
+	// If we enable, we have to change logic of for loop in pool-service where "len(poolsList) < newPoolLimit"
+
+	// subgraphPools = lo.Filter(subgraphPools, func(p SubgraphPool, _ int) bool {
+	//	return p.ID != metadata.LastProcessedPoolId
+	// })
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
+		token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+		token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
 		tokens := []*entity.PoolToken{
-			{Address: p.Currency0, Swappable: true},
-			{Address: p.Currency1, Swappable: true},
+			{
+				Address:   p.Token0.ID,
+				Swappable: true,
+				Decimals:  uint8(token0Decimals),
+				Name:      p.Token0.Name,
+			},
+			{
+				Address:   p.Token1.ID,
+				Swappable: true,
+				Decimals:  uint8(token1Decimals),
+				Name:      p.Token1.Name,
+			},
 		}
 		for idx, token := range tokens {
 			if token.Address == EMPTY_ADDRESS {
@@ -77,12 +96,22 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
+		tickSpacing, err := strconv.Atoi(p.TickSpacing)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
+		fee, err := strconv.Atoi(p.Fee)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
 		staticExtra := StaticExtra{
-			PoolId:      p.PoolId,
-			Currency0:   p.Currency0,
-			Currency1:   p.Currency1,
-			Fee:         p.Fee,
-			TickSpacing: p.TickSpacing,
+			PoolId:      p.ID,
+			Currency0:   p.Token0.ID,
+			Currency1:   p.Token1.ID,
+			Fee:         fee,
+			TickSpacing: tickSpacing,
 
 			HooksAddress:           common.HexToAddress(p.Hooks),
 			UniversalRouterAddress: common.HexToAddress(u.config.UniversalRouterAddress),
@@ -96,7 +125,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		pool := entity.Pool{
-			Address:     p.PoolId,
+			Address:     p.ID,
 			Tokens:      tokens,
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Exchange:    u.config.DexID,
@@ -104,19 +133,20 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 			Timestamp:   time.Now().Unix(),
+			SwapFee:     float64(fee),
 		}
 		pools = append(pools, pool)
 	}
 
 	// Update metadata
 	if len(subgraphPools) > 0 {
-		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].BlockTimestamp)
+		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].CreatedAtTimestamp)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
 		metadata.LastCreatedAtTimestamp = lastCreatedAtTimestamp
-		metadata.LastProcessedPoolId = subgraphPools[len(subgraphPools)-1].PoolId
+		metadata.LastProcessedPoolId = subgraphPools[len(subgraphPools)-1].ID
 		metadataBytes, err = json.Marshal(metadata)
 		if err != nil {
 			return nil, metadataBytes, err
