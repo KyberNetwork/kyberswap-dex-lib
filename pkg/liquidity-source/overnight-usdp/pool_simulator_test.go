@@ -36,7 +36,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				buyFee:          bignumber.Ten,
 				redeemFee:       bignumber.Ten,
 				usdPlusDecimals: 6,
-				assetDecimals:   6,
+				assetDecimals:   18,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -45,7 +45,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				TokenOut: "0xB79DD08EA68A908A97220C76d19A6aA9cBDE4376",
 			},
-			expectedAmountOut: bignumber.NewBig("999900000"),
+			expectedAmountOut: bignumber.NewBig("999900000000000000000"),
 		},
 		{
 			name: "Redeem USDC from USD+",
