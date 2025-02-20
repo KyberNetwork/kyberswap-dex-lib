@@ -806,8 +806,9 @@ func IsRFQSource(exchange Exchange) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeClipper: {},
-	ExchangeBebop:   {},
+	ExchangeClipper:       {},
+	ExchangeBebop:         {},
+	ExchangeOvernightUsdp: {},
 }
 
 func IsSingleSwapSource(exchange Exchange) bool {
