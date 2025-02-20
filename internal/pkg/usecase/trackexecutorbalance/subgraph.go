@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/machinebox/graphql"
+
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func fetchNewExecutorExchangeEvents(
@@ -17,10 +19,16 @@ func fetchNewExecutorExchangeEvents(
 	var exchangeEvents []ExchangeEvent
 	var pageIndex int
 	for {
-		req := graphql.NewRequest(getExecutorExchangeEventsQuery(executorAddress, lastBlockNumber, pageIndex*graphQLPageSize))
+		req := graphql.NewRequest(getExecutorExchangeEventsQuery(executorAddress, lastBlockNumber,
+			pageIndex*graphQLPageSize))
 		var res SubgraphAggregatorResponse
 		if err := aggregatorGraphQLClient.Run(ctx, req, &res); err != nil {
-			return nil, err
+			logger.WithFields(ctx, logger.Fields{
+				"executor":        executorAddress,
+				"lastBlockNumber": lastBlockNumber,
+				"pageIndex":       pageIndex,
+			}).Warn("Fetch Exchange events from executor")
+			break
 		}
 		exchangeEvents = append(exchangeEvents, res.ExecutorExchanges...)
 
