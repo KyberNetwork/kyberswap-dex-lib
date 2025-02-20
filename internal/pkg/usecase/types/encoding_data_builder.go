@@ -11,7 +11,6 @@ import (
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/goccy/go-json"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -208,7 +207,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 
 	for pathIdx, path := range route {
 		for swapIdx, swap := range path {
-			if !valueobject.IsApproveMaxExchange(valueobject.Exchange(swap.Exchange)) {
+			if !valueobject.IsApproveMaxExchange(swap.Exchange) {
 				continue
 			}
 			approveAddress, err := getAddressToApproveMax(swap)
@@ -293,7 +292,7 @@ func transformRoute(route [][]valueobject.Swap) [][]types.EncodingSwap {
 				SwapAmount:        swap.SwapAmount,
 				AmountOut:         swap.AmountOut,
 				LimitReturnAmount: swap.LimitReturnAmount,
-				Exchange:          dexValueObject.Exchange(swap.Exchange),
+				Exchange:          swap.Exchange,
 				PoolLength:        swap.PoolLength,
 				PoolType:          swap.PoolType,
 				PoolExtra:         swap.PoolExtra,
@@ -327,7 +326,7 @@ func getRecipient(
 		return executorAddress
 	}
 
-	if business.CanReceiveTokenBeforeSwap(valueobject.Exchange(curSwap.Exchange)) && business.CanReceiveTokenBeforeSwap(valueobject.Exchange(nextSwap.Exchange)) {
+	if valueobject.CanReceiveTokenBeforeSwap(curSwap.Exchange) && valueobject.CanReceiveTokenBeforeSwap(nextSwap.Exchange) {
 		return nextSwap.Pool
 	}
 
@@ -343,7 +342,7 @@ func getCollectAmount(
 		return types.ZeroCollectAmount
 	}
 
-	if business.CanReceiveTokenBeforeSwap(valueobject.Exchange(prevSwap.Exchange)) && business.CanReceiveTokenBeforeSwap(valueobject.Exchange(curSwap.Exchange)) {
+	if valueobject.CanReceiveTokenBeforeSwap(prevSwap.Exchange) && valueobject.CanReceiveTokenBeforeSwap(curSwap.Exchange) {
 		return types.ZeroCollectAmount
 	}
 
@@ -363,7 +362,7 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 			return false
 		}
 
-		if !business.CanReceiveTokenBeforeSwap(path[0].Exchange) {
+		if !valueobject.CanReceiveTokenBeforeSwap(path[0].Exchange) {
 			return false
 		}
 	}
@@ -372,7 +371,7 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 }
 
 func getAddressToApproveMax(swap types.EncodingSwap) (string, error) {
-	switch valueobject.Exchange(swap.Exchange) {
+	switch swap.Exchange {
 	case
 		dexValueObject.ExchangeBalancerV2Weighted,
 		dexValueObject.ExchangeBalancerV2Stable,

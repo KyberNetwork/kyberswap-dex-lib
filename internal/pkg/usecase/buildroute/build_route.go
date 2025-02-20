@@ -196,8 +196,8 @@ func (uc *BuildRouteUseCase) rfq(
 
 			var rfqRecipient string
 			if swapIdx < len(path)-1 &&
-				business.CanReceiveTokenBeforeSwap(path[swapIdx+1].Exchange) &&
-				business.CanReceiveTokenBeforeSwap(swap.Exchange) {
+				valueobject.CanReceiveTokenBeforeSwap(path[swapIdx+1].Exchange) &&
+				valueobject.CanReceiveTokenBeforeSwap(swap.Exchange) {
 				// NOTE: We also need to ensure that current swap
 				// can receive token before swap due to smart contract logic
 
