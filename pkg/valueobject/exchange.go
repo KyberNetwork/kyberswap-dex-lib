@@ -352,6 +352,8 @@ var (
 	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
 	ExchangeKinetixV2    Exchange = "kinetix-v2"
 	ExchangeKinetixV3    Exchange = "kinetix-v3"
+	Exchange9mmProV2     Exchange = "9mm-pro-v2"
+	Exchange9mmProV3     Exchange = "9mm-pro-v3"
 
 	ExchangeAlienBaseDegen Exchange = "alien-base-degen"
 	ExchangeKoiCL          Exchange = "koi-cl"
@@ -710,6 +712,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseCL:                {},
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
+	Exchange9mmProV2:                   {},
+	Exchange9mmProV3:                   {},
 	ExchangeAlienBaseDegen:             {},
 	ExchangeKoiCL:                      {},
 	ExchangeTokan:                      {},

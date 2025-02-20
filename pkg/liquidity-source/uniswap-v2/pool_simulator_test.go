@@ -6,12 +6,22 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+var (
+	poolEncoded = `{"address":"0x9eb0bc7a207f77811ee365729d00152622a745b7","exchange":"pancake","type":"uniswap-v2","timestamp":1739501947,"reserves":["5789592094546501478373016","793623036600773033475"],"tokens":[{"address":"0x6d5ad1592ed9d6d1df9b93c793ab759573ed6714","name":"","symbol":"","decimals":0,"weight":0,"swappable":true},{"address":"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c","name":"","symbol":"","decimals":0,"weight":0,"swappable":true}],"extra":"{\"fee\":25,\"feePrecision\":10000}"}`
+	poolEntity  entity.Pool
+	_           = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
+	poolSim     = lo.Must(NewPoolSimulator(poolEntity))
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -154,6 +164,8 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			}
 		})
 	}
+
+	testutil.TestCalcAmountIn(t, poolSim)
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
