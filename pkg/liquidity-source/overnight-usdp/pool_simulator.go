@@ -118,15 +118,17 @@ func (s *PoolSimulator) mint(amountIn *big.Int) *big.Int {
 			big.NewInt(s.assetDecimals-s.usdPlusDecimals),
 			nil,
 		)
-	} else {
-		divisor = divisor.Exp(
-			bignumber.Ten,
-			big.NewInt(s.usdPlusDecimals-s.assetDecimals),
-			nil,
-		)
+
+		return new(big.Int).Mul(amountIn, divisor)
 	}
 
-	return new(big.Int).Mul(amountIn, divisor)
+	divisor = divisor.Exp(
+		bignumber.Ten,
+		big.NewInt(s.usdPlusDecimals-s.assetDecimals),
+		nil,
+	)
+
+	return new(big.Int).Div(amountIn, divisor)
 }
 
 func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
@@ -139,13 +141,14 @@ func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
 			big.NewInt(s.assetDecimals-s.usdPlusDecimals),
 			nil,
 		)
-	} else {
-		divisor = divisor.Exp(
-			bignumber.Ten,
-			big.NewInt(s.usdPlusDecimals-s.assetDecimals),
-			nil,
-		)
+
+		return amountOut.Div(amountIn, divisor)
 	}
+	divisor = divisor.Exp(
+		bignumber.Ten,
+		big.NewInt(s.usdPlusDecimals-s.assetDecimals),
+		nil,
+	)
 
 	return amountOut.Mul(amountIn, divisor)
 }
