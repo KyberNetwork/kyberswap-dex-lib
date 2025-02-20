@@ -58,6 +58,7 @@ var (
 	ExchangeBlastDex        Exchange = "blastdex"
 	ExchangeHyperBlast      Exchange = "hyper-blast"
 	ExchangeSquadSwap       Exchange = "squadswap"
+	ExchangeSquadSwapV3     Exchange = "squadswap-v3"
 	ExchangeLiquidusFinance Exchange = "liquidus-finance"
 
 	ExchangeOneSwap    Exchange = "oneswap"
@@ -686,6 +687,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLynexV1:                    {},
 	ExchangeSkydromeV2:                 {},
 	ExchangeSquadSwap:                  {},
+	ExchangeSquadSwapV3:                {},
 	ExchangeMerchantMoeV22:             {},
 	ExchangeLiquidusFinance:            {},
 	ExchangeNomiswapStable:             {},
