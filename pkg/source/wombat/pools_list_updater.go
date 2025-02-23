@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -111,6 +112,16 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			continue
 		}
 
+		extraByte, err := json.Marshal(Extra{
+			AssetMap: lo.SliceToMap(p.Assets, func(item AssetSubgraph) (string, Asset) {
+				return item.ID, Asset{Address: item.ID}
+			}),
+			DependenciesStored: true,
+		})
+		if err != nil {
+			return nil, lastCreateTime, err
+		}
+
 		var newPool = entity.Pool{
 			Address:   p.ID,
 			Exchange:  d.config.DexID,
@@ -118,6 +129,7 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			Timestamp: time.Now().Unix(),
 			Reserves:  reserves,
 			Tokens:    tokens,
+			Extra:     string(extraByte),
 		}
 
 		pools = append(pools, newPool)
@@ -220,4 +232,16 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 	}
 
 	return PoolTypeWombatMain, nil
+}
+
+func (d *PoolsListUpdater) GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error) {
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return lo.MapToSlice(extra.AssetMap, func(_ string, asset Asset) string {
+		return asset.Address
+	}), extra.DependenciesStored, nil
 }

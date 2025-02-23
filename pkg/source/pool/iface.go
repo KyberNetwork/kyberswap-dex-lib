@@ -21,6 +21,10 @@ type IPoolsListUpdater interface {
 	GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error)
 }
 
+type IPoolsListUpdaterWithDependencies interface {
+	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
+}
+
 type GetNewPoolStateParams struct {
 	Logs []types.Log
 }
@@ -36,6 +40,10 @@ type IPoolTrackerWithOverrides interface {
 
 type IPoolTracker interface {
 	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
+}
+
+type IPoolTrackerWithDependencies interface {
+	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
 }
 
 type IPoolSimulator interface {

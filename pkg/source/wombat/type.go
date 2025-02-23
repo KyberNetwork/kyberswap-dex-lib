@@ -3,12 +3,13 @@ package wombat
 import "math/big"
 
 type Extra struct {
-	Paused        bool             `json:"paused"`
-	HaircutRate   *big.Int         `json:"haircutRate"`
-	AmpFactor     *big.Int         `json:"ampFactor"`
-	StartCovRatio *big.Int         `json:"startCovRatio"`
-	EndCovRatio   *big.Int         `json:"endCovRatio"`
-	AssetMap      map[string]Asset `json:"assetMap"`
+	Paused             bool             `json:"paused"`
+	HaircutRate        *big.Int         `json:"haircutRate"`
+	AmpFactor          *big.Int         `json:"ampFactor"`
+	StartCovRatio      *big.Int         `json:"startCovRatio"`
+	EndCovRatio        *big.Int         `json:"endCovRatio"`
+	AssetMap           map[string]Asset `json:"assetMap"`
+	DependenciesStored bool             `json:dependenciesStored`
 }
 
 type Asset struct {

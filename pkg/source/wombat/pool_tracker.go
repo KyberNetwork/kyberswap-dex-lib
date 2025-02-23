@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -192,12 +193,13 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	extraByte, err := json.Marshal(Extra{
-		Paused:        paused,
-		HaircutRate:   haircutRate,
-		AmpFactor:     ampFactor,
-		StartCovRatio: startCovRatio,
-		EndCovRatio:   endcovRatio,
-		AssetMap:      assetMap,
+		Paused:             paused,
+		HaircutRate:        haircutRate,
+		AmpFactor:          ampFactor,
+		StartCovRatio:      startCovRatio,
+		EndCovRatio:        endcovRatio,
+		AssetMap:           assetMap,
+		DependenciesStored: true,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -219,4 +221,16 @@ func (d *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+func (d *PoolTracker) GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error) {
+	var extra Extra
+	err := json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return lo.MapToSlice(extra.AssetMap, func(_ string, asset Asset) string {
+		return asset.Address
+	}), extra.DependenciesStored, nil
 }
