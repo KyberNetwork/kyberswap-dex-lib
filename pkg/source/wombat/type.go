@@ -9,7 +9,7 @@ type Extra struct {
 	StartCovRatio      *big.Int         `json:"startCovRatio"`
 	EndCovRatio        *big.Int         `json:"endCovRatio"`
 	AssetMap           map[string]Asset `json:"assetMap"`
-	DependenciesStored bool             `json:dependenciesStored`
+	DependenciesStored bool             `json:"dependenciesStored"`
 }
 
 type Asset struct {
