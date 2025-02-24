@@ -41,6 +41,7 @@ common:
     - "silverswap"
     - "sboom"
     - "dyor-swap"
+    - "defive"
     - "beets-ss"
     - "woofi-v3"
     - "swap-x-v2"
