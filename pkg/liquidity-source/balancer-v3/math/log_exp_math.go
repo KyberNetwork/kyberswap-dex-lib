@@ -168,7 +168,7 @@ func Ln36(x *int256.Int) (*int256.Int, error) {
 	z := new(int256.Int).Quo(numerator, denominator)
 
 	// z_squared = (z * z) / ONE_36
-	zSquared := new(int256.Int).Pow(z, 2)
+	zSquared := new(int256.Int).Mul(z, z)
 	zSquared.Quo(zSquared, iONE_E36)
 
 	num := new(int256.Int).Set(z)
