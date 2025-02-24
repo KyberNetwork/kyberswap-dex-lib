@@ -169,9 +169,6 @@ func Ln36(x *int256.Int) (*int256.Int, error) {
 
 	// z_squared = (z * z) / ONE_36
 	zSquared := new(int256.Int).Pow(z, 2)
-	if overflow {
-		return nil, ErrMulOverflow
-	}
 	zSquared.Quo(zSquared, iONE_E36)
 
 	num := new(int256.Int).Set(z)
