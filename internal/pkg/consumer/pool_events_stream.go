@@ -90,7 +90,6 @@ func (c *PoolEventsStreamConsumer) Consume(ctx context.Context, handler Handler[
 					"msg.id":   msg.ID,
 				},
 			).Error("handler failed")
-			continue
 		}
 
 		consumerGroup.Ack(msg)
