@@ -52,6 +52,7 @@ common:
     - "curve-tricrypto-ng"
     - "curve-twocrypto-ng"
     - "navigator"
+    - "amped"
     - "memebox"
     - "shadow-legacy"
     - "overnight-usdp"
