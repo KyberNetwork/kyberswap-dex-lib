@@ -90,7 +90,7 @@ func Pow(x, y *uint256.Int) (*uint256.Int, error) {
 	y_int256 := i256.SafeToInt256(y)
 
 	var (
-		logx_times_y *int256.Int
+		logx_times_y = new(int256.Int)
 		overflow     bool
 	)
 
@@ -168,10 +168,7 @@ func Ln36(x *int256.Int) (*int256.Int, error) {
 	z := new(int256.Int).Quo(numerator, denominator)
 
 	// z_squared = (z * z) / ONE_36
-	zSquared, overflow := new(int256.Int).MulOverflow(z, z)
-	if overflow {
-		return nil, ErrMulOverflow
-	}
+	zSquared := new(int256.Int).Mul(z, z)
 	zSquared.Quo(zSquared, iONE_E36)
 
 	num := new(int256.Int).Set(z)

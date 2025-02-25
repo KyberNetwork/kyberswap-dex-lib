@@ -406,6 +406,7 @@ var (
 	ExchangeSwapXV2          Exchange = "swap-x-v2"
 	ExchangeMemeBox          Exchange = "memebox"
 	ExchangeShadowLegacy     Exchange = "shadow-legacy"
+	ExchangeDeFive           Exchange = "defive"
 
 	ExchangeKodiakV2                 Exchange = "kodiak-v2"
 	ExchangeKodiakV3                 Exchange = "kodiak-v3"
@@ -761,6 +762,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwapXV2:                    {},
 	ExchangeMemeBox:                    {},
 	ExchangeShadowLegacy:               {},
+	ExchangeDeFive:                     {},
 	ExchangeKodiakV2:                   {},
 	ExchangeKodiakV3:                   {},
 	ExchangeBeraSwapWeighted:           {},

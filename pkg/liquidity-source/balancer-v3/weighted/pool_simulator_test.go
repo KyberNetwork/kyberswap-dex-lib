@@ -244,6 +244,43 @@ func TestCalcAmountOut(t *testing.T) {
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
 	})
+
+	t.Run("6. should return OK", func(t *testing.T) {
+		poolStr := `{"address":"0x2c6c34a046ae1bfb5543ffd32745cc5e2ac7fb34","exchange":"balancer-v3-weighted","type":"balancer-v3-weighted","timestamp":1740366843,"reserves":["92522708649454779998815","360573774832263481"],"tokens":[{"address":"0x3082cc23568ea640225c2467653db90e9250aaa0","weight":1,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","weight":1,"swappable":true}],"extra":"{\"hooksConfig\":{\"enableHookAdjustedAmounts\":false,\"shouldCallComputeDynamicSwapFee\":false,\"shouldCallBeforeSwap\":false,\"shouldCallAfterSwap\":false},\"staticSwapFeePercentage\":\"5000000000000000\",\"aggregateSwapFeePercentage\":\"0\",\"normalizedWeights\":[\"750000000000000000\",\"250000000000000000\"],\"balancesLiveScaled18\":[\"92522708649454779998815\",\"360573774832263481\"],\"decimalScalingFactors\":[\"1\",\"1\"],\"tokenRates\":[\"1000000000000000000\",\"1000000000000000000\"],\"isVaultPaused\":false,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false}","staticExtra":"{\"vault\":\"0xba1333333333a1ba1108e8412f11850a5c319ba9\",\"defaultHook\":\"\",\"isPoolInitialized\":true}","blockNumber":309271722}`
+
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolStr), &pool)
+		assert.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+
+		amountIn, _ := new(big.Int).SetString("1000000000000000000", 10)
+
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0x3082cc23568ea640225c2467653db90e9250aaa0",
+			Amount: amountIn,
+		}
+		tokenOut := "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+
+		// expected
+		expectedAmountOut := "11632707084358"
+		expectedSwapFee := "5000000000000000"
+
+		// actual
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
+	})
 }
 
 func TestCalcAmountIn(t *testing.T) {
