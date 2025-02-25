@@ -58,7 +58,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}
 
 	staticExtraBytes, err := json.Marshal(&StaticExtra{
-		Exchange:        u.config.Exchange,
 		AssetDecimals:   int64(usdcDecimals),
 		UsdPlusDecimals: int64(usdPlusDecimals),
 	})

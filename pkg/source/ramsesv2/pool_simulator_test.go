@@ -24,16 +24,16 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		out               string
 		expectedOutAmount int64
 	}{
-		{token0, 1000000000000000000, token1, 1172208},
+		{token0, 1000000000000000000, token1, 486457},
 	}
 	p, err := NewPoolSimulator(
 		entity.Pool{
 			Exchange: "ramses-v2",
 			Type:     "ramses-v2",
 			SwapFee:  500,
-			Reserves: entity.PoolReserves{"269329183753846211200", "526169379"},
+			Reserves: entity.PoolReserves{"69893656923366160706", "2169623"},
 			Tokens:   []*entity.PoolToken{{Address: token0, Decimals: 18}, {Address: token1, Decimals: 6}},
-			Extra:    "{\"liquidity\":4360306776077439,\"sqrtPriceX96\":85811322860530180084948,\"feeTier\":500,\"tickSpacing\":10,\"tick\":-274728,\"ticks\":[{\"index\":-283380,\"liquidityGross\":17166285019404,\"liquidityNet\":17166285019404},{\"index\":-279780,\"liquidityGross\":977381896105089,\"liquidityNet\":977381896105089},{\"index\":-278630,\"liquidityGross\":157248791282830,\"liquidityNet\":157248791282830},{\"index\":-278550,\"liquidityGross\":7351763429974,\"liquidityNet\":7351763429974},{\"index\":-276800,\"liquidityGross\":380989062434636,\"liquidityNet\":380989062434636},{\"index\":-276680,\"liquidityGross\":1196219220219038,\"liquidityNet\":1196219220219038},{\"index\":-276330,\"liquidityGross\":7351763429974,\"liquidityNet\":-7351763429974},{\"index\":-276170,\"liquidityGross\":294632869974088,\"liquidityNet\":294632869974088},{\"index\":-276070,\"liquidityGross\":826497613613152,\"liquidityNet\":826497613613152},{\"index\":-275100,\"liquidityGross\":510171037429202,\"liquidityNet\":510171037429202},{\"index\":-274550,\"liquidityGross\":157248791282830,\"liquidityNet\":-157248791282830},{\"index\":-274500,\"liquidityGross\":510171037429202,\"liquidityNet\":-510171037429202},{\"index\":-274170,\"liquidityGross\":1196219220219038,\"liquidityNet\":-1196219220219038},{\"index\":-274030,\"liquidityGross\":294632869974088,\"liquidityNet\":-294632869974088},{\"index\":-273320,\"liquidityGross\":826497613613152,\"liquidityNet\":-826497613613152},{\"index\":-272280,\"liquidityGross\":380989062434636,\"liquidityNet\":-380989062434636},{\"index\":-271750,\"liquidityGross\":977381896105089,\"liquidityNet\":-977381896105089},{\"index\":-269510,\"liquidityGross\":17166285019404,\"liquidityNet\":-17166285019404}]}",
+			Extra:    "{\"liquidity\":481329773989005,\"sqrtPriceX96\":55312754561266099398800,\"feeTier\":500,\"tickSpacing\":10,\"tick\":-283511,\"ticks\":[{\"index\":-887270,\"liquidityGross\":106514621957,\"liquidityNet\":106514621957},{\"index\":-283610,\"liquidityGross\":312504599701008,\"liquidityNet\":312504599701008},{\"index\":-283580,\"liquidityGross\":168718659666040,\"liquidityNet\":168718659666040},{\"index\":-283380,\"liquidityGross\":17166285019404,\"liquidityNet\":17166285019404},{\"index\":-282780,\"liquidityGross\":481223259367048,\"liquidityNet\":-481223259367048},{\"index\":-278550,\"liquidityGross\":7351763429974,\"liquidityNet\":7351763429974},{\"index\":-276330,\"liquidityGross\":7351763429974,\"liquidityNet\":-7351763429974},{\"index\":-276170,\"liquidityGross\":294632869974088,\"liquidityNet\":294632869974088},{\"index\":-275820,\"liquidityGross\":22619085245,\"liquidityNet\":22619085245},{\"index\":-274030,\"liquidityGross\":294632869974088,\"liquidityNet\":-294632869974088},{\"index\":-269510,\"liquidityGross\":17166285019404,\"liquidityNet\":-17166285019404},{\"index\":887270,\"liquidityGross\":129133707202,\"liquidityNet\":-129133707202}],\"unlocked\":true}",
 		}, 1)
 	require.Nil(t, err)
 

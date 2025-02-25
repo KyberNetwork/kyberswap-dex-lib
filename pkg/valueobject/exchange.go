@@ -58,6 +58,7 @@ var (
 	ExchangeBlastDex        Exchange = "blastdex"
 	ExchangeHyperBlast      Exchange = "hyper-blast"
 	ExchangeSquadSwap       Exchange = "squadswap"
+	ExchangeSquadSwapV3     Exchange = "squadswap-v3"
 	ExchangeLiquidusFinance Exchange = "liquidus-finance"
 
 	ExchangeOneSwap    Exchange = "oneswap"
@@ -352,6 +353,8 @@ var (
 	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
 	ExchangeKinetixV2    Exchange = "kinetix-v2"
 	ExchangeKinetixV3    Exchange = "kinetix-v3"
+	Exchange9mmProV2     Exchange = "9mm-pro-v2"
+	Exchange9mmProV3     Exchange = "9mm-pro-v3"
 
 	ExchangeAlienBaseDegen Exchange = "alien-base-degen"
 	ExchangeKoiCL          Exchange = "koi-cl"
@@ -403,6 +406,7 @@ var (
 	ExchangeSwapXV2          Exchange = "swap-x-v2"
 	ExchangeMemeBox          Exchange = "memebox"
 	ExchangeShadowLegacy     Exchange = "shadow-legacy"
+	ExchangeDeFive           Exchange = "defive"
 
 	ExchangeKodiakV2                 Exchange = "kodiak-v2"
 	ExchangeKodiakV3                 Exchange = "kodiak-v3"
@@ -684,6 +688,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLynexV1:                    {},
 	ExchangeSkydromeV2:                 {},
 	ExchangeSquadSwap:                  {},
+	ExchangeSquadSwapV3:                {},
 	ExchangeMerchantMoeV22:             {},
 	ExchangeLiquidusFinance:            {},
 	ExchangeNomiswapStable:             {},
@@ -710,6 +715,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseCL:                {},
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
+	Exchange9mmProV2:                   {},
+	Exchange9mmProV3:                   {},
 	ExchangeAlienBaseDegen:             {},
 	ExchangeKoiCL:                      {},
 	ExchangeTokan:                      {},
@@ -755,6 +762,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwapXV2:                    {},
 	ExchangeMemeBox:                    {},
 	ExchangeShadowLegacy:               {},
+	ExchangeDeFive:                     {},
 	ExchangeKodiakV2:                   {},
 	ExchangeKodiakV3:                   {},
 	ExchangeBeraSwapWeighted:           {},
@@ -806,8 +814,9 @@ func IsRFQSource(exchange Exchange) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeClipper: {},
-	ExchangeBebop:   {},
+	ExchangeClipper:       {},
+	ExchangeBebop:         {},
+	ExchangeOvernightUsdp: {},
 }
 
 func IsSingleSwapSource(exchange Exchange) bool {

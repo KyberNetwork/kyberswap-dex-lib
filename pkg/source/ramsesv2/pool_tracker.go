@@ -61,7 +61,6 @@ func (d *PoolTracker) GetNewPoolState(
 				"poolAddress": p.Address,
 				"error":       err,
 			}).Errorf("failed to fetch data from RPC")
-
 		}
 
 		return err
@@ -118,6 +117,7 @@ func (d *PoolTracker) GetNewPoolState(
 		TickSpacing:  rpcData.TickSpacing,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
+		Unlocked:     rpcData.Slot0.Unlocked,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -129,6 +129,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = rpcData.BlockNumber
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
@@ -224,12 +225,12 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		}, []interface{}{&reserve1})
 	}
 
-	_, err := rpcRequest.TryAggregate()
+	resp, err := rpcRequest.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-		}).Errorf("failed to process tryAggregate")
+		}).Errorf("failed to process Aggregate")
 		return FetchRPCResult{}, err
 	}
 
@@ -240,6 +241,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		TickSpacing: tickSpacing.Uint64(),
 		Reserve0:    reserve0,
 		Reserve1:    reserve1,
+		BlockNumber: resp.BlockNumber.Uint64(),
 	}, err
 }
 

@@ -20,7 +20,6 @@ type PoolSimulator struct {
 
 	usdPlusDecimals int64
 	assetDecimals   int64 // USDC
-	exchange        string
 
 	gas int64
 }
@@ -53,7 +52,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		redeemFee:       extra.RedeemFee,
 		usdPlusDecimals: staticExtra.UsdPlusDecimals,
 		assetDecimals:   staticExtra.AssetDecimals,
-		exchange:        staticExtra.Exchange,
 		gas:             defaultGas,
 	}, nil
 }
@@ -91,7 +89,8 @@ func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		Exchange:    s.exchange,
+		Asset:       s.Info.Tokens[0],
+		UsdPlus:     s.Info.Tokens[1],
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
 }
@@ -119,13 +118,15 @@ func (s *PoolSimulator) mint(amountIn *big.Int) *big.Int {
 			big.NewInt(s.assetDecimals-s.usdPlusDecimals),
 			nil,
 		)
-	} else {
-		divisor = divisor.Exp(
-			bignumber.Ten,
-			big.NewInt(s.usdPlusDecimals-s.assetDecimals),
-			nil,
-		)
+
+		return new(big.Int).Div(amountIn, divisor)
 	}
+
+	divisor = divisor.Exp(
+		bignumber.Ten,
+		big.NewInt(s.usdPlusDecimals-s.assetDecimals),
+		nil,
+	)
 
 	return new(big.Int).Mul(amountIn, divisor)
 }
@@ -140,13 +141,14 @@ func (s *PoolSimulator) redeem(amountIn *big.Int) *big.Int {
 			big.NewInt(s.assetDecimals-s.usdPlusDecimals),
 			nil,
 		)
-	} else {
-		divisor = divisor.Exp(
-			bignumber.Ten,
-			big.NewInt(s.usdPlusDecimals-s.assetDecimals),
-			nil,
-		)
-	}
 
-	return amountOut.Mul(amountIn, divisor)
+		return amountOut.Mul(amountIn, divisor)
+	}
+	divisor = divisor.Exp(
+		bignumber.Ten,
+		big.NewInt(s.usdPlusDecimals-s.assetDecimals),
+		nil,
+	)
+
+	return amountOut.Div(amountIn, divisor)
 }

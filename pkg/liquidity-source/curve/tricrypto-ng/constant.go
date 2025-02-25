@@ -28,7 +28,6 @@ const (
 	poolMethodVirtualPrice        = "virtual_price"
 	poolMethodAllowedExtraProfit  = "allowed_extra_profit"
 	poolMethodAdjustmentStep      = "adjustment_step"
-	poolMethodMaTime              = "ma_time"
 	poolMethodBalances            = "balances"
 	poolMethodPriceScale          = "price_scale"
 	poolMethodPriceOracle         = "price_oracle"
