@@ -8,8 +8,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	"github.com/sourcegraph/conc/pool"
 
@@ -17,6 +15,8 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type PoolTracker struct {
@@ -45,44 +45,36 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 		return nil, err
 	}
 
-	var liquidity *big.Int
-	var slot0 Slot0Data
+	result := &FetchRPCResult{
+		TickSpacing: staticExtra.TickSpacing,
+	}
 	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		rpcRequests.SetBlockNumber(&blockNumberBI)
+		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getLiquidity",
-		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
-	}, []interface{}{&liquidity})
+		Params: []interface{}{eth.StringToBytes32(p.Address)},
+	}, []interface{}{&result.Liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getSlot0",
-		Params: []interface{}{eth.StringToBytes32(staticExtra.PoolId)},
-	}, []interface{}{&slot0})
+		Params: []interface{}{eth.StringToBytes32(p.Address)},
+	}, []interface{}{&result.Slot0})
 
-	if _, err := rpcRequests.Aggregate(); err != nil {
-		return nil, err
-	}
-
-	return &FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		TickSpacing: staticExtra.TickSpacing,
-	}, nil
+	_, err := rpcRequests.Aggregate()
+	return result, err
 }
 
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	params poolpkg.GetNewPoolStateParams,
+	_ /*params*/ poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -152,7 +144,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  uint64(rpcData.TickSpacing),
+		TickSpacing:  rpcData.TickSpacing,
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
@@ -183,13 +175,13 @@ func (t *PoolTracker) GetNewPoolState(
 }
 
 // getPoolTicks
-func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
+func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]ticklens.TickResp, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
-		"dexID":       d.config.DexID,
+		"dexID":       t.config.DexID,
 	})
 
-	allowSubgraphError := d.config.IsAllowSubgraphError()
+	allowSubgraphError := t.config.IsAllowSubgraphError()
 	lastTickIdx := ""
 	var ticks []ticklens.TickResp
 
@@ -200,7 +192,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 			Ticks []ticklens.TickResp `json:"ticks"`
 		}
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
+		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
 				if resp.Ticks == nil {
@@ -262,8 +254,8 @@ func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 	}, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := d.fetchRpcState(ctx, &p, blockNumber)
+func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
+	rpcData, err := t.fetchRpcState(ctx, &p, blockNumber)
 	if err != nil {
 		return nil, err
 	}

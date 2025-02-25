@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type (
@@ -68,11 +70,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
-		token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
+		token0Decimals, err := kutils.Atoi[int](p.Token0.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-		token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
+		token1Decimals, err := kutils.Atoi[int](p.Token1.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -91,23 +93,22 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			},
 		}
 		for idx, token := range tokens {
-			if token.Address == EMPTY_ADDRESS {
+			if token.Address == EmptyAddress {
 				tokens[idx].Address = strings.ToLower(valueobject.WrappedNativeMap[chainID])
 			}
 		}
 
-		tickSpacing, err := strconv.Atoi(p.TickSpacing)
+		tickSpacing, err := kutils.Atou[uint64](p.TickSpacing)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
-		fee, err := strconv.Atoi(p.Fee)
+		fee, err := kutils.Atoi[int64](p.Fee)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
 		staticExtra := StaticExtra{
-			PoolId:      p.ID,
 			Currency0:   p.Token0.ID,
 			Currency1:   p.Token1.ID,
 			Fee:         fee,
@@ -161,16 +162,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, metadataBytes, nil
 }
 
-func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool, error) {
+func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool, error) {
 	req := graphqlpkg.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, first))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
 
-	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
-			"dexId": d.config.DexID,
+			"dexId": u.config.DexID,
 			"error": err,
 		}).Errorf("failed to query subgraph")
 		return nil, err

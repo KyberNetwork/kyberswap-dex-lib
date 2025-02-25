@@ -5,20 +5,20 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-const DexType = "uniswap-v4"
-const EMPTY_ADDRESS = "0x0000000000000000000000000000000000000000"
-
 const (
-	graphSkipLimit  = 5000
+	DexType      = "uniswap-v4"
+	EmptyAddress = "0x0000000000000000000000000000000000000000"
+
 	graphFirstLimit = 1000
 )
 
 var (
-	// NativeTokenPlaceholderAddress is the address that UniswapV4 uses to represent native token in pools.
-	NativeTokenPlaceholderAddress   = common.Address{}
-	Q96                             = big.NewInt(1).Lsh(big.NewInt(1), 96)
-	ErrCannotCalcAmountOutDueToHook = errors.New("cannot calculate amount out due to hook")
-	ErrTokenNotFound                = errors.New("token not found")
+	// NativeTokenAddress is the address that UniswapV4 uses to represent native token in pools.
+	NativeTokenAddress = common.Address{}
+	Q96                = new(big.Int).Lsh(bignumber.One, 96)
+	ErrUnsupportedHook = errors.New("unsupported hook")
 )

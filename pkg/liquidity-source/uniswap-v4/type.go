@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
 
 type Token struct {
@@ -32,11 +34,10 @@ type SubgraphPool struct {
 }
 
 type StaticExtra struct {
-	PoolId       string         `json:"poolId"`
 	Currency0    string         `json:"currency0"`
 	Currency1    string         `json:"currency1"`
-	Fee          int            `json:"fee"`
-	TickSpacing  int            `json:"tickSpacing"`
+	Fee          int64          `json:"fee"`
+	TickSpacing  uint64         `json:"tickSpacing"`
 	HooksAddress common.Address `json:"hooksAddress"`
 
 	UniversalRouterAddress common.Address `json:"universalRouterAddress"`
@@ -44,13 +45,8 @@ type StaticExtra struct {
 	Multicall3Address      common.Address `json:"multicall3Address"`
 }
 
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-}
+type Extra = uniswapv3.Extra
+type ExtraTickU256 = uniswapv3.ExtraTickU256
 
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
@@ -62,22 +58,18 @@ type Slot0Data struct {
 type FetchRPCResult struct {
 	Liquidity   *big.Int  `json:"liquidity"`
 	Slot0       Slot0Data `json:"slot0"`
-	TickSpacing int       `json:"tickSpacing"`
+	TickSpacing uint64    `json:"tickSpacing"`
 }
 
-type Tick struct {
-	Index          int      `json:"index"`
-	LiquidityGross *big.Int `json:"liquidityGross"`
-	LiquidityNet   *big.Int `json:"liquidityNet"`
-}
+type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {
 	Router      common.Address `json:"router"`
 	Permit2Addr common.Address `json:"permit2Addr"`
 	TokenIn     common.Address `json:"tokenIn"`
 	TokenOut    common.Address `json:"tokenOut"`
-	Fee         int            `json:"fee"`
-	TickSpacing int            `json:"tickSpacing"`
+	Fee         int64          `json:"fee"`
+	TickSpacing uint64         `json:"tickSpacing"`
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 }

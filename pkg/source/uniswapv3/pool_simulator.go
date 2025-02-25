@@ -25,7 +25,7 @@ import (
 type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool
-	gas     Gas
+	Gas     Gas
 	tickMin int
 	tickMax int
 }
@@ -121,26 +121,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	return &PoolSimulator{
 		Pool:    pool.Pool{Info: info},
 		V3Pool:  v3Pool,
-		gas:     defaultGas,
+		Gas:     defaultGas,
 		tickMin: tickMin,
 		tickMax: tickMax,
 	}, nil
-}
-
-func NewPoolSimulatorV2(
-	v3Pool *v3Entities.Pool,
-	p pool.Pool,
-	gas Gas,
-	tickMin int,
-	tickMax int,
-) *PoolSimulator {
-	return &PoolSimulator{
-		V3Pool:  v3Pool,
-		Pool:    p,
-		gas:     gas,
-		tickMin: tickMin,
-		tickMax: tickMax,
-	}
 }
 
 /**
@@ -190,7 +174,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
 		}
 
-		totalGas := p.gas.BaseGas // TODO: update GetInputAmount to return crossed tick if we ever need this
+		totalGas := p.Gas.BaseGas // TODO: update GetInputAmount to return crossed tick if we ever need this
 
 		amountInBI := amountIn.Quotient()
 		if amountInBI.Cmp(zeroBI) > 0 {
@@ -258,7 +242,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			remainingTokenAmountIn.Amount = big.NewInt(0)
 		}
 
-		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
+		var totalGas = p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
 		if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
