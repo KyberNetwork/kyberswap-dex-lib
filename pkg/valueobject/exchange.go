@@ -198,6 +198,7 @@ var (
 	ExchangeVodoo         Exchange = "vodoo"
 	ExchangeZkEraFinance  Exchange = "zkera-finance"
 	ExchangeNavigator     Exchange = "navigator"
+	ExchangeAmped         Exchange = "amped"
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
@@ -650,6 +651,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEtherfiWEETH:               {},
 	ExchangeZkEraFinance:               {},
 	ExchangeNavigator:                  {},
+	ExchangeAmped:                      {},
 	ExchangeKelpRSETH:                  {},
 	ExchangeRocketPoolRETH:             {},
 	ExchangeEthenaSusde:                {},
