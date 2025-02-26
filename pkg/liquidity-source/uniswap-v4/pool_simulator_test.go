@@ -25,7 +25,6 @@ func TestPoolSimulator(t *testing.T) {
 	)
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
 
-	t.Log(poolEnt)
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
@@ -37,5 +36,5 @@ func TestPoolSimulator(t *testing.T) {
 		TokenOut: "0xbeab712832112bd7664226db7cd025b153d3af55",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, utils.NewBig10("2376445698940"), got.TokenAmountOut.Amount)
+	assert.Equal(t, utils.NewBig10("415003200864711604166794"), got.TokenAmountOut.Amount)
 }

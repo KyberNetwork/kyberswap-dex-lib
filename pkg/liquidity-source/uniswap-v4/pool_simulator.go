@@ -40,6 +40,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if err != nil {
 		return nil, err
 	}
+	if entityPool.Tokens[0].Address > entityPool.Tokens[1].Address {
+		// restore original order after V3Pool constructor forced sorting
+		v3Pool := v3PoolSimulator.V3Pool
+		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
+	}
 	v3PoolSimulator.Gas = defaultGas
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
@@ -63,7 +68,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
 	if !p.IsNative[p.GetTokenIndex(tokenIn)] {
 		tokenInAddress = common.HexToAddress(tokenIn)
-	} else if !p.IsNative[p.GetTokenIndex(tokenOut)] {
+	}
+	if !p.IsNative[p.GetTokenIndex(tokenOut)] {
 		tokenOutAddress = common.HexToAddress(tokenOut)
 	}
 
