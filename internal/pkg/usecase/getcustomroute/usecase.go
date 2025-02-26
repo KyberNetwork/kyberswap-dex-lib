@@ -151,12 +151,12 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		TokenOutPriceUSD: tokenOutPriceUSD,
 		GasTokenPriceUSD: gasTokenPriceUSD,
 		AmountIn:         query.AmountIn,
-		Sources:          u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources,
+		Sources: u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources,
 			query.OnlyScalableSources),
-		SaveGas:          query.SaveGas,
-		GasInclude:       query.GasInclude,
-		GasPrice:         gasPrice,
-		ExtraFee:         query.ExtraFee,
+		SaveGas:    query.SaveGas,
+		GasInclude: query.GasInclude,
+		GasPrice:   gasPrice,
+		ExtraFee:   query.ExtraFee,
 	}, nil
 }
 
