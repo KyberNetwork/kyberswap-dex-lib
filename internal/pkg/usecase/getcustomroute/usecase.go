@@ -18,10 +18,9 @@ import (
 )
 
 type useCase struct {
-	aggregator      IAggregator
-	tokenRepository ITokenRepository
-	gasRepository   IGasRepository
-
+	aggregator             IAggregator
+	tokenRepository        ITokenRepository
+	gasRepository          IGasRepository
 	onchainpriceRepository IOnchainPriceRepository
 
 	config Config
@@ -33,6 +32,7 @@ func NewCustomRoutesUseCase(
 	tokenRepository ITokenRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
+	poolManager IPoolManager,
 	poolRepository IPoolRepository,
 	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
@@ -41,18 +41,19 @@ func NewCustomRoutesUseCase(
 		poolFactory,
 		tokenRepository,
 		onchainpriceRepository,
+		poolManager,
 		poolRepository,
 		config.Aggregator,
 		finderEngine,
 	)
 
 	return &useCase{
-		aggregator:      aggregator,
-		tokenRepository: tokenRepository,
-		gasRepository:   gasRepository,
-		config:          config,
-
+		aggregator:             aggregator,
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
 		onchainpriceRepository: onchainpriceRepository,
+
+		config: config,
 	}
 }
 
@@ -114,7 +115,8 @@ func (u *useCase) wrapTokens(query dto.GetCustomRoutesQuery) (dto.GetCustomRoute
 	return query, nil
 }
 
-func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRoutesQuery) (*types.AggregateParams, error) {
+func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRoutesQuery) (*types.AggregateParams,
+	error) {
 	tokenByAddress, err := u.getTokenByAddress(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
 	if err != nil {
 		return nil, err
@@ -130,7 +132,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		return nil, errors.WithMessagef(getroute.ErrTokenNotFound, "tokenOut: [%s]", query.TokenOut)
 	}
 
-	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
+	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut,
+		u.config.GasTokenAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +151,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		TokenOutPriceUSD: tokenOutPriceUSD,
 		GasTokenPriceUSD: gasTokenPriceUSD,
 		AmountIn:         query.AmountIn,
-		Sources:          u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources),
+		Sources:          u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources,
+			query.OnlyScalableSources),
 		SaveGas:          query.SaveGas,
 		GasInclude:       query.GasInclude,
 		GasPrice:         gasPrice,
@@ -170,7 +174,8 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 	return tokenByAddress, nil
 }
 
-func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
+func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64,
+	error) {
 	priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 	if err != nil {
 		return 0, 0, 0, err
@@ -208,7 +213,8 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
-func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string, onlyScalableSources bool) []string {
+func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string,
+	onlyScalableSources bool) []string {
 	var sources mapset.Set[string]
 	if len(includedSources) > 0 {
 		sources = mapset.NewThreadUnsafeSet(includedSources...)

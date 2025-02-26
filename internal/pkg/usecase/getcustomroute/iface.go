@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -26,11 +27,8 @@ type IPoolRepository interface {
 }
 
 type IPoolManager interface {
-	GetPoolByAddress(
-		ctx context.Context,
-		addresses, dex []string,
-		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error)
+	// GetAEVMClient if using AEVM pools, return the AEVM client, otherwise, return nil. Caller should check for nil.
+	GetAEVMClient() aevmclient.Client
 }
 
 type IGasRepository interface {

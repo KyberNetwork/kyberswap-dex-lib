@@ -136,34 +136,41 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
-	stateRoot common.Hash) (poolpkg.IPoolSimulator, error) {
+	stateRoot common.Hash) (pool poolpkg.IPoolSimulator, err error) {
+	factoryParams.EntityPool = entityPool
+	err = ErrPoolTypeFactoryNotFound
+
+	poolFactory := poolpkg.Factory(entityPool.Type)
+	if poolFactory != nil {
+		pool, err = poolFactory(factoryParams)
+		if err == nil {
+			return pool, nil
+		}
+	}
+
 	if f.config.UseAEVM && f.config.DexUseAEVM[entityPool.Type] && stateRoot != (common.Hash{}) {
-		poolFactory := aevmpool.Factory(entityPool.Type)
-		if poolFactory == nil {
+		aevmPoolFactory := aevmpool.Factory(entityPool.Type)
+		if aevmPoolFactory == nil {
 			return nil, errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s aevm(%s/%s)",
 				entityPool.Address, entityPool.Exchange, entityPool.Type)
 		}
-		return f.newAEVMPoolWrapper(entityPool, poolFactory, stateRoot)
+		return f.newAEVMPoolWrapper(entityPool, aevmPoolFactory, stateRoot)
 	}
 
-	poolFactory := poolpkg.Factory(entityPool.Type)
-	if poolFactory == nil {
-		return nil, errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s (%s/%s)",
-			entityPool.Address, entityPool.Exchange, entityPool.Type)
-	}
-	factoryParams.EntityPool = entityPool
-	return poolFactory(factoryParams)
+	return nil, errors.WithMessagef(err, "%s (%s/%s)",
+		entityPool.Address, entityPool.Exchange, entityPool.Type)
 }
 
 func (f *PoolFactory) newAEVMPoolWrapper(entityPool entity.Pool, poolFactory aevmpool.FactoryFn,
 	stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
 	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	aevmPool, err := poolFactory(entityPool, aevmpool.FactoryParams{
+	aevmPool, err := poolFactory(aevmpool.FactoryParams{
+		EntityPool:   entityPool,
+		ChainID:      f.config.ChainID,
 		AEVMClient:   f.client,
 		StateRoot:    stateRoot,
-		BalanceSlots: balanceSlots,
+		BalanceSlots: f.getBalanceSlots(&entityPool),
 	})
 	if err != nil {
 		return nil, err

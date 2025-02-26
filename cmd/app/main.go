@@ -417,6 +417,7 @@ func apiAction(c *cli.Context) (err error) {
 		tokenRepository,
 		onchainpriceRepository,
 		gasRepository,
+		poolManager,
 		poolRepository,
 		customRouteFinderEngine,
 		getcustomroute.Config{

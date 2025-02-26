@@ -2,8 +2,10 @@ package getcustomroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
+	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -23,6 +26,7 @@ type aggregator struct {
 	poolFactory            IPoolFactory
 	tokenRepository        ITokenRepository
 	onchainpriceRepository IOnchainPriceRepository
+	poolManager            IPoolManager
 	poolRepository         IPoolRepository
 
 	finderEngine finderEngine.IPathFinderEngine
@@ -33,6 +37,7 @@ func NewCustomAggregator(
 	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
 	onchainpriceRepository IOnchainPriceRepository,
+	poolManager IPoolManager,
 	poolRepository IPoolRepository,
 	config getroute.AggregatorConfig,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -41,13 +46,15 @@ func NewCustomAggregator(
 		poolFactory:            poolFactory,
 		tokenRepository:        tokenRepository,
 		onchainpriceRepository: onchainpriceRepository,
+		poolManager:            poolManager,
 		poolRepository:         poolRepository,
 		finderEngine:           finderEngine,
 		config:                 config,
 	}
 }
 
-func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error) {
+func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams,
+	poolIds []string) (*valueobject.RouteSummary, error) {
 	// Step 1: get pool set
 	poolEntities, err := a.poolRepository.FindByAddresses(ctx, poolIds)
 	if err != nil {
@@ -58,8 +65,15 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, getroute.ErrPoolSetEmpty
 	}
 
+	var stateRoot aevmcommon.Hash
+	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
+		}
+	}
 	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(poolIds))
-	poolInterfaces := a.poolFactory.NewPools(ctx, poolEntities, common.Hash{}) // Not use AEVM in custom route
+	poolInterfaces := a.poolFactory.NewPools(ctx, poolEntities, common.Hash(stateRoot))
 	for i := range poolInterfaces {
 		poolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
