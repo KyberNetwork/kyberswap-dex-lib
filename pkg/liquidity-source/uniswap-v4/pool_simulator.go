@@ -18,9 +18,6 @@ var (
 
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
-
-	IsNative [2]bool
-
 	staticExtra StaticExtra
 }
 
@@ -48,11 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	v3PoolSimulator.Gas = defaultGas
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
-		IsNative: [2]bool{
-			staticExtra.Currency0 == EmptyAddress,
-			staticExtra.Currency1 == EmptyAddress,
-		},
-		staticExtra: staticExtra,
+		staticExtra:   staticExtra,
 	}, nil
 }
 
@@ -66,10 +59,10 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // adapt from https://github.com/KyberNetwork/kyberswap-dex-lib-private/blob/c1877a8c19759faeb7d82b6902ed335f0657ce3e/pkg/liquidity-source/uniswap-v4/pool_simulator.go#L201
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
-	if !p.IsNative[p.GetTokenIndex(tokenIn)] {
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {
 		tokenInAddress = common.HexToAddress(tokenIn)
 	}
-	if !p.IsNative[p.GetTokenIndex(tokenOut)] {
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOut)] {
 		tokenOutAddress = common.HexToAddress(tokenOut)
 	}
 

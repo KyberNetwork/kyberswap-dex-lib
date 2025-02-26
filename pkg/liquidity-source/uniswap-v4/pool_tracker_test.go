@@ -25,7 +25,8 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 		graphqlClient: graphqlpkg.NewClient(os.ExpandEnv("https://gateway.thegraph.com/api/$THEGRAPH_API_KEY/subgraphs/id/DiYPVdygkfjDWhbxGSqAQxwBKmfKnkWQojqeM2rkLb3G")),
 	}
 	got, err := pt.GetNewPoolState(context.Background(),
-		entity.Pool{Address: "0x6b77c5119ea25b4b46ec79166075eed433bf8ad4bfe907490bb06305e3c0012a"},
+		entity.Pool{Address: "0x6b77c5119ea25b4b46ec79166075eed433bf8ad4bfe907490bb06305e3c0012a",
+			StaticExtra: `{"tS":200}`},
 		pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 	t.Log(got)

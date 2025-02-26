@@ -41,9 +41,7 @@ func NewPoolTracker(
 
 func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return nil, err
-	}
+	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
@@ -74,7 +72,7 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ /*params*/ poolpkg.GetNewPoolStateParams,
+	_ poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -144,7 +142,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing,
+		TickSpacing:  uint64(rpcData.TickSpacing),
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,

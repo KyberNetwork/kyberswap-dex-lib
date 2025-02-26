@@ -70,27 +70,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
-		token0Decimals, err := kutils.Atoi[int](p.Token0.Decimals)
+		token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-		token1Decimals, err := kutils.Atoi[int](p.Token1.Decimals)
+		token1Decimals, err := kutils.Atou[uint8](p.Token1.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 		tokens := []*entity.PoolToken{
-			{
-				Address:   p.Token0.ID,
-				Swappable: true,
-				Decimals:  uint8(token0Decimals),
-				Name:      p.Token0.Name,
-			},
-			{
-				Address:   p.Token1.ID,
-				Swappable: true,
-				Decimals:  uint8(token1Decimals),
-				Name:      p.Token1.Name,
-			},
+			{Address: p.Token0.ID, Decimals: token0Decimals},
+			{Address: p.Token1.ID, Decimals: token1Decimals},
 		}
 		for idx, token := range tokens {
 			if token.Address == EmptyAddress {
@@ -98,22 +88,19 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
-		tickSpacing, err := kutils.Atou[uint64](p.TickSpacing)
+		tickSpacing, err := kutils.Atoi[int32](p.TickSpacing)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-
-		fee, err := kutils.Atoi[int64](p.Fee)
+		fee, err := kutils.Atou[uint32](p.Fee)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
 		staticExtra := StaticExtra{
-			Currency0:   p.Token0.ID,
-			Currency1:   p.Token1.ID,
-			Fee:         fee,
-			TickSpacing: tickSpacing,
-
+			IsNative:               [2]bool{p.Token0.ID == EmptyAddress, p.Token1.ID == EmptyAddress},
+			Fee:                    fee,
+			TickSpacing:            tickSpacing,
 			HooksAddress:           common.HexToAddress(p.Hooks),
 			UniversalRouterAddress: common.HexToAddress(u.config.UniversalRouterAddress),
 			Permit2Address:         common.HexToAddress(u.config.Permit2Address),
@@ -127,14 +114,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		pool := entity.Pool{
 			Address:     p.ID,
-			Tokens:      tokens,
-			Reserves:    entity.PoolReserves{"0", "0"},
+			SwapFee:     float64(fee),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    entity.PoolReserves{"0", "0"},
+			Tokens:      tokens,
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
-			Timestamp:   time.Now().Unix(),
-			SwapFee:     float64(fee),
 		}
 		pools = append(pools, pool)
 	}
@@ -162,7 +149,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool, error) {
+func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool,
+	error) {
 	req := graphqlpkg.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, first))
 
 	var response struct {
