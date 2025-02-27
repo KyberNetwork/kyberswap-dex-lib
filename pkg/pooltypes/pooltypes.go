@@ -36,6 +36,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	fourmeme "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/four-meme"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
@@ -281,6 +282,7 @@ type Types struct {
 	UniswapV4                  string
 	OvernightUsdp              string
 	SkyPSM                     string
+	FourMeme                   string
 }
 
 var (
@@ -431,5 +433,6 @@ var (
 		UniswapV4:                  uniswapv4.DexType,
 		OvernightUsdp:              overnightusdp.DexType,
 		SkyPSM:                     skypsm.DexType,
+		FourMeme:                   fourmeme.DexType,
 	}
 )
