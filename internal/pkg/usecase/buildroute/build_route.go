@@ -101,7 +101,8 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	command.RouteSummary = routeSummary
 
-	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, isFaultyPoolTrackEnable, command.SlippageTolerance)
+	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary,
+		isFaultyPoolTrackEnable, command.SlippageTolerance)
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
@@ -121,7 +122,8 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}
 
 	// estimate gas price for a transaction
-	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData, isFaultyPoolTrackEnable)
+	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData,
+		isFaultyPoolTrackEnable)
 	if err != nil {
 		return nil, err
 	}
@@ -206,19 +208,21 @@ func (uc *BuildRouteUseCase) rfq(
 				rfqRecipient = executorAddress
 			}
 
-			rfqParamsByPoolType[swap.PoolType] = append(rfqParamsByPoolType[swap.PoolType], valueobject.IndexedRFQParams{
-				RFQParams: pool.RFQParams{
-					NetworkID:    uint(uc.config.ChainID),
-					Sender:       sender,
-					Recipient:    recipient,
-					RFQSender:    executorAddress,
-					RFQRecipient: rfqRecipient,
-					Slippage:     slippageTolerance,
-					SwapInfo:     swap.Extra,
-				},
-				PathIdx: pathIdx,
-				SwapIdx: swapIdx,
-			})
+			rfqParamsByPoolType[swap.PoolType] = append(rfqParamsByPoolType[swap.PoolType],
+				valueobject.IndexedRFQParams{
+					RFQParams: pool.RFQParams{
+						NetworkID:    uint(uc.config.ChainID),
+						Sender:       sender,
+						Recipient:    recipient,
+						RFQSender:    executorAddress,
+						RFQRecipient: rfqRecipient,
+						Slippage:     slippageTolerance,
+						SwapInfo:     swap.Extra,
+						Source:       source,
+					},
+					PathIdx: pathIdx,
+					SwapIdx: swapIdx,
+				})
 		}
 	}
 
@@ -412,7 +416,8 @@ func (uc *BuildRouteUseCase) processRFQs(
 // and returns updated command
 // We need these values, and they should be calculated in backend side because some services such as campaign or data
 // need them for their business.
-func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummary valueobject.RouteSummary) (valueobject.RouteSummary, error) {
+func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context,
+	routeSummary valueobject.RouteSummary) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.updateRouteSummary")
 	defer span.End()
 
@@ -497,7 +502,8 @@ func (uc *BuildRouteUseCase) encode(
 }
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
-func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) ([]byte, error) {
+func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand,
+	routeSummary valueobject.RouteSummary) ([]byte, error) {
 	flags, err := clientdata.ConvertFlagsToBitInteger(encodeTypes.Flags{
 		TokenInMarketPriceAvailable:  routeSummary.TokenInMarketPriceAvailable,
 		TokenOutMarketPriceAvailable: routeSummary.TokenOutMarketPriceAvailable,
@@ -572,7 +578,8 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context, tokenIn, tokenOut st
 	return tokenInPriceUSD, tokenOutPriceUSD, nil
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, encodedData string, isFaultyPoolTrackEnable bool) (uint64, float64, float64, error) {
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary,
+	command dto.BuildRouteCommand, encodedData string, isFaultyPoolTrackEnable bool) (uint64, float64, float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
