@@ -3,10 +3,11 @@ package client
 import (
 	"context"
 
-	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+
+	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 )
 
 const (
@@ -53,13 +54,16 @@ func (c *httpClient) RFQ(ctx context.Context, params hashflowv3.QuoteParams) (ha
 	req := c.client.R().SetContext(ctx).SetBody(params)
 
 	var result hashflowv3.QuoteResult
-	resp, err := req.SetResult(&result).Post(rfqPath)
+	resp, err := req.SetResult(&result).SetError(&result).Post(rfqPath)
 	if err != nil {
 		return hashflowv3.QuoteResult{}, err
 	}
 
 	if !resp.IsSuccess() || result.Status != "success" {
-		logger.Errorf("hashflow rfq failed: status code(%d), body(%s)", resp.StatusCode(), resp.Body())
+		klog.WithFields(ctx, klog.Fields{
+			"client":   hashflowv3.DexType,
+			"response": result,
+		}).Error("quote failed")
 		return hashflowv3.QuoteResult{}, parseRFQError(result.Error.Message)
 	}
 

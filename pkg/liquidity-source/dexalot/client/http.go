@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 )
@@ -39,7 +38,8 @@ func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, upscalePercent int) (dexalot.FirmQuoteResult, error) {
+func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams,
+	upscalePercent int) (dexalot.FirmQuoteResult, error) {
 	// token address case-sensitive
 	req := c.client.R().
 		SetContext(ctx).
@@ -59,14 +59,11 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, 
 		return dexalot.FirmQuoteResult{}, err
 	}
 
-	respBytes := resp.Body()
-	_ = json.Unmarshal(respBytes, &result)
-	_ = json.Unmarshal(respBytes, &fail)
-
 	if !resp.IsSuccess() || fail.Failed() {
-		logger.
-			WithFields(logger.Fields{"dexalot_resp": string(respBytes)}).
-			Error("dexalot rfq failed")
+		klog.WithFields(ctx, klog.Fields{
+			"client":       dexalot.DexType,
+			"dexalot_resp": fail,
+		}).Error("quote failed")
 		return dexalot.FirmQuoteResult{}, ErrRFQFailed
 	}
 

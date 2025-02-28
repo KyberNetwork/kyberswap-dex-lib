@@ -50,7 +50,7 @@ type FirmQuoteFail struct {
 }
 
 func (r FirmQuoteFail) Failed() bool {
-	return r.ReasonCode != "" || r.Reason != ""
+	return !r.Success
 }
 
 type Order struct {

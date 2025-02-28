@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 )
 
 const (
@@ -54,12 +55,10 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 	}
 
 	if !res.IsSuccess() {
-		logger.WithFields(logger.Fields{
-			"client":       clipper.DexType,
-			"errorMessage": failRes.ErrorMessage,
-			"errorType":    failRes.ErrorType,
+		klog.WithFields(ctx, klog.Fields{
+			"client":   clipper.DexType,
+			"response": failRes,
 		}).Error("quote failed")
-
 		return clipper.SignResponse{}, ErrQuoteFailed
 	}
 
@@ -79,12 +78,10 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 	}
 
 	if !res.IsSuccess() {
-		logger.WithFields(logger.Fields{
-			"client":       clipper.DexType,
-			"errorMessage": failRes.ErrorMessage,
-			"errorType":    failRes.ErrorType,
+		klog.WithFields(ctx, klog.Fields{
+			"client":   clipper.DexType,
+			"response": failRes,
 		}).Error("sign failed")
-
 		return clipper.SignResponse{}, parseSignError(failRes.ErrorMessage)
 	}
 

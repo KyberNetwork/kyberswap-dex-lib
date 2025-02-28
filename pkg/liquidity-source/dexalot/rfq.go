@@ -54,7 +54,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	maxAmount := bignumber.NewBig(swapInfo.BaseTokenReserve)
 	if upscaledTakerAmount.Cmp(bignumber.NewBig(swapInfo.BaseTokenReserve)) > 0 {
 		upscaledTakerAmount = bignumber.NewBig(swapInfo.BaseTokenAmount)
-		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount, bignumber.Two)
+		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount,
+			bignumber.Two)
 	}
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),

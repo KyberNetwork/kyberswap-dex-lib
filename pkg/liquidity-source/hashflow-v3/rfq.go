@@ -2,10 +2,10 @@ package hashflowv3
 
 import (
 	"context"
-	"errors"
 	"math/big"
 
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -78,7 +78,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 			Trader:          params.RFQRecipient,
 			EffectiveTrader: params.Recipient,
 
-			// Intentionally not specific marketMakers field to have higher chance to successfully RFQ
+			// Intentionally not specify marketMakers field to have higher chance to successfully RFQ
 			// MarketMakers: []string{swapInfo.MarketMaker},
 
 			ExcludeMarketMakers: h.config.ExcludeMarketMakers,
@@ -87,7 +87,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 
 	quoteResult, err := h.client.RFQ(ctx, quoteParams)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "quote failed")
 	}
 
 	if len(quoteResult.Quotes) != len(paramsSlice) {
