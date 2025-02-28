@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type Config struct {
@@ -40,21 +42,21 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 	p := QuoteParams{
-		SellTokens:  swapInfo.BaseToken,
-		BuyTokens:   swapInfo.QuoteToken,
-		SellAmounts: swapInfo.BaseTokenAmount,
-		// BuyAmounts:   not used,
+		SellTokens:      swapInfo.BaseToken,
+		BuyTokens:       swapInfo.QuoteToken,
+		SellAmounts:     swapInfo.BaseTokenAmount,
 		TakerAddress:    params.RFQSender,
 		ReceiverAddress: params.RFQRecipient,
+		Source:          params.Source,
 	}
 	result, err := h.client.QuoteSingleOrderResult(ctx, p)
 	if err != nil {
-		return nil, fmt.Errorf("quote single order result: %w", err)
+		return nil, errors.WithMessage(err, "quote failed")
 	}
 
 	newAmountOut, err := getAmountOutFromToSign(result.OnchainOrderType, result.ToSign)
 	if err != nil {
-		return nil, fmt.Errorf("get amount out from to sign: %w", err)
+		return nil, errors.WithMessage(err, "get amount out failed")
 	}
 
 	return &pool.RFQResult{
@@ -81,7 +83,7 @@ func getAmountOutFromToSign(onchainOrderType string, rawTxSign json.RawMessage) 
 func getAmountOutOfSingleOrderToSign(rawTxSign json.RawMessage) (*big.Int, error) {
 	var toSign SingleOrderToSign
 	if err := json.Unmarshal(rawTxSign, &toSign); err != nil {
-		return nil, fmt.Errorf("unmarshal single order result: %w", err)
+		return nil, errors.WithMessage(err, "unmarshal single order result")
 	}
 	amountOut, ok := new(big.Int).SetString(toSign.MakerAmount, 10)
 	if !ok {
@@ -93,7 +95,7 @@ func getAmountOutOfSingleOrderToSign(rawTxSign json.RawMessage) (*big.Int, error
 func getAmountOutOfAggregateOrderToSign(rawTxSign json.RawMessage) (*big.Int, error) {
 	var toSign AggregateOrderToSign
 	if err := json.Unmarshal(rawTxSign, &toSign); err != nil {
-		return nil, fmt.Errorf("unmarshal aggregate order result: %w", err)
+		return nil, errors.WithMessage(err, "unmarshal aggregate order result")
 	}
 
 	// With the aggregate order, it has some fields with format:
@@ -126,7 +128,7 @@ func getAmountOutOfAggregateOrderToSign(rawTxSign json.RawMessage) (*big.Int, er
 func getAmountOutOfOrderWithPermit2ToSign(rawTxSign json.RawMessage) (*big.Int, error) {
 	var toSign OrderWithPermit2ToSign
 	if err := json.Unmarshal(rawTxSign, &toSign); err != nil {
-		return nil, fmt.Errorf("unmarshal order with permit2 result: %w", err)
+		return nil, errors.WithMessage(err, "unmarshal order with permit2 result")
 	}
 	amountOut, ok := new(big.Int).SetString(toSign.Witness.MakerAmount, 10)
 	if !ok {
@@ -138,7 +140,7 @@ func getAmountOutOfOrderWithPermit2ToSign(rawTxSign json.RawMessage) (*big.Int, 
 func getAmountOutOfOrderWithBatchPermit2ToSign(rawTxSign json.RawMessage) (*big.Int, error) {
 	var toSign OrderWithBatchPermit2ToSign
 	if err := json.Unmarshal(rawTxSign, &toSign); err != nil {
-		return nil, fmt.Errorf("unmarshal order with batch permit2 result: %w", err)
+		return nil, errors.WithMessage(err, "unmarshal order with batch permit2 result")
 	}
 
 	// logic here same as getAmountOutOfAggregateOrderToSign

@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -53,7 +54,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		SenderAddress:      params.Sender,
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "quote failed")
 	}
 
 	newAmountOut, _ := new(big.Int).SetString(result.OutputAmount, 10)

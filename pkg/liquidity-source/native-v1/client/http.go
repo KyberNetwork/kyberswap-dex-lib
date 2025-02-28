@@ -3,15 +3,17 @@ package client
 import (
 	"context"
 
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 )
 
 const (
-	headerApiKey = "apiKey"
+	headerApiKey    = "apiKey"
+	headerRequestId = "x-native-request-id"
 
 	pathFirmQuote = "v1/firm-quote"
 
@@ -60,6 +62,11 @@ func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (na
 	}
 
 	if !resp.IsSuccess() {
+		klog.WithFields(ctx, klog.Fields{
+			"client":        clipper.DexType,
+			"response":      result,
+			headerRequestId: resp.Header().Get(headerRequestId),
+		}).Error("quote failed")
 		return nativev1.QuoteResult{}, parseRFQError(result.Message)
 	}
 
@@ -77,7 +84,6 @@ func parseRFQError(errorMessage string) error {
 	case errMsgAllPricerFailed:
 		return ErrRFQAllPricerFailed
 	default:
-		logger.WithFields(logger.Fields{"errMsg": errorMessage}).Error("unknown native rfq error")
 		return ErrRFQFailed
 	}
 }

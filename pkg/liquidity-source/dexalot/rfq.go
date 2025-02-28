@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Config struct {
@@ -53,15 +54,17 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	maxAmount := bignumber.NewBig(swapInfo.BaseTokenReserve)
 	if upscaledTakerAmount.Cmp(bignumber.NewBig(swapInfo.BaseTokenReserve)) > 0 {
 		upscaledTakerAmount = bignumber.NewBig(swapInfo.BaseTokenAmount)
-		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount, bignumber.Two)
+		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount,
+			bignumber.Two)
 	}
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),
 		TakerAsset:  swapInfo.BaseTokenOriginal,
 		MakerAsset:  swapInfo.QuoteTokenOriginal,
 		TakerAmount: upscaledTakerAmount.String(),
-		UserAddress: params.RFQSender,
+		UserAddress: params.Sender,
 		Executor:    params.RFQRecipient,
+		Partner:     params.Source,
 	}
 	result, err := h.client.Quote(ctx, p, h.config.UpscalePercent)
 	if err != nil {

@@ -29,6 +29,7 @@ type FirmQuoteParams struct {
 	TakerAmount string `mapstructure:"takerAmount"`
 	UserAddress string `mapstructure:"userAddress"`
 	Executor    string `mapstructure:"executor"`
+	Partner     string `mapstructure:"partner"`
 }
 
 func (p *FirmQuoteParams) ToMap() (ret map[string]string) {
@@ -50,7 +51,7 @@ type FirmQuoteFail struct {
 }
 
 func (r FirmQuoteFail) Failed() bool {
-	return r.ReasonCode != "" || r.Reason != ""
+	return !r.Success
 }
 
 type Order struct {
