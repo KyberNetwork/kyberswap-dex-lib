@@ -79,8 +79,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 		tokens := []*entity.PoolToken{
-			{Address: p.Token0.ID, Decimals: token0Decimals},
-			{Address: p.Token1.ID, Decimals: token1Decimals},
+			{Address: p.Token0.ID, Decimals: token0Decimals, Swappable: true},
+			{Address: p.Token1.ID, Decimals: token1Decimals, Swappable: true},
 		}
 		for idx, token := range tokens {
 			if token.Address == EmptyAddress {
