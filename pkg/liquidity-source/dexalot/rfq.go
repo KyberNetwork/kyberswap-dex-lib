@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Config struct {
@@ -60,7 +61,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		TakerAsset:  swapInfo.BaseTokenOriginal,
 		MakerAsset:  swapInfo.QuoteTokenOriginal,
 		TakerAmount: upscaledTakerAmount.String(),
-		UserAddress: params.RFQSender,
+		UserAddress: params.Sender,
 		Executor:    params.RFQRecipient,
 	}
 	result, err := h.client.Quote(ctx, p, h.config.UpscalePercent)
