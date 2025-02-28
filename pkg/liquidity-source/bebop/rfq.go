@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type Config struct {
@@ -40,12 +41,12 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 	p := QuoteParams{
-		SellTokens:  swapInfo.BaseToken,
-		BuyTokens:   swapInfo.QuoteToken,
-		SellAmounts: swapInfo.BaseTokenAmount,
-		// BuyAmounts:   not used,
+		SellTokens:      swapInfo.BaseToken,
+		BuyTokens:       swapInfo.QuoteToken,
+		SellAmounts:     swapInfo.BaseTokenAmount,
 		TakerAddress:    params.RFQSender,
 		ReceiverAddress: params.RFQRecipient,
+		Source:          params.Source,
 	}
 	result, err := h.client.QuoteSingleOrderResult(ctx, p)
 	if err != nil {
