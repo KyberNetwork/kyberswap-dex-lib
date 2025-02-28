@@ -64,6 +64,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		TakerAmount: upscaledTakerAmount.String(),
 		UserAddress: params.Sender,
 		Executor:    params.RFQRecipient,
+		Partner:     params.Source,
 	}
 	result, err := h.client.Quote(ctx, p, h.config.UpscalePercent)
 	if err != nil {

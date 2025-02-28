@@ -44,13 +44,14 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams,
 	req := c.client.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
-		SetBody(map[string]interface{}{
+		SetBody(map[string]any{
 			dexalot.ParamsChainID:     params.ChainID,
 			dexalot.ParamsTakerAsset:  common.HexToAddress(params.TakerAsset).Hex(),
 			dexalot.ParamsMakerAsset:  common.HexToAddress(params.MakerAsset).Hex(),
 			dexalot.ParamsTakerAmount: params.TakerAmount,
 			dexalot.ParamsUserAddress: params.UserAddress,
 			dexalot.ParamsExecutor:    params.Executor,
+			dexalot.ParamsPartner:     params.Partner,
 		})
 	var result dexalot.FirmQuoteResult
 	var fail dexalot.FirmQuoteFail
