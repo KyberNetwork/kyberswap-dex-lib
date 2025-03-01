@@ -8,6 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 const (
@@ -43,7 +44,7 @@ func (c HTTPClient) Quote(ctx context.Context, params mxtrading.OrderParams) (mx
 	req := c.client.R().SetContext(ctx).SetBody(params)
 
 	var result mxtrading.SignedOrderResult
-	var errResult any
+	var errResult string
 	resp, err := req.SetResult(&result).SetError(&errResult).Post(orderEndpoint)
 	if err != nil {
 		return mxtrading.SignedOrderResult{}, err
@@ -51,8 +52,9 @@ func (c HTTPClient) Quote(ctx context.Context, params mxtrading.OrderParams) (mx
 
 	if !resp.IsSuccess() {
 		klog.WithFields(ctx, klog.Fields{
-			"client":   mxtrading.DexType,
-			"response": errResult,
+			"rfq.client": mxtrading.DexType,
+			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
+			"rfq.status": resp.StatusCode(),
 		}).Error("quote failed")
 		return mxtrading.SignedOrderResult{}, parseOrderError(errResult)
 	}
@@ -60,7 +62,7 @@ func (c HTTPClient) Quote(ctx context.Context, params mxtrading.OrderParams) (mx
 	return result, nil
 }
 
-func parseOrderError(errResult any) error {
+func parseOrderError(errResult string) error {
 	switch errResult {
 	case errMsgOrderIsTooSmall:
 		return ErrOrderIsTooSmall
