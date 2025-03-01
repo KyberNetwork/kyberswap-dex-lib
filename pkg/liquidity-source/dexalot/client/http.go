@@ -9,15 +9,20 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 const (
 	pathQuote    = "api/rfq/firm"
 	headerApiKey = "x-apikey"
+
+	ReasonCodeBlacklist = "FQ-009"
 )
 
 var (
 	ErrRFQFailed = errors.New("rfq failed")
+
+	ErrRFQBlacklisted = errors.New("wallet blacklisted")
 )
 
 type HTTPClient struct {
@@ -53,6 +58,7 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams,
 			dexalot.ParamsExecutor:    params.Executor,
 			dexalot.ParamsPartner:     params.Partner,
 		})
+
 	var result dexalot.FirmQuoteResult
 	var fail dexalot.FirmQuoteFail
 	resp, err := req.SetResult(&result).SetError(&fail).Post(pathQuote)
@@ -62,11 +68,21 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams,
 
 	if !resp.IsSuccess() || fail.Failed() {
 		klog.WithFields(ctx, klog.Fields{
-			"client":       dexalot.DexType,
-			"dexalot_resp": fail,
+			"rfq.client": dexalot.DexType,
+			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
+			"rfq.status": resp.StatusCode(),
 		}).Error("quote failed")
-		return dexalot.FirmQuoteResult{}, ErrRFQFailed
+		return dexalot.FirmQuoteResult{}, parseRFQError(fail.ReasonCode)
 	}
 
 	return result, nil
+}
+
+func parseRFQError(reasonCode string) error {
+	switch reasonCode {
+	case ReasonCodeBlacklist:
+		return ErrRFQBlacklisted
+	default:
+		return ErrRFQFailed
+	}
 }

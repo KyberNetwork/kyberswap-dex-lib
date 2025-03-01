@@ -9,6 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 const (
@@ -82,16 +83,17 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
 
 	if !resp.IsSuccess() || fail.Failed() {
 		klog.WithFields(ctx, klog.Fields{
-			"client":   bebop.DexType,
-			"response": fail,
+			"rfq.client": bebop.DexType,
+			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
+			"rfq.status": resp.StatusCode(),
 		}).Error("quote failed")
-		return bebop.QuoteSingleOrderResult{}, parseRFQError(fail.Error.ErrorCode, fail.Error.Message)
+		return bebop.QuoteSingleOrderResult{}, parseRFQError(fail.Error.ErrorCode)
 	}
 
 	return result, nil
 }
 
-func parseRFQError(errorCode int, message string) error {
+func parseRFQError(errorCode int) error {
 	switch errorCode {
 	case errCodeBadRequest:
 		return ErrRFQBadRequest

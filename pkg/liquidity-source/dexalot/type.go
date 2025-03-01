@@ -44,6 +44,7 @@ type FirmQuoteResult struct {
 	Signature string      `json:"signature"`
 	Tx        Transaction `json:"tx"`
 }
+
 type FirmQuoteFail struct {
 	Success    bool   `json:"Success"`
 	ReasonCode string `json:"ReasonCode"`
@@ -51,7 +52,7 @@ type FirmQuoteFail struct {
 }
 
 func (r FirmQuoteFail) Failed() bool {
-	return !r.Success
+	return r.ReasonCode != "" || r.Reason != ""
 }
 
 type Order struct {
