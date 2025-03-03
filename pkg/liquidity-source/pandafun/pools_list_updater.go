@@ -47,7 +47,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if _, err := d.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    *factoryABI,
 		Target: d.config.FactoryAddress,
-		Method: "allPairsLength",
+		Method: "allPoolsLength",
 		Params: nil,
 	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -72,7 +72,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		getPoolAddressRequest.AddCall(&ethrpc.Call{
 			ABI:    *factoryABI,
 			Target: d.config.FactoryAddress,
-			Method: "allPairs",
+			Method: "allPools",
 			Params: []any{big.NewInt(int64(currentOffset + i))},
 		}, []any{&poolAddresses[i]})
 	}

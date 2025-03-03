@@ -112,6 +112,8 @@ func (d *PoolTracker) GetNewPoolState(
 		Liquidity:                  liquidity,
 		BuyFee:                     big.NewInt(int64(poolFees.BuyFee)),
 		SellFee:                    big.NewInt(int64(poolFees.SellFee)),
+		SqrtPa:                     sqrtPa,
+		SqrtPb:                     sqrtPb,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
