@@ -112,10 +112,9 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 		}
 
 		actualMakerAmount, _ := new(big.Int).SetString(order.MakerAmount, 10)
-		expectedMakerAmount, _ := new(big.Int).SetString(orders[i].ExpectedMakerAmount, 10)
 		minMakerAmount, _ := new(big.Int).SetString(orders[i].MinMakerAmount, 10)
 
-		if actualMakerAmount.Cmp(expectedMakerAmount) < 0 && actualMakerAmount.Cmp(minMakerAmount) < 0 {
+		if actualMakerAmount.Cmp(minMakerAmount) < 0 {
 			logger.WithFields(logger.Fields{
 				"paramsList": paramsList,
 				"error":      ErrMakerAmountTooLow,
