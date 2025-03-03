@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
@@ -63,7 +62,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 			return nil, ErrInvalidFirmQuoteParams
 		}
 
-		expectedMakerAmount, _ := new(big.Int).SetString(swapExtra.TakingAmount, 10)
+		expectedMakerAmount, _ := new(big.Int).SetString(swapExtra.MakingAmount, 10)
 		if params.AlphaFee != "" {
 			alphaFee, _ := new(big.Int).SetString(params.AlphaFee, 10)
 			expectedMakerAmount.Sub(expectedMakerAmount, alphaFee)
@@ -108,7 +107,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 				"paramsList": paramsList,
 			}).Errorf("failed to get multiFirm quote: %s", order.Error)
 
-			return nil, fmt.Errorf("order error: %s", order.Error)
+			return nil, fmt.Errorf("order %d error: %s", i, order.Error)
 		}
 
 		actualMakerAmount, _ := new(big.Int).SetString(order.MakerAmount, 10)
@@ -153,9 +152,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 				QuoteTimestamp:     time.Now().Unix(),
 			},
 		})
-
 	}
-	log.Fatalf("%+v\n", rfqResult[0])
 
 	return rfqResult, nil
 }
