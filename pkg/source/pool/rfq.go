@@ -6,26 +6,16 @@ import (
 )
 
 type RFQParams struct {
-	// NetworkID blockchain network id
-	NetworkID uint
-	// Sender swap tx origin
-	Sender string
-	// Recipient fund recipient of swap tx
-	Recipient string
-	// RFQSender RFQ caller
-	RFQSender string
-	// RFQRecipient RFQ fund recipient
-	RFQRecipient string
-	// Slippage slippage tolerance (in bps) for RFQs that also aggregate dexes
-	Slippage int64
-	// SwapInfo swap info of the RFQ swap
-	SwapInfo any
-
-	Source string
-
-	RequestID string
-
-	AlphaFee string
+	NetworkID    uint   // blockchain network id
+	Sender       string // swap tx origin
+	Recipient    string // fund recipient of swap tx
+	RFQSender    string // RFQ caller
+	RFQRecipient string // RFQ fund recipient
+	Slippage     int64  // tolerance (in bps) for RFQs that also aggregate dexes
+	SwapInfo     any    // swap info of the RFQ swap
+	Source       string // source client
+	RequestID    string // request id from getRoute
+	AlphaFee     string
 }
 
 type RFQResult struct {
