@@ -11,3 +11,14 @@ type Extra struct {
 	SqrtPa                     *big.Int `json:"sqrtPa"`
 	SqrtPb                     *big.Int `json:"sqrtPb"`
 }
+
+type PoolFees struct {
+	BuyFee           uint16
+	SellFee          uint16
+	GraduationFee    uint16
+	DeployerFeeShare uint16
+}
+
+type Metadata struct {
+	Offset int `json:"offset"`
+}
