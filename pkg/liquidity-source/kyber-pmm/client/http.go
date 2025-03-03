@@ -15,6 +15,7 @@ const (
 	listPairsEndpoint  = "/kyberswap/v1/pairs"
 	listPricesEndpoint = "/kyberswap/v1/prices"
 	firmEndpoint       = "/kyberswap/v1/firm"
+	multiFirmEndpoint  = "/kyberswap/v1/firm-batch"
 )
 
 type httpClient struct {
@@ -105,6 +106,31 @@ func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams
 		logger.Errorf("firm quote failed with error: %v", result.Error)
 
 		return kyberpmm.FirmResult{}, parsedErr
+	}
+
+	return result, nil
+}
+
+func (c *httpClient) MultiFirm(ctx context.Context, params kyberpmm.MultiFirmRequestParams) (kyberpmm.MultiFirmResult, error) {
+	req := c.client.R().
+		SetContext(ctx).
+		SetBody(params)
+
+	var result kyberpmm.MultiFirmResult
+	resp, err := req.SetResult(&result).Post(multiFirmEndpoint)
+	if err != nil {
+		return kyberpmm.MultiFirmResult{}, err
+	}
+
+	if !resp.IsSuccess() {
+		return kyberpmm.MultiFirmResult{}, errors.WithMessagef(ErrFirmQuoteFailed, "[kyberPMM] response status: %v, response error: %v", resp.Status(), resp.Error())
+	}
+
+	if result.Error != "" {
+		parsedErr := parseFirmQuoteError(result.Error)
+		logger.Errorf("firm quote failed with error: %v", result.Error)
+
+		return kyberpmm.MultiFirmResult{}, parsedErr
 	}
 
 	return result, nil

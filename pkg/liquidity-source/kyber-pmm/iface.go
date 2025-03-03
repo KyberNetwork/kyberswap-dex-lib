@@ -7,4 +7,5 @@ type IClient interface {
 	ListPairs(ctx context.Context) (map[string]PairItem, error)
 	ListPriceLevels(ctx context.Context) (ListPriceLevelsResult, error)
 	Firm(ctx context.Context, params FirmRequestParams) (FirmResult, error)
+	MultiFirm(ctx context.Context, params MultiFirmRequestParams) (MultiFirmResult, error)
 }
