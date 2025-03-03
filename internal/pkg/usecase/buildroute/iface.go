@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -42,7 +43,7 @@ type IGasEstimator interface {
 }
 
 type IL1FeeCalculator interface {
-	CalculateL1Fee(ctx context.Context, chainId valueobject.ChainID, encodedSwapData string) (*big.Int, error)
+	CalculateL1Fee(ctx context.Context, routeSummary valueobject.RouteSummary, encodedSwapData string) (*big.Int, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository

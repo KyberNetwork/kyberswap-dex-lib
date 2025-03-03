@@ -35,6 +35,10 @@ type IGasRepository interface {
 	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
 }
 
+type IL1FeeEstimator interface {
+	EstimateL1Fees(ctx context.Context) (*big.Int, *big.Int, error)
+}
+
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
 }

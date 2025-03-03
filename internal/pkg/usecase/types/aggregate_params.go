@@ -45,6 +45,12 @@ type AggregateParams struct {
 	// GasPrice price of gas
 	GasPrice *big.Float
 
+	// L1FeeOverhead
+	L1FeeOverhead *big.Int
+
+	// L1FeePerPool
+	L1FeePerPool *big.Int
+
 	// ExtraFee fee charged by client
 	ExtraFee valueobject.ExtraFee
 
@@ -92,6 +98,12 @@ type AggregateBundledParams struct {
 
 	// GasPrice price of gas
 	GasPrice *big.Float
+
+	// L1FeeOverhead
+	L1FeeOverhead *big.Int
+
+	// L1FeePerPool
+	L1FeePerPool *big.Int
 
 	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
 	IsHillClimbEnabled bool

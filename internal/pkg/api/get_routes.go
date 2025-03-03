@@ -175,7 +175,7 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 		Gas:      strconv.FormatInt(routeSummary.Gas, 10),
 		GasPrice: routeSummary.GasPrice.Text('f', -1),
 		GasUSD:   strconv.FormatFloat(routeSummary.GasUSD, 'f', -1, 64),
-
+		L1FeeUSD: strconv.FormatFloat(routeSummary.L1FeeUSD, 'f', -1, 64),
 		ExtraFee: transformExtraFee(routeSummary.ExtraFee),
 		Route:    transformRoute(routeSummary.Route),
 	}

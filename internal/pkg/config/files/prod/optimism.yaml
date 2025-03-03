@@ -492,6 +492,8 @@ job:
       retryInterval: 5s
   generateBestPaths:
     interval: 120s
+  updateL1Fee:
+    interval: 2s
 repository:
   gas:
     redis:

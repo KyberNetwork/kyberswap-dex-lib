@@ -33,7 +33,7 @@ type dummyL1FeeCalculator struct{}
 
 var randomSalt = "randomSalt"
 
-func (d *dummyL1FeeCalculator) CalculateL1Fee(ctx context.Context, chainId valueobject.ChainID, encodedSwapData string) (*big.Int, error) {
+func (d *dummyL1FeeCalculator) CalculateL1Fee(_ context.Context, _ valueobject.RouteSummary, _ string) (*big.Int, error) {
 	return nil, nil
 }
 

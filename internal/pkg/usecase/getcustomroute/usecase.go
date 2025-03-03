@@ -15,12 +15,14 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type useCase struct {
 	aggregator             IAggregator
 	tokenRepository        ITokenRepository
 	gasRepository          IGasRepository
+	l1FeeEstimator         IL1FeeEstimator
 	onchainpriceRepository IOnchainPriceRepository
 
 	config Config
@@ -32,6 +34,7 @@ func NewCustomRoutesUseCase(
 	tokenRepository ITokenRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
+	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	poolRepository IPoolRepository,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -51,6 +54,7 @@ func NewCustomRoutesUseCase(
 		aggregator:             aggregator,
 		tokenRepository:        tokenRepository,
 		gasRepository:          gasRepository,
+		l1FeeEstimator:         l1FeeEstimator,
 		onchainpriceRepository: onchainpriceRepository,
 
 		config: config,
@@ -143,6 +147,13 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		return nil, err
 	}
 
+	var l1FeeOverhead, l1FeePerPool *big.Int
+	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
+		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	return &types.AggregateParams{
 		TokenIn:          tokenIn,
 		TokenOut:         tokenOut,
@@ -153,10 +164,12 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		AmountIn:         query.AmountIn,
 		Sources: u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources,
 			query.OnlyScalableSources),
-		SaveGas:    query.SaveGas,
-		GasInclude: query.GasInclude,
-		GasPrice:   gasPrice,
-		ExtraFee:   query.ExtraFee,
+		SaveGas:       query.SaveGas,
+		GasInclude:    query.GasInclude,
+		GasPrice:      gasPrice,
+		L1FeeOverhead: l1FeeOverhead,
+		L1FeePerPool:  l1FeePerPool,
+		ExtraFee:      query.ExtraFee,
 	}, nil
 }
 

@@ -580,6 +580,8 @@ job:
       batchRate: 700ms
       batchSize: 100
       retryInterval: 5s
+  updateL1Fee:
+    interval: 2s
 repository:
   gas:
     redis:

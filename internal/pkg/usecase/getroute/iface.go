@@ -51,6 +51,11 @@ type IGasRepository interface {
 	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
 }
 
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/l1_fee_estimator.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IL1FeeEstimator
+type IL1FeeEstimator interface {
+	EstimateL1Fees(ctx context.Context) (*big.Int, *big.Int, error)
+}
+
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/pool_rank_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolRankRepository
 type IPoolRankRepository interface {
 	FindBestPoolIDs(

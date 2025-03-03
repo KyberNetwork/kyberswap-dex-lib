@@ -41,8 +41,7 @@ type (
 	}
 
 	UpdateL1FeeConfig struct {
-		Interval      time.Duration `mapstructure:"interval" default:"0s"`
-		OracleAddress string        `mapstructure:"oracle_address"`
+		Interval time.Duration `mapstructure:"interval" default:"0s"`
 	}
 
 	LiquidityScoreIndexPoolsJobConfig struct {

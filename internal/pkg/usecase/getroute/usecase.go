@@ -29,6 +29,7 @@ type useCase struct {
 
 	tokenRepository ITokenRepository
 	gasRepository   IGasRepository
+	l1FeeEstimator  IL1FeeEstimator
 
 	onchainpriceRepository IOnchainPriceRepository
 
@@ -42,6 +43,7 @@ func NewUseCase(
 	onchainpriceRepository IOnchainPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
+	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
@@ -76,6 +78,7 @@ func NewUseCase(
 		aggregator:      aggregatorWithChargeExtraFee,
 		tokenRepository: tokenRepository,
 		gasRepository:   gasRepository,
+		l1FeeEstimator:  l1FeeEstimator,
 		config:          config,
 
 		onchainpriceRepository: onchainpriceRepository,
@@ -182,6 +185,13 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		return nil, err
 	}
 
+	var l1FeeOverhead, l1FeePerPool *big.Int
+	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
+		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
 	index := valueobject.NativeTvl
@@ -211,6 +221,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		OnlySinglePath:                query.OnlySinglePath,
 		GasInclude:                    query.GasInclude,
 		GasPrice:                      gasPrice,
+		L1FeeOverhead:                 l1FeeOverhead,
+		L1FeePerPool:                  l1FeePerPool,
 		ExtraFee:                      query.ExtraFee,
 		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
 		Index:                         index,

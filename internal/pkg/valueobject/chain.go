@@ -49,3 +49,16 @@ func IsL2EncoderSupportedChains(chainID ChainID) bool {
 	_, exist := l2EncoderSupportedChains[chainID]
 	return exist
 }
+
+var SupportedL1FeeEstimateChains = map[ChainID]struct{}{
+	ChainIDArbitrumOne: {},
+	ChainIDOptimism:    {},
+	ChainIDBase:        {},
+	ChainIDBlast:       {},
+	ChainIDScroll:      {},
+}
+
+func IsL1FeeEstimateSupported(chainID ChainID) bool {
+	_, exist := SupportedL1FeeEstimateChains[chainID]
+	return exist
+}

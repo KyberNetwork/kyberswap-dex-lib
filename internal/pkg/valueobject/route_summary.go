@@ -42,6 +42,9 @@ type RouteSummary struct {
 	// GasUSD gas in USD
 	GasUSD float64 `json:"gasUsd"`
 
+	// L1FeeUSD L1 fee in USD (for some L2 chains)
+	L1FeeUSD float64 `json:"l1FeeUsd"`
+
 	// ExtraFee extra fee should be charged when executing swap, can be customized by client
 	ExtraFee ExtraFee `json:"extraFee"`
 

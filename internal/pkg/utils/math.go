@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 

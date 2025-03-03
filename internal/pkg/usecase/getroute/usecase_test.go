@@ -176,6 +176,8 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Return(big.NewInt(7901274685), nil).
 		AnyTimes()
 
+	l1FeeEstimator := getroute.NewMockIL1FeeEstimator(ctrl)
+
 	// Mock IPoolManager
 	poolManager := getroute.NewMockIPoolManager(ctrl)
 	poolManager.EXPECT().
@@ -274,6 +276,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		onchainpriceRepo,
 		routeCacheRepository,
 		gasRepository,
+		l1FeeEstimator,
 		poolManager,
 		finderEngine,
 		Config{

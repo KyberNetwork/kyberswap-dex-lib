@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -98,6 +99,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteSummary, error) {
 	var (
 		gasPrice *big.Float
+		l1FeeUSD float64
 	)
 
 	amountIn, ok := new(big.Int).SetString(params.AmountIn, 10)
@@ -151,7 +153,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 	if err != nil {
 		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
-			"invalid routerouteSummary.gas [%s]",
+			"invalid routeSummary.gas [%s]",
 			params.Gas,
 		)
 	}
@@ -160,9 +162,20 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 	if err != nil {
 		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
-			"invalid routerouteSummary.gasUsd [%s]",
+			"invalid routeSummary.gasUsd [%s]",
 			params.GasUSD,
 		)
+	}
+
+	if len(params.L1FeeUSD) > 0 {
+		l1FeeUSD, err = strconv.ParseFloat(params.L1FeeUSD, 64)
+		if err != nil {
+			return valueobject.RouteSummary{}, errors.WithMessagef(
+				ErrInvalidRoute,
+				"invalid routeSummary.l1FeeUsd [%s]",
+				params.L1FeeUSD,
+			)
+		}
 	}
 
 	extraFee, err := transformExtraFeeParams(params.ExtraFee)
@@ -225,6 +238,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		Gas:      gas,
 		GasPrice: gasPrice,
 		GasUSD:   gasUSD,
+		L1FeeUSD: l1FeeUSD,
 
 		ExtraFee:  extraFee,
 		Timestamp: params.Timestamp,

@@ -1,49 +1,437 @@
 [
-  { "inputs": [{ "internalType": "address", "name": "_owner", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
-  { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "uint256", "name": "l1BaseFee", "type": "uint256" }], "name": "L1BaseFeeUpdated", "type": "event" },
-  { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "uint256", "name": "overhead", "type": "uint256" }], "name": "OverheadUpdated", "type": "event" },
   {
-    "anonymous": false,
+    "type": "constructor",
     "inputs": [
-      { "indexed": true, "internalType": "address", "name": "_oldOwner", "type": "address" },
-      { "indexed": true, "internalType": "address", "name": "_newOwner", "type": "address" }
+      {
+        "name": "_owner",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  { "anonymous": false, "inputs": [{ "indexed": false, "internalType": "uint256", "name": "scalar", "type": "uint256" }], "name": "ScalarUpdated", "type": "event" },
-  {
-    "anonymous": false,
-    "inputs": [
-      { "indexed": false, "internalType": "address", "name": "_oldWhitelist", "type": "address" },
-      { "indexed": false, "internalType": "address", "name": "_newWhitelist", "type": "address" }
-    ],
-    "name": "UpdateWhitelist",
-    "type": "event"
+    "stateMutability": "nonpayable"
   },
   {
-    "inputs": [{ "internalType": "bytes", "name": "_data", "type": "bytes" }],
+    "type": "function",
+    "name": "blobScalar",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "commitScalar",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "enableCurie",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "getL1Fee",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
+    "inputs": [
+      {
+        "name": "_data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    "inputs": [{ "internalType": "bytes", "name": "_data", "type": "bytes" }],
+    "type": "function",
     "name": "getL1GasUsed",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
+    "inputs": [
+      {
+        "name": "_data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
-  { "inputs": [], "name": "l1BaseFee", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [], "name": "overhead", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [], "name": "scalar", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" },
-  { "inputs": [{ "internalType": "uint256", "name": "_l1BaseFee", "type": "uint256" }], "name": "setL1BaseFee", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "uint256", "name": "_overhead", "type": "uint256" }], "name": "setOverhead", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "uint256", "name": "_scalar", "type": "uint256" }], "name": "setScalar", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "address", "name": "_newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [{ "internalType": "address", "name": "_newWhitelist", "type": "address" }], "name": "updateWhitelist", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-  { "inputs": [], "name": "whitelist", "outputs": [{ "internalType": "contract IWhitelist", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }
+  {
+    "type": "function",
+    "name": "isCurie",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "l1BaseFee",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "l1BlobBaseFee",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "overhead",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "scalar",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setBlobScalar",
+    "inputs": [
+      {
+        "name": "_scalar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCommitScalar",
+    "inputs": [
+      {
+        "name": "_scalar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setL1BaseFee",
+    "inputs": [
+      {
+        "name": "_l1BaseFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setL1BaseFeeAndBlobBaseFee",
+    "inputs": [
+      {
+        "name": "_l1BaseFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_l1BlobBaseFee",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setOverhead",
+    "inputs": [
+      {
+        "name": "_overhead",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setScalar",
+    "inputs": [
+      {
+        "name": "_scalar",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      {
+        "name": "_newOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateWhitelist",
+    "inputs": [
+      {
+        "name": "_newWhitelist",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "whitelist",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IWhitelist"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "BlobScalarUpdated",
+    "inputs": [
+      {
+        "name": "scalar",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitScalarUpdated",
+    "inputs": [
+      {
+        "name": "scalar",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "L1BaseFeeUpdated",
+    "inputs": [
+      {
+        "name": "l1BaseFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "L1BlobBaseFeeUpdated",
+    "inputs": [
+      {
+        "name": "l1BlobBaseFee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OverheadUpdated",
+    "inputs": [
+      {
+        "name": "overhead",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "_oldOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "_newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ScalarUpdated",
+    "inputs": [
+      {
+        "name": "scalar",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UpdateWhitelist",
+    "inputs": [
+      {
+        "name": "_oldWhitelist",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "_newWhitelist",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ErrAlreadyInCurieFork",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ErrCallerNotWhitelisted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ErrExceedMaxBlobScalar",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ErrExceedMaxCommitScalar",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ErrExceedMaxOverhead",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ErrExceedMaxScalar",
+    "inputs": []
+  }
 ]

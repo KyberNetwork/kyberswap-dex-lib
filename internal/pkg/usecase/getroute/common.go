@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/mergeswap"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
+	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/samber/lo"
 
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
@@ -88,6 +89,14 @@ func ConvertToPathfinderParams(
 
 	prices := CollectTokenPrices(params, priceByAddress, tokenByAddress)
 
+	var l1GasFeePriceOverhead, l1GasFeePricePerPool float64
+	if params.L1FeeOverhead != nil && params.L1FeePerPool != nil {
+		l1GasFeePriceOverhead = finderUtil.CalcAmountPrice(params.L1FeeOverhead, params.GasToken.Decimals,
+			prices[params.GasToken.Address])
+		l1GasFeePricePerPool = finderUtil.CalcAmountPrice(params.L1FeePerPool, params.GasToken.Decimals,
+			prices[params.GasToken.Address])
+	}
+
 	findRouteParams := finderEntity.FinderParams{
 		TokenIn:  params.TokenIn.Address,
 		TokenOut: params.TokenOut.Address,
@@ -103,6 +112,9 @@ func ConvertToPathfinderParams(
 		GasIncluded: params.GasInclude,
 		GasToken:    params.GasToken.Address,
 		GasPrice:    gasPriceBI,
+
+		L1GasFeePriceOverhead: l1GasFeePriceOverhead,
+		L1GasFeePricePerPool:  l1GasFeePricePerPool,
 
 		ClientId:       params.ClientId,
 		OnlySinglePath: params.OnlySinglePath,
@@ -201,7 +213,7 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 		Gas:      route.GasUsed,
 		GasPrice: params.GasPrice,
 		GasUSD:   route.GasFeePrice,
-
+		L1FeeUSD: route.L1GasFeePrice,
 		ExtraFee: params.ExtraFee,
 
 		Route: paths,

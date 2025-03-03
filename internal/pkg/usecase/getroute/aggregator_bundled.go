@@ -8,15 +8,16 @@ import (
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
-	"github.com/samber/lo"
 )
 
 type bundledAggregator struct {
@@ -238,6 +239,8 @@ func (a *bundledAggregator) findBestBundledRoute(
 			SaveGas:                       params.SaveGas,
 			GasInclude:                    params.GasInclude,
 			GasPrice:                      params.GasPrice,
+			L1FeeOverhead:                 params.L1FeeOverhead,
+			L1FeePerPool:                  params.L1FeePerPool,
 			IsHillClimbEnabled:            params.IsHillClimbEnabled,
 			ExcludedPools:                 params.ExcludedPools,
 			ClientId:                      params.ClientId,

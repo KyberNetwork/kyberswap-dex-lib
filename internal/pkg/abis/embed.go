@@ -13,3 +13,9 @@ var metaAggregationRouterV2Optimistic []byte
 
 //go:embed ScrolL1GasPriceOracle.json
 var scrolL1GasPriceOracle []byte
+
+//go:embed OptimismGasPriceOracle.json
+var optimismGasPriceOracle []byte
+
+//go:embed ArbGasInfo.json
+var arbGasInfo []byte

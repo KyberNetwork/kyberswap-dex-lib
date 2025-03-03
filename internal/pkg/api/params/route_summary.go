@@ -15,6 +15,7 @@ type (
 		Gas      string `json:"gas"`
 		GasPrice string `json:"gasPrice"`
 		GasUSD   string `json:"gasUsd"`
+		L1FeeUSD string `json:"l1FeeUsd"`
 
 		ExtraFee ExtraFee `json:"extraFee"`
 

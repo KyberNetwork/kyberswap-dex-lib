@@ -226,7 +226,9 @@ func apiAction(c *cli.Context) (err error) {
 
 	l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client,
 		l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
-	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, common.HexToAddress(cfg.Encoder.RouterAddress))
+	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, cfg.Common.ChainID,
+		common.HexToAddress(cfg.Encoder.RouterAddress))
+	l1FeeEstimator := usecase.NewL1FeeEstimator(l1FeeParamsRepository, cfg.Common.ChainID)
 
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
@@ -370,6 +372,7 @@ func apiAction(c *cli.Context) (err error) {
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
+		l1FeeEstimator,
 		poolManager,
 		finderEngine,
 		cfg.UseCase.GetRoute,
@@ -417,6 +420,7 @@ func apiAction(c *cli.Context) (err error) {
 		tokenRepository,
 		onchainpriceRepository,
 		gasRepository,
+		l1FeeEstimator,
 		poolManager,
 		poolRepository,
 		customRouteFinderEngine,
@@ -639,7 +643,6 @@ func indexerAction(c *cli.Context) (err error) {
 		updateL1FeeUseCase := usecase.NewUpdateL1FeeParams(
 			cfg.Common.ChainID,
 			ethClient,
-			cfg.Job.UpdateL1Fee.OracleAddress,
 			l1FeeParamsRepository,
 		)
 		updateL1FeeJob = job.NewUpdateL1FeeJob(

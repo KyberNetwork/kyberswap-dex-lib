@@ -625,7 +625,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 	}
 
 	// for some L2 chains we'll need to account for L1 fee as well
-	l1FeeUSDFloat, err := uc.calculateL1FeeUSD(ctx, encodedData)
+	l1FeeUSDFloat, err := uc.calculateL1FeeUSD(ctx, routeSummary, encodedData)
 	if err != nil {
 		return 0, 0.0, 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
 	}
@@ -633,8 +633,13 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 	return gas, gasUSD, l1FeeUSDFloat, nil
 }
 
-func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, encodedData string) (float64, error) {
-	l1Fee, err := uc.l1FeeCalculator.CalculateL1Fee(ctx, uc.config.ChainID, encodedData)
+func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary valueobject.RouteSummary, encodedData string) (float64, error) {
+	// Using the estimated L1 fee because we haven’t implemented Brotli compression for Arbitrum yet.
+	if uc.config.ChainID == valueobject.ChainIDArbitrumOne {
+		return routeSummary.L1FeeUSD, nil
+	}
+
+	l1Fee, err := uc.l1FeeCalculator.CalculateL1Fee(ctx, routeSummary, encodedData)
 	if err != nil {
 		return 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
 	}

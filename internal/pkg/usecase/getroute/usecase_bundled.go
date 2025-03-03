@@ -2,6 +2,7 @@ package getroute
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
@@ -115,6 +116,13 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		return nil, err
 	}
 
+	var l1FeeOverhead, l1FeePerPool *big.Int
+	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
+		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
 	var overridePools []*entity.Pool
@@ -144,6 +152,8 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		SaveGas:                       query.SaveGas,
 		GasInclude:                    query.GasInclude,
 		GasPrice:                      gasPrice,
+		L1FeeOverhead:                 l1FeeOverhead,
+		L1FeePerPool:                  l1FeePerPool,
 		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
 		Index:                         index,
 		ExcludedPools:                 query.ExcludedPools,

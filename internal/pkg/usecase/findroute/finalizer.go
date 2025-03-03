@@ -64,8 +64,9 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 	simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits, f.CustomFuncs())
 
 	var (
-		amountOut = big.NewInt(0)
-		gasUsed   = business.BaseGas
+		amountOut     = big.NewInt(0)
+		gasUsed       = business.BaseGas
+		l1GasFeePrice = params.L1GasFeePriceOverhead
 	)
 
 	// After EX-2542: Merge duplicate swaps in route,
@@ -202,6 +203,8 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 			metrics.CountPoolTypeHit(ctx, swap.PoolType)
 		}
 
+		l1GasFeePrice += params.L1GasFeePricePerPool * float64(len(path.PoolsOrder))
+
 		// Step 2.2: add up amountOut
 		if path.TokensOrder[len(path.TokensOrder)-1] == params.TokenOut {
 			amountOut.Add(amountOut, currentAmountIn)
@@ -228,7 +231,8 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 		GasFee:   gasFee,
 		GasFeePrice: finderUtil.CalcAmountPrice(gasFee, params.Tokens[params.GasToken].Decimals,
 			params.Prices[params.GasToken]),
-		Route: finalizedRoute,
+		L1GasFeePrice: l1GasFeePrice,
+		Route:         finalizedRoute,
 
 		ExtraFinalizerData: extra,
 	}
