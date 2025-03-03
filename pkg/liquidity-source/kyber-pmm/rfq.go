@@ -121,8 +121,6 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 				"error":      ErrMakerAmountTooLow,
 			}).Error("failed to get multiFirm quote")
 
-			// log.Fatalln(order.TakerAmount, order.MakerAmount, orders[i].ExpectedMakerAmount, order.FeeAmount)
-
 			return nil, ErrMakerAmountTooLow
 		}
 
