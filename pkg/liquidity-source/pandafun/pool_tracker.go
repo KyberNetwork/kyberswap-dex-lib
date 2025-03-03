@@ -34,7 +34,7 @@ func (d *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-	}).Infof("[%s] Start getting new state of pool", p.Type)
+	}).Debugf("[%s] Start getting new state of pool", p.Type)
 
 	var (
 		minTradeSize               *big.Int
@@ -130,7 +130,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-	}).Infof("[%s] Finish getting new state of pool", p.Type)
+	}).Debugf("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
 }

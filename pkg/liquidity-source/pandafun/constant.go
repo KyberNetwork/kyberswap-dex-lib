@@ -1,8 +1,8 @@
 package pandafun
 
-import "math/big"
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 
 const defaultGas = 200000 // TODO: Update this
 const DexType = "panda-fun"
 
-var oneGwei = new(big.Int).SetUint64(1e9)
+var oneGwei = bignumber.TenPowInt(9)

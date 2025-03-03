@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 )
 
@@ -27,10 +28,15 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 var (
 	ErrTradeBelowMin         = errors.New("PandaPool: TRADE_BELOW_MIN")
 	ErrInsufficientLiquidity = errors.New("PandaPool: INSUFFICIENT_LIQUIDITY")
+	ErrInvalidToken          = errors.New("invalid token")
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
@@ -58,12 +64,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn := params.TokenAmountIn.Token
+	tokenOut := params.TokenOut
 
 	// tokens[0] is baseToken, tokens[1] is pandaToken
-	if tokenIn == p.Info.Tokens[0] {
+	if tokenIn == p.Info.Tokens[0] && tokenOut == p.Info.Tokens[1] {
 		return p.getAmountOutBuy(params)
-	} else {
+	} else if tokenIn == p.Info.Tokens[1] && tokenOut == p.Info.Tokens[0] {
 		return p.getAmountOutSell(params)
+	} else {
+		return nil, ErrInvalidToken
 	}
 }
 
@@ -169,10 +178,12 @@ func (p *PoolSimulator) getAmountOutSell(params pool.CalcAmountOutParams) (*pool
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// Since we don't need sqrtP in calculation, we only need to update new reserves
 	tokenIn := params.TokenAmountIn.Token
-	if tokenIn == p.Info.Tokens[0] {
+	tokenOut := params.TokenAmountOut.Token
+
+	if tokenIn == p.Info.Tokens[0] && tokenOut == p.Info.Tokens[1] {
 		p.Info.Reserves[0].Add(p.Info.Reserves[0], params.TokenAmountIn.Amount)
 		p.Info.Reserves[1].Sub(p.Info.Reserves[1], params.TokenAmountOut.Amount)
-	} else {
+	} else if tokenIn == p.Info.Tokens[1] && tokenOut == p.Info.Tokens[0] {
 		p.Info.Reserves[0].Sub(p.Info.Reserves[0], params.TokenAmountIn.Amount)
 		p.Info.Reserves[1].Add(p.Info.Reserves[1], params.TokenAmountIn.Amount)
 	}
