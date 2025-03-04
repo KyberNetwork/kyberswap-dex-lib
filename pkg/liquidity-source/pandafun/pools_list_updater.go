@@ -68,7 +68,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 	getPoolAddressRequest := d.ethrpcClient.NewRequest()
 	var poolAddresses = make([]common.Address, batchSize)
-	for i := 0; i < batchSize; i++ {
+	for i := range batchSize {
 		getPoolAddressRequest.AddCall(&ethrpc.Call{
 			ABI:    *factoryABI,
 			Target: d.config.FactoryAddress,
@@ -102,10 +102,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Info("scan NomiSwapStablePoolMaster")
 	}
 
-	nextOffset := currentOffset + batchSize
-	if nextOffset > totalNumberOfPools {
-		nextOffset = totalNumberOfPools
-	}
+	nextOffset := min(currentOffset+batchSize, totalNumberOfPools)
 
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
@@ -124,7 +121,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	poolABI, _ := PoolContractMetaData.GetAbi()
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < len(poolAddresses); i++ {
+
+	var graduated bool
+	for i := range poolAddresses {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *poolABI,
 			Target: poolAddresses[i].Hex(),
@@ -137,6 +136,12 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Method: "pandaToken",
 			Params: nil,
 		}, []any{&tokens[i][1]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    *poolABI,
+			Target: poolAddresses[i].Hex(),
+			Method: "graduated",
+			Params: nil,
+		}, []any{&graduated})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {
@@ -149,6 +154,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
 	for i := range poolAddresses {
+		if graduated {
+			continue
+		}
+
 		poolAddress := strings.ToLower(poolAddresses[i].Hex())
 		token0Address := strings.ToLower(tokens[i][0].Hex())
 		token1Address := strings.ToLower(tokens[i][1].Hex())
