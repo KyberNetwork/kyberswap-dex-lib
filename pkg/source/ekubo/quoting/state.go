@@ -29,9 +29,9 @@ func NewPoolState(liquidity, sqrtRatio *big.Int, activeTick int32, ticks []Tick,
 func (s *PoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *big.Int, upper, forceInsert bool) {
 	ticks := s.Ticks
 
-	adjustedLiquidityDelta := new(big.Int).Set(liquidityDelta)
+	liquidityDelta = new(big.Int).Set(liquidityDelta)
 	if upper {
-		adjustedLiquidityDelta.Neg(adjustedLiquidityDelta)
+		liquidityDelta.Neg(liquidityDelta)
 	}
 
 	nearestTickIndex := NearestInitializedTickIndex(ticks, updatedTickNumber)
