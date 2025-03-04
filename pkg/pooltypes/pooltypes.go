@@ -290,6 +290,7 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
+	Ekubo                      string
 }
 
 var (
@@ -443,5 +444,6 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
+		Ekubo:                      ekubo.DexType,
 	}
 )
