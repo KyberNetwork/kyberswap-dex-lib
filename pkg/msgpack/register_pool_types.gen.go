@@ -61,6 +61,7 @@ import (
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	pkg_liquiditysource_overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
+	pkg_liquiditysource_pandafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -193,6 +194,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_overnightusdp.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_pandafun.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
