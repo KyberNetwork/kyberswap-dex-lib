@@ -14,10 +14,13 @@ type RFQParams struct {
 	Slippage     int64  // tolerance (in bps) for RFQs that also aggregate dexes
 	SwapInfo     any    // swap info of the RFQ swap
 	Source       string // source client
+	RequestID    string // request id from getRoute
+	AlphaFee     string
 }
 
 type RFQResult struct {
 	NewAmountOut *big.Int
+	AlphaFee     *big.Int
 	Extra        any
 }
 
