@@ -5,6 +5,11 @@ import (
 	"math/big"
 )
 
+const (
+	MinTick int32 = -88722835
+	MaxTick int32 = 88722835
+)
+
 var (
 	MaxSqrtRatio = IntFromString("6276949602062853172742588666638147158083741740262337144812")
 	MinSqrtRatio = IntFromString("18447191164202170526")

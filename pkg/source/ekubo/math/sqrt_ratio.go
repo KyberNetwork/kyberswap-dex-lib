@@ -48,8 +48,8 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *big.Int) (*big.Int,
 		}
 
 		denominator := product.Sub(numerator1, product)
-		if denominator.Cmp(TwoPow256) != -1 {
-			return nil, ErrOverflow
+		if denominator.Sign() == -1 {
+			return nil, ErrUnderflow
 		}
 
 		res, err = muldiv(numerator1, sqrtRatio, denominator, true)
