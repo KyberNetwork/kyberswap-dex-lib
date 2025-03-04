@@ -114,6 +114,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
+		Graduated:                  graduated,
 		MinTradeSize:               minTradeSize,
 		AmountInBuyRemainingTokens: amountInBuyRemainingTokens,
 		Liquidity:                  liquidity,
