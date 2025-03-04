@@ -69,6 +69,12 @@ type AggregateParams struct {
 	// KyberLimitOrderAllowedSenders is a comma-separated list of addresses used to filter
 	// Kyber private limit orders.
 	KyberLimitOrderAllowedSenders string
+
+	// Flag to enable alpha fee reduction
+	EnableAlphaFee bool
+
+	// Flag to enable hill climbing for amm best route
+	EnableHillClaimForAlphaFee bool
 }
 
 type AggregateBundledParamsPair struct {

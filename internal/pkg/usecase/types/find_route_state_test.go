@@ -59,10 +59,10 @@ func TestTokenToPoolAddressMap(t *testing.T) {
 				"p3": &testPoolSimulator{"p3", []string{"t3", "t1"}},
 				"p4": &testPoolSimulator{"p4", []string{"t1", "t2", "t3"}},
 			}
-			expected := map[string]sets.String{
-				"t1": sets.NewString("p1", "p3", "p4"),
-				"t2": sets.NewString("p1", "p2", "p4"),
-				"t3": sets.NewString("p2", "p3", "p4"),
+			expected := map[string]sets.Set[string]{
+				"t1": sets.New("p1", "p3", "p4"),
+				"t2": sets.New("p1", "p2", "p4"),
+				"t3": sets.New("p2", "p3", "p4"),
 			}
 			m := MakeTokenToPoolAddressMapFromPools(pools)
 			defer m.ReleaseResources()
@@ -88,11 +88,11 @@ func TestTokenToPoolAddressMap(t *testing.T) {
 		tokenToPoolAddress := MakeTokenToPoolAddressMapFromPools(poolByAddress)
 		defer tokenToPoolAddress.ReleaseResources()
 
-		expected := make(map[string]sets.String)
+		expected := make(map[string]sets.Set[string])
 		for _, pool := range poolByAddress {
 			for _, token := range pool.GetTokens() {
 				if _, ok := expected[token]; !ok {
-					expected[token] = sets.NewString()
+					expected[token] = sets.Set[string]{}
 				}
 				expected[token].Insert(pool.GetAddress())
 			}
@@ -138,11 +138,11 @@ func TestTokenToPoolAddressMapConcurrent(t *testing.T) {
 			tokenToPoolAddress := MakeTokenToPoolAddressMapFromPools(poolByAddress)
 			defer tokenToPoolAddress.ReleaseResources()
 
-			expected := make(map[string]sets.String)
+			expected := make(map[string]sets.Set[string])
 			for _, pool := range poolByAddress {
 				for _, token := range pool.GetTokens() {
 					if _, ok := expected[token]; !ok {
-						expected[token] = sets.NewString()
+						expected[token] = sets.Set[string]{}
 					}
 					expected[token].Insert(pool.GetAddress())
 				}

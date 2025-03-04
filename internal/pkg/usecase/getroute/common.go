@@ -18,7 +18,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/alphafee"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -116,8 +117,10 @@ func ConvertToPathfinderParams(
 		L1GasFeePriceOverhead: l1GasFeePriceOverhead,
 		L1GasFeePricePerPool:  l1GasFeePricePerPool,
 
-		ClientId:       params.ClientId,
-		OnlySinglePath: params.OnlySinglePath,
+		ClientId:                   params.ClientId,
+		OnlySinglePath:             params.OnlySinglePath,
+		ReturnAMMBestPath:          params.EnableAlphaFee,
+		EnableHillClimbForAlphaFee: params.EnableHillClaimForAlphaFee,
 	}
 
 	return findRouteParams
@@ -215,8 +218,7 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 		GasUSD:   route.GasFeePrice,
 		L1FeeUSD: route.L1GasFeePrice,
 		ExtraFee: params.ExtraFee,
-
-		Route: paths,
+		Route:    paths,
 	}
 
 	return routeSummary
@@ -279,8 +281,9 @@ func InitializeFinderEngine(
 		finderOptions,
 	)
 
-	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
+		alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig, customFuncs),
 		customFuncs,
 	)
 

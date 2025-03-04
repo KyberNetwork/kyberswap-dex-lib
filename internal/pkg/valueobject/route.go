@@ -202,8 +202,8 @@ func (r *Route) CompareTo(other *Route, gasInclude bool) int {
 	return r.Output.Amount.Cmp(other.Output.Amount)
 }
 
-func (r *Route) ExtractPoolAddresses() sets.String {
-	poolAddressSet := sets.NewString()
+func (r *Route) ExtractPoolAddresses() sets.Set[string] {
+	poolAddressSet := sets.Set[string]{}
 
 	for _, path := range r.Paths {
 		for _, poolAddress := range path.PoolAddresses {

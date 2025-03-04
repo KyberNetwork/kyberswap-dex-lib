@@ -303,6 +303,12 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
+    alphaFeeConfig:
+      reductionFactorInBps:
+        kyber-pmm: 5000
+      MaxThresholdPercentageInBps: 9900
+      minDifferentThresholdUSD: 0.01
+      minDifferentThresholdBps: 1000
   getCustomRoute:
     aggregator:
       finderOptions:

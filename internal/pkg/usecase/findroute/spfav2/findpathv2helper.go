@@ -17,7 +17,7 @@ type findPathV2Helper struct {
 	tokenAmountIn               valueobject.TokenAmount
 	poolAddressToLastUsedSplit  map[string]int
 	pathIdToLastCalculatedSplit []int
-	addedPathIds                sets.Int
+	addedPathIds                sets.Set[int]
 	pq                          *priorityQueue
 
 	maxPathsInRoute int
@@ -31,7 +31,7 @@ func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn value
 		tokenAmountIn,
 		make(map[string]int),
 		make([]int, numberOfPaths),
-		sets.NewInt(),
+		sets.Set[int]{},
 		NewPriorityQueue(numberOfPaths, cmpFunc),
 		maxPathsInRoute,
 		0,

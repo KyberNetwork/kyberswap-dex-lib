@@ -15,17 +15,17 @@ var (
 )
 
 type PathFinderEngine struct {
-	baseFinder     IFinder
-	routeFinalizer IFinalizer
+	baseFinder                 IFinder
+	FeeReductionRouteFinalizer IFinalizer
 }
 
 func NewPathFinderEngine(
 	coreFinder IFinder,
-	routeFinalizer IFinalizer,
+	FeeReductionRouteFinalizer IFinalizer,
 ) *PathFinderEngine {
 	return &PathFinderEngine{
-		baseFinder:     coreFinder,
-		routeFinalizer: routeFinalizer,
+		baseFinder:                 coreFinder,
+		FeeReductionRouteFinalizer: FeeReductionRouteFinalizer,
 	}
 }
 
@@ -34,11 +34,11 @@ func (p *PathFinderEngine) SetFinder(finder IFinder) {
 }
 
 func (p *PathFinderEngine) SetFinalizer(finalizer IFinalizer) {
-	p.routeFinalizer = finalizer
+	p.FeeReductionRouteFinalizer = finalizer
 }
 
 func (p *PathFinderEngine) GetFinalizer() IFinalizer {
-	return p.routeFinalizer
+	return p.FeeReductionRouteFinalizer
 }
 
 func (p *PathFinderEngine) Find(
@@ -59,7 +59,7 @@ func (p *PathFinderEngine) Find(
 
 	data.Refresh()
 
-	return p.routeFinalizer.FinalizeRoute(ctx, route, data.PoolBucket.PerRequestPoolsByAddress, data.SwapLimits, requestParams)
+	return p.FeeReductionRouteFinalizer.FinalizeRoute(ctx, route, data.PoolBucket.PerRequestPoolsByAddress, data.SwapLimits, requestParams)
 }
 
 func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {

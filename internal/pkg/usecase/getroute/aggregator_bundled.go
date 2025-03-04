@@ -278,11 +278,12 @@ func (a *bundledAggregator) findBestBundledRoute(
 			}
 		}
 
-		lastSwapState, ok = route.ExtraFinalizerData.(*types.StateAfterSwap)
+		finalizeExtra, ok := route.ExtraFinalizerData.(types.FinalizeExtraData)
 		if !ok {
 			logger.Errorf(ctx, "invalid finalizer data %v: %v", pair, route.ExtraFinalizerData)
 			return nil, ErrInvalidFinalizerExtraData
 		}
+		lastSwapState = &finalizeExtra.StateAfterSwap
 
 		allRoutes = append(allRoutes, ConvertToRouteSummary(&pairParams, route))
 	}

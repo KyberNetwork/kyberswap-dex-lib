@@ -27,8 +27,7 @@ func NewAEVMLocalFinder(baseFinder finderEngine.IFinder, aevmClient aevmclient.C
 	}
 }
 
-func (f *AEVMLocalFinder) Find(ctx context.Context, params finderEntity.FinderParams) ([]*finderCommon.ConstructRoute,
-	error) {
+func (f *AEVMLocalFinder) Find(ctx context.Context, params finderEntity.FinderParams) (*finderCommon.BestRouteResult, error) {
 	useAEVMPool := f.opts.LocalUseAEVMPool
 
 	if !useAEVMPool {

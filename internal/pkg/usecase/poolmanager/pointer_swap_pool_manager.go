@@ -400,6 +400,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	poolEntitiesFromDB, err := p.GetPoolsIncludingBasePools.Handle(ctx, poolsToFetchFromDB, func(pool *entity.Pool) bool {
 		return whitelistDexSet.Has(pool.Exchange)
 	})
+
 	// reserve memory for pool entities, avoid mem allocation burden
 	defer mempool.ReserveMany(poolEntitiesFromDB)
 

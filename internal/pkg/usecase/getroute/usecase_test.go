@@ -23,8 +23,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/alphafee"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -263,8 +264,9 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	)
 	routeFinder.SetCustomFuncs(calcAmountOutInstance)
 
-	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
+		alphafee.NewAlphaFeeCalculation(valueobject.AlphaFeeReductionConfig{}, calcAmountOutInstance),
 		calcAmountOutInstance,
 	)
 

@@ -15,33 +15,43 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/alphafee"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-type SafetyQuotingRouteFinalizer struct {
+type FeeReductionRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
+	alphafeeCalculation  *alphafee.AlphaFeeCalculation
 
 	finderEntity.ICustomFuncsHolder
 }
 
-func NewSafetyQuotingRouteFinalizer(
+type FeeReductionFinalizerExtraData struct {
+	BestAmmAmountOut *finderCommon.ConstructRoute
+}
+
+func NewFeeReductionRouteFinalizer(
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
+	alphafeeCalculation *alphafee.AlphaFeeCalculation,
 	customFuncs finderEntity.ICustomFuncs,
-) *SafetyQuotingRouteFinalizer {
-	return &SafetyQuotingRouteFinalizer{
+) *FeeReductionRouteFinalizer {
+	return &FeeReductionRouteFinalizer{
 		safetyQuoteReduction: safetyQuoteReduction,
+		alphafeeCalculation:  alphafeeCalculation,
 		ICustomFuncsHolder:   &finderEntity.CustomFuncsHolder{ICustomFuncs: customFuncs},
 	}
 }
 
-func (f *SafetyQuotingRouteFinalizer) Finalize(
+func (f *FeeReductionRouteFinalizer) Finalize(
 	ctx context.Context,
 	params finderEntity.FinderParams,
 	constructRoute *finderCommon.ConstructRoute,
+	extraData interface{},
 ) (route *finderEntity.Route, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -83,6 +93,28 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 	for _, path := range constructRoute.Paths {
 		numPathByStartToken[path.TokensOrder[0]]++
+	}
+
+	// Step 1.1: Prepare alpha fee if needed
+	var alphaFee *entity.AlphaFee
+	if extraData != nil {
+		feeReductionFinalizerExtraData, ok := extraData.(FeeReductionFinalizerExtraData)
+		if ok {
+			alphaFee, err = f.alphafeeCalculation.Calculate(
+				ctx, alphafee.AlphaFeeParams{
+					BestRoute:           constructRoute,
+					BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmAmountOut,
+					Prices:              params.Prices,
+					Tokens:              params.Tokens,
+					PoolSimulatorBucket: simulatorBucket,
+				},
+			)
+			if err != nil {
+				logger.WithFields(logger.Fields{"error": err}).Error("error when calculate alpha fee")
+			}
+		} else {
+			logger.WithFields(logger.Fields{"extraData": extraData}).Error("wrong extra data in FeeReductionFinalizerExtraData")
+		}
 	}
 
 	// Step 2: finalize route
@@ -160,19 +192,28 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 				ClientId:             params.ClientId,
 			}
 
-			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
-			reducedNextAmountIn := f.safetyQuoteReduction.Reduce(
-				res.TokenAmountOut,
+			// Step 2.1.6: apply alpha fee reduction
+			reducedNextAmountIn := res.TokenAmountOut.Amount
+			if alphaFee != nil && alphaFee.Pool == pool.GetAddress() && res.TokenAmountOut.Token == alphaFee.Token {
+				reducedNextAmountIn = new(big.Int).Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
+			}
+
+			// Step 2.1.7: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
+			reducedNextAmountIn = f.safetyQuoteReduction.Reduce(
+				&dexlibPool.TokenAmount{
+					Token:  res.TokenAmountOut.Token,
+					Amount: reducedNextAmountIn,
+				},
 				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
 
-			// Step 2.1.7: finalize the swap
+			// Step 2.1.8: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn
 			swap := finderEntity.Swap{
 				Pool:       pool.GetAddress(),
 				TokenIn:    tokenAmountIn.Token,
 				TokenOut:   res.TokenAmountOut.Token,
 				SwapAmount: tokenAmountIn.Amount,
-				AmountOut:  reducedNextAmountIn.Amount,
+				AmountOut:  reducedNextAmountIn,
 				Exchange:   valueobject.Exchange(pool.GetExchange()),
 				PoolType:   pool.GetType(),
 
@@ -184,18 +225,18 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 			finalizedPath = append(finalizedPath, swap)
 
-			// Step 2.1.8: add up gas fee
+			// Step 2.1.9: add up gas fee
 			gasUsed += res.Gas
 
-			// Step 2.1.9: update input of the next swap is output of current swap
-			currentAmountIn = reducedNextAmountIn.Amount
+			// Step 2.1.10: update input of the next swap is output of current swap
+			currentAmountIn = reducedNextAmountIn
 			if i == len(path.PoolsOrder)-1 && toToken != params.TokenOut {
 				if reduceAmountByEndToken[toToken] == nil {
 					reduceAmountByEndToken[toToken] = new(big.Int)
 				}
 
 				var reduceAmount big.Int
-				reduceAmount.Sub(res.TokenAmountOut.Amount, reducedNextAmountIn.Amount)
+				reduceAmount.Sub(res.TokenAmountOut.Amount, reducedNextAmountIn)
 				reduceAmountByEndToken[toToken].Add(reduceAmountByEndToken[toToken], &reduceAmount)
 			}
 
@@ -214,8 +255,13 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
 
-	extra := &types.StateAfterSwap{}
+	// Extra data used for bundled route and alpha fee calculation
+	extra := types.FinalizeExtraData{}
 	extra.UpdatedBalancePools, extra.UpdatedSwapLimits = simulatorBucket.GetUpdatedState()
+	if alphaFee != nil && params.Prices[alphaFee.Token] > 0 {
+		alphaFee.AmountUsd = finderUtil.CalcAmountPrice(alphaFee.Amount, params.Tokens[alphaFee.Token].Decimals, params.Prices[alphaFee.Token])
+	}
+	extra.AlphaFee = alphaFee
 
 	route = &finderEntity.Route{
 		TokenIn:  params.TokenIn,
@@ -250,4 +296,13 @@ func hasOnlyOneSwap(r *finderCommon.ConstructRoute) bool {
 	}
 
 	return true
+}
+
+func (f *FeeReductionRouteFinalizer) GetExtraData(ctx context.Context, bestRouteResult *finderCommon.BestRouteResult) interface{} {
+	if bestRouteResult.AMMBestRoute == nil {
+		return nil
+	}
+	return FeeReductionFinalizerExtraData{
+		BestAmmAmountOut: bestRouteResult.AMMBestRoute,
+	}
 }

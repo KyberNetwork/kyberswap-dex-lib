@@ -104,9 +104,9 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 // This function wrap the whole logic of safety quoting calculation
 // which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
 // Deduction factor can be positive in optimistic case
-func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64) pool.TokenAmount {
+func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64) *big.Int {
 	if deductionFactor == 0 {
-		return *amount
+		return amount.Amount
 	}
 	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
 	// 100% is equal to 10000Bps
@@ -116,10 +116,7 @@ func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor 
 		types.BasisPointMulByTen,
 	)
 
-	return pool.TokenAmount{
-		Token:  amount.Token,
-		Amount: newAmount,
-	}
+	return newAmount
 
 }
 

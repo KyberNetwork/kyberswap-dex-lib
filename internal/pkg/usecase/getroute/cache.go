@@ -329,7 +329,7 @@ func (c *cache) summarizeSimpleRoute(
 		state,
 	)
 
-	route, err := c.finderEngine.GetFinalizer().Finalize(ctx, findRouteParams, constructRoute)
+	route, err := c.finderEngine.GetFinalizer().Finalize(ctx, findRouteParams, constructRoute, nil)
 	if err != nil {
 		return nil, err
 	}

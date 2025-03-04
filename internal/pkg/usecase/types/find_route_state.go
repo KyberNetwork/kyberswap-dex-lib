@@ -7,6 +7,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -210,6 +211,11 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 
 	a.TrueLen++
 
+}
+
+type FinalizeExtraData struct {
+	StateAfterSwap
+	AlphaFee *entity.AlphaFee
 }
 
 type StateAfterSwap struct {

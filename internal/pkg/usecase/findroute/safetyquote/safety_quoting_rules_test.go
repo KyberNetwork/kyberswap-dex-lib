@@ -281,12 +281,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			res := safetyQuoteReduction.Reduce(tc.amount,
 				safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
 
-			assert.Equal(t, res.Token, tc.result.Token, fmt.Sprintf("Expect %s but got %s", tc.result.Token,
-				res.Token))
-			assert.Equal(t, res.AmountUsd, tc.result.AmountUsd, fmt.Sprintf("Expect %f but got %f", tc.result.AmountUsd,
-				res.AmountUsd))
-			assert.True(t, res.Amount.Cmp(tc.result.Amount) == 0, fmt.Sprintf("Expect %s but got %s", tc.result.Amount.String(),
-				res.Amount.String()))
+			assert.True(t, res.Cmp(tc.result.Amount) == 0, fmt.Sprintf("Expect %s but got %s", tc.result.Amount.String(),
+				res.String()))
 		})
 	}
 }
