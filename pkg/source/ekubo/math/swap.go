@@ -49,8 +49,8 @@ func computeFee(amount *big.Int, fee uint64) *big.Int {
 	return quotient
 }
 
-func noOp(sqrtRatioNext *big.Int) SwapResult {
-	return SwapResult{
+func noOp(sqrtRatioNext *big.Int) *SwapResult {
+	return &SwapResult{
 		ConsumedAmount:   new(big.Int),
 		CalculatedAmount: new(big.Int),
 		SqrtRatioNext:    new(big.Int).Set(sqrtRatioNext),
@@ -62,7 +62,7 @@ func ComputeStep(
 	sqrtRatio, liquidity, sqrtRatioLimit, amount *big.Int,
 	isToken1 bool,
 	fee uint64,
-) (SwapResult, error) {
+) (*SwapResult, error) {
 	if amount.Sign() == 0 || sqrtRatio.Cmp(sqrtRatioLimit) == 0 {
 		return noOp(sqrtRatio), nil
 	}
@@ -70,7 +70,7 @@ func ComputeStep(
 	increasing := IsPriceIncreasing(amount, isToken1)
 
 	if (sqrtRatioLimit.Cmp(sqrtRatio) == -1) == increasing {
-		return SwapResult{}, ErrWrongSwapDirection
+		return nil, ErrWrongSwapDirection
 	}
 
 	if liquidity.Sign() == 0 {
@@ -101,7 +101,7 @@ func ComputeStep(
 	if err == nil {
 		if (sqrtRatioNext.Cmp(sqrtRatioLimit) != 1) == increasing {
 			if sqrtRatioNext.Cmp(sqrtRatio) == 0 {
-				return SwapResult{
+				return &SwapResult{
 					ConsumedAmount:   new(big.Int).Set(amount),
 					CalculatedAmount: new(big.Int),
 					SqrtRatioNext:    new(big.Int).Set(sqrtRatio),
@@ -117,16 +117,16 @@ func ComputeStep(
 			}
 
 			if err != nil {
-				return SwapResult{}, fmt.Errorf("amount delta: %w", err)
+				return nil, fmt.Errorf("amount delta: %w", err)
 			}
 
 			if isExactOut {
 				includingFee, err := amountBeforeFee(calculatedAmountExcludingFee, fee)
 				if err != nil {
-					return SwapResult{}, fmt.Errorf("amount before fee: %w", err)
+					return nil, fmt.Errorf("amount before fee: %w", err)
 				}
 
-				return SwapResult{
+				return &SwapResult{
 					ConsumedAmount:   new(big.Int).Set(amount),
 					CalculatedAmount: includingFee,
 					SqrtRatioNext:    sqrtRatioNext,
@@ -134,7 +134,7 @@ func ComputeStep(
 				}, nil
 			}
 
-			return SwapResult{
+			return &SwapResult{
 				ConsumedAmount:   new(big.Int).Set(amount),
 				CalculatedAmount: calculatedAmountExcludingFee,
 				SqrtRatioNext:    sqrtRatioNext,
@@ -147,36 +147,36 @@ func ComputeStep(
 	if isToken1 {
 		specifiedAmountDelta, err = amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount1 delta: %w", err)
+			return nil, fmt.Errorf("amount1 delta: %w", err)
 		}
 
 		calculatedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount0 delta: %w", err)
+			return nil, fmt.Errorf("amount0 delta: %w", err)
 		}
 	} else {
 		specifiedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount1 delta: %w", err)
+			return nil, fmt.Errorf("amount1 delta: %w", err)
 		}
 
 		calculatedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount0 delta: %w", err)
+			return nil, fmt.Errorf("amount0 delta: %w", err)
 		}
 	}
 
 	if isExactOut {
 		beforeFee, err := amountBeforeFee(calculatedAmountDelta, fee)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount before fee: %w", err)
+			return nil, fmt.Errorf("amount before fee: %w", err)
 		}
 
 		if specifiedAmountDelta.Cmp(TwoPow127) != -1 || beforeFee.Cmp(TwoPow127) != -1 {
-			return SwapResult{}, ErrOverflow
+			return nil, ErrOverflow
 		}
 
-		return SwapResult{
+		return &SwapResult{
 			ConsumedAmount:   specifiedAmountDelta.Neg(specifiedAmountDelta),
 			CalculatedAmount: beforeFee,
 			SqrtRatioNext:    new(big.Int).Set(sqrtRatioLimit),
@@ -185,14 +185,14 @@ func ComputeStep(
 	} else {
 		beforeFee, err := amountBeforeFee(specifiedAmountDelta, fee)
 		if err != nil {
-			return SwapResult{}, fmt.Errorf("amount before fee: %w", err)
+			return nil, fmt.Errorf("amount before fee: %w", err)
 		}
 
 		if beforeFee.Cmp(TwoPow127) != -1 || calculatedAmountDelta.Cmp(TwoPow127) != -1 {
-			return SwapResult{}, ErrOverflow
+			return nil, ErrOverflow
 		}
 
-		return SwapResult{
+		return &SwapResult{
 			ConsumedAmount:   beforeFee,
 			CalculatedAmount: calculatedAmountDelta,
 			SqrtRatioNext:    new(big.Int).Set(sqrtRatioLimit),

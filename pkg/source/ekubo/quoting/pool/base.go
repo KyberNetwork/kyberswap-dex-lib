@@ -138,10 +138,11 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 				initializedTicksCrossed += 1
 
 				liquidityDelta := nextInitTick.LiquidityDelta
+				liquidityDeltaAbs := new(big.Int).Abs(liquidityDelta)
 				if (liquidityDelta.Sign() == 1) == isIncreasing {
-					liquidity.Add(liquidity, liquidityDelta)
+					liquidity.Add(liquidity, liquidityDeltaAbs)
 				} else {
-					liquidity.Sub(liquidity, new(big.Int).Abs(liquidityDelta))
+					liquidity.Sub(liquidity, liquidityDeltaAbs)
 				}
 			}
 		} else {

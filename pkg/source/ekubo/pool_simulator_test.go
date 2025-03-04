@@ -157,8 +157,6 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			require.NoError(t, err)
 
 			require.True(t, result.TokenAmountOut.Amount.Cmp(new(big.Int).SetUint64(2436479431)) == 0)
-
-			_ = result
 		})
 	}
 }

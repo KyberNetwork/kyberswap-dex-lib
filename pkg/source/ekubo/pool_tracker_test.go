@@ -39,7 +39,6 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 }
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
-
 	ts.Run("Swapped", func() {
 		t := ts.T()
 
