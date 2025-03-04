@@ -37,6 +37,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Debugf("[%s] Start getting new state of pool", p.Type)
 
 	var (
+		graduated                  bool
 		minTradeSize               *big.Int
 		amountInBuyRemainingTokens *big.Int
 		liquidity                  *big.Int
@@ -49,6 +50,12 @@ func (d *PoolTracker) GetNewPoolState(
 
 	poolABI, _ := PoolContractMetaData.GetAbi()
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	calls.AddCall(&ethrpc.Call{
+		ABI:    *poolABI,
+		Target: p.Address,
+		Method: "graduated",
+		Params: nil,
+	}, []any{&graduated})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    *poolABI,
 		Target: p.Address,

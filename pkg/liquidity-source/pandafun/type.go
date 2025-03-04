@@ -3,6 +3,7 @@ package pandafun
 import "math/big"
 
 type Extra struct {
+	Graduated                  bool     `json:"graduated"`
 	MinTradeSize               *big.Int `json:"minTradeSize"`
 	AmountInBuyRemainingTokens *big.Int `json:"amountInBuyRemainingTokens"`
 	Liquidity                  *big.Int `json:"liquidity"`

@@ -14,6 +14,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
+	graduated                  bool
 	minTradeSize               *big.Int
 	amountInBuyRemainingTokens *big.Int
 	liquidity                  *big.Int
@@ -28,6 +29,7 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 var (
 	ErrTradeBelowMin         = errors.New("PandaPool: TRADE_BELOW_MIN")
 	ErrInsufficientLiquidity = errors.New("PandaPool: INSUFFICIENT_LIQUIDITY")
+	ErrPoolGraduated         = errors.New("PandaPool: GRADUATED")
 	ErrInvalidToken          = errors.New("invalid token")
 )
 
@@ -52,6 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 
+		graduated:                  extra.Graduated,
 		minTradeSize:               extra.MinTradeSize,
 		amountInBuyRemainingTokens: extra.AmountInBuyRemainingTokens,
 		liquidity:                  extra.Liquidity,
@@ -63,6 +66,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if p.graduated {
+		return nil, ErrPoolGraduated
+	}
 	tokenIn := params.TokenAmountIn.Token
 	tokenOut := params.TokenOut
 
