@@ -130,7 +130,7 @@ func ComputeStep(
 					ConsumedAmount:   new(big.Int).Set(amount),
 					CalculatedAmount: includingFee,
 					SqrtRatioNext:    sqrtRatioNext,
-					FeeAmount:        includingFee.Sub(includingFee, calculatedAmountExcludingFee),
+					FeeAmount:        new(big.Int).Sub(includingFee, calculatedAmountExcludingFee),
 				}, nil
 			}
 
@@ -160,7 +160,7 @@ func ComputeStep(
 			return nil, fmt.Errorf("amount1 delta: %w", err)
 		}
 
-		calculatedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
+		calculatedAmountDelta, err = amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
 		if err != nil {
 			return nil, fmt.Errorf("amount0 delta: %w", err)
 		}
