@@ -117,7 +117,7 @@ func (c *httpClient) MultiFirm(ctx context.Context, params kyberpmm.MultiFirmReq
 		SetBody(params)
 
 	var result kyberpmm.MultiFirmResult
-	resp, err := req.SetResult(&result).Post(multiFirmEndpoint)
+	resp, err := req.SetResult(&result).SetError(&result).Post(multiFirmEndpoint)
 	if err != nil {
 		return kyberpmm.MultiFirmResult{}, err
 	}
