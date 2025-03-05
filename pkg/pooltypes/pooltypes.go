@@ -59,6 +59,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -283,6 +284,7 @@ type Types struct {
 	OvernightUsdp              string
 	SkyPSM                     string
 	Honey                      string
+	PandaFun                   string
 }
 
 var (
@@ -434,5 +436,6 @@ var (
 		OvernightUsdp:              overnightusdp.DexType,
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
+		PandaFun:                   pandafun.DexType,
 	}
 )
