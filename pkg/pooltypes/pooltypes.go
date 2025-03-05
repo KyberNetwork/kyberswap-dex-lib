@@ -43,6 +43,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	honey "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
@@ -282,6 +283,7 @@ type Types struct {
 	UniswapV4                  string
 	OvernightUsdp              string
 	SkyPSM                     string
+	Honey                      string
 	PandaFun                   string
 }
 
@@ -433,6 +435,7 @@ var (
 		UniswapV4:                  uniswapv4.DexType,
 		OvernightUsdp:              overnightusdp.DexType,
 		SkyPSM:                     skypsm.DexType,
+		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
 	}
 )
