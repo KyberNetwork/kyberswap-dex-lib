@@ -429,6 +429,15 @@ useCase:
             base_url: "https://api.swaap.finance"
             timeout: 10s
             retry_count: 3
+      hashflow-v3:
+        handler: hashflow-v3
+        properties:
+          http:
+            api_key:
+            base_url: "https://api.hashflow.com"
+            source: kyber
+            timeout: 3s
+            retry_count: 3
       native-v1:
         handler: native-v1
         properties:

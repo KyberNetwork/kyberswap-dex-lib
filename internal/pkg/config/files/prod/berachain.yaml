@@ -307,6 +307,15 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+      bebop:
+        handler: bebop
+        properties:
+          http:
+            name:
+            authorization:
+            base_url: "https://api.bebop.xyz/pmm/berachain"
+            timeout: 10s
+            retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
