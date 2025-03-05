@@ -72,7 +72,7 @@ func CalcEcotoneL1Fee(params *entity.OptimismL1FeeParams, unsignedTx *types.Tran
 }
 
 func calcEcotoneL1Fee(params *entity.OptimismL1FeeParams, l1GasUsed *big.Int) (l1Fee *big.Int) {
-	// l1Fee = (l1BaseFeeScalar * l1BaseFee * 16) + (l1BlobBaseFeeScalar * l1BlobBaseFee)
+	// l1Fee = ((l1BaseFeeScalar * l1BaseFee * 16) + (l1BlobBaseFeeScalar * l1BlobBaseFee)) * l1GasUsed / (1e6 * 16)
 
 	l1Fee = new(big.Int).Mul(params.L1BaseFeeScalar, params.L1BaseFee)
 	l1Fee.Mul(l1Fee, sixteen)
