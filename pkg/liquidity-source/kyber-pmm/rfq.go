@@ -12,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type RFQHandler struct {
@@ -43,23 +44,23 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 
 	var orders = make([]Order, 0, len(paramsList))
 
-	for _, params := range paramsList {
+	for i, params := range paramsList {
 		swapExtraBytes, err := json.Marshal(params.SwapInfo)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Order %d error : %v", i, err)
 		}
 
 		var swapExtra SwapExtra
 		if err = json.Unmarshal(swapExtraBytes, &swapExtra); err != nil {
-			return nil, ErrInvalidFirmQuoteParams
+			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
 		}
 
 		if swapExtra.MakingAmount == "" || swapExtra.TakingAmount == "" {
-			return nil, ErrInvalidFirmQuoteParams
+			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
 		}
 
 		if !account.IsValidAddress(swapExtra.MakerAsset) || !account.IsValidAddress(swapExtra.TakerAsset) {
-			return nil, ErrInvalidFirmQuoteParams
+			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
 		}
 
 		expectedMakerAmount, _ := new(big.Int).SetString(swapExtra.MakingAmount, 10)
@@ -107,7 +108,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 				"paramsList": paramsList,
 			}).Errorf("failed to get multiFirm quote: %s", order.Error)
 
-			return nil, fmt.Errorf("order %d error: %s", i, order.Error)
+			return nil, fmt.Errorf("Order %d error: %s", i, order.Error)
 		}
 
 		actualMakerAmount, _ := new(big.Int).SetString(order.MakerAmount, 10)
@@ -164,7 +165,7 @@ func (p *RFQHandler) SupportBatch() bool {
 func estimateMinMakerAmount(expectedMakerAmount *big.Int, slippage int64) *big.Int {
 	minMakerAmount := new(big.Int).Set(expectedMakerAmount)
 	minMakerAmount.Mul(minMakerAmount, big.NewInt(10000-slippage))
-	minMakerAmount.Div(minMakerAmount, big.NewInt(10000))
+	minMakerAmount.Div(minMakerAmount, valueobject.BasisPoint)
 
 	return minMakerAmount
 }
