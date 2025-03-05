@@ -49,6 +49,7 @@ common:
     - "burrbear-composable-stable"
     - "bulla"
     - "honey"
+    - "panda-fun"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
