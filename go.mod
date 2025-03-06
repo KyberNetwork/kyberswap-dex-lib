@@ -10,7 +10,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/IBM/sarama v1.40.0
 	github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af
-	github.com/KyberNetwork/aggregator-encoding v0.39.2-0.20250305041234-fb5397a8bd9b
+	github.com/KyberNetwork/aggregator-encoding v0.39.2
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
@@ -18,7 +18,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.92.1-0.20250305040347-7ae3cc13c183
+	github.com/KyberNetwork/kyberswap-dex-lib v0.92.2
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.7.0
 	github.com/KyberNetwork/logger v1.0.0
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -198,11 +198,9 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.14.0 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
-	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
