@@ -123,6 +123,7 @@ common:
     - "lo1inch"
     - "etherfi-ebtc"
     - "uniswap-v4"
+    - "sky-psm"
     - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
@@ -296,6 +297,7 @@ encoder:
     executeBalancerV3: 62
     executeEtherFieBtc: 63
     executeUniV4: 65
+    executeSkyPSM: 66
     executeOvernight: 67
 useCase:
   getRoute:
@@ -675,7 +677,7 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
-  alphaFee: 
+  alphaFee:
     redis:
       prefix: *chainName
       separator: ":"
