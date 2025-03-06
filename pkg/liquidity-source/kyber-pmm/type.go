@@ -70,6 +70,22 @@ type Gas struct {
 	Swap int64
 }
 
+type Order struct {
+	MakerAsset          string `json:"maker_asset"`
+	TakerAsset          string `json:"taker_asset"`
+	TakerAmount         string `json:"taker_amount"`
+	ExpectedMakerAmount string `json:"expected_maker_amount"`
+	MinMakerAmount      string `json:"min_maker_amount"`
+}
+
+type MultiFirmRequestParams struct {
+	RequestID   string  `json:"request_id"`
+	Orders      []Order `json:"orders"`
+	UserAddress string  `json:"user_address"`
+	RFQSender   string  `json:"rfq_sender"`
+	Partner     string  `json:"partner"`
+}
+
 type FirmRequestParams struct {
 	MakerAsset  string `json:"makerAsset"`
 	TakerAsset  string `json:"takerAsset"`
@@ -77,6 +93,25 @@ type FirmRequestParams struct {
 	TakerAmount string `json:"takerAmount"`
 	UserAddress string `json:"userAddress"`
 	RFQSender   string `json:"rfqSender"`
+}
+
+type MultiFirmResult struct {
+	Orders []struct {
+		MakerAsset  string `json:"maker_asset"`
+		TakerAsset  string `json:"taker_asset"`
+		MakerAmount string `json:"maker_amount"`
+		TakerAmount string `json:"taker_amount"`
+		FeeAmount   string `json:"fee_amount"`
+		Signature   string `json:"signature"`
+		Error       string `json:"error,omitempty"`
+	}
+
+	Info          string `json:"info"`
+	Expiry        int64  `json:"expiry"`
+	Maker         string `json:"maker"`
+	Taker         string `json:"taker"`
+	AllowedSender string `json:"allowed_sender"`
+	Error         string `json:"error,omitempty"`
 }
 
 type FirmResult struct {
@@ -109,6 +144,8 @@ type RFQExtra struct {
 	Signature          string `json:"signature"`
 	Recipient          string `json:"recipient"`
 	AllowedSender      string `json:"allowedSender"`
+	Partner            string `json:"partner"`
+	QuoteTimestamp     int64  `json:"quoteTimestamp"`
 }
 
 type RFQMeta struct {
