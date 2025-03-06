@@ -21,6 +21,7 @@ import (
 type MockIOnchainPriceRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockIOnchainPriceRepositoryMockRecorder
+	isgomock struct{}
 }
 
 // MockIOnchainPriceRepositoryMockRecorder is the mock recorder for MockIOnchainPriceRepository.
@@ -41,16 +42,16 @@ func (m *MockIOnchainPriceRepository) EXPECT() *MockIOnchainPriceRepositoryMockR
 }
 
 // FindByAddresses mocks base method.
-func (m *MockIOnchainPriceRepository) FindByAddresses(arg0 context.Context, arg1 []string) (map[string]*entity.OnchainPrice, error) {
+func (m *MockIOnchainPriceRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByAddresses", arg0, arg1)
+	ret := m.ctrl.Call(m, "FindByAddresses", ctx, addresses)
 	ret0, _ := ret[0].(map[string]*entity.OnchainPrice)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindByAddresses indicates an expected call of FindByAddresses.
-func (mr *MockIOnchainPriceRepositoryMockRecorder) FindByAddresses(arg0, arg1 any) *gomock.Call {
+func (mr *MockIOnchainPriceRepositoryMockRecorder) FindByAddresses(ctx, addresses any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByAddresses", reflect.TypeOf((*MockIOnchainPriceRepository)(nil).FindByAddresses), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByAddresses", reflect.TypeOf((*MockIOnchainPriceRepository)(nil).FindByAddresses), ctx, addresses)
 }

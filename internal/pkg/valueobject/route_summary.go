@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/cespare/xxhash/v2"
 )
 
@@ -48,8 +49,14 @@ type RouteSummary struct {
 	// ExtraFee extra fee should be charged when executing swap, can be customized by client
 	ExtraFee ExtraFee `json:"extraFee"`
 
+	// Alpha fee
+	AlphaFee *entity.AlphaFee `json:"-"`
+
 	// Route
 	Route [][]Swap `json:"route"`
+
+	// RouteID
+	RouteID string `json:"routeID"`
 
 	Timestamp int64 `json:"timestamp"`
 }
@@ -64,6 +71,17 @@ func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 	h.WriteString(rs.TokenOut)
 	h.Write(rs.AmountOut.Bytes())
 	_, _ = h.Write(binary.LittleEndian.AppendUint64(nil, uint64(rs.Timestamp)))
+
+	h.WriteString(rs.RouteID)
+
+	// Add alpha fee to checksum because we want to limit the calls to Redis
+	// incase routeSummary doesn't have alpha fee and the routeSummary hasn't been modified
+	// checksum validation always return true, and we don't need to retrieve checksum from Redis.
+	if rs.AlphaFee != nil {
+		h.WriteString(rs.AlphaFee.Pool)
+		h.WriteString(rs.AlphaFee.Token)
+		h.Write(rs.AlphaFee.Amount.Bytes())
+	}
 
 	for _, path := range rs.Route {
 		for _, swap := range path {

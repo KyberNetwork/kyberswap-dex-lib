@@ -138,17 +138,13 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, trackers []ro
 
 }
 
-func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(route valueobject.RouteSummary, originalChecksum uint64) bool {
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
-		return false
-	}
-
-	checksum := crypto.NewChecksum(route, uc.config.Salt)
-	if !checksum.Verify(originalChecksum) {
-		return false
-	}
-
+func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(routeTimestamp int64) bool {
 	now := time.Now().Unix()
-	secondElapsed := time.Duration(now-route.Timestamp) * time.Second
+	secondElapsed := time.Duration(now-routeTimestamp) * time.Second
 	return secondElapsed <= valueobject.DefaultDeadline
+}
+
+func (uc *BuildRouteUseCase) IsValidChecksum(route valueobject.RouteSummary, originalChecksum uint64) bool {
+	checksum := crypto.NewChecksum(route, uc.config.Salt)
+	return checksum.Verify(originalChecksum)
 }

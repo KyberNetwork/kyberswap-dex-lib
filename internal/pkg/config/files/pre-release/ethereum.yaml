@@ -1,4 +1,4 @@
-env: &env "pre-release"
+env: "production"
 pprof: false
 http:
   bindAddress: ":8080"
@@ -11,9 +11,8 @@ common:
   chainId: &chainId 1
   chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
-  rpcTimeout: 100ms
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -128,7 +127,6 @@ common:
     - "hashflow-v3"
     - "bancor-v21"
     - "native-v1"
-    - "native-v2"
     - "bebop"
     - "wbeth"
     - "oeth"
@@ -146,9 +144,6 @@ common:
     - "etherfi-vampire"
     - "mx-trading"
     - "lo1inch"
-    - "etherfi-ebtc"
-    - "uniswap-v4"
-    - "savings-usds"
   excludedSourcesByClient: &excludedSourcesByClient
     # llamaswap:
     #   - "swaap-v2"
@@ -174,8 +169,6 @@ common:
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: 10000
   useAEVM: &useAEVM false
-  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
-  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   dexUseAEVM: &dexUseAEVM
     uniswap: false
     uniswapv3: false
@@ -183,7 +176,15 @@ common:
     liquiditybook-v21: false
     ambient: true
     maverick-v2: true
-    uniswap-v4: true
+  alphaFeeConfig: &alphaFeeConfig
+    reductionFactorInBps:
+      kyber-pmm: 5000
+    maxThresholdPercentageInBps: 9900
+    minDifferentThresholdUSD: 0.01
+    minDifferentThresholdBps: 1000
+    defaultAlphaFeePercentageBps: 0.1651
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
+
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -229,6 +230,12 @@ poolEventRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
+kafka:
+  addresses: "localhost:9092"
+  useAuthentication: false
+  username:
+  password:
+ddAgentHost: ""
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
@@ -250,7 +257,7 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    unibot-tg: *executorAddress
+    unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
     defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
@@ -266,10 +273,7 @@ encoder:
       feeMode:
       feeSharingAddress:
     kyberswap:
-      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
-    unibot-tg:
-      receiver: 0x0000000000000000000000000000000000000001
-      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      feeSharingAddress: 0x0000000000000000000000000000000000000000
 useCase:
   getRoute:
     chainId: *chainId
@@ -416,12 +420,6 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
-    alphaFeeConfig:
-      reductionFactorInBps:
-        kyber-pmm: 5000
-      MaxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
   getCustomRoute:
     aggregator:
       finderOptions:
@@ -470,19 +468,11 @@ useCase:
             base_url: "https://newapi.native.org"
             timeout: 5s
             retry_count: 3
-      native-v2:
-        handler: native-v1
-        properties:
-          http:
-            api_key:
-            base_url: "https://v2.api.native.org/swap-api-v2"
-            timeout: 5s
-            retry_count: 3
       bebop:
         handler: bebop
         properties:
           http:
-            name:
+            name: 
             authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
@@ -508,6 +498,9 @@ useCase:
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
     faultyPoolDetectorDisabled: false
+    publisher:
+      aggregatorTransactionTopic: *aggregatorTransactionTopic
+
   poolFactory:
     chainId: *chainId
     useAEVM: *useAEVM
@@ -518,7 +511,6 @@ useCase:
       uniswapv3:
         router-address: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
-    availableSources: *availableSources
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     faultyPoolsRenewalInterval: 5s
@@ -557,6 +549,7 @@ useCase:
     maxDataPointNumber: 12
     availableSources: *availableSources
   updateLiquidityScore:
+    inputFileName: "./scores.csv"
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
 job:
@@ -583,28 +576,12 @@ job:
   generateBestPaths:
     interval: 360s
   liquidityScoreIndexPools:
-    env: *env
     batchSize: 200
     interval: 1h
-    successedFileName: *liquidityTradesDataFileName
+    successedFileName: "./trade_data.txt"
     failedFileName: "./failed_trade_data.txt"
-    liquidityScoreInputFileName: *liquidityScoreInputFileName
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
-    targetFactorEntropy: 0.995
-    poolEvent:
-      consumerConfig:
-        prefix: *chainName
-        stream: "pool_events"
-        group: "router_liqIndexPools"
-        key: "message"
-        block: 300ms
-        count: 200
-        bufferSize: 20
-        ackBufferSize: 10
-      batchRate: 700ms
-      batchSize: 100
-      retryInterval: 5s
 repository:
   gas:
     redis:
@@ -680,6 +657,11 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
+  alphaFee: 
+    redis:
+      prefix: *chainName
+      separator: ":"
+      ttl: 600s
 validator:
   slippageValidatorConfig:
     slippageToleranceGte: 0

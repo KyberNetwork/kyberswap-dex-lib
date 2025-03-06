@@ -21,6 +21,7 @@ import (
 type MockIEncodeBuilder struct {
 	ctrl     *gomock.Controller
 	recorder *MockIEncodeBuilderMockRecorder
+	isgomock struct{}
 }
 
 // MockIEncodeBuilderMockRecorder is the mock recorder for MockIEncodeBuilder.
@@ -41,15 +42,15 @@ func (m *MockIEncodeBuilder) EXPECT() *MockIEncodeBuilderMockRecorder {
 }
 
 // GetEncoder mocks base method.
-func (m *MockIEncodeBuilder) GetEncoder(arg0 valueobject.ChainID) encode.IEncoder {
+func (m *MockIEncodeBuilder) GetEncoder(chainId valueobject.ChainID) encode.IEncoder {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEncoder", arg0)
+	ret := m.ctrl.Call(m, "GetEncoder", chainId)
 	ret0, _ := ret[0].(encode.IEncoder)
 	return ret0
 }
 
 // GetEncoder indicates an expected call of GetEncoder.
-func (mr *MockIEncodeBuilderMockRecorder) GetEncoder(arg0 any) *gomock.Call {
+func (mr *MockIEncodeBuilderMockRecorder) GetEncoder(chainId any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEncoder", reflect.TypeOf((*MockIEncodeBuilder)(nil).GetEncoder), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEncoder", reflect.TypeOf((*MockIEncodeBuilder)(nil).GetEncoder), chainId)
 }

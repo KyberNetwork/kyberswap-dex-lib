@@ -94,3 +94,8 @@ type IPoolsPublisher interface {
 	PublishedPools(storageID string) map[string]poolpkg.IPoolSimulator
 	Publish(ctx context.Context, pools map[string]poolpkg.IPoolSimulator) (string, error)
 }
+
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/alpha_fee_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IAlphaFeeRepository
+type IAlphaFeeRepository interface {
+	Save(ctx context.Context, routeId string, alphaFee *routerEntity.AlphaFee) error
+}

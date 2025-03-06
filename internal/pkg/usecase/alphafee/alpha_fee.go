@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kutils/klog"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -43,19 +44,32 @@ type AlphaFeeParams struct {
 	PoolSimulatorBucket *finderCommon.SimulatorBucket
 }
 
+type DefaultAlphaFeeParams struct {
+	RouteSummary routerValueObject.RouteSummary
+}
+
+type SwapInfo struct {
+	pool     string
+	poolType string
+}
+
+type PathInfo struct {
+	SwapInfo []SwapInfo
+}
+
 type AlphaFeeCalculation struct {
 	// Config alpha Fee rate using percentage in BPS, the same as safety quoting, 1 bps = 0.01%
 	// Convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
 	ReductionFactorInBps map[valueobject.Exchange]*big.Int
-	config               routerValueObject.AlphaFeeReductionConfig
+	config               routerValueObject.AlphaFeeConfig
 	entity.ICustomFuncsHolder
 }
 
 func NewAlphaFeeCalculation(
-	config routerValueObject.AlphaFeeReductionConfig,
+	config routerValueObject.AlphaFeeConfig,
 	customFuncs entity.ICustomFuncs) *AlphaFeeCalculation {
 	factors := map[valueobject.Exchange]*big.Int{}
-	for dex, number := range config.ReductionFactorInBps {
+	for dex, number := range config.ReductionConfig.ReductionFactorInBps {
 		factors[valueobject.Exchange(dex)] = big.NewInt(int64(number * 10))
 	}
 	return &AlphaFeeCalculation{
@@ -88,7 +102,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 	reducedAmountOutWithSlippageTolerance := new(big.Int).Div(
 		new(big.Int).Mul(
 			param.BestRoute.AmountOut,
-			big.NewInt(c.config.MaxThresholdPercentageInBps),
+			big.NewInt(c.config.ReductionConfig.MaxThresholdPercentageInBps),
 		),
 		valueobject.BasisPoint,
 	)
@@ -99,7 +113,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		reductionDelta = new(big.Int).Sub(param.BestRoute.AmountOut, ammBestRouteAmountOut)
 	}
 
-	swapIndex := c.findValidPmmSwap(param.BestRoute, param.PoolSimulatorBucket)
+	swapIndex := c.findValidPmmSwap(c.convertToPathInfo(param.BestRoute, param.PoolSimulatorBucket))
 	// swap doesn't contains valid pmm swap
 	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
 		return nil, ErrRouteNotHavePMM
@@ -161,17 +175,35 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 
 }
 
-func (c *AlphaFeeCalculation) findValidPmmSwap(route *finderCommon.ConstructRoute, simulatorBucket *finderCommon.SimulatorBucket) SwapIndex {
+func (c *AlphaFeeCalculation) convertToPathInfo(
+	route *finderCommon.ConstructRoute, simulatorBucket *finderCommon.SimulatorBucket) []PathInfo {
+	result := make([]PathInfo, 0, len(route.Paths))
+	for _, path := range route.Paths {
+		swaps := make([]SwapInfo, 0, len(path.PoolsOrder))
+		for _, pool := range path.PoolsOrder {
+			poolSim := simulatorBucket.GetPool(pool)
+			swaps = append(swaps, SwapInfo{
+				pool:     pool,
+				poolType: poolSim.GetType(),
+			})
+		}
+		result = append(result, PathInfo{swaps})
+	}
+
+	return result
+}
+
+func (c *AlphaFeeCalculation) findValidPmmSwap(paths []PathInfo) SwapIndex {
 	minDistance := math.MaxInt
 	minLen := math.MaxInt
 	pathId := -1
 
-	for i := 0; i < len(route.Paths); i++ {
-		pathLen := len(route.Paths[i].PoolsOrder)
+	for i := 0; i < len(paths); i++ {
+		pathLen := len(paths[i].SwapInfo)
 		j := pathLen - 1 // last pmm pool
 		for ; j >= 0; j-- {
-			pool := simulatorBucket.GetPool(route.Paths[i].PoolsOrder[j])
-			if valueobject.ExchangeKyberPMM == valueobject.Exchange(pool.GetExchange()) {
+			swap := paths[i].SwapInfo[j]
+			if kyberpmm.DexTypeKyberPMM == valueobject.Exchange(swap.poolType) {
 				break
 			}
 		}
@@ -195,7 +227,7 @@ func (c *AlphaFeeCalculation) findValidPmmSwap(route *finderCommon.ConstructRout
 
 	return SwapIndex{
 		PathId: pathId,
-		SwapId: len(route.Paths[pathId].PoolsOrder) - 1 - minDistance,
+		SwapId: len(paths[pathId].SwapInfo) - 1 - minDistance,
 	}
 }
 
@@ -294,11 +326,53 @@ func (c *AlphaFeeCalculation) AlmostEqual(
 		xValue := r.AmountOutPrice - r.L1GasFeePrice
 		yValue := y.AmountOutPrice - y.L1GasFeePrice
 
-		return math.Abs(xValue-yValue) <= c.config.MinDifferentThresholdUSD
+		return math.Abs(xValue-yValue) <= c.config.ReductionConfig.MinDifferentThresholdUSD
 	}
 
 	diff := r.AmountOut.Sub(r.AmountOut, y.AmountOut)
 	diff.Abs(diff)
 
-	return diff.Cmp(big.NewInt(c.config.MinDifferentThresholdBps)) < 0
+	return diff.Cmp(big.NewInt(c.config.ReductionConfig.MinDifferentThresholdBps)) < 0
+}
+
+func (uc *AlphaFeeCalculation) CalculateDefaultAlphaFee(ctx context.Context, param DefaultAlphaFeeParams) (*routerEntity.AlphaFee, error) {
+	swapIndex := uc.findValidPmmSwap(uc.convertRouteSummaryToPathInfo(param.RouteSummary))
+
+	// swap doesn't contains valid pmm swap
+	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
+		return nil, ErrRouteNotHavePMM
+	}
+	currentSwap := param.RouteSummary.Route[swapIndex.PathId][swapIndex.SwapId]
+
+	percentageBps := big.NewFloat(uc.config.ReductionConfig.DefaultAlphaFeePercentageBps)
+	basisPointF := new(big.Float).SetInt(valueobject.BasisPoint)
+	amountF := new(big.Float).SetInt(currentSwap.AmountOut)
+
+	feeAmountF := new(big.Float).Mul(amountF, percentageBps)
+	feeAmountF.Quo(feeAmountF, basisPointF)
+
+	feeAmount := new(big.Int)
+	feeAmountF.Int(feeAmount)
+
+	return &routerEntity.AlphaFee{
+		Pool:   currentSwap.Pool,
+		Token:  currentSwap.TokenOut,
+		Amount: feeAmount,
+	}, nil
+}
+
+func (c *AlphaFeeCalculation) convertRouteSummaryToPathInfo(route routerValueObject.RouteSummary) []PathInfo {
+	result := make([]PathInfo, 0, len(route.Route))
+	for _, path := range route.Route {
+		swaps := make([]SwapInfo, 0, len(path))
+		for _, swap := range path {
+			swaps = append(swaps, SwapInfo{
+				pool:     swap.Pool,
+				poolType: swap.PoolType,
+			})
+		}
+		result = append(result, PathInfo{swaps})
+	}
+
+	return result
 }

@@ -21,6 +21,7 @@ import (
 type MockIGasRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockIGasRepositoryMockRecorder
+	isgomock struct{}
 }
 
 // MockIGasRepositoryMockRecorder is the mock recorder for MockIGasRepository.
@@ -41,16 +42,16 @@ func (m *MockIGasRepository) EXPECT() *MockIGasRepositoryMockRecorder {
 }
 
 // GetSuggestedGasPrice mocks base method.
-func (m *MockIGasRepository) GetSuggestedGasPrice(arg0 context.Context) (*big.Int, error) {
+func (m *MockIGasRepository) GetSuggestedGasPrice(ctx context.Context) (*big.Int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSuggestedGasPrice", arg0)
+	ret := m.ctrl.Call(m, "GetSuggestedGasPrice", ctx)
 	ret0, _ := ret[0].(*big.Int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSuggestedGasPrice indicates an expected call of GetSuggestedGasPrice.
-func (mr *MockIGasRepositoryMockRecorder) GetSuggestedGasPrice(arg0 any) *gomock.Call {
+func (mr *MockIGasRepositoryMockRecorder) GetSuggestedGasPrice(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSuggestedGasPrice", reflect.TypeOf((*MockIGasRepository)(nil).GetSuggestedGasPrice), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSuggestedGasPrice", reflect.TypeOf((*MockIGasRepository)(nil).GetSuggestedGasPrice), ctx)
 }

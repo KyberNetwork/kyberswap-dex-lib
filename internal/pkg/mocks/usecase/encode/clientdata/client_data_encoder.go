@@ -21,6 +21,7 @@ import (
 type MockIClientDataEncoder struct {
 	ctrl     *gomock.Controller
 	recorder *MockIClientDataEncoderMockRecorder
+	isgomock struct{}
 }
 
 // MockIClientDataEncoderMockRecorder is the mock recorder for MockIClientDataEncoder.
@@ -41,16 +42,16 @@ func (m *MockIClientDataEncoder) EXPECT() *MockIClientDataEncoderMockRecorder {
 }
 
 // Encode mocks base method.
-func (m *MockIClientDataEncoder) Encode(arg0 context.Context, arg1 types.ClientData) ([]byte, error) {
+func (m *MockIClientDataEncoder) Encode(ctx context.Context, data types.ClientData) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Encode", arg0, arg1)
+	ret := m.ctrl.Call(m, "Encode", ctx, data)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Encode indicates an expected call of Encode.
-func (mr *MockIClientDataEncoderMockRecorder) Encode(arg0, arg1 any) *gomock.Call {
+func (mr *MockIClientDataEncoderMockRecorder) Encode(ctx, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Encode", reflect.TypeOf((*MockIClientDataEncoder)(nil).Encode), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Encode", reflect.TypeOf((*MockIClientDataEncoder)(nil).Encode), ctx, data)
 }

@@ -21,9 +21,9 @@ import (
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -266,11 +266,18 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 
 	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
-		alphafee.NewAlphaFeeCalculation(valueobject.AlphaFeeReductionConfig{}, calcAmountOutInstance),
+		alphafee.NewAlphaFeeCalculation(valueobject.AlphaFeeConfig{}, calcAmountOutInstance),
 		calcAmountOutInstance,
 	)
 
 	finderEngine := finderEngine.NewPathFinderEngine(routeFinder, routeFinalizer)
+
+	// Mock IGasRepository
+	alphaFeeRepository := getroute.NewMockIAlphaFeeRepository(ctrl)
+	alphaFeeRepository.EXPECT().
+		Save(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
 
 	return NewUseCase(
 		poolRankRepository,
@@ -278,6 +285,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		onchainpriceRepo,
 		routeCacheRepository,
 		gasRepository,
+		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
 		finderEngine,

@@ -13,6 +13,7 @@ var (
 	ErrReturnAmountIsNotEnough          = errors.New("return amount is not enough")
 	ErrRFQTimeout                       = errors.New("rfq timed out")
 	ErrCannotKeepDustTokenOut           = errors.New("cannot keep dust tokenOut")
+	ErrRouteNotFound                    = errors.New("route not found")
 
 	ErrEstimateGasFailedCode = 4227
 )

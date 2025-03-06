@@ -148,6 +148,7 @@ func transformGetRoutesResult(result *dto.GetRoutesResult) *params.GetRoutesResp
 	}
 
 	summary := transformRouteSummary(result.RouteSummary)
+	summary.RouteID = result.RouteSummary.RouteID
 	summary.Checksum = fmt.Sprintf("%d", result.Checksum)
 	summary.Timestamp = result.RouteSummary.Timestamp
 

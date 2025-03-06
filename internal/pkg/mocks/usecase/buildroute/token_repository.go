@@ -22,6 +22,7 @@ import (
 type MockITokenRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockITokenRepositoryMockRecorder
+	isgomock struct{}
 }
 
 // MockITokenRepositoryMockRecorder is the mock recorder for MockITokenRepository.
@@ -42,31 +43,31 @@ func (m *MockITokenRepository) EXPECT() *MockITokenRepositoryMockRecorder {
 }
 
 // FindByAddresses mocks base method.
-func (m *MockITokenRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]*entity.Token, error) {
+func (m *MockITokenRepository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByAddresses", arg0, arg1)
+	ret := m.ctrl.Call(m, "FindByAddresses", ctx, addresses)
 	ret0, _ := ret[0].([]*entity.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindByAddresses indicates an expected call of FindByAddresses.
-func (mr *MockITokenRepositoryMockRecorder) FindByAddresses(arg0, arg1 any) *gomock.Call {
+func (mr *MockITokenRepositoryMockRecorder) FindByAddresses(ctx, addresses any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByAddresses", reflect.TypeOf((*MockITokenRepository)(nil).FindByAddresses), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByAddresses", reflect.TypeOf((*MockITokenRepository)(nil).FindByAddresses), ctx, addresses)
 }
 
 // FindTokenInfoByAddress mocks base method.
-func (m *MockITokenRepository) FindTokenInfoByAddress(arg0 context.Context, arg1 []string) ([]*entity0.TokenInfo, error) {
+func (m *MockITokenRepository) FindTokenInfoByAddress(ctx context.Context, addresses []string) ([]*entity0.TokenInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindTokenInfoByAddress", arg0, arg1)
+	ret := m.ctrl.Call(m, "FindTokenInfoByAddress", ctx, addresses)
 	ret0, _ := ret[0].([]*entity0.TokenInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindTokenInfoByAddress indicates an expected call of FindTokenInfoByAddress.
-func (mr *MockITokenRepositoryMockRecorder) FindTokenInfoByAddress(arg0, arg1 any) *gomock.Call {
+func (mr *MockITokenRepositoryMockRecorder) FindTokenInfoByAddress(ctx, addresses any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindTokenInfoByAddress", reflect.TypeOf((*MockITokenRepository)(nil).FindTokenInfoByAddress), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindTokenInfoByAddress", reflect.TypeOf((*MockITokenRepository)(nil).FindTokenInfoByAddress), ctx, addresses)
 }

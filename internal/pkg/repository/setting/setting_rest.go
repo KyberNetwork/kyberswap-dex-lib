@@ -36,7 +36,7 @@ type ConfigResponseDataConfig struct {
 	TokensThresholdForOnchainPrice uint32                                 `json:"tokensThresholdForOnchainPrice"`
 	RFQAcceptableSlippageFraction  int64                                  `json:"rfqAcceptableSlippageFraction"`
 	SafetyQuoteReduction           valueobject.SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
-	AFConfig                       valueobject.AlphaFeeReductionConfig    `json:"afConfig"`
+	AFConfig                       valueobject.AlphaFeeConfig             `json:"afConfig"`
 }
 
 type ConfigResponseData struct {
@@ -115,7 +115,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 		RFQAcceptableSlippageFraction:  cfgResp.Data.Config.RFQAcceptableSlippageFraction,
-		AlphaFeeReductionConfig:        cfgResp.Data.Config.AFConfig,
+		AlphaFeeConfig:                 cfgResp.Data.Config.AFConfig,
 	}, nil
 }
 

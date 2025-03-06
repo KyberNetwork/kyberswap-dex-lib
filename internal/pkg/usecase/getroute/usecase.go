@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/crypto"
@@ -27,9 +28,10 @@ import (
 type useCase struct {
 	aggregator IAggregator
 
-	tokenRepository ITokenRepository
-	gasRepository   IGasRepository
-	l1FeeEstimator  IL1FeeEstimator
+	tokenRepository    ITokenRepository
+	gasRepository      IGasRepository
+	alphaFeeRepository IAlphaFeeRepository
+	l1FeeEstimator     IL1FeeEstimator
 
 	onchainpriceRepository IOnchainPriceRepository
 
@@ -43,6 +45,7 @@ func NewUseCase(
 	onchainpriceRepository IOnchainPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
+	alphaFeeRepository IAlphaFeeRepository,
 	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -75,12 +78,12 @@ func NewUseCase(
 	aggregatorWithChargeExtraFee := NewChargeExtraFee(finalizedAggregator)
 
 	return &useCase{
-		aggregator:      aggregatorWithChargeExtraFee,
-		tokenRepository: tokenRepository,
-		gasRepository:   gasRepository,
-		l1FeeEstimator:  l1FeeEstimator,
-		config:          config,
-
+		aggregator:             aggregatorWithChargeExtraFee,
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
+		l1FeeEstimator:         l1FeeEstimator,
+		config:                 config,
+		alphaFeeRepository:     alphaFeeRepository,
 		onchainpriceRepository: onchainpriceRepository,
 	}
 }
@@ -118,9 +121,20 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		return nil, err
 	}
 
+	routeID := requestid.GetRequestIDFromCtx(ctx)
+
+	// Only save route which including alphaFee
+	if routeSummary.AlphaFee != nil {
+		err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	routeSummary.TokenIn = originalTokenIn
 	routeSummary.TokenOut = originalTokenOut
 	routeSummary.Timestamp = time.Now().Unix()
+	routeSummary.RouteID = routeID
 
 	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
 

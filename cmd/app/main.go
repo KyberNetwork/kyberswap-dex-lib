@@ -39,10 +39,12 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	alphafee "github.com/KyberNetwork/router-service/internal/pkg/repository/alpha-fee"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/executorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/kafka"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/l2fee"
 	onchainprice "github.com/KyberNetwork/router-service/internal/pkg/repository/onchain-price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
@@ -98,7 +100,7 @@ type IBuildRouteUseCase interface {
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
 	_, _ = maxprocs.Set(maxprocs.Logger(log.Printf), maxprocs.Min(2))
-	defer Pyroscope(context.Background())()
+	// defer Pyroscope(context.Background())()
 
 	app := &cli.App{
 		Flags: []cli.Flag{
@@ -268,7 +270,11 @@ func apiAction(c *cli.Context) (err error) {
 			Prefix: cfg.Redis.Prefix,
 		},
 	)
-	// sealer
+
+	alphaFeeRepository := alphafee.NewRedisRepository(
+		routerRedisClient.Client,
+		cfg.Repository.AlphaFee,
+	)
 
 	// init validators
 	slippageValidator := validator.NewSlippageValidator(cfg.Validator.SlippageValidatorConfig)
@@ -372,6 +378,7 @@ func apiAction(c *cli.Context) (err error) {
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
+		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
 		finderEngine,
@@ -399,14 +406,27 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[dex.Handler] = rfqHandler
 	}
 
+	publisherRepository, err := kafka.NewPublisher(&cfg.Kafka)
+	if err != nil {
+		return err
+	}
+
+	err = kafka.ValidateTopicName(cfg.UseCase.BuildRoute.PublisherConfig.AggregatorTransactionTopic)
+	if err != nil {
+		return err
+	}
+
 	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,
 		cfg.Common.GasTokenAddress,
 		cfg.Common.RouterAddress)
+
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		poolRepository,
 		executorBalanceRepository,
 		onchainpriceRepository,
+		alphaFeeRepository,
+		publisherRepository,
 		gasEstimator,
 		l1FeeCalculator,
 		rfqHandlerByPoolType,

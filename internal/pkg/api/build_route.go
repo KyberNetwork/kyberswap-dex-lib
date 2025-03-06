@@ -243,7 +243,8 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		ExtraFee:  extraFee,
 		Timestamp: params.Timestamp,
 
-		Route: route,
+		Route:   route,
+		RouteID: params.RouteID,
 	}, nil
 }
 

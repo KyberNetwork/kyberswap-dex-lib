@@ -6,14 +6,25 @@ import (
 
 type (
 	Config struct {
-		ChainID                       valueobject.ChainID      `mapstructure:"chainId"`
-		RFQ                           map[string]RFQConfig     `mapstructure:"rfq"`
-		FeatureFlags                  valueobject.FeatureFlags `mapstructure:"featureFlags"`
-		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
-		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
-		FaultyPoolDetectorDisabled    bool                     `mapstructure:"faultyPoolDetectorDisabled"`
-		Salt                          string                   `mapstructure:"salt"`
+		ChainID                       valueobject.ChainID        `mapstructure:"chainId"`
+		RFQ                           map[string]RFQConfig       `mapstructure:"rfq"`
+		FeatureFlags                  valueobject.FeatureFlags   `mapstructure:"featureFlags"`
+		FaultyPoolsConfig             FaultyPoolsConfig          `mapstructure:"faultyPools"`
+		PublisherConfig               PublisherConfig            `mapstructure:"publisher"`
+		RFQAcceptableSlippageFraction int64                      `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
+		FaultyPoolDetectorDisabled    bool                       `mapstructure:"faultyPoolDetectorDisabled"`
+		AlphaFeeConfig                valueobject.AlphaFeeConfig `mapstructure:"alphaFeeConfig"`
+		Salt                          string                     `mapstructure:"salt"`
 	}
+
+	AlphaFeeConfig struct {
+		DefaultAlphaFeePercentageBps float64 `mapstructure:"defaultAlphaFeePercentageBps"`
+	}
+
+	PublisherConfig struct {
+		AggregatorTransactionTopic string `mapstructure:"aggregatorTransactionTopic"`
+	}
+
 	RFQConfig struct {
 		Handler    string                 `mapstructure:"handler"`
 		Properties map[string]interface{} `mapstructure:"properties"`

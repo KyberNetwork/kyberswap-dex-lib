@@ -130,6 +130,14 @@ common:
     maverick-v2: true
     uniswap-v4: true
   useAEVM: &useAEVM false
+  alphaFeeConfig: &alphaFeeConfig
+    reductionFactorInBps:
+      kyber-pmm: 5000
+    maxThresholdPercentageInBps: 9900
+    minDifferentThresholdUSD: 0.01
+    minDifferentThresholdBps: 1000
+    defaultAlphaFeePercentageBps: 0.1651
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
 log:
@@ -177,6 +185,11 @@ poolEventRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
+kafka:
+  addresses: "localhost:9092"
+  useAuthentication: false
+  username:
+  password:
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
@@ -401,12 +414,7 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
-    alphaFeeConfig:
-      reductionFactorInBps:
-        kyber-pmm: 5000
-      MaxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
+    alphaFeeConfig: *alphaFeeConfig
   getCustomRoute:
     aggregator:
       finderOptions:
@@ -476,6 +484,10 @@ useCase:
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
     faultyPoolDetectorDisabled: false
+    publisher:
+      aggregatorTransactionTopic: *aggregatorTransactionTopic
+    alphaFeeConfig: *alphaFeeConfig
+
   poolFactory:
     chainId: *chainId
     useAEVM: *useAEVM
@@ -631,6 +643,10 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
+  alphaFee: 
+    redis:
+      prefix: *chainName
+      ttl: 60s
 validator:
   slippageValidatorConfig:
     slippageToleranceGte: 0

@@ -72,8 +72,16 @@ common:
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
   useAEVM: &useAEVM false
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
+  alphaFeeConfig: &alphaFeeConfig
+    reductionFactorInBps:
+      kyber-pmm: 5000
+    maxThresholdPercentageInBps: 9900
+    minDifferentThresholdUSD: 0.01
+    minDifferentThresholdBps: 1000
+    defaultAlphaFeePercentageBps: 0.1651
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -119,6 +127,11 @@ poolEventRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
+kafka:
+  addresses: "localhost:9092"
+  useAuthentication: false
+  username:
+  password:
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
@@ -288,12 +301,7 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
-    alphaFeeConfig:
-      reductionFactorInBps:
-        kyber-pmm: 5000
-      MaxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
+    alphaFeeConfig: *alphaFeeConfig
   getCustomRoute:
     aggregator:
       finderOptions:
@@ -320,6 +328,10 @@ useCase:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
+    publisher:
+      aggregatorTransactionTopic: *aggregatorTransactionTopic
+    alphaFeeConfig: *alphaFeeConfig
+
   poolFactory:
     chainId: *chainId
   poolManager:
@@ -465,6 +477,11 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
+  alphaFee: 
+    redis:
+      prefix: *chainName
+      separator: ":"
+      ttl: 600s
 validator:
   slippageValidatorConfig:
     slippageToleranceGte: 0

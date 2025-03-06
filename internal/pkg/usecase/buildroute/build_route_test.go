@@ -102,11 +102,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Times(0)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -144,7 +152,11 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
-				}},
+				},
+				PublisherConfig: PublisherConfig{
+					AggregatorTransactionTopic: "aggregator-transaction",
+				},
+			},
 			result: nil,
 			err:    ErrCannotKeepDustTokenOut,
 		},
@@ -209,11 +221,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -337,11 +357,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -465,11 +493,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -608,11 +644,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					defer wg.Done()
 				}).Return(uint64(10), nil)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -707,7 +751,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
 						[]*entity.Token{
-							{Address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", Decimals: 6},
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
 						nil,
@@ -753,11 +797,19 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
 
+				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+				publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
 					onchainPriceRepo,
+					alphaFeeRepository,
+					publisherRepository,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -1525,11 +1577,20 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 
 			gasEstimator := tc.estimateGas(ctrl, &wg)
 			poolRepository := tc.poolRepository(ctrl, &wg)
+
+			alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+			alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+			publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
 				onchainpriceRepo,
+				alphaFeeRepository,
+				publisherRepository,
 				gasEstimator,
 				&dummyL1FeeCalculator{},
 				nil,
@@ -2561,6 +2622,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			},
 			err: nil,
 		},
+
 		{
 			name: "it should return not count faulty pools on Redis because checksum is not correct",
 			command: func() dto.BuildRouteCommand {
@@ -2716,11 +2778,19 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 
 			poolRepository := tc.countTotalPools(ctrl, &wg)
 
+			alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+			alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+			publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
 				onchainpriceRepo,
+				alphaFeeRepository,
+				publisherRepository,
 				tc.gasEstimator(ctrl, &wg),
 				&dummyL1FeeCalculator{},
 				nil,
@@ -3066,6 +3136,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+			command := tc.command()
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
 			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
@@ -3084,14 +3155,42 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 
 			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
+			tokenRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Token{
+				{
+					Address:  command.RouteSummary.TokenIn,
+					Decimals: 1,
+				},
+				{
+					Address:  command.RouteSummary.TokenOut,
+					Decimals: 1,
+				},
+			}, nil)
 			onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+			onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
+				Return(
+					map[string]*routerEntities.OnchainPrice{
+						command.RouteSummary.TokenIn: {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						command.RouteSummary.TokenOut: {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						}}, nil,
+				).AnyTimes()
 			poolRepository := tc.countTotalPools(ctrl, &wg)
+
+			alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+			alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Times(0)
+
+			publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
 				onchainPriceRepo,
+				alphaFeeRepository,
+				publisherRepository,
 				nil,
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),
@@ -3100,7 +3199,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				tc.config,
 			)
 
-			_, err := usecase.Handle(context.Background(), tc.command())
+			_, err := usecase.Handle(context.Background(), command)
 			wg.Wait()
 
 			if tc.err != nil {
@@ -3294,11 +3393,19 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
+			alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
+			alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+
+			publisherRepository := buildroute.NewMockIPublisherRepository(ctrl)
+			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				nil,
 				executorBalanceRepository,
 				onchainpriceRepo,
+				alphaFeeRepository,
+				publisherRepository,
 				nil,
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),

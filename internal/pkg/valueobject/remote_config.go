@@ -27,7 +27,7 @@ type (
 		FaultyPoolsConfig              FaultyPoolsConfig          `json:"faultyPoolsConfig"`
 		SafetyQuoteReduction           SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
 		DexalotUpscalePercent          int                        `json:"dexalotUpscalePercent"`
-		AlphaFeeReductionConfig        AlphaFeeReductionConfig    `json:"alphaFeeReductionConfig"`
+		AlphaFeeConfig                 AlphaFeeConfig             `json:"alphaFeeConfig"`
 	}
 
 	Source string
@@ -152,13 +152,19 @@ type (
 		CorrelatedGroup3 map[string]bool `mapstructure:"correlated-3"`
 	}
 
+	AlphaFeeConfig struct {
+		ReductionConfig AlphaFeeReductionConfig `mapstructure:"reductionConfig" json:"reductionConfig"`
+		TTL             time.Duration           `mapstructure:"ttl" json:"ttl"`
+	}
+
 	AlphaFeeReductionConfig struct {
 		ReductionFactorInBps map[string]float64 `mapstructure:"reductionFactorInBps" json:"reductionFactorInBps"`
 		// To avoid amm best path returns weird route due to lack of swap source, we must check differency between
 		// amm best path and multi best path do not exeed AlphaFeeSlippageTolerance config
-		MaxThresholdPercentageInBps int64   `mapstructure:"maxThresholdPercentageInBps" json:"maxThresholdPercentageInBps"`
-		MinDifferentThresholdUSD    float64 `mapstructure:"minDifferentThresholdUSD" json:"minDifferentThresholdUSD"`
-		MinDifferentThresholdBps    int64   `mapstructure:"minDifferentThresholdBps" json:"minDifferentThresholdBps"`
+		MaxThresholdPercentageInBps  int64   `mapstructure:"maxThresholdPercentageInBps" json:"maxThresholdPercentageInBps"`
+		MinDifferentThresholdUSD     float64 `mapstructure:"minDifferentThresholdUSD" json:"minDifferentThresholdUSD"`
+		MinDifferentThresholdBps     int64   `mapstructure:"minDifferentThresholdBps" json:"minDifferentThresholdBps"`
+		DefaultAlphaFeePercentageBps float64 `mapstructure:"defaultAlphaFeePercentageBps" json:"defaultAlphaFeePercentageBps"`
 	}
 
 	CachePoint struct {

@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/kafka"
 	"github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -33,6 +34,7 @@ type Config struct {
 	PregenRedis    redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
 	PoolRedis      redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
 	PoolEventRedis redis.Config              `mapstructure:"poolEventRedis" json:"poolEventRedis"`
+	Kafka          kafka.Config              `mapstructure:"kafka" json:"kafka"`
 	KeyPair        KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
 	ReloadConfig   reloadconfig.ReloadConfig `mapstructure:"reloadConfig" json:"reloadConfig"`
 	SecretKey      string                    `mapstructure:"secretKey" json:"-"`

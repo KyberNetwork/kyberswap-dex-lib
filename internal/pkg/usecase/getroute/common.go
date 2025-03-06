@@ -15,10 +15,10 @@ import (
 
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -182,6 +182,7 @@ func GetPrice(
 
 func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Route) *valueobject.RouteSummary {
 	paths := make([][]valueobject.Swap, 0, len(route.Route))
+
 	for _, path := range route.Route {
 		swaps := make([]valueobject.Swap, 0, len(path))
 
@@ -204,6 +205,12 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 		paths = append(paths, swaps)
 	}
 
+	var alphaFee *routerEntity.AlphaFee
+	extra, ok := route.ExtraFinalizerData.(types.FinalizeExtraData)
+	if ok {
+		alphaFee = extra.AlphaFee
+	}
+
 	routeSummary := &valueobject.RouteSummary{
 		TokenIn:     route.TokenIn,
 		AmountIn:    route.AmountIn,
@@ -218,6 +225,7 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 		GasUSD:   route.GasFeePrice,
 		L1FeeUSD: route.L1GasFeePrice,
 		ExtraFee: params.ExtraFee,
+		AlphaFee: alphaFee,
 		Route:    paths,
 	}
 

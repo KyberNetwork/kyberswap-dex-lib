@@ -531,7 +531,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				simulators,
 				map[string]pool.SwapLimit{}, finderCommon.DefaultCustomFuncs)
 
-			alphaFeeCalculation := NewAlphaFeeCalculation(tc.config, finderCommon.DefaultCustomFuncs)
+			alphaFeeCalculation := NewAlphaFeeCalculation(valueobject.AlphaFeeConfig{ReductionConfig: tc.config}, finderCommon.DefaultCustomFuncs)
 			res, err := alphaFeeCalculation.Calculate(context.TODO(), AlphaFeeParams{
 				BestRoute:    tc.bestRoute,
 				BestAmmRoute: tc.bestAmmRoute,

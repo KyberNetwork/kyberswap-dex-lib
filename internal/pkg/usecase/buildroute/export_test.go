@@ -246,7 +246,7 @@ func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			usecase := NewBuildRouteUseCase(nil, nil, nil, nil, nil, nil, nil, nil, nil,
+			usecase := NewBuildRouteUseCase(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 				tc.config,
 			)
 
