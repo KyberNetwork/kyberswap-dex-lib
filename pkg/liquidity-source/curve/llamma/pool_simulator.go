@@ -47,29 +47,29 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
-	var (
-		staticExtra StaticExtra
-		extra       Extra
-	)
-
+	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(ep.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
+	var extra Extra
 	if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 		return nil, err
 	}
 
-	Aminus1 := new(uint256.Int).Sub(staticExtra.A, number.Number_1)
+	A := staticExtra.A
+	useDynamicFee := staticExtra.UseDynamicFee
 
-	ARatio, overflow := new(uint256.Int).MulDivOverflow(number.Number_1e18, staticExtra.A, Aminus1)
+	Aminus1 := new(uint256.Int).Sub(A, number.Number_1)
+
+	ARatio, overflow := new(uint256.Int).MulDivOverflow(number.Number_1e18, A, Aminus1)
 	if overflow {
 		return nil, ErrMulDivOverflow
 	}
 
 	maxOracleDnPow := number.Number_1e18.Clone()
 	for range maxTicks {
-		maxOracleDnPow.MulDivOverflow(staticExtra.A, maxOracleDnPow, Aminus1)
+		maxOracleDnPow.MulDivOverflow(A, maxOracleDnPow, Aminus1)
 	}
 
 	logARatio := lnInt(ARatio)
@@ -83,11 +83,14 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(ep.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		UseDynamicFee:  staticExtra.UseDynamicFee,
-		A:              staticExtra.A,
+		UseDynamicFee:  useDynamicFee,
+		A:              A,
 		Aminus1:        Aminus1,
 		LogARatio:      logARatio,
 		MaxOracleDnPow: maxOracleDnPow,
+
+		borrowedPrecision:   big256.TenPowInt(18 - ep.Tokens[0].Decimals),
+		collateralPrecision: big256.TenPowInt(18 - ep.Tokens[1].Decimals),
 
 		BasePrice:  extra.BasePrice,
 		Po:         extra.PriceOracle,
@@ -98,11 +101,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		ActiveBand: extra.ActiveBand,
 		MinBand:    extra.MinBand,
 		MaxBand:    extra.MaxBand,
-		BandsX:     lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandX }),
-		BandsY:     lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandY }),
 
-		borrowedPrecision:   big256.TenPowInt(18 - ep.Tokens[0].Decimals),
-		collateralPrecision: big256.TenPowInt(18 - ep.Tokens[1].Decimals),
+		BandsX: lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandX }),
+		BandsY: lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandY }),
 
 		gas: defaultGas,
 	}, nil
@@ -137,10 +138,6 @@ func (t *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, err
 	}
 
-	if out.OutAmount.Lt(amountOut) {
-		return nil, ErrInsufficientBalance
-	}
-
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: out.InAmount.ToBig()},
 		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: out.AdminFee.ToBig()},
@@ -158,8 +155,10 @@ func (t *PoolSimulator) exchange(i, j int, amount *uint256.Int, calcAmountOut bo
 		return nil, ErrZeroSwapAmount
 	}
 
+	inIdx, outIdx := t.getCollateralIndex(), t.getBorrowedIndex()
 	inPrecision, outPrecision := t.collateralPrecision, t.borrowedPrecision
 	if i == 0 {
+		inIdx, outIdx = outIdx, inIdx
 		inPrecision, outPrecision = outPrecision, inPrecision
 	}
 
