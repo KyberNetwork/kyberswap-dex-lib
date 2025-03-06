@@ -33,8 +33,8 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
-	if u.hasInitialized {
+func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	if u.hasInitialized || metadataBytes != nil {
 		return nil, nil, nil
 	}
 
@@ -84,20 +84,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   strings.ToLower(usdcAddress.Hex()),
-					Symbol:    "USD",
-					Decimals:  usdcDecimals,
-					Name:      "USD Coin",
 					Swappable: true,
 				},
 				{
 					Address:   strings.ToLower(usdPlusAddress.Hex()),
-					Symbol:    "USD+",
-					Decimals:  usdPlusDecimals,
-					Name:      "USD+",
 					Swappable: true,
 				},
 			},
-			BlockNumber: uint64(blockNumber),
+			BlockNumber: blockNumber,
 			Extra:       string(extraBytes),
 			StaticExtra: string(staticExtraBytes),
 		},
@@ -113,35 +107,38 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 	err error,
 ) {
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    exchangeABI,
-		Target: u.config.Exchange,
-		Method: exchangeMethodUsdc,
-		Params: nil,
-	}, []interface{}{&usdcAddress})
-	req.AddCall(&ethrpc.Call{
-		ABI:    exchangeABI,
-		Target: u.config.Exchange,
-		Method: exchangeMethodUsdPlus,
-		Params: nil,
-	}, []interface{}{&usdPlusAddress})
+	if u.config.Usdc == (common.Address{}) {
+		req.AddCall(&ethrpc.Call{
+			ABI:    exchangeABI,
+			Target: u.config.Exchange,
+			Method: exchangeMethodUsdc,
+		}, []interface{}{&usdcAddress})
+	} else {
+		usdcAddress = u.config.Usdc
+	}
+	if u.config.UsdPlus == (common.Address{}) {
+		req.AddCall(&ethrpc.Call{
+			ABI:    exchangeABI,
+			Target: u.config.Exchange,
+			Method: exchangeMethodUsdPlus,
+		}, []interface{}{&usdPlusAddress})
+	} else {
+		usdPlusAddress = u.config.UsdPlus
+	}
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodPaused,
-		Params: nil,
 	}, []interface{}{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodBuyFee,
-		Params: nil,
 	}, []interface{}{&buyFee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodRedeemFee,
-		Params: nil,
 	}, []interface{}{&redeemFee})
 
 	var resp *ethrpc.Response
@@ -157,13 +154,11 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 		ABI:    erc20ABI,
 		Target: usdcAddress.Hex(),
 		Method: erc20MethodDecimals,
-		Params: nil,
 	}, []interface{}{&usdcDecimals})
 	req.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: usdPlusAddress.Hex(),
 		Method: erc20MethodDecimals,
-		Params: nil,
 	}, []interface{}{&usdPlusDecimals})
 
 	_, err = req.Aggregate()
