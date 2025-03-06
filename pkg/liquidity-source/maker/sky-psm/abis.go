@@ -8,6 +8,7 @@ import (
 
 var (
 	ssrOracleABI abi.ABI
+	psm3ABI      abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&ssrOracleABI, ssrOracleABIData},
+		{&psm3ABI, psm3ABIData},
 	}
 
 	for _, b := range builder {
