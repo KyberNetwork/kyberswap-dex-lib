@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -109,7 +109,8 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	return vaults, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool, vaults []string) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool,
+	vaults []string) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for idx := range subgraphPools {
 		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
@@ -123,11 +124,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
+func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool,
+	error) {
 	var (
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves       = make([]string, len(subgraphPool.Tokens))
 		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
+		nesting        bool
 	)
 
 	for j, token := range subgraphPool.Tokens {
@@ -136,13 +139,12 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 			Weight:    defaultWeight,
 			Swappable: true,
 		}
-
 		reserves[j] = "0"
-
 		scalingFactors[j] = new(uint256.Int).Mul(
-			number.TenPow(18-uint8(token.Decimals)),
-			number.Number_1e18,
+			bignumber.TenPowInt(18-uint8(token.Decimals)),
+			bignumber.BONE,
 		)
+		nesting = nesting || token.Token.Pool.ID != ""
 	}
 
 	poolSpec, err := _getPoolSpecialization(subgraphPool.ID)
@@ -156,6 +158,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
 		PoolSpecialization: poolSpec,
 		Vault:              vault,
+		Nesting:            nesting,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

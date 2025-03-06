@@ -19,6 +19,7 @@ type StaticExtra struct {
 	ScalingFactors    []*uint256.Int `json:"scalingFactors"`
 	NormalizedWeights []*uint256.Int `json:"normalizedWeights"`
 	Vault             string         `json:"vault"`
+	Nesting           bool           `json:"nesting"`
 }
 
 type PoolTokens struct {
