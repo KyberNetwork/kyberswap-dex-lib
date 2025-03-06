@@ -2,12 +2,12 @@ package skypsm
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -33,8 +33,8 @@ func NewPoolListUpdater(
 	}
 }
 
-func (u *PoolListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Pool, []byte, error) {
-	if u.hasInitialized {
+func (u *PoolListUpdater) GetNewPools(_ context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	if u.hasInitialized || metadataBytes != nil {
 		logger.Debug("skip since pool has been initialized")
 		return nil, nil, nil
 	}
@@ -43,39 +43,35 @@ func (u *PoolListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Poo
 		"exchange": u.config.DexID,
 	}).Info("Started getting new pool")
 
-	byteData, ok := bytesByPath[u.config.PoolPath]
-	if !ok {
-		return nil, nil, errors.New("misconfigured poolPath")
-	}
-	var initialPool InitialPool
-	if err := json.Unmarshal(byteData, &initialPool); err != nil {
+	var rateProvider common.Address
+	if _, err := u.ethrpcClient.NewRequest().
+		SetContext(context.Background()).AddCall(&ethrpc.Call{
+		ABI:    psm3ABI,
+		Target: u.config.PsmAddress,
+		Method: psm3MethodRateProvider,
+	}, []interface{}{&rateProvider}).Call(); err != nil {
 		return nil, nil, err
 	}
 
-	tokens := make(entity.PoolTokens, 0, len(initialPool.Tokens))
-	reserves := make(entity.PoolReserves, 0, len(initialPool.Tokens))
-	for _, token := range initialPool.Tokens {
-		tokenEntity := entity.PoolToken{
-			Address:   strings.ToLower(token.Address),
-			Name:      token.Name,
-			Symbol:    token.Symbol,
-			Decimals:  token.Decimals,
+	tokens := make(entity.PoolTokens, len(u.config.Tokens))
+	reserves := make(entity.PoolReserves, len(u.config.Tokens))
+	for i, token := range u.config.Tokens {
+		tokens[i] = &entity.PoolToken{
+			Address:   strings.ToLower(token),
 			Swappable: true,
 		}
-		tokens = append(tokens, &tokenEntity)
-		reserves = append(reserves, defaultReserves)
+		reserves[i] = defaultReserves
 	}
 
-	staticExtra := StaticExtra{
-		RateProvider: initialPool.RateProvider,
-	}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		RateProvider: rateProvider.Hex(),
+	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	poolEntity := entity.Pool{
-		Address:     strings.ToLower(initialPool.ID),
+		Address:     u.config.PsmAddress[:],
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),

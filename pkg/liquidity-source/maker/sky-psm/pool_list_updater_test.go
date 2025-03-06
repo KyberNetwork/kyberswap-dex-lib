@@ -2,6 +2,7 @@ package skypsm
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -20,7 +21,7 @@ type PoolListUpdaterTestSuite struct {
 
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	rpcClientByChainID := map[valueobject.ChainID]*ethrpc.Client{
-		valueobject.ChainIDBase: ethrpc.New("https://base.drpc.org").
+		valueobject.ChainIDArbitrumOne: ethrpc.New("https://arbitrum.drpc.org").
 			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	}
 
@@ -29,10 +30,15 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		config  Config
 	}{
 		{
-			chainID: valueobject.ChainIDBase,
+			chainID: valueobject.ChainIDArbitrumOne,
 			config: Config{
-				DexID:    DexType,
-				PoolPath: "pools/base.json",
+				DexID:      DexType,
+				PsmAddress: "0x2B05F8e1cACC6974fD79A673a341Fe1f58d27266",
+				Tokens: []string{
+					"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+					"0x6491c05A82219b8D1479057361ff1654749b876b",
+					"0xdDb46999F8891663a8F2828d25298f70416d7610",
+				},
 			},
 		},
 	}
@@ -68,6 +74,8 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	t.Skip("Skipping testing in CI environment")
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }

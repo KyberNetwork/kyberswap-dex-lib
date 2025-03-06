@@ -16,8 +16,8 @@ func CeilDiv(x, y *uint256.Int) (*uint256.Int, error) {
 	}
 
 	var res uint256.Int
-	res.Sub(x, number.Number_1).Div(&res, y).
-		Add(&res, number.Number_1)
+	res.SubUint64(x, 1).Div(&res, y).
+		AddUint64(&res, 1)
 
 	return &res, nil
 }

@@ -9,6 +9,7 @@ const (
 
 	defaultReserves = "100000000000000000000"
 
+	psm3MethodRateProvider           = "rateProvider"
 	ssrOracleMethodGetConversionRate = "getConversionRate"
 )
 
