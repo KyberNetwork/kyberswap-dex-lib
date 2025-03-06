@@ -20,6 +20,7 @@ import (
 	pkg_liquiditysource_bedrock_unieth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	pkg_liquiditysource_curve_llamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	pkg_liquiditysource_curve_plain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	pkg_liquiditysource_curve_stablemetang "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	pkg_liquiditysource_curve_stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -154,6 +155,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unieth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_llamma.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stableng.PoolSimulator{})

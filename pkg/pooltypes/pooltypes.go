@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	curveLlamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -241,6 +242,7 @@ type Types struct {
 	CurveStableMetaNg          string
 	CurveTriCryptoNg           string
 	CurveTwoCryptoNg           string
+	CurveLlamma                string
 	KelpRSETH                  string
 	RocketPoolRETH             string
 	EthenaSusde                string
@@ -389,6 +391,7 @@ var (
 		CurveStableMetaNg:          curveStableMetaNg.DexType,
 		CurveTriCryptoNg:           curveTricryptoNg.DexType,
 		CurveTwoCryptoNg:           curveTwocryptoNg.DexType,
+		CurveLlamma:                curveLlamma.DexType,
 		KelpRSETH:                  rseth.DexType,
 		RocketPoolRETH:             reth.DexType,
 		SwellSWETH:                 sweth.DexType,
