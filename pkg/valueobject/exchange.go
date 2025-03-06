@@ -79,6 +79,7 @@ var (
 	ExchangeCurveStableMetaNg Exchange = "curve-stable-meta-ng"
 	ExchangeCurveTriCryptoNg  Exchange = "curve-tricrypto-ng"
 	ExchangeCurveTwoCryptoNg  Exchange = "curve-twocrypto-ng"
+	ExchangeCurveLlamma       Exchange = "curve-llamma"
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
@@ -498,6 +499,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveStableMetaNg:          {},
 	ExchangeCurveTriCryptoNg:           {},
 	ExchangeCurveTwoCryptoNg:           {},
+	ExchangeCurveLlamma:                {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeZkSwapStable:               {},
