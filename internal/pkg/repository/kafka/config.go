@@ -5,4 +5,5 @@ type Config struct {
 	UseAuthentication bool     `mapstructure:"useAuthentication" json:"useAuthentication" default:""`
 	Username          string   `mapstructure:"username" json:"username" default:""`
 	Password          string   `mapstructure:"password" json:"-" default:""`
+	Enable            bool     `mapstructure:"enable" json:"-" default:""`
 }

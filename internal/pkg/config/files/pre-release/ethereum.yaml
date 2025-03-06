@@ -231,6 +231,7 @@ poolEventRedis:
   readOnly: false
   routeRandomly: false
 kafka:
+  enable: true
   addresses: "localhost:9092"
   useAuthentication: false
   username:
