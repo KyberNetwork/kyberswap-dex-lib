@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	batchSize                     = 5
-	minTickSpacingsPerPool uint32 = 10
+	maxBatchSize                  = 100
+	minTickSpacingsPerPool uint32 = 2
 )
 
 type QuoteData struct {
@@ -42,8 +42,8 @@ func fetchPools(
 
 	pools := make([]entity.Pool, 0, len(poolKeysAbi))
 
-	for startIdx := 0; startIdx < len(poolKeysAbi); startIdx += batchSize {
-		endIdx := min(startIdx+batchSize, len(poolKeysAbi))
+	for startIdx := 0; startIdx < len(poolKeysAbi); startIdx += maxBatchSize {
+		endIdx := min(startIdx+maxBatchSize, len(poolKeysAbi))
 
 		var quoteData []QuoteData
 		_, err := client.
