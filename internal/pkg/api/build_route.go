@@ -9,11 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -83,15 +82,15 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 
 	return dto.BuildRouteCommand{
 		RouteSummary:        routeSummary,
+		Checksum:            num,
+		Sender:              params.Sender,
+		Recipient:           params.Recipient,
+		Permit:              permit,
 		Deadline:            deadline,
 		SlippageTolerance:   params.SlippageTolerance,
-		Recipient:           params.Recipient,
-		Referral:            params.Referral,
-		Source:              params.Source,
-		Sender:              params.Sender,
-		Permit:              permit,
 		EnableGasEstimation: params.EnableGasEstimation,
-		Checksum:            num,
+		Source:              params.Source,
+		Referral:            params.Referral,
 	}, nil
 }
 

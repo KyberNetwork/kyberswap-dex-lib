@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func NewUnsignedTransaction(sender string, recipient string, data string,
@@ -46,7 +47,7 @@ func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 	testCases := []struct {
 		name              string
 		routeSummary      valueobject.RouteSummary
-		slippageTolerance int64
+		slippageTolerance float64
 		config            Config
 		err               error
 	}{

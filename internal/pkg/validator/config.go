@@ -19,6 +19,6 @@ type GetRouteEncodeParamsConfig struct {
 }
 
 type SlippageValidatorConfig struct {
-	SlippageToleranceGTE int64 `mapstructure:"slippageToleranceGte"`
-	SlippageToleranceLTE int64 `mapstructure:"slippageToleranceLte"`
+	SlippageToleranceGTE float64 `mapstructure:"slippageToleranceGte"`
+	SlippageToleranceLTE float64 `mapstructure:"slippageToleranceLte"`
 }

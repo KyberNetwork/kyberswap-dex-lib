@@ -4,22 +4,17 @@ type (
 	BuildRouteParams struct {
 		RouteSummary RouteSummary `json:"routeSummary"`
 
-		// Sender address of sender wallet
-		Sender string `json:"sender"`
+		Sender    string `json:"sender"`    // sender wallet
+		Recipient string `json:"recipient"` // recipient wallet
 
-		// Recipient address of recipient wallet
-		Recipient string `json:"recipient"`
+		Permit string `json:"permit"` // allows user to swap without approving token beforehand
 
-		Deadline          int64  `json:"deadline"`
-		SlippageTolerance int64  `json:"slippageTolerance"`
-		Referral          string `json:"referral"`
-		Source            string `json:"source"`
+		Deadline             int64   `json:"deadline"`
+		SlippageTolerance    float64 `json:"slippageTolerance"`    // in bps
+		IgnoreCappedSlippage bool    `form:"ignoreCappedSlippage"` // allow slippage up to 100%
+		EnableGasEstimation  bool    `json:"enableGasEstimation"`  // enable gas estimation and tx success check
 
-		// enable gas estimation, default is false
-		EnableGasEstimation bool `json:"enableGasEstimation"`
-
-		// Permit allows user to swap without approving token beforehand
-		Permit               string `json:"permit"`
-		IgnoreCappedSlippage bool   `form:"ignoreCappedSlippage"`
+		Source   string `json:"source"`
+		Referral string `json:"referral"`
 	}
 )

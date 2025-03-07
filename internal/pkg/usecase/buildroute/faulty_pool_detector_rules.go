@@ -22,7 +22,7 @@ func isErrReturnAmountIsNotEnough(err error) bool {
 	return err != nil && strings.Contains(strings.ToLower(err.Error()), ErrReturnAmountIsNotEnough.Error())
 }
 
-func slippageIsAboveMinThreshold(slippageTolerance int64, config FaultyPoolsConfig) bool {
+func slippageIsAboveMinThreshold(slippageTolerance float64, config FaultyPoolsConfig) bool {
 	return slippageTolerance > config.MinSlippageThreshold
 }
 

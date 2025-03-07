@@ -11,12 +11,12 @@ type BuildRouteCommand struct {
 	Sender    string
 	Recipient string
 
-	Deadline          int64
-	SlippageTolerance int64
-	Referral          string
-	Source            string
+	Permit []byte
 
+	Deadline            int64
+	SlippageTolerance   float64
 	EnableGasEstimation bool
 
-	Permit []byte
+	Source   string
+	Referral string
 }

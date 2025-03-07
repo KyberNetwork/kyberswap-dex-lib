@@ -10,9 +10,10 @@ func NewSlippageValidator(config SlippageValidatorConfig) *slippageValidator {
 	}
 }
 
-func (v *slippageValidator) Validate(slippageTolerance int64, ignoreCappedSlippage bool) error {
+func (v *slippageValidator) Validate(slippageTolerance float64, ignoreCappedSlippage bool) error {
 	// ignore check or slippage is valid
-	if ignoreCappedSlippage || (slippageTolerance >= v.config.SlippageToleranceGTE && slippageTolerance <= v.config.SlippageToleranceLTE) {
+	if ignoreCappedSlippage ||
+		(slippageTolerance >= v.config.SlippageToleranceGTE && slippageTolerance <= v.config.SlippageToleranceLTE) {
 		return nil
 	}
 

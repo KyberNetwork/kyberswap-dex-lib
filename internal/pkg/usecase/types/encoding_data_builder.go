@@ -41,7 +41,7 @@ func NewEncodingDataBuilder(
 	}
 }
 
-func (b *EncodingDataBuilder) SetSlippageTolerance(slippageTolerance *big.Int) *EncodingDataBuilder {
+func (b *EncodingDataBuilder) SetSlippageTolerance(slippageTolerance float64) *EncodingDataBuilder {
 	b.data.SlippageTolerance = slippageTolerance
 
 	return b

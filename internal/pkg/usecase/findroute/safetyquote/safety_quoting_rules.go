@@ -72,7 +72,8 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 	switch params.Exchange {
 	case dexValueObject.ExchangeFrxETH, dexValueObject.ExchangeDaiUsds,
 		dexValueObject.ExchangeUsd0PP, dexValueObject.ExchangeOETH,
-		dexValueObject.ExchangePolMatic, dexValueObject.ExchangeEtherFieBTC:
+		dexValueObject.ExchangePolMatic, dexValueObject.ExchangeEtherFieBTC,
+		dexValueObject.ExchangeHoney:
 		return f.deductionFactorInBps[types.Converter]
 	}
 

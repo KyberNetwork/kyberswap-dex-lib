@@ -12,13 +12,11 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
-	"github.com/goccy/go-json"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -95,7 +93,9 @@ func NewBuildRouteUseCase(
 		clientDataEncoder:         clientDataEncoder,
 		encodeBuilder:             encodeBuilder,
 		config:                    config,
-		alphaFeeCalculation:       alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig, routerpoolpkg.NewCustomFuncs(map[string]bool{})),
+
+		alphaFeeCalculation: alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig,
+			routerpoolpkg.NewCustomFuncs(nil)),
 	}
 }
 
@@ -114,7 +114,8 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		if err == nil {
 			command.RouteSummary.AlphaFee = alphaFee
 		} else {
-			logger.Warnf(ctx, "[%s] failed to get alphaFee from storage, falling back to default value", command.RouteSummary.RouteID)
+			logger.Warnf(ctx, "[%s] failed to get alphaFee from storage, falling back to default value",
+				command.RouteSummary.RouteID)
 
 			command.RouteSummary.AlphaFee, _ = uc.alphaFeeCalculation.CalculateDefaultAlphaFee(
 				ctx, alphafee.DefaultAlphaFeeParams{
@@ -252,7 +253,7 @@ func (uc *BuildRouteUseCase) rfq(
 	routeSummary valueobject.RouteSummary,
 	rfqMRouteMsg *routerEntity.RFQRouteMessage,
 	isFaultyPoolTrackEnable bool,
-	slippageTolerance int64,
+	slippageTolerance float64,
 	tokens map[string]*entity.Token,
 	prices map[string]float64,
 ) (valueobject.RouteSummary, error) {
@@ -300,7 +301,7 @@ func (uc *BuildRouteUseCase) rfq(
 						Recipient:    recipient,
 						RFQSender:    executorAddress,
 						RFQRecipient: rfqRecipient,
-						Slippage:     slippageTolerance,
+						Slippage:     int64(slippageTolerance),
 						SwapInfo:     swap.Extra,
 						AlphaFee:     alphaFee,
 						Source:       source,
@@ -327,12 +328,14 @@ func (uc *BuildRouteUseCase) rfq(
 		rfqHandler := uc.rfqHandlerByPoolType[poolType]
 		if rfqHandler.SupportBatch() {
 			g.Go(func() error {
-				return uc.processRFQs(ctx, poolType, routeSummary, rfqMRouteMsg, isFaultyPoolTrackEnable, tokens, prices, paramsSlice...)
+				return uc.processRFQs(ctx, poolType, routeSummary, rfqMRouteMsg, isFaultyPoolTrackEnable, tokens,
+					prices, paramsSlice...)
 			})
 		} else {
 			for _, params := range paramsSlice {
 				g.Go(func() error {
-					return uc.processRFQs(ctx, poolType, routeSummary, rfqMRouteMsg, isFaultyPoolTrackEnable, tokens, prices, params)
+					return uc.processRFQs(ctx, poolType, routeSummary, rfqMRouteMsg, isFaultyPoolTrackEnable, tokens,
+						prices, params)
 				})
 			}
 		}
@@ -350,7 +353,7 @@ func (uc *BuildRouteUseCase) rfq(
 func (uc *BuildRouteUseCase) estimateRFQSlippage(
 	ctx context.Context,
 	routeSummary valueobject.RouteSummary,
-	slippageTolerance int64,
+	slippageTolerance float64,
 ) (valueobject.RouteSummary, error) {
 	// Estimate new amount out after RFQ
 	var estimatedAfterRFQAmountOutBF big.Float
@@ -394,7 +397,7 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 	reducedAmountOutWithSlippageTolerance := new(big.Int).Div(
 		new(big.Int).Mul(
 			routeSummary.AmountOut,
-			big.NewInt(slippageTolerance),
+			big.NewInt(int64(slippageTolerance)),
 		),
 		valueobject.BasisPoint,
 	)
@@ -502,7 +505,8 @@ func (uc *BuildRouteUseCase) processRFQs(
 				alphaFeeInUSDFloat := 0.0
 				if results[i].AlphaFee != nil {
 					alphaFee := routeSummary.AlphaFee
-					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFee.Token].Decimals, prices[alphaFee.Token])
+					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFee.Token].Decimals,
+						prices[alphaFee.Token])
 					alphaFeeInUSDFloat, _ = alphaFeeInUSD.Float64()
 				}
 
@@ -578,7 +582,7 @@ func (uc *BuildRouteUseCase) encode(
 		uc.config.FeatureFlags).
 		SetRoute(&routeSummary, executorAddress, command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
-		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
+		SetSlippageTolerance(command.SlippageTolerance).
 		SetClientID(command.Source).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
@@ -644,7 +648,8 @@ func (uc *BuildRouteUseCase) getTokens(
 }
 
 // getPrices returns tokenIn and tokenOut price
-func (uc *BuildRouteUseCase) getPrices(ctx context.Context, tokenIn, tokenOut, alphaFeeToken string) (map[string]float64, error) {
+func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
+	tokenIn, tokenOut, alphaFeeToken string) (map[string]float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
 	defer span.End()
 	addresses := []string{tokenIn, tokenOut}
@@ -729,7 +734,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 	return gas, gasUSD, l1FeeUSDFloat, nil
 }
 
-func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary valueobject.RouteSummary, encodedData string) (float64, error) {
+func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary valueobject.RouteSummary,
+	encodedData string) (float64, error) {
 	// Using the estimated L1 fee because we haven’t implemented Brotli compression for Arbitrum yet.
 	if uc.config.ChainID == valueobject.ChainIDArbitrumOne {
 		return routeSummary.L1FeeUSD, nil
@@ -758,7 +764,7 @@ func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary
 }
 
 func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
-	routeSummary valueobject.RouteSummary, err error, slippage int64) {
+	routeSummary valueobject.RouteSummary, err error, slippage float64) {
 	clientId := clientid.GetClientIDFromCtx(ctx)
 	poolTags := make([]string, 0)
 
@@ -777,7 +783,7 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 		}).Infof("EstimateGas failed error %s", err)
 
 		// send failed metrics with slippage when error is Return amount is not enough
-		metrics.RecordEstimateGasWithSlippage(ctx, float64(slippage), !isErrReturnAmountIsNotEnough(err))
+		metrics.RecordEstimateGasWithSlippage(ctx, slippage, !isErrReturnAmountIsNotEnough(err))
 	}
 }
 

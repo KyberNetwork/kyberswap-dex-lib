@@ -9,7 +9,7 @@ type GetRouteEncodeParams struct {
 	OnlyScalableSources  bool       `form:"onlyScalableSources"`
 	GasInclude           bool       `form:"gasInclude"`
 	GasPrice             string     `form:"gasPrice"`
-	SlippageTolerance    int64      `form:"slippageTolerance"`
+	SlippageTolerance    float64    `form:"slippageTolerance"`
 	ChargeFeeBy          string     `form:"chargeFeeBy"`
 	FeeReceiver          string     `form:"feeReceiver"`
 	IsInBps              bool       `form:"isInBps"`

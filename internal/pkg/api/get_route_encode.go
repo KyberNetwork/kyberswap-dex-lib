@@ -11,13 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -187,13 +186,13 @@ func buildBuildRouteCommand(
 
 	return dto.BuildRouteCommand{
 		RouteSummary:      *getRoutesResult.RouteSummary,
+		Checksum:          getRoutesResult.Checksum,
 		Recipient:         utils.CleanUpParam(params.To),
+		Permit:            common.FromHex(params.Permit),
 		Deadline:          deadline,
 		SlippageTolerance: params.SlippageTolerance,
 		Referral:          params.Referral,
 		Source:            params.ClientData.Source,
-		Permit:            common.FromHex(params.Permit),
-		Checksum:          getRoutesResult.Checksum,
 	}, nil
 }
 
