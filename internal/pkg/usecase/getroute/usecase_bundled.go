@@ -123,7 +123,9 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
-		klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
+		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
+			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
+		}
 	}
 
 	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
