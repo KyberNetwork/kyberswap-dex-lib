@@ -29,6 +29,7 @@ func NewBundledUseCase(
 	onchainpriceRepository IOnchainPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
+	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	poolFactory IPoolFactory,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -47,6 +48,7 @@ func NewBundledUseCase(
 	uc := &useCase{
 		tokenRepository:        tokenRepository,
 		gasRepository:          gasRepository,
+		l1FeeEstimator:         l1FeeEstimator,
 		config:                 config,
 		onchainpriceRepository: onchainpriceRepository,
 	}

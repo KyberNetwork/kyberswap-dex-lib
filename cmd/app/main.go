@@ -390,6 +390,7 @@ func apiAction(c *cli.Context) (err error) {
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
+		l1FeeEstimator,
 		poolManager,
 		poolFactory,
 		finderEngine,
