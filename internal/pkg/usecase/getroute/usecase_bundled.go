@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/goccy/go-json"
@@ -57,7 +58,8 @@ func (u *bundledUseCase) ApplyConfig(config Config) {
 	u.aggregator.ApplyConfig(config)
 }
 
-func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQuery) (*dto.GetBundledRoutesResult, error) {
+func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQuery) (*dto.GetBundledRoutesResult,
+	error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] bundledUseCase.Handle")
 	defer span.End()
 
@@ -102,7 +104,8 @@ func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQ
 	}, nil
 }
 
-func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dto.GetBundledRoutesQuery) (*types.AggregateBundledParams, error) {
+func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
+	query dto.GetBundledRoutesQuery) (*types.AggregateBundledParams, error) {
 	pairs := lo.Map(query.Pairs, func(p *dto.GetBundledRoutesQueryPair, _ int) types.AggregateBundledParamsPair {
 		return types.AggregateBundledParamsPair{
 			TokenIn:  p.TokenIn,
@@ -118,9 +121,7 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
-		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			return nil, err
-		}
+		klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
 	}
 
 	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)

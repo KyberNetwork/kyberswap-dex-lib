@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -70,7 +71,8 @@ func NewUseCase(
 
 	var finalizedAggregator IAggregator
 	if config.Aggregator.FeatureFlags.IsRouteCachedEnable {
-		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
+		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache,
+			finderEngine)
 		finalizedAggregator = aggregatorWithCache
 	} else {
 		finalizedAggregator = correlatedPairsAggregator
@@ -189,7 +191,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", query.TokenOut)
 	}
 
-	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
+	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut,
+		u.config.GasTokenAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +205,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
 		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			return nil, err
+			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
 		}
 	}
 
@@ -262,7 +265,8 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 	return tokenByAddress, nil
 }
 
-func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
+func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64,
+	error) {
 	priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 	if err != nil {
 		return 0, 0, 0, err
@@ -300,7 +304,8 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
-func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string, onlyScalableSources bool) []string {
+func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string,
+	onlyScalableSources bool) []string {
 	var sources mapset.Set[string]
 	if len(includedSources) > 0 {
 		sources = mapset.NewThreadUnsafeSet(includedSources...)

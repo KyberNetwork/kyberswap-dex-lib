@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -150,7 +151,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
 		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			return nil, err
+			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
 		}
 	}
 
