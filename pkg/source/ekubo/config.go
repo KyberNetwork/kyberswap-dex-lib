@@ -17,13 +17,13 @@ type Config struct {
 }
 
 var SepoliaConfig = Config{
-	Core:        "0x16e186ecdc94083fff53ef2a41d46b92a54f61e2",
-	Oracle:      "0x51f1b10abf90e16498d25086641b0669ec62f32f",
-	DataFetcher: "0xe339a5e10f48d5c34255fd417f329d2026634b32",
-	Router:      "0xab090b2d86a32ab9ed214224f59dc7453be1037e",
+	Core:        "0xb98c50b291a8b69cffabd172de4d1bbc773f962a",
+	Oracle:      "0x519c98252304a4933cdef1e66f139dfb0e2d2462",
+	DataFetcher: "0x3b2b03c96f55c1a09a65d9c7e0b0abfe1816b02c",
+	Router:      "0x82d25d06a00f04bae3a19107a8131afc019f3adf",
 
 	Extensions: map[common.Address]pool.Extension{
-		common.HexToAddress("0x51f1b10abf90e16498d25086641b0669ec62f32f"): pool.Oracle,
+		common.HexToAddress("0x519c98252304a4933cdef1e66f139dfb0e2d2462"): pool.Oracle,
 	},
 
 	ApiUrl: "https://eth-sepolia-api.ekubo.org",
