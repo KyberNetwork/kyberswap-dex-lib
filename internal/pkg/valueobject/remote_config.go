@@ -56,6 +56,7 @@ type (
 		IsKyberPrivateLimitOrdersEnabled  bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
 		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAlphaFeeReductionEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
+		ShouldReturnAlphaFee              bool `mapstructure:"shouldReturnAlphaFee" json:"shouldReturnAlphaFee"`
 	}
 
 	Log struct {

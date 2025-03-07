@@ -162,6 +162,14 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 	if routeSummary == nil {
 		return nil
 	}
+	var alphaFee *params.AlphaFee
+	if routeSummary.AlphaFee != nil {
+		alphaFee = &params.AlphaFee{
+			Token:     routeSummary.AlphaFee.Token,
+			Amount:    routeSummary.AlphaFee.Amount.String(),
+			AmountUsd: routeSummary.AlphaFee.AmountUsd,
+		}
+	}
 	return &params.RouteSummary{
 		TokenIn:                     routeSummary.TokenIn,
 		AmountIn:                    routeSummary.AmountIn.String(),
@@ -179,6 +187,7 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 		L1FeeUSD: strconv.FormatFloat(routeSummary.L1FeeUSD, 'f', -1, 64),
 		ExtraFee: transformExtraFee(routeSummary.ExtraFee),
 		Route:    transformRoute(routeSummary.Route),
+		AlphaFee: alphaFee,
 	}
 }
 

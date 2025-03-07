@@ -21,7 +21,16 @@ type (
 
 		Route [][]Swap `json:"route"`
 
+		// Alpha fee
+		AlphaFee *AlphaFee `json:"alphaFee,omitempty"`
+
 		RouteSummaryValidation
+	}
+
+	AlphaFee struct {
+		Token     string
+		Amount    string
+		AmountUsd float64
 	}
 
 	RouteSummaryValidation struct {

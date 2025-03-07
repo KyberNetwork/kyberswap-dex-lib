@@ -140,6 +140,11 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 
 	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
 
+	// TOTO: this line of code will be removed later, do not return alpha
+	if !u.config.Aggregator.FeatureFlags.ShouldReturnAlphaFee {
+		routeSummary.AlphaFee = nil
+	}
+
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,
 		Checksum:      checksum.Hash(),
