@@ -47,7 +47,7 @@ func NewPoolListUpdater(
 }
 
 func (d *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]quoting.PoolKey, error) {
-	poolsUrl, err := url.JoinPath(d.config.ApiUrl, "/pools")
+	poolsUrl, err := url.JoinPath(d.config.ApiUrl, "v1/poolKeys")
 	if err != nil {
 		return nil, fmt.Errorf("URL creation failed: %w", err)
 	}

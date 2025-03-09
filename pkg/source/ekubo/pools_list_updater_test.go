@@ -24,12 +24,12 @@ func TestPoolListUpdater(t *testing.T) {
 	require.Greater(t, len(newPools), 0)
 
 	testPk := quoting.NewPoolKey(
-		common.Address{},
-		common.HexToAddress("0x618c25b11a5e9b5ad60b04bb64fcbdfbad7621d1"),
+		common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
+		common.HexToAddress("0xf7b3e9697fd769104cd6cf653c179fb452505a3e"),
 		quoting.Config{
-			Fee:         0,
-			TickSpacing: 0,
-			Extension:   common.HexToAddress(SepoliaConfig.Oracle),
+			Fee:         9223372036854775,
+			TickSpacing: 1000,
+			Extension:   common.Address{},
 		},
 	)
 
