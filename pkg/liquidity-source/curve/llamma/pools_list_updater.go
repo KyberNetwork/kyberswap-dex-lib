@@ -79,7 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize int) ([]entity.Pool, error) {
-	borrowableToken := strings.ToLower(u.config.StableCoin)
+	stableCoin := strings.ToLower(u.config.StableCoin)
 
 	amms := make([]common.Address, batchSize)
 	collaterals := make([]common.Address, batchSize)
@@ -104,8 +104,9 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	}
 
 	var (
-		decimals = make([]uint8, batchSize+1)
-		A        = make([]*big.Int, batchSize)
+		decimals      = make([]uint8, batchSize+1)
+		aCoefficients = make([]*big.Int, batchSize)
+		basePrices    = make([]*big.Int, batchSize)
 	)
 
 	ammCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -115,12 +116,16 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Target: collaterals[i].String(),
 			Method: shared.ERC20MethodDecimals,
 		}, []interface{}{&decimals[i]})
-
 		ammCalls.AddCall(&ethrpc.Call{
 			ABI:    llammaABI,
 			Target: amms[i].String(),
 			Method: llammaMethodA,
-		}, []interface{}{&A[i]})
+		}, []interface{}{&aCoefficients[i]})
+		ammCalls.AddCall(&ethrpc.Call{
+			ABI:    llammaABI,
+			Target: amms[i].String(),
+			Method: llammaMethodGetBasePrice,
+		}, []interface{}{&basePrices[i]})
 	}
 	ammCalls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
@@ -134,7 +139,8 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var pools = make([]entity.Pool, 0, batchSize)
 	for i, amm := range amms {
 		var staticExtra = StaticExtra{
-			A: uint256.MustFromBig(A[i]),
+			A:         uint256.MustFromBig(aCoefficients[i]),
+			BasePrice: uint256.MustFromBig(basePrices[i]),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
@@ -148,16 +154,16 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Exchange:  u.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"10000000000", "10000000000"},
+			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(collaterals[i].String()),
-					Decimals:  decimals[i],
+					Address:   stableCoin,
+					Decimals:  decimals[batchSize],
 					Swappable: true,
 				},
 				{
-					Address:   borrowableToken,
-					Decimals:  decimals[batchSize],
+					Address:   strings.ToLower(collaterals[i].String()),
+					Decimals:  decimals[i],
 					Swappable: true,
 				},
 			},

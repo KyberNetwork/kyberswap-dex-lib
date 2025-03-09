@@ -2,10 +2,12 @@ package llamma
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -58,14 +60,18 @@ func (t *PoolTracker) GetNewPoolState(
 	rpcState, err := t.fetchRPCState(ctx, p)
 	if err != nil {
 		lg.Error("failed to fetch state from RPC")
+		return p, err
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
 		Fee:         uint256.MustFromBig(rpcState.Fee),
+		AdminFee:    uint256.MustFromBig(rpcState.AdminFee),
+		AdminFeesX:  uint256.MustFromBig(rpcState.AdminFeesX),
+		AdminFeesY:  uint256.MustFromBig(rpcState.AdminFeesY),
 		PriceOracle: uint256.MustFromBig(rpcState.PriceOracle),
-		ActiveBand:  uint256.MustFromBig(rpcState.ActiveBand),
-		MinBand:     uint256.MustFromBig(rpcState.MinBand),
-		MaxBand:     uint256.MustFromBig(rpcState.MaxBand),
+		ActiveBand:  int256.MustFromBig(rpcState.ActiveBand),
+		MinBand:     int256.MustFromBig(rpcState.MinBand),
+		MaxBand:     int256.MustFromBig(rpcState.MaxBand),
 		BandsX: lo.MapEntries(rpcState.BandsX, func(k int64, v *big.Int) (int64, *uint256.Int) {
 			return k, uint256.MustFromBig(v)
 		}),
@@ -112,43 +118,36 @@ func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRP
 		Target: p.Address,
 		Method: llammaMethodFee,
 	}, []any{&fee})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFee,
 	}, []any{&adminFee})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesX,
 	}, []any{&adminFeesX})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesY,
 	}, []any{&adminFeesY})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodPriceOracle,
 	}, []any{&priceOracle})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodActiveBand,
 	}, []any{&activeBand})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
 		Method: llammaMethodMinBand,
 	}, []any{&minBand})
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
@@ -172,27 +171,24 @@ func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRP
 		return FetchRPCResult{}, err
 	}
 
-	bandsX := make(map[int64]*big.Int, maxBand.Int64()-minBand.Int64()+1)
-	bandsY := make(map[int64]*big.Int, maxBand.Int64()-minBand.Int64()+1)
+	bandsX := make([]*big.Int, maxBand.Int64()-minBand.Int64()+1)
+	bandsY := make([]*big.Int, maxBand.Int64()-minBand.Int64()+1)
 
 	// TODO: should we use multicall here?
 	bandCalls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := minBand.Int64(); i <= maxBand.Int64(); i += 1 {
-		var bandX, bandY big.Int
-		bandsX[i] = &bandX
-		bandsY[i] = &bandY
 		bandCalls.AddCall(&ethrpc.Call{
 			ABI:    llammaABI,
 			Target: p.Address,
 			Method: llammaMethodBandsX,
 			Params: []any{big.NewInt(i)},
-		}, []any{&bandX})
+		}, []any{&bandsX[i-minBand.Int64()]})
 		bandCalls.AddCall(&ethrpc.Call{
 			ABI:    llammaABI,
 			Target: p.Address,
 			Method: llammaMethodBandsY,
 			Params: []any{big.NewInt(i)},
-		}, []any{&bandY})
+		}, []any{&bandsY[i-minBand.Int64()]})
 	}
 	_, err := bandCalls.Aggregate()
 	if err != nil {
@@ -202,17 +198,37 @@ func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRP
 	collateralReserve.Sub(collateralReserve, adminFeesX)
 	stableCoinReserve.Sub(stableCoinReserve, adminFeesY)
 
+	fmt.Println(p.Address, "minBand: ", minBand, "maxBand: ", maxBand, activeBand)
+
 	return FetchRPCResult{
-		Fee:                fee,
-		AdminFee:           adminFee,
-		PriceOracle:        priceOracle,
-		ActiveBand:         activeBand,
-		MinBand:            minBand,
-		MaxBand:            maxBand,
-		BandsX:             bandsX,
-		BandsY:             bandsY,
+		Fee:         fee,
+		AdminFee:    adminFee,
+		AdminFeesX:  adminFeesX,
+		AdminFeesY:  adminFeesY,
+		PriceOracle: priceOracle,
+		ActiveBand:  activeBand,
+		MinBand:     minBand,
+		MaxBand:     maxBand,
+		BandsX: sliceToMapWithIndex(bandsX, func(i int, v *big.Int) (int64, *big.Int) {
+			return int64(i) + minBand.Int64(), v
+		}),
+		BandsY: sliceToMapWithIndex(bandsY, func(i int, v *big.Int) (int64, *big.Int) {
+			return int64(i) + minBand.Int64(), v
+		}),
 		CollateralReserves: collateralReserve,
 		StableCoinReserves: stableCoinReserve,
 		BlockNumber:        calls.BlockNumber,
 	}, nil
+}
+
+func sliceToMapWithIndex[T any, K comparable, V any](
+	slice []T,
+	iteratee func(i int, item T) (K, V),
+) map[K]V {
+	out := make(map[K]V, len(slice))
+	for i, e := range slice {
+		k, v := iteratee(i, e)
+		out[k] = v
+	}
+	return out
 }

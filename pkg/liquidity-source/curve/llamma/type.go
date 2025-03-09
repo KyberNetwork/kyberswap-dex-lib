@@ -9,11 +9,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type PriceOracle struct {
-	Price *uint256.Int
-	Ratio *uint256.Int
-}
-
 type BandResponse struct {
 	Index      string `json:"index"`
 	Collateral string `json:"collateral"`
@@ -30,6 +25,8 @@ type Band struct {
 type FetchRPCResult struct {
 	Fee                *big.Int
 	AdminFee           *big.Int
+	AdminFeesX         *big.Int
+	AdminFeesY         *big.Int
 	PriceOracle        *big.Int
 	ActiveBand         *big.Int
 	MinBand            *big.Int
@@ -41,31 +38,37 @@ type FetchRPCResult struct {
 	BlockNumber        *big.Int
 }
 
-type DetailedTrade struct {
-	InAmount  *uint256.Int
-	OutAmount *uint256.Int
-	N1        *int256.Int
-	N2        *int256.Int
-	TicksIn   []*uint256.Int
-	LastTickJ *uint256.Int
-	AdminFee  *uint256.Int
-	AdminFeeX *uint256.Int
-	AdminFeeY *uint256.Int
+type Extra struct {
+	Fee         *uint256.Int           `json:"fee"`
+	AdminFee    *uint256.Int           `json:"adminFee"`
+	AdminFeesX  *uint256.Int           `json:"adminFeesX"`
+	AdminFeesY  *uint256.Int           `json:"adminFeesY"`
+	PriceOracle *uint256.Int           `json:"priceOracle"`
+	ActiveBand  *int256.Int            `json:"activeBand"`
+	MinBand     *int256.Int            `json:"minBand"`
+	MaxBand     *int256.Int            `json:"maxBand"`
+	BandsX      map[int64]*uint256.Int `json:"bandsX"`
+	BandsY      map[int64]*uint256.Int `json:"bandsY"`
 }
 
-type Extra struct {
-	Fee         *uint256.Int
-	PriceOracle *uint256.Int
-	ActiveBand  *uint256.Int
-	MinBand     *uint256.Int
-	MaxBand     *uint256.Int
-	BandsX      map[int64]*uint256.Int
-	BandsY      map[int64]*uint256.Int
-	Bands       []Band
+type DetailedTrade struct {
+	TokenInIdx   int
+	InAmount     uint256.Int
+	OutAmount    uint256.Int
+	N1           int256.Int
+	N2           int256.Int
+	TicksIn      []uint256.Int
+	LastTickJ    uint256.Int
+	AdminFee     uint256.Int
+	AdminFeeX    uint256.Int
+	AdminFeeY    uint256.Int
+	InPrecision  uint256.Int
+	OutPrecision uint256.Int
 }
 
 type StaticExtra struct {
-	A *uint256.Int
+	A         *uint256.Int
+	BasePrice *uint256.Int
 }
 
 func (b *BandResponse) transformBandResponseToBand(collateralPrecision, stableCoinPrecision *big.Float) (Band, error) {

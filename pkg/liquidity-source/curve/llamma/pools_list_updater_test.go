@@ -61,11 +61,10 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 				require.NoError(t, err)
 				require.NotNil(t, newPool)
 
-				poolStr, err := json.Marshal(pools)
+				poolStr, err := json.Marshal(newPool)
 				require.NoError(t, err)
 				fmt.Println(string(poolStr))
 			}
-
 		})
 	}
 }

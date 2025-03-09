@@ -9,6 +9,5 @@ type Config struct {
 	FactoryAddress        string                `json:"factoryAddress"`
 	StableCoin            string                `json:"stableCoin"`
 	NewPoolLimit          int                   `json:"newPoolLimit"`
-	AllowSubgraphError    bool                  `json:"allowSubgraphError"`
 	FetchPoolsMinDuration durationjson.Duration `json:"fetch_pools_min_duration,omitempty"`
 }
