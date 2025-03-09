@@ -2,7 +2,6 @@ package ekubo
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -27,7 +26,46 @@ type PoolListTrackerTestSuite struct {
 	tracker *PoolTracker
 }
 
-func (ts *PoolListTrackerTestSuite) SetupTest() {
+type testcase struct {
+	name               string
+	txHash             string
+	poolKey            quoting.PoolKey
+	extension          ekubo_pool.Extension
+	stateBefore        quoting.PoolState
+	expectedStateAfter quoting.PoolState
+}
+
+func (ts *PoolListTrackerTestSuite) run(cases []*testcase) {
+	t := ts.T()
+
+	for _, tc := range cases {
+		ts.Run(tc.name, func() {
+			extra := Extra{
+				State: tc.stateBefore,
+			}
+			staticExtra := StaticExtra{
+				PoolKey:   tc.poolKey,
+				Extension: tc.extension,
+			}
+			newPoolState, err := ts.tracker.GetNewPoolState(
+				context.Background(),
+				newPool(t, &extra, &staticExtra),
+				pool.GetNewPoolStateParams{
+					Logs: ts.getTxLogs(t, tc.txHash),
+				},
+			)
+			require.NoError(t, err)
+
+			var poolExtra Extra
+			err = json.Unmarshal([]byte(newPoolState.Extra), &poolExtra)
+			require.NoError(ts.T(), err, "Failed to unmarshal pool extra")
+
+			require.Equal(t, tc.expectedStateAfter, poolExtra.State)
+		})
+	}
+}
+
+func (ts *PoolListTrackerTestSuite) SetupSuite() {
 	ethclient, err := clientFromEnv()
 	require.NoError(ts.T(), err)
 
@@ -38,83 +76,153 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 	ts.tracker = NewPoolTracker(&SepoliaConfig, ethrpc)
 }
 
-func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
-	ts.Run("Swapped", func() {
-		t := ts.T()
-
-		initialState := quoting.NewPoolState(
-			big.NewInt(330076895364),
-			math.IntFromString("340282366920938463463374607431768211456"),
-			0,
-			[]quoting.Tick{
-				{
-					Number:         -64000,
-					LiquidityDelta: big.NewInt(317526822448),
+func (ts *PoolListTrackerTestSuite) TestSwapped() {
+	ts.run([]*testcase{
+		{
+			name:   "Exact in",
+			txHash: "0xd331ee9950e326da0aa886efb8015c82a2b64d6be4ebf0fefba0b8a7eab72fb3",
+			poolKey: quoting.NewPoolKey(
+				common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
+				common.HexToAddress("0xf7b3e9697fd769104cd6cf653c179fb452505a3e"),
+				quoting.Config{
+					Fee:         9223372036854775,
+					TickSpacing: 1000,
+					Extension:   common.Address{},
 				},
-				{
-					Number:         -16000,
-					LiquidityDelta: big.NewInt(12550072916),
+			),
+			extension: ekubo_pool.Base,
+			stateBefore: quoting.NewPoolState(
+				math.IntFromString("13805080208217298875668"),
+				math.IntFromString("340282366920938463463374607431768211456"),
+				0,
+				[]quoting.Tick{
+					{
+						Number:         -16000,
+						LiquidityDelta: math.IntFromString("13805080208217298875668"),
+					},
+					{
+						Number:         16000,
+						LiquidityDelta: math.IntFromString("-13805080208217298875668"),
+					},
 				},
-				{
-					Number:         16000,
-					LiquidityDelta: big.NewInt(12550072916),
+				[2]int32{-16000, 16000},
+			),
+			expectedStateAfter: quoting.NewPoolState(
+				math.IntFromString("13805080208217298875668"),
+				math.IntFromString("340257731960622028004688875521658847232"),
+				-145,
+				[]quoting.Tick{
+					{
+						Number:         -16000,
+						LiquidityDelta: math.IntFromString("13805080208217298875668"),
+					},
+					{
+						Number:         16000,
+						LiquidityDelta: math.IntFromString("-13805080208217298875668"),
+					},
 				},
-				{
-					Number:         64000,
-					LiquidityDelta: big.NewInt(-317526822448),
+				[2]int32{-16000, 16000},
+			),
+		},
+		{
+			name:   "Exact out",
+			txHash: "0xdca418e6a533c7c53b9a3978c415bac8c594776f82d1848e425a10621682f461",
+			poolKey: quoting.NewPoolKey(
+				common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
+				common.HexToAddress("0xf7b3e9697fd769104cd6cf653c179fb452505a3e"),
+				quoting.Config{
+					Fee:         9223372036854775,
+					TickSpacing: 1000,
+					Extension:   common.Address{},
 				},
-			},
-			[2]int32{-2560000, 2560000},
-		)
-
-		newPoolState, err := ts.tracker.GetNewPoolState(context.Background(), newPool(t, initialState), pool.GetNewPoolStateParams{
-			Logs: ts.getTxLogs(t, "0x39571b8569625ee326cc5ba71031ce82466a1256964eb840ec6165aea545f3a7"),
-		})
-		require.NoError(t, err)
-
-		var poolExtra Extra
-		err = json.Unmarshal([]byte(newPoolState.Extra), &poolExtra)
-		require.NoError(ts.T(), err, "Failed to unmarshal pool extra")
-
-		require.Equal(t, poolExtra.State.Liquidity, initialState.Liquidity)
-		require.Equal(t, poolExtra.State.SqrtRatio, math.IntFromString("340283397323946109287174869415798767616"))
-		require.Equal(t, poolExtra.State.ActiveTick, int32(6))
+			),
+			extension: ekubo_pool.Base,
+			stateBefore: quoting.NewPoolState(
+				math.IntFromString("13805080208217298875668"),
+				math.IntFromString("340257731960622028004688875521658847232"),
+				-145,
+				[]quoting.Tick{
+					{
+						Number:         -16000,
+						LiquidityDelta: math.IntFromString("13805080208217298875668"),
+					},
+					{
+						Number:         16000,
+						LiquidityDelta: math.IntFromString("-13805080208217298875668"),
+					},
+				},
+				[2]int32{-16000, 16000},
+			),
+			expectedStateAfter: quoting.NewPoolState(
+				math.IntFromString("13805080208217298875668"),
+				math.IntFromString("340233082892178485771514743615339364352"),
+				-290,
+				[]quoting.Tick{
+					{
+						Number:         -16000,
+						LiquidityDelta: math.IntFromString("13805080208217298875668"),
+					},
+					{
+						Number:         16000,
+						LiquidityDelta: math.IntFromString("-13805080208217298875668"),
+					},
+				},
+				[2]int32{-16000, 16000},
+			),
+		},
 	})
+}
 
+func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 	ts.Run("PositionUpdated", func() {
-		t := ts.T()
-
-		initialState := quoting.NewPoolState(
-			big.NewInt(12550072916),
-			math.IntFromString("340282366920938463463374607431768211456"),
-			0,
-			[]quoting.Tick{
-				{
-					Number:         -16000,
-					LiquidityDelta: big.NewInt(12550072916),
-				},
-				{
-					Number:         16000,
-					LiquidityDelta: big.NewInt(12550072916),
-				},
+		ts.run([]*testcase{
+			{
+				name:   "Add liquidity",
+				txHash: "0x11893f22c56e1f114311edcf23ebb8751f4202a5f7fe9e7a79295b6fd3e263ba",
+				poolKey: quoting.NewPoolKey(
+					common.Address{},
+					common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
+					quoting.Config{
+						Fee:         0,
+						TickSpacing: 0,
+						Extension:   common.HexToAddress(SepoliaConfig.Oracle),
+					},
+				),
+				extension: ekubo_pool.Oracle,
+				stateBefore: quoting.NewPoolState(
+					math.IntFromString("31622773100538380"),
+					math.IntFromString("107606720792549838337692509122489386795008"),
+					11512931,
+					[]quoting.Tick{
+						{
+							Number:         math.MinTick,
+							LiquidityDelta: math.IntFromString("31622773100538380"),
+						},
+						{
+							Number:         math.MaxTick,
+							LiquidityDelta: math.IntFromString("-31622773100538380"),
+						},
+					},
+					[2]int32{math.MinTick, math.MaxTick},
+				),
+				expectedStateAfter: quoting.NewPoolState(
+					math.IntFromString("63245553203367807"),
+					math.IntFromString("107606720792549838337692509122489386795008"),
+					11512931,
+					[]quoting.Tick{
+						{
+							Number:         math.MinTick,
+							LiquidityDelta: math.IntFromString("63245553203367807"),
+						},
+						{
+							Number:         math.MaxTick,
+							LiquidityDelta: math.IntFromString("-63245553203367807"),
+						},
+					},
+					[2]int32{math.MinTick, math.MaxTick},
+				),
 			},
-			[2]int32{-2560000, 2560000},
-		)
-
-		newPool, err := ts.tracker.GetNewPoolState(context.Background(), newPool(t, initialState), pool.GetNewPoolStateParams{
-			Logs: ts.getTxLogs(t, "0x4a0bdc9f301bbc398190b439991e0a3acc40841fe209b73563dbedbf04dfc40d"),
 		})
-		require.NoError(t, err)
-
-		var poolExtra Extra
-		err = json.Unmarshal([]byte(newPool.Extra), &poolExtra)
-		require.NoError(ts.T(), err, "Failed to unmarshal pool extra")
-
-		newState := poolExtra.State
-
-		require.Equal(t, newState.Liquidity, big.NewInt(330076895364))
-		require.Equal(t, newState.SqrtRatio, initialState.SqrtRatio)
-		require.Equal(t, poolExtra.State.ActiveTick, initialState.ActiveTick)
 	})
 }
 
@@ -130,24 +238,11 @@ func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) []typ
 	return logs
 }
 
-func newPool(t *testing.T, state quoting.PoolState) entity.Pool {
-	extraJson, err := json.Marshal(Extra{
-		State: state,
-	})
+func newPool(t *testing.T, extra *Extra, staticExtra *StaticExtra) entity.Pool {
+	extraJson, err := json.Marshal(extra)
 	require.NoError(t, err)
 
-	staticExtraJson, err := json.Marshal(StaticExtra{
-		PoolKey: quoting.PoolKey{
-			Token0: common.Address{},
-			Token1: common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
-			Config: quoting.Config{
-				Fee:         9223372036854775,
-				TickSpacing: 1000,
-				Extension:   common.Address{},
-			},
-		},
-		Extension: ekubo_pool.Base,
-	})
+	staticExtraJson, err := json.Marshal(staticExtra)
 	require.NoError(t, err)
 
 	return entity.Pool{
