@@ -28,8 +28,14 @@ func TestCalcAmountOut(t *testing.T) {
 	}{
 		{
 			in:                "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			inAmount:          "100000000",
+			inAmount:          "100000",
 			out:               "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+			expectedOutAmount: "10000000",
+		},
+		{
+			out:               "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			inAmount:          "123222",
+			in:                "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
 			expectedOutAmount: "10000000",
 		},
 	}

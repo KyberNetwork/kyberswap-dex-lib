@@ -3,6 +3,7 @@ package llamma
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -59,7 +60,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	A := staticExtra.A
 	basePrice := staticExtra.BasePrice
 
-	Aminus1 := new(uint256.Int).Sub(A, big256.One)
+	Aminus1 := new(uint256.Int).Sub(A, number.Number_1)
 
 	ARatio, overflow := new(uint256.Int).MulDivOverflow(tenPow18, A, Aminus1)
 	if overflow {
@@ -193,7 +194,7 @@ func (t *PoolSimulator) calcSwapOut(
 	fee := t.fee
 	adminFee := t.adminFee
 
-	var temp1 uint256.Int
+	var temp uint256.Int
 	j := maxTicksUnit
 	for i := range maxTicks + maxSkipTicks {
 		var (
@@ -212,13 +213,13 @@ func (t *PoolSimulator) calcSwapOut(
 			y0.Set(t.getY0(x, y, po, poUp))
 			f.Mul(t.A, &y0).Mul(&f, po).Div(&f, poUp).Mul(&f, po).Div(&f, tenPow18)
 			g.Mul(t.Aminus1, &y0).Mul(&g, poUp).Div(&g, po)
-			inv.Add(&f, x).Mul(&inv, temp1.Add(&g, y))
+			inv.Add(&f, x).Mul(&inv, temp.Add(&g, y))
 			dynamicFee.Set(maxUint256(t.getDynamicFee(po, poUp), fee))
 		}
 
 		antifee := new(uint256.Int).Div(
 			tenPow36,
-			temp1.Sub(tenPow18, minUint256(&dynamicFee, tenPow18Minus1)),
+			temp.Sub(tenPow18, minUint256(&dynamicFee, tenPow18Minus1)),
 		)
 
 		if j != maxTicksUnit {
@@ -245,8 +246,8 @@ func (t *PoolSimulator) calcSwapOut(
 						// This is the last band
 						xDest.Mul(inAmountLeft, tenPow18).Div(&xDest, antifee)
 
-						temp1.Add(&xDest, x).Add(&temp1, &f)
-						out.LastTickJ.Div(&inv, &temp1).Sub(&out.LastTickJ, &g).Add(&out.LastTickJ, big256.One)
+						out.LastTickJ.Div(&inv, temp.Add(x, &xDest).Add(&temp, &f)).
+							Sub(&out.LastTickJ, &g).Add(&out.LastTickJ, number.Number_1)
 						if out.LastTickJ.Cmp(y) > 0 {
 							out.LastTickJ.Set(y)
 						}
@@ -260,9 +261,9 @@ func (t *PoolSimulator) calcSwapOut(
 						out.InAmount.Set(inAmount)
 						out.AdminFee.Add(&out.AdminFee, &xDest)
 						break
-					} else {
-						// We go into the next band
-						dx.Set(maxUint256(&dx, big256.One)) // Prevents from leaving dust in the band
+					} else { // We go into the next band
+						// Prevents from leaving dust in the band
+						dx.Set(maxUint256(&dx, number.Number_1))
 
 						xDest.Sub(&dx, &xDest).Mul(&xDest, adminFee).Div(&xDest, tenPow18)
 						inAmountLeft.Sub(inAmountLeft, &dx)
@@ -282,12 +283,12 @@ func (t *PoolSimulator) calcSwapOut(
 				if j == maxTicksUnit-1 {
 					break
 				}
-				if pRatio.Lt(temp1.Div(tenPow36, t.maxOracleDnPow)) {
+				if pRatio.Lt(temp.Div(tenPow36, t.maxOracleDnPow)) {
 					break
 				}
 				out.N2.Add(&out.N2, i256One)
 				poUp.Mul(poUp, t.Aminus1).Div(poUp, t.A)
-				x.Set(big256.ZeroBI)
+				x.Set(number.Zero)
 				y.Set(t.bandsY[out.N2.Int64()])
 			}
 		} else { // dump
@@ -301,8 +302,8 @@ func (t *PoolSimulator) calcSwapOut(
 						// This is the last band
 						yDest.Mul(inAmountLeft, tenPow18).Div(&yDest, antifee)
 
-						temp1.Add(&yDest, y).Add(&temp1, &g)
-						out.LastTickJ.Div(&inv, &temp1).Sub(&out.LastTickJ, &g).Add(&out.LastTickJ, big256.One)
+						out.LastTickJ.Div(&inv, temp.Add(y, &yDest).Add(&temp, &g)).
+							Sub(&out.LastTickJ, &f).Add(&out.LastTickJ, number.Number_1)
 						if out.LastTickJ.Cmp(x) > 0 {
 							out.LastTickJ.Set(x)
 						}
@@ -316,9 +317,9 @@ func (t *PoolSimulator) calcSwapOut(
 						out.InAmount.Set(inAmount)
 						out.AdminFee.Add(&out.AdminFee, &yDest)
 						break
-					} else {
-						// We go into the next band
-						dy.Set(maxUint256(&dy, big256.One)) // Prevents from leaving dust in the band
+					} else { // We go into the next band
+						// Prevents from leaving dust in the band
+						dy.Set(maxUint256(&dy, number.Number_1))
 
 						yDest.Sub(&dy, &yDest).Mul(&yDest, adminFee).Div(&yDest, tenPow18)
 						inAmountLeft.Sub(inAmountLeft, &dy)
@@ -344,7 +345,7 @@ func (t *PoolSimulator) calcSwapOut(
 				out.N2.Sub(&out.N2, i256One)
 				poUp.Mul(poUp, t.A).Div(poUp, t.Aminus1)
 				x.Set(t.bandsX[out.N2.Int64()])
-				y.Set(big256.ZeroBI)
+				y.Set(number.Zero)
 			}
 		}
 
@@ -353,7 +354,7 @@ func (t *PoolSimulator) calcSwapOut(
 		}
 	}
 
-	inPrecisionMinus1 := new(uint256.Int).Sub(inPrecision, big256.One)
+	inPrecisionMinus1 := new(uint256.Int).Sub(inPrecision, number.Number_1)
 	out.InAmount.Add(&out.InAmount, inPrecisionMinus1).Div(&out.InAmount, inPrecision).Mul(&out.InAmount, inPrecision)
 	out.OutAmount.Div(&out.OutAmount, outPrecision).Mul(&out.OutAmount, outPrecision)
 
