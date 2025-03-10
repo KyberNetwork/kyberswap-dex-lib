@@ -102,8 +102,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		activeBand: extra.ActiveBand,
 		minBand:    extra.MinBand,
 		maxBand:    extra.MaxBand,
-		bandsX:     extra.BandsX,
-		bandsY:     extra.BandsY,
+
+		bandsX: lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandX }),
+		bandsY: lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandY }),
 
 		gas: defaultGas,
 	}, nil
@@ -213,8 +214,8 @@ func (t *PoolSimulator) calcSwapOut(
 	if err != nil {
 		return nil, err
 	}
-	x := t.bandsX[out.N2.Int64()]
-	y := t.bandsY[out.N2.Int64()]
+	x := t.getBandX(out.N2.Int64())
+	y := t.getBandY(out.N2.Int64())
 
 	inAmountLeft := new(uint256.Int).Set(inAmount)
 	fee := t.fee
@@ -680,4 +681,18 @@ func (t *PoolSimulator) getCollateralIdx() int {
 
 func (t *PoolSimulator) getStableCoinIdx() int {
 	return 0
+}
+
+func (t *PoolSimulator) getBandX(index int64) *uint256.Int {
+	if x, ok := t.bandsX[index]; ok {
+		return x
+	}
+	return uint256.NewInt(0)
+}
+
+func (t *PoolSimulator) getBandY(index int64) *uint256.Int {
+	if y, ok := t.bandsY[index]; ok {
+		return y
+	}
+	return uint256.NewInt(0)
 }

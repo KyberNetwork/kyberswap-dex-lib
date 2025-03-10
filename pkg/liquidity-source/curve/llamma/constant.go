@@ -18,14 +18,7 @@ const (
 
 	llammaMethodA            = "A"
 	llammaMethodGetBasePrice = "get_base_price"
-	llammaMethodPriceOracle  = "price_oracle"
-	llammaMethodActiveBand   = "active_band"
-	llammaMethodMinBand      = "min_band"
-	llammaMethodMaxBand      = "max_band"
-	llammaMethodBandsX       = "bands_x"
-	llammaMethodBandsY       = "bands_y"
 	llammaMethodFee          = "fee"
-	llammaMethodAdminFee     = "admin_fee"
 	llammaMethodAdminFeesX   = "admin_fees_x"
 	llammaMethodAdminFeesY   = "admin_fees_y"
 
@@ -45,16 +38,13 @@ var (
 	tenPow18Minus1 = new(uint256.Int).Sub(tenPow18, big256.One)
 	tenPow18Div4   = new(uint256.Int).Div(tenPow18, big256.Four)
 	tenPow36       = big256.TenPowInt(36)
-	u256Fifty      = new(uint256.Int).SetUint64(50)
-
-	i256Zero = new(int256.Int).SetInt64(0)
-	i256One  = new(int256.Int).SetInt64(1)
+	i256One        = new(int256.Int).SetInt64(1)
 )
 
 var (
+	ErrNotEnoughData  = errors.New("not enough data")
 	ErrMulDivOverflow = errors.New("mul div overflow")
 	ErrWrongIndex     = errors.New("wrong index")
-	ErrInvalidPO      = errors.New("invalid po")
 	ErrZeroSwapAmount = errors.New("zero swap amount")
 	ErrWadExpOverflow = errors.New("wad_exp overflow")
 )

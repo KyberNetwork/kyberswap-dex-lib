@@ -32,15 +32,13 @@ type (
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	lg := logger.WithFields(logger.Fields{
-		"dexId":   config.DexID,
-		"dexType": DexType,
-	})
-
 	return &PoolsListUpdater{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		logger:       lg,
+		logger: logger.WithFields(logger.Fields{
+			"dexId":   config.DexID,
+			"dexType": DexType,
+		}),
 	}
 }
 
@@ -87,13 +85,13 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	for i := 0; i < batchSize; i++ {
 		idx := big.NewInt(int64(offset + i))
 		factoryCalls.AddCall(&ethrpc.Call{
-			ABI:    factoryABI,
+			ABI:    curveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAmms,
 			Params: []interface{}{idx},
 		}, []interface{}{&amms[i]})
 		factoryCalls.AddCall(&ethrpc.Call{
-			ABI:    factoryABI,
+			ABI:    curveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodCollaterals,
 			Params: []interface{}{idx},
@@ -116,7 +114,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Method: shared.ERC20MethodDecimals,
 		}, []interface{}{&decimals[i]})
 		ammCalls.AddCall(&ethrpc.Call{
-			ABI:    llammaABI,
+			ABI:    curveLlammaABI,
 			Target: amms[i].String(),
 			Method: llammaMethodA,
 		}, []interface{}{&aCoefficients[i]})
@@ -173,7 +171,7 @@ func (u *PoolsListUpdater) nCollaterals(ctx context.Context) (int, error) {
 	var nCollaterals *big.Int
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
+		ABI:    curveControllerFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodNCollaterals,
 	}, []interface{}{&nCollaterals})
@@ -217,21 +215,6 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return metadataBytes, nil
-}
-
-func (u *PoolsListUpdater) getStateFromHelper(ctx context.Context, poolAddress string) ([]byte, error) {
-	var bytes []byte
-	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
-	calls.AddCall(&ethrpc.Call{
-		ABI:    llammaHelperABI,
-		Target: u.config.LlammaHelperAddress,
-		Method: curveLlammaHelperMethodGet,
-		Params: []any{common.HexToAddress(poolAddress)},
-	}, []interface{}{&bytes})
-	if _, err := calls.TryAggregate(); err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
 }
