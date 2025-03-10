@@ -13,13 +13,12 @@ type BandResponse struct {
 	Index      string `json:"index"`
 	Collateral string `json:"collateral"`
 	StableCoin string `json:"stableCoin"`
-	ID         string `json:"id"`
 }
 
 type Band struct {
 	Index      int64
-	Collateral *uint256.Int
 	StableCoin *uint256.Int
+	Collateral *uint256.Int
 }
 
 type FetchRPCResult struct {
@@ -27,6 +26,7 @@ type FetchRPCResult struct {
 	AdminFee           *big.Int
 	AdminFeesX         *big.Int
 	AdminFeesY         *big.Int
+	BasePrice          *big.Int
 	PriceOracle        *big.Int
 	ActiveBand         *big.Int
 	MinBand            *big.Int
@@ -43,12 +43,15 @@ type Extra struct {
 	AdminFee    *uint256.Int           `json:"adminFee"`
 	AdminFeesX  *uint256.Int           `json:"adminFeesX"`
 	AdminFeesY  *uint256.Int           `json:"adminFeesY"`
+	BasePrice   *uint256.Int           `json:"basePrice"`
 	PriceOracle *uint256.Int           `json:"priceOracle"`
 	ActiveBand  *int256.Int            `json:"activeBand"`
 	MinBand     *int256.Int            `json:"minBand"`
 	MaxBand     *int256.Int            `json:"maxBand"`
 	BandsX      map[int64]*uint256.Int `json:"bandsX"`
 	BandsY      map[int64]*uint256.Int `json:"bandsY"`
+
+	Bands []Band `json:"bands"`
 }
 
 type DetailedTrade struct {
@@ -67,8 +70,7 @@ type DetailedTrade struct {
 }
 
 type StaticExtra struct {
-	A         *uint256.Int
-	BasePrice *uint256.Int
+	A *uint256.Int
 }
 
 func (b *BandResponse) transformBandResponseToBand(collateralPrecision, stableCoinPrecision *big.Float) (Band, error) {
@@ -90,7 +92,7 @@ func (b *BandResponse) transformBandResponseToBand(collateralPrecision, stableCo
 
 	return Band{
 		Index:      bandIndex,
-		Collateral: uint256.MustFromBig(collateralBI),
 		StableCoin: uint256.MustFromBig(stableCoinBI),
+		Collateral: uint256.MustFromBig(collateralBI),
 	}, nil
 }

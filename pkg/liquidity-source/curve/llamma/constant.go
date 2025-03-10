@@ -12,9 +12,6 @@ import (
 const (
 	DexType = "curve-llamma"
 
-	graphSkipLimit  = 5000
-	graphFirstLimit = 1000
-
 	factoryMethodNCollaterals = "n_collaterals"
 	factoryMethodCollaterals  = "collaterals"
 	factoryMethodAmms         = "amms"
@@ -32,9 +29,11 @@ const (
 	llammaMethodAdminFeesX   = "admin_fees_x"
 	llammaMethodAdminFeesY   = "admin_fees_y"
 
-	maxTicksUnit = 50
-	maxTicks     = 50
-	maxSkipTicks = 1024
+	curveLlammaHelperMethodGet = "get"
+
+	maxTicksUnit int64 = 50
+	maxTicks     int64 = 50
+	maxSkipTicks int64 = 1024
 )
 
 var (

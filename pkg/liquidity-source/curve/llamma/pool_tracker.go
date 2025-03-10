@@ -32,6 +32,11 @@ type PoolTracker struct {
 	logger logger.Logger
 }
 
+func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
+	// TODO implement me
+	panic("implement me")
+}
+
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
@@ -57,7 +62,7 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	lg := t.logger.WithFields(logger.Fields{"poolAddress": p.Address})
 
-	rpcState, err := t.fetchRPCState(ctx, p)
+	rpcState, err := t.fetchRPCState(ctx, p, new(big.Int).SetUint64(22014994))
 	if err != nil {
 		lg.Error("failed to fetch state from RPC")
 		return p, err
@@ -68,6 +73,7 @@ func (t *PoolTracker) GetNewPoolState(
 		AdminFee:    uint256.MustFromBig(rpcState.AdminFee),
 		AdminFeesX:  uint256.MustFromBig(rpcState.AdminFeesX),
 		AdminFeesY:  uint256.MustFromBig(rpcState.AdminFeesY),
+		BasePrice:   uint256.MustFromBig(rpcState.BasePrice),
 		PriceOracle: uint256.MustFromBig(rpcState.PriceOracle),
 		ActiveBand:  int256.MustFromBig(rpcState.ActiveBand),
 		MinBand:     int256.MustFromBig(rpcState.MinBand),
@@ -104,15 +110,18 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool, blockNumber *big.Int) (FetchRPCResult, error) {
 	var (
 		collateralReserve, stableCoinReserve  *big.Int
 		fee, adminFee, adminFeesX, adminFeesY *big.Int
-		priceOracle                           *big.Int
+		basePrice, priceOracle                *big.Int
 		activeBand, minBand, maxBand          *big.Int
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if blockNumber != nil {
+		calls.SetBlockNumber(blockNumber)
+	}
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
@@ -138,6 +147,11 @@ func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRP
 		Target: p.Address,
 		Method: llammaMethodPriceOracle,
 	}, []any{&priceOracle})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    llammaABI,
+		Target: p.Address,
+		Method: llammaMethodGetBasePrice,
+	}, []any{&basePrice})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    llammaABI,
 		Target: p.Address,
@@ -199,12 +213,23 @@ func (t *PoolTracker) fetchRPCState(ctx context.Context, p entity.Pool) (FetchRP
 	stableCoinReserve.Sub(stableCoinReserve, adminFeesY)
 
 	fmt.Println(p.Address, "minBand: ", minBand, "maxBand: ", maxBand, activeBand)
+	fmt.Println("balance of collateral: ", collateralReserve, "adminFeesX: ", adminFeesX)
+	fmt.Println("balance of stable coin: ", stableCoinReserve, "adminFeesY: ", adminFeesY)
+	totalBandx := big.NewInt(0)
+	totalBandy := big.NewInt(0)
+	for i := minBand.Int64(); i <= maxBand.Int64(); i += 1 {
+		totalBandx.Add(totalBandx, bandsX[i-minBand.Int64()])
+		totalBandy.Add(totalBandy, bandsY[i-minBand.Int64()])
+	}
+	fmt.Println("totalBandx: ", totalBandx)
+	fmt.Println("totalBandy: ", totalBandy)
 
 	return FetchRPCResult{
 		Fee:         fee,
 		AdminFee:    adminFee,
 		AdminFeesX:  adminFeesX,
 		AdminFeesY:  adminFeesY,
+		BasePrice:   basePrice,
 		PriceOracle: priceOracle,
 		ActiveBand:  activeBand,
 		MinBand:     minBand,

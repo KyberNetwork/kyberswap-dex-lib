@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	llammaABI  abi.ABI
-	factoryABI abi.ABI
+	llammaABI       abi.ABI
+	factoryABI      abi.ABI
+	llammaHelperABI abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&llammaABI, llammaABIBytes},
 		{&factoryABI, factoryABIBytes},
+		{&llammaHelperABI, llammaHelperABIBytes},
 	}
 
 	for _, b := range build {

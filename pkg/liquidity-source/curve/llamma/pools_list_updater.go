@@ -106,7 +106,6 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var (
 		decimals      = make([]uint8, batchSize+1)
 		aCoefficients = make([]*big.Int, batchSize)
-		basePrices    = make([]*big.Int, batchSize)
 	)
 
 	ammCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -121,11 +120,6 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Target: amms[i].String(),
 			Method: llammaMethodA,
 		}, []interface{}{&aCoefficients[i]})
-		ammCalls.AddCall(&ethrpc.Call{
-			ABI:    llammaABI,
-			Target: amms[i].String(),
-			Method: llammaMethodGetBasePrice,
-		}, []interface{}{&basePrices[i]})
 	}
 	ammCalls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
@@ -139,8 +133,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var pools = make([]entity.Pool, 0, batchSize)
 	for i, amm := range amms {
 		var staticExtra = StaticExtra{
-			A:         uint256.MustFromBig(aCoefficients[i]),
-			BasePrice: uint256.MustFromBig(basePrices[i]),
+			A: uint256.MustFromBig(aCoefficients[i]),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
@@ -225,4 +218,20 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 		return nil, err
 	}
 	return metadataBytes, nil
+}
+
+func (u *PoolsListUpdater) getStateFromHelper(ctx context.Context, poolAddress string) ([]byte, error) {
+	var bytes []byte
+	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
+	calls.AddCall(&ethrpc.Call{
+		ABI:    llammaHelperABI,
+		Target: u.config.LlammaHelperAddress,
+		Method: curveLlammaHelperMethodGet,
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []interface{}{&bytes})
+	if _, err := calls.TryAggregate(); err != nil {
+		return nil, err
+	}
+
+	return bytes, nil
 }

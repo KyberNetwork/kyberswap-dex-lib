@@ -1,13 +1,9 @@
 package llamma
 
-import (
-	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-)
-
 type Config struct {
-	DexID                 string                `json:"dexID"`
-	FactoryAddress        string                `json:"factoryAddress"`
-	StableCoin            string                `json:"stableCoin"`
-	NewPoolLimit          int                   `json:"newPoolLimit"`
-	FetchPoolsMinDuration durationjson.Duration `json:"fetch_pools_min_duration,omitempty"`
+	DexID               string `json:"dexID"`
+	FactoryAddress      string `json:"factoryAddress"`
+	StableCoin          string `json:"stableCoin"`
+	NewPoolLimit        int    `json:"newPoolLimit"`
+	LlammaHelperAddress string `json:"llammaHelperAddress"`
 }

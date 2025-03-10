@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -36,10 +37,11 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		{
 			chainID: valueobject.ChainIDEthereum,
 			config: Config{
-				DexID:          DexType,
-				FactoryAddress: "0xc9332fdcb1c491dcc683bae86fe3cb70360738bc",
-				StableCoin:     "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
-				NewPoolLimit:   10,
+				DexID:               DexType,
+				FactoryAddress:      "0xc9332fdcb1c491dcc683bae86fe3cb70360738bc",
+				StableCoin:          "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+				NewPoolLimit:        10,
+				LlammaHelperAddress: "0xb52C1ce530ad6F651bc01C234f11F91517970aC9",
 			},
 		},
 	}
@@ -63,7 +65,15 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 
 				poolStr, err := json.Marshal(newPool)
 				require.NoError(t, err)
-				fmt.Println(string(poolStr))
+				// fmt.Println(string(poolStr))
+
+				// print pretty
+				fmt.Println(pretty.Println(string(poolStr)))
+				bytes, err := updater.getStateFromHelper(context.Background(), pool.Address)
+				if err != nil {
+					return
+				}
+				fmt.Println(common.Bytes2Hex(bytes))
 			}
 		})
 	}
