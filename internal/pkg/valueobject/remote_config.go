@@ -159,13 +159,13 @@ type (
 	}
 
 	AlphaFeeReductionConfig struct {
-		ReductionFactorInBps map[string]float64 `mapstructure:"reductionFactorInBps" json:"reductionFactorInBps"`
+		ReductionFactorInBps map[string]float64 `mapstructure:"reductionFactorInBps" json:"afFactorInBps"`
 		// To avoid amm best path returns weird route due to lack of swap source, we must check differency between
 		// amm best path and multi best path do not exeed AlphaFeeSlippageTolerance config
 		MaxThresholdPercentageInBps  int64   `mapstructure:"maxThresholdPercentageInBps" json:"maxThresholdPercentageInBps"`
 		MinDifferentThresholdUSD     float64 `mapstructure:"minDifferentThresholdUSD" json:"minDifferentThresholdUSD"`
 		MinDifferentThresholdBps     int64   `mapstructure:"minDifferentThresholdBps" json:"minDifferentThresholdBps"`
-		DefaultAlphaFeePercentageBps float64 `mapstructure:"defaultAlphaFeePercentageBps" json:"defaultAlphaFeePercentageBps"`
+		DefaultAlphaFeePercentageBps float64 `mapstructure:"defaultAlphaFeePercentageBps" json:"defaultAfPercentageBps"`
 	}
 
 	CachePoint struct {

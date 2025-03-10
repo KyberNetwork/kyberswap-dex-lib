@@ -188,8 +188,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setPoolManagerOptionsFromFinderOptions(remoteCfg.FinderOptions)
 		cl.setRFQAcceptableSlippageFraction(remoteCfg.RFQAcceptableSlippageFraction)
 		cl.setDexalotUpscalePercent(remoteCfg.DexalotUpscalePercent)
-		// TODO: will be configured remotely later
-		// cl.setAlphaFeeConfig(remoteCfg.AlphaFeeConfig)
+		cl.setAlphaFeeConfig(remoteCfg.AlphaFeeConfig)
 		cl.mu.Unlock()
 	}
 
@@ -350,11 +349,11 @@ func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.Safe
 	cl.config.UseCase.GetRoute.SafetyQuoteConfig.WhitelistedClient = safetyQuoteConf.WhitelistedClient
 }
 
-// func (cl *ConfigLoader) setAlphaFeeConfig(alphaFeeConfig valueobject.AlphaFeeConfig) {
-// 	cl.config.UseCase.GetRoute.AlphaFeeConfig = alphaFeeConfig
-// 	cl.config.UseCase.BuildRoute.AlphaFeeConfig = alphaFeeConfig
-// 	cl.config.Repository.AlphaFee.Redis.TTL = alphaFeeConfig.TTL
-// }
+func (cl *ConfigLoader) setAlphaFeeConfig(alphaFeeConfig valueobject.AlphaFeeConfig) {
+	cl.config.UseCase.GetRoute.AlphaFeeConfig = alphaFeeConfig
+	cl.config.UseCase.BuildRoute.AlphaFeeConfig = alphaFeeConfig
+	cl.config.Repository.AlphaFee.Redis.TTL = alphaFeeConfig.TTL
+}
 
 func (cl *ConfigLoader) setRFQAcceptableSlippageFraction(rfqAcceptableSlippageFraction int64) {
 	cl.config.UseCase.BuildRoute.RFQAcceptableSlippageFraction = rfqAcceptableSlippageFraction
