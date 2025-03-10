@@ -1,9 +1,8 @@
 package quoting
 
-// TODO
 const (
-	BaseGasCostOfOneSwap               = 90_000
+	BaseGasCostOfOneSwap               = 75_000
 	GasCostOfOneInitializedTickCrossed = 20_000
-	GasCostOfOneTickSpacingCrossed     = 2_000
-	GasCostOfUpdatingOracleSnapshot    = 40_000
+	GasCostOfOneTickSpacingCrossed     = 4_000
+	GasCostOfUpdatingOracleSnapshot    = 15_000
 )
