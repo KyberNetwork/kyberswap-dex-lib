@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -44,12 +45,11 @@ func (b *addressWrapper) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-type uint64UncheckedWrapper struct {
+type uint64Wrapper struct {
 	uint64
 }
 
-// TODO Make checked once we use another endpoint that doesn't include 0.128 fees
-func (b *uint64UncheckedWrapper) UnmarshalJSON(input []byte) error {
+func (b *uint64Wrapper) UnmarshalJSON(input []byte) error {
 	if len(input) <= 4 {
 		return errors.New("expected non-empty prefixed hex string")
 	}
@@ -57,6 +57,10 @@ func (b *uint64UncheckedWrapper) UnmarshalJSON(input []byte) error {
 	bi := new(big.Int)
 	if err := bi.UnmarshalJSON(input[1 : len(input)-1]); err != nil {
 		return fmt.Errorf("parsing big int: %w", err)
+	}
+
+	if bi.Cmp(math.TwoPow64) != -1 {
+		return errors.New("fee expected to fit into uint64")
 	}
 
 	b.uint64 = bi.Uint64()
