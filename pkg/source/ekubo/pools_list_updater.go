@@ -17,12 +17,12 @@ import (
 )
 
 type allPoolsJson = []struct {
-	CoreAddress addressWrapper         `json:"core_address"`
-	Token0      addressWrapper         `json:"token0"`
-	Token1      addressWrapper         `json:"token1"`
-	Fee         uint64UncheckedWrapper `json:"fee"`
-	TickSpacing uint32                 `json:"tick_spacing"`
-	Extension   addressWrapper         `json:"extension"`
+	CoreAddress addressWrapper `json:"core_address"`
+	Token0      addressWrapper `json:"token0"`
+	Token1      addressWrapper `json:"token1"`
+	Fee         uint64Wrapper  `json:"fee"`
+	TickSpacing uint32         `json:"tick_spacing"`
+	Extension   addressWrapper `json:"extension"`
 }
 
 type PoolListUpdater struct {
