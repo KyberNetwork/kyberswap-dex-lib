@@ -109,7 +109,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// 		1. The route has an alphaFee
 	// 		2. The RouteSummary has been modified
 	isValidChecksum := uc.IsValidChecksum(command.RouteSummary, command.Checksum)
-	if !isValidChecksum {
+	if !isValidChecksum && uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
 		alphaFee, err := uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
 		if err == nil {
 			command.RouteSummary.AlphaFee = alphaFee
