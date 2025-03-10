@@ -177,12 +177,14 @@ common:
     ambient: true
     maverick-v2: true
   alphaFeeConfig: &alphaFeeConfig
-    reductionFactorInBps:
-      kyber-pmm: 5000
-    maxThresholdPercentageInBps: 9900
-    minDifferentThresholdUSD: 0.01
-    minDifferentThresholdBps: 1000
-    defaultAlphaFeePercentageBps: 0.1651
+    reductionConfig:
+      reductionFactorInBps:
+        kyber-pmm: 5000
+      maxThresholdPercentageInBps: 9900
+      minDifferentThresholdUSD: 0.01
+      minDifferentThresholdBps: 1000
+      defaultAlphaFeePercentageBps: 0.1651
+    ttl: 600s
   aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
 
 log:
@@ -421,6 +423,7 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
+    alphaFeeConfig: *alphaFeeConfig
   getCustomRoute:
     aggregator:
       finderOptions:
@@ -501,6 +504,7 @@ useCase:
     faultyPoolDetectorDisabled: false
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
+    alphaFeeConfig: *alphaFeeConfig
 
   poolFactory:
     chainId: *chainId

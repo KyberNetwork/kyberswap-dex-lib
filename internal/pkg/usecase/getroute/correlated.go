@@ -63,9 +63,9 @@ func NewCorrelatedPairs(
 func (c *correlatedPairs) Aggregate(
 	ctx context.Context,
 	params *types.AggregateParams,
-) (*valueobject.RouteSummary, error) {
+) (*valueobject.RouteSummaries, error) {
 	baseRoute, aggregateErr := c.aggregator.Aggregate(ctx, params)
-	if baseRoute != nil && aggregateErr == nil {
+	if aggregateErr == nil && baseRoute.GetBestRouteSummary() != nil {
 		return baseRoute, nil
 	}
 
@@ -132,19 +132,19 @@ func (c *correlatedPairs) Aggregate(
 		state,
 	)
 
-	var route *finderEntity.Route
+	var routes finderEntity.BestRoutes
 
 	if additionHops == 1 {
-		route, err = c.oneAdditionHopFinderEngine.Find(ctx, findRouteParams)
+		routes, err = c.oneAdditionHopFinderEngine.Find(ctx, findRouteParams)
 	} else if additionHops == 2 {
-		route, err = c.twoAdditionHopsFinderEngine.Find(ctx, findRouteParams)
+		routes, err = c.twoAdditionHopsFinderEngine.Find(ctx, findRouteParams)
 	}
 
-	if err != nil {
+	if err != nil || routes.GetBestRoute() == nil {
 		return nil, errors.WithMessagef(ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
-	return ConvertToRouteSummary(params, route), nil
+	return ConvertToRouteSummaries(params, routes), nil
 }
 
 func (c *correlatedPairs) ApplyConfig(config Config) {

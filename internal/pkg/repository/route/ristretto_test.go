@@ -76,17 +76,21 @@ func TestRistrettoRepository_Get(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -117,7 +121,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		cacheKeys = append(cacheKeys, invalidKey)
 		results, err := repo.Get(context.Background(), cacheKeys)
-		resultList := []*valueobject.SimpleRoute{}
+		resultList := []*valueobject.SimpleRouteWithExtraData{}
 		for _, v := range results {
 			resultList = append(resultList, v)
 		}
@@ -207,23 +211,29 @@ func TestRistrettoRepository_Get(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "c", TokenOutAddress: "d", PoolAddress: "0xcdefgh"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "c", TokenOutAddress: "d", PoolAddress: "0xcdefgh"}},
+					},
 				},
 			},
 		}
@@ -253,7 +263,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		repo.Cache().Wait()
 
 		// Check if all routes are saved correctly into memory after get them from Redis
-		resultList := []*valueobject.SimpleRoute{}
+		resultList := []*valueobject.SimpleRouteWithExtraData{}
 		for _, k := range cacheKeys {
 			savedRoute, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			if k == nilKey {
@@ -261,7 +271,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 				assert.Nil(t, savedRoute)
 			} else {
 				assert.True(t, ok)
-				resultList = append(resultList, savedRoute.(*valueobject.SimpleRoute))
+				resultList = append(resultList, savedRoute.(*valueobject.SimpleRouteWithExtraData))
 			}
 		}
 
@@ -427,17 +437,21 @@ func TestRistrettoRepository_Set(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -516,17 +530,21 @@ func TestRistrettoRepository_Set(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -609,17 +627,21 @@ func TestRistrettoRepository_Del(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -706,17 +728,21 @@ func TestRistrettoRepository_Del(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}

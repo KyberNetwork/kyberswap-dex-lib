@@ -32,7 +32,7 @@ type FeeReductionRouteFinalizer struct {
 }
 
 type FeeReductionFinalizerExtraData struct {
-	BestAmmAmountOut *finderCommon.ConstructRoute
+	BestAmmRoute *finderCommon.ConstructRoute
 }
 
 func NewFeeReductionRouteFinalizer(
@@ -103,7 +103,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			alphaFee, err = f.alphafeeCalculation.Calculate(
 				ctx, alphafee.AlphaFeeParams{
 					BestRoute:           constructRoute,
-					BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmAmountOut,
+					BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmRoute,
 					Prices:              params.Prices,
 					Tokens:              params.Tokens,
 					PoolSimulatorBucket: simulatorBucket,
@@ -303,6 +303,6 @@ func (f *FeeReductionRouteFinalizer) GetExtraData(ctx context.Context, bestRoute
 		return nil
 	}
 	return FeeReductionFinalizerExtraData{
-		BestAmmAmountOut: bestRouteResult.AMMBestRoute,
+		BestAmmRoute: bestRouteResult.AMMBestRoute,
 	}
 }

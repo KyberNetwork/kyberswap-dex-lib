@@ -180,6 +180,15 @@ func GetPrice(
 	return float64(0)
 }
 
+func ConvertToRouteSummaries(params *types.AggregateParams, routes finderEntity.BestRoutes) *valueobject.RouteSummaries {
+	result := &valueobject.RouteSummaries{}
+	for i, r := range routes {
+		result[i] = ConvertToRouteSummary(params, r)
+	}
+
+	return result
+}
+
 func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Route) *valueobject.RouteSummary {
 	paths := make([][]valueobject.Swap, 0, len(route.Route))
 

@@ -266,7 +266,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 		)
 		findRouteParams.SkipMergeSwap = lo.Contains(a.config.FinderOptions.ScaleHelperClients, params.ClientId)
 
-		route, err := a.finderEngine.Find(ctx, findRouteParams)
+		result, err := a.finderEngine.Find(ctx, findRouteParams)
 
 		if err != nil {
 			if errors.Is(err, finderEngine.ErrInvalidSwap) {
@@ -278,6 +278,12 @@ func (a *bundledAggregator) findBestBundledRoute(
 			}
 		}
 
+		// We don't expect this logic happens but safe check and log here
+		if result.GetBestRoute() == nil {
+			return nil, errors.WithMessagef(ErrRouteNotFound, "bet route is nil")
+		}
+
+		route := result.GetBestRoute()
 		finalizeExtra, ok := route.ExtraFinalizerData.(types.FinalizeExtraData)
 		if !ok {
 			logger.Errorf(ctx, "invalid finalizer data %v: %v", pair, route.ExtraFinalizerData)

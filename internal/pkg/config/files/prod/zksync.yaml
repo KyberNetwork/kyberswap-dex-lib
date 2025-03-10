@@ -79,12 +79,14 @@ common:
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   alphaFeeConfig: &alphaFeeConfig
-    reductionFactorInBps:
-      kyber-pmm: 5000
-    maxThresholdPercentageInBps: 9900
-    minDifferentThresholdUSD: 0.01
-    minDifferentThresholdBps: 1000
-    defaultAlphaFeePercentageBps: 0.1651
+    reductionConfig:
+      reductionFactorInBps:
+        kyber-pmm: 5000
+      maxThresholdPercentageInBps: 9900
+      minDifferentThresholdUSD: 0.01
+      minDifferentThresholdBps: 1000
+      defaultAlphaFeePercentageBps: 0.1651
+    ttl: 600s
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info

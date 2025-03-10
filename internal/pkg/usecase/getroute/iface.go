@@ -15,7 +15,7 @@ import (
 )
 
 type IAggregator interface {
-	Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error)
+	Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error)
 	ApplyConfig(config Config)
 }
 
@@ -73,8 +73,8 @@ type IPoolRepository interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
 type IRouteCacheRepository interface {
-	Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error)
-	Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error
+	Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData, error)
+	Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRouteWithExtraData) error
 	Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error
 }
 

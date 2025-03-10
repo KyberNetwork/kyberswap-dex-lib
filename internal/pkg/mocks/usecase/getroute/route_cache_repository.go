@@ -56,10 +56,10 @@ func (mr *MockIRouteCacheRepositoryMockRecorder) Del(ctx, keys any) *gomock.Call
 }
 
 // Get mocks base method.
-func (m *MockIRouteCacheRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
+func (m *MockIRouteCacheRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx, keys)
-	ret0, _ := ret[0].(map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute)
+	ret0, _ := ret[0].(map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -71,7 +71,7 @@ func (mr *MockIRouteCacheRepositoryMockRecorder) Get(ctx, keys any) *gomock.Call
 }
 
 // Set mocks base method.
-func (m *MockIRouteCacheRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error {
+func (m *MockIRouteCacheRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRouteWithExtraData) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", ctx, keys, routes)
 	ret0, _ := ret[0].(error)

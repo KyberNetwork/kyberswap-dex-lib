@@ -11,7 +11,7 @@ func TestSlippageValidator_validate(t *testing.T) {
 
 	testCases := []struct {
 		name                 string
-		slippageTolerance    int64
+		slippageTolerance    float64
 		ignoreCappedSlippage bool
 		err                  error
 	}{

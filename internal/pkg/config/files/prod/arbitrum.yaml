@@ -160,12 +160,14 @@ common:
     uniswap-v4: true
   useAEVM: &useAEVM false
   alphaFeeConfig: &alphaFeeConfig
-    reductionFactorInBps:
-      kyber-pmm: 5000
-    maxThresholdPercentageInBps: 9900
-    minDifferentThresholdUSD: 0.01
-    minDifferentThresholdBps: 1000
-    defaultAlphaFeePercentageBps: 0.1651
+    reductionConfig:
+      reductionFactorInBps:
+        kyber-pmm: 5000
+      maxThresholdPercentageInBps: 9900
+      minDifferentThresholdUSD: 0.01
+      minDifferentThresholdBps: 1000
+      defaultAlphaFeePercentageBps: 0.1651
+    ttl: 600s
   aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"

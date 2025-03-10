@@ -42,11 +42,11 @@ func NewRistrettoRepository(
 	}, nil
 }
 
-func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
+func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] ristrettoRepository.Get")
 	defer span.End()
 
-	routes := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{}
+	routes := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData{}
 	uncachedKeys := make([]valueobject.RouteCacheKeyTTL, 0, len(keys))
 
 	for _, key := range keys {
@@ -57,7 +57,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteC
 			continue
 		}
 
-		route, ok := cachedRoute.(*valueobject.SimpleRoute)
+		route, ok := cachedRoute.(*valueobject.SimpleRouteWithExtraData)
 		if !ok {
 			uncachedKeys = append(uncachedKeys, key)
 			continue
@@ -91,7 +91,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteC
 	return routes, nil
 }
 
-func (r *ristrettoRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error {
+func (r *ristrettoRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRouteWithExtraData) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Set")
 	defer span.End()
 

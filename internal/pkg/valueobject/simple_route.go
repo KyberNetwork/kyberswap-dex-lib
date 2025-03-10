@@ -45,3 +45,8 @@ func (s *SimpleRoute) ExtractPoolAddresses() []string {
 
 	return poolAddresses
 }
+
+type SimpleRouteWithExtraData struct {
+	BestRoute *SimpleRoute `json:"bestRoute"`
+	AMMRoute  *SimpleRoute `json:"ammRoute"`
+}

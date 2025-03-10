@@ -51,6 +51,9 @@ type GetRoutesParams struct {
 
 	// Index type
 	Index string `form:"index"`
+
+	// TODO: adding this param for testing only, will be removed later when alpha fee is production ready
+	EnableAlphaFee bool `form:"enableAlphaFee"`
 }
 
 type GetRoutesResponse struct {

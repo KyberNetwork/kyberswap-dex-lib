@@ -22,7 +22,7 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 	}
 }
 
-func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
+func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisRepository.Get")
 	defer span.End()
 
@@ -41,7 +41,7 @@ func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCache
 		return nil, err
 	}
 
-	results := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{}
+	results := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData{}
 	for i, data := range routeData {
 		if data == nil {
 			continue
@@ -66,7 +66,7 @@ func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCache
 	return results, nil
 }
 
-func (r *redisRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) ([]*valueobject.SimpleRoute, error) {
+func (r *redisRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRouteWithExtraData) ([]*valueobject.SimpleRouteWithExtraData, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisRepository.Set")
 	defer span.End()
 
@@ -90,7 +90,7 @@ func (r *redisRepository) Set(ctx context.Context, keys []valueobject.RouteCache
 		return nil, e
 	}
 
-	results := make([]*valueobject.SimpleRoute, 0, len(cmds))
+	results := make([]*valueobject.SimpleRouteWithExtraData, 0, len(cmds))
 	var err error
 	for i, cmd := range cmds {
 		if cmd, ok := cmd.(*redis.StatusCmd); ok {

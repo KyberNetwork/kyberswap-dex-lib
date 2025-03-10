@@ -157,7 +157,12 @@ func (a *aggregator) findBestRoute(
 		}
 	}
 
-	return getroute.ConvertToRouteSummary(params, route), nil
+	// We don't expect this logic happens but safe check and log here
+	if route.GetBestRoute() == nil {
+		return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "bet route is nil")
+	}
+
+	return getroute.ConvertToRouteSummary(params, route.GetBestRoute()), nil
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token

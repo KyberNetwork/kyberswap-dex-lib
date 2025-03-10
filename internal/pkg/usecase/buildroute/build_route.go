@@ -146,7 +146,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("cmnguyen debug tokenInAddress %s tokenIn %s\n", tokenInAddress, routeSummary.TokenIn)
 	tokenOutAddress, err := eth.ConvertEtherToWETH(routeSummary.TokenOut, uc.config.ChainID)
 	if err != nil {
 		return nil, err

@@ -99,3 +99,18 @@ func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 func (rs RouteSummary) GetPriceImpact() float64 {
 	return (rs.AmountInUSD - rs.AmountOutUSD) / rs.AmountInUSD
 }
+
+type RouteSummaries [2]*RouteSummary
+
+const (
+	BestRoute int = iota
+	AMMBestRoute
+)
+
+func (b RouteSummaries) GetBestRouteSummary() *RouteSummary {
+	return b[BestRoute]
+}
+
+func (b RouteSummaries) GetAMMBestRouteSummary() *RouteSummary {
+	return b[AMMBestRoute]
+}

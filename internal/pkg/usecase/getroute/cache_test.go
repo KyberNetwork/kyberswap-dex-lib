@@ -21,13 +21,13 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 		name         string
 		param        *types.AggregateParams
 		keys         []valueobject.RouteCacheKeyTTL
-		cachedRoutes map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute
-		bestRoute    *valueobject.SimpleRoute
+		cachedRoutes map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData
+		bestRoute    *valueobject.SimpleRouteWithExtraData
 		bestKey      *valueobject.RouteCacheKeyTTL
 		err          error
 	}{
 		{
-			name: "",
+			name: "It should return correct result with exact amount",
 			param: &types.AggregateParams{
 				TokenIn: entity.Token{
 					Address:  "x",
@@ -41,7 +41,7 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 				TokenInPriceUSD: 1,
 			},
 			keys: newMultiRouteCacheKeys([]float64{250, 198, 215}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second, 10 * time.Second, 20 * time.Second}),
-			cachedRoutes: map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{
+			cachedRoutes: map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData{
 				{
 					Key: &valueobject.RouteCacheKey{
 						CacheMode: string(valueobject.RouteCacheModeRangeByAmount),
@@ -49,9 +49,17 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 					},
 					TTL: 40 * time.Second,
 				}: {
-					Distributions: []uint64{250},
-					Paths: [][]valueobject.SimpleSwap{
-						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{250},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+						},
+					},
+					AMMRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{250},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+						},
 					},
 				},
 				{
@@ -61,9 +69,17 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 					},
 					TTL: 10 * time.Second,
 				}: {
-					Distributions: []uint64{198},
-					Paths: [][]valueobject.SimpleSwap{
-						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{198},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+						},
+					},
+					AMMRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{198},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+						},
 					},
 				},
 				{
@@ -73,16 +89,26 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 					},
 					TTL: 20 * time.Second,
 				}: {
-					Distributions: []uint64{215},
-					Paths: [][]valueobject.SimpleSwap{
-						{{TokenInAddress: "m", TokenOutAddress: "n", PoolAddress: "0xlmnop"}},
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{215},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "m", TokenOutAddress: "n", PoolAddress: "0xlmnop"}},
+						},
 					},
 				},
 			},
-			bestRoute: &valueobject.SimpleRoute{
-				Distributions: []uint64{198},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+			bestRoute: &valueobject.SimpleRouteWithExtraData{
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{198},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
+				},
+				AMMRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{198},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 			bestKey: &valueobject.RouteCacheKeyTTL{
@@ -97,6 +123,105 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 					ExcludedPools:  nil,
 				},
 				TTL: 10 * time.Second,
+			},
+		},
+		{
+			name: "It should return correct result with relativity amount",
+			param: &types.AggregateParams{
+				TokenIn: entity.Token{
+					Address:  "x",
+					Decimals: 18,
+				},
+				TokenOut: entity.Token{
+					Address:  "y",
+					Decimals: 18,
+				},
+				AmountIn:        bigIntFromScientificNotation("280e18"),
+				TokenInPriceUSD: 1,
+			},
+			keys: newMultiRouteCacheKeys([]float64{250, 198, 215}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second, 10 * time.Second, 20 * time.Second}),
+			cachedRoutes: map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData{
+				{
+					Key: &valueobject.RouteCacheKey{
+						CacheMode: string(valueobject.RouteCacheModeRangeByAmount),
+						AmountIn:  strconv.FormatFloat(250, 'f', 0, 64),
+					},
+					TTL: 40 * time.Second,
+				}: {
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{250},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+						},
+					},
+					AMMRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{250},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+						},
+					},
+				},
+				{
+					Key: &valueobject.RouteCacheKey{
+						CacheMode: string(valueobject.RouteCacheModeRangeByAmount),
+						AmountIn:  strconv.FormatFloat(198, 'f', 0, 64),
+					},
+					TTL: 10 * time.Second,
+				}: {
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{198},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+						},
+					},
+					AMMRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{198},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+						},
+					},
+				},
+				{
+					Key: &valueobject.RouteCacheKey{
+						CacheMode: string(valueobject.RouteCacheModeRangeByAmount),
+						AmountIn:  strconv.FormatFloat(215, 'f', 0, 64),
+					},
+					TTL: 20 * time.Second,
+				}: {
+					BestRoute: &valueobject.SimpleRoute{
+						Distributions: []uint64{215},
+						Paths: [][]valueobject.SimpleSwap{
+							{{TokenInAddress: "m", TokenOutAddress: "n", PoolAddress: "0xlmnop"}},
+						},
+					},
+				},
+			},
+			bestRoute: &valueobject.SimpleRouteWithExtraData{
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{250},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
+				},
+				AMMRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{250},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
+				},
+			},
+			bestKey: &valueobject.RouteCacheKeyTTL{
+				Key: &valueobject.RouteCacheKey{
+					CacheMode:      string(valueobject.RouteCacheModeRangeByAmount),
+					AmountIn:       strconv.FormatFloat(float64(250), 'f', -1, 64),
+					TokenIn:        "",
+					TokenOut:       "",
+					OnlySinglePath: false,
+					GasInclude:     false,
+					Dexes:          nil,
+					ExcludedPools:  nil,
+				},
+				TTL: 40 * time.Second,
 			},
 		},
 	}

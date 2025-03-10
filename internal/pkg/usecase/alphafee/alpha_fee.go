@@ -3,6 +3,7 @@ package alphafee
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 
@@ -81,17 +82,18 @@ func NewAlphaFeeCalculation(
 
 func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParams) (*routerEntity.AlphaFee, error) {
 	if param.BestAmmRoute == nil {
-		return nil, ErrAlphaFeeNotExists
+		return nil, fmt.Errorf("amm route is nil %w", ErrAlphaFeeNotExists)
 	}
 
 	reductionDelta := new(big.Int).Sub(param.BestRoute.AmountOut, param.BestAmmRoute.AmountOut)
 	if reductionDelta.Sign() <= 0 {
-		return nil, ErrAlphaFeeNotExists
+		return nil, fmt.Errorf("reductionDelta is negative reduction delta %v, best Amount %s, ammAmount %s, %w",
+			reductionDelta, param.BestRoute.AmountOut, param.BestAmmRoute.AmountOut, ErrAlphaFeeNotExists)
 	}
 
 	// If AMM best path and pmm best path almost equal, return error
 	if c.AlmostEqual(param.BestRoute, param.BestAmmRoute, true) {
-		return nil, ErrAlphaFeeNotExists
+		return nil, fmt.Errorf("amm route is almost equal with best route %w", ErrAlphaFeeNotExists)
 	}
 
 	var alphaFee *dexlibPool.TokenAmount

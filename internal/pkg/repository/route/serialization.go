@@ -6,7 +6,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func encodeRoute(route valueobject.SimpleRoute) (string, error) {
+func encodeRoute(route valueobject.SimpleRouteWithExtraData) (string, error) {
 	bytes, err := json.Marshal(route)
 	if err != nil {
 		return "", err
@@ -15,8 +15,8 @@ func encodeRoute(route valueobject.SimpleRoute) (string, error) {
 	return string(bytes), nil
 }
 
-func decodeRoute(data string) (*valueobject.SimpleRoute, error) {
-	var route valueobject.SimpleRoute
+func decodeRoute(data string) (*valueobject.SimpleRouteWithExtraData, error) {
+	var route valueobject.SimpleRouteWithExtraData
 	if err := json.Unmarshal([]byte(data), &route); err != nil {
 		return nil, err
 	}

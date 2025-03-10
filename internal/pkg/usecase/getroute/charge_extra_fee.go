@@ -27,7 +27,7 @@ func NewChargeExtraFee(
 	}
 }
 
-func (c *chargeExtraFee) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] chargeExtraFee.Aggregate")
 	defer span.End()
 
@@ -49,7 +49,7 @@ func (c *chargeExtraFee) ApplyConfig(config Config) {
 	c.aggregator.ApplyConfig(config)
 }
 
-func (c *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error) {
 	// Step 1: calculate amountIn after fee
 	amountIn := params.AmountIn
 	amountInAfterFee := business.CalcAmountInAfterFee(amountIn, params.ExtraFee)
@@ -58,10 +58,11 @@ func (c *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *type
 	params.AmountIn = amountInAfterFee
 
 	// Step 3: aggregate
-	routeSummary, err := c.aggregator.Aggregate(ctx, params)
+	routeSummaries, err := c.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}
+	routeSummary := routeSummaries.GetBestRouteSummary()
 
 	// Step 4: update route summary with amountIn before fee
 	amountInUSDBigFloat := business.CalcAmountUSD(amountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
@@ -70,15 +71,16 @@ func (c *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *type
 	routeSummary.AmountIn = amountIn
 	routeSummary.AmountInUSD = amountInUSD
 
-	return routeSummary, nil
+	return routeSummaries, nil
 }
 
-func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error) {
 	// Step 1: aggregate
-	routeSummary, err := c.aggregator.Aggregate(ctx, params)
+	routeSummaries, err := c.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}
+	routeSummary := routeSummaries.GetBestRouteSummary()
 
 	// Step 2: calculate amountOut after fee
 	amountOutAfterFee := business.CalcAmountOutAfterFee(routeSummary.AmountOut, params.ExtraFee)
@@ -93,5 +95,5 @@ func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *typ
 	routeSummary.AmountOut = amountOutAfterFee
 	routeSummary.AmountOutUSD = amountOutAfterFeeUSD
 
-	return routeSummary, nil
+	return routeSummaries, nil
 }

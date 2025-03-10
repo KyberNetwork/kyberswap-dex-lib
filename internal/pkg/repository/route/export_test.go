@@ -5,11 +5,11 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-func EncodeRoute(route valueobject.SimpleRoute) (string, error) {
+func EncodeRoute(route valueobject.SimpleRouteWithExtraData) (string, error) {
 	return encodeRoute(route)
 }
 
-func DecodeRoute(data string) (*valueobject.SimpleRoute, error) {
+func DecodeRoute(data string) (*valueobject.SimpleRouteWithExtraData, error) {
 	return decodeRoute(data)
 }
 

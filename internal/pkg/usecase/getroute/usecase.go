@@ -118,10 +118,11 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		return nil, ErrAmountInIsGreaterThanMaxAllowed
 	}
 
-	routeSummary, err := u.aggregator.Aggregate(ctx, params)
+	routeSummaries, err := u.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}
+	routeSummary := routeSummaries.GetBestRouteSummary()
 
 	routeID := requestid.GetRequestIDFromCtx(ctx)
 
@@ -251,8 +252,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		ExcludedPools:                 query.ExcludedPools,
 		ClientId:                      query.ClientId,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
-		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
-		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
+		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable && query.EnableAlphaFee,
+		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute && query.EnableAlphaFee,
 	}, nil
 }
 

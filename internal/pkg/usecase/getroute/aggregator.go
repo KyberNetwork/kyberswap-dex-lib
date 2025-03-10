@@ -50,7 +50,7 @@ func NewAggregator(
 	}
 }
 
-func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] aggregator.Aggregate")
 	defer span.End()
 
@@ -109,7 +109,7 @@ func (a *aggregator) findBestRoute(
 	tokenByAddress map[string]*entity.Token,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
-) (*valueobject.RouteSummary, error) {
+) (*valueobject.RouteSummaries, error) {
 	findRouteParams := ConvertToPathfinderParams(
 		a.config.WhitelistedTokenSet,
 		params,
@@ -119,7 +119,7 @@ func (a *aggregator) findBestRoute(
 	)
 	findRouteParams.SkipMergeSwap = lo.Contains(a.config.FinderOptions.ScaleHelperClients, params.ClientId)
 
-	route, err := a.finderEngine.Find(ctx, findRouteParams)
+	routes, err := a.finderEngine.Find(ctx, findRouteParams)
 
 	if err != nil {
 		if errors.Is(err, finderEngine.ErrInvalidSwap) {
@@ -131,7 +131,12 @@ func (a *aggregator) findBestRoute(
 		}
 	}
 
-	return ConvertToRouteSummary(params, route), nil
+	// We don't expect this logic happens but safe check and log here
+	if routes.GetBestRoute() == nil {
+		return nil, errors.WithMessagef(ErrRouteNotFound, "bet route is nil")
+	}
+
+	return ConvertToRouteSummaries(params, routes), nil
 }
 
 func (a *aggregator) getStateByAddress(

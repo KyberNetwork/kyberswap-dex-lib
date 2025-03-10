@@ -6,13 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
+	"github.com/alicebob/miniredis/v2"
+	"github.com/stretchr/testify/assert"
 )
 
 func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
@@ -70,17 +69,27 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				AMMRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
+				},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -96,7 +105,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, len(cachedRoutes), 2)
 
-		dbData := []*valueobject.SimpleRoute{}
+		dbData := []*valueobject.SimpleRouteWithExtraData{}
 		for _, key := range cacheKeys {
 			dbResult, _ := redisServer.Get(genKey(key, "ethereum"))
 			route, _ := route.DecodeRoute(dbResult)
@@ -144,11 +153,13 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 		}
@@ -208,17 +219,21 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -238,7 +253,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 		// verify result
-		resultList := []*valueobject.SimpleRoute{}
+		resultList := []*valueobject.SimpleRouteWithExtraData{}
 		for _, v := range result {
 			resultList = append(resultList, v)
 		}
@@ -290,17 +305,21 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
@@ -332,7 +351,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 		// verify result
-		resultList := []*valueobject.SimpleRoute{}
+		resultList := []*valueobject.SimpleRouteWithExtraData{}
 		for _, v := range result {
 			resultList = append(resultList, v)
 		}
@@ -501,17 +520,21 @@ func TestRedisCacheRepository_Del(t *testing.T) {
 				TTL: time.Second * 10,
 			},
 		}
-		routes := []*valueobject.SimpleRoute{
+		routes := []*valueobject.SimpleRouteWithExtraData{
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+					},
 				},
 			},
 			{
-				Distributions: []uint64{100},
-				Paths: [][]valueobject.SimpleSwap{
-					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				BestRoute: &valueobject.SimpleRoute{
+					Distributions: []uint64{100},
+					Paths: [][]valueobject.SimpleSwap{
+						{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+					},
 				},
 			},
 		}
