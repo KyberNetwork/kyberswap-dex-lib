@@ -2,6 +2,8 @@ package liquiditybookv21
 
 import (
 	"math/big"
+
+	"github.com/holiman/uint256"
 )
 
 type Bin struct {
@@ -10,24 +12,30 @@ type Bin struct {
 	ReserveY *big.Int `json:"reserveY"`
 }
 
-func (b *Bin) isEmptyForSwap(swapForX bool) bool {
+type BinU256 struct {
+	ID       uint32       `json:"id"`
+	ReserveX *uint256.Int `json:"reserveX"`
+	ReserveY *uint256.Int `json:"reserveY"`
+}
+
+func (b *BinU256) isEmptyForSwap(swapForX bool) bool {
 	if swapForX {
-		return b.ReserveX.Sign() == 0
+		return b.ReserveX.IsZero()
 	}
-	return b.ReserveY.Sign() == 0
+	return b.ReserveY.IsZero()
 }
 
-func (b *Bin) isEmpty() bool {
-	return b.ReserveX.Sign() == 0 && b.ReserveY.Sign() == 0
+func (b *BinU256) isEmpty() bool {
+	return b.ReserveX.IsZero() && b.ReserveY.IsZero()
 }
 
-func (b *Bin) getAmounts(
+func (b *BinU256) getAmounts(
 	parameters *parameters,
 	binStep uint16,
 	swapForY bool,
 	activeID uint32,
-	amountsInLeft *big.Int,
-) (*big.Int, *big.Int, *big.Int, error) {
+	amountsInLeft *uint256.Int,
+) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
 	price, err := getPriceFromID(activeID, binStep)
 	if err != nil {
 		return nil, nil, nil, err
@@ -35,7 +43,7 @@ func (b *Bin) getAmounts(
 
 	binReserveOut := b.getReserveOut(!swapForY)
 
-	var maxAmountIn *big.Int
+	var maxAmountIn *uint256.Int
 	if swapForY {
 		if maxAmountIn, err = shiftDivRoundUp(binReserveOut, scaleOffset, price); err != nil {
 			return nil, nil, nil, err
@@ -54,8 +62,8 @@ func (b *Bin) getAmounts(
 
 	maxAmountIn.Add(maxAmountIn, maxFee)
 
-	amountIn128 := new(big.Int).Set(amountsInLeft)
-	var fee128, amountOut128 *big.Int
+	amountIn128 := new(uint256.Int).Set(amountsInLeft)
+	var fee128, amountOut128 *uint256.Int
 
 	if amountIn128.Cmp(maxAmountIn) >= 0 {
 		fee128 = maxFee
@@ -67,7 +75,7 @@ func (b *Bin) getAmounts(
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		amountIn := new(big.Int).Sub(amountIn128, fee128)
+		amountIn := new(uint256.Int).Sub(amountIn128, fee128)
 
 		if swapForY {
 			amountOut128, err = mulShiftRoundDown(amountIn, price, scaleOffset)
@@ -89,7 +97,7 @@ func (b *Bin) getAmounts(
 	return amountIn128, amountOut128, fee128, nil
 }
 
-func (b *Bin) getReserveOut(swapForX bool) *big.Int {
+func (b *BinU256) getReserveOut(swapForX bool) *uint256.Int {
 	if swapForX {
 		return b.ReserveX
 	}
@@ -109,7 +117,7 @@ func (b *Bin) getReserveOut(swapForX bool) *big.Int {
  * @param first Whether to decode as the first or second uint128
  * @return x The decoded uint128
  */
-func (b *Bin) decode(first bool) *big.Int {
+func (b *BinU256) decode(first bool) *uint256.Int {
 	if first {
 		return b.ReserveX
 	}
@@ -118,33 +126,33 @@ func (b *Bin) decode(first bool) *big.Int {
 }
 
 type binReserveChanges struct {
-	BinID      uint32   `json:"binId"`
-	AmountXIn  *big.Int `json:"amountInX"`
-	AmountXOut *big.Int `json:"amountOutX"`
-	AmountYIn  *big.Int `json:"amountInY"`
-	AmountYOut *big.Int `json:"amountOutY"`
+	BinID      uint32       `json:"binId"`
+	AmountXIn  *uint256.Int `json:"amountInX"`
+	AmountXOut *uint256.Int `json:"amountOutX"`
+	AmountYIn  *uint256.Int `json:"amountInY"`
+	AmountYOut *uint256.Int `json:"amountOutY"`
 }
 
 func newBinReserveChanges(
 	binID uint32,
 	swapForX bool,
-	amountIn *big.Int,
-	amountOut *big.Int,
+	amountIn *uint256.Int,
+	amountOut *uint256.Int,
 ) binReserveChanges {
 	if swapForX {
 		return binReserveChanges{
 			BinID:      binID,
-			AmountXIn:  new(big.Int),
+			AmountXIn:  new(uint256.Int),
 			AmountXOut: amountOut,
 			AmountYIn:  amountIn,
-			AmountYOut: new(big.Int),
+			AmountYOut: new(uint256.Int),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
 		AmountXIn:  amountIn,
-		AmountXOut: new(big.Int),
-		AmountYIn:  new(big.Int),
+		AmountXOut: new(uint256.Int),
+		AmountYIn:  new(uint256.Int),
 		AmountYOut: amountOut,
 	}
 }
