@@ -160,7 +160,7 @@ encoder:
     defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
-    kyberswap-earn: *l2ExecutorAddress
+    kyberswap-earn: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
       receiver:
@@ -489,7 +489,7 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
-  alphaFee: 
+  alphaFee:
     redis:
       prefix: *chainName
       separator: ":"

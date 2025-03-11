@@ -651,7 +651,7 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
-  alphaFee: 
+  alphaFee:
     redis:
       prefix: *chainName
       separator: ":"

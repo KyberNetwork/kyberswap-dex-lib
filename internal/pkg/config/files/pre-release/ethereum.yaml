@@ -264,7 +264,7 @@ encoder:
     defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
-    kyberswap-earn: *l2ExecutorAddress
+    kyberswap-earn: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
       receiver:
@@ -481,7 +481,7 @@ useCase:
         handler: bebop
         properties:
           http:
-            name: 
+            name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
@@ -667,7 +667,7 @@ repository:
   erc20balanceslot:
     redis:
       prefix: *chainName
-  alphaFee: 
+  alphaFee:
     redis:
       prefix: *chainName
       separator: ":"
