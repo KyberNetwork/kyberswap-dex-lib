@@ -43,13 +43,17 @@ func (u *PoolListUpdater) GetNewPools(_ context.Context, metadataBytes []byte) (
 		"exchange": u.config.DexID,
 	}).Info("Started getting new pool")
 
-	var rateProvider common.Address
+	var rateProvider, pocket common.Address
 	if _, err := u.ethrpcClient.NewRequest().
 		SetContext(context.Background()).AddCall(&ethrpc.Call{
 		ABI:    psm3ABI,
 		Target: u.config.PsmAddress,
 		Method: psm3MethodRateProvider,
-	}, []interface{}{&rateProvider}).Call(); err != nil {
+	}, []interface{}{&rateProvider}).AddCall(&ethrpc.Call{
+		ABI:    psm3ABI,
+		Target: u.config.PsmAddress,
+		Method: psm3MethodPocket,
+	}, []interface{}{&pocket}).Aggregate(); err != nil {
 		return nil, nil, err
 	}
 
@@ -65,13 +69,14 @@ func (u *PoolListUpdater) GetNewPools(_ context.Context, metadataBytes []byte) (
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
 		RateProvider: rateProvider.Hex(),
+		Pocket:       pocket,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	poolEntity := entity.Pool{
-		Address:     u.config.PsmAddress[:],
+		Address:     strings.ToLower(u.config.PsmAddress),
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),

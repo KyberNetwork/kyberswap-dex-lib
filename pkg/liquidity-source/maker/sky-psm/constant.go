@@ -10,6 +10,7 @@ const (
 	defaultReserves = "100000000000000000000"
 
 	psm3MethodRateProvider           = "rateProvider"
+	psm3MethodPocket                 = "pocket"
 	ssrOracleMethodGetConversionRate = "getConversionRate"
 )
 
@@ -17,8 +18,7 @@ var (
 	defaultGas = Gas{
 		SwapExactIn: 70000,
 	}
-)
 
-var (
-	ErrInvalidToken = errors.New("invalid token")
+	ErrInvalidToken        = errors.New("invalid token")
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )

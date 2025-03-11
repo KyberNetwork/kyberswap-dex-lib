@@ -20,9 +20,9 @@ var (
 			"type": "sky-psm",
 			"timestamp": 1739765780,
 			"reserves": [
-				"100000000000000000000",
-				"100000000000000000000",
-				"100000000000000000000"
+				"14236841448487",
+				"28946856661441273511196026",
+				"27759833974904041860803040"
 			],
 			"tokens": [
 				{
@@ -115,6 +115,8 @@ func TestPoolSimulator_getSwapQuote(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			oldRate := poolSim.rate
+			defer func() { poolSim.rate = oldRate }()
 			poolSim.rate = tt.rate
 			gotExactIn, err := poolSim.getSwapQuote(tt.inIdx, tt.outIdx, tt.amount, false)
 			require.NoError(t, err)
@@ -123,8 +125,10 @@ func TestPoolSimulator_getSwapQuote(t *testing.T) {
 			gotExactOut, err := poolSim.getSwapQuote(tt.outIdx, tt.inIdx, gotExactIn, true)
 			require.NoError(t, err)
 			require.Equal(t, tt.wantExactOut, gotExactOut)
-
-			testutil.TestCalcAmountIn(t, poolSim)
 		})
 	}
+}
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	testutil.TestCalcAmountIn(t, poolSim)
 }
