@@ -16,6 +16,7 @@ import (
 	sky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolTracker struct {
@@ -65,6 +66,7 @@ func (t *PoolTracker) getNewPoolState(
 	blockTimestamp := uint64(time.Now().Unix()) + sky.Blocktime
 
 	var rate *big.Int
+	balances := make([]*big.Int, len(p.Tokens))
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		calls.SetOverrides(overrides)
@@ -73,8 +75,16 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    ssrOracleABI,
 		Target: staticExtra.RateProvider,
 		Method: ssrOracleMethodGetConversionRate,
-		Params: []interface{}{new(big.Int).SetUint64(blockTimestamp)},
-	}, []interface{}{&rate})
+		Params: []any{new(big.Int).SetUint64(blockTimestamp)},
+	}, []any{&rate})
+	for i, token := range p.Tokens {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: token.Address,
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{staticExtra.Pocket},
+		}, []any{&balances[i]})
+	}
 	_, err = calls.Aggregate()
 	if err != nil {
 		return p, err
@@ -88,6 +98,9 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 	p.Extra = string(extraBytes)
+	for i, balance := range balances {
+		p.Reserves[i] = balance.String()
+	}
 	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{

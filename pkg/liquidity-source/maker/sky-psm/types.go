@@ -1,6 +1,7 @@
 package skypsm
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -10,7 +11,8 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	RateProvider string `json:"rateProvider"`
+	RateProvider string         `json:"rateProvider"`
+	Pocket       common.Address `json:"pocket"`
 }
 
 type PoolMeta struct {
