@@ -24,6 +24,7 @@ type PoolSimulator struct {
 	usdcPrecision  *uint256.Int
 	usdsPrecision  *uint256.Int
 	susdsPrecision *uint256.Int
+	balances       []*uint256.Int
 
 	gas Gas
 }
@@ -50,7 +51,11 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		usdcPrecision:  big256.TenPowInt(p.Tokens[0].Decimals),
 		usdsPrecision:  big256.TenPowInt(p.Tokens[1].Decimals),
 		susdsPrecision: big256.TenPowInt(p.Tokens[2].Decimals),
-		gas:            defaultGas,
+		balances: lo.Map(p.Reserves, func(reserve string, _ int) *uint256.Int {
+			bal, _ := uint256.FromDecimal(reserve)
+			return bal
+		}),
+		gas: defaultGas,
 	}, nil
 }
 
@@ -94,27 +99,36 @@ func (p *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
 	}
 }
 
-func (p *PoolSimulator) getSwapQuote(inIdx, outIdx int, amount *uint256.Int, roundUp bool) (*uint256.Int, error) {
+func (p *PoolSimulator) getSwapQuote(inIdx, outIdx int, amount *uint256.Int, calcAmtIn bool) (*uint256.Int, error) {
+	if calcAmtIn && p.balances[inIdx].Cmp(amount) < 0 {
+		return nil, ErrInsufficientBalance
+	}
+
 	var (
 		quoteAmount *uint256.Int
 		err         error
 	)
 	switch {
 	case inIdx == 0 && outIdx == 1:
-		quoteAmount, err = p.convertOneToOne(amount, p.usdcPrecision, p.usdsPrecision, roundUp)
+		quoteAmount, err = p.convertOneToOne(amount, p.usdcPrecision, p.usdsPrecision, calcAmtIn)
 	case inIdx == 0 && outIdx == 2:
-		quoteAmount, err = p.convertToSUSDS(amount, p.usdcPrecision, roundUp)
+		quoteAmount, err = p.convertToSUSDS(amount, p.usdcPrecision, calcAmtIn)
 	case inIdx == 1 && outIdx == 0:
-		quoteAmount, err = p.convertOneToOne(amount, p.usdsPrecision, p.usdcPrecision, roundUp)
+		quoteAmount, err = p.convertOneToOne(amount, p.usdsPrecision, p.usdcPrecision, calcAmtIn)
 	case inIdx == 1 && outIdx == 2:
-		quoteAmount, err = p.convertToSUSDS(amount, p.usdsPrecision, roundUp)
+		quoteAmount, err = p.convertToSUSDS(amount, p.usdsPrecision, calcAmtIn)
 	case inIdx == 2 && outIdx == 0:
-		quoteAmount, err = p.convertFromSUSDS(amount, p.usdcPrecision, roundUp)
+		quoteAmount, err = p.convertFromSUSDS(amount, p.usdcPrecision, calcAmtIn)
 	case inIdx == 2 && outIdx == 1:
-		quoteAmount, err = p.convertFromSUSDS(amount, p.usdsPrecision, roundUp)
+		quoteAmount, err = p.convertFromSUSDS(amount, p.usdsPrecision, calcAmtIn)
 	default:
 		return nil, ErrInvalidToken
 	}
+
+	if !calcAmtIn && p.balances[outIdx].Cmp(quoteAmount) < 0 {
+		return nil, ErrInsufficientBalance
+	}
+
 	return quoteAmount, err
 }
 
