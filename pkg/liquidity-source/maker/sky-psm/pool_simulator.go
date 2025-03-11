@@ -52,7 +52,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		usdsPrecision:  big256.TenPowInt(p.Tokens[1].Decimals),
 		susdsPrecision: big256.TenPowInt(p.Tokens[2].Decimals),
 		balances: lo.Map(p.Reserves, func(reserve string, _ int) *uint256.Int {
-			bal, _ := uint256.FromHex(reserve)
+			bal, _ := uint256.FromDecimal(reserve)
 			return bal
 		}),
 		gas: defaultGas,
