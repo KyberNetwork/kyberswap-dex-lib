@@ -1,6 +1,10 @@
 package liquiditybookv21
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 type Metadata struct {
 	Offset int `json:"offset"`
@@ -18,8 +22,20 @@ type Extra struct {
 	PriceX128              *big.Int          `json:"priceX128"`
 }
 
+type ExtraU256 struct {
+	RpcBlockTimestamp      uint64            `json:"rpcBlockTimestamp"`
+	SubgraphBlockTimestamp uint64            `json:"subgraphBlockTimestamp,omitempty"`
+	StaticFeeParams        staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams      variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID            uint32            `json:"activeBinId"`
+	BinStep                uint16            `json:"binStep"`
+	Bins                   []BinU256         `json:"bins"`
+	Liquidity              *big.Int          `json:"liquidity"`
+	PriceX128              *big.Int          `json:"priceX128"`
+}
+
 type SwapInfo struct {
-	AmountsInLeft      *big.Int            `json:"-"`
+	AmountsInLeft      *uint256.Int        `json:"-"`
 	NewParameters      *parameters         `json:"-"`
 	NewActiveID        uint32              `json:"-"`
 	BinsReserveChanges []binReserveChanges `json:"-"`
@@ -63,17 +79,9 @@ type reserves struct {
 	ReserveY *big.Int `json:"reserveY"`
 }
 
-type getSwapInResult struct {
-	AmountIn           *big.Int
-	Fee                *big.Int
-	BinsReserveChanges []binReserveChanges
-	Parameters         *parameters
-	NewActiveID        uint32
-}
-
-type getSwapOutResult struct {
-	AmountOut          *big.Int
-	Fee                *big.Int
+type swapResult struct {
+	Amount             *uint256.Int
+	Fee                *uint256.Int
 	BinsReserveChanges []binReserveChanges
 	Parameters         *parameters
 	NewActiveID        uint32

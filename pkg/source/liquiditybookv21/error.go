@@ -3,7 +3,7 @@ package liquiditybookv21
 import "errors"
 
 var (
-	ErrInvalidBinID       = errors.New("invalid bin id")
+	ErrInvalidAmount      = errors.New("invalid amount")
 	ErrInvalidReserve     = errors.New("invalid reserve")
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrPowUnderflow       = errors.New("pow underflow")
