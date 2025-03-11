@@ -319,3 +319,24 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 
 	return limits
 }
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	result := make([]string, 0, len(s.Info.Tokens))
+	var tokenIndex = s.GetTokenIndex(address)
+	if tokenIndex < 0 {
+		return result
+	}
+
+	for i := 0; i < len(s.Info.Tokens); i += 1 {
+		// ringswap: indexIn%2 == indexOut%2 is not allowed
+		if i != tokenIndex && i%2 != tokenIndex%2 {
+			result = append(result, s.Info.Tokens[i])
+		}
+	}
+
+	return result
+}
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	return s.CanSwapTo(address)
+}

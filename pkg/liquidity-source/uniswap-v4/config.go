@@ -10,6 +10,8 @@ type Config struct {
 	StateViewAddress       string `json:"stateViewAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
+
+	FetchTickFromStateView bool // instead of fetching from subgraph
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
