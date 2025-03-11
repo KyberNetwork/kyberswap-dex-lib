@@ -585,6 +585,7 @@ func (uc *BuildRouteUseCase) encode(
 		SetClientID(command.Source).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
+		SetReferral(command.Referral).
 		GetData()
 
 	return encoder.Encode(encodingData)

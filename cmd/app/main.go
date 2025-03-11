@@ -311,7 +311,6 @@ func apiAction(c *cli.Context) (err error) {
 	l2Encoder := l2encode.NewEncoder(l2encode.Config{
 		RouterAddress:               cfg.Encoder.RouterAddress,
 		ExecutorAddress:             cfg.Encoder.L2ExecutorAddress,
-		ExecutorAddressOld:          cfg.Encoder.L2ExecutorAddressOld,
 		ChainID:                     cfg.Encoder.ChainID,
 		PsWallet:                    cfg.Encoder.PsWallet,
 		IsPositiveSlippageEnabled:   cfg.Encoder.IsPositiveSlippageEnabled,
@@ -319,7 +318,6 @@ func apiAction(c *cli.Context) (err error) {
 		FunctionSelectorMappingID:   cfg.Encoder.FunctionSelectorMappingID,
 		ExecutorAddressByClientID:   cfg.Encoder.ExecutorAddressByClientID,
 		PartnerPositiveSlippageInfo: cfg.Encoder.PartnerPositiveSlippageInfo,
-		NewEncoder:                  cfg.Encoder.NewEncoder,
 	})
 	encodeBuilder := encode.NewEncodeBuilder(l1Encoder, l2Encoder)
 

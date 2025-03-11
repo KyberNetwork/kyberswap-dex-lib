@@ -71,6 +71,12 @@ func (b *EncodingDataBuilder) SetPermit(permit []byte) *EncodingDataBuilder {
 	return b
 }
 
+func (b *EncodingDataBuilder) SetReferral(ref string) *EncodingDataBuilder {
+	b.data.Referral = ref
+
+	return b
+}
+
 func (b *EncodingDataBuilder) SetRoute(
 	routeSummary *valueobject.RouteSummary,
 	executorAddress string,
