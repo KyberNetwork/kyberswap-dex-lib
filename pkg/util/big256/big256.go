@@ -5,11 +5,13 @@ import (
 	"math/big"
 
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 var (
 	// TwoPow128 2^128
-	TwoPow128 = new(uint256.Int).Exp(uint256.NewInt(2), uint256.NewInt(128))
+	TwoPow128 = new(uint256.Int).Lsh(uint256.NewInt(1), 128)
+	Max       = new(uint256.Int).SetAllOne()
 
 	ZeroBI = uint256.NewInt(0)
 	One    = uint256.NewInt(1)
@@ -17,7 +19,7 @@ var (
 	Three  = uint256.NewInt(3)
 	Four   = uint256.NewInt(4)
 	Five   = uint256.NewInt(5)
-	Six    = uint256.NewInt(6)
+	U9     = uint256.NewInt(9)
 
 	BasisPointUint256 = uint256.NewInt(10000)
 )
@@ -25,12 +27,16 @@ var (
 var BONE = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18))
 var BoneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
-// TenPowDecimals calculates 10^decimal
-func TenPowDecimals(decimal uint8) *big.Float {
-	return big.NewFloat(math.Pow10(int(decimal)))
-}
+var (
+	preTenPowInt = lo.Map(lo.Range(18+1), func(n int, _ int) *uint256.Int {
+		return uint256.NewInt(uint64(math.Pow10(n)))
+	})
+)
 
 func TenPowInt(decimal uint8) *uint256.Int {
+	if decimal <= 18 {
+		return preTenPowInt[decimal]
+	}
 	return new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(decimal)))
 }
 
