@@ -43,6 +43,7 @@ var (
 	ErrInvalidAmountIn               = errors.New("invalid amount in")
 	ErrInsufficientInputAmount       = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrAssetFullyLiquidatedCantCheck = errors.New("asset fully liquidated, can't check")
+	ErrBasketMode                    = errors.New("basket mode")
 )
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -127,7 +128,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}, nil
 	}
 
-	return nil, nil
+	return nil, ErrBasketMode
 }
 
 func (s *PoolSimulator) convertToShares(assets *uint256.Int, assetIndex int) (share *uint256.Int) {
