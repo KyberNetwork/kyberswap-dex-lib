@@ -3,8 +3,11 @@ package uniswapv4
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
+	"slices"
+	"sort"
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -14,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
@@ -72,7 +76,7 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ poolpkg.GetNewPoolStateParams,
+	param poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -110,6 +114,16 @@ func (t *PoolTracker) GetNewPoolState(
 
 	g.Go(func(context.Context) error {
 		var err error
+		if t.config.FetchTickFromStateView {
+			poolTicks, err = t.getPoolTicksFromStateView(ctx, p, param)
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to call SC for pool ticks")
+			}
+			return err
+		}
+
 		poolTicks, err = t.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{
@@ -225,6 +239,97 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 	}
 
 	return ticks, nil
+}
+
+type stateViewTick struct {
+	LiquidityGross        *big.Int
+	LiquidityNet          *big.Int
+	FeeGrowthOutside0X128 *big.Int
+	FeeGrowthOutside1X128 *big.Int
+}
+
+func (t *PoolTracker) getPoolTicksFromStateView(
+	ctx context.Context,
+	p entity.Pool,
+	param poolpkg.GetNewPoolStateParams,
+) ([]ticklens.TickResp, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       t.config.DexID,
+	})
+
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return nil, errors.New("failed to unmarshal pool extra")
+	}
+
+	changedTicks := ticklens.GetChangedTicks(param.Logs)
+	l.Infof("Fetch changed ticks %v", changedTicks)
+
+	changedTicksCount := len(changedTicks)
+	if changedTicksCount == 0 || changedTicksCount > maxChangedTicks {
+		return nil, ErrTooManyChangedTickes
+	}
+
+	rpcRequest := t.ethrpcClient.NewRequest()
+	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+
+	stateViewTicks := make([]stateViewTick, changedTicksCount)
+	for i, tickIdx := range changedTicks {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    stateViewABI,
+			Target: t.config.StateViewAddress,
+			Method: "getTickInfo",
+			Params: []interface{}{eth.StringToBytes32(p.Address), big.NewInt(tickIdx)},
+		}, []interface{}{&stateViewTicks[i]})
+	}
+
+	resp, err := rpcRequest.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	resTicks := make(map[int64]stateViewTick, len(resp.Request.Calls))
+	for i, tick := range stateViewTicks {
+		resTicks[changedTicks[i]] = tick
+	}
+
+	combined := make([]ticklens.TickResp, 0, len(changedTicks)+len(extra.Ticks))
+	for _, t := range extra.Ticks {
+		tIdx := int64(t.Index)
+		if slices.Contains(changedTicks, tIdx) {
+			tick := resTicks[tIdx]
+			if tick.LiquidityNet == nil || tick.LiquidityNet.Sign() == 0 {
+				// some changed ticks might be consumed entirely, delete them
+				logger.Debugf("deleted tick %v %v", p.Address, t)
+				continue
+			}
+
+			// changed, use new value
+			combined = append(combined, ticklens.TickResp{
+				TickIdx:        strconv.FormatInt(tIdx, 10),
+				LiquidityGross: tick.LiquidityGross.String(),
+				LiquidityNet:   tick.LiquidityNet.String(),
+			})
+		} else {
+			// use old value
+			combined = append(combined, ticklens.TickResp{
+				TickIdx:        strconv.Itoa(t.Index),
+				LiquidityGross: t.LiquidityGross.String(),
+				LiquidityNet:   t.LiquidityNet.String(),
+			})
+		}
+	}
+
+	// Sort the ticks because function NewTickListDataProvider needs
+	sort.SliceStable(combined, func(i, j int) bool {
+		iTick, _ := strconv.Atoi(combined[i].TickIdx)
+		jTick, _ := strconv.Atoi(combined[j].TickIdx)
+
+		return iTick < jTick
+	})
+
+	return combined, nil
 }
 
 func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
