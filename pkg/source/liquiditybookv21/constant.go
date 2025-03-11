@@ -1,7 +1,9 @@
 package liquiditybookv21
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -40,9 +42,10 @@ const (
 )
 
 var (
-	scale     = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
-	precision = big.NewInt(1e18)
+	scale          = new(uint256.Int).Lsh(big256.One, scaleOffset)
+	uBasisPointMax = uint256.NewInt(basisPointMax)
+	precision      = big256.BONE
 
-	maxFee = big.NewInt(1e17)
-	u, _   = new(big.Int).SetString("100000", 16)
+	maxFee = uint256.NewInt(1e17)
+	powU   = uint256.NewInt(0x100000)
 )
