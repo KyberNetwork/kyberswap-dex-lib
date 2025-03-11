@@ -1,11 +1,9 @@
 package llamma
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -72,9 +70,6 @@ func decode(data []byte) (*CurveLlammaResult, error) {
 			BandY: bandY,
 		})
 	}
-
-	str, _ := json.Marshal(result)
-	fmt.Println("RE", string(str))
 
 	return &result, nil
 }

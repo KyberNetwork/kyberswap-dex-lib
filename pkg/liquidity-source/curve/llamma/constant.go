@@ -16,11 +16,14 @@ const (
 	factoryMethodCollaterals  = "collaterals"
 	factoryMethodAmms         = "amms"
 
-	llammaMethodA            = "A"
-	llammaMethodGetBasePrice = "get_base_price"
-	llammaMethodFee          = "fee"
-	llammaMethodAdminFeesX   = "admin_fees_x"
-	llammaMethodAdminFeesY   = "admin_fees_y"
+	llammaMethodA                   = "A"
+	llammaMethodPriceOracleContract = "price_oracle_contract"
+	llammaMethodGetBasePrice        = "get_base_price"
+	llammaMethodFee                 = "fee"
+	llammaMethodAdminFeesX          = "admin_fees_x"
+	llammaMethodAdminFeesY          = "admin_fees_y"
+
+	priceOracleMethodPriceW = "price_w"
 
 	curveLlammaHelperMethodGet = "get"
 
@@ -30,7 +33,7 @@ const (
 )
 
 var (
-	defaultGas = int64(1) // TODO:
+	defaultGas int64 = 91000
 )
 
 var (

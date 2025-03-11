@@ -7,7 +7,8 @@ import (
 
 type (
 	StaticExtra struct {
-		A *uint256.Int `json:"A"`
+		A                  *uint256.Int `json:"A"`
+		PriceOracleAddress string       `json:"priceOracleAddress"`
 	}
 
 	Extra struct {

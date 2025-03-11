@@ -104,6 +104,7 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var (
 		decimals      = make([]uint8, batchSize+1)
 		aCoefficients = make([]*big.Int, batchSize)
+		priceOracles  = make([]common.Address, batchSize)
 	)
 
 	ammCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -118,6 +119,11 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			Target: amms[i].String(),
 			Method: llammaMethodA,
 		}, []interface{}{&aCoefficients[i]})
+		ammCalls.AddCall(&ethrpc.Call{
+			ABI:    curveLlammaABI,
+			Target: amms[i].String(),
+			Method: llammaMethodPriceOracleContract,
+		}, []interface{}{&priceOracles[i]})
 	}
 	ammCalls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
@@ -131,7 +137,8 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	var pools = make([]entity.Pool, 0, batchSize)
 	for i, amm := range amms {
 		var staticExtra = StaticExtra{
-			A: uint256.MustFromBig(aCoefficients[i]),
+			A:                  uint256.MustFromBig(aCoefficients[i]),
+			PriceOracleAddress: priceOracles[i].String(),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

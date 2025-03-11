@@ -163,6 +163,10 @@ func (t *PoolSimulator) exchange(i, j int, amount *uint256.Int, useAmountIn bool
 		return nil, nil, nil, ErrWrongIndex
 	}
 
+	if amount.Sign() == 0 {
+		return nil, nil, nil, ErrZeroSwapAmount
+	}
+
 	inIdx, outIdx := t.getStableCoinIdx(), t.getCollateralIdx()
 	inPrecision, outPrecision := t.collateralPrecision, t.stableCoinPrecision
 	if i == 1 {
@@ -221,6 +225,7 @@ func (t *PoolSimulator) calcSwapOut(
 	fee := t.fee
 	adminFee := t.adminFee
 
+	// TODO:
 	var temp uint256.Int
 	j := maxTicksUnit
 	for i := range maxTicks + maxSkipTicks {
@@ -228,7 +233,6 @@ func (t *PoolSimulator) calcSwapOut(
 			y0, f, g, inv uint256.Int
 			dynamicFee    uint256.Int
 		)
-
 		dynamicFee.Set(fee)
 
 		if x.Sign() > 0 || y.Sign() > 0 {
@@ -657,7 +661,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.activeBand.Set(&out.N2)
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 

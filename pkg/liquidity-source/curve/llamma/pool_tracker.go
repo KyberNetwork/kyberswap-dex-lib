@@ -2,7 +2,6 @@ package llamma
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -52,16 +51,21 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	lg := t.logger.WithFields(logger.Fields{"poolAddress": p.Address})
 
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return p, err
+	}
+
 	var (
 		fee, adminFeesX, adminFeesY *big.Int
-		basePrice                   *big.Int
+		basePrice, priceW           *big.Int
 		dataBytes                   []byte
 
 		collateralReserve *big.Int
 		stableCoinReserve *big.Int
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(new(big.Int).SetUint64(22019234))
 	calls.AddCall(&ethrpc.Call{
 		ABI:    curveLlammaABI,
 		Target: p.Address,
@@ -77,6 +81,11 @@ func (t *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: llammaMethodAdminFeesY,
 	}, []any{&adminFeesY})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    curvePriceOracleABI,
+		Target: staticExtra.PriceOracleAddress,
+		Method: priceOracleMethodPriceW,
+	}, []any{&priceW})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    curveLlammaABI,
 		Target: p.Address,
@@ -115,9 +124,9 @@ func (t *PoolTracker) GetNewPoolState(
 		Fee:         uint256.MustFromBig(fee),
 		AdminFeesX:  uint256.MustFromBig(adminFeesX),
 		AdminFeesY:  uint256.MustFromBig(adminFeesY),
+		PriceOracle: uint256.MustFromBig(priceW),
 		AdminFee:    curveLlammaResult.AdminFee,
 		DynamicFee:  curveLlammaResult.DynamicFee,
-		PriceOracle: curveLlammaResult.PriceOracle,
 		ActiveBand:  curveLlammaResult.ActiveBand,
 		MinBand:     curveLlammaResult.MinBand,
 		MaxBand:     curveLlammaResult.MaxBand,
@@ -144,8 +153,6 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = blockNumber
 
 	lg.Info("Finish updating state of pool")
-
-	fmt.Println(p.BlockNumber)
 
 	return p, nil
 }

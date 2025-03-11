@@ -10,6 +10,7 @@ var (
 	curveControllerFactoryABI abi.ABI
 	curveLlammaABI            abi.ABI
 	curveLlammaHelperABI      abi.ABI
+	curvePriceOracleABI       abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&curveControllerFactoryABI, curveControllerFactoryABIBytes},
 		{&curveLlammaABI, curveLlammaABIBytes},
 		{&curveLlammaHelperABI, curveLlammaHelperABIBytes},
+		{&curvePriceOracleABI, curvePriceOracleABIBytes},
 	}
 
 	for _, b := range build {

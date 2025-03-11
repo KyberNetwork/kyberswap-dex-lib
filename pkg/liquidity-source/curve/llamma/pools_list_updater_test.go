@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -48,15 +49,14 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 			require.NoError(t, err)
 			require.NotNil(t, pools)
 
-			fmt.Println("Pools: ", len(pools))
-
 			tracker := NewPoolTracker(&tc.config, rpcClientByChainID[tc.chainID])
 			for _, pool := range pools {
-				fmt.Println(pool.Address)
 				newPool, err := tracker.GetNewPoolState(context.Background(), pool, poolpkg.GetNewPoolStateParams{})
 				require.NoError(t, err)
 				require.NotNil(t, newPool)
 
+				str, _ := json.Marshal(newPool)
+				fmt.Println(string(str))
 			}
 		})
 	}
