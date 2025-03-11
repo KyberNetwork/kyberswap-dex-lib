@@ -14,6 +14,8 @@ const (
 	EmptyAddress = "0x0000000000000000000000000000000000000000"
 
 	graphFirstLimit = 1000
+
+	maxChangedTicks = 10
 )
 
 var (
@@ -21,4 +23,6 @@ var (
 	NativeTokenAddress = common.Address{}
 	Q96                = new(big.Int).Lsh(bignumber.One, 96)
 	ErrUnsupportedHook = errors.New("unsupported hook")
+
+	ErrTooManyChangedTickes = errors.New("too many changed ticks")
 )
