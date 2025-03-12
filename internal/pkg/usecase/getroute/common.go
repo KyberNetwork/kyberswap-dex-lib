@@ -190,6 +190,10 @@ func ConvertToRouteSummaries(params *types.AggregateParams, routes finderEntity.
 }
 
 func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Route) *valueobject.RouteSummary {
+	if route == nil {
+		return nil
+	}
+
 	paths := make([][]valueobject.Swap, 0, len(route.Route))
 
 	for _, path := range route.Route {

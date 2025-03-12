@@ -447,6 +447,10 @@ func (c *cache) convertSimpleRouteToConstructRoute(simpleRoute *valueobject.Simp
 }
 
 func (c *cache) convertRouteToConstructRoute(route *finderEntity.Route, params *types.AggregateParams) *finderCommon.ConstructRoute {
+	if route == nil {
+		return nil
+	}
+
 	constructRoute := finderCommon.NewConstructRoute(params.TokenIn.Address, params.TokenOut.Address, c.finderEngine.GetFinder().CustomFuncs())
 
 	for _, swaps := range route.Route {
