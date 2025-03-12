@@ -1,0 +1,14 @@
+[
+  {
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "name": "price_w",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ]
+  }
+]
