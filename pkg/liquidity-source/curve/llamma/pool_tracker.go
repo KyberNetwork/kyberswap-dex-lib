@@ -127,9 +127,9 @@ func (t *PoolTracker) GetNewPoolState(
 		PriceOracle: uint256.MustFromBig(priceW),
 		AdminFee:    curveLlammaResult.AdminFee,
 		DynamicFee:  curveLlammaResult.DynamicFee,
-		ActiveBand:  curveLlammaResult.ActiveBand,
-		MinBand:     curveLlammaResult.MinBand,
-		MaxBand:     curveLlammaResult.MaxBand,
+		ActiveBand:  curveLlammaResult.ActiveBand.Int64(),
+		MinBand:     curveLlammaResult.MinBand.Int64(),
+		MaxBand:     curveLlammaResult.MaxBand.Int64(),
 		Bands:       curveLlammaResult.Bands,
 	})
 	if err != nil {

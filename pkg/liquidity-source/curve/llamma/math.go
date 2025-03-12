@@ -21,13 +21,6 @@ func minUint256(a, b *uint256.Int) *uint256.Int {
 	return b
 }
 
-func minInt256(a, b *int256.Int) *int256.Int {
-	if a.Cmp(b) < 0 {
-		return a.Clone()
-	}
-	return b.Clone()
-}
-
 func wadExp(x *int256.Int) (*uint256.Int, error) {
 	/*
 	   @dev Calculates the natural exponential function of a signed integer with

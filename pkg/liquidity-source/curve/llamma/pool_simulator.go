@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kutils"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -21,14 +22,14 @@ type PoolSimulator struct {
 
 	A              *uint256.Int
 	Aminus1        *uint256.Int
-	maxOracleDnPow *uint256.Int
-	logARatio      *int256.Int
+	MaxOracleDnPow *uint256.Int
+	LogARatio      *int256.Int
 
 	po *uint256.Int
 
-	activeBand *int256.Int
-	minBand    *int256.Int
-	maxBand    *int256.Int
+	activeBand int64
+	minBand    int64
+	maxBand    int64
 	bandsX     map[int64]*uint256.Int
 	bandsY     map[int64]*uint256.Int
 
@@ -86,8 +87,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 
 		A:              A,
 		Aminus1:        Aminus1,
-		logARatio:      logARatio,
-		maxOracleDnPow: maxOracleDnPow,
+		LogARatio:      logARatio,
+		MaxOracleDnPow: maxOracleDnPow,
 
 		stableCoinPrecision: big256.TenPowInt(18 - ep.Tokens[0].Decimals),
 		collateralPrecision: big256.TenPowInt(18 - ep.Tokens[1].Decimals),
@@ -183,6 +184,9 @@ func (t *PoolSimulator) exchange(i, j int, amount *uint256.Int, useAmountIn bool
 			t.po,
 			inPrecision, outPrecision,
 		)
+		out.TokenInIndex = inIdx
+		out.InPrecision = inPrecision
+		out.OutPrecision = outPrecision
 	} else {
 		out, err = t.calcSwapIn(
 			i == t.getStableCoinIdx(),
@@ -190,6 +194,7 @@ func (t *PoolSimulator) exchange(i, j int, amount *uint256.Int, useAmountIn bool
 			t.po,
 			inPrecision, outPrecision,
 		)
+		out.TokenInIndex = 1 - inIdx
 	}
 	if err != nil {
 		return nil, nil, nil, err
@@ -213,19 +218,18 @@ func (t *PoolSimulator) calcSwapOut(
 	maxBand := t.maxBand
 
 	out := &DetailedTrade{}
-	out.N2.Set(t.activeBand)
-	poUp, err := t.pOracleUp(&out.N2)
+	out.N2 = t.activeBand
+	poUp, err := t.pOracleUp(out.N2)
 	if err != nil {
 		return nil, err
 	}
-	x := t.getBandX(out.N2.Int64())
-	y := t.getBandY(out.N2.Int64())
+	x := t.getBandX(out.N2)
+	y := t.getBandY(out.N2)
 
 	inAmountLeft := new(uint256.Int).Set(inAmount)
 	fee := t.fee
 	adminFee := t.adminFee
 
-	// TODO:
 	var temp uint256.Int
 	j := maxTicksUnit
 	for i := range maxTicks + maxSkipTicks {
@@ -237,7 +241,7 @@ func (t *PoolSimulator) calcSwapOut(
 
 		if x.Sign() > 0 || y.Sign() > 0 {
 			if j == maxTicksUnit {
-				out.N1.Set(&out.N2)
+				out.N1 = out.N2
 				j = 0
 			}
 
@@ -272,7 +276,6 @@ func (t *PoolSimulator) calcSwapOut(
 					var xDest, dx uint256.Int
 					xDest.Div(&inv, &g).Sub(&xDest, &f).Sub(&xDest, x)
 					dx.Mul(&xDest, antifee).Div(&dx, tenPow18)
-
 					if dx.Cmp(inAmountLeft) >= 0 {
 						// This is the last band
 						xDest.Mul(inAmountLeft, tenPow18).Div(&xDest, antifee)
@@ -308,19 +311,19 @@ func (t *PoolSimulator) calcSwapOut(
 			}
 
 			if i != maxTicks+maxSkipTicks-1 {
-				if out.N2.Eq(maxBand) {
+				if out.N2 == maxBand {
 					break
 				}
 				if j == maxTicksUnit-1 {
 					break
 				}
-				if pRatio.Lt(temp.Div(tenPow36, t.maxOracleDnPow)) {
+				if pRatio.Lt(temp.Div(tenPow36, t.MaxOracleDnPow)) {
 					break
 				}
-				out.N2.Add(&out.N2, i256One)
+				out.N2 = out.N2 + 1
 				poUp.Mul(poUp, t.Aminus1).Div(poUp, t.A)
 				x.Set(number.Zero)
-				y.Set(t.bandsY[out.N2.Int64()])
+				y.Set(t.getBandY(out.N2))
 			}
 		} else { // dump
 			if x.Sign() != 0 {
@@ -363,19 +366,19 @@ func (t *PoolSimulator) calcSwapOut(
 				}
 			}
 			if i != maxTicks+maxSkipTicks-1 {
-				if out.N2.Eq(minBand) {
+				if out.N2 == minBand {
 					break
 				}
 				if j == maxTicksUnit-1 {
 					break
 				}
-				if pRatio.Gt(t.maxOracleDnPow) {
+				if pRatio.Gt(t.MaxOracleDnPow) {
 					// Don't allow to be away by more than ~50 ticks
 					break
 				}
-				out.N2.Sub(&out.N2, i256One)
+				out.N2 = out.N2 - 1
 				poUp.Mul(poUp, t.A).Div(poUp, t.Aminus1)
-				x.Set(t.bandsX[out.N2.Int64()])
+				x.Set(t.getBandX(out.N2))
 				y.Set(number.Zero)
 			}
 		}
@@ -399,13 +402,13 @@ func (t *PoolSimulator) calcSwapIn(
 	maxBand := t.maxBand
 
 	out := &DetailedTrade{}
-	out.N2.Set(t.activeBand)
-	poUp, err := t.pOracleUp(&out.N2)
+	out.N2 = t.activeBand
+	poUp, err := t.pOracleUp(out.N2)
 	if err != nil {
 		return nil, err
 	}
-	x := t.bandsX[out.N2.Int64()]
-	y := t.bandsY[out.N2.Int64()]
+	x := t.bandsX[out.N2]
+	y := t.bandsY[out.N2]
 
 	outAmountLeft := new(uint256.Int).Set(outAmount)
 	fee := t.fee
@@ -423,7 +426,7 @@ func (t *PoolSimulator) calcSwapIn(
 
 		if x.Sign() > 0 || y.Sign() > 0 {
 			if j == maxTicksUnit {
-				out.N1.Set(&out.N2)
+				out.N1 = out.N2
 				j = 0
 			}
 
@@ -483,19 +486,19 @@ func (t *PoolSimulator) calcSwapIn(
 			}
 
 			if i != maxTicks+maxSkipTicks-1 {
-				if out.N2.Eq(maxBand) {
+				if out.N2 == maxBand {
 					break
 				}
 				if j == maxTicksUnit-1 {
 					break
 				}
-				if pRatio.Lt(temp.Div(tenPow36, t.maxOracleDnPow)) {
+				if pRatio.Lt(temp.Div(tenPow36, t.MaxOracleDnPow)) {
 					break
 				}
-				out.N2.Add(&out.N2, i256One)
+				out.N2 = out.N2 + 1
 				poUp.Mul(poUp, t.Aminus1).Div(poUp, t.A)
 				x.Set(number.Zero)
-				y.Set(t.bandsY[out.N2.Int64()])
+				y.Set(t.bandsY[out.N2])
 			}
 		} else { // dump
 			if x.Sign() != 0 {
@@ -527,19 +530,19 @@ func (t *PoolSimulator) calcSwapIn(
 				}
 			}
 			if i != maxTicks+maxSkipTicks-1 {
-				if out.N2.Eq(minBand) {
+				if out.N2 == minBand {
 					break
 				}
 				if j == maxTicksUnit-1 {
 					break
 				}
-				if pRatio.Gt(t.maxOracleDnPow) {
+				if pRatio.Gt(t.MaxOracleDnPow) {
 					// Don't allow to be away by more than ~50 ticks
 					break
 				}
-				out.N2.Sub(&out.N2, i256One)
+				out.N2 -= 1
 				poUp.Mul(poUp, t.A).Div(poUp, t.Aminus1)
-				x.Set(t.bandsX[out.N2.Int64()])
+				x.Set(t.bandsX[out.N2])
 				y.Set(number.Zero)
 			}
 		}
@@ -557,6 +560,10 @@ func (t *PoolSimulator) calcSwapIn(
 }
 
 func (t *PoolSimulator) getY0(x, y, po, poUp *uint256.Int) *uint256.Int {
+	// Calculate y0 for the invariant based on current liquidity in band.
+	// The value of y0 has a meaning of amount of collateral when band has no stablecoin
+	// but current price is equal to both oracle price and upper band price.
+
 	var b, temp uint256.Int
 	if x.Sign() != 0 {
 		b.Mul(poUp, t.Aminus1).Mul(&b, x).Div(&b, po)
@@ -579,12 +586,14 @@ func (t *PoolSimulator) getY0(x, y, po, poUp *uint256.Int) *uint256.Int {
 		num.Mul(&b, tenPow18)
 		den.Mul(t.A, po)
 	}
+
 	return num.Div(&num, &den)
 }
 
-func (t *PoolSimulator) pOracleUp(n *int256.Int) (*uint256.Int, error) {
+func (t *PoolSimulator) pOracleUp(n int64) (*uint256.Int, error) {
 	var power int256.Int
-	power.Neg(n).Mul(&power, t.logARatio)
+
+	power.SetUint64(uint64(n)).Neg(&power).Mul(&power, t.LogARatio)
 
 	expPower, err := wadExp(&power)
 	if err != nil {
@@ -598,7 +607,7 @@ func (t *PoolSimulator) pOracleUp(n *int256.Int) (*uint256.Int, error) {
 
 func (t *PoolSimulator) limitPO(n *int256.Int) (*uint256.Int, error) {
 	var power int256.Int
-	power.Neg(n).Mul(&power, t.logARatio)
+	power.Neg(n).Mul(&power, t.LogARatio)
 
 	expPower, err := wadExp(&power)
 	if err != nil {
@@ -621,44 +630,46 @@ func (t *PoolSimulator) getDynamicFee(po, poUp *uint256.Int) *uint256.Int {
 	} else {
 		ret.Sub(po, &pcu).Mul(&ret, tenPow18Div4).Div(&ret, po)
 	}
+
 	return &ret
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	out := params.SwapInfo.(*DetailedTrade)
 
-	out.AdminFee.Div(&out.OutPrecision, &out.InPrecision)
-	if out.TokenInIdx == 0 {
+	out.AdminFee.Div(out.OutPrecision, out.InPrecision)
+	if out.TokenInIndex == 0 {
 		t.adminFeesX.Add(t.adminFeesX, &out.AdminFee)
 	} else {
 		t.adminFeesY.Add(t.adminFeesY, &out.AdminFee)
 	}
 
-	n := minInt256(&out.N1, &out.N2)
-	nDiff := new(int256.Int).Sub(&out.N2, &out.N1)
+	n := kutils.Min(out.N1, out.N2)
+	nDiff := kutils.Abs(out.N2 - out.N1)
 
 	for k := range maxTicks {
 		var x, y uint256.Int
-		if out.TokenInIdx == 0 {
+		if out.TokenInIndex == 0 {
 			x.Set(&out.TicksIn[k])
-			if n.Eq(&out.N2) {
+			if n == out.N2 {
 				y.Set(&out.LastTickJ)
 			}
 		} else {
-			y.Set(&out.TicksIn[nDiff.Int64()-k])
-			if n.Eq(&out.N2) {
+			y.Set(&out.TicksIn[nDiff-k])
+			if n == out.N2 {
 				x.Set(&out.LastTickJ)
 			}
 		}
-		t.bandsX[n.Int64()].Set(&x)
-		t.bandsY[n.Int64()].Set(&y)
-		if k == nDiff.Int64() {
+		t.setBandX(n, &x)
+		t.setBandY(n, &y)
+
+		if k == nDiff {
 			break
 		}
-		n.Add(n, i256One)
+		n += 1
 	}
 
-	t.activeBand.Set(&out.N2)
+	t.activeBand = out.N2
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -694,9 +705,25 @@ func (t *PoolSimulator) getBandX(index int64) *uint256.Int {
 	return uint256.NewInt(0)
 }
 
+func (t *PoolSimulator) setBandX(index int64, value *uint256.Int) {
+	if x, ok := t.bandsX[index]; ok {
+		x.Set(value)
+	} else {
+		t.bandsX[index] = new(uint256.Int).Set(value)
+	}
+}
+
 func (t *PoolSimulator) getBandY(index int64) *uint256.Int {
 	if y, ok := t.bandsY[index]; ok {
 		return y
 	}
 	return uint256.NewInt(0)
+}
+
+func (t *PoolSimulator) setBandY(index int64, value *uint256.Int) {
+	if y, ok := t.bandsY[index]; ok {
+		y.Set(value)
+	} else {
+		t.bandsY[index] = new(uint256.Int).Set(value)
+	}
 }

@@ -30,17 +30,15 @@ const (
 	maxTicksUnit int64 = 50
 	maxTicks     int64 = 50
 	maxSkipTicks int64 = 1024
-)
 
-var (
 	defaultGas int64 = 91000
 )
 
 var (
 	tenPow18       = big256.TenPowInt(18)
+	tenPow36       = big256.TenPowInt(36)
 	tenPow18Minus1 = new(uint256.Int).Sub(tenPow18, big256.One)
 	tenPow18Div4   = new(uint256.Int).Div(tenPow18, big256.Four)
-	tenPow36       = big256.TenPowInt(36)
 	i256One        = new(int256.Int).SetInt64(1)
 )
 
