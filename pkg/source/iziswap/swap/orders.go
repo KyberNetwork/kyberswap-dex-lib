@@ -51,9 +51,7 @@ func (orderData *OrderData) IsLimitOrder(point int) bool {
 }
 
 func (orderData *OrderData) UnsafeGetDeltaLiquidity() *uint256.Int {
-	var u256 uint256.Int
-	((*int256.Int)(&u256)).Neg(orderData.Liquidities[orderData.LiquidityIdx].LiqudityDelta)
-	return u256.Neg(&u256)
+	return (*uint256.Int)(orderData.Liquidities[orderData.LiquidityIdx].LiqudityDelta)
 }
 
 func (orderData *OrderData) UnsafeGetLimitSellingX() *uint256.Int {
