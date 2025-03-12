@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -452,6 +454,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 
 	defer func() {
 		if r := recover(); r != nil {
+			klog.Errorf(ctx, "panic: %v\n%s", r, string(debug.Stack()))
 			err = fmt.Errorf("panic recovered in processRFQs: %v", r)
 		}
 	}()
