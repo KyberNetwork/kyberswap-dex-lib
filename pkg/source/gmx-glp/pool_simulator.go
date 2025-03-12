@@ -121,10 +121,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.vault.USDGAmounts = maps.Clone(p.vault.USDGAmounts)
-	cloned.vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
-	cloned.yearnTokenVault.TotalIdle = new(big.Int).Set(p.yearnTokenVault.TotalIdle)
-	cloned.yearnTokenVault.YearnStrategyMap = maps.Clone(p.yearnTokenVault.YearnStrategyMap)
+	vault := *p.vault
+	vault.USDGAmounts = maps.Clone(p.vault.USDGAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
+	yearnTokenVault := *p.yearnTokenVault
+	yearnTokenVault.TotalIdle = new(big.Int).Set(p.yearnTokenVault.TotalIdle)
+	yearnTokenVault.YearnStrategyMap = maps.Clone(p.yearnTokenVault.YearnStrategyMap)
+	cloned.yearnTokenVault = &yearnTokenVault
 	return &cloned
 }
 
