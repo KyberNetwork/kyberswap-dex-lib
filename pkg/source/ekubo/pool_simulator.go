@@ -82,7 +82,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: new(big.Int).Sub(params.TokenAmountIn.Amount, quote.ConsumedAmount),
 		},
 		Gas:      quote.Gas,
-		SwapInfo: quote.SkipAhead,
+		SwapInfo: quote.SwapInfo,
 	}, nil
 }
 
@@ -112,11 +112,13 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Amount: new(big.Int).Add(params.TokenAmountOut.Amount, quote.ConsumedAmount),
 		},
 		Gas:      quote.Gas,
-		SwapInfo: quote.SkipAhead,
+		SwapInfo: quote.SwapInfo,
 	}, nil
 }
 
-func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	p.SetState(params.SwapInfo.(quoting.SwapInfo).StateAfter)
+}
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil

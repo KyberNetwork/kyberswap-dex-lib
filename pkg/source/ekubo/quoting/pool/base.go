@@ -35,21 +35,35 @@ type nextInitializedTick struct {
 	SqrtRatio *big.Int
 }
 
+func (p *BasePool) SetState(state quoting.StateAfter) {
+	p.sqrtRatio = new(big.Int).Set(state.SqrtRatio)
+	p.liquidity = new(big.Int).Set(state.Liquidity)
+	p.activeTickIndex = state.ActiveTickIndex
+}
+
 func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+	sqrtRatio := new(big.Int).Set(p.sqrtRatio)
+	liquidity := new(big.Int).Set(p.liquidity)
+	activeTickIndex := p.activeTickIndex
+
 	if amount.Sign() == 0 {
 		return &quoting.Quote{
 			ConsumedAmount:   new(big.Int),
 			CalculatedAmount: new(big.Int),
 			FeesPaid:         new(big.Int),
 			Gas:              0,
+			SwapInfo: quoting.SwapInfo{
+				StateAfter: quoting.StateAfter{
+					SqrtRatio:       sqrtRatio,
+					Liquidity:       liquidity,
+					ActiveTickIndex: activeTickIndex,
+				},
+				SkipAhead: 0,
+			},
 		}, nil
 	}
 
 	isIncreasing := math.IsPriceIncreasing(amount, isToken1)
-
-	sqrtRatio := new(big.Int).Set(p.sqrtRatio)
-	liquidity := new(big.Int).Set(p.liquidity)
-	activeTickIndex := p.activeTickIndex
 
 	var sqrtRatioLimit *big.Int
 	if isIncreasing {
@@ -166,7 +180,14 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 		CalculatedAmount: calculatedAmount,
 		FeesPaid:         feesPaid,
 		Gas:              quoting.BaseGasCostOfOneSwap + int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
-		SkipAhead:        skipAhead,
+		SwapInfo: quoting.SwapInfo{
+			SkipAhead: skipAhead,
+			StateAfter: quoting.StateAfter{
+				SqrtRatio:       sqrtRatio,
+				Liquidity:       liquidity,
+				ActiveTickIndex: activeTickIndex,
+			},
+		},
 	}, nil
 }
 
