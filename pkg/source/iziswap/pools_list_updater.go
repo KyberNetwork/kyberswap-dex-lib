@@ -60,7 +60,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	latestTimestamp := metadata.LastCreatedAtTimestamp
 
 	for _, p := range queryResult {
-		if p.TokenXAddress == emptyString || p.TokenYAddress == emptyString {
+		if p.TokenXAddress == "" || p.TokenYAddress == "" {
 			continue
 		}
 		tokens := make([]*entity.PoolToken, 0, 2)
@@ -75,7 +75,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Swappable: true,
 		}
 		tokens = append(tokens, &token0Model)
-		reserves = append(reserves, zeroString)
+		reserves = append(reserves, "0")
 
 		token1Model := entity.PoolToken{
 			Address:   p.TokenYAddress,
@@ -86,7 +86,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Swappable: true,
 		}
 		tokens = append(tokens, &token1Model)
-		reserves = append(reserves, zeroString)
+		reserves = append(reserves, "0")
 
 		var swapFee = float64(p.Fee)
 		var newPool = entity.Pool{
