@@ -97,6 +97,7 @@ type FirmRequestParams struct {
 
 type MultiFirmResult struct {
 	Orders []struct {
+		Info        string `json:"info"`
 		MakerAsset  string `json:"maker_asset"`
 		TakerAsset  string `json:"taker_asset"`
 		MakerAmount string `json:"maker_amount"`
@@ -105,8 +106,6 @@ type MultiFirmResult struct {
 		Signature   string `json:"signature"`
 		Error       string `json:"error,omitempty"`
 	}
-
-	Info          string `json:"info"`
 	Expiry        int64  `json:"expiry"`
 	Maker         string `json:"maker"`
 	Taker         string `json:"taker"`
