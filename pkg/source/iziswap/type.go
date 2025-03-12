@@ -3,7 +3,9 @@ package iziswap
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
 
 	iziswapclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/client"
 )
@@ -23,7 +25,8 @@ type State struct {
 	LiquidityX              *big.Int `abi:"liquidityX"`
 }
 
-type Extra swap.PoolInfo
+type Extra = swap.PoolInfo
+type ExtraU256 = swap.PoolInfoU256
 
 type FetchRPCResult struct {
 	state    State
@@ -43,8 +46,8 @@ type LimitOrder struct {
 
 type iZiSwapInfo struct {
 	nextPoint      int
-	nextLiquidity  *big.Int
-	nextLiquidityX *big.Int
+	nextLiquidity  *uint256.Int
+	nextLiquidityX *uint256.Int
 }
 
 type Metadata struct {
@@ -54,8 +57,4 @@ type Metadata struct {
 
 type Meta struct {
 	LimitPoint int `json:"limitPoint"`
-}
-
-type Gas struct {
-	Swap int64
 }

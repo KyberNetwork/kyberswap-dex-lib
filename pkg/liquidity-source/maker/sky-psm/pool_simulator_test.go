@@ -15,41 +15,41 @@ import (
 
 var (
 	poolEncoded = `{
-			"address": "0x1601843c5e9bc251a3272907010afa41fa18347e",
-			"exchange": "sky-psm",
-			"type": "sky-psm",
-			"timestamp": 1739765780,
-			"reserves": [
-				"14236841448487",
-				"28946856661441273511196026",
-				"27759833974904041860803040"
-			],
-			"tokens": [
-				{
-					"address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-					"name": "USD Coin",
-					"symbol": "USDC",
-					"decimals": 6,
-					"swappable": true
-				},
-				{
-					"address": "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
-					"name": "USDS Stablecoin",
-					"symbol": "USDS",
-					"decimals": 18,
-					"swappable": true
-				},
-				{
-					"address": "0x5875eee11cf8398102fdad704c9e96607675467a",
-					"name": "Savings USDS",
-					"symbol": "sUSDS",
-					"decimals": 18,
-					"swappable": true
-				}
-			],
-			"extra": "{\"rate\":\"1038105872293887335025106342\",\"blockTimestamp\":1739765785}",
-			"staticExtra": "{\"rateProvider\":\"0x65d946e533748a998b1f0e430803e39a6388f7a1\"}"
-		}`
+		"address": "0x1601843c5e9bc251a3272907010afa41fa18347e",
+		"exchange": "sky-psm",
+		"type": "sky-psm",
+		"timestamp": 1739765780,
+		"reserves": [
+			"14236841448487",
+			"28946856661441273511196026",
+			"27759833974904041860803040"
+		],
+		"tokens": [
+			{
+				"address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+				"name": "USD Coin",
+				"symbol": "USDC",
+				"decimals": 6,
+				"swappable": true
+			},
+			{
+				"address": "0x820c137fa70c8691f0e44dc420a5e53c168921dc",
+				"name": "USDS Stablecoin",
+				"symbol": "USDS",
+				"decimals": 18,
+				"swappable": true
+			},
+			{
+				"address": "0x5875eee11cf8398102fdad704c9e96607675467a",
+				"name": "Savings USDS",
+				"symbol": "sUSDS",
+				"decimals": 18,
+				"swappable": true
+			}
+		],
+		"extra": "{\"rate\":\"1038105872293887335025106342\",\"blockTimestamp\":1739765785}",
+		"staticExtra": "{\"rateProvider\":\"0x65d946e533748a998b1f0e430803e39a6388f7a1\"}"
+	}`
 	poolEntity entity.Pool
 	_          = lo.Must(0, json.Unmarshal([]byte(poolEncoded), &poolEntity))
 	poolSim    = lo.Must(NewPoolSimulator(poolEntity))

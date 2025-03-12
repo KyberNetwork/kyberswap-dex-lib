@@ -15,7 +15,7 @@ var (
 	concurrentFactor = runtime.NumCPU() * 10
 )
 
-func mustReturnSameOutputAndConcurrentSafe[R any](t *testing.T, f func() (R, error)) (ret R, err error) {
+func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, error)) (ret R, err error) {
 	if concurrentFactor <= 0 {
 		panic("n must > 0")
 	}
@@ -63,7 +63,7 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t *testing.T, f func() (R, err
 // * are not racy AND
 //
 // * produces the same output
-func MustConcurrentSafe[R any](t *testing.T, f func() (R, error)) (R, error) {
+func MustConcurrentSafe[R any](t testing.TB, f func() (R, error)) (R, error) {
 	if israce.Enabled {
 		return mustReturnSameOutputAndConcurrentSafe[R](t, f)
 	}

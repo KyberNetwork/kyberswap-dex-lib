@@ -2,6 +2,7 @@ package gmxglp
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 
@@ -97,7 +98,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 		swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
 	} else {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v", p.Info.Address, p.yearnTokenVault.Address)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v",
+			p.Info.Address, p.yearnTokenVault.Address)
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -115,6 +117,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Gas:            p.gas.Swap,
 		SwapInfo:       *swapInfo,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.vault.USDGAmounts = maps.Clone(p.vault.USDGAmounts)
+	cloned.vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.yearnTokenVault.TotalIdle = new(big.Int).Set(p.yearnTokenVault.TotalIdle)
+	cloned.yearnTokenVault.YearnStrategyMap = maps.Clone(p.yearnTokenVault.YearnStrategyMap)
+	return &cloned
 }
 
 // UpdateBalance update UsdgAmount only
