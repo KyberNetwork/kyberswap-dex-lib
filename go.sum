@@ -18,16 +18,14 @@ github.com/KyberNetwork/ethrpc v0.7.3 h1:H1ZoKsaoqK5xEuW+Zv1b9dxG09Cn/GjEiwjXdOI
 github.com/KyberNetwork/ethrpc v0.7.3/go.mod h1:+MonZWaG7IfjuMz35BoUF4w+tu5qU+rlEqMF0UM3+1w=
 github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac h1:5AtBDEnbtI6YC5bmNa87GWuBa57ti5E5Tx+wvhAZrY4=
 github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
-github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1 h1:/nuTVcwdSC2bNng7mpSul65ZcKWHtRMRBZfEl6GHoX8=
-github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1/go.mod h1:sIrSfkEcjcMLpVh8UYLhmzXn8OrQvieDlI/HieF8Do4=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXAyvO8=
 github.com/KyberNetwork/kutils v0.3.8/go.mod h1:n8qRo+TkBkqspGRKu52h/UP5GvIxoSxWueTpgvHMuvo=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.92.3 h1:fl0vdFbEWtHLRO76uQvxas1+rHH1glJOi6a0OrTWgwI=
-github.com/KyberNetwork/kyberswap-dex-lib v0.92.3/go.mod h1:95ifalBBBwUzBXcFomEgevmEWt2oSzmmiXVIHytVSg8=
+github.com/KyberNetwork/kyberswap-dex-lib v0.92.6 h1:TYpECAp2Ws0ZuJLgRN6vNxtTGfrz+gNLxsIDDAaylh8=
+github.com/KyberNetwork/kyberswap-dex-lib v0.92.6/go.mod h1:IPKew3oMS4090o2PXJufu+0Wgyc06cl/EwlI9LNZ2E0=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.7.0 h1:vcn/UFIZluVpDIYD2wUO+xRr+B3hnGJ6PL1wbByE4tg=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.7.0/go.mod h1:GPb0TKQGEbmT9y3VpMkY8B+znYz3PBr+lyCt5sI9Md0=
 github.com/KyberNetwork/logger v1.0.1 h1:tf/qh+fxBvTu7WRz3FL5zDa1JQ4sFaYd/8hESrj8zo4=
@@ -376,8 +374,6 @@ github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaR
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=
 github.com/pelletier/go-toml/v2 v2.2.3 h1:YmeHyLY8mFWbdkNWwpr+qIL2bEqT0o95WSdkNHvL12M=
 github.com/pelletier/go-toml/v2 v2.2.3/go.mod h1:MfCQTFTvCcUyyvvwm1+G6H/jORL20Xlb6rzQu9GuUkc=
-github.com/philhofer/fwd v1.1.2 h1:bnDivRJ1EWPjUIRXV5KfORO897HTbpFAQddBdE8t7Gw=
-github.com/philhofer/fwd v1.1.2/go.mod h1:qkPdfjR2SIEbspLqpe1tO4n5yICnr2DY7mqEx2tUTP0=
 github.com/pierrec/lz4/v4 v4.1.18 h1:xaKrnTkyoqfh1YItXl56+6KJNVYWlEEPuAQW9xsplYQ=
 github.com/pierrec/lz4/v4 v4.1.18/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
@@ -477,8 +473,6 @@ github.com/tdewolff/parse/v2 v2.7.20/go.mod h1:3FbJWZp3XT9OWVN3Hmfp0p/a08v4h8J9W
 github.com/tdewolff/test v1.0.11-0.20231101010635-f1265d231d52/go.mod h1:6DAvZliBAAnD7rhVgwaM7DE5/d9NMOAJ09SqYqeK4QE=
 github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739 h1:IkjBCtQOOjIn03u/dMQK9g+Iw9ewps4mCl1nB8Sscbo=
 github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739/go.mod h1:XPuWBzvdUzhCuxWO1ojpXsyzsA5bFoS3tO/Q3kFuTG8=
-github.com/tinylib/msgp v1.1.9 h1:SHf3yoO2sGA0veCJeCBYLHuttAVFHGm2RHgNodW7wQU=
-github.com/tinylib/msgp v1.1.9/go.mod h1:BCXGB54lDD8qUEPmiG0cQQUANC4IUQyB2ItS2UDlO/k=
 github.com/tklauser/go-sysconf v0.3.14 h1:g5vzr9iPFFz24v2KZXs/pvpvh8/V9Fw6vQK5ZZb78yU=
 github.com/tklauser/go-sysconf v0.3.14/go.mod h1:1ym4lWMLUOhuBOPGtRcJm7tEGX4SCYNEEEtghGG/8uY=
 github.com/tklauser/numcpus v0.9.0 h1:lmyCHtANi8aRUgkckBgoDk1nHCux3n2cgkJLXdQGPDo=

@@ -18,7 +18,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.92.3
+	github.com/KyberNetwork/kyberswap-dex-lib v0.92.6
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.7.0
 	github.com/KyberNetwork/logger v1.0.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -79,7 +79,6 @@ require (
 )
 
 require (
-	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.2 // indirect
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.5 // indirect
@@ -150,7 +149,6 @@ require (
 	github.com/oleiade/lane/v2 v2.0.0 // indirect
 	github.com/orcaman/concurrent-map v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
-	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
 	github.com/pion/logging v0.2.2 // indirect
@@ -175,7 +173,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tarndt/shardedsingleflight v0.0.0-20220218033648-6accd591ed39 // indirect
 	github.com/tdewolff/parse/v2 v2.7.20 // indirect
-	github.com/tinylib/msgp v1.1.9 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.9.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
