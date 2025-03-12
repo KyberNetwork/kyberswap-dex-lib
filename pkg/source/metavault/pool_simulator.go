@@ -1,6 +1,7 @@
 package metavault
 
 import (
+	"maps"
 	"math/big"
 	"strings"
 
@@ -87,6 +88,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.vault.USDMAmounts = maps.Clone(p.vault.USDMAmounts)
+	cloned.vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	return &cloned
 }
 
 // UpdateBalance update UsdmAmount only

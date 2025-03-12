@@ -1,6 +1,7 @@
 package fxdx
 
 import (
+	"maps"
 	"math/big"
 	"strings"
 
@@ -94,6 +95,13 @@ func (p *PoolSimulator) CalcAmountOut(
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
 	}, nil
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.vault.USDFAmounts = maps.Clone(p.vault.USDFAmounts)
+	cloned.vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
