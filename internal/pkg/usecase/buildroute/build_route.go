@@ -505,8 +505,8 @@ func (uc *BuildRouteUseCase) processRFQs(
 		case kyberpmm.DexTypeKyberPMM:
 			if extra, ok := results[i].Extra.(kyberpmm.RFQExtra); ok {
 				alphaFeeInUSDFloat := 0.0
-				if results[i].AlphaFee != nil {
-					alphaFee := routeSummary.AlphaFee
+				alphaFee := routeSummary.AlphaFee
+				if alphaFee != nil && results[i].AlphaFee != nil {
 					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFee.Token].Decimals,
 						prices[alphaFee.Token])
 					alphaFeeInUSDFloat, _ = alphaFeeInUSD.Float64()
