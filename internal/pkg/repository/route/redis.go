@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/redis/go-redis/v9"
 )
 
 type redisRepository struct {
@@ -55,7 +56,7 @@ func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCache
 
 		route, err := decodeRoute(routeDataStr)
 
-		if err != nil {
+		if err != nil || route.BestRoute == nil {
 			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": redisKeys[i]}).Errorf("invalid route data in Redis")
 			continue
 		}
