@@ -16,8 +16,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-func TestCalcAmountOut(t *testing.T) {
+var (
 	// test data from https://polygonscan.com/address/0xee45cffbfafe97691b8ef068c8d55163086a3431
+	poolSim = lo.Must(NewPoolSimulator(entity.Pool{
+		Address:  "0xee45cffbfafe97691b8ef068c8d55163086a3431",
+		Exchange: "iziswap",
+		Type:     "iziswap",
+		SwapFee:  400,
+		Reserves: entity.PoolReserves{"1167087113545385273", "18037620383221447465"},
+		Tokens:   []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 18}},
+		Extra:    "{\"CurrentPoint\":28912,\"PointDelta\":8,\"LeftMostPt\":-800000,\"RightMostPt\":800000,\"Fee\":400,\"Liquidity\":23123688144702854,\"LiquidityX\":8210612878032008,\"Liquidities\":[{\"LiqudityDelta\":23123688144702854,\"Point\":28728},{\"LiqudityDelta\":-23123688144702854,\"Point\":29128}],\"LimitOrders\":[]}",
+	}))
+)
+
+func TestCalcAmountOut(t *testing.T) {
 	testcases := []struct {
 		in                string
 		inAmount          string
@@ -28,33 +40,79 @@ func TestCalcAmountOut(t *testing.T) {
 		{"B", "2000000000000000000", "A", "110876282573252914"},
 	}
 
-	p, err := NewPoolSimulator(entity.Pool{
-		Address:  "0xee45cffbfafe97691b8ef068c8d55163086a3431",
-		Exchange: "iziswap",
-		Type:     "iziswap",
-		SwapFee:  400,
-		Reserves: entity.PoolReserves{"1167087113545385273", "18037620383221447465"},
-		Tokens:   []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 18}},
-		Extra:    "{\"CurrentPoint\":28912,\"PointDelta\":8,\"LeftMostPt\":-800000,\"RightMostPt\":800000,\"Fee\":400,\"Liquidity\":23123688144702854,\"LiquidityX\":8210612878032008,\"Liquidities\":[{\"LiqudityDelta\":23123688144702854,\"Point\":28728},{\"LiqudityDelta\":-23123688144702854,\"Point\":29128}],\"LimitOrders\":[]}",
-	})
-	require.Nil(t, err)
-
-	assert.Equal(t, []string{"A"}, p.CanSwapTo("B"))
-	assert.Equal(t, []string{"B"}, p.CanSwapTo("A"))
+	assert.Equal(t, []string{"A"}, poolSim.CanSwapTo("B"))
+	assert.Equal(t, []string{"B"}, poolSim.CanSwapTo("A"))
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
+			tokenAmountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
+			tokenOut := tc.out
+			poolSim := poolSim.CloneState()
+			cloned := poolSim.CloneState()
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: tokenAmountIn,
+					TokenOut:      tokenOut,
+				})
+			})
+			require.Nil(t, err)
+			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), result.TokenAmountOut.Amount)
+			assert.Equal(t, tokenOut, result.TokenAmountOut.Token)
+
+			poolSim.UpdateBalance(pool.UpdateBalanceParams{
+				TokenAmountIn:  tokenAmountIn,
+				TokenAmountOut: *result.TokenAmountOut,
+				Fee:            *result.Fee,
+				SwapInfo:       result.SwapInfo,
+			})
+
+			clonedResult, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+			assert.Nil(t, err)
+
+			assert.Equal(t, result.TokenAmountOut.Amount, clonedResult.TokenAmountOut.Amount)
+			assert.Equal(t, result.Fee.Amount, clonedResult.Fee.Amount)
+
+			result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+			assert.Nil(t, err)
+
+			assert.NotEqual(t, clonedResult.TokenAmountOut.Amount, result.TokenAmountOut.Amount)
+		})
+	}
+}
+
+// cpu: AMD Ryzen 7 5800H with Radeon Graphics
+// BenchmarkCalcAmountOut-16 (big.Int)        	    9276	    135535 ns/op
+// BenchmarkCalcAmountOut-16 (uint256.Int)    	   92475	     12967 ns/op
+func BenchmarkCalcAmountOut(b *testing.B) {
+	testcases := []struct {
+		in       string
+		inAmount string
+		out      string
+	}{
+		{"A", "2000000000000000000", "B"},
+		{"A", "2000000000000000000000000", "B"},
+		{"B", "2000000000000000000", "A"},
+		{"B", "2000000000000000000000000", "A"},
+	}
+
+	for _, tc := range testcases {
+		amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
+		var err error
+		for range b.N {
+			_, err = testutil.MustConcurrentSafe(b, func() (*pool.CalcAmountOutResult, error) {
+				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: amountIn,
 					TokenOut:      tc.out,
 				})
 			})
-			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
-			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-		})
+		}
+		require.NoError(b, err)
 	}
 }
 
@@ -110,7 +168,6 @@ func TestCalcAmountIn(t *testing.T) {
 		amountOut                  *big.Int
 		expectedAmountIn           *big.Int
 		expectedRemainingAmountOut *big.Int
-		expectedFee                *big.Int
 		expectedErr                error
 	}{
 		// ? USDT -> 0.01 wstETH (X2YDesireY)
@@ -124,7 +181,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("38582137"),
 			bignumber.NewBig10("-1520"),
 			nil,
-			nil,
 		},
 
 		// ? USDT -> 0.03 wstETH (X2YDesireY)
@@ -135,7 +191,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("30000000000000000"),
 			bignumber.NewBig10("107935549"),
 			bignumber.NewBig10("3735347527992153"),
-			nil,
 			nil,
 		},
 
@@ -148,7 +203,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("30342728977393295"),
 			bignumber.NewBig10("0"),
 			nil,
-			nil,
 		},
 
 		// ? wstETH -> 200 USDT (Y2XDesireX)
@@ -159,7 +213,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("200000000"),
 			bignumber.NewBig10("31546414529043889"),
 			bignumber.NewBig10("96396366"),
-			nil,
 			nil,
 		},
 
@@ -172,7 +225,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("999900161"),
 			bignumber.NewBig10("0"),
 			nil,
-			nil,
 		},
 
 		// ? USDC.e -> 10000 USDT (X2YDesireY)
@@ -183,7 +235,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("10000000000"),
 			bignumber.NewBig10("9999001601"),
 			bignumber.NewBig10("0"),
-			nil,
 			nil,
 		},
 
@@ -196,7 +247,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("100004281668"),
 			bignumber.NewBig10("0"),
 			nil,
-			nil,
 		},
 
 		// ? USDT -> 1000 USDC.e (Y2XDesireX)
@@ -207,7 +257,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("1000000000"),
 			bignumber.NewBig10("1001100703"),
 			bignumber.NewBig10("0"),
-			nil,
 			nil,
 		},
 
@@ -220,7 +269,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("10011007006"),
 			bignumber.NewBig10("0"),
 			nil,
-			nil,
 		},
 
 		// ? USDT -> 100000 USDC.e (Y2XDesireX)
@@ -231,7 +279,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("100000000000"),
 			bignumber.NewBig10("100127003921"),
 			bignumber.NewBig10("0"),
-			nil,
 			nil,
 		},
 
@@ -247,7 +294,6 @@ func TestCalcAmountIn(t *testing.T) {
 			bignumber.NewBig10("500100082"),
 			bignumber.NewBig10("31442298566542614"),
 			bignumber.NewBig10("400760871"),
-			nil,
 			nil,
 		},
 	}
@@ -280,10 +326,15 @@ func TestCalcAmountIn(t *testing.T) {
 				return
 			}
 
-			assert.Equalf(t, tc.tokenIn, amountIn.TokenAmountIn.Token, "expected token in %v, got %v", tc.tokenIn, amountIn.TokenAmountIn.Token)
-			assert.Equalf(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount, "expected amount in %v, got %v", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
-			assert.Equalf(t, tc.expectedRemainingAmountOut.String(), amountIn.RemainingTokenAmountOut.Amount.String(), "expected remaining amount out %v, got %v", tc.expectedRemainingAmountOut.String(), amountIn.RemainingTokenAmountOut.Amount.String())
-			assert.Equalf(t, tc.expectedFee, amountIn.Fee.Amount, "expected fee %v, got %v", tc.expectedFee, amountIn.Fee.Amount)
+			assert.Equalf(t, tc.tokenIn, amountIn.TokenAmountIn.Token, "expected token in %v, got %v", tc.tokenIn,
+				amountIn.TokenAmountIn.Token)
+			assert.Equalf(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount, "expected amount in %v, got %v",
+				tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
+			assert.Equalf(t, tc.expectedRemainingAmountOut.String(), amountIn.RemainingTokenAmountOut.Amount.String(),
+				"expected remaining amount out %v, got %v", tc.expectedRemainingAmountOut.String(),
+				amountIn.RemainingTokenAmountOut.Amount.String())
 		})
 	}
+
+	testutil.TestCalcAmountIn(t, poolSim)
 }

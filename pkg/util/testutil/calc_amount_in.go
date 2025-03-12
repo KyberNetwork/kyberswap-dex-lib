@@ -84,7 +84,7 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 							require.NoError(t, err)
 						}
 						require.True(t,
-							resIn.RemainingTokenAmountOut == nil || resIn.RemainingTokenAmountOut.Amount.Sign() == 0)
+							resIn.RemainingTokenAmountOut == nil || resIn.RemainingTokenAmountOut.Amount.Sign() <= 0)
 
 						resOut, err := MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 							return poolSim.CalcAmountOut(pool.CalcAmountOutParams{

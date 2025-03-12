@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -141,20 +142,20 @@ func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchR
 		Target: p.Address,
 		Method: methodGetState,
 		Params: nil,
-	}, []interface{}{&state})
+	}, []any{&state})
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve0})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve0})
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve1})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve1})
 	}
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
