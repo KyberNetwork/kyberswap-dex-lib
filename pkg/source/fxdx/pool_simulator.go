@@ -99,8 +99,10 @@ func (p *PoolSimulator) CalcAmountOut(
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
-	cloned.vault.USDFAmounts = maps.Clone(p.vault.USDFAmounts)
-	cloned.vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	vault := *p.vault
+	vault.USDFAmounts = maps.Clone(p.vault.USDFAmounts)
+	vault.PoolAmounts = maps.Clone(p.vault.PoolAmounts)
+	cloned.vault = &vault
 	return &cloned
 }
 
