@@ -154,7 +154,7 @@ type (
 	}
 
 	AlphaFeeConfig struct {
-		ReductionConfig AlphaFeeReductionConfig `mapstructure:"reductionConfig" json:"reductionConfig"`
+		ReductionConfig AlphaFeeReductionConfig `mapstructure:"reductionConfig" json:"calculationConfig"`
 		TTL             time.Duration           `mapstructure:"ttl" json:"ttl"`
 	}
 
