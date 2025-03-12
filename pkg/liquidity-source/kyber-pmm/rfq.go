@@ -138,7 +138,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 			AlphaFee:     alphaFee,
 			Extra: RFQExtra{
 				RFQContractAddress: h.config.RFQContractAddress,
-				Info:               result.Info,
+				Info:               order.Info,
 				Expiry:             result.Expiry,
 				MakerAsset:         order.MakerAsset,
 				TakerAsset:         order.TakerAsset,
