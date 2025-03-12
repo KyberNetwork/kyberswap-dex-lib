@@ -24,6 +24,7 @@ type StaticExtra struct {
 	PoolTypeVer        int    `json:"poolTypeVersion"`
 	PoolSpecialization uint8  `json:"poolSpecialization"`
 	Vault              string `json:"vault"`
+	Nesting            bool   `json:"nesting"`
 }
 
 type PoolTokens struct {
