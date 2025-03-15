@@ -17,19 +17,19 @@ func TestPoolListUpdater(t *testing.T) {
 	ethclient, err := clientFromEnv()
 	require.NoError(t, err)
 
-	plUpdater := NewPoolListUpdater(&SepoliaConfig, ethrpc.NewWithClient(ethclient))
+	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.NewWithClient(ethclient))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Greater(t, len(newPools), 0)
 
 	testPk := quoting.NewPoolKey(
-		common.HexToAddress("0xd876ec2ee0816c019cc54299a8184e8111694865"),
-		common.HexToAddress("0xf7b3e9697fd769104cd6cf653c179fb452505a3e"),
+		common.Address{},
+		common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
 		quoting.Config{
-			Fee:         9223372036854775,
-			TickSpacing: 1000,
-			Extension:   common.Address{},
+			Fee:         0,
+			TickSpacing: 0,
+			Extension:   common.HexToAddress(MainnetConfig.Oracle),
 		},
 	)
 
