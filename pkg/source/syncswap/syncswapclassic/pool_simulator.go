@@ -16,9 +16,10 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	vaultAddress string
-	swapFees     []*big.Int
-	gas          syncswap.Gas
+	vaultAddress  string
+	swapFees      []*big.Int
+	gas           syncswap.Gas
+	vaultBalances []*big.Int
 }
 
 var _ = pool.RegisterFactory0(syncswap.PoolTypeSyncSwapClassic, NewPoolSimulator)
@@ -52,10 +53,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:         pool.Pool{Info: info},
-		vaultAddress: vaultAddress,
-		swapFees:     swapFees,
-		gas:          DefaultGas,
+		Pool:          pool.Pool{Info: info},
+		vaultAddress:  vaultAddress,
+		swapFees:      swapFees,
+		gas:           DefaultGas,
+		vaultBalances: []*big.Int{extra.VaultBalance0, extra.VaultBalance1},
 	}, nil
 }
 
@@ -81,7 +83,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	if amountOut.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d bigger then reserve %d", amountOut.Int64(), p.Info.Reserves[tokenOutIndex])
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d bigger than reserve %d", amountOut.Int64(), p.Info.Reserves[tokenOutIndex])
+	}
+
+	if p.vaultBalances[tokenOutIndex] != nil && amountOut.Cmp(p.vaultBalances[tokenOutIndex]) > 0 {
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d bigger than vault balance %d", amountOut.Int64(), p.vaultBalances[tokenOutIndex])
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
