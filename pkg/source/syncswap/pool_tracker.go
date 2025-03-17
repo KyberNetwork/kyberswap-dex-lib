@@ -21,6 +21,10 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
+type Vault struct {
+	VaultAddress string `json:"vaultAddress"`
+}
+
 var _ = pooltrack.RegisterFactoryCE0(DexTypeSyncSwap, NewPoolTracker)
 
 func NewPoolTracker(
@@ -38,11 +42,24 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	var extra Vault
+	var getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to unmarshal extra data")
+		return entity.Pool{}, err
+	}
+	if extra.VaultAddress != "" {
+		getVaultBalances = d.getVaultBalances(extra.VaultAddress, p)
+	} else {
+		getVaultBalances = func(calls *ethrpc.Request, b0, b1 **big.Int) bool { return false }
+	}
 	switch p.Type {
 	case PoolTypeSyncSwapClassic:
-		return d.getClassicPoolState(ctx, p)
+		return d.getClassicPoolState(ctx, p, getVaultBalances)
 	case PoolTypeSyncSwapStable:
-		return d.getStablePoolState(ctx, p)
+		return d.getStablePoolState(ctx, p, getVaultBalances)
 	default:
 		err := fmt.Errorf("can not get new pool state of address %s with type %s", p.Address, p.Type)
 		logger.Errorf(err.Error())
@@ -51,15 +68,39 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 }
 
-func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) getVaultBalances(vault string, p entity.Pool) func(calls *ethrpc.Request, b0, b1 **big.Int) bool {
+	return func(calls *ethrpc.Request, b0, b1 **big.Int) bool {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    classicPoolABI,
+			Target: p.Tokens[0].Address,
+			Method: poolMethodBalanceOf,
+			Params: []interface{}{
+				common.HexToAddress(vault),
+			},
+		}, []interface{}{b0})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    classicPoolABI,
+			Target: p.Tokens[1].Address,
+			Method: poolMethodBalanceOf,
+			Params: []interface{}{
+				common.HexToAddress(vault),
+			},
+		}, []interface{}{b1})
+		return true
+	}
+}
+
+func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		swapFee0To1, swapFee1To0 *big.Int
-		reserves                 = make([]*big.Int, len(p.Tokens))
-		vaultAddress             common.Address
+		swapFee0To1, swapFee1To0     *big.Int
+		reserves                     = make([]*big.Int, len(p.Tokens))
+		vaultAddress                 common.Address
+		vaultBalance0, vaultBalance1 *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -102,6 +143,8 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 		Params: nil,
 	}, []interface{}{&vaultAddress})
 
+	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -110,10 +153,24 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 		return entity.Pool{}, err
 	}
 
+	if !ok {
+		calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+		d.getVaultBalances(vaultAddress.Hex(), p)(calls, &vaultBalance0, &vaultBalance1)
+		if _, err := calls.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"address": p.Address,
+				"error":   err,
+			}).Errorf("failed to get state of the pool")
+			return entity.Pool{}, err
+		}
+	}
+
 	extraBytes, err := json.Marshal(ExtraClassicPool{
-		SwapFee0To1:  swapFee0To1,
-		SwapFee1To0:  swapFee1To0,
-		VaultAddress: vaultAddress.Hex(),
+		SwapFee0To1:   swapFee0To1,
+		SwapFee1To0:   swapFee1To0,
+		VaultAddress:  vaultAddress.Hex(),
+		VaultBalance0: vaultBalance0,
+		VaultBalance1: vaultBalance1,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -135,7 +192,7 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 	return p, nil
 }
 
-func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, getVaultBalances func(calls *ethrpc.Request, b0, b1 **big.Int) bool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
@@ -145,6 +202,7 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		token0PrecisionMultiplier, token1PrecisionMultiplier *big.Int
 		vaultAddress                                         common.Address
 		reserves                                             = make([]*big.Int, len(p.Tokens))
+		vaultBalance0, vaultBalance1                         *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -201,6 +259,8 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		Params: nil,
 	}, []interface{}{&vaultAddress})
 
+	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -208,13 +268,25 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		}).Errorf("failed to get state of the pool")
 		return entity.Pool{}, err
 	}
-
+	if !ok {
+		calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+		d.getVaultBalances(vaultAddress.Hex(), p)(calls, &vaultBalance0, &vaultBalance1)
+		if _, err := calls.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"address": p.Address,
+				"error":   err,
+			}).Errorf("failed to get state of the pool")
+			return entity.Pool{}, err
+		}
+	}
 	extraBytes, err := json.Marshal(ExtraStablePool{
 		SwapFee0To1:               swapFee0To1,
 		SwapFee1To0:               swapFee1To0,
 		Token0PrecisionMultiplier: token0PrecisionMultiplier,
 		Token1PrecisionMultiplier: token1PrecisionMultiplier,
 		VaultAddress:              vaultAddress.Hex(),
+		VaultBalance0:             vaultBalance0,
+		VaultBalance1:             vaultBalance1,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
