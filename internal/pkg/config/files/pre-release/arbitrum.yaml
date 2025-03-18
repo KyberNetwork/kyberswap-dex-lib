@@ -146,7 +146,7 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: 10000
-  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   dexUseAEVM: &dexUseAEVM
@@ -213,6 +213,8 @@ kafka:
   useAuthentication: false
   username:
   password:
+  prefix: *chainName
+  separator: "."
 featureFlags:
   useOptimizedSPFA: false
 keyPair:

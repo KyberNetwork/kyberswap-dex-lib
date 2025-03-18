@@ -370,6 +370,22 @@ func apiAction(c *cli.Context) (err error) {
 	} else if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
 		cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.L2ExecutorAddress
 	}
+
+	var publisherRepository buildroute.IPublisherRepository
+	if cfg.Kafka.Enable {
+		publisherRepository, err = kafka.NewPublisher(&cfg.Kafka)
+		if err != nil {
+			return err
+		}
+
+		err = kafka.ValidateTopicName(cfg.UseCase.BuildRoute.PublisherConfig.AggregatorTransactionTopic)
+		if err != nil {
+			return err
+		}
+	} else {
+		publisherRepository = kafka.NewUnimplementedPublisher()
+	}
+
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,
@@ -403,21 +419,6 @@ func apiAction(c *cli.Context) (err error) {
 		}
 
 		rfqHandlerByPoolType[dex.Handler] = rfqHandler
-	}
-
-	var publisherRepository buildroute.IPublisherRepository
-	if cfg.Kafka.Enable {
-		publisherRepository, err = kafka.NewPublisher(&cfg.Kafka)
-		if err != nil {
-			return err
-		}
-
-		err = kafka.ValidateTopicName(cfg.UseCase.BuildRoute.PublisherConfig.AggregatorTransactionTopic)
-		if err != nil {
-			return err
-		}
-	} else {
-		publisherRepository = kafka.NewUnimplementedPublisher()
 	}
 
 	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,

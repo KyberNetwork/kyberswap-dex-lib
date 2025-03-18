@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
@@ -352,7 +353,9 @@ func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.Safe
 func (cl *ConfigLoader) setAlphaFeeConfig(alphaFeeConfig valueobject.AlphaFeeConfig) {
 	cl.config.UseCase.GetRoute.AlphaFeeConfig = alphaFeeConfig
 	cl.config.UseCase.BuildRoute.AlphaFeeConfig = alphaFeeConfig
-	cl.config.Repository.AlphaFee.Redis.TTL = alphaFeeConfig.TTL
+	if duration, err := time.ParseDuration(alphaFeeConfig.TTL); err == nil {
+		cl.config.Repository.AlphaFee.Redis.TTL = duration
+	}
 }
 
 func (cl *ConfigLoader) setRFQAcceptableSlippageFraction(rfqAcceptableSlippageFraction int64) {

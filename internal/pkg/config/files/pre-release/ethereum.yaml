@@ -185,7 +185,7 @@ common:
       minDifferentThresholdBps: 1000
       defaultAlphaFeePercentageBps: 0.1651
     ttl: 600s
-  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
 
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -238,6 +238,8 @@ kafka:
   useAuthentication: false
   username:
   password:
+  prefix: *chainName
+  separator: "."
 ddAgentHost: ""
 keyPair:
   storageFilePath: ""

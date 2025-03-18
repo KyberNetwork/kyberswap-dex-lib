@@ -114,7 +114,7 @@ common:
       minDifferentThresholdBps: 1000
       defaultAlphaFeePercentageBps: 0.1651
     ttl: 600s
-  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
 log:
@@ -168,6 +168,8 @@ kafka:
   useAuthentication: false
   username:
   password:
+  prefix: *chainName
+  separator: "."
 enableGRPC: false
 keyPair:
   storageFilePath: ""

@@ -11,6 +11,7 @@ import (
 
 type Publisher struct {
 	producer sarama.SyncProducer
+	config   *Config
 }
 
 func NewPublisher(config *Config) (*Publisher, error) {
@@ -40,12 +41,13 @@ func NewPublisher(config *Config) (*Publisher, error) {
 		return nil, err
 	}
 
-	return &Publisher{producer: producer}, nil
+	return &Publisher{producer: producer, config: config}, nil
 }
 
 func (k *Publisher) Publish(ctx context.Context, topic string, data []byte) error {
+	formattedTopic := strings.Join([]string{k.config.Prefix, topic}, k.config.Separator)
 	message := &sarama.ProducerMessage{
-		Topic: topic,
+		Topic: formattedTopic,
 		Value: sarama.ByteEncoder(data),
 	}
 

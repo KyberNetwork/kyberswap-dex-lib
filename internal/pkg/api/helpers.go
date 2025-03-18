@@ -134,6 +134,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    getroute.ErrInvalidToken.Error(),
 	},
 
+	kyberpmmclient.ErrMinGreaterExpect: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4220,
+		Message:    "firm API: min amount greater than expected amount",
+	},
+
 	eth.ErrWETHNotFound: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4221,
@@ -168,6 +174,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4226,
 		Message:    "firm API: the maker reject signing due market price updated",
+	},
+
+	kyberpmmclient.ErrAmountOutLessThanMin: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4227,
+		Message:    "firm API: amount out is less than min amount out",
 	},
 
 	hashflowclient.ErrRFQFailed: {

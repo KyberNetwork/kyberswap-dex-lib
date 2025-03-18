@@ -8,8 +8,9 @@ replace github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/unisw
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
-	github.com/IBM/sarama v1.40.0
+	github.com/IBM/sarama v1.45.1
 	github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af
+	github.com/KyberNetwork/aggregation-stats v0.0.2
 	github.com/KyberNetwork/aggregator-encoding v0.40.1
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
@@ -99,7 +100,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dolthub/maphash v0.1.0 // indirect
-	github.com/eapache/go-resiliency v1.4.0 // indirect
+	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.3 // indirect
@@ -149,7 +150,7 @@ require (
 	github.com/oleiade/lane/v2 v2.0.0 // indirect
 	github.com/orcaman/concurrent-map v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
-	github.com/pierrec/lz4/v4 v4.1.18 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pion/dtls/v2 v2.2.7 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/stun/v2 v2.0.0 // indirect

@@ -97,7 +97,6 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 	// Step 1.1: Prepare alpha fee if needed
 	var alphaFee *entity.AlphaFee
-	alreadyChargedAlphaFee := false
 	if extraData != nil {
 		feeReductionFinalizerExtraData, ok := extraData.(FeeReductionFinalizerExtraData)
 		if ok {
@@ -120,7 +119,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 	// Step 2: finalize route
 	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
-	for _, path := range constructRoute.Paths {
+	for pathId, path := range constructRoute.Paths {
 		// Step 2.1: finalize path
 		finalizedPath := make([]finderEntity.Swap, 0, len(path.PoolsOrder))
 
@@ -195,10 +194,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 			// Step 2.1.6: apply alpha fee reduction
 			reducedNextAmountIn := res.TokenAmountOut.Amount
-			if alphaFee != nil && !alreadyChargedAlphaFee && alphaFee.Pool == pool.GetAddress() && res.TokenAmountOut.Token == alphaFee.Token {
+			if alphaFee != nil && alphaFee.PathId == pathId && alphaFee.SwapId == i {
 				reducedNextAmountIn = new(big.Int).Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
-				// we don't want to charge alpha fee multiple times
-				alreadyChargedAlphaFee = true
 			}
 
 			// Step 2.1.7: We need to calculate safety quoting amount and reasign new amount out to next path's amount in

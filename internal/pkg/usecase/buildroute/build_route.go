@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,16 +12,19 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
-	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/goccy/go-json"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 
+	"runtime/debug"
+
+	v1 "github.com/KyberNetwork/aggregation-stats/messages/v1"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -39,6 +41,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"google.golang.org/protobuf/proto"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -153,21 +157,26 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	alphaFeeToken := ""
-	if routeSummary.AlphaFee != nil {
-		alphaFeeToken = routeSummary.AlphaFee.Token
-	}
-	tokens, err := uc.getTokens(ctx, tokenInAddress, tokenOutAddress, alphaFeeToken)
+	addresses := uc.getKyberPMMMakerTokenAddresses(ctx, tokenInAddress, tokenOutAddress, routeSummary)
+	tokens, err := uc.getTokens(ctx, addresses)
 	if err != nil {
 		return nil, err
 	}
-	prices, err := uc.getPrices(ctx, tokenInAddress, tokenOutAddress, alphaFeeToken)
+
+	if tokens[tokenInAddress] == nil {
+		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenIn: [%s]", tokenInAddress)
+	}
+	if tokens[tokenOutAddress] == nil {
+		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
+	}
+
+	prices, err := uc.getPrices(ctx, tokenInAddress, tokenOutAddress, addresses)
 	if err != nil {
 		return nil, err
 	}
 
 	// Initialize a message to track route that contain an `alpha fee`
-	var rfqRouteMsg = new(routerEntity.RFQRouteMessage)
+	var rfqRouteMsg = new(v1.RouteSummary)
 	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary,
 		rfqRouteMsg, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
 	if err != nil {
@@ -205,10 +214,10 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if eth.IsEther(routeSummary.TokenIn) {
 		transactionValue = routeSummary.AmountIn
 	}
-
-	data, err := json.Marshal(rfqRouteMsg)
+	// parse message, we always send events to kafka although the route might not contain alpha fee
+	data, err := proto.Marshal(rfqRouteMsg)
 	if err != nil {
-		return nil, err
+		logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
 	}
 
 	err = uc.publisherRepository.Publish(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, data)
@@ -252,7 +261,7 @@ func (uc *BuildRouteUseCase) rfq(
 	recipient string,
 	source string,
 	routeSummary valueobject.RouteSummary,
-	rfqMRouteMsg *routerEntity.RFQRouteMessage,
+	rfqMRouteMsg *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	slippageTolerance float64,
 	tokens map[string]*entity.Token,
@@ -289,7 +298,7 @@ func (uc *BuildRouteUseCase) rfq(
 			}
 
 			var alphaFee string
-			if routeSummary.AlphaFee != nil && strings.EqualFold(routeSummary.AlphaFee.Pool, swap.Pool) {
+			if routeSummary.AlphaFee != nil && routeSummary.AlphaFee.PathId == pathIdx && routeSummary.AlphaFee.SwapId == swapIdx {
 				alphaFee = routeSummary.AlphaFee.Amount.String()
 			}
 
@@ -443,7 +452,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	ctx context.Context,
 	poolType string,
 	routeSummary valueobject.RouteSummary,
-	rfqRouteMsg *routerEntity.RFQRouteMessage,
+	rfqRouteMsg *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	tokens map[string]*entity.Token,
 	prices map[string]float64,
@@ -505,32 +514,59 @@ func (uc *BuildRouteUseCase) processRFQs(
 		case kyberpmm.DexTypeKyberPMM:
 			if extra, ok := results[i].Extra.(kyberpmm.RFQExtra); ok {
 				alphaFeeInUSDFloat := 0.0
-				alphaFee := routeSummary.AlphaFee
-				if alphaFee != nil && results[i].AlphaFee != nil {
-					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFee.Token].Decimals,
-						prices[alphaFee.Token])
+				alphaFeeAsset := ""
+				if results[i].AlphaFee != nil {
+					alphaFeeAsset = results[i].AlphaFeeAsset
+					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFeeAsset].Decimals,
+						prices[alphaFeeAsset])
 					alphaFeeInUSDFloat, _ = alphaFeeInUSD.Float64()
+					// we must update alpha fee because alpha fee can be changed, and it might be equal to ps
+					ammAmount := big.NewInt(0)
+					if routeSummary.AlphaFee != nil {
+						ammAmount = routeSummary.AlphaFee.AMMAmount
+					}
+					newAlphaFee := &routerEntity.AlphaFee{
+						Token:     alphaFeeAsset,
+						Amount:    results[i].AlphaFee,
+						AmountUsd: alphaFeeInUSDFloat,
+						Pool:      routeSummary.Route[pathIdx][swapIdx].Pool,
+						AMMAmount: ammAmount,
+					}
+					if routeSummary.AlphaFee != nil &&
+						routeSummary.AlphaFee.PathId == pathIdx &&
+						routeSummary.AlphaFee.SwapId == swapIdx {
+						routeSummary.AlphaFee = newAlphaFee
+					} else {
+						rfqRouteMsg.PositiveSlipageInUsd += alphaFeeInUSDFloat
+					}
 				}
 
-				takerAmount, _ := new(big.Int).SetString(extra.TakerAmount, 10)
-				makerAmount, _ := new(big.Int).SetString(extra.MakerAmount, 10)
-
-				rfqRouteMsg.RouteID = routeSummary.RouteID
-				rfqRouteMsg.RFQSource = kyberpmm.DexTypeKyberPMM
-				rfqRouteMsg.QuoteTimestamp = extra.QuoteTimestamp
+				// General information
+				rfqRouteMsg.RouteId = routeSummary.RouteID
+				rfqRouteMsg.RfqSource = kyberpmm.DexTypeKyberPMM
+				rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(extra.QuoteTimestamp, 0))
 				rfqRouteMsg.SellToken = routeSummary.TokenIn
 				rfqRouteMsg.BuyToken = routeSummary.TokenOut
-				rfqRouteMsg.RequestedAmount = routeSummary.AmountIn
-				rfqRouteMsg.TakerAmount = takerAmount
-				rfqRouteMsg.MakerAmount = makerAmount
-				rfqRouteMsg.TakerAsset = extra.TakerAsset
-				rfqRouteMsg.MakerAsset = extra.MakerAsset
-				rfqRouteMsg.AlphaFee = results[i].AlphaFee
-				rfqRouteMsg.AlphaFeeInUSD = alphaFeeInUSDFloat
-				rfqRouteMsg.Partner = extra.Partner
+				rfqRouteMsg.RequestedAmount = routeSummary.AmountIn.Text(10)
+				rfqRouteMsg.VolumeInUsd = routeSummary.AmountInUSD
+				rfqRouteMsg.PartnerName = extra.Partner
 				rfqRouteMsg.RouteType = "RFQ"
+
+				// info related to alpha fee, incase we don't have alpha fee, we don't need to track these fields
+				// because we only care about positive slippage
 				if routeSummary.AlphaFee != nil {
-					rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount
+					takerAmount, _ := new(big.Int).SetString(extra.TakerAmount, 10)
+					makerAmount, _ := new(big.Int).SetString(extra.MakerAmount, 10)
+
+					rfqRouteMsg.TakerAmount = takerAmount.Text(10)
+					rfqRouteMsg.MakerAmount = makerAmount.Text(10)
+					rfqRouteMsg.TakerAsset = extra.TakerAsset
+					rfqRouteMsg.MakerAsset = extra.MakerAsset
+
+					rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.Text(10)
+					rfqRouteMsg.AlphaFee = routeSummary.AlphaFee.Amount.Text(10)
+					rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.Token
+					rfqRouteMsg.AlphaFeeInUsd = routeSummary.AlphaFee.AmountUsd
 				}
 			}
 		default:
@@ -618,18 +654,28 @@ func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 	})
 }
 
+func (uc *BuildRouteUseCase) getKyberPMMMakerTokenAddresses(_ context.Context,
+	tokenIn string, tokenOut string,
+	routeSummary valueobject.RouteSummary) []string {
+	addresses := mapset.NewThreadUnsafeSet(tokenIn, tokenOut)
+	for _, path := range routeSummary.Route {
+		for _, swap := range path {
+			if kyberpmm.DexTypeKyberPMM == valueobject.Exchange(swap.PoolType) {
+				addresses.Add(swap.TokenOut)
+			}
+		}
+	}
+
+	return addresses.ToSlice()
+}
+
 // getTokens returns tokenIn and tokenOut data
 func (uc *BuildRouteUseCase) getTokens(
 	ctx context.Context,
-	tokenIn, tokenOut, alphaFeeToken string,
-) (map[string]*entity.Token, error) {
+	addresses []string) (map[string]*entity.Token, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getTokens")
 	defer span.End()
 
-	addresses := []string{tokenIn, tokenOut}
-	if alphaFeeToken != "" {
-		addresses = append(addresses, alphaFeeToken)
-	}
 	tokens, err := uc.tokenRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
@@ -640,25 +686,17 @@ func (uc *BuildRouteUseCase) getTokens(
 		result[token.Address] = token
 	}
 
-	if result[tokenIn] == nil {
-		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenIn: [%s]", tokenIn)
-	}
-	if result[tokenOut] == nil {
-		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", tokenOut)
-	}
-
 	return result, nil
 }
 
 // getPrices returns tokenIn and tokenOut price
 func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
-	tokenIn, tokenOut, alphaFeeToken string) (map[string]float64, error) {
+	tokenIn string,
+	tokenOut string,
+	addresses []string) (map[string]float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
 	defer span.End()
-	addresses := []string{tokenIn, tokenOut}
-	if alphaFeeToken != "" {
-		addresses = append(addresses, alphaFeeToken)
-	}
+
 	priceByAddress, err := uc.onchainpriceRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
@@ -675,8 +713,11 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 		result[tokenOut], _ = price.USDPrice.Buy.Float64()
 	}
 
-	if price, ok := priceByAddress[alphaFeeToken]; ok && price != nil && price.USDPrice.Buy != nil {
-		result[alphaFeeToken], _ = price.USDPrice.Buy.Float64()
+	// use buy price for other token out because we only need to find token out price
+	for token, price := range priceByAddress {
+		if price != nil && price.USDPrice.Buy != nil {
+			result[token], _ = price.USDPrice.Buy.Float64()
+		}
 	}
 
 	return result, nil

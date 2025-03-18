@@ -106,7 +106,7 @@ common:
     liquiditybook-v20: true
     liquiditybook-v21: true
   useAEVM: &useAEVM false
-  aggregatorTransactionTopic: &aggregatorTransactionTopic "aggregator-transaction"
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   alphaFeeConfig: &alphaFeeConfig
@@ -169,6 +169,8 @@ kafka:
   useAuthentication: false
   username:
   password:
+  prefix: *chainName
+  separator: "."
 enableGRPC: false
 keyPair:
   storageFilePath: ""

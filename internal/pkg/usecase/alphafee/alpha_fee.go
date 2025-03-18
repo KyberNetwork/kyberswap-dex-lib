@@ -173,6 +173,8 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		Amount:    alphaFee.Amount,
 		Pool:      currentPath.PoolsOrder[swapIndex.SwapId],
 		AMMAmount: ammBestRouteAmountOut,
+		PathId:    swapIndex.PathId,
+		SwapId:    swapIndex.SwapId,
 	}, nil
 
 }
@@ -360,6 +362,8 @@ func (uc *AlphaFeeCalculation) CalculateDefaultAlphaFee(ctx context.Context, par
 		Pool:   currentSwap.Pool,
 		Token:  currentSwap.TokenOut,
 		Amount: feeAmount,
+		PathId: swapIndex.PathId,
+		SwapId: swapIndex.SwapId,
 	}, nil
 }
 
