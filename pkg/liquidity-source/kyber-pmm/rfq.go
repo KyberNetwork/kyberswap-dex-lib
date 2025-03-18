@@ -134,8 +134,9 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 		}
 
 		rfqResult = append(rfqResult, &pool.RFQResult{
-			NewAmountOut: actualMakerAmount,
-			AlphaFee:     alphaFee,
+			NewAmountOut:  actualMakerAmount,
+			AlphaFee:      alphaFee,
+			AlphaFeeAsset: order.MakerAsset,
 			Extra: RFQExtra{
 				RFQContractAddress: h.config.RFQContractAddress,
 				Info:               order.Info,

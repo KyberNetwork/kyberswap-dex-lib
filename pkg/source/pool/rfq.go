@@ -19,9 +19,10 @@ type RFQParams struct {
 }
 
 type RFQResult struct {
-	NewAmountOut *big.Int
-	AlphaFee     *big.Int
-	Extra        any
+	NewAmountOut  *big.Int
+	AlphaFee      *big.Int
+	AlphaFeeAsset string
+	Extra         any
 }
 
 type RFQHandler struct{}
