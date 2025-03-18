@@ -146,6 +146,10 @@ func parseFirmQuoteError(errorMessage string) error {
 		return ErrFirmQuoteInsufficientLiquidity
 	case ErrFirmQuoteMarketConditionText:
 		return ErrFirmQuoteMarketCondition
+	case ErrAmountOutLessThanMinText:
+		return ErrAmountOutLessThanMin
+	case ErrMinGreaterExpectText:
+		return ErrMinGreaterExpect
 	default:
 		return ErrFirmQuoteInternalError
 	}

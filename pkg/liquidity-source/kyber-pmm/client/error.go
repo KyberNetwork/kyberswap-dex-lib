@@ -7,6 +7,10 @@ const (
 	ErrFirmQuoteBlacklistText             = "blacklist"
 	ErrFirmQuoteInsufficientLiquidityText = "insufficient_liquidity"
 	ErrFirmQuoteMarketConditionText       = "market_condition"
+
+	// multi firm with alpha fee
+	ErrAmountOutLessThanMinText = "out_amount_less_than_min"
+	ErrMinGreaterExpectText     = "min_greater_expected"
 )
 
 var (
@@ -18,4 +22,6 @@ var (
 	ErrFirmQuoteBlacklist             = errors.New(ErrFirmQuoteBlacklistText)
 	ErrFirmQuoteInsufficientLiquidity = errors.New(ErrFirmQuoteInsufficientLiquidityText)
 	ErrFirmQuoteMarketCondition       = errors.New(ErrFirmQuoteMarketConditionText)
+	ErrAmountOutLessThanMin           = errors.New(ErrAmountOutLessThanMinText)
+	ErrMinGreaterExpect               = errors.New(ErrMinGreaterExpectText)
 )
