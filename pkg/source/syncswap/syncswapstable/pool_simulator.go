@@ -93,6 +93,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if amountOut.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d bigger then reserve %d", amountOut.Int64(), p.Info.Reserves[tokenOutIndex])
 	}
+
+	if p.vaultBalances[tokenInIndex] != nil && tokenAmountIn.Amount.Cmp(p.vaultBalances[tokenInIndex]) > 0 {
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountIn is %d bigger than vault balance %d", tokenAmountIn.Amount.Int64(), p.vaultBalances[tokenInIndex])
+	}
+
 	if p.vaultBalances[tokenOutIndex] != nil && amountOut.Cmp(p.vaultBalances[tokenOutIndex]) > 0 {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d bigger than vault balance %d", amountOut.Int64(), p.vaultBalances[tokenOutIndex])
 	}
