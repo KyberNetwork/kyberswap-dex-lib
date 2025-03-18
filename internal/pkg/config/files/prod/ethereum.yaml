@@ -300,6 +300,9 @@ encoder:
     unibot-tg:
       receiver: 0x0000000000000000000000000000000000000001
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+    debot-kyber-8@dK#:
+      receiver: 0x0000000000000000000000000000000000000002
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
 useCase:
   getRoute:
     chainId: *chainId
