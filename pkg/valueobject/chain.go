@@ -38,10 +38,48 @@ const (
 	ChainIDMantle          ChainID = 5000
 	ChainIDSonic           ChainID = 146
 	ChainIDBerachain       ChainID = 80094
+	ChainIDRonin           ChainID = 2020
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
 )
+
+var ChainNameMap = map[ChainID]string{
+	ChainIDEthereum:        "ethereum",
+	ChainIDRopsten:         "ethereum-ropsten",
+	ChainIDRinkeBy:         "ethereum-rinkeby",
+	ChainIDGoerli:          "ethereum-goerli",
+	ChainIDOptimism:        "optimism",
+	ChainIDKovan:           "ethereum-kovan",
+	ChainIDBSC:             "bsc",
+	ChainIDOptimismKovan:   "optimism-kovan",
+	ChainIDPolygon:         "polygon",
+	ChainIDMumbai:          "mumbai",
+	ChainIDAvalancheCChain: "avalanche",
+	ChainIDFantom:          "fantom",
+	ChainIDCronos:          "cronos",
+	ChainIDBitTorrent:      "bttc",
+	ChainIDVelasEVM:        "velas",
+	ChainIDAurora:          "aurora",
+	ChainIDOasisEmerald:    "oasis",
+	ChainIDArbitrumOne:     "arbitrum",
+	ChainIDArbitrumRinkeby: "arbitrum-rinkeby",
+	ChainIDEthereumW:       "ethereum-w",
+	ChainIDFuji:            "avalanche-fuji",
+	ChainIDLineaGoerli:     "linea-goerli",
+	ChainIDLinea:           "linea",
+	ChainIDZKSync:          "zkSync",
+	ChainIDPolygonZkEVM:    "polygon-zkEVM",
+	ChainIDBase:            "base",
+	ChainIDScroll:          "scroll",
+	ChainIDBlast:           "blast",
+	ChainIDMantle:          "mantle",
+	ChainIDSonic:           "sonic",
+	ChainIDBerachain:       "berachain",
+	ChainIDRonin:           "ronin",
+
+	ChainIDSolana: "solana",
+}
 
 func (c ChainID) String() string {
 	str, err := ToString(c)
@@ -52,73 +90,9 @@ func (c ChainID) String() string {
 }
 
 func ToString(chainID ChainID) (string, error) {
-	switch chainID {
-	case 1:
-		return "ethereum", nil
-	case 3:
-		return "ethereum-ropsten", nil
-	case 4:
-		return "ethereum-rinkeby", nil
-	case 5:
-		return "ethereum-goerli", nil
-	case 10:
-		return "optimism", nil
-	case 42:
-		return "ethereum-kovan", nil
-	case 56:
-		return "bsc", nil
-	case 69:
-		return "optimism-kovan", nil
-	case 137:
-		return "polygon", nil
-	case 80001:
-		return "mumbai", nil
-	case 43114:
-		return "avalanche", nil
-	case 250:
-		return "fantom", nil
-	case 25:
-		return "cronos", nil
-	case 199:
-		return "bttc", nil
-	case 106:
-		return "velas", nil
-	case 1313161554:
-		return "aurora", nil
-	case 42262:
-		return "oasis", nil
-	case 42161:
-		return "arbitrum", nil
-	case 421611:
-		return "arbitrum-rinkeby", nil
-	case 10001:
-		return "ethw", nil
-	case 43113:
-		return "fuji", nil
-	case 59140:
-		return "linea-goerli", nil
-	case 59144:
-		return "linea", nil
-	case 324:
-		return "zksync", nil
-	case 1101:
-		return "polygon-zkevm", nil
-	case 8453:
-		return "base", nil
-	case 534352:
-		return "scroll", nil
-	case 81457:
-		return "blast", nil
-	case 5000:
-		return "mantle", nil
-	case 146:
-		return "sonic", nil
-	case 80094:
-		return "berachain", nil
-	case 0:
-		return "solana", nil
-	default:
+	if name, ok := ChainNameMap[chainID]; ok {
+		return name, nil
+	} else {
 		return "", ErrChainUnsupported
 	}
-
 }
