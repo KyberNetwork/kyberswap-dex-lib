@@ -255,8 +255,6 @@ kafka:
   password:
   prefix: *chainName
   separator: "."
-  prefix: *chainName
-  separator: "."
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
