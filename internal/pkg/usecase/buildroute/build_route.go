@@ -520,7 +520,6 @@ func (uc *BuildRouteUseCase) processRFQs(
 					alphaFeeInUSD := business.CalcAmountUSD(results[i].AlphaFee, tokens[alphaFeeAsset].Decimals,
 						prices[alphaFeeAsset])
 					alphaFeeInUSDFloat, _ = alphaFeeInUSD.Float64()
-					// we must update alpha fee because alpha fee can be changed, and it might be equal to ps
 					ammAmount := big.NewInt(0)
 					if routeSummary.AlphaFee != nil {
 						ammAmount = routeSummary.AlphaFee.AMMAmount
@@ -532,12 +531,12 @@ func (uc *BuildRouteUseCase) processRFQs(
 						Pool:      routeSummary.Route[pathIdx][swapIdx].Pool,
 						AMMAmount: ammAmount,
 					}
+					rfqRouteMsg.TotalAlphaFeeInUsd += alphaFeeInUSDFloat
+					// we must update alpha fee because alpha fee can be changed, and it might be equal to ps
 					if routeSummary.AlphaFee != nil &&
 						routeSummary.AlphaFee.PathId == pathIdx &&
 						routeSummary.AlphaFee.SwapId == swapIdx {
 						routeSummary.AlphaFee = newAlphaFee
-					} else {
-						rfqRouteMsg.PositiveSlipageInUsd += alphaFeeInUSDFloat
 					}
 				}
 
