@@ -9,10 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
-
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -47,8 +48,7 @@ func (t *PoolTracker) GetNewPoolState(
 	_ poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	lg := t.logger.WithFields(logger.Fields{"poolAddress": p.Address})
-	lg.Info("Start updating state ...")
-	defer func() { lg.Info("Finish updating state.") }()
+	lg.Info("Start updating state...")
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
@@ -66,8 +66,7 @@ func (t *PoolTracker) GetNewPoolState(
 		minBand     *big.Int
 		maxBand     *big.Int
 
-		collateralReserve *big.Int
-		stableCoinReserve *big.Int
+		balances = make([]*big.Int, 2)
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -121,13 +120,13 @@ func (t *PoolTracker) GetNewPoolState(
 		Target: p.Tokens[0].Address,
 		Method: shared.ERC20MethodBalanceOf,
 		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []any{&collateralReserve})
+	}, []any{&balances[0]})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: p.Tokens[1].Address,
 		Method: shared.ERC20MethodBalanceOf,
 		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []any{&stableCoinReserve})
+	}, []any{&balances[1]})
 	resp, err := calls.Aggregate()
 	if err != nil {
 		return p, err
@@ -137,18 +136,20 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	availableBalances := t.calcAvailableBalances(p.Tokens, bands)
 
 	extraBytes, err := json.Marshal(&Extra{
-		BasePrice:   uint256.MustFromBig(basePrice),
-		PriceOracle: uint256.MustFromBig(priceOracle),
-		Fee:         uint256.MustFromBig(fee),
-		AdminFee:    uint256.MustFromBig(adminFee),
-		AdminFeesX:  uint256.MustFromBig(adminFeesX),
-		AdminFeesY:  uint256.MustFromBig(adminFeesY),
-		ActiveBand:  activeBand.Int64(),
-		MinBand:     minBand.Int64(),
-		MaxBand:     maxBand.Int64(),
-		Bands:       bands,
+		BasePrice:         uint256.MustFromBig(basePrice),
+		PriceOracle:       uint256.MustFromBig(priceOracle),
+		Fee:               uint256.MustFromBig(fee),
+		AdminFee:          uint256.MustFromBig(adminFee),
+		AdminFeesX:        uint256.MustFromBig(adminFeesX),
+		AdminFeesY:        uint256.MustFromBig(adminFeesY),
+		ActiveBand:        activeBand.Int64(),
+		MinBand:           minBand.Int64(),
+		MaxBand:           maxBand.Int64(),
+		Bands:             bands,
+		AvailableBalances: availableBalances,
 	})
 	if err != nil {
 		lg.WithFields(logger.Fields{
@@ -160,12 +161,17 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		collateralReserve.Sub(collateralReserve, adminFeesX).String(),
-		stableCoinReserve.Sub(stableCoinReserve, adminFeesY).String(),
+		new(big.Int).Sub(balances[0], adminFeesX).String(),
+		new(big.Int).Sub(balances[1], adminFeesY).String(),
 	}
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
+
+	lg.WithFields(logger.Fields{
+		"balances":          p.Reserves,
+		"availableBalances": availableBalances,
+	}).Info("Finish updating state.")
 
 	return p, nil
 }
@@ -192,7 +198,7 @@ func (t *PoolTracker) getBands(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := int64(0); i < bandCount; i++ {
-		bandIndex := big.NewInt(startBand + i)
+		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curveLlammaABI,
 			Target: poolAddress,
@@ -210,7 +216,7 @@ func (t *PoolTracker) getBands(
 		return nil, err
 	}
 
-	bands := make([]Band, bandCount)
+	bands := make([]Band, 0, bandCount)
 	for i := int64(0); i < bandCount; i++ {
 		if bandsX[i].Sign() == 0 && bandsY[i].Sign() == 0 {
 			continue
@@ -224,4 +230,21 @@ func (t *PoolTracker) getBands(
 	}
 
 	return bands, nil
+}
+
+func (t *PoolTracker) calcAvailableBalances(tokens []*entity.PoolToken, bands []Band) []*uint256.Int {
+	totalX := uint256.NewInt(0)
+	totalY := uint256.NewInt(0)
+	for _, band := range bands {
+		totalX.Add(totalX, band.BandX)
+		totalY.Add(totalY, band.BandY)
+	}
+
+	precisionX := big256.TenPowInt(18 - tokens[0].Decimals)
+	precisionY := big256.TenPowInt(18 - tokens[1].Decimals)
+
+	totalX.Div(totalX, precisionX)
+	totalY.Div(totalY, precisionY)
+
+	return []*uint256.Int{totalX, totalY}
 }

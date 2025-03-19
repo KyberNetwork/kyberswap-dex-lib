@@ -21,6 +21,8 @@ type (
 		MinBand     int64        `json:"minBand"`
 		MaxBand     int64        `json:"maxBand"`
 		Bands       []Band       `json:"bands"`
+
+		AvailableBalances []*uint256.Int `json:"availableBalances"`
 	}
 
 	Meta struct {

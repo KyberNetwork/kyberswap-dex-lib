@@ -43,7 +43,7 @@ func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsList
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	u.logger.Infof("Start updating pools list ...")
+	u.logger.Infof("Start updating pools list...")
 	defer func() {
 		u.logger.Infof("Finish updating pools list.")
 	}()

@@ -34,8 +34,8 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 				DexID:          DexType,
 				FactoryAddress: "0xc9332fdcb1c491dcc683bae86fe3cb70360738bc",
 				BorrowedToken:  "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E",
+				MaxBandLimit:   50,
 				NewPoolLimit:   10,
-				MaxBandLimit:   10,
 			},
 		},
 	}
@@ -43,12 +43,11 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	for _, tc := range testCases {
 		ts.T().Run(tc.config.DexID, func(t *testing.T) {
 			updater := NewPoolsListUpdater(&tc.config, rpcClientByChainID[tc.chainID])
+			tracker := NewPoolTracker(&tc.config, rpcClientByChainID[tc.chainID])
 
 			pools, _, err := updater.GetNewPools(context.Background(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, pools)
-
-			tracker := NewPoolTracker(&tc.config, rpcClientByChainID[tc.chainID])
 
 			for _, pool := range pools {
 				newPool, err := tracker.GetNewPoolState(context.Background(), pool, poolpkg.GetNewPoolStateParams{})
