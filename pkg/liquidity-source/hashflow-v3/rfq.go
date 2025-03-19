@@ -16,6 +16,7 @@ type Config struct {
 	DexID               string           `json:"dexId"`
 	ExcludeMarketMakers []string         `mapstructure:"excludeMarketMakers" json:"excludeMarketMakers"`
 	HTTP                HTTPClientConfig `mapstructure:"http" json:"http"`
+	Router              string           `mapstructure:"router" json:"router"`
 }
 
 type IClient interface {
@@ -95,11 +96,14 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 	}
 
 	var results []*pool.RFQResult
-	for i := range quoteResult.Quotes {
-		newAmountOut, _ := new(big.Int).SetString(quoteResult.Quotes[i].QuoteData.QuoteTokenAmount, 10)
+	for _, quote := range quoteResult.Quotes {
+		newAmountOut, _ := new(big.Int).SetString(quote.QuoteData.QuoteTokenAmount, 10)
+		if quote.TargetContract == "" {
+			quote.TargetContract = h.config.Router
+		}
 		results = append(results, &pool.RFQResult{
 			NewAmountOut: newAmountOut,
-			Extra:        quoteResult.Quotes[i],
+			Extra:        quote,
 		})
 	}
 

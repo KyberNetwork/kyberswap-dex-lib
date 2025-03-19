@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	erc20ABI     abi.ABI
+	erc20ABI   abi.ABI
 	litePSMABI abi.ABI
 )
 

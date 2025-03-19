@@ -36,9 +36,9 @@ func TestCalcAmountOut_Saddle(t *testing.T) {
 		{"C", 10000, "LP", 9986},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"64752405287155128155", "426593278742302082683", "66589357932477536907",
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"64752405287155128155", "426593278742302082683", "66589357932477536907",
 			"553429429583268691085"},
 		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
 		Extra:       "{\"initialA\":\"48000\",\"futureA\":\"92000\",\"initialATime\":1652287436,\"futureATime\":1653655053,\"swapFee\":\"4000000\",\"adminFee\":\"5000000000\"}",
@@ -128,9 +128,9 @@ func TestCalcAmountOut_OneSwap(t *testing.T) {
 		{"LP", 1000000, "B", 1014686},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"339028421564024338437", "347684462442560871352", "423798212946198474118",
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"339028421564024338437", "347684462442560871352", "423798212946198474118",
 			"315249216225911580289", "1404290718401538825321"},
 		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}, {Address: "D"}},
 		Extra:       "{\"initialA\":\"60000\",\"futureA\":\"60000\",\"initialATime\":0,\"futureATime\":0,\"swapFee\":\"1000000\",\"adminFee\":\"10000000000\",\"defaultWithdrawFee\":\"5000000\"}",
@@ -176,9 +176,9 @@ func TestCalcAmountOut_IronStable(t *testing.T) {
 		{"LP", 10000000000000000, "B", 10095},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"233518765839", "198509040315", "228986742536043517345011",
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"233518765839", "198509040315", "228986742536043517345011",
 			"654251953025609178732174"},
 		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
 		Extra:       "{\"initialA\":\"18000\",\"futureA\":\"120000\",\"initialATime\":1627094541,\"futureATime\":1627699238,\"swapFee\":\"2000000\",\"adminFee\":\"10000000000\", \"defaultWithdrawFee\":\"5000000\"}",
@@ -229,9 +229,9 @@ func TestUpdateBalance_Saddle(t *testing.T) {
 		// {"LP", 100000, "A", []string{"64752405287175120660", "426593278742301992004", "66589357932467535849", "553429429583278577755"}},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"64752405287155128155", "426593278742302082683", "66589357932477536907",
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"64752405287155128155", "426593278742302082683", "66589357932477536907",
 			"553429429583268691085"},
 		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
 		Extra:       "{\"initialA\":\"48000\",\"futureA\":\"92000\",\"initialATime\":1652287436,\"futureATime\":1653655053,\"swapFee\":\"4000000\",\"adminFee\":\"5000000000\"}",

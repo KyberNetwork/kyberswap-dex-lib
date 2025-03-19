@@ -198,11 +198,11 @@ func X2YRange(currentState utils.State, leftPt int, sqrtRate96 *uint256.Int, des
 		sqrtPriceL96, _ := calc.GetSqrtPrice(leftPt)
 		ret := x2YRangeComplete(
 			RangeX2Y{
-				Liquidity:     currentState.Liquidity,
+				Liquidity:    currentState.Liquidity,
 				SqrtPriceL96: sqrtPriceL96,
-				LeftPt:        leftPt,
+				LeftPt:       leftPt,
 				SqrtPriceR96: currentState.SqrtPrice96,
-				RightPt:       currentState.CurrentPoint,
+				RightPt:      currentState.CurrentPoint,
 				SqrtRate96:   sqrtRate96,
 			},
 			desireY,
