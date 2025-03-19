@@ -423,6 +423,9 @@ var (
 	ExchangePandaFun                 Exchange = "panda-fun"
 	ExchangeHoney                    Exchange = "honey"
 
+	ExchangeKatanaV2 Exchange = "katana-v2"
+	ExchangeKatanaV3 Exchange = "katana-v3"
+
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
 	ExchangeUniswapV4     Exchange = "uniswap-v4"
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
@@ -774,13 +777,15 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBurrBearStable:             {},
 	ExchangeBurrBearComposableStable:   {},
 	ExchangeBeracaine:                  {},
-	ExchangeEtherFieBTC:                {},
-	ExchangeUniswapV4:                  {},
-	ExchangeOvernightUsdp:              {},
 	ExchangeBulla:                      {},
 	ExchangeMemeswap:                   {},
 	ExchangePandaFun:                   {},
 	ExchangeHoney:                      {},
+	ExchangeKatanaV2:                   {},
+	ExchangeKatanaV3:                   {},
+	ExchangeEtherFieBTC:                {},
+	ExchangeUniswapV4:                  {},
+	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
 }
