@@ -23,9 +23,9 @@ var SecondaryPriceFeedVersionByChainID = map[ChainID]SecondaryPriceFeedVersion{
 }
 
 var (
-	DefaultGas             = Gas{Swap: 165000}
-	BasisPointsDivisor     = big.NewInt(10000)
-	PricePrecision         = new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil)
-	USDMDecimals           = big.NewInt(18)
-	OneUSD                 = PricePrecision
+	DefaultGas         = Gas{Swap: 165000}
+	BasisPointsDivisor = big.NewInt(10000)
+	PricePrecision     = new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil)
+	USDMDecimals       = big.NewInt(18)
+	OneUSD             = PricePrecision
 )
