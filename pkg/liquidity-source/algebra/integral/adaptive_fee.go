@@ -34,7 +34,7 @@ func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 func sigmoid(x *uint256.Int, gU16 uint16, alpha uint16, beta uint32) *uint256.Int {
 	x.SubUint64(x, uint64(beta))
 	g := uint64(gU16)
-	g4 := g*g*g*g
+	g4 := g * g * g * g
 	var tmp, res uint256.Int
 	if x.Sign() > 0 {
 		// If x >= 6*g, return alpha
@@ -98,7 +98,7 @@ func expXg4(x *uint256.Int, g uint64) *uint256.Int {
 	// After calculating the closestValue x/g is <= 0.5, so that the series in the neighborhood of zero converges with sufficient speed
 	var xLowestDegree uint256.Int
 	xLowestDegree.Set(x)
-	res := uint256.NewInt(g*g*g*g) // g**4
+	res := uint256.NewInt(g * g * g * g) // g**4
 
 	res.Add(res, tmp.Mul(&xLowestDegree, tmp.SetUint64(g*g*g))) // g**4 + x*g**3
 
