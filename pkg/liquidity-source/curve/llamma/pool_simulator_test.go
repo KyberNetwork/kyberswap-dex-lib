@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -19,18 +18,19 @@ import (
 )
 
 func TestStatefullCalcAmountOut(t *testing.T) {
-	poolStr := "{\"address\":\"0xfa96ad0a9e64261db86950e2da362f5572c5c6fd\",\"exchange\":\"curve-llamma\",\"type\":\"curve-llamma\",\"timestamp\":0," +
-		"\"reserves\":[\"9356923482485339894571\",\"2801882888675171049458\"]," +
-		"\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"decimals\":18,\"swappable\":true}," +
-		"{\"address\":\"0xac3e018457b222d93114458476f3e3416abbe38f\",\"decimals\":18,\"swappable\":true}],\"extra\":" +
-		"\"{\\\"BasePrice\\\":\\\"2500000000000000000000\\\",\\\"Fee\\\":\\\"10000000000000000\\\"," +
-		"\\\"AdminFeesX\\\":\\\"0\\\",\\\"AdminFeesY\\\":\\\"0\\\",\\\"AdminFee\\\":\\\"0\\\",\\\"dynamicFee\\\":\\\"10000000000000000\\\"," +
-		"\\\"priceOracle\\\":\\\"2500000000000000000000\\\",\\\"ActiveBand\\\":0,\\\"MinBand\\\":-75,\\\"MaxBand\\\":981," +
-		"\\\"bands\\\":null}\"," +
-		"\"staticExtra\":\"{\\\"A\\\":\\\"100\\\",\\\"priceOracleAddress\\\":\\\"0x28d7880B5b67fB4a0B1c6Ed6c33c33f365113C29\\\"}\",\"blockNumber\":0}"
+	// Check using Python code from the repository: https://github.com/0xreviews/crvusdsim
+	poolStr := "{\"address\":\"0xfa96ad0a9e64261db86950e2da362f5572c5c6fd\",\"exchange\":\"curve-llamma\",\"type\":\"curve-llamma\",\"timestamp\":0,\"reserves\":[\"0\",\"1001000000000150100000\"],\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xac3e018457b222d93114458476f3e3416abbe38f\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"BasePrice\\\":\\\"2500000000000000000000\\\",\\\"Fee\\\":\\\"10000000000000000\\\",\\\"AdminFeesX\\\":\\\"0\\\",\\\"AdminFeesY\\\":\\\"0\\\",\\\"AdminFee\\\":\\\"0\\\",\\\"dynamicFee\\\":\\\"10000000000000000\\\",\\\"priceOracle\\\":\\\"2500000000000000000000\\\",\\\"ActiveBand\\\":0,\\\"MinBand\\\":0,\\\"MaxBand\\\":39,\\\"bands\\\":null}\",\"staticExtra\":\"{\\\"A\\\":\\\"100\\\",\\\"useDynamicFee\\\":true}\",\"blockNumber\":0}"
 
-	bandsX := map[int64]*uint256.Int{}
-	bandsY := map[int64]*uint256.Int{
+	var ep entity.Pool
+	err := json.Unmarshal([]byte(poolStr), &ep)
+	require.Nil(t, err)
+
+	sim, err := NewPoolSimulator(ep)
+	require.Nil(t, err)
+	require.NotNil(t, sim)
+
+	sim.BandsX = map[int64]*uint256.Int{}
+	sim.BandsY = map[int64]*uint256.Int{
 		4:  uint256.MustFromDecimal("52631578947368422"),
 		5:  uint256.MustFromDecimal("52631578964035091"),
 		6:  uint256.MustFromDecimal("52631578969590647"),
@@ -68,23 +68,6 @@ func TestStatefullCalcAmountOut(t *testing.T) {
 		38: uint256.MustFromDecimal("4761"),
 		39: uint256.MustFromDecimal("4761"),
 	}
-
-	var ep entity.Pool
-	err := json.Unmarshal([]byte(poolStr), &ep)
-	require.Nil(t, err)
-
-	sim, err := NewPoolSimulator(ep)
-	require.Nil(t, err)
-	require.NotNil(t, sim)
-
-	sim.LogARatio = new(int256.Int).SetUint64(10050335853501431)
-	sim.ActiveBand = 0
-	sim.MinBand = 0
-	sim.MaxBand = 39
-	sim.Fee = uint256.MustFromDecimal("10000000000000000")
-	sim.BandsX = bandsX
-	sim.BandsY = bandsY
-	sim.UseDynamicFee = true
 
 	testCases := []struct {
 		index             int
@@ -551,11 +534,15 @@ func TestCalcAmountOut(t *testing.T) {
 
 				expectedAmountOutFloat64, _ := strconv.ParseFloat(tc.expectedAmountOut, 64)
 				gotAmountOutFloat64, _ := got.TokenAmountOut.Amount.Float64()
-				t.Log(tc.name, "diff", gotAmountOutFloat64/expectedAmountOutFloat64)
+				t.Logf("diff %.6f%%", (gotAmountOutFloat64/expectedAmountOutFloat64-1)*100)
 				require.True(t, approx(expectedAmountOutFloat64, gotAmountOutFloat64, 1e-4, 0))
 			}
 		})
 	}
+}
+
+func TestCalcAmountIn(t *testing.T) {
+
 }
 
 func approx(x1, x2, precision, absPrecision float64) bool {

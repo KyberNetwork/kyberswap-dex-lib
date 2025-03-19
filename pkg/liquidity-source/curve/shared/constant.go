@@ -10,7 +10,6 @@ const (
 	CURVE_POOL_TYPE_TRICRYPTO_NG    CurvePoolType = "curve-tricrypto-ng"
 	CURVE_POOL_TYPE_TWOCRYPTO_NG    CurvePoolType = "curve-twocrypto-ng"
 	CURVE_POOL_TYPE_CRYPTO_META     CurvePoolType = "curve-crypto-meta"
-	CURVE_POOL_TYPE_CURVE_LENDING   CurvePoolType = "curve-lending"
 
 	// https://github.com/curvefi/curve-js/blob/cb26335/src/interfaces.ts#L11
 	CURVE_DATASOURCE_MAIN              CurveDataSource = "main"
