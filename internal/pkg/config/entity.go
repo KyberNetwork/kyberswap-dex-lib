@@ -19,7 +19,6 @@ type Common struct {
 	RPCTimeout              time.Duration            `mapstructure:"rpcTimeout"`
 	ExecutorAddress         string                   `mapstructure:"executorAddress"`
 	RouterAddress           string                   `mapstructure:"routerAddress"`
-	GasTokenAddress         string                   `mapstructure:"gasTokenAddress"`
 	MulticallAddress        string                   `mapstructure:"multicallAddress"`
 	WhitelistedTokenSet     map[string]bool          `mapstructure:"whitelistedTokenSet"`
 	BlacklistedPoolsSet     map[string]bool          `mapstructure:"blacklistedPoolsSet"`

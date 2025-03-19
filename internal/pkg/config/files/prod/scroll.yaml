@@ -15,7 +15,6 @@ common:
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x5300000000000000000000000000000000000004"
   whitelistedTokenSet: &whitelistedTokenSet
     0x5300000000000000000000000000000000000004: true # WETH
     0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4: true # USDC
@@ -57,15 +56,7 @@ common:
     - "ambient"
     - "scribe"
   excludedSourcesByClient: &excludedSourcesByClient
-    # llamaswap:
-    #   - "swaap-v2"
-    #   - "hashflow-v3"
-    #   - "native-v1"
-    #   - "bebop"
-    #   - "clipper"
-    #   - "dexalot"
-    #   - "mx-trading"
-  featureFlags: &featureFlags
+  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -158,15 +149,9 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
-    defillama:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
     llamaswap:
       receiver:
       percent:
@@ -181,7 +166,6 @@ encoder:
 useCase:
   getRoute:
     chainId: *chainId
-    gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient

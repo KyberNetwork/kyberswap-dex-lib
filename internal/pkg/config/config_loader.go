@@ -114,8 +114,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 			Host: "0.0.0.0",
 		}
 	}
-	c.Common.GasTokenAddress = strings.ToLower(c.Common.GasTokenAddress)
-	c.UseCase.GetRoute.GasTokenAddress = strings.ToLower(c.UseCase.GetRoute.GasTokenAddress)
+	c.UseCase.GetRoute.GasTokenAddress = strings.ToLower(valueobject.WrappedNativeMap[c.Common.ChainID])
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
 	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled

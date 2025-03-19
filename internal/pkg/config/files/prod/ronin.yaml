@@ -3,59 +3,32 @@ pprof: false
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
-  prefix: /polygon-zkevm
+  prefix: /ronin
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 1101
-  chainName: &chainName polygon-zkevm
-  rpc: "https://zkevm-rpc.com"
+  chainId: &chainId 2020
+  chainName: &chainName ronin
+  rpc: "https://api.roninchain.com/rpc"
   rpcTimeout: 100ms
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9" # WETH
   whitelistedTokenSet: &whitelistedTokenSet
-    0xa2036f0538221a77a3937f1379699f44945018d0: true # MATIC
-    0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9: true # WETH
-    0x83b874c1e09d316059d929da402dcb1a98e92082: true # stMATIC
-    0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4: true # DAI
-    0xa8ce8aee21bc2a48a5ef670afcc9274c7bbbc035: true # USDC
-    0x27a4bf80c2d63e42437258533dac7eaff9881bdb: true # MAI
+    0xe514d9DEB7966c8BE0ca922de8a064264eA6bcd4: true # WRON
+    0xc99a6A985eD2Cac1ef41640596C5A5f9F4E19Ef5: true # WETH
+    0x0B7007c13325C48911F73A2daD5FA5dCBf808aDc: true # USDC
+    0x7EAe20d11Ef8c779433Eb24503dEf900b9d28ad7: true # PIXEL
+    0x97a9107C1793BC407d6F527b77e7fff4D812bece: true # AXS
+    0x1c306872bC82525d72Bf3562E8F0aA3f8F26e857: true # YGG
+    0xa8754b9Fa15fc18BB59458815510E40a12cD2014: true # SLP
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "pancake-v3"
-    - "quickswap-v3"
-    - "sushiswap-v3"
-    - "mantisswap"
-    - "kokonut-crypto"
-    - "kyberswap"
-    - "kyberswap-static"
-    - "quickperps"
-    - "pancake"
-    - "woofi-v2"
-    - "balancer-v2-weighted"
-    - "balancer-v2-stable"
-    - "balancer-v2-composable-stable"
-    - "zero"
-    - "doveswap-v3"
-    - "quickswap-uni-v3"
-    - "uniswapv3"
-    - "gyroscope-2clp"
-    - "gyroscope-3clp"
-    - "gyroscope-eclp"
-    - "clipper"
+    - "katana-v2"
+    - "katana-v3"
   excludedSourcesByClient: &excludedSourcesByClient
-    # llamaswap:
-    #   - "swaap-v2"
-    #   - "hashflow-v3"
-    #   - "native-v1"
-    #   - "bebop"
-    #   - "clipper"
-    #   - "dexalot"
-    #   - "mx-trading"
-  featureFlags: &featureFlags
+  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -154,15 +127,9 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
-    defillama:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
     llamaswap:
       receiver:
       percent:
@@ -177,7 +144,6 @@ encoder:
 useCase:
   getRoute:
     chainId: *chainId
-    gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient
@@ -200,6 +166,7 @@ useCase:
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
+        isPathGeneratorEnabled: false
         useAEVMRemoteFinder: false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
@@ -320,19 +287,15 @@ useCase:
     chainId: *chainId
     salt: *salt
     rfq:
-      clipper:
-        handler: clipper
+      kyberswap-limit-order-v2:
+        handler: limit-order
         properties:
-          http:
-            basic_auth_key:
-            base_url: "https://api.clipper.exchange"
-            timeout: 10s
-            retry_count: 3
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
-    faultyPoolDetectorDisabled: false
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig
@@ -344,8 +307,8 @@ useCase:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     faultyPoolsRenewalInterval: 5s
-    capacity: 100000
-    poolRenewalInterval: 2s
+    capacity: 1000000
+    poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
@@ -354,7 +317,7 @@ useCase:
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
-    subgraphURL: https://polygon-zkevm-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon-zkevm
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-ronin/version/latest
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet
@@ -460,10 +423,6 @@ repository:
     goCache:
       expiration: -1
       cleanupInterval: -1
-      chainId: *chainId
-    http:
-      timeout: 5s
-      baseUrl: "http://token-catalog-api.core-cluster.gke.production.internal:80"
   poolRank:
     redis:
       prefix: *chainName

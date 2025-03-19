@@ -3,13 +3,16 @@ package buildroute
 import (
 	"context"
 	"math/big"
+	"strings"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type GasEstimator struct {
@@ -36,17 +39,17 @@ type IEthereumGasEstimator interface {
 func NewGasEstimator(
 	gasEstimator IEthereumGasEstimator,
 	gasRepo IGasRepository,
-	onchainpriceRepository IOnchainPriceRepository,
-	gasToken string,
+	onchainPriceRepository IOnchainPriceRepository,
+	chainId valueobject.ChainID,
 	routerAddress string,
 ) *GasEstimator {
 	return &GasEstimator{
 		gasEstimator:    gasEstimator,
 		gasRepository:   gasRepo,
-		gasTokenAddress: gasToken,
+		gasTokenAddress: strings.ToLower(valueobject.WrappedNativeMap[chainId]),
 		routerAddress:   routerAddress,
 
-		onchainpriceRepository: onchainpriceRepository,
+		onchainpriceRepository: onchainPriceRepository,
 	}
 }
 

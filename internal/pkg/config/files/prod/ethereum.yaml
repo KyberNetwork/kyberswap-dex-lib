@@ -15,7 +15,6 @@ common:
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
     0x06b44daa59abd49ac739879bd43a422ed1bd4f7a: true
     0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true
@@ -161,15 +160,7 @@ common:
     - "uniswap-v4"
     - "savings-usds"
   excludedSourcesByClient: &excludedSourcesByClient
-    # llamaswap:
-    #   - "swaap-v2"
-    #   - "hashflow-v3"
-    #   - "native-v1"
-    #   - "bebop"
-    #   - "clipper"
-    #   - "dexalot"
-    #   - "mx-trading"
-  featureFlags: &featureFlags
+  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -277,15 +268,9 @@ encoder:
   minimumPSThreshold: 1000000
   executorAddressByClientID:
     unibot-tg: *executorAddress
-    defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
-    defillama:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
     llamaswap:
       receiver:
       percent:
@@ -306,7 +291,6 @@ encoder:
 useCase:
   getRoute:
     chainId: *chainId
-    gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient
@@ -565,7 +549,6 @@ useCase:
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
   generateBestPaths:
-    gasTokenAddress: *gasTokenAddress
     getBestPoolsOptions: *getBestPoolsOptions
     spfaFinderOptions: *finderOptions
     whitelistedTokens: *whitelistedTokenSet
@@ -576,7 +559,7 @@ useCase:
     maintainingInterval: 360s
     chainId: *chainId
   trackExecutor:
-    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-ethereum/version/latest
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

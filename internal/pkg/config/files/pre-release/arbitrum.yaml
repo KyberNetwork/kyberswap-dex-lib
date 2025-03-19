@@ -15,7 +15,6 @@ common:
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0xC7D3AB410d49b664D03Fe5B1038852ac852b1B29"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
     0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true
     0x912ce59144191c1204e64559fe8253a0e49e6548: true
@@ -126,15 +125,7 @@ common:
     - "sky-psm"
     - "overnight-usdp"
   excludedSourcesByClient: &excludedSourcesByClient
-    # llamaswap:
-    #   - "swaap-v2"
-    #   - "hashflow-v3"
-    #   - "native-v1"
-    #   - "bebop"
-    #   - "clipper"
-    #   - "dexalot"
-    #   - "mx-trading"
-  featureFlags: &featureFlags
+  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -241,16 +232,10 @@ encoder:
   minimumPSThreshold: 1000000
   executorAddressByClientID:
     unibot-tg: *l2ExecutorAddress
-    defillama: *l2ExecutorAddress
     llamaswap: *l2ExecutorAddress
     kyberswap: *l2ExecutorAddress
     kyberswap-earn: *l2ExecutorAddress
   partnerPositiveSlippageInfo:
-    defillama:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
     llamaswap:
       receiver:
       percent:
@@ -309,7 +294,6 @@ encoder:
 useCase:
   getRoute:
     chainId: *chainId
-    gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient
@@ -540,7 +524,7 @@ useCase:
     faultyPoolsRenewalInterval: 5s
     capacity: 1000000
     poolRenewalInterval: 3s
-    featureFlags: *featureFlags
+    featureFlags:
     useAEVMRemoteFinder: *useAEVMRemoteFinder
     faultyPoolsExpireThreshold: 3s
   indexPools:
@@ -550,7 +534,7 @@ useCase:
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
-    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-arbitrum
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-arbitrum/version/latest
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

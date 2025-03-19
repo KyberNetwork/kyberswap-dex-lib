@@ -48,7 +48,8 @@ var (
 	ErrInvalidPrice = errors.New("invalid price")
 )
 
-func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepository ITokenRepository, nativeTokenAddress string) (*grpcRepository, error) {
+func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID,
+	tokenRepository ITokenRepository) (*grpcRepository, error) {
 	grpcConfig := grpcclient.Config{
 		BaseURL:  config.BaseURL,
 		Timeout:  config.Timeout,
@@ -65,7 +66,7 @@ func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepo
 		chainId:            chainId,
 		grpcClient:         grpcClient.C,
 		tokenRepository:    tokenRepository,
-		nativeTokenAddress: strings.ToLower(nativeTokenAddress),
+		nativeTokenAddress: strings.ToLower(valueobject.WrappedNativeMap[chainId]),
 	}, nil
 }
 

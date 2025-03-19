@@ -15,7 +15,6 @@ common:
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
   whitelistedTokenSet: &whitelistedTokenSet
     0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83: true # FTM
     0x049d68029688eabf473097a2fc38ef61633a3c7a: true # fUSDT
@@ -58,15 +57,7 @@ common:
     - "silverswap"
     - "lo1inch"
   excludedSourcesByClient: &excludedSourcesByClient
-    # llamaswap:
-    #   - "swaap-v2"
-    #   - "hashflow-v3"
-    #   - "native-v1"
-    #   - "bebop"
-    #   - "clipper"
-    #   - "dexalot"
-    #   - "mx-trading"
-  featureFlags: &featureFlags
+  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -165,15 +156,9 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    defillama: *executorAddress
     llamaswap: *executorAddress
     kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
-    defillama:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
     llamaswap:
       receiver:
       percent:
@@ -188,7 +173,6 @@ encoder:
 useCase:
   getRoute:
     chainId: *chainId
-    gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient
@@ -363,7 +347,7 @@ useCase:
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
-    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-fantom
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-fantom/version/latest
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

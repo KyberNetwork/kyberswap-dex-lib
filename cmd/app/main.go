@@ -239,11 +239,8 @@ func apiAction(c *cli.Context) (err error) {
 	)
 
 	var onchainpriceRepository getroute.IOnchainPriceRepository
-	grpcRepository, err := onchainprice.NewGRPCRepository(
-		cfg.Repository.OnchainPrice.Grpc,
-		cfg.Common.ChainID,
-		tokenRepository,
-		cfg.Common.GasTokenAddress)
+	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
+		tokenRepository)
 	if err != nil {
 		return err
 	}
@@ -422,7 +419,7 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,
-		cfg.Common.GasTokenAddress,
+		cfg.Common.ChainID,
 		cfg.Common.RouterAddress)
 
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
@@ -621,11 +618,8 @@ func indexerAction(c *cli.Context) (err error) {
 	)
 
 	var onchainpriceRepository getroute.IOnchainPriceRepository
-	grpcRepository, err := onchainprice.NewGRPCRepository(
-		cfg.Repository.OnchainPrice.Grpc,
-		cfg.Common.ChainID,
-		tokenRepository,
-		cfg.Common.GasTokenAddress)
+	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
+		tokenRepository)
 	if err != nil {
 		return err
 	}
@@ -795,7 +789,7 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		executorBalanceRepository,
 		trackexecutor.Config{
 			SubgraphURL:       cfg.UseCase.TrackExecutor.SubgraphURL,
-			GasTokenAddress:   cfg.Common.GasTokenAddress,
+			GasTokenAddress:   strings.ToLower(valueobject.WrappedNativeMap[cfg.Common.ChainID]),
 			ExecutorAddresses: trackExecutorAddresses,
 		},
 	)
@@ -968,11 +962,8 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	}
 
 	var onchainpriceRepository indexpools.IOnchainPriceRepository
-	grpcRepository, err := onchainprice.NewGRPCRepository(
-		cfg.Repository.OnchainPrice.Grpc,
-		cfg.Common.ChainID,
-		tokenRepository,
-		cfg.Common.GasTokenAddress)
+	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
+		tokenRepository)
 	if err != nil {
 		return err
 	}
