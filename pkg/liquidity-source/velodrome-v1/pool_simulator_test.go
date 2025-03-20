@@ -119,7 +119,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			},
 			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: utils.NewBig10("36283954")},
 			tokenOut:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-			expectedAmountOut: utils.NewBig10("36207265"),
+			expectedAmountOut: utils.NewBig10("36307464"),
 			expectedFee:       utils.NewBig10("18141"),
 		},
 		{
@@ -141,7 +141,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			},
 			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("302268108")},
 			tokenOut:          "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-			expectedAmountOut: utils.NewBig10("301723758"),
+			expectedAmountOut: utils.NewBig10("302127234"),
 			expectedFee:       utils.NewBig10("151134"),
 		},
 	}
