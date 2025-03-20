@@ -224,9 +224,9 @@ func (p *PoolSimulator) _getAmountOut(
 ) (*uint256.Int, error) {
 	if p.stable {
 		xy := p._k(_reserve0, _reserve1)
-		_reserveA, _reserveB := new(uint256.Int), new(uint256.Int)
-		_reserveA = _reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.decimals0)
-		_reserveB = _reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.decimals1)
+		var _reserveA, _reserveB uint256.Int
+		_reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.decimals0)
+		_reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.decimals1)
 		decimalsA, decimalsB := p.decimals0, p.decimals1
 
 		if tokenIn != p.Info.Tokens[0] {
@@ -236,11 +236,11 @@ func (p *PoolSimulator) _getAmountOut(
 
 		amountIn = new(uint256.Int).Mul(amountIn, number.Number_1e18)
 		amountIn.Div(amountIn, decimalsA)
-		y, err := p._get_y(_reserveA.Add(amountIn, _reserveA), xy, _reserveB)
+		y, err := p._get_y(_reserveA.Add(amountIn, &_reserveA), xy, &_reserveB)
 		if err != nil {
 			return nil, err
 		}
-		y = y.Sub(_reserveB, y)
+		y = y.Sub(&_reserveB, y)
 
 		return y.Div(y.Mul(y, decimalsB), number.Number_1e18), nil
 	}
@@ -365,7 +365,7 @@ func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
 func (p *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
 	var dy uint256.Int
 	y = y.Clone()
-	for i := 0; i < 255; i++ {
+	for range 255 {
 		k := _f(x0, y)
 
 		if k.Cmp(xy) < 0 {
