@@ -4,14 +4,14 @@ import "net/http"
 
 type Config struct {
 	DexID              string
-	SubgraphAPI        string      `json:"subgraphAPI"`
-	SubgraphHeaders    http.Header `json:"subgraphHeaders"`
-	TickLensAddress    string      `json:"tickLensAddress"`
-	PreGenesisPoolPath string      `json:"preGenesisPoolPath"`
-	AllowSubgraphError bool        `json:"allowSubgraphError"`
-	preGenesisPoolIDs  []string
+	SubgraphAPI        string      `json:"subgraphAPI,omitempty"`
+	SubgraphHeaders    http.Header `json:"subgraphHeaders,omitempty"`
+	AllowSubgraphError bool        `json:"allowSubgraphError,omitempty"`
+	TickLensAddress    string      `json:"tickLensAddress,omitempty"`
+	PreGenesisPoolPath string      `json:"preGenesisPoolPath,omitempty"`
+	AlwaysUseTickLens  bool        `json:"alwaysUseTickLens,omitempty"` // instead of fetching from subgraph
 
-	AlwaysUseTickLens bool // instead of fetching from subgraph
+	preGenesisPoolIDs []string
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
