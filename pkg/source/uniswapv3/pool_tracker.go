@@ -224,37 +224,34 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		ABI:    uniswapV3PoolABI,
 		Target: p.Address,
 		Method: methodGetLiquidity,
-		Params: nil,
-	}, []interface{}{&liquidity})
+	}, []any{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV3PoolABI,
 		Target: p.Address,
 		Method: methodGetSlot0,
-		Params: nil,
-	}, []interface{}{&slot0})
+	}, []any{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV3PoolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
-		Params: nil,
-	}, []interface{}{&tickSpacing})
+	}, []any{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve0})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve1})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()
