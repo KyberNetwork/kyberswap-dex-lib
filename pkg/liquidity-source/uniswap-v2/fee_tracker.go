@@ -180,7 +180,7 @@ func (t *MemeswapFeeTracker) GetFee(
 	_ /*factoryAddress*/ string,
 	blockNumber *big.Int,
 ) (uint64, error) {
-	var fee uint8
+	var fee uint64
 
 	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
@@ -195,5 +195,5 @@ func (t *MemeswapFeeTracker) GetFee(
 		return 0, err
 	}
 
-	return uint64(fee), nil
+	return fee, nil
 }
