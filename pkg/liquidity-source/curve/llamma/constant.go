@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	defaultGas = Gas{Exchange: 91000}
+	defaultGas = Gas{Exchange: 310000}
 
 	Number_1e36 = big256.TenPowInt(36)
 
@@ -44,8 +44,9 @@ var (
 )
 
 var (
-	ErrMulDivOverflow = errors.New("mul div overflow")
-	ErrWrongIndex     = errors.New("wrong index")
-	ErrZeroSwapAmount = errors.New("zero swap amount")
-	ErrWadExpOverflow = errors.New("wad_exp overflow")
+	ErrMulDivOverflow      = errors.New("mul div overflow")
+	ErrWrongIndex          = errors.New("wrong index")
+	ErrZeroSwapAmount      = errors.New("zero swap amount")
+	ErrWadExpOverflow      = errors.New("wad_exp overflow")
+	ErrInsufficientBalance = errors.New("insufficient balance")
 )
