@@ -158,10 +158,8 @@ func (t *PoolSimulator) exchange(i, j int, amount *uint256.Int, calcAmountOut bo
 		return nil, ErrZeroSwapAmount
 	}
 
-	inIdx, outIdx := t.getCollateralIndex(), t.getBorrowedIndex()
 	inPrecision, outPrecision := t.collateralPrecision, t.borrowedPrecision
 	if i == 0 {
-		inIdx, outIdx = outIdx, inIdx
 		inPrecision, outPrecision = outPrecision, inPrecision
 	}
 
