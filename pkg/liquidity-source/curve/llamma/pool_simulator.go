@@ -137,6 +137,10 @@ func (t *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, err
 	}
 
+	if out.OutAmount.Lt(amountOut) {
+		return nil, ErrInsufficientBalance
+	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: out.InAmount.ToBig()},
 		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: out.AdminFee.ToBig()},
