@@ -180,6 +180,10 @@ func (t *PoolTracker) getBands(
 	ctx context.Context,
 	poolAddress string, activeBand, minBand, maxBand, bandLimit int64,
 ) ([]Band, error) {
+	if minBand > maxBand {
+		return nil, nil
+	}
+
 	startBand := activeBand - (bandLimit+1)/2
 	if startBand < minBand {
 		startBand = minBand
