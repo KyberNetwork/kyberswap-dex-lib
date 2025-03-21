@@ -81,6 +81,7 @@ common:
     - "thena-fusion-v3"
     - "uniswap-v4"
     - "overnight-usdp"
+    - "owlswap-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
