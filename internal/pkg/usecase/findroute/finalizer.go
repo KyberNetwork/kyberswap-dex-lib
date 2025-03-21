@@ -115,6 +115,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		} else {
 			logger.WithFields(logger.Fields{"extraData": extraData}).Error("wrong extra data in FeeReductionFinalizerExtraData")
 		}
+	} else {
+		logger.Info("extraData is nil, can not calculate alpha fee")
 	}
 
 	// Step 2: finalize route
