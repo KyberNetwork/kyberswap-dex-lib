@@ -51,6 +51,13 @@ var OutputChangeNoChange = dto.OutputChange{
 	Level:   dto.OutputChangeLevelNormal,
 }
 
+type RouteType string
+
+const (
+	AMM RouteType = "AMM"
+	RFQ RouteType = "RFQ"
+)
+
 type BuildRouteUseCase struct {
 	tokenRepository           ITokenRepository
 	poolRepository            IPoolRepository
@@ -179,6 +186,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	var rfqRouteMsg = new(v1.RouteSummary)
 	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary,
 		rfqRouteMsg, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
+
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
@@ -215,14 +223,19 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		transactionValue = routeSummary.AmountIn
 	}
 	// parse message, we always send events to kafka although the route might not contain alpha fee
-	data, err := proto.Marshal(rfqRouteMsg)
-	if err != nil {
-		logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
-	}
-
-	err = uc.publisherRepository.Publish(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, data)
-	if err != nil {
-		return nil, err
+	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
+	// just a temporarily check if rfqRouteMsg hasn't init yet, we will not send it to kafka
+	if rfqRouteMsg.RouteId != "" {
+		data, err := proto.Marshal(rfqRouteMsg)
+		if err != nil {
+			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
+		} else {
+			err = uc.publisherRepository.Publish(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, data)
+			if err != nil {
+				// ignore error
+				logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
+			}
+		}
 	}
 
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
@@ -538,35 +551,10 @@ func (uc *BuildRouteUseCase) processRFQs(
 						routeSummary.AlphaFee.SwapId == swapIdx {
 						routeSummary.AlphaFee = newAlphaFee
 					}
+
+					uc.convertToRouterSwappedEvent(routeSummary, dexValueObject.ExchangeKyberPMM, extra, rfqRouteMsg)
 				}
 
-				// General information
-				rfqRouteMsg.RouteId = routeSummary.RouteID
-				rfqRouteMsg.RfqSource = kyberpmm.DexTypeKyberPMM
-				rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(extra.QuoteTimestamp, 0))
-				rfqRouteMsg.SellToken = routeSummary.TokenIn
-				rfqRouteMsg.BuyToken = routeSummary.TokenOut
-				rfqRouteMsg.RequestedAmount = routeSummary.AmountIn.Text(10)
-				rfqRouteMsg.VolumeInUsd = routeSummary.AmountInUSD
-				rfqRouteMsg.PartnerName = extra.Partner
-				rfqRouteMsg.RouteType = "RFQ"
-
-				// info related to alpha fee, incase we don't have alpha fee, we don't need to track these fields
-				// because we only care about positive slippage
-				if routeSummary.AlphaFee != nil {
-					takerAmount, _ := new(big.Int).SetString(extra.TakerAmount, 10)
-					makerAmount, _ := new(big.Int).SetString(extra.MakerAmount, 10)
-
-					rfqRouteMsg.TakerAmount = takerAmount.Text(10)
-					rfqRouteMsg.MakerAmount = makerAmount.Text(10)
-					rfqRouteMsg.TakerAsset = extra.TakerAsset
-					rfqRouteMsg.MakerAsset = extra.MakerAsset
-
-					rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.Text(10)
-					rfqRouteMsg.AlphaFee = routeSummary.AlphaFee.Amount.Text(10)
-					rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.Token
-					rfqRouteMsg.AlphaFeeInUsd = routeSummary.AlphaFee.AmountUsd
-				}
 			}
 		default:
 			// implementation for other RFQ sources
@@ -574,6 +562,46 @@ func (uc *BuildRouteUseCase) processRFQs(
 	}
 
 	return err
+}
+
+// TODO refactor later for other rfqs
+func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobject.RouteSummary, rfq dexValueObject.Exchange, extra any, rfqRouteMsg *v1.RouteSummary) {
+	// General information
+	rfqRouteMsg.RouteId = routeSummary.RouteID
+	rfqRouteMsg.RfqSource = kyberpmm.DexTypeKyberPMM
+	rfqRouteMsg.SellToken = routeSummary.TokenIn
+	rfqRouteMsg.BuyToken = routeSummary.TokenOut
+	rfqRouteMsg.RequestedAmount = routeSummary.AmountIn.Text(10)
+	rfqRouteMsg.VolumeInUsd = routeSummary.AmountInUSD
+
+	// info related to alpha fee, incase we don't have alpha fee, we don't need to track these fields
+	// because we only care about positive slippage
+	if routeSummary.AlphaFee != nil {
+		rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.Text(10)
+		rfqRouteMsg.AlphaFee = routeSummary.AlphaFee.Amount.Text(10)
+		rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.Token
+		rfqRouteMsg.AlphaFeeInUsd = routeSummary.AlphaFee.AmountUsd
+	}
+
+	switch rfq {
+	case dexValueObject.ExchangeKyberPMM:
+		kyberpmmExtra, ok := extra.(kyberpmm.RFQExtra)
+		if ok {
+			rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(kyberpmmExtra.QuoteTimestamp, 0))
+			takerAmount, _ := new(big.Int).SetString(kyberpmmExtra.TakerAmount, 10)
+			makerAmount, _ := new(big.Int).SetString(kyberpmmExtra.MakerAmount, 10)
+
+			rfqRouteMsg.TakerAmount = takerAmount.Text(10)
+			rfqRouteMsg.MakerAmount = makerAmount.Text(10)
+			rfqRouteMsg.TakerAsset = kyberpmmExtra.TakerAsset
+			rfqRouteMsg.MakerAsset = kyberpmmExtra.MakerAsset
+			rfqRouteMsg.PartnerName = kyberpmmExtra.Partner
+		}
+		rfqRouteMsg.RouteType = string(RFQ)
+
+	default:
+		rfqRouteMsg.RouteType = string(AMM)
+	}
 }
 
 // updateRouteSummary updates AmountInUSD/AmountOutUSD, TokenInMarketPriceAvailable/TokenOutMarketPriceAvailable in command.RouteSummary
