@@ -273,6 +273,7 @@ encoder:
   partnerPositiveSlippageInfo:
     tritium-research:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      randomReturnAmountInflation: 0.0006
     llamaswap:
       receiver:
       percent:
