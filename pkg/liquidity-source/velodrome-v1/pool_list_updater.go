@@ -262,7 +262,7 @@ func (u *PoolsListUpdater) initPools(
 	return pools, nil
 }
 
-// listPairTokens receives list of pair addresses and returns their token0 and token1
+// listMetadata retrieves pool metadata and block number for given pair addresses
 func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []common.Address) ([]PairMetadata, uint64, error) {
 	var (
 		metadataList = make([]PairMetadata, len(pairAddresses))
