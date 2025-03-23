@@ -585,12 +585,11 @@ func (t *PoolSimulator) pOracleUp(n int64) (*uint256.Int, error) {
 func (t *PoolSimulator) getDynamicFee(po, poUp *uint256.Int) *uint256.Int {
 	var ret, pcd, pcu uint256.Int
 	pcd.Mul(po, po).Div(&pcd, poUp).Mul(&pcd, po).Div(&pcd, poUp)
-
 	pcu.Mul(&pcd, t.A).Div(&pcu, t.Aminus1).Mul(&pcu, t.A).Div(&pcu, t.Aminus1)
 
 	if po.Lt(&pcd) {
 		ret.Sub(&pcd, po).Mul(&ret, tenPow18Div4).Div(&ret, &pcd)
-	} else {
+	} else if po.Gt(&pcu) {
 		ret.Sub(po, &pcu).Mul(&ret, tenPow18Div4).Div(&ret, po)
 	}
 
