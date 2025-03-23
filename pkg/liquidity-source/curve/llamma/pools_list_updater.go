@@ -88,13 +88,13 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	for i := 0; i < batchSize; i++ {
 		idx := big.NewInt(int64(offset + i))
 		factoryCalls.AddCall(&ethrpc.Call{
-			ABI:    curveControllerFactoryABI,
+			ABI:    CurveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAmms,
 			Params: []interface{}{idx},
 		}, []interface{}{&amms[i]})
 		factoryCalls.AddCall(&ethrpc.Call{
-			ABI:    curveControllerFactoryABI,
+			ABI:    CurveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodCollaterals,
 			Params: []interface{}{idx},
@@ -107,9 +107,9 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 	ammCalls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < batchSize; i++ {
 		ammCalls.AddCall(&ethrpc.Call{
-			ABI:    curveLlammaABI,
+			ABI:    CurveLlammaABI,
 			Target: amms[i].String(),
-			Method: llammaMethodA,
+			Method: LlammaMethodA,
 		}, []interface{}{&aCoefficients[i]})
 		ammCalls.AddCall(&ethrpc.Call{
 			ABI:    shared.ERC20ABI,
@@ -166,7 +166,7 @@ func (u *PoolsListUpdater) nCollaterals(ctx context.Context) (int, error) {
 	var nCollaterals *big.Int
 	calls := u.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveControllerFactoryABI,
+		ABI:    CurveControllerFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodNCollaterals,
 	}, []interface{}{&nCollaterals})

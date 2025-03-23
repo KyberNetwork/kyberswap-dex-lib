@@ -16,7 +16,7 @@ const (
 	factoryMethodCollaterals  = "collaterals"
 	factoryMethodAmms         = "amms"
 
-	llammaMethodA            = "A"
+	LlammaMethodA            = "A"
 	llammaMethodGetBasePrice = "get_base_price"
 	llammaMethodFee          = "fee"
 	llammaMethodAdminFee     = "admin_fee"

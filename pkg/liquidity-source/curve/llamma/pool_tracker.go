@@ -71,47 +71,47 @@ func (t *PoolTracker) GetNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodGetBasePrice,
 	}, []any{&basePrice})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodPriceOracle,
 	}, []any{&priceOracle})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodFee,
 	}, []any{&fee})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFee,
 	}, []any{&adminFee})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesX,
 	}, []any{&adminFeesX})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodAdminFeesY,
 	}, []any{&adminFeesY})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodActiveBand,
 	}, []any{&activeBand})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodMinBand,
 	}, []any{&minBand})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    curveLlammaABI,
+		ABI:    CurveLlammaABI,
 		Target: p.Address,
 		Method: llammaMethodMaxBand,
 	}, []any{&maxBand})
@@ -204,13 +204,13 @@ func (t *PoolTracker) getBands(
 	for i := int64(0); i < bandCount; i++ {
 		bandIndex := big.NewInt(i + startBand)
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveLlammaABI,
+			ABI:    CurveLlammaABI,
 			Target: poolAddress,
 			Method: llammaMethodBandsX,
 			Params: []interface{}{bandIndex},
 		}, []any{&bandsX[i]})
 		calls.AddCall(&ethrpc.Call{
-			ABI:    curveLlammaABI,
+			ABI:    CurveLlammaABI,
 			Target: poolAddress,
 			Method: llammaMethodBandsY,
 			Params: []interface{}{bandIndex},

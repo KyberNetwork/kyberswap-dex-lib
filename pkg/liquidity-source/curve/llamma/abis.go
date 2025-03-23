@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	curveControllerFactoryABI abi.ABI
-	curveLlammaABI            abi.ABI
+	CurveControllerFactoryABI abi.ABI
+	CurveLlammaABI            abi.ABI
 )
 
 func init() {
@@ -16,8 +16,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&curveControllerFactoryABI, curveControllerFactoryABIBytes},
-		{&curveLlammaABI, curveLlammaABIBytes},
+		{&CurveControllerFactoryABI, curveControllerFactoryABIBytes},
+		{&CurveLlammaABI, curveLlammaABIBytes},
 	}
 
 	for _, b := range build {
