@@ -21,6 +21,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -53,6 +54,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	constructRoute *finderCommon.ConstructRoute,
 	extraData interface{},
 ) (route *finderEntity.Route, err error) {
+	routeId := requestid.GetRequestIDFromCtx(ctx)
 	defer func() {
 		if r := recover(); r != nil {
 			route = nil
@@ -110,13 +112,13 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 				},
 			)
 			if err != nil {
-				logger.WithFields(logger.Fields{"error": err}).Error("error when calculate alpha fee")
+				logger.WithFields(logger.Fields{"error": err, "routeId": routeId}).Error("error when calculate alpha fee")
 			}
 		} else {
-			logger.WithFields(logger.Fields{"extraData": extraData}).Error("wrong extra data in FeeReductionFinalizerExtraData")
+			logger.WithFields(logger.Fields{"extraData": extraData, "routeId": routeId}).Error("wrong extra data in FeeReductionFinalizerExtraData")
 		}
 	} else {
-		logger.Info("extraData is nil, can not calculate alpha fee")
+		logger.WithFields(logger.Fields{"routeId": routeId}).Info("extraData is nil, can not calculate alpha fee")
 	}
 
 	// Step 2: finalize route

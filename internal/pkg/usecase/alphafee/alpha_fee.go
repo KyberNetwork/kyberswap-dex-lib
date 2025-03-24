@@ -87,8 +87,8 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 
 	reductionDelta := new(big.Int).Sub(param.BestRoute.AmountOut, param.BestAmmRoute.AmountOut)
 	if reductionDelta.Sign() <= 0 {
-		return nil, fmt.Errorf("reductionDelta is negative reduction delta %v, best Amount %s, ammAmount %s, %w",
-			reductionDelta, param.BestRoute.AmountOut, param.BestAmmRoute.AmountOut, ErrAlphaFeeNotExists)
+		return nil, fmt.Errorf("reductionDelta is negative reduction delta %v, best Amount %s, ammRoute %v, %w",
+			reductionDelta, param.BestRoute.AmountOut, param.BestAmmRoute, ErrAlphaFeeNotExists)
 	}
 
 	// If AMM best path and pmm best path almost equal, return error
