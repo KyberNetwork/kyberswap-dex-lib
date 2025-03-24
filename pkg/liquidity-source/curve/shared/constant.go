@@ -26,7 +26,9 @@ const (
 const (
 	MaxTokenCount = 8
 
+	ERC20MethodBalanceOf   = "balanceOf"
 	ERC20MethodTotalSupply = "totalSupply"
+	ERC20MethodDecimals    = "decimals"
 
 	CERC20MethodIsCToken = "isCToken"
 

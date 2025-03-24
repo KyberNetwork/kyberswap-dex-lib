@@ -16,11 +16,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
+	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
-	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
-	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
-	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
-	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
+	curvestablemetang "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
+	curvestableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
+	curvetricryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	curvetwocryptong "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
@@ -43,7 +45,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
-	honey "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
@@ -241,6 +243,7 @@ type Types struct {
 	CurveStableMetaNg          string
 	CurveTriCryptoNg           string
 	CurveTwoCryptoNg           string
+	CurveLlamma                string
 	KelpRSETH                  string
 	RocketPoolRETH             string
 	EthenaSusde                string
@@ -296,7 +299,6 @@ var (
 		CurveMeta:                  curve.PoolTypeMeta,
 		CurveAave:                  curve.PoolTypeAave,
 		CurveCompound:              curve.PoolTypeCompound,
-		CurveLending:               curve.PoolTypeLending,
 		CurveTricrypto:             curve.PoolTypeTricrypto,
 		CurveTwo:                   curve.PoolTypeTwo,
 		Uni:                        uniswap.DexTypeUniswap,
@@ -385,10 +387,12 @@ var (
 		BancorV21:                  bancorv21.DexType,
 		BancorV3:                   bancorv3.DexType,
 		CurveStablePlain:           plain.DexType,
-		CurveStableNg:              curveStableNg.DexType,
-		CurveStableMetaNg:          curveStableMetaNg.DexType,
-		CurveTriCryptoNg:           curveTricryptoNg.DexType,
-		CurveTwoCryptoNg:           curveTwocryptoNg.DexType,
+		CurveStableNg:              curvestableng.DexType,
+		CurveStableMetaNg:          curvestablemetang.DexType,
+		CurveTriCryptoNg:           curvetricryptong.DexType,
+		CurveTwoCryptoNg:           curvetwocryptong.DexType,
+		CurveLlamma:                curvellamma.DexType,
+		CurveLending:               curvelending.DexType,
 		KelpRSETH:                  rseth.DexType,
 		RocketPoolRETH:             reth.DexType,
 		SwellSWETH:                 sweth.DexType,
