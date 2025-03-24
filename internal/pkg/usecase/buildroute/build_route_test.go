@@ -60,9 +60,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
 
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder).AnyTimes()
 				encoder.EXPECT().
 					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
@@ -119,7 +117,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -168,8 +166,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -238,7 +234,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -304,8 +300,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -374,7 +368,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -440,8 +434,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -510,7 +502,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -577,8 +569,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -661,7 +651,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -732,8 +722,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -814,7 +802,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
-					encodeBuilder,
+					encoder,
 					config,
 				)
 			},
@@ -1540,8 +1528,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
 			encoder.EXPECT().
@@ -1595,7 +1581,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				&dummyL1FeeCalculator{},
 				nil,
 				clientDataEncoder,
-				encodeBuilder,
+				encoder,
 				tc.config,
 			)
 
@@ -2741,8 +2727,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
 			encoder.EXPECT().
@@ -2795,7 +2779,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				&dummyL1FeeCalculator{},
 				nil,
 				clientDataEncoder,
-				encodeBuilder,
+				encoder,
 				tc.config,
 			)
 
@@ -3139,8 +3123,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			command := tc.command()
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encoder.EXPECT().
 				GetExecutorAddress(gomock.Any()).
 				Return("0x00").AnyTimes()
@@ -3195,7 +3177,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),
 				clientDataEncoder,
-				encodeBuilder,
+				encoder,
 				tc.config,
 			)
 
@@ -3353,8 +3335,6 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
-			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
 			encoder.EXPECT().
@@ -3410,7 +3390,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),
 				clientDataEncoder,
-				encodeBuilder,
+				encoder,
 				tc.config,
 			)
 

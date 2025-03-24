@@ -98,6 +98,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "rfq timed out",
 	},
 
+	buildroute.ErrInvalidRouteChecksum: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40013,
+		Message:    "invalid route checksum",
+	},
+
 	getroute.ErrPoolSetEmpty: {
 		HTTPStatus: http.StatusInternalServerError,
 		Code:       5001,

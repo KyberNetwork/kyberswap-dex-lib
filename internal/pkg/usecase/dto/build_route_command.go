@@ -5,8 +5,9 @@ import (
 )
 
 type BuildRouteCommand struct {
-	RouteSummary valueobject.RouteSummary
-	Checksum     uint64
+	RouteSummary     valueobject.RouteSummary
+	Checksum         uint64
+	ValidateChecksum bool
 
 	Sender    string
 	Recipient string
