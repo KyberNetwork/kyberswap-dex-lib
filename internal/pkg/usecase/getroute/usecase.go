@@ -72,7 +72,7 @@ func NewUseCase(
 	var finalizedAggregator IAggregator
 	if config.Aggregator.FeatureFlags.IsRouteCachedEnable {
 		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache,
-			finderEngine)
+			finderEngine, tokenRepository, onchainpriceRepository)
 		finalizedAggregator = aggregatorWithCache
 	} else {
 		finalizedAggregator = correlatedPairsAggregator
@@ -181,6 +181,7 @@ func (u *useCase) wrapTokens(query dto.GetRoutesQuery) (dto.GetRoutesQuery, erro
 	return query, nil
 }
 
+// TODO: remove unnecessary get token and price here, we need to re-fetch tokens and prices for alpha fee calculation
 func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQuery) (*types.AggregateParams, error) {
 	tokenByAddress, err := u.getTokenByAddress(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
 	if err != nil {

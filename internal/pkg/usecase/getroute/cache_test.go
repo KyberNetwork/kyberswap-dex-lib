@@ -234,7 +234,7 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 			routeRepo := mocks.NewMockIRouteCacheRepository(ctrl)
 			routeRepo.EXPECT().Get(gomock.Any(), gomock.Any()).Return(tc.cachedRoutes, tc.err)
 
-			cache := NewCache(nil, routeRepo, nil, valueobject.CacheConfig{}, nil)
+			cache := NewCache(nil, routeRepo, nil, valueobject.CacheConfig{}, nil, nil, nil)
 			bestKey, bestRoute, err := cache.getBestRouteFromCache(context.Background(), tc.param, tc.keys)
 
 			assert.Equal(t, bestRoute, tc.bestRoute)

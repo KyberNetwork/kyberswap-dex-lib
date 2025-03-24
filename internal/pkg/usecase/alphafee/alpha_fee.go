@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/KyberNetwork/kutils/klog"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -135,7 +134,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		res, err := c.CalcAmountOut(ctx, pool, tokenAmountIn, toToken, swapLimit)
 
 		if err != nil {
-			klog.Warnf(ctx, "Finalize|CalcAmountOut err: %v|%v %s->%s thru %s",
+			logger.Errorf(ctx, "Alpha fee calculation finalize|CalcAmountOut err: %v|%v %s->%s thru %s",
 				err, currentAmountIn, fromToken, toToken, poolId)
 			return nil, ErrInvalidSwap
 		}
