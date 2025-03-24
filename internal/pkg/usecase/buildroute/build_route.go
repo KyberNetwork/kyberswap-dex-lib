@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,10 +22,11 @@ import (
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 
-	"runtime/debug"
-
 	v1 "github.com/KyberNetwork/aggregation-stats/messages/v1"
 	"github.com/KyberNetwork/kutils/klog"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -41,8 +43,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"google.golang.org/protobuf/proto"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -70,7 +70,7 @@ type BuildRouteUseCase struct {
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
-	encodeBuilder        encode.IEncodeBuilder
+	encoder              encode.IEncoder
 
 	alphaFeeCalculation *alphafee.AlphaFeeCalculation
 
@@ -90,7 +90,7 @@ func NewBuildRouteUseCase(
 	l1FeeCalculator IL1FeeCalculator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
-	encodeBuilder encode.IEncodeBuilder,
+	encoder encode.IEncoder,
 	config Config,
 ) *BuildRouteUseCase {
 	return &BuildRouteUseCase{
@@ -104,7 +104,7 @@ func NewBuildRouteUseCase(
 		l1FeeCalculator:           l1FeeCalculator,
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
 		clientDataEncoder:         clientDataEncoder,
-		encodeBuilder:             encodeBuilder,
+		encoder:                   encoder,
 		config:                    config,
 
 		alphaFeeCalculation: alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig,
@@ -139,13 +139,16 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		isValidChecksum = uc.IsValidChecksum(command.RouteSummary, command.Checksum)
 	}
 
+	if !isValidChecksum && uc.config.ValidateChecksumBySource[command.Source] {
+		return nil, ErrInvalidRouteChecksum
+	}
+
 	// Notice: must check route summary to track faulty pools at the beginning of the handle func to avoid route modification during execution
 	if isValidChecksum && uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
 		isFaultyPoolTrackEnable = uc.IsValidToTrackFaultyPools(command.RouteSummary.Timestamp)
 	}
 
-	encoder := uc.encodeBuilder.GetEncoder(uc.config.ChainID)
-	executorAddress := strings.ToLower(encoder.GetExecutorAddress(command.Source))
+	executorAddress := strings.ToLower(uc.encoder.GetExecutorAddress(command.Source))
 
 	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, command.RouteSummary)
 	if err != nil {
@@ -200,7 +203,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	encodedData, err := uc.encode(ctx, command, routeSummary, encoder, executorAddress)
+	encodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +259,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		OutputChange: OutputChangeNoChange,
 
 		Data:             encodedData,
-		RouterAddress:    uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).GetRouterAddress(),
+		RouterAddress:    uc.encoder.GetRouterAddress(),
 		TransactionValue: transactionValue.String(),
 	}, nil
 }
@@ -283,9 +286,7 @@ func (uc *BuildRouteUseCase) rfq(
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
 	defer span.End()
 
-	executorAddress := uc.encodeBuilder.
-		GetEncoder(uc.config.ChainID).
-		GetExecutorAddress(source)
+	executorAddress := uc.encoder.GetExecutorAddress(source)
 
 	rfqParamsByPoolType := make(map[string][]valueobject.IndexedRFQParams)
 	for pathIdx, path := range routeSummary.Route {

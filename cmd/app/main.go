@@ -14,8 +14,6 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/decode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
-	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l1encode"
-	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l2encode"
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -296,27 +294,7 @@ func apiAction(c *cli.Context) (err error) {
 		signer,
 		cfg.KeyPair.KeyIDForSealingData.ClientData,
 	)
-	l1Encoder := l1encode.NewEncoder(l1encode.Config{
-		RouterAddress:               cfg.Encoder.RouterAddress,
-		ExecutorAddress:             cfg.Encoder.ExecutorAddress,
-		ChainID:                     cfg.Encoder.ChainID,
-		IsPositiveSlippageEnabled:   cfg.Encoder.IsPositiveSlippageEnabled,
-		MinimumPSThreshold:          cfg.Encoder.MinimumPSThreshold,
-		ExecutorAddressByClientID:   cfg.Encoder.ExecutorAddressByClientID,
-		PartnerPositiveSlippageInfo: cfg.Encoder.PartnerPositiveSlippageInfo,
-	})
-	l2Encoder := l2encode.NewEncoder(l2encode.Config{
-		RouterAddress:               cfg.Encoder.RouterAddress,
-		ExecutorAddress:             cfg.Encoder.L2ExecutorAddress,
-		ChainID:                     cfg.Encoder.ChainID,
-		PsWallet:                    cfg.Encoder.PsWallet,
-		IsPositiveSlippageEnabled:   cfg.Encoder.IsPositiveSlippageEnabled,
-		MinimumPSThreshold:          cfg.Encoder.MinimumPSThreshold,
-		FunctionSelectorMappingID:   cfg.Encoder.FunctionSelectorMappingID,
-		ExecutorAddressByClientID:   cfg.Encoder.ExecutorAddressByClientID,
-		PartnerPositiveSlippageInfo: cfg.Encoder.PartnerPositiveSlippageInfo,
-	})
-	encodeBuilder := encode.NewEncodeBuilder(l1Encoder, l2Encoder)
+	encoder := encode.NewEncoder(cfg.Encoder)
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
@@ -433,7 +411,7 @@ func apiAction(c *cli.Context) (err error) {
 		l1FeeCalculator,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
-		encodeBuilder,
+		encoder,
 		cfg.UseCase.BuildRoute,
 	)
 
@@ -499,7 +477,8 @@ func apiAction(c *cli.Context) (err error) {
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
 	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteUseCase))
-	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
+	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase,
+		cfg.UseCase.BuildRoute, timeutil.NowFunc))
 
 	if cfg.BundledRouteEnabled {
 		getBundledRoutesHandler := api.GetBundledRoutes(getRoutesParamsValidator, getBundledRouteUseCase)

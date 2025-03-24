@@ -169,7 +169,6 @@ reloadConfig:
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
-secretKey:
 metrics:
   host:
   port: 8125
@@ -186,6 +185,9 @@ encoder:
     llamaswap: *l2ExecutorAddress
     kyberswap: *l2ExecutorAddress
   partnerPositiveSlippageInfo:
+    tritium-research:
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      randomReturnAmountInflation: 0.00006
     llamaswap:
       receiver:
       percent:
@@ -377,6 +379,11 @@ useCase:
         maxHops: 5
   buildRoute:
     chainId: *chainId
+    forceSourceByIp:
+      '47_130_37_231': tritium-research
+      '52_74_71_138': tritium-research
+    validateChecksumBySource:
+      'tritium-research': true
     salt: *salt
     rfq:
       kyberswap-limit-order-v2:

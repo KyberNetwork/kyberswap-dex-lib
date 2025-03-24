@@ -3,6 +3,7 @@ package api
 import (
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -10,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -17,11 +19,8 @@ import (
 )
 
 // BuildRoute [POST /route/build] build route
-func BuildRoute(
-	validator IBuildRouteParamsValidator,
-	useCase IBuildRouteUseCase,
-	nowFunc func() time.Time,
-) func(ginCtx *gin.Context) {
+func BuildRoute(validator IBuildRouteParamsValidator, useCase IBuildRouteUseCase, cfg buildroute.Config,
+	nowFunc func() time.Time) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "BuildRoute")
 		defer span.End()
@@ -49,7 +48,7 @@ func BuildRoute(
 			return
 		}
 
-		command, err := transformBuildRouteParams(bodyParams, nowFunc)
+		command, err := transformBuildRouteParams(ginCtx, bodyParams, cfg, nowFunc)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -66,7 +65,8 @@ func BuildRoute(
 }
 
 // transformBuildRouteParams transform params.BuildRouteParams to dto.BuildRouteCommand
-func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() time.Time) (dto.BuildRouteCommand, error) {
+func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRouteParams, cfg buildroute.Config,
+	nowFunc func() time.Time) (dto.BuildRouteCommand, error) {
 	routeSummary, err := transformRouteSummaryParams(params.RouteSummary)
 	if err != nil {
 		return dto.BuildRouteCommand{}, err
@@ -80,16 +80,25 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 	permit := common.FromHex(params.Permit)
 	num, _ := strconv.ParseUint(params.RouteSummary.Checksum, 10, 64)
 
+	source := params.Source
+	if ginCtx != nil {
+		normalizedClientId := strings.ReplaceAll(ginCtx.ClientIP(), ".", "_")
+		if forcedSource, ok := cfg.ForceSourceByIp[normalizedClientId]; ok {
+			source = forcedSource
+		}
+	}
+
 	return dto.BuildRouteCommand{
 		RouteSummary:        routeSummary,
 		Checksum:            num,
+		ValidateChecksum:    cfg.ValidateChecksumBySource[source],
 		Sender:              params.Sender,
 		Recipient:           params.Recipient,
 		Permit:              permit,
 		Deadline:            deadline,
 		SlippageTolerance:   params.SlippageTolerance,
 		EnableGasEstimation: params.EnableGasEstimation,
-		Source:              params.Source,
+		Source:              source,
 		Referral:            params.Referral,
 	}, nil
 }

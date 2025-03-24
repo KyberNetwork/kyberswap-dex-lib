@@ -7,11 +7,13 @@ import (
 type (
 	Config struct {
 		ChainID                       valueobject.ChainID        `mapstructure:"chainId"`
+		ForceSourceByIp               map[string]string          `mapstructure:"forceSourceByIp"`
+		ValidateChecksumBySource      map[string]bool            `mapstructure:"validateChecksumBySource"`
 		RFQ                           map[string]RFQConfig       `mapstructure:"rfq"`
 		FeatureFlags                  valueobject.FeatureFlags   `mapstructure:"featureFlags"`
 		FaultyPoolsConfig             FaultyPoolsConfig          `mapstructure:"faultyPools"`
 		PublisherConfig               PublisherConfig            `mapstructure:"publisher"`
-		RFQAcceptableSlippageFraction int64                      `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
+		RFQAcceptableSlippageFraction int64                      `mapstructure:"rfqAcceptableSlippageFraction"` // bps
 		FaultyPoolDetectorDisabled    bool                       `mapstructure:"faultyPoolDetectorDisabled"`
 		AlphaFeeConfig                valueobject.AlphaFeeConfig `mapstructure:"alphaFeeConfig"`
 		Salt                          string                     `mapstructure:"salt"`

@@ -96,7 +96,6 @@ func (b *EncodingDataBuilder) SetRoute(
 
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
-	b.data.TotalAmountOut = getTotalAmountOut(encodingRoute)
 	b.data.ExtraFee = encodeValueObject.ExtraFee{
 		FeeAmount:   routeSummary.ExtraFee.FeeAmount,
 		ChargeFeeBy: encodeValueObject.ChargeFeeBy(routeSummary.ExtraFee.ChargeFeeBy),
@@ -310,16 +309,6 @@ func transformRoute(route [][]valueobject.Swap) [][]types.EncodingSwap {
 	}
 
 	return encodingRoute
-}
-
-func getTotalAmountOut(route [][]types.EncodingSwap) *big.Int {
-	totalAmountOut := big.NewInt(0)
-
-	for _, path := range route {
-		totalAmountOut.Add(totalAmountOut, path[len(path)-1].AmountOut)
-	}
-
-	return totalAmountOut
 }
 
 func getRecipient(
