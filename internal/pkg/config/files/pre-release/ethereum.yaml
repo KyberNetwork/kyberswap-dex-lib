@@ -74,6 +74,8 @@ common:
     - "curve-stable-plain"
     - "curve-tricrypto-ng"
     - "curve-twocrypto-ng"
+    - "curve-llamma"
+    - "curve-lending"
     - "defiswap"
     - "dodo-classical"
     - "dodo-dpp"

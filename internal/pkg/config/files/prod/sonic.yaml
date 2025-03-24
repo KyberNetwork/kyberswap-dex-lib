@@ -50,6 +50,7 @@ common:
     - "curve-stable-plain"
     - "curve-tricrypto-ng"
     - "curve-twocrypto-ng"
+    - "curve-lending"
     - "navigator"
     - "amped"
     - "memebox"

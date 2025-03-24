@@ -64,6 +64,7 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 	l1executor.FunctionSelectorSavingsUSDS.RawName:       {},
 	l1executor.FunctionSelectorPanda.RawName:             {},
 	l1executor.FunctionSelectorHoney.RawName:             {},
+	l1executor.FunctionSelectorCurveLlamma.RawName:       {},
 
 	l2executor.FunctionSelectorLimitOrderDS.RawName:      {},
 	l2executor.FunctionSelectorStableSwap.RawName:        {},
@@ -89,6 +90,7 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 	l2executor.FunctionSelectorUniswapV4.RawName:         {},
 	l2executor.FunctionSelectorOvernightUsdp.RawName:     {},
 	l2executor.FunctionSelectorSkyPSM.RawName:            {},
+	l2executor.FunctionSelectorCurveLlamma.RawName:       {},
 }
 
 // IsApproveMaxExchange returns true if we should track if executor `approveMax` for the provided exchange,

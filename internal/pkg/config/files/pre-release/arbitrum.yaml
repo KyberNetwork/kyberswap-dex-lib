@@ -82,6 +82,7 @@ common:
     - "kyberswap-limit-order-v2"
     - "curve-tricrypto-ng"
     - "curve-stable-meta-ng"
+    - "curve-lending"
     - "uniswapv3"
     - "chronos-v3"
     - "arbidex-v3"
@@ -291,6 +292,7 @@ encoder:
     executeUniV4: 65
     executeSkyPSM: 66
     executeOvernight: 67
+    executeCurveLlamma: 71
 useCase:
   getRoute:
     chainId: *chainId

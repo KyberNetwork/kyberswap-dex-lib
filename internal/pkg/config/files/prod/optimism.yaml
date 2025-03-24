@@ -65,6 +65,7 @@ common:
     - "kyberswap-limit-order-v2"
     - "curve-tricrypto-ng"
     - "curve-stable-meta-ng"
+    - "curve-lending"
     - "velodrome-cl"
     - "degen-express"
     - "dackie-v2"
@@ -224,6 +225,7 @@ encoder:
     executeClipperRfq: 58
     executeUniV4: 65
     executeOvernight: 67
+    executeCurveLlamma: 71
 useCase:
   getRoute:
     chainId: *chainId
