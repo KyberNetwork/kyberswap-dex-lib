@@ -17,6 +17,7 @@ type (
 		FaultyPoolDetectorDisabled    bool                       `mapstructure:"faultyPoolDetectorDisabled"`
 		AlphaFeeConfig                valueobject.AlphaFeeConfig `mapstructure:"alphaFeeConfig"`
 		Salt                          string                     `mapstructure:"salt"`
+		ClientRefCode                 map[string]string          `mapstructure:"clientRefCode"`
 	}
 
 	AlphaFeeConfig struct {

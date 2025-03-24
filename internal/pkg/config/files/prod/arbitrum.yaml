@@ -264,6 +264,9 @@ encoder:
     debot-kyber-8@dK#:
       receiver: 0x0000000000000000000000000000000000000002
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+    bitgetswap:
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
   functionSelectorMappingID: # This map can be updated when we change l2 executor address
     executeUniSwap: 0
     executeKyberClassic: 1
@@ -534,6 +537,8 @@ useCase:
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig
+    clientRefCode:
+      bitgetswap: bitget
 
   poolFactory:
     chainId: *chainId
