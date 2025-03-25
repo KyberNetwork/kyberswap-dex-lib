@@ -54,9 +54,9 @@ type (
 		IsRouteCachedEnable               bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`
 		IsMergeDuplicateSwapEnabled       bool `mapstructure:"isMergeDuplicateSwapEnabled" json:"isMergeDuplicateSwapEnabled"`
 		IsKyberPrivateLimitOrdersEnabled  bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
-		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAlphaFeeReductionEnable"`
+		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAFEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
-		ShouldReturnAlphaFee              bool `mapstructure:"shouldReturnAlphaFee" json:"shouldReturnAlphaFee"`
+		ShouldReturnAlphaFee              bool `mapstructure:"shouldReturnAlphaFee" json:"shouldReturnAF"`
 	}
 
 	Log struct {

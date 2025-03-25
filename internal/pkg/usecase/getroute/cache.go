@@ -441,6 +441,14 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 		}
 	}
 	if ammConstructRoute != nil && ammConstructRoute.Cmp(bestConstructRoute, params.GasInclude) > 0 {
+		logger.
+			WithFields(ctx, logger.Fields{
+				"error":           err,
+				"request_id":      requestid.GetRequestIDFromCtx(ctx),
+				"ammAmount":       ammConstructRoute.AmountOut,
+				"bestRouteAmount": bestConstructRoute.AmountOut,
+			}).
+			Infof("cached ammRoute returns better amount than bestRoute")
 		bestConstructRoute = ammConstructRoute
 	}
 
@@ -462,6 +470,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	if err != nil {
 		return nil, err
 	}
+	// TODO: optimize later do not need to finalize ammRoute, keep ammConstructRoute instead
 	ammRoute, err := finalizer.Finalize(ctx, findRouteParams, ammConstructRoute, nil)
 	if err != nil {
 		logger.
