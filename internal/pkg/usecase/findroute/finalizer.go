@@ -121,15 +121,6 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		logger.WithFields(logger.Fields{"routeId": routeId}).Info("extraData is nil, can not calculate alpha fee")
 	}
 
-	if alphaFee != nil {
-		logger.WithFields(logger.Fields{
-			"routeId":           routeId,
-			"alphaFeeToken":     alphaFee.Token,
-			"alphaFeeAmount":    alphaFee.Amount.Text(10),
-			"alphaFeeAmountUsd": alphaFee.AmountUsd,
-		}).Info("route has alpha fee")
-	}
-
 	// Step 2: finalize route
 	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
 	for pathId, path := range constructRoute.Paths {
@@ -275,6 +266,15 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		alphaFee.AmountUsd = finderUtil.CalcAmountPrice(alphaFee.Amount, params.Tokens[alphaFee.Token].Decimals, params.Prices[alphaFee.Token])
 	}
 	extra.AlphaFee = alphaFee
+
+	if alphaFee != nil {
+		logger.WithFields(logger.Fields{
+			"routeId":           routeId,
+			"alphaFeeToken":     alphaFee.Token,
+			"alphaFeeAmount":    alphaFee.Amount.Text(10),
+			"alphaFeeAmountUsd": alphaFee.AmountUsd,
+		}).Info("route has alpha fee")
+	}
 
 	route = &finderEntity.Route{
 		TokenIn:  params.TokenIn,
