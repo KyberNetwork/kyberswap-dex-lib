@@ -28,8 +28,7 @@ type GetRoutesQuery struct {
 	ExcludedPools mapset.Set[string]
 	ClientId      string
 
-	Index          string
-	EnableAlphaFee bool
+	Index string
 }
 
 type GetBundledRoutesQueryPair struct {

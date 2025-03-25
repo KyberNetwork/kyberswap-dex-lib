@@ -139,7 +139,6 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:            params.ClientId,
 		Index:               params.Index,
-		EnableAlphaFee:      params.EnableAlphaFee,
 	}, nil
 }
 
