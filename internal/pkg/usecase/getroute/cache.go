@@ -399,6 +399,9 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	var err error
 	// Step 1: prepare pool data
 	poolAddresses := simpleRoute.BestRoute.ExtractPoolAddresses()
+	if simpleRoute.AMMRoute != nil {
+		poolAddresses = append(poolAddresses, simpleRoute.AMMRoute.ExtractPoolAddresses()...)
+	}
 	state, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
 		poolAddresses,
