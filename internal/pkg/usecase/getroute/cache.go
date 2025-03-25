@@ -440,6 +440,9 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 			// TODO: count metric
 		}
 	}
+	if ammConstructRoute != nil && ammConstructRoute.Cmp(bestConstructRoute, params.GasInclude) > 0 {
+		bestConstructRoute = ammConstructRoute
+	}
 
 	bestRouteResult := finderCommon.BestRouteResult{
 		BestRoutes:   []*finderCommon.ConstructRoute{bestConstructRoute},
