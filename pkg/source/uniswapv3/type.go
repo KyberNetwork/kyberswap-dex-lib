@@ -100,8 +100,8 @@ type FetchRPCResult struct {
 }
 
 type PoolMeta struct {
-	SwapFee    uint32   `json:"swapFee"`
-	PriceLimit *big.Int `json:"priceLimit"`
+	SwapFee    uint32       `json:"swapFee"`
+	PriceLimit *uint256.Int `json:"priceLimit"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

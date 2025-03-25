@@ -9,6 +9,8 @@ import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	v3EntitiesBigInt "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
 
 type int24 = int32
@@ -208,10 +210,7 @@ type StateUpdateBigInt struct {
 	GlobalState GlobalState
 }
 
-type PoolMeta struct {
-	BlockNumber uint64   `json:"blockNumber"`
-	PriceLimit  *big.Int `json:"priceLimit"`
-}
+type PoolMeta = uniswapv3.PoolMeta
 
 func transformTickRespToTickBigInt(tickResp TickResp) (v3EntitiesBigInt.Tick, error) {
 	liquidityGross := new(big.Int)

@@ -186,8 +186,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	var priceLimit v3Utils.Uint160
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
-		BlockNumber: p.Pool.Info.BlockNumber,
-		PriceLimit:  bignumber.CapPriceLimit(priceLimit.ToBig()),
+		PriceLimit: &priceLimit,
 	}
 }
 
