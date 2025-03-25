@@ -84,8 +84,9 @@ func (t *PoolTracker) GetNewPoolState(
 	// update pool
 
 	extra := Extra{
-		SwapFeePercentage: swapFeePercentage,
-		Paused:            !isNotPaused(pausedState),
+		SwapFeePercentage:  swapFeePercentage,
+		Paused:             !isNotPaused(pausedState),
+		DependenciesStored: true,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -199,4 +200,20 @@ func (t *PoolTracker) queryRPC(
 
 func isNotPaused(pausedState PausedState) bool {
 	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
+}
+
+func (d *PoolTracker) GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error) {
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	var extra Extra
+	err = json.Unmarshal([]byte(p.Extra), &extra)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return []string{staticExtra.Vault}, extra.DependenciesStored, nil
 }
