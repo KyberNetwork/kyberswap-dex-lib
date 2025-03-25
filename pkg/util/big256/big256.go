@@ -21,6 +21,9 @@ var (
 	Five   = uint256.NewInt(5)
 	U9     = uint256.NewInt(9)
 
+	MinSqrtRatio    = uint256.NewInt(4295128739)
+	MaxSqrtRatio, _ = NewUint256("1461446703485210103287273052203988822378723970342")
+
 	BasisPointUint256 = uint256.NewInt(10000)
 )
 
@@ -44,6 +47,26 @@ func NewUint256(s string) (res *uint256.Int, err error) {
 	res = new(uint256.Int)
 	err = res.SetFromDecimal(s)
 	return
+}
+
+func Cap(n *uint256.Int, min *uint256.Int, max *uint256.Int) *uint256.Int {
+	if n.Cmp(min) <= 0 {
+		return new(uint256.Int).Add(min, One)
+	}
+	if n.Cmp(max) >= 0 {
+		return new(uint256.Int).Sub(max, One)
+	}
+	return n
+}
+
+func CapPriceLimit(priceLimit *uint256.Int) *uint256.Int {
+	if priceLimit.Cmp(MinSqrtRatio) <= 0 {
+		return priceLimit.AddUint64(MinSqrtRatio, 1)
+	}
+	if priceLimit.Cmp(MaxSqrtRatio) >= 0 {
+		return priceLimit.SubUint64(MaxSqrtRatio, 1)
+	}
+	return priceLimit
 }
 
 // Min returns the smaller of a or b.
