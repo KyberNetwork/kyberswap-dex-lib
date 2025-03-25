@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -132,17 +133,15 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
  * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
 func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint160) error {
-	var tickLimit int
-	if zeroForOne {
-		tickLimit = p.tickMin
-	} else {
-		tickLimit = p.tickMax
+	tickLimit := lo.Ternary(zeroForOne, p.tickMin, p.tickMax)
+	if err := v3Utils.GetSqrtRatioAtTickV2(tickLimit, result); err != nil {
+		return err
 	}
 
-	err := v3Utils.GetSqrtRatioAtTickV2(tickLimit, result)
-
-	if err != nil {
-		return err
+	if zeroForOne {
+		result.AddUint64(result, 1) // = (sqrtPrice at minTick) + 1
+	} else {
+		result.SubUint64(result, 1) // = (sqrtPrice at maxTick) - 1
 	}
 
 	return nil
