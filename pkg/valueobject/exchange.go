@@ -436,6 +436,8 @@ var (
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 	ExchangeSavingsUSDS   Exchange = "savings-usds"
 	ExchangeSkyPSM        Exchange = "sky-psm"
+
+	ExchangeFakePool Exchange = "fake-pool"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
