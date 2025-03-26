@@ -25,35 +25,29 @@ type PoolSimulator struct {
 
 	hooksConfig shared.HooksConfig
 
+	buffers              []*shared.ExtraBuffer
 	isVaultPaused        bool
 	isPoolPaused         bool
 	isPoolInRecoveryMode bool
 
 	vaultAddress string
+	bufferTokens []string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var (
-		extra       Extra
-		staticExtra StaticExtra
-
-		tokens   = make([]string, len(entityPool.Tokens))
-		reserves = make([]*big.Int, len(entityPool.Tokens))
-	)
-
+	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
-
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
+	if extra.Buffers == nil {
+		extra.Buffers = make([]*shared.ExtraBuffer, len(entityPool.Tokens))
 	}
 
-	for idx := 0; idx < len(entityPool.Tokens); idx++ {
-		tokens[idx] = entityPool.Tokens[idx].Address
-		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	var staticExtra shared.StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
 	}
 
 	// Need to detect the current hook type of pool
@@ -73,28 +67,28 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		hook = hooks.NewBaseHook()
 	}
 
-	vault := vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors, extra.TokenRates,
-		extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage)
-
-	poolInfo := pool.PoolInfo{
-		Address:     entityPool.Address,
-		Exchange:    entityPool.Exchange,
-		Type:        entityPool.Type,
-		Tokens:      tokens,
-		Reserves:    reserves,
-		Checked:     true,
-		BlockNumber: entityPool.BlockNumber,
-	}
-
 	return &PoolSimulator{
-		Pool:                 pool.Pool{Info: poolInfo},
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
+			BlockNumber: entityPool.BlockNumber,
+		}},
+		buffers:              extra.Buffers,
 		isVaultPaused:        extra.IsVaultPaused,
 		isPoolPaused:         extra.IsPoolPaused,
 		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
-		vault:                vault,
-		hooksConfig:          extra.HooksConfig,
-		currentAmp:           extra.AmplificationParameter,
-		vaultAddress:         staticExtra.Vault,
+		vault: vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors,
+			extra.TokenRates, extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage,
+			extra.AggregateSwapFeePercentage),
+		hooksConfig:  extra.HooksConfig,
+		currentAmp:   extra.AmplificationParameter,
+		vaultAddress: staticExtra.Vault,
+		bufferTokens: staticExtra.BufferTokens,
 	}, nil
 }
 
@@ -119,6 +113,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, shared.ErrInvalidAmountIn
 	}
 
+	gas := baseGas
+	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
+		amountIn = bufferIn.ConvertToShares(amountIn)
+		gas += bufferGas
+	}
+
 	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
 		Kind:           shared.EXACT_IN,
 		IndexIn:        indexIn,
@@ -127,6 +127,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, p.OnSwap)
 	if err != nil {
 		return nil, err
+	}
+
+	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
+		amountOut = bufferOut.ConvertToAssets(amountOut)
+		gas += bufferGas
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -138,10 +143,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenAmountIn.Token,
 			Amount: totalSwapFee.ToBig(),
 		},
-		SwapInfo: SwapInfo{
+		SwapInfo: shared.SwapInfo{
 			AggregateFee: aggregateFee.ToBig(),
 		},
-		Gas: defaultGas.Swap,
+		Gas: gas,
 	}, nil
 }
 
@@ -166,6 +171,12 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, shared.ErrInvalidAmountOut
 	}
 
+	gas := baseGas
+	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
+		amountOut = bufferOut.ConvertToShares(amountOut)
+		gas += bufferGas
+	}
+
 	amountIn, totalSwapFee, aggregateSwapFee, err := p.vault.Swap(shared.VaultSwapParams{
 		Kind:           shared.EXACT_OUT,
 		IndexIn:        indexIn,
@@ -174,6 +185,11 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, p.OnSwap)
 	if err != nil {
 		return nil, err
+	}
+
+	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
+		amountIn = bufferIn.ConvertToAssets(amountIn)
+		gas += bufferGas
 	}
 
 	return &pool.CalcAmountInResult{
@@ -185,10 +201,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenIn,
 			Amount: totalSwapFee.ToBig(),
 		},
-		SwapInfo: SwapInfo{
+		SwapInfo: shared.SwapInfo{
 			AggregateFee: aggregateSwapFee.ToBig(),
 		},
-		Gas: defaultGas.Swap,
+		Gas: gas,
 	}, nil
 }
 
@@ -196,7 +212,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
 	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
 
-	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	swapInfo, ok := params.SwapInfo.(shared.SwapInfo)
 	if !ok {
 		return
 	}
@@ -227,14 +243,15 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return PoolMetaInfo{
-		Vault:       s.vaultAddress,
-		BlockNumber: s.Info.BlockNumber,
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+	tokenInIdx, tokenOutIdx := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	return shared.PoolMetaInfo{
+		Vault:        p.vaultAddress,
+		BufferTokens: [2]string{p.bufferTokens[tokenInIdx], p.bufferTokens[tokenOutIdx]},
 	}
 }
 
-// https://etherscan.io/address/0xc1d48bb722a22cc6abf19facbe27470f08b3db8c#code#F1#L169
+// OnSwap from https://etherscan.io/address/0xc1d48bb722a22cc6abf19facbe27470f08b3db8c#code#F1#L169
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
 	invariant, err := p.computeInvariant(param.BalancesLiveScaled18, shared.ROUND_DOWN)
 	if err != nil {
@@ -268,7 +285,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 	return amountOutScaled18, nil
 }
 
-func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, rounding shared.Rounding) (*uint256.Int, error) {
+func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, rounding shared.Rounding) (*uint256.Int,
+	error) {
 	invariant, err := math.StableMath.ComputeInvariant(p.currentAmp, balancesLiveScaled18)
 	if err != nil {
 		return nil, err

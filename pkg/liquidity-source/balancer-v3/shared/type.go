@@ -7,8 +7,26 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type Gas struct {
-	Swap int64
+type StaticExtra struct {
+	Vault             string   `json:"vault,omitempty"`
+	DefaultHook       string   `json:"defHook,omitempty"`
+	IsPoolInitialized bool     `json:"init,omitempty"`
+	BufferTokens      []string `json:"buffs,omitempty"`
+}
+
+type ExtraBuffer struct {
+	TotalAssets *uint256.Int `json:"tA"`
+	TotalSupply *uint256.Int `json:"tS"`
+}
+
+type SwapInfo struct {
+	Buffers      []*ExtraBuffer
+	AggregateFee *big.Int
+}
+
+type PoolMetaInfo struct {
+	Vault        string    `json:"vault"`
+	BufferTokens [2]string `json:"buffs"`
 }
 
 type AggregateFeePercentage struct {
@@ -60,6 +78,11 @@ type PoolDataRPC struct {
 		TokenRates            []*big.Int
 		DecimalScalingFactors []*big.Int
 	}
+}
+
+type ExtraBufferRPC struct {
+	TotalAssets *big.Int
+	TotalSupply *big.Int
 }
 
 type HooksConfig struct {

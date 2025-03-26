@@ -1,56 +1,57 @@
 package shared
 
-import (
-	"fmt"
-	"math/big"
-	"strings"
-)
-
 type SubgraphPool struct {
-	ID             string `json:"id"`
-	Address        string `json:"address"`
-	BlockTimestamp string `json:"blockTimestamp"`
-	IsInitialized  bool   `json:"isInitialized"`
-	Tokens         []struct {
-		Address  string `json:"address"`
-		Decimals int    `json:"decimals"`
-	} `json:"tokens"`
-	Vault struct {
+	Address        string          `json:"address"`
+	BlockTimestamp int64           `json:"blockTimestamp,string"`
+	IsInitialized  bool            `json:"isInitialized"`
+	Tokens         []SubgraphToken `json:"tokens"`
+	Vault          struct {
 		ID string `json:"id"`
 	} `json:"vault"`
 }
 
-func BuildSubgraphPoolsQuery(
-	factory string,
-	lastBlockTimestamp *big.Int,
-	first int,
-	skip int,
-) string {
-	q := `{
-		pools(
-			where : {
-				factory: "%s",
-				blockTimestamp_gte: %v
-				symbol_not: "TEST"
-			},
-			first: %d,
-			skip: %d,
-			orderBy: blockTimestamp,
-			orderDirection: asc,
-		) {
-			id
+type SubgraphToken struct {
+	Address string `json:"address"`
+	Buffer  *struct {
+		UnderlyingToken struct {
+			ID string `json:"id"`
+		} `json:"underlyingToken"`
+	} `json:"buffer"`
+}
+
+const (
+	VarFactory           = "factory"
+	VarBlockTimestampGte = "blockTimestampGte"
+	VarFirst             = "first"
+)
+
+const SubgraphPoolsQuery = `query(
+	$` + VarFactory + `: Bytes
+	$` + VarBlockTimestampGte + `: BigInt
+	$` + VarFirst + `: Int
+) {
+	pools(
+		where : {
+			factory: $` + VarFactory + `
+			blockTimestamp_gte: $` + VarBlockTimestampGte + `
+		}
+		first: $` + VarFirst + `
+		orderBy: blockTimestamp
+		orderDirection: asc
+	) {
+		address
+		blockTimestamp
+		isInitialized
+		tokens {
 			address
-			blockTimestamp
-			isInitialized
-			tokens {
-			  address
-			  decimals
-			}
-			vault {
-			  id
+			buffer {
+				underlyingToken {
+					id
+				}
 			}
 		}
-	}`
-
-	return fmt.Sprintf(q, strings.ToLower(factory), lastBlockTimestamp, first, skip)
-}
+		vault {
+			id
+		}
+	}
+}`

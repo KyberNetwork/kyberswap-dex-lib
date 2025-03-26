@@ -43,6 +43,7 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -93,6 +94,7 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -143,6 +145,7 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -188,6 +191,7 @@ func TestCalcAmountOut(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -273,6 +277,7 @@ func TestCalcAmountIn(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountOut := poolpkg.TokenAmount{
@@ -323,6 +328,7 @@ func TestCalcAmountIn(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountOut := poolpkg.TokenAmount{
@@ -373,6 +379,7 @@ func TestCalcAmountIn(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountOut := poolpkg.TokenAmount{
@@ -418,6 +425,7 @@ func TestCalcAmountIn(t *testing.T) {
 				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
 			),
 			currentAmp: uint256.NewInt(5000000),
+			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
 
 		tokenAmountOut := poolpkg.TokenAmount{

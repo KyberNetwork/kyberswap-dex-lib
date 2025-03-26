@@ -8,6 +8,7 @@ import (
 
 var (
 	VaultExplorerABI abi.ABI
+	ERC4626ABI       abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&VaultExplorerABI, vaultExplorerJson},
+		{&ERC4626ABI, erc4626Json},
 	}
 
 	for _, b := range builder {

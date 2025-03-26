@@ -2,8 +2,6 @@ package stable
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,17 +20,15 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
-var ErrReserveNotFound = errors.New("reserve not found")
-
 type PoolTracker struct {
-	config       *Config
+	config       *shared.Config
 	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -76,15 +73,14 @@ func (t *PoolTracker) getNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	var staticExtra StaticExtra
-	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-	if err != nil {
+	var staticExtra shared.StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Errorf("failed to unmarshal StaticExtra data : %s", err.Error())
-
+			"error":       err,
+		}).Error("failed to unmarshal StaticExtra data")
 		return entity.Pool{}, err
 	}
 
@@ -118,7 +114,8 @@ func (t *PoolTracker) getNewPoolState(
 				"dexId":       t.config.DexID,
 				"dexType":     DexType,
 				"poolAddress": p.Address,
-			}).Errorf("failed to marshal StaticExtra data : %s", err.Error())
+				"error":       err,
+			}).Error("failed to marshal StaticExtra data")
 
 			return entity.Pool{}, err
 		}
@@ -126,14 +123,14 @@ func (t *PoolTracker) getNewPoolState(
 		p.StaticExtra = string(staticExtraBytes)
 	}
 
-	res, shouldDisablePool, err := t.queryRPCData(ctx, p.Address, overrides)
+	res, shouldDisablePool, err := t.queryRPCData(ctx, p.Address, staticExtra, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Error(err.Error())
-
+			"error":       err,
+		}).Error("failed to query RPC data")
 		return p, err
 	}
 
@@ -151,6 +148,18 @@ func (t *PoolTracker) getNewPoolState(
 		decimalScalingFactors = lo.Map(res.DecimalScalingFactors, func(v *big.Int, _ int) *uint256.Int {
 			return uint256.MustFromBig(v)
 		})
+
+		buffers = lo.Map(res.Buffers, func(v *shared.ExtraBufferRPC, _ int) *shared.ExtraBuffer {
+			if v == nil {
+				return nil
+			}
+			buffer := &shared.ExtraBuffer{}
+			buffer.TotalAssets, _ = uint256.FromBig(v.TotalAssets)
+			buffer.TotalAssets.AddUint64(buffer.TotalAssets, 1)
+			buffer.TotalSupply, _ = uint256.FromBig(v.TotalSupply)
+			buffer.TotalSupply.Add(buffer.TotalSupply, shared.DecimalsOffsetPow)
+			return buffer
+		})
 	)
 
 	extraBytes, err := json.Marshal(&Extra{
@@ -160,6 +169,7 @@ func (t *PoolTracker) getNewPoolState(
 		BalancesLiveScaled18:       balancesLiveScaled18,
 		DecimalScalingFactors:      decimalScalingFactors,
 		TokenRates:                 tokenRates,
+		Buffers:                    buffers,
 		IsVaultPaused:              res.IsVaultPaused,
 		IsPoolPaused:               res.IsPoolPaused,
 		IsPoolInRecoveryMode:       res.IsPoolInRecoveryMode,
@@ -169,8 +179,8 @@ func (t *PoolTracker) getNewPoolState(
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
-		}).Errorf("failed to marshal extra data : %s", err.Error())
-
+			"error":       err,
+		}).Error("failed to marshal extra data")
 		return p, err
 	}
 
@@ -208,21 +218,18 @@ func (t *PoolTracker) IsPoolInitialized(
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsPoolInitialized,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&isPoolInitialized})
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&isPoolInitialized})
 
 	if _, err := req.Call(); err != nil {
-		return false, fmt.Errorf("failed to check if pool is initialized : %s", err.Error())
+		return false, errors.WithMessage(err, "failed to check if pool is initialized")
 	}
 
 	return isPoolInitialized, nil
 }
 
-func (t *PoolTracker) queryRPCData(
-	ctx context.Context,
-	poolAddress string,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (*RpcResult, bool, error) {
+func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, staticExtra shared.StaticExtra,
+	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, bool, error) {
 	var (
 		aggregateFeePercentages shared.AggregateFeePercentage
 		hooksConfig             shared.HooksConfigRPC
@@ -230,6 +237,8 @@ func (t *PoolTracker) queryRPCData(
 
 		amplificationParameter  AmplificationParameter
 		staticSwapFeePercentage *big.Int
+
+		buffers = make([]*shared.ExtraBufferRPC, len(staticExtra.BufferTokens))
 
 		isVaultPaused        bool
 		isPoolPaused         bool
@@ -245,59 +254,60 @@ func (t *PoolTracker) queryRPCData(
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetAggregateFeePercentages,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&aggregateFeePercentages})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&aggregateFeePercentages}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetStaticSwapFeePercentage,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&staticSwapFeePercentage})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&staticSwapFeePercentage}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetPoolData,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&poolData})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&poolData}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodGetHooksConfig,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&hooksConfig})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&hooksConfig}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsVaultPaused,
-	}, []interface{}{&isVaultPaused})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&isVaultPaused}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsPoolPaused,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&isPoolPaused})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&isPoolPaused}).AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
 		Target: t.config.VaultExplorer,
 		Method: shared.VaultMethodIsPoolInRecoveryMode,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&isPoolInRecoveryMode})
-
-	req.AddCall(&ethrpc.Call{
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetAmplificationParameter,
-	}, []interface{}{&amplificationParameter})
+	}, []any{&amplificationParameter})
+
+	for i, token := range staticExtra.BufferTokens {
+		if token != "" {
+			buffers[i] = &shared.ExtraBufferRPC{}
+			req.AddCall(&ethrpc.Call{
+				ABI:    shared.ERC4626ABI,
+				Target: token,
+				Method: shared.ERC4626MethodTotalAssets,
+			}, []any{&buffers[i].TotalAssets}).AddCall(&ethrpc.Call{
+				ABI:    shared.ERC4626ABI,
+				Target: token,
+				Method: shared.ERC4626MethodTotalSupply,
+			}, []any{&buffers[i].TotalSupply})
+		}
+	}
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to query RPC data : %s", err.Error())
+		return nil, false, errors.WithMessage(err, "failed to query RPC data")
 	}
 
 	var shouldDisablePool bool
@@ -318,6 +328,7 @@ func (t *PoolTracker) queryRPCData(
 			ShouldCallBeforeSwap:            hooksConfig.Data.ShouldCallBeforeSwap,
 			ShouldCallAfterSwap:             hooksConfig.Data.ShouldCallAfterSwap,
 		},
+		Buffers:                    buffers,
 		BalancesRaw:                poolData.Data.BalancesRaw,
 		BalancesLiveScaled18:       poolData.Data.BalancesLiveScaled18,
 		TokenRates:                 poolData.Data.TokenRates,
