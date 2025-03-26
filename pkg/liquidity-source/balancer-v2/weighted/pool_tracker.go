@@ -22,8 +22,9 @@ import (
 var ErrReserveNotFound = errors.New("reserve not found")
 
 type PoolTracker struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
+	config           *Config
+	ethrpcClient     *ethrpc.Client
+	checkNestingPool bool
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)

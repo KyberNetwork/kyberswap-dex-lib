@@ -32,11 +32,15 @@ var (
 	_MAX_OUT_RATIO = uint256.NewInt(0.3e18)
 )
 
+type IBasePool interface {
+	pool.IPoolSimulator
+}
+
 type (
 	PoolSimulator struct {
 		pool.Pool
-
-		paused bool
+		basePool IBasePool
+		paused   bool
 
 		swapFeePercentage *uint256.Int
 		scalingFactors    []*uint256.Int
@@ -58,9 +62,9 @@ type (
 	}
 )
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolSimulator) (*PoolSimulator, error) {
 	var (
 		extra       Extra
 		staticExtra StaticExtra
@@ -492,4 +496,32 @@ func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint2
 		upscaled[i] = upscaledI
 	}
 	return upscaled, nil
+}
+
+func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	var ret = make([]string, 0)
+	var tokenIndex = t.GetTokenIndex(address)
+	if tokenIndex < 0 {
+		// check from underlying
+		tokenIndex = t.basePool.GetTokenIndex(address)
+		if tokenIndex >= 0 {
+			return t.Info.Tokens
+		}
+		return ret
+	}
+
+	// exchange
+	for i := range t.GetTokens() {
+		if i != tokenIndex {
+			ret = append(ret, t.Info.Tokens[i])
+		}
+	}
+	// exchange_underlying
+	// last meta token can't be swapped with underlying tokens
+
+	ret = append(ret, t.basePool.GetTokens()...)
+
+	return ret
 }
