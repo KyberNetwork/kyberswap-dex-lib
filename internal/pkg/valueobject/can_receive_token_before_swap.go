@@ -15,7 +15,6 @@ var canReceiveTokenBeforeSwapFunctionSet = map[string]struct{}{
 	l1executor.FunctionSelectorKTX.RawName:         {},
 
 	l2executor.FunctionSelectorUniswap.RawName:     {},
-	l2executor.FunctionSelectorDeltaSwapV1.RawName: {},
 	l2executor.FunctionSelectorKSClassic.RawName:   {},
 	l2executor.FunctionSelectorCamelotSwap.RawName: {},
 	l2executor.FunctionSelectorVelodrome.RawName:   {},
@@ -31,12 +30,12 @@ var canReceiveTokenBeforeSwapFunctionSet = map[string]struct{}{
 
 // CanReceiveTokenBeforeSwap returns true for exchanges that can receive token before calling swap.
 func CanReceiveTokenBeforeSwap(exchange Exchange) bool {
-	l1Selector, _ := l1executor.GetFunctionSelector(exchange)
+	l1Selector, _ := l1executor.GetFunctionSelector(exchange, false)
 	if _, ok := canReceiveTokenBeforeSwapFunctionSet[l1Selector.RawName]; ok {
 		return true
 	}
 
-	l2Selector, _ := l2executor.GetFunctionSelector(exchange)
+	l2Selector, _ := l2executor.GetFunctionSelector(exchange, false)
 	_, ok := canReceiveTokenBeforeSwapFunctionSet[l2Selector.RawName]
 	return ok
 }

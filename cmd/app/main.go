@@ -434,9 +434,7 @@ func apiAction(c *cli.Context) (err error) {
 		},
 	)
 	l1Decoder := &decode.Decoder{}
-	l2Decoder := decode.NewL2Decoder(decode.L2DecoderConfig{
-		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
-	})
+	l2Decoder := decode.NewL2Decoder()
 
 	removePoolIndex := usecase.NewRemovePoolIndexUseCase(poolRankRepository)
 

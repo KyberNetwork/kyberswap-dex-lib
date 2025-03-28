@@ -97,12 +97,12 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 // to support optimizing gas cost when encoding (not all pools need to call `approveMax` when swap with executor).
 // This data can be added by check the SC code, if the function of each pool type reads the SHOULD_APPROVE_MAX flag.
 func IsApproveMaxExchange(exchange Exchange) bool {
-	l1Selector, _ := l1executor.GetFunctionSelector(exchange)
+	l1Selector, _ := l1executor.GetFunctionSelector(exchange, false)
 	if _, ok := useApproveMaxFunctionSet[l1Selector.RawName]; ok {
 		return true
 	}
 
-	l2Selector, _ := l2executor.GetFunctionSelector(exchange)
+	l2Selector, _ := l2executor.GetFunctionSelector(exchange, false)
 	_, ok := useApproveMaxFunctionSet[l2Selector.RawName]
 	return ok
 }
