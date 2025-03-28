@@ -47,20 +47,28 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 	for i, params := range paramsList {
 		swapExtraBytes, err := json.Marshal(params.SwapInfo)
 		if err != nil {
-			return nil, fmt.Errorf("Order %d error : %v", i, err)
+			return nil, fmt.Errorf("marshal swapInfo[%d]: %w", i, err)
 		}
 
 		var swapExtra SwapExtra
 		if err = json.Unmarshal(swapExtraBytes, &swapExtra); err != nil {
-			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
+			return nil, fmt.Errorf("unmarshal swapInfo[%d]: %w", i, ErrInvalidFirmQuoteParams)
 		}
 
-		if swapExtra.MakingAmount == "" || swapExtra.TakingAmount == "" {
-			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
+		if swapExtra.MakingAmount == "" {
+			return nil, fmt.Errorf("empty making amount in order %d: %w", i, ErrInvalidFirmQuoteParams)
 		}
 
-		if !account.IsValidAddress(swapExtra.MakerAsset) || !account.IsValidAddress(swapExtra.TakerAsset) {
-			return nil, fmt.Errorf("Order %d error : %v", i, ErrInvalidFirmQuoteParams)
+		if swapExtra.TakingAmount == "" {
+			return nil, fmt.Errorf("empty taking amount in order %d: %w", i, ErrInvalidFirmQuoteParams)
+		}
+
+		if !account.IsValidAddress(swapExtra.MakerAsset) {
+			return nil, fmt.Errorf("invalid maker asset in order %d: %w", i, ErrInvalidFirmQuoteParams)
+		}
+
+		if !account.IsValidAddress(swapExtra.TakerAsset) {
+			return nil, fmt.Errorf("invalid taker asset in order %d: %w", i, ErrInvalidFirmQuoteParams)
 		}
 
 		expectedMakerAmount, _ := new(big.Int).SetString(swapExtra.MakingAmount, 10)
@@ -92,8 +100,8 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 		logger.WithFields(logger.Fields{
 			"paramsList": paramsList,
 			"error":      err,
-		}).Errorf("failed to get multiFirm quote")
-		return nil, err
+		}).Errorf("Failed to get multiFirm quote")
+		return nil, fmt.Errorf("get multiFirm quote: %w", err)
 	}
 
 	if len(result.Orders) == 0 {
@@ -106,21 +114,23 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 		if order.Error != "" {
 			logger.WithFields(logger.Fields{
 				"paramsList": paramsList,
-			}).Errorf("failed to get multiFirm quote: %s", order.Error)
+			}).Errorf("failed to get multiFirm quote of order %d: %s", i, order.Error)
 
-			return nil, fmt.Errorf("Order %d error: %s", i, order.Error)
+			return nil, fmt.Errorf("order %d error: %s", i, order.Error)
 		}
 
 		actualMakerAmount, _ := new(big.Int).SetString(order.MakerAmount, 10)
 		minMakerAmount, _ := new(big.Int).SetString(orders[i].MinMakerAmount, 10)
 
-		if actualMakerAmount.Cmp(minMakerAmount) < 0 {
+		if !h.config.IgnoreCheckReturnMakerAmount &&
+			actualMakerAmount.Cmp(minMakerAmount) < 0 {
 			logger.WithFields(logger.Fields{
 				"paramsList": paramsList,
 				"error":      ErrMakerAmountTooLow,
-			}).Error("failed to get multiFirm quote")
+			}).Error("Actual maker amount is lower than min maker amount")
 
-			return nil, ErrMakerAmountTooLow
+			return nil, fmt.Errorf("min=%s, actual=%s: %w",
+				minMakerAmount.String(), actualMakerAmount.String(), ErrMakerAmountTooLow)
 		}
 
 		alphaFee, ok := new(big.Int).SetString(order.FeeAmount, 10)
@@ -128,7 +138,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 			logger.WithFields(logger.Fields{
 				"paramsList": paramsList,
 				"error":      ErrInvalidFeeAmount,
-			}).Error("failed to get multiFirm quote")
+			}).Error("Parse alpha fee failed")
 
 			return nil, ErrInvalidFeeAmount
 		}

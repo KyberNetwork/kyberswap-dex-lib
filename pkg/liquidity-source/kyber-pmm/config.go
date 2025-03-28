@@ -5,10 +5,11 @@ import (
 )
 
 type Config struct {
-	DexID              string            `json:"dexID,omitempty"`
-	RFQContractAddress string            `mapstructure:"rfq_contract_address" json:"rfq_contract_address,omitempty"`
-	HTTP               HTTPConfig        `mapstructure:"http" json:"http,omitempty"`
-	MemoryCache        MemoryCacheConfig `mapstructure:"memory_cache" json:"memory_cache,omitempty"`
+	DexID                        string            `json:"dexID,omitempty"`
+	RFQContractAddress           string            `mapstructure:"rfq_contract_address" json:"rfq_contract_address,omitempty"`
+	HTTP                         HTTPConfig        `mapstructure:"http" json:"http,omitempty"`
+	MemoryCache                  MemoryCacheConfig `mapstructure:"memory_cache" json:"memory_cache,omitempty"`
+	IgnoreCheckReturnMakerAmount bool              `mapstructure:"ignore_check_return_amount" json:"ignore_check_return_amount,omitempty"`
 }
 
 type HTTPConfig struct {
