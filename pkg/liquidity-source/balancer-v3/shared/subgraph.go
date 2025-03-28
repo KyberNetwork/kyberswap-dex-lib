@@ -1,56 +1,58 @@
 package shared
 
-import (
-	"fmt"
-	"math/big"
-	"strings"
+type SubgraphPool struct {
+	Address    string `json:"address"`
+	CreateTime int64  `json:"createTime"`
+	Hook       struct {
+		Type HookType `json:"type"`
+	} `json:"hook"`
+	PoolTokens []SubgraphToken `json:"poolTokens"`
+}
+
+type SubgraphToken struct {
+	Address         string `json:"address"`
+	IsErc4626       bool   `json:"isErc4626"`
+	UnderlyingToken struct {
+		Address string `json:"address"`
+	} `json:"underlyingToken"`
+}
+
+const (
+	VarChain        = "chain"
+	VarPoolType     = "poolType"
+	VarCreateTimeGt = "createTimeGt"
+	VarFirst        = "first"
+	VarSkip         = "skip"
 )
 
-type SubgraphPool struct {
-	ID             string `json:"id"`
-	Address        string `json:"address"`
-	BlockTimestamp string `json:"blockTimestamp"`
-	IsInitialized  bool   `json:"isInitialized"`
-	Tokens         []struct {
-		Address  string `json:"address"`
-		Decimals int    `json:"decimals"`
-	} `json:"tokens"`
-	Vault struct {
-		ID string `json:"id"`
-	} `json:"vault"`
-}
-
-func BuildSubgraphPoolsQuery(
-	factory string,
-	lastBlockTimestamp *big.Int,
-	first int,
-	skip int,
-) string {
-	q := `{
-		pools(
-			where : {
-				factory: "%s",
-				blockTimestamp_gte: %v
-				symbol_not: "TEST"
-			},
-			first: %d,
-			skip: %d,
-			orderBy: blockTimestamp,
-			orderDirection: asc,
-		) {
-			id
+const SubgraphPoolsQuery = `query(
+	$` + VarChain + `: GqlChain!
+	$` + VarPoolType + `: GqlPoolType!
+	$` + VarCreateTimeGt + `: Int!
+	$` + VarFirst + `: Int!
+	$` + VarSkip + `: Int!
+) {
+	poolGetPools(
+		where: {
+			chainIn: [$` + VarChain + `]
+			protocolVersionIn: [3]
+			poolTypeIn: [$` + VarPoolType + `]
+			createTime: {gt: $` + VarCreateTimeGt + `}
+		}
+		first: $` + VarFirst + `
+		skip: $` + VarSkip + `
+	) {
+		address
+		createTime
+		hook {
+			type
+		}
+		poolTokens {
 			address
-			blockTimestamp
-			isInitialized
-			tokens {
-			  address
-			  decimals
-			}
-			vault {
-			  id
+			isErc4626
+			underlyingToken {
+				address
 			}
 		}
-	}`
-
-	return fmt.Sprintf(q, strings.ToLower(factory), lastBlockTimestamp, first, skip)
-}
+	}
+}`

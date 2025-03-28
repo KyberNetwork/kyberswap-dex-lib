@@ -1,15 +1,14 @@
 package hooks
 
 import (
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	"github.com/holiman/uint256"
 )
 
-const DirectionalFeeHookType = "DirectionalFeeHook"
-
 type directionalFeeHook struct {
-	BaseHook
+	NoOpHook
 
 	staticSwapFeePercentage *uint256.Int
 }
