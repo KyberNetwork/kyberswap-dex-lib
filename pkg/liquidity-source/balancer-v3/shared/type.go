@@ -8,10 +8,8 @@ import (
 )
 
 type StaticExtra struct {
-	Vault             string   `json:"vault,omitempty"`
-	DefaultHook       string   `json:"defHook,omitempty"`
-	IsPoolInitialized bool     `json:"init,omitempty"`
-	BufferTokens      []string `json:"buffs,omitempty"`
+	HookType     HookType `json:"hookT,omitempty"`
+	BufferTokens []string `json:"buffs,omitempty"`
 }
 
 type ExtraBuffer struct {
@@ -25,8 +23,8 @@ type SwapInfo struct {
 }
 
 type PoolMetaInfo struct {
-	Vault        string    `json:"vault"`
-	BufferTokens [2]string `json:"buffs"`
+	BufferTokenIn  string `json:"buffIn"`
+	BufferTokenOut string `json:"buffOut"`
 }
 
 type AggregateFeePercentage struct {

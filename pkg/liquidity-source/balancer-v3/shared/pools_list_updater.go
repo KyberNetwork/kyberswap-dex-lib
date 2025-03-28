@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -19,6 +20,7 @@ type (
 
 	Metadata struct {
 		LastBlockTimestamp int64 `json:"lastBlockTimestamp"`
+		Skip               int   `json:"skip"`
 	}
 )
 
@@ -30,9 +32,16 @@ func NewPoolsListUpdater(config *Config, graphqlClient *graphqlpkg.Client) *Pool
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	if u.config.Factory == "" {
-		return nil, nil, ErrEmptyFactoryConfig
-	}
+	l := klog.WithFields(ctx, klog.Fields{
+		"dexID": u.config.DexID,
+	})
+	l.Infof("Start updating pools list ...")
+	var pools []entity.Pool
+	defer func() {
+		l.WithFields(klog.Fields{
+			"count": len(pools),
+		}).Infof("Finish updating pools list.")
+	}()
 
 	var metadata Metadata
 	if len(metadataBytes) > 0 {
@@ -41,74 +50,71 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	subgraphPools, lastBlockTimestamp, err := u.querySubgraph(ctx, metadata.LastBlockTimestamp)
+	subgraphPools, metadata, err := u.querySubgraph(ctx, metadata)
 	if err != nil {
 		return nil, nil, err
 	} else if len(subgraphPools) == 0 {
 		return nil, metadataBytes, nil
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
-		LastBlockTimestamp: lastBlockTimestamp,
-	})
+	newMetadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(subgraphPools)
+	pools, err = u.initPools(subgraphPools)
 	return pools, newMetadataBytes, err
 }
 
-func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastBlockTimestamp int64) ([]*SubgraphPool, int64,
-	error) {
+func (u *PoolsListUpdater) querySubgraph(ctx context.Context, metadata Metadata) ([]*SubgraphPool, Metadata, error) {
 	var response struct {
-		Pools []*SubgraphPool `json:"pools"`
+		Pools []*SubgraphPool `json:"poolGetPools"`
 	}
 
 	req := graphqlpkg.NewRequest(SubgraphPoolsQuery)
-	req.Var(VarFactory, u.config.Factory)
-	req.Var(VarBlockTimestampGte, lastBlockTimestamp)
+	req.Var(VarChain, u.config.SubgraphChain)
+	req.Var(VarPoolType, u.config.SubgraphPoolType)
+	req.Var(VarCreateTimeGt, metadata.LastBlockTimestamp)
 	req.Var(VarFirst, u.config.NewPoolLimit)
+	req.Var(VarSkip, metadata.Skip)
 
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
-		return nil, 0, err
+		return nil, metadata, err
 	}
 
-	if len(response.Pools) > 0 {
-		lastBlockTimestamp = response.Pools[len(response.Pools)-1].BlockTimestamp
+	if poolCnt := len(response.Pools); poolCnt >= u.config.NewPoolLimit {
+		metadata.Skip += u.config.NewPoolLimit
+	} else if poolCnt > 0 {
+		metadata.LastBlockTimestamp = response.Pools[len(response.Pools)-1].CreateTime
+		metadata.Skip = 0
 	}
 
-	return response.Pools, lastBlockTimestamp, nil
+	return response.Pools, metadata, nil
 }
 
 func (u *PoolsListUpdater) initPools(subgraphPools []*SubgraphPool) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, len(subgraphPools))
 	for i, subgraphPool := range subgraphPools {
-		staticExtraBytes, err := json.Marshal(&StaticExtra{
-			Vault:             subgraphPool.Vault.ID,
-			DefaultHook:       u.config.DefaultHook,
-			IsPoolInitialized: subgraphPool.IsInitialized,
-			BufferTokens: lo.Map(subgraphPool.Tokens, func(token SubgraphToken, i int) string {
-				return lo.Ternary(token.Buffer == nil, "", token.Address)
-			}),
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		poolTokens := make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves := make([]string, len(subgraphPool.Tokens))
-		for j, token := range subgraphPool.Tokens {
-			address := token.Address
-			if token.Buffer != nil {
-				address = token.Buffer.UnderlyingToken.ID
-			}
+		bufferTokens := make([]string, len(subgraphPool.PoolTokens))
+		poolTokens := make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
+		reserves := make([]string, len(subgraphPool.PoolTokens))
+		for j, token := range subgraphPool.PoolTokens {
+			isBuffer := token.IsErc4626 && !lo.ContainsBy(subgraphPool.PoolTokens, func(t SubgraphToken) bool {
+				// don't use as buffer token if the underlying token is already contained in the pool as a main token
+				return token.UnderlyingToken.Address == t.Address
+			})
+			bufferTokens[j] = lo.Ternary(isBuffer, token.Address, "")
 			poolTokens[j] = &entity.PoolToken{
-				Address:   address,
+				Address:   lo.Ternary(isBuffer, token.UnderlyingToken.Address, token.Address),
 				Swappable: true,
 			}
 			reserves[j] = "0"
 		}
+
+		staticExtraBytes, _ := json.Marshal(&StaticExtra{
+			HookType:     subgraphPool.Hook.Type,
+			BufferTokens: bufferTokens,
+		})
 
 		pools[i] = entity.Pool{
 			Address:     subgraphPool.Address,

@@ -32,16 +32,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -83,16 +79,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -134,16 +126,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -180,16 +168,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -266,16 +250,12 @@ func TestCalcAmountIn(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -317,16 +297,12 @@ func TestCalcAmountIn(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -368,16 +344,12 @@ func TestCalcAmountIn(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}
@@ -414,16 +386,12 @@ func TestCalcAmountIn(t *testing.T) {
 					},
 				},
 			},
-			vault: vault.New(
-				hooks.NewBaseHook(),
-				shared.HooksConfig{},
-				false, // isPoolInRecoveryMode
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},                                                                // decimalScalingFactors
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},                            // tokenRates
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"), uint256.MustFromDecimal("2124492373418339554414")}, // balancesLiveScaled18
-				uint256.NewInt(20000000000000),     // swapFeePercentage
-				uint256.NewInt(500000000000000000), // aggregateSwapFeePercentage
-			),
+			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
+				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
+				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
+				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
+					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
+				uint256.NewInt(500000000000000000)),
 			currentAmp: uint256.NewInt(5000000),
 			buffers:    make([]*shared.ExtraBuffer, 2),
 		}

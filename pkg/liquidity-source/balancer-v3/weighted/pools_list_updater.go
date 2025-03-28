@@ -10,5 +10,6 @@ var _ = poollist.RegisterFactoryCG(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *shared.Config, graphqlClient *graphqlpkg.Client) *shared.PoolsListUpdater {
 	config.PoolType = DexType
+	config.SubgraphPoolType = SubgraphPoolType
 	return shared.NewPoolsListUpdater(config, graphqlClient)
 }

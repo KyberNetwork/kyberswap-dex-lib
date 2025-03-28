@@ -13,9 +13,7 @@ const (
 	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsVaultPaused        = "isVaultPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
-	VaultMethodIsPoolInitialized    = "isPoolInitialized"
 
-	ERC4626MethodAsset       = "asset"
 	ERC4626MethodTotalAssets = "totalAssets"
 	ERC4626MethodTotalSupply = "totalSupply"
 )

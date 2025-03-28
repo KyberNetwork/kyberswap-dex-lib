@@ -1,57 +1,58 @@
 package shared
 
 type SubgraphPool struct {
-	Address        string          `json:"address"`
-	BlockTimestamp int64           `json:"blockTimestamp,string"`
-	IsInitialized  bool            `json:"isInitialized"`
-	Tokens         []SubgraphToken `json:"tokens"`
-	Vault          struct {
-		ID string `json:"id"`
-	} `json:"vault"`
+	Address    string `json:"address"`
+	CreateTime int64  `json:"createTime"`
+	Hook       struct {
+		Type HookType `json:"type"`
+	} `json:"hook"`
+	PoolTokens []SubgraphToken `json:"poolTokens"`
 }
 
 type SubgraphToken struct {
-	Address string `json:"address"`
-	Buffer  *struct {
-		UnderlyingToken struct {
-			ID string `json:"id"`
-		} `json:"underlyingToken"`
-	} `json:"buffer"`
+	Address         string `json:"address"`
+	IsErc4626       bool   `json:"isErc4626"`
+	UnderlyingToken struct {
+		Address string `json:"address"`
+	} `json:"underlyingToken"`
 }
 
 const (
-	VarFactory           = "factory"
-	VarBlockTimestampGte = "blockTimestampGte"
-	VarFirst             = "first"
+	VarChain        = "chain"
+	VarPoolType     = "poolType"
+	VarCreateTimeGt = "createTimeGt"
+	VarFirst        = "first"
+	VarSkip         = "skip"
 )
 
 const SubgraphPoolsQuery = `query(
-	$` + VarFactory + `: Bytes
-	$` + VarBlockTimestampGte + `: BigInt
-	$` + VarFirst + `: Int
+	$` + VarChain + `: GqlChain!
+	$` + VarPoolType + `: GqlPoolType!
+	$` + VarCreateTimeGt + `: Int!
+	$` + VarFirst + `: Int!
+	$` + VarSkip + `: Int!
 ) {
-	pools(
-		where : {
-			factory: $` + VarFactory + `
-			blockTimestamp_gte: $` + VarBlockTimestampGte + `
+	poolGetPools(
+		where: {
+			chainIn: [$` + VarChain + `]
+			protocolVersionIn: [3]
+			poolTypeIn: [$` + VarPoolType + `]
+			createTime: {gt: $` + VarCreateTimeGt + `}
 		}
 		first: $` + VarFirst + `
-		orderBy: blockTimestamp
-		orderDirection: asc
+		skip: $` + VarSkip + `
 	) {
 		address
-		blockTimestamp
-		isInitialized
-		tokens {
-			address
-			buffer {
-				underlyingToken {
-					id
-				}
-			}
+		createTime
+		hook {
+			type
 		}
-		vault {
-			id
+		poolTokens {
+			address
+			isErc4626
+			underlyingToken {
+				address
+			}
 		}
 	}
 }`

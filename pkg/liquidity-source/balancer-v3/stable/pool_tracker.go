@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
@@ -59,78 +59,25 @@ func (t *PoolTracker) getNewPoolState(
 	_ poolpkg.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	logger.WithFields(logger.Fields{
+	l := klog.WithFields(ctx, klog.Fields{
 		"dexId":       t.config.DexID,
 		"dexType":     DexType,
 		"poolAddress": p.Address,
-	}).Info("Start updating state ...")
-
+	})
+	l.Info("Start updating state ...")
 	defer func() {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Info("Finish updating state.")
+		l.Info("Finish updating state.")
 	}()
 
 	var staticExtra shared.StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Error("failed to unmarshal StaticExtra data")
+		l.WithFields(klog.Fields{"error": err}).Error("failed to unmarshal StaticExtra data")
 		return entity.Pool{}, err
 	}
 
-	if !staticExtra.IsPoolInitialized {
-		isPoolInitialized, err := t.IsPoolInitialized(ctx, p.Address, overrides)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Error(err.Error())
-
-			return entity.Pool{}, err
-		}
-
-		if !isPoolInitialized {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Warn("this pool still not be initialized")
-
-			return p, nil
-		}
-
-		staticExtra.IsPoolInitialized = true
-
-		staticExtraBytes, err := json.Marshal(&staticExtra)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Error("failed to marshal StaticExtra data")
-
-			return entity.Pool{}, err
-		}
-
-		p.StaticExtra = string(staticExtraBytes)
-	}
-
-	res, shouldDisablePool, err := t.queryRPCData(ctx, p.Address, staticExtra, overrides)
+	res, err := t.queryRPCData(ctx, p.Address, staticExtra, overrides)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Error("failed to query RPC data")
+		l.WithFields(klog.Fields{"error": err}).Error("failed to query RPC data")
 		return p, err
 	}
 
@@ -170,17 +117,9 @@ func (t *PoolTracker) getNewPoolState(
 		DecimalScalingFactors:      decimalScalingFactors,
 		TokenRates:                 tokenRates,
 		Buffers:                    buffers,
-		IsVaultPaused:              res.IsVaultPaused,
-		IsPoolPaused:               res.IsPoolPaused,
-		IsPoolInRecoveryMode:       res.IsPoolInRecoveryMode,
 	})
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Error("failed to marshal extra data")
+		l.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
 		return p, err
 	}
 
@@ -188,48 +127,17 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
-	// Set all reserves to 0 to disable pool temporarily
-	if shouldDisablePool {
-		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string {
-			return "0"
-		})
-	} else {
-		p.Reserves = lo.Map(res.BalancesRaw, func(v *big.Int, _ int) string {
-			return v.String()
-		})
+	if isPoolDisabled := res.IsVaultPaused || res.IsPoolPaused || res.IsPoolInRecoveryMode; !isPoolDisabled && shared.IsHookSupported(staticExtra.HookType) {
+		p.Reserves = lo.Map(res.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
+	} else { // set all reserves to 0 to disable pool temporarily
+		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
 	}
 
 	return p, nil
 }
 
-func (t *PoolTracker) IsPoolInitialized(
-	ctx context.Context,
-	poolAddress string,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (bool, error) {
-	var isPoolInitialized bool
-
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    shared.VaultExplorerABI,
-		Target: t.config.VaultExplorer,
-		Method: shared.VaultMethodIsPoolInitialized,
-		Params: []any{common.HexToAddress(poolAddress)},
-	}, []any{&isPoolInitialized})
-
-	if _, err := req.Call(); err != nil {
-		return false, errors.WithMessage(err, "failed to check if pool is initialized")
-	}
-
-	return isPoolInitialized, nil
-}
-
 func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, staticExtra shared.StaticExtra,
-	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, bool, error) {
+	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, error) {
 	var (
 		aggregateFeePercentages shared.AggregateFeePercentage
 		hooksConfig             shared.HooksConfigRPC
@@ -307,18 +215,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return nil, false, errors.WithMessage(err, "failed to query RPC data")
-	}
-
-	var shouldDisablePool bool
-	if hooksConfig.Data.HooksContract != (common.Address{}) {
-		shouldDisablePool = true
-
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": poolAddress,
-		}).Warnf("this pool has a contract hook implemented at %s => should check it", hooksConfig.Data.HooksContract)
+		return nil, errors.WithMessage(err, "failed to query RPC data")
 	}
 
 	return &RpcResult{
@@ -340,5 +237,5 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 		IsPoolPaused:               isPoolPaused,
 		IsPoolInRecoveryMode:       isPoolInRecoveryMode,
 		BlockNumber:                res.BlockNumber.Uint64(),
-	}, shouldDisablePool, nil
+	}, nil
 }

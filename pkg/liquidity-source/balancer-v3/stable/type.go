@@ -17,9 +17,6 @@ type Extra struct {
 	DecimalScalingFactors      []*uint256.Int        `json:"decimalScalingFactors"`
 	TokenRates                 []*uint256.Int        `json:"tokenRates"`
 	Buffers                    []*shared.ExtraBuffer `json:"buffers"`
-	IsVaultPaused              bool                  `json:"isVaultPaused,omitempty"`
-	IsPoolPaused               bool                  `json:"isPoolPaused,omitempty"`
-	IsPoolInRecoveryMode       bool                  `json:"isPoolInRecoveryMode,omitempty"`
 }
 
 type AmplificationParameter struct {

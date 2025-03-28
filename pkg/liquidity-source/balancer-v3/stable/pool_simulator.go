@@ -23,14 +23,7 @@ type PoolSimulator struct {
 	vault      *vault.Vault
 	currentAmp *uint256.Int
 
-	hooksConfig shared.HooksConfig
-
-	buffers              []*shared.ExtraBuffer
-	isVaultPaused        bool
-	isPoolPaused         bool
-	isPoolInRecoveryMode bool
-
-	vaultAddress string
+	buffers      []*shared.ExtraBuffer
 	bufferTokens []string
 }
 
@@ -50,21 +43,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	// Need to detect the current hook type of pool
-	if staticExtra.DefaultHook != "" && !hooks.IsHookSupported(staticExtra.DefaultHook) {
-		logger.Warnf(
-			"[%s] Pool Address: %s | Warning: defaultHook is not supported => falling back to BaseHook",
-			DexType,
-			entityPool.Address,
-		)
-	}
-
 	var hook hooks.IHook
-	switch staticExtra.DefaultHook {
-	case hooks.DirectionalFeeHookType:
+	switch staticExtra.HookType {
+	case shared.DirectionalFeeHookType:
 		hook = hooks.NewDirectionalFeeHook(extra.StaticSwapFeePercentage)
+	case shared.FeeTakingHookType:
+		hook = hooks.NewFeeTakingHook()
+	case shared.StableSurgeHookType:
+		hook = hooks.NewStableSurgeHook()
+	case shared.VeBALFeeDiscountHookType:
+		hook = hooks.NewVeBALFeeDiscountHook()
 	default:
-		hook = hooks.NewBaseHook()
+		hook = hooks.NewNoOpHook()
 	}
 
 	return &PoolSimulator{
@@ -78,34 +68,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		buffers:              extra.Buffers,
-		isVaultPaused:        extra.IsVaultPaused,
-		isPoolPaused:         extra.IsPoolPaused,
-		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
-		vault: vault.New(hook, extra.HooksConfig, extra.IsPoolInRecoveryMode, extra.DecimalScalingFactors,
-			extra.TokenRates, extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage,
-			extra.AggregateSwapFeePercentage),
-		hooksConfig:  extra.HooksConfig,
-		currentAmp:   extra.AmplificationParameter,
-		vaultAddress: staticExtra.Vault,
+
+		vault: vault.New(hook, extra.HooksConfig, extra.DecimalScalingFactors, extra.TokenRates,
+			extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage),
+		currentAmp: extra.AmplificationParameter,
+
+		buffers:      extra.Buffers,
 		bufferTokens: staticExtra.BufferTokens,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if p.isVaultPaused {
-		return nil, shared.ErrVaultIsPaused
-	}
-
-	if p.isPoolPaused {
-		return nil, shared.ErrPoolIsPaused
-	}
-
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrTokenNotRegistered
+		return nil, shared.ErrInvalidToken
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
@@ -151,19 +129,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	if p.isVaultPaused {
-		return nil, shared.ErrVaultIsPaused
-	}
-
-	if p.isPoolPaused {
-		return nil, shared.ErrPoolIsPaused
-	}
-
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
 
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrTokenNotRegistered
+		return nil, shared.ErrInvalidToken
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
@@ -246,8 +216,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	tokenInIdx, tokenOutIdx := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
 	return shared.PoolMetaInfo{
-		Vault:        p.vaultAddress,
-		BufferTokens: [2]string{p.bufferTokens[tokenInIdx], p.bufferTokens[tokenOutIdx]},
+		BufferTokenIn:  p.bufferTokens[tokenInIdx],
+		BufferTokenOut: p.bufferTokens[tokenOutIdx],
 	}
 }
 
