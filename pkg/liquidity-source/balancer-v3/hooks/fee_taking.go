@@ -1,3 +1,9 @@
 package hooks
 
-const FeeTakingHookType = "FeeTakingHook"
+type FeeTakingHook struct {
+	NoOpHook
+}
+
+func NewFeeTakingHook() *FeeTakingHook {
+	return &FeeTakingHook{}
+}

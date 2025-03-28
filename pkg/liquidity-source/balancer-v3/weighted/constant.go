@@ -1,15 +1,14 @@
 package weighted
 
-import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-
 const (
 	DexType = "balancer-v3-weighted"
 
-	PoolType = "WeightedPool"
+	SubgraphPoolType = "WEIGHTED"
 
 	poolMethodGetNormalizedWeights = "getNormalizedWeights"
 )
 
 var (
-	defaultGas = shared.Gas{Swap: 80000}
+	baseGas   int64 = 237494
+	bufferGas int64 = 120534
 )

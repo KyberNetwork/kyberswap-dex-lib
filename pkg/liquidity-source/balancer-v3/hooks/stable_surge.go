@@ -1,9 +1,7 @@
 package hooks
 
-const StableSurgeHookType = "StableSurgeHook"
-
 type StableSurgeHook struct {
-	BaseHook
+	NoOpHook
 }
 
 func NewStableSurgeHook() *StableSurgeHook {

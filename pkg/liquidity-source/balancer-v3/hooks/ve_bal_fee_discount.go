@@ -1,9 +1,7 @@
 package hooks
 
-const VeBALFeeDiscountHookType = "VeBALFeeDiscountHook"
-
 type VeBALFeeDiscountHook struct {
-	BaseHook
+	NoOpHook
 }
 
 func NewVeBALFeeDiscountHook() *VeBALFeeDiscountHook {
