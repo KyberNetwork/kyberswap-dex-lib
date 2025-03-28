@@ -234,6 +234,10 @@ var (
 	ExchangeSyncSwapV2Stable  Exchange = "syncswapv2-stable"
 	ExchangeSyncSwapV2Aqua    Exchange = "syncswapv2-aqua"
 
+	ExchangeSyncSwapV21Classic Exchange = "syncswapv21-classic"
+	ExchangeSyncSwapV21Stable  Exchange = "syncswapv21-stable"
+	ExchangeSyncSwapV21Aqua    Exchange = "syncswapv21-aqua"
+
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
@@ -625,6 +629,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSyncSwapV2Classic:          {},
 	ExchangeSyncSwapV2Stable:           {},
 	ExchangeSyncSwapV2Aqua:             {},
+	ExchangeSyncSwapV21Classic:         {},
+	ExchangeSyncSwapV21Stable:          {},
+	ExchangeSyncSwapV21Aqua:            {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeTraderJoeV20:               {},
