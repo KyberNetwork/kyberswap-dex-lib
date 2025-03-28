@@ -114,13 +114,15 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsList []pool.RFQParams) 
 		actualMakerAmount, _ := new(big.Int).SetString(order.MakerAmount, 10)
 		minMakerAmount, _ := new(big.Int).SetString(orders[i].MinMakerAmount, 10)
 
-		if actualMakerAmount.Cmp(minMakerAmount) < 0 {
+		if !h.config.IgnoreCheckReturnMakerAmount &&
+			actualMakerAmount.Cmp(minMakerAmount) < 0 {
 			logger.WithFields(logger.Fields{
 				"paramsList": paramsList,
 				"error":      ErrMakerAmountTooLow,
 			}).Error("failed to get multiFirm quote")
 
-			return nil, ErrMakerAmountTooLow
+			return nil, fmt.Errorf("min=%s, actual=%s: %w",
+				minMakerAmount.String(), actualMakerAmount.String(), ErrMakerAmountTooLow)
 		}
 
 		alphaFee, ok := new(big.Int).SetString(order.FeeAmount, 10)
