@@ -5,7 +5,7 @@ go 1.23.1
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
-	github.com/KyberNetwork/ethrpc v0.7.3
+	github.com/KyberNetwork/ethrpc v0.7.4-0.20250330041711-04c834752187
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/logger v1.0.3
@@ -17,7 +17,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.2.0
-	github.com/ethereum/go-ethereum v1.14.12
+	github.com/ethereum/go-ethereum v1.14.13
 	github.com/go-resty/resty/v2 v2.14.0
 	github.com/goccy/go-json v0.10.3
 	github.com/google/go-cmp v0.6.0

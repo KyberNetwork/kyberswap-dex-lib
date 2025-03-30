@@ -4,8 +4,8 @@ github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4 
 github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4/go.mod h1:fFA9FNutpB9JJA3jM5mEUcBRaYC5UrFZos6jd6EfONs=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4 h1:JbIQLyp4YNbwEUlBJGE/xc2ktr6eiBbyRiTcGnSCpx4=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
-github.com/KyberNetwork/ethrpc v0.7.3 h1:H1ZoKsaoqK5xEuW+Zv1b9dxG09Cn/GjEiwjXdOIreQk=
-github.com/KyberNetwork/ethrpc v0.7.3/go.mod h1:+MonZWaG7IfjuMz35BoUF4w+tu5qU+rlEqMF0UM3+1w=
+github.com/KyberNetwork/ethrpc v0.7.4-0.20250330041711-04c834752187 h1:hakRKvjRh2tgBFFLTv5ZKIcLbZkzxzIL9L+JoOdXNzg=
+github.com/KyberNetwork/ethrpc v0.7.4-0.20250330041711-04c834752187/go.mod h1:jZXHde7jQVscUF+nSEJfJC88e63Ka6J695uLGso8S1k=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXAyvO8=
@@ -88,8 +88,8 @@ github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkp
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/ethereum/c-kzg-4844 v1.0.3 h1:IEnbOHwjixW2cTvKRUlAAUOeleV7nNM/umJR+qy4WDs=
 github.com/ethereum/c-kzg-4844 v1.0.3/go.mod h1:VewdlzQmpT5QSrVhbBuGoCdFJkpaJlO1aQputP83wc0=
-github.com/ethereum/go-ethereum v1.14.12 h1:8hl57x77HSUo+cXExrURjU/w1VhL+ShCTJrTwcCQSe4=
-github.com/ethereum/go-ethereum v1.14.12/go.mod h1:RAC2gVMWJ6FkxSPESfbshrcKpIokgQKsVKmAuqdekDY=
+github.com/ethereum/go-ethereum v1.14.13 h1:L81Wmv0OUP6cf4CW6wtXsr23RUrDhKs2+Y9Qto+OgHU=
+github.com/ethereum/go-ethereum v1.14.13/go.mod h1:RAC2gVMWJ6FkxSPESfbshrcKpIokgQKsVKmAuqdekDY=
 github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 h1:8NfxH2iXvJ60YRB8ChToFTUzl8awsc3cJ8CbLjGIl/A=
 github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9/go.mod h1:M3b90YRnzqKyyzBEWJGqj8Qff4IDeXnzFw0P9bFw3uk=
 github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
