@@ -106,61 +106,62 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
-		calls.SetOverrides(overrides)
+		req.SetOverrides(overrides)
 	}
+	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodInitialA,
 		Params: nil,
 	}, []interface{}{&initialA})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 		Params: nil,
 	}, []interface{}{&futureA})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
 		Params: nil,
 	}, []interface{}{&initialATime})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
 		Params: nil,
 	}, []interface{}{&futureATime})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 		Params: nil,
 	}, []interface{}{&swapFee})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
 		Params: nil,
 	}, []interface{}{&adminFee})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: staticExtra.LpToken,
 		Method: shared.ERC20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    numTokenDependedABIs[numTokens],
 		Target: p.Address,
 		Method: poolMethodStoredRates,
@@ -168,7 +169,7 @@ func (t *PoolTracker) getNewPoolState(
 	}, []interface{}{&storedRates})
 
 	if len(staticExtra.Oracle) > 0 {
-		calls.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    shared.OracleABI,
 			Target: staticExtra.Oracle,
 			Method: poolMethodLatestAnswer,
@@ -178,7 +179,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	if dataSourceAddresses, ok := shared.DataSourceAddresses[t.config.ChainCode]; ok {
 		if mainRegistryAddress, ok := dataSourceAddresses[shared.CURVE_DATASOURCE_MAIN]; ok {
-			calls.AddCall(&ethrpc.Call{
+			req.AddCall(&ethrpc.Call{
 				ABI:    shared.MainRegistryABI,
 				Target: mainRegistryAddress,
 				Method: mainRegistryMethodGetRates,
@@ -188,14 +189,14 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	for i := range p.Tokens {
-		calls.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
 			Params: []interface{}{big.NewInt(int64(i))},
 		}, []interface{}{&balances[i]})
 
-		calls.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    getBalances128ABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
@@ -203,7 +204,7 @@ func (t *PoolTracker) getNewPoolState(
 		}, []interface{}{&balancesV1[i]})
 	}
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	} else if res.BlockNumber != nil {
