@@ -84,75 +84,76 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
-		calls.SetOverrides(overrides)
+		req.SetOverrides(overrides)
 	}
+	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialA,
 		Params: nil,
 	}, []interface{}{&initialA})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 		Params: nil,
 	}, []interface{}{&futureA})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
 		Params: nil,
 	}, []interface{}{&initialATime})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
 		Params: nil,
 	}, []interface{}{&futureATime})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 		Params: nil,
 	}, []interface{}{&swapFee})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
 		Params: nil,
 	}, []interface{}{&adminFee})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodStoredRates,
 		Params: nil,
 	}, []interface{}{&storedRates})
 
-	calls.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 		Params: nil,
 	}, []interface{}{&balances})
 
-	if res, err := calls.TryBlockAndAggregate(); err != nil {
+	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")
 		return entity.Pool{}, err
 	} else if res.BlockNumber != nil {
