@@ -4,41 +4,42 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	"github.com/holiman/uint256"
 )
 
-type RpcResult struct {
-	HooksConfig                shared.HooksConfig
-	Buffers                    []*shared.ExtraBufferRPC
-	BalancesRaw                []*big.Int
-	BalancesLiveScaled18       []*big.Int
-	TokenRates                 []*big.Int
-	DecimalScalingFactors      []*big.Int
-	StaticSwapFeePercentage    *big.Int
-	AggregateSwapFeePercentage *big.Int
-	IsVaultPaused              bool
-	IsPoolPaused               bool
-	IsPoolInRecoveryMode       bool
-	BlockNumber                uint64
-	ECLPParams                 ECLPParamsResp
-}
-
 type Extra struct {
-	HooksConfig                shared.HooksConfig    `json:"hooksConfig"`
-	StaticSwapFeePercentage    *uint256.Int          `json:"staticSwapFeePercentage"`
-	AggregateSwapFeePercentage *uint256.Int          `json:"aggregateSwapFeePercentage"`
-	ECLPParams                 ECLPParams            `json:"eclpParams"`
-	BalancesLiveScaled18       []*uint256.Int        `json:"balancesLiveScaled18"`
-	DecimalScalingFactors      []*uint256.Int        `json:"decimalScalingFactors"`
-	TokenRates                 []*uint256.Int        `json:"tokenRates"`
-	Buffers                    []*shared.ExtraBuffer `json:"buffers"`
-	IsVaultPaused              bool                  `json:"isVaultPaused,omitempty"`
-	IsPoolPaused               bool                  `json:"isPoolPaused,omitempty"`
-	IsPoolInRecoveryMode       bool                  `json:"isPoolInRecoveryMode,omitempty"`
+	*shared.Extra
+	ECLPParams ECLPParams `json:"eclp"`
 }
 
-type ECLPParamsResp struct {
+type ECLPParams struct {
+	Params struct {
+		Alpha  *int256.Int `json:"a,omitempty"`
+		Beta   *int256.Int `json:"b,omitempty"`
+		C      *int256.Int `json:"c,omitempty"`
+		S      *int256.Int `json:"s,omitempty"`
+		Lambda *int256.Int `json:"l,omitempty"`
+	} `json:"p,omitempty"`
+
+	D struct {
+		TauAlpha struct {
+			X *int256.Int `json:"x,omitempty"`
+			Y *int256.Int `json:"y,omitempty"`
+		} `json:"tA"`
+		TauBeta struct {
+			X *int256.Int `json:"x,omitempty"`
+			Y *int256.Int `json:"y,omitempty"`
+		} `json:"tB"`
+		U   *int256.Int `json:"u,omitempty"`
+		V   *int256.Int `json:"v,omitempty"`
+		W   *int256.Int `json:"w,omitempty"`
+		Z   *int256.Int `json:"z,omitempty"`
+		DSq *int256.Int `json:"DSq,omitempty"`
+	} `json:"d,omitempty"`
+}
+
+type ECLPParamsRpc struct {
 	Params struct {
 		Alpha  *big.Int
 		Beta   *big.Int
@@ -64,33 +65,12 @@ type ECLPParamsResp struct {
 	}
 }
 
-type ECLPParams struct {
-	Params struct {
-		Alpha  *int256.Int
-		Beta   *int256.Int
-		C      *int256.Int
-		S      *int256.Int
-		Lambda *int256.Int
-	}
-
-	D struct {
-		TauAlpha struct {
-			X *int256.Int
-			Y *int256.Int
-		}
-		TauBeta struct {
-			X *int256.Int
-			Y *int256.Int
-		}
-		U   *int256.Int
-		V   *int256.Int
-		W   *int256.Int
-		Z   *int256.Int
-		DSq *int256.Int
-	}
+type RpcResult struct {
+	shared.RpcResult
+	ECLPParamsRpc
 }
 
-func (p *ECLPParamsResp) toInt256() ECLPParams {
+func (p *ECLPParamsRpc) toInt256() ECLPParams {
 	var result ECLPParams
 
 	result.Params.Alpha = int256.MustFromBig(p.Params.Alpha)

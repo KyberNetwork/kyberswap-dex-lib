@@ -1,8 +1,9 @@
 package vault
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 )
 
 func (v *Vault) callBeforeSwapHook(poolSwapParams shared.PoolSwapParams) error {
@@ -64,7 +65,7 @@ func (v *Vault) callComputeDynamicSwapFeeHook(poolSwapParams shared.PoolSwapPara
 		return nil, ErrDynamicSwapFeeHookFailed
 	}
 
-	if swapFeePercentage.Gt(MAX_FEE_PERCENTAGE) {
+	if swapFeePercentage.Gt(MaxFeePercentage) {
 		return nil, ErrDynamicSwapFeeHookFailed
 	}
 

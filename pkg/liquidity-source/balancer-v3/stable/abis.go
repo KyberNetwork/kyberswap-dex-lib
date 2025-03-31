@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	poolABI abi.ABI
+	poolABI        abi.ABI
+	stableSurgeABI abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&poolABI, poolJson},
+		{&stableSurgeABI, stableSurgeJson},
 	}
 
 	for _, b := range builder {

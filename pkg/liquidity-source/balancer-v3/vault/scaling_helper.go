@@ -1,8 +1,9 @@
 package vault
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 )
 
 func toScaled18ApplyRateRoundUp(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {
@@ -22,14 +23,14 @@ func toScaled18ApplyRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int)
 }
 
 func computeRateRoundUp(rate *uint256.Int) *uint256.Int {
-	divisor := new(uint256.Int).Div(rate, math.ONE_E18)
-	divisor.Mul(divisor, math.ONE_E18)
+	divisor := new(uint256.Int).Div(rate, math.U1e18)
+	divisor.Mul(divisor, math.U1e18)
 
 	if divisor.Eq(rate) {
 		return divisor.Set(rate)
 	}
 
-	return divisor.Add(rate, math.ONE)
+	return divisor.AddUint64(rate, 1)
 }
 
 func toRawUndoRateRoundDown(amount, scalingFactor, tokenRate *uint256.Int) (*uint256.Int, error) {

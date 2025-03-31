@@ -1,25 +1,12 @@
 package math
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
-)
-
-var (
-	ErrStableInvariantDidNotConverge      = errors.New("stable invariant didn't converge")
-	ErrStableComputeBalanceDidNotConverge = errors.New("stable computeBalance didn't converge")
-
-	AMP_PRECISION = uint256.NewInt(1e3)
 )
 
 var StableMath *stableMath
 
 type stableMath struct{}
-
-func init() {
-	StableMath = &stableMath{}
-}
 
 func (s *stableMath) ComputeOutGivenExactIn(
 	amplificationParameter *uint256.Int,
@@ -135,7 +122,7 @@ func (s *stableMath) ComputeBalance(
 	invariantSquared := new(uint256.Int).Mul(invariant, invariant)
 
 	// c = (D^2 * AP)/(An * P_D) * x_i
-	numerator := new(uint256.Int).Mul(invariantSquared, AMP_PRECISION)
+	numerator := new(uint256.Int).Mul(invariantSquared, UAmpPrecision)
 	denominator := new(uint256.Int).Mul(ampTimesN, balanceProduct)
 
 	c, err := FixPoint.DivRawUp(numerator, denominator)
@@ -146,7 +133,7 @@ func (s *stableMath) ComputeBalance(
 	c.Mul(c, balances[tokenIndex])
 
 	// b = S + (D * AP)/An
-	b := new(uint256.Int).Mul(invariant, AMP_PRECISION)
+	b := new(uint256.Int).Mul(invariant, UAmpPrecision)
 	b.Div(b, ampTimesN)
 	b.Add(b, sumBalances)
 
@@ -166,7 +153,7 @@ func (s *stableMath) ComputeBalance(
 		numerator.Mul(tokenBalance, tokenBalance)
 		numerator.Add(numerator, c)
 
-		denominator.Mul(tokenBalance, TWO)
+		denominator.Mul(tokenBalance, U2)
 		denominator.Add(denominator, b)
 		denominator.Sub(denominator, invariant)
 
@@ -180,7 +167,7 @@ func (s *stableMath) ComputeBalance(
 			if err != nil {
 				return nil, err
 			}
-			if mulResult.Cmp(ONE) <= 0 {
+			if mulResult.Cmp(U1) <= 0 {
 				return tokenBalance, nil
 			}
 		} else {
@@ -188,7 +175,7 @@ func (s *stableMath) ComputeBalance(
 			if err != nil {
 				return nil, err
 			}
-			if mulResult.Cmp(ONE) <= 0 {
+			if mulResult.Cmp(U1) <= 0 {
 				return tokenBalance, nil
 			}
 		}
@@ -243,15 +230,15 @@ func (s *stableMath) ComputeInvariant(amplificationParameter *uint256.Int, balan
 
 		// (A * n * S / AP + D_P * n) * D
 		numer.Mul(ampTimesN, sum)
-		numer.Div(numer, AMP_PRECISION)
+		numer.Div(numer, UAmpPrecision)
 		tmp.Mul(D_P, numTokens)
 		numer.Add(numer, tmp)
 		numer.Mul(numer, invariant)
 
 		// ((A * n - AP) * D / AP + (n + 1) * D_P)
-		denom.Sub(ampTimesN, AMP_PRECISION)
+		denom.Sub(ampTimesN, UAmpPrecision)
 		denom.Mul(denom, invariant)
-		denom.Div(denom, AMP_PRECISION)
+		denom.Div(denom, UAmpPrecision)
 		tmp.AddUint64(numTokens, 1)
 		tmp.Mul(tmp, D_P)
 		denom.Add(denom, tmp)

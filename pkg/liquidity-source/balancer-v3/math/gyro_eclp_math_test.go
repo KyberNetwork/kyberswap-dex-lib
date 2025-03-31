@@ -1,4 +1,4 @@
-package eclp
+package math
 
 import (
 	"testing"
@@ -29,7 +29,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [2153421421514125231432, 351242142152144352142315, 4542142342121424214, 552142314423142324214, 532142342142142144365]
 			// [[152142154332623423, 55353432140214225325], [215432632543253245215, 6421521532542534246431], 1153452543263253253524, 326533539257394275394645, 269304283058430853402583532, 64430286340583402583905215, 20000000000000000000000000000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -37,12 +37,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -83,7 +83,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [21534214423421514125231432, 35151242142152144352142315, 454214514512342121424214, 552142314423345235142324214, 53214234221424142142144365]
 			// [[1521421553254332623423, 55352143432140214225325], [21543265234532543253245215, 642152153253452542534246431], 115363465452543263253253524, 3265334314539257394275394645, 269304283214058430853402583532, 644304231286340583402583905215, 50000000000000000000000000000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -91,12 +91,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -137,7 +137,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [51421534214423421514125231432, 35151251342142152144352142315, 4542145145123426235121424214, 55214231451423345235142324214, 5321423422142414623532142144365]
 			// [[1521421553254332614223423, 5535253426143432140214225325], [2154326562345234532543253245215, 64215215325345234552542534246431], 115363465452543623263253253524, 32653343146543539257394275394645, 2693042832140325558430853402583532, 644304231286340583532402583905215, 90000000000000000000000000000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -145,12 +145,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -191,7 +191,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [514215514125231432, 35151251342142152144352142315, 4542145235121424214, 55214231451423345235142324214, 53214232142144365]
 			// [[1521421553254332614223423, 5535253426143432140214225325], [21543253245215, 64215215325345234552542534246431], 115363465452543623263253253524, 32657394275394645, 2693042832140325558430853402583532, 644304231583905215, 900000000000000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -199,12 +199,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -245,7 +245,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [5142158210532504131829479215514125231432, 3515141249871294759214251342142152144352142315, 5213489540328503257340254542145235121424214, 555124721954935639214231451423345235142324214, 532145234583290581905834902850235830232142144365]
 			// [[15214211248957432895732953553254332614223423, 5535253250812407253405753426143432140214225325], [2154542357891274975489378759839257843923253245215, 6452357932534215215325345234552542534246431], 11533425937589325763465452543623263253253524, 32532976892573895738492719247657394275394645, 2693042832140325558430853402583532, 644432198753492759325304231583905215, 900005139214790000000105937458925000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -253,12 +253,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -299,7 +299,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			// [5142158210532504131829479215514125231432, 3515141249871294759214251342142152144352142315, 5213489540328503257340254542145235121424214, 555124721954935639214231451423345235142324214, 532145234834902850235830232142144365]
 			// [[1521423254332614223423, 5535214225325], [215454235789245215, 6452342534246431], 11523263253253524, 3253297684275394645, 2693042853402583532, 64443204231583905215, 90000537458925000000000000000]
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -307,12 +307,12 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -352,7 +352,7 @@ func Test_calcAtAChi(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -360,12 +360,12 @@ func Test_calcAtAChi(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -407,7 +407,7 @@ func Test_calcAtAChi(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -415,12 +415,12 @@ func Test_calcAtAChi(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -462,7 +462,7 @@ func Test_calcAtAChi(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("200005325124000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -470,12 +470,12 @@ func Test_calcAtAChi(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -517,7 +517,7 @@ func Test_calcAtAChi(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("2000053251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -525,12 +525,12 @@ func Test_calcAtAChi(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -572,7 +572,7 @@ func Test_calcAtAChi(t *testing.T) {
 			z         = int256.MustFromDec("6443026322851416532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("20000533124214921759251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -580,12 +580,12 @@ func Test_calcAtAChi(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -629,7 +629,7 @@ func Test_virtualOffset0(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -637,12 +637,12 @@ func Test_virtualOffset0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -655,7 +655,7 @@ func Test_virtualOffset0(t *testing.T) {
 
 			x = int256.MustFromDec("2153421421514125231432")
 			y = int256.MustFromDec("351242142152144352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -689,7 +689,7 @@ func Test_virtualOffset0(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -697,12 +697,12 @@ func Test_virtualOffset0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -716,7 +716,7 @@ func Test_virtualOffset0(t *testing.T) {
 			x = int256.MustFromDec("215353254255432532421514125231432")
 			y = int256.MustFromDec("3516623436253242142152144352142315")
 
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -750,7 +750,7 @@ func Test_virtualOffset0(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("2000053251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -758,12 +758,12 @@ func Test_virtualOffset0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -776,7 +776,7 @@ func Test_virtualOffset0(t *testing.T) {
 
 			x = int256.MustFromDec("21535343421514125231432")
 			y = int256.MustFromDec("3516623543214436244352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -812,7 +812,7 @@ func Test_virtualOffset1(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -820,12 +820,12 @@ func Test_virtualOffset1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -838,7 +838,7 @@ func Test_virtualOffset1(t *testing.T) {
 
 			x = int256.MustFromDec("2153421421514125231432")
 			y = int256.MustFromDec("351242142152144352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -872,7 +872,7 @@ func Test_virtualOffset1(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -880,12 +880,12 @@ func Test_virtualOffset1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -899,7 +899,7 @@ func Test_virtualOffset1(t *testing.T) {
 			x = int256.MustFromDec("215353254255432532421514125231432")
 			y = int256.MustFromDec("3516623436253242142152144352142315")
 
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -933,7 +933,7 @@ func Test_virtualOffset1(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("2000053251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -941,12 +941,12 @@ func Test_virtualOffset1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -959,7 +959,7 @@ func Test_virtualOffset1(t *testing.T) {
 
 			x = int256.MustFromDec("21535343421514125231432")
 			y = int256.MustFromDec("3516623543214436244352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -995,7 +995,7 @@ func Test_maxBalances0(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1003,12 +1003,12 @@ func Test_maxBalances0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1021,7 +1021,7 @@ func Test_maxBalances0(t *testing.T) {
 
 			x = int256.MustFromDec("2153421421514125231432")
 			y = int256.MustFromDec("351242142152144352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1055,7 +1055,7 @@ func Test_maxBalances0(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1063,12 +1063,12 @@ func Test_maxBalances0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1082,7 +1082,7 @@ func Test_maxBalances0(t *testing.T) {
 			x = int256.MustFromDec("215353254255432532421514125231432")
 			y = int256.MustFromDec("3516623436253242142152144352142315")
 
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1116,7 +1116,7 @@ func Test_maxBalances0(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("2000053251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1124,12 +1124,12 @@ func Test_maxBalances0(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1142,7 +1142,7 @@ func Test_maxBalances0(t *testing.T) {
 
 			x = int256.MustFromDec("21535343421514125231432")
 			y = int256.MustFromDec("3516623543214436244352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1178,7 +1178,7 @@ func Test_maxBalances1(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1186,12 +1186,12 @@ func Test_maxBalances1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1204,7 +1204,7 @@ func Test_maxBalances1(t *testing.T) {
 
 			x = int256.MustFromDec("2153421421514125231432")
 			y = int256.MustFromDec("351242142152144352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1238,7 +1238,7 @@ func Test_maxBalances1(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1246,12 +1246,12 @@ func Test_maxBalances1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1265,7 +1265,7 @@ func Test_maxBalances1(t *testing.T) {
 			x = int256.MustFromDec("215353254255432532421514125231432")
 			y = int256.MustFromDec("3516623436253242142152144352142315")
 
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1299,7 +1299,7 @@ func Test_maxBalances1(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("2000053251240062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1307,12 +1307,12 @@ func Test_maxBalances1(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1325,7 +1325,7 @@ func Test_maxBalances1(t *testing.T) {
 
 			x = int256.MustFromDec("21535343421514125231432")
 			y = int256.MustFromDec("3516623543214436244352142315")
-			r = &vector2{
+			r = &Vector2{
 				X: x,
 				Y: y,
 			}
@@ -1361,7 +1361,7 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1369,12 +1369,12 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1416,7 +1416,7 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1424,12 +1424,12 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1471,7 +1471,7 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("20000234718594738942174921543205730553000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1479,12 +1479,12 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1528,7 +1528,7 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1536,12 +1536,12 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1583,7 +1583,7 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1591,12 +1591,12 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1638,7 +1638,7 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("20000234718594738942174921543205730553000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1646,12 +1646,12 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1695,7 +1695,7 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1703,12 +1703,12 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1750,7 +1750,7 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1758,12 +1758,12 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1805,7 +1805,7 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("20000234718594738942174921543205730553000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1813,12 +1813,12 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1862,7 +1862,7 @@ func Test_calcInvariantSqrt(t *testing.T) {
 			z         = int256.MustFromDec("64430286340583402583905215")
 			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1870,12 +1870,12 @@ func Test_calcInvariantSqrt(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1919,7 +1919,7 @@ func Test_calcInvariantSqrt(t *testing.T) {
 			z         = int256.MustFromDec("644302632286523252340583402583905215")
 			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1927,12 +1927,12 @@ func Test_calcInvariantSqrt(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -1976,7 +1976,7 @@ func Test_calcInvariantSqrt(t *testing.T) {
 			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
 			dSq       = int256.MustFromDec("20000234718594738942174921543205730553000000000")
 
-			p = &params{
+			p = &ECLParams{
 				Alpha:  alpha,
 				Beta:   beta,
 				C:      c,
@@ -1984,12 +1984,12 @@ func Test_calcInvariantSqrt(t *testing.T) {
 				Lambda: lambda,
 			}
 
-			d = &derivedParams{
-				TauAlpha: &vector2{
+			d = &ECLDerivedParams{
+				TauAlpha: &Vector2{
 					X: tauAlphaX,
 					Y: tauAlphaY,
 				},
-				TauBeta: &vector2{
+				TauBeta: &Vector2{
 					X: tauBetaX,
 					Y: tauBetaY,
 				},
@@ -2021,7 +2021,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 		var (
 			x = int256.MustFromDec("2153421421514125231432")
 
-			r = &vector2{
+			r = &Vector2{
 				X: int256.MustFromDec("152142154332623423"),
 				Y: int256.MustFromDec("55353432140214225325"),
 			}
@@ -2031,7 +2031,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 			s      = int256.MustFromDec("552142314423142324214")
 			c      = int256.MustFromDec("4542142342121424214")
 
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("215432632543253245215"),
 				Y: int256.MustFromDec("6421521532542534246431"),
 			}
@@ -2050,7 +2050,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 		var (
 			x = int256.MustFromDec("21534214241234721514125231432")
 
-			r = &vector2{
+			r = &Vector2{
 				X: int256.MustFromDec("15214532534232452780174242154332623423"),
 				Y: int256.MustFromDec("55353436235354325352452140214225325"),
 			}
@@ -2060,7 +2060,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 			s      = int256.MustFromDec("5521422352936314423142324214")
 			c      = int256.MustFromDec("4542142622174925192415214342121424214")
 
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("215432632543514253263253253245215"),
 				Y: int256.MustFromDec("64215215325412534532612415432534246431"),
 			}
@@ -2079,7 +2079,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 		var (
 			x = int256.MustFromDec("2153421242142513124215214241234721514125231432")
 
-			r = &vector2{
+			r = &Vector2{
 				X: int256.MustFromDec("152145325432532344232452780174242154332623423"),
 				Y: int256.MustFromDec("5535343623632534521421255354325352452140214225325"),
 			}
@@ -2089,7 +2089,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 			s      = int256.MustFromDec("55214223529337219473213951974932146314423142324214")
 			c      = int256.MustFromDec("4542142421917419242622174925192415214342121424214")
 
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("215432432142314632543514253263253253245215"),
 				Y: int256.MustFromDec("6421521534252355325412534532612415432534246431"),
 			}
@@ -2113,17 +2113,17 @@ func Test_solveQuadraticSwap(t *testing.T) {
 			x      = int256.MustFromDec("2153421421514125231432")
 			s      = int256.MustFromDec("552142314423142324214")
 			c      = int256.MustFromDec("4542142342121424214")
-			r      = &vector2{
+			r      = &Vector2{
 				X: int256.MustFromDec("152142154332623423"),
 				Y: int256.MustFromDec("55353432140214225325"),
 			}
 			// [152142154332623423, 55353432140214225325]
-			ab = &vector2{
+			ab = &Vector2{
 				X: int256.MustFromDec("215432632543253245215"),
 				Y: int256.MustFromDec("6421521532542534246431"),
 			}
 			// [215432632543253245215, 6421521532542534246431]
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("215432632543253245215"),
 				Y: int256.MustFromDec("6421521532542534246431"),
 			}
@@ -2143,17 +2143,17 @@ func Test_solveQuadraticSwap(t *testing.T) {
 			x      = int256.MustFromDec("215342145135849127421514125231432")
 			s      = int256.MustFromDec("23471950714552142314423142324214")
 			c      = int256.MustFromDec("4542142342432142874891247121424214")
-			r      = &vector2{
+			r      = &Vector2{
 				X: int256.MustFromDec("15431257432539542142154332623423"),
 				Y: int256.MustFromDec("55353432140214241275934752525325"),
 			}
 			// [15431257432539542142154332623423, 55353432140214241275934752525325]
-			ab = &vector2{
+			ab = &Vector2{
 				X: int256.MustFromDec("214124871295432632543253245215"),
 				Y: int256.MustFromDec("6421521532541249827142534246431"),
 			}
 			// [214124871295432632543253245215, 6421521532541249827142534246431]
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("21543263254325324134871895445215"),
 				Y: int256.MustFromDec("6421521532542124821975921534246431"),
 			}
@@ -2173,17 +2173,17 @@ func Test_solveQuadraticSwap(t *testing.T) {
 			x      = int256.MustFromDec("2153421455148217849135849127421514125231432")
 			s      = int256.MustFromDec("234742149721491950714552142314423142324214")
 			c      = int256.MustFromDec("4542142342435432572839572142874891247121424214")
-			r      = &vector2{
+			r      = &Vector2{
 				X: int256.MustFromDec("112951098421405431257432539542142154332623423"),
 				Y: int256.MustFromDec("553534321402145432753295739241275934752525325"),
 			}
 			// [112951098421405431257432539542142154332623423, 553534321402145432753295739241275934752525325]
-			ab = &vector2{
+			ab = &Vector2{
 				X: int256.MustFromDec("21412487523454325295432632543253245215"),
 				Y: int256.MustFromDec("642152156540398930532541249827142534246431"),
 			}
 			// [21412487523454325295432632543253245215, 642152156540398930532541249827142534246431]
-			tauBeta = &vector2{
+			tauBeta = &Vector2{
 				X: int256.MustFromDec("2154326325523954732954325324134871895445215"),
 				Y: int256.MustFromDec("6421521321497195532542124821975921534246431"),
 			}

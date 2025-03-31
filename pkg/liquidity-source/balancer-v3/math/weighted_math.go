@@ -1,26 +1,12 @@
 package math
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
-)
-
-var (
-	ErrMaxInRatio  = errors.New("MAX_IN_RATIO")
-	ErrMaxOutRatio = errors.New("MAX_OUT_RATIO")
-
-	MAX_IN_RATIO  = uint256.NewInt(30e16)
-	MAX_OUT_RATIO = uint256.NewInt(30e16)
 )
 
 var WeightedMath *weightedMath
 
 type weightedMath struct{}
-
-func init() {
-	WeightedMath = &weightedMath{}
-}
 
 func (s *weightedMath) ComputeOutGivenExactIn(
 	balanceIn,
@@ -39,7 +25,7 @@ func (s *weightedMath) ComputeOutGivenExactIn(
 	  // wO = weightOut                                                                            //
 	  **********************************************************************************************/
 
-	balanceInApplyRate, err := FixPoint.MulDown(balanceIn, MAX_IN_RATIO)
+	balanceInApplyRate, err := FixPoint.MulDown(balanceIn, UMaxInRatio)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +74,7 @@ func (s *weightedMath) ComputeInGivenExactOut(
 	  // wO = weightOut                                                                            //
 	  **********************************************************************************************/
 
-	balanceOutApplyRate, err := FixPoint.MulDown(balanceOut, MAX_OUT_RATIO)
+	balanceOutApplyRate, err := FixPoint.MulDown(balanceOut, UMaxOutRatio)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +103,7 @@ func (s *weightedMath) ComputeInGivenExactOut(
 		return nil, err
 	}
 
-	ratio, err := FixPoint.Sub(power, ONE_E18)
+	ratio, err := FixPoint.Sub(power, U1e18)
 	if err != nil {
 		return nil, err
 	}

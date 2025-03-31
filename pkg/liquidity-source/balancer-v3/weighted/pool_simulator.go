@@ -31,7 +31,7 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil || extra.Extra == nil {
 		return nil, err
 	}
 	if extra.Buffers == nil {
@@ -46,11 +46,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var hook hooks.IHook
 	switch staticExtra.HookType {
 	case shared.DirectionalFeeHookType:
-		hook = hooks.NewDirectionalFeeHook(extra.StaticSwapFeePercentage)
+		hook = hooks.NewDirectionalFeeHook()
 	case shared.FeeTakingHookType:
 		hook = hooks.NewFeeTakingHook()
-	case shared.StableSurgeHookType:
-		hook = hooks.NewStableSurgeHook()
 	case shared.VeBALFeeDiscountHookType:
 		hook = hooks.NewVeBALFeeDiscountHook()
 	default:
@@ -223,8 +221,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 
 // OnSwap from https://etherscan.io/address/0xb9b144b5678ff6527136b2c12a86c9ee5dd12a85#code#F1#L150
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *uint256.Int, err error) {
-	balanceTokenInScaled18 := param.BalancesLiveScaled18[param.IndexIn]
-	balanceTokenOutScaled18 := param.BalancesLiveScaled18[param.IndexOut]
+	balanceTokenInScaled18 := param.BalancesScaled18[param.IndexIn]
+	balanceTokenOutScaled18 := param.BalancesScaled18[param.IndexOut]
 
 	weightIn, err := p.getNormalizedWeight(param.IndexIn)
 	if err != nil {
@@ -236,28 +234,15 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 		return nil, err
 	}
 
-	if param.Kind == shared.EXACT_IN {
-		amountOutScaled18, err = math.WeightedMath.ComputeOutGivenExactIn(
-			balanceTokenInScaled18,
-			weightIn,
-			balanceTokenOutScaled18,
-			weightOut,
-			param.AmountGivenScaled18,
-		)
-	} else {
-		amountOutScaled18, err = math.WeightedMath.ComputeInGivenExactOut(
-			balanceTokenInScaled18,
-			weightIn,
-			balanceTokenOutScaled18,
-			weightOut,
-			param.AmountGivenScaled18,
-		)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return
+	return lo.Ternary(param.Kind == shared.EXACT_IN,
+		math.WeightedMath.ComputeOutGivenExactIn, math.WeightedMath.ComputeInGivenExactOut,
+	)(
+		balanceTokenInScaled18,
+		weightIn,
+		balanceTokenOutScaled18,
+		weightOut,
+		param.AmountGivenScaled18,
+	)
 }
 
 func (p *PoolSimulator) getNormalizedWeight(tokenIndex int) (*uint256.Int, error) {

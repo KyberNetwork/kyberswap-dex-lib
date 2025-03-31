@@ -31,7 +31,7 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil || extra.Extra == nil {
 		return nil, err
 	}
 	if extra.Buffers == nil {
@@ -46,11 +46,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var hook hooks.IHook
 	switch staticExtra.HookType {
 	case shared.DirectionalFeeHookType:
-		hook = hooks.NewDirectionalFeeHook(extra.StaticSwapFeePercentage)
+		hook = hooks.NewDirectionalFeeHook()
 	case shared.FeeTakingHookType:
 		hook = hooks.NewFeeTakingHook()
 	case shared.StableSurgeHookType:
-		hook = hooks.NewStableSurgeHook()
+		hook = hooks.NewStableSurgeHook(extra.MaxSurgeFeePercentage, extra.SurgeThresholdPercentage)
 	case shared.VeBALFeeDiscountHookType:
 		hook = hooks.NewVeBALFeeDiscountHook()
 	default:
@@ -223,36 +223,21 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 
 // OnSwap from https://etherscan.io/address/0xc1d48bb722a22cc6abf19facbe27470f08b3db8c#code#F1#L169
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error) {
-	invariant, err := p.computeInvariant(param.BalancesLiveScaled18, shared.ROUND_DOWN)
+	invariant, err := p.computeInvariant(param.BalancesScaled18, shared.ROUND_DOWN)
 	if err != nil {
 		return nil, err
 	}
 
-	var amountOutScaled18 *uint256.Int
-	if param.Kind == shared.EXACT_IN {
-		amountOutScaled18, err = math.StableMath.ComputeOutGivenExactIn(
-			p.currentAmp,
-			param.BalancesLiveScaled18,
-			param.IndexIn,
-			param.IndexOut,
-			param.AmountGivenScaled18,
-			invariant,
-		)
-	} else {
-		amountOutScaled18, err = math.StableMath.ComputeInGivenExactOut(
-			p.currentAmp,
-			param.BalancesLiveScaled18,
-			param.IndexIn,
-			param.IndexOut,
-			param.AmountGivenScaled18,
-			invariant,
-		)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return amountOutScaled18, nil
+	return lo.Ternary(param.Kind == shared.EXACT_IN,
+		math.StableMath.ComputeOutGivenExactIn, math.StableMath.ComputeInGivenExactOut,
+	)(
+		p.currentAmp,
+		param.BalancesScaled18,
+		param.IndexIn,
+		param.IndexOut,
+		param.AmountGivenScaled18,
+		invariant,
+	)
 }
 
 func (p *PoolSimulator) computeInvariant(balancesLiveScaled18 []*uint256.Int, rounding shared.Rounding) (*uint256.Int,

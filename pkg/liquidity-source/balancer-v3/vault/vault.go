@@ -13,7 +13,7 @@ type Vault struct {
 	balancesLiveScaled18       []*uint256.Int
 	decimalScalingFactors      []*uint256.Int
 	tokenRates                 []*uint256.Int
-	swapFeePercentage          *uint256.Int
+	staticSwapFeePercentage    *uint256.Int
 	aggregateSwapFeePercentage *uint256.Int
 
 	hook        hooks.IHook
@@ -31,7 +31,7 @@ func New(hook hooks.IHook, hooksConfig shared.HooksConfig,
 		decimalScalingFactors:      decimalScalingFactors,
 		tokenRates:                 tokenRates,
 		balancesLiveScaled18:       balancesLiveScaled18,
-		swapFeePercentage:          swapFeePercentage,
+		staticSwapFeePercentage:    swapFeePercentage,
 		aggregateSwapFeePercentage: aggregateSwapFeePercentage,
 	}
 }
@@ -46,23 +46,22 @@ func (v *Vault) CloneState() *Vault {
 	return &cloned
 }
 
-// https://etherscan.io/address/0xbA1333333333a1BA1108E8412f11850A5C319bA9#code#F1#L197
-func (v *Vault) Swap(
-	vaultSwapParams shared.VaultSwapParams,
-	onSwap func(param shared.PoolSwapParams) (*uint256.Int, error),
-) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+// Swap per https://etherscan.io/address/0xbA1333333333a1BA1108E8412f11850A5C319bA9#code#F1#L197
+func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwapFn) (*uint256.Int, *uint256.Int,
+	*uint256.Int, error) {
 	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	var poolSwapParams = shared.PoolSwapParams{
-		Kind:                 vaultSwapParams.Kind,
-		SwapFeePercentage:    v.swapFeePercentage,
-		AmountGivenScaled18:  amountGivenScaled18,
-		BalancesLiveScaled18: v.balancesLiveScaled18,
-		IndexIn:              vaultSwapParams.IndexIn,
-		IndexOut:             vaultSwapParams.IndexOut,
+		Kind:                    vaultSwapParams.Kind,
+		OnSwap:                  onSwap,
+		StaticSwapFeePercentage: v.staticSwapFeePercentage,
+		AmountGivenScaled18:     amountGivenScaled18,
+		BalancesScaled18:        v.balancesLiveScaled18,
+		IndexIn:                 vaultSwapParams.IndexIn,
+		IndexOut:                vaultSwapParams.IndexOut,
 	}
 
 	if v.hooksConfig.ShouldCallBeforeSwap {
@@ -74,7 +73,7 @@ func (v *Vault) Swap(
 	}
 
 	if v.hooksConfig.ShouldCallComputeDynamicSwapFee {
-		poolSwapParams.SwapFeePercentage, err = v.callComputeDynamicSwapFeeHook(poolSwapParams)
+		poolSwapParams.StaticSwapFeePercentage, err = v.callComputeDynamicSwapFeeHook(poolSwapParams)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -83,7 +82,7 @@ func (v *Vault) Swap(
 	var totalSwapFeeAmountScaled18 *uint256.Int
 	if vaultSwapParams.Kind == shared.EXACT_IN {
 		totalSwapFeeAmountScaled18, err = math.FixPoint.MulUp(poolSwapParams.AmountGivenScaled18,
-			poolSwapParams.SwapFeePercentage)
+			poolSwapParams.StaticSwapFeePercentage)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -96,7 +95,7 @@ func (v *Vault) Swap(
 	}
 
 	// _ensureValidSwapAmount
-	if amountGivenScaled18.Lt(MINIMUM_TRADE_AMOUNT) {
+	if amountGivenScaled18.Lt(MinimumTradeAmount) {
 		return nil, nil, nil, ErrAmountInTooSmall
 	}
 
@@ -106,7 +105,7 @@ func (v *Vault) Swap(
 	}
 
 	// _ensureValidSwapAmount
-	if amountCalculatedScaled18.Lt(MINIMUM_TRADE_AMOUNT) {
+	if amountCalculatedScaled18.Lt(MinimumTradeAmount) {
 		return nil, nil, nil, ErrAmountOutTooSmall
 	}
 
@@ -120,8 +119,8 @@ func (v *Vault) Swap(
 			return nil, nil, nil, err
 		}
 	} else {
-		totalSwapFeeAmountScaled18, err = math.FixPoint.MulDivUp(amountCalculatedScaled18, v.swapFeePercentage,
-			math.FixPoint.Complement(v.swapFeePercentage))
+		totalSwapFeeAmountScaled18, err = math.FixPoint.MulDivUp(amountCalculatedScaled18, v.staticSwapFeePercentage,
+			math.FixPoint.Complement(v.staticSwapFeePercentage))
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -189,10 +188,10 @@ func (v *Vault) ComputeAggregateSwapFees(index int, totalSwapFeeAmountScaled18, 
 			return
 		}
 
-		return totalSwapFeeAmountRaw, math.ZERO, nil
+		return totalSwapFeeAmountRaw, math.U0, nil
 	}
 
-	return math.ZERO, math.ZERO, nil
+	return math.U0, math.U0, nil
 }
 
 func (v *Vault) UpdateLiveBalance(

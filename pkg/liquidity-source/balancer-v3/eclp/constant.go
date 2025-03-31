@@ -1,11 +1,14 @@
 package eclp
 
 const (
-	DexType                 = "balancer-v3-eclp"
+	DexType = "balancer-v3-eclp"
+
+	SubgraphPoolType = "GYROE"
+
 	poolMethodGetECLPParams = "getECLPParams"
 )
 
 var (
-	baseGas   int64 = 237494
+	baseGas   int64 = 261243
 	bufferGas int64 = 120534
 )

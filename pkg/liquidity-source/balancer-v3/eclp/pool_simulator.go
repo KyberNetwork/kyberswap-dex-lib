@@ -2,42 +2,38 @@ package eclp
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
 	pool.Pool
 
-	vault *vault.Vault
+	vault      *vault.Vault
+	eclpParams ECLPParams
 
-	hooksConfig shared.HooksConfig
-
-	buffers              []*shared.ExtraBuffer
-	isVaultPaused        bool
-	isPoolPaused         bool
-	isPoolInRecoveryMode bool
-	bufferTokens         []string
-	eclpParams           ECLPParams
+	buffers      []*shared.ExtraBuffer
+	bufferTokens []string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil || extra.Extra == nil {
 		return nil, err
 	}
 	if extra.Buffers == nil {
@@ -52,11 +48,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var hook hooks.IHook
 	switch staticExtra.HookType {
 	case shared.DirectionalFeeHookType:
-		hook = hooks.NewDirectionalFeeHook(extra.StaticSwapFeePercentage)
+		hook = hooks.NewDirectionalFeeHook()
 	case shared.FeeTakingHookType:
 		hook = hooks.NewFeeTakingHook()
-	case shared.StableSurgeHookType:
-		hook = hooks.NewStableSurgeHook()
 	case shared.VeBALFeeDiscountHookType:
 		hook = hooks.NewVeBALFeeDiscountHook()
 	default:
@@ -74,16 +68,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		buffers:              extra.Buffers,
-		isVaultPaused:        extra.IsVaultPaused,
-		isPoolPaused:         extra.IsPoolPaused,
-		isPoolInRecoveryMode: extra.IsPoolInRecoveryMode,
-		vault: vault.New(hook, extra.HooksConfig, extra.DecimalScalingFactors,
-			extra.TokenRates, extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage,
-			extra.AggregateSwapFeePercentage),
-		hooksConfig: extra.HooksConfig,
-		eclpParams:  extra.ECLPParams,
-		// vaultAddress: staticExtra.Vault,
+
+		vault: vault.New(hook, extra.HooksConfig, extra.DecimalScalingFactors, extra.TokenRates,
+			extra.BalancesLiveScaled18, extra.StaticSwapFeePercentage, extra.AggregateSwapFeePercentage),
+		eclpParams: extra.ECLPParams,
+
+		buffers:      extra.Buffers,
 		bufferTokens: staticExtra.BufferTokens,
 	}, nil
 }
@@ -107,8 +97,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		amountIn = bufferIn.ConvertToShares(amountIn)
 		gas += bufferGas
 	}
-	ai := amountIn.String()
-	fmt.Print(ai)
+
 	amountOut, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
 		Kind:           shared.EXACT_IN,
 		IndexIn:        indexIn,
@@ -186,10 +175,10 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 // OnSwap https://arbiscan.io/address/0xc09a98b0138d8cfceff0e4ef672e8bd30ec6eda9#code#F1#L156
 func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *uint256.Int, err error) {
 	eclpParams, derivedECLPParams := p.reconstructECLPParams()
-	invariant := &vector2{}
+	invariant := &math.Vector2{}
 	{
-		currentInvariant, invErr, err := GyroECLPMath.calculateInvariantWithError(
-			param.BalancesLiveScaled18, eclpParams, derivedECLPParams,
+		currentInvariant, invErr, err := math.GyroECLPMath.CalculateInvariantWithError(
+			param.BalancesScaled18, eclpParams, derivedECLPParams,
 		)
 		if err != nil {
 			return nil, err
@@ -197,15 +186,15 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 
 		invariant.X = new(int256.Int).Add(
 			currentInvariant,
-			new(int256.Int).Mul(GyroECLPMath._number_2, invErr),
+			new(int256.Int).Mul(math.I2, invErr),
 		)
 
 		invariant.Y = currentInvariant
 	}
 
 	if param.Kind == shared.EXACT_IN {
-		amountOutScaled18, err = GyroECLPMath.calcOutGivenIn(
-			param.BalancesLiveScaled18,
+		amountOutScaled18, err = math.GyroECLPMath.CalcOutGivenIn(
+			param.BalancesScaled18,
 			param.AmountGivenScaled18,
 			param.IndexIn == 0,
 			eclpParams,
@@ -232,8 +221,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 	return
 }
 
-func (p *PoolSimulator) reconstructECLPParams() (*params, *derivedParams) {
-	params := &params{
+func (p *PoolSimulator) reconstructECLPParams() (*math.ECLParams, *math.ECLDerivedParams) {
+	params := &math.ECLParams{
 		Alpha:  p.eclpParams.Params.Alpha,
 		Beta:   p.eclpParams.Params.Beta,
 		C:      p.eclpParams.Params.C,
@@ -241,12 +230,12 @@ func (p *PoolSimulator) reconstructECLPParams() (*params, *derivedParams) {
 		Lambda: p.eclpParams.Params.Lambda,
 	}
 
-	dp := &derivedParams{
-		TauAlpha: &vector2{
+	dp := &math.ECLDerivedParams{
+		TauAlpha: &math.Vector2{
 			X: p.eclpParams.D.TauAlpha.X,
 			Y: p.eclpParams.D.TauAlpha.Y,
 		},
-		TauBeta: &vector2{
+		TauBeta: &math.Vector2{
 			X: p.eclpParams.D.TauBeta.X,
 			Y: p.eclpParams.D.TauBeta.Y,
 		},
@@ -258,4 +247,14 @@ func (p *PoolSimulator) reconstructECLPParams() (*params, *derivedParams) {
 	}
 
 	return params, dp
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.vault = p.vault.CloneState()
+	cloned.Info.Reserves = lo.Map(p.Info.Reserves, func(v *big.Int, i int) *big.Int {
+		return new(big.Int).Set(v)
+	})
+
+	return &cloned
 }
