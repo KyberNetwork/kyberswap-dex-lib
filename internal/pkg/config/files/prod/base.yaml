@@ -201,8 +201,10 @@ metrics:
   namespace: "kybernetwork."
 encoder:
   chainId: *chainId
-  executorAddress: *executorAddress
   routerAddress: *routerAddress
+  executorAddress: *executorAddress
+  executorV2Address: 0x36C3253C0F1f76F0831a2B187CEA2679F95BC7BE
+  opPrivateKey:
   l2ExecutorAddress: &l2ExecutorAddress 0xC7D3AB410d49b664D03Fe5B1038852ac852b1B29
   psWallet: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
   isPositiveSlippageEnabled: true
@@ -236,48 +238,6 @@ encoder:
     bitgetswap:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
       feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
-  functionSelectorMappingID: # This map can be updated when we change l2 executor address
-    executeUniSwap: 0
-    executeKyberClassic: 1
-    executeVelodromeSwap: 2
-    executeFraxSwap: 3
-    executeCamelotSwap: 4
-    executeKyberLimitOrder: 5
-    executeRfqSwap: 6
-    executeHashflowSwap: 7
-    executeStableSwap: 8
-    executeCurveSwap: 9
-    executeUniV3KSElastic: 10
-    executeBalV2Swap: 11
-    executeDODOSwap: 12
-    executeGMXSwap: 13
-    executeSynthetixSwap: 14
-    executeMaverick: 19
-    executeAlgebraV1: 21
-    executeWombat: 24
-    executeWooFiV2: 25
-    executeIziSwap: 26
-    executeTraderJoeV2: 27
-    executeKyberDSLO: 28
-    executeGMXGLP: 30
-    executeSmardex: 34
-    executeKokonut: 36
-    executeSwaapV2: 38
-    executeNative: 44
-    executeBebop: 46
-    executeMaverickV2: 51
-    executeFluidVaultT1: 53
-    executeBatchOneInchV6: 54
-    executeFluidDex: 55
-    executeDexalot: 57
-    executeClipperRfq: 58
-    executeEtherVista: 60
-    executeVirtualBC: 61
-    executeBalancerV3: 62
-    executeEtherFieBtc: 63
-    executeUniV4: 65
-    executeSkyPSM: 66
-    executeOvernight: 67
 useCase:
   getRoute:
     chainId: *chainId

@@ -178,13 +178,11 @@ encoder:
   chainId: *chainId
   routerAddress: *routerAddress
   executorAddress: *executorAddress
-  executorV2Address: 0xB78234569E4AD97a06Ac8253e4cF76862B3940a3
+  executorV2Address: 0x36C3253C0F1f76F0831a2B187CEA2679F95BC7BE
   opPrivateKey:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    llamaswap: *executorAddress
-    kyberswap: *executorAddress
   partnerPositiveSlippageInfo:
     tritium-research:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
