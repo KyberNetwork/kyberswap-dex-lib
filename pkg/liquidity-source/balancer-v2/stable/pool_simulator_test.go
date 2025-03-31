@@ -10,6 +10,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -185,7 +187,7 @@ func TestCalcAmountOut(t *testing.T) {
 		err := json.Unmarshal([]byte(poolStr), &pool)
 		assert.Nil(t, err)
 
-		s, err := NewPoolSimulator(pool)
+		s, err := NewPoolSimulator(pool, nil)
 		assert.Nil(t, err)
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -335,7 +337,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			err := json.Unmarshal([]byte(tt.fields.poolStr), &pool)
 			assert.Nil(t, err)
 
-			simulator, err := NewPoolSimulator(pool)
+			simulator, err := NewPoolSimulator(pool, nil)
 			assert.Nil(t, err)
 
 			got, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
@@ -347,6 +349,75 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			}
 			assert.Equalf(t, tt.want.TokenAmountIn.Token, got.TokenAmountIn.Token, "tokenIn = %v, want %v", got.TokenAmountIn.Token, tt.want.TokenAmountIn.Token)
 			assert.Equalf(t, tt.want.TokenAmountIn.Amount, got.TokenAmountIn.Amount, "amountIn = %v, want %v", got.TokenAmountIn.Amount.String(), tt.want.TokenAmountIn.Amount.String())
+		})
+	}
+}
+
+func TestCanSwapTo(t *testing.T) {
+	// Setup base pools
+	basePool1 := &PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address: "pool1",
+				Tokens:  []string{"pool1", "ETH", "USDT"},
+			},
+		},
+	}
+
+	basePool2 := &PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address: "pool2",
+				Tokens:  []string{"pool2", "BTC", "USDT"},
+			},
+		},
+	}
+
+	// Setup main pool
+	pool := &PoolSimulator{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address: "main_pool",
+				Tokens:  []string{"pool1", "pool2", "USDC"},
+			},
+		},
+		basePools: map[string]shared.IBasePool{
+			"pool1": basePool1,
+			"pool2": basePool2,
+		},
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Token exists in the main pool",
+			input:    "USDC",
+			expected: []string{"pool1", "pool2", "ETH", "BTC", "USDT"},
+		},
+		{
+			name:     "Token exists in base pool 1",
+			input:    "ETH",
+			expected: []string{"pool1", "pool2", "BTC", "USDT", "USDC"},
+		},
+		{
+			name:     "Token exists in multiple pools",
+			input:    "USDT",
+			expected: []string{"pool1", "pool2", "ETH", "BTC", "USDC"},
+		},
+		{
+			name:     "Token does not exist in any pool",
+			input:    "KNC",
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := pool.CanSwapTo(tc.input)
+			assert.ElementsMatch(t, tc.expected, result)
 		})
 	}
 }

@@ -7,22 +7,28 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
-	ErrTokenNotRegistered       = errors.New("TOKEN_NOT_REGISTERED")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInvalidAmountIn          = errors.New("invalid amount in")
-	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
-	ErrPoolPaused               = errors.New("pool is paused")
-	ErrMaxTotalInRatio          = errors.New("MAX_TOTAL_IN_RATIO")
-	ErrMaxTotalOutRatio         = errors.New("MAX_TOTAL_OUT_RATIO")
-	ErrOverflow                 = errors.New("OVERFLOW")
+	ErrInvalidNormalizedWeights   = errors.New("invalid normalizedWeights")
+	ErrBasePoolIsNil              = errors.New("base pool is nil")
+	ErrSameBasePoolSwapNotAllowed = errors.New("swapping between tokens in the same base pool is not allowed")
+	ErrTokenNotRegistered         = errors.New("TOKEN_NOT_REGISTERED")
+	ErrInvalidReserve             = errors.New("invalid reserve")
+	ErrInvalidAmountIn            = errors.New("invalid amount in")
+	ErrInvalidAmountOut           = errors.New("invalid amount out")
+	ErrInvalidSwapFeePercentage   = errors.New("invalid swap fee percentage")
+	ErrPoolPaused                 = errors.New("pool is paused")
+	ErrMaxTotalInRatio            = errors.New("MAX_TOTAL_IN_RATIO")
+	ErrMaxTotalOutRatio           = errors.New("MAX_TOTAL_OUT_RATIO")
+	ErrOverflow                   = errors.New("OVERFLOW")
 )
 
 var (
@@ -32,15 +38,11 @@ var (
 	_MAX_OUT_RATIO = uint256.NewInt(0.3e18)
 )
 
-type IBasePool interface {
-	pool.IPoolSimulator
-}
-
 type (
 	PoolSimulator struct {
 		pool.Pool
-		basePool IBasePool
-		paused   bool
+		basePools map[string]shared.IBasePool
+		paused    bool
 
 		swapFeePercentage *uint256.Int
 		scalingFactors    []*uint256.Int
@@ -87,7 +89,16 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		return nil, err
 	}
 
-	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+	var basePools = make(map[string]shared.IBasePool, len(staticExtra.BasePools))
+	if basePoolMap != nil {
+		for basePool := range staticExtra.BasePools {
+			if p, ok := basePoolMap[basePool]; ok {
+				basePools[basePool] = p.(shared.IBasePool)
+			}
+		}
+	}
+
+	for idx := range entityPool.Tokens {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
@@ -96,7 +107,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	if err != nil {
 		return nil, err
 	}
-	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+	for idx := range entityPool.Tokens {
 		totalAmountsIn[idx] = number.Zero
 		totalAmountsOut[idx] = number.Zero
 
@@ -123,8 +134,9 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		BlockNumber: uint64(entityPool.BlockNumber),
 	}
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Pool:                     pool.Pool{Info: poolInfo},
+		basePools:                basePools,
 		paused:                   extra.Paused,
 		swapFeePercentage:        extra.SwapFeePercentage,
 		scalingFactors:           staticExtra.ScalingFactors,
@@ -136,49 +148,32 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		scaledMaxTotalAmountsIn:  scaledMaxTotalAmountsIn,
 		totalAmountsOut:          totalAmountsOut,
 		scaledMaxTotalAmountsOut: scaledMaxTotalAmountsOut,
-	}, nil
+	}
+
+	return p, nil
 }
 
-// https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
-func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if s.paused {
-		return nil, ErrPoolPaused
-	}
+func (s *PoolSimulator) GetPoolId() string {
+	return s.poolID
+}
 
-	tokenAmountIn := params.TokenAmountIn
-	tokenOut := params.TokenOut
-
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-
-	if indexIn == -1 || indexOut == -1 {
-		return nil, ErrTokenNotRegistered
-	}
-
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+func (s *PoolSimulator) OnSwap(indexIn, indexOut int, amountIn *uint256.Int) (*uint256.Int, error) {
+	balanceIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
 	if overflow {
-		return nil, ErrInvalidReserve
+		return nil, ErrOverflow
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	balanceOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
 	if overflow {
-		return nil, ErrInvalidReserve
+		return nil, ErrOverflow
 	}
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountIn
-	}
-
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
-	normalizedWeightIn := s.normalizedWeights[indexIn]
-	normalizedWeightOut := s.normalizedWeights[indexOut]
-
-	balanceTokenIn, err := _upscale(s.poolTypeVer, reserveIn, scalingFactorTokenIn)
+	scaledBalanceIn, err := _upscale(s.poolTypeVer, balanceIn, s.scalingFactors[indexIn])
 	if err != nil {
 		return nil, err
 	}
-	balanceTokenOut, err := _upscale(s.poolTypeVer, reserveOut, scalingFactorTokenOut)
+
+	scaledBalanceOut, err := _upscale(s.poolTypeVer, balanceOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
@@ -193,42 +188,281 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	if err := s.validateMaxInRatio(indexIn, amountInAfterFee); err != nil {
+	if err := s.validateMaxInRatio(indexIn, amountIn); err != nil {
 		return nil, err
 	}
 
-	upScaledAmountIn, err := _upscale(s.poolTypeVer, amountInAfterFee, scalingFactorTokenIn)
+	scaledAmountIn, err := _upscale(s.poolTypeVer, amountInAfterFee, s.scalingFactors[indexIn])
 	if err != nil {
 		return nil, err
 	}
 
-	upScaledAmountOut, err := s._onSwapGivenIn(
-		balanceTokenIn,
-		normalizedWeightIn,
-		balanceTokenOut,
-		normalizedWeightOut,
-		upScaledAmountIn,
+	scaledAmountOut, err := s._onSwapGivenIn(
+		scaledBalanceIn,
+		s.normalizedWeights[indexIn],
+		scaledBalanceOut,
+		s.normalizedWeights[indexOut],
+		scaledAmountIn,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(s.poolTypeVer, upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, err := _downscaleDown(s.poolTypeVer, scaledAmountOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
 
+	return amountOut, nil
+}
+
+func (s *PoolSimulator) swapDirect(indexIn, indexOut int, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
+	amountOut, err := s.OnSwap(indexIn, indexOut, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.buildSwapResult(s.Info.Tokens[indexOut], amountOut, nil), nil
+}
+
+func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
+	basePool, err := s.getBasePool(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+
+	bptToken := basePool.GetAddress()
+
+	res, err := basePool.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
+		TokenOut:      bptToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bptAmount, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	bptIndex := s.GetTokenIndex(bptToken)
+	indexOut := s.GetTokenIndex(tokenOut)
+
+	amountOut, err := s.OnSwap(bptIndex, indexOut, bptAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	hops := []shared.Hop{
+		{
+			PoolId:    basePool.GetPoolId(),
+			Pool:      basePool.GetAddress(),
+			TokenIn:   tokenIn,
+			TokenOut:  bptToken,
+			AmountIn:  amountIn.ToBig(),
+			AmountOut: bptAmount.ToBig(),
+		},
+		{
+			PoolId:    s.GetPoolId(),
+			Pool:      s.GetAddress(),
+			TokenIn:   bptToken,
+			TokenOut:  tokenOut,
+			AmountIn:  bptAmount.ToBig(),
+			AmountOut: amountOut.ToBig(),
+		},
+	}
+
+	return s.buildSwapResult(tokenOut, amountOut, hops), nil
+}
+
+func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
+	basePool, err := s.getBasePool(tokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	bptToken := basePool.GetAddress()
+
+	indexIn := s.GetTokenIndex(tokenIn)
+	bptIndex := s.GetTokenIndex(bptToken)
+
+	bptAmount, err := s.OnSwap(indexIn, bptIndex, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := basePool.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: bptToken, Amount: bptAmount.ToBig()},
+		TokenOut:      tokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	amountOut, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	hops := []shared.Hop{
+		{
+			PoolId:    s.poolID,
+			Pool:      s.GetAddress(),
+			TokenIn:   tokenIn,
+			TokenOut:  bptToken,
+			AmountIn:  amountIn.ToBig(),
+			AmountOut: bptAmount.ToBig(),
+		},
+		{
+			PoolId:    basePool.GetPoolId(),
+			Pool:      basePool.GetAddress(),
+			TokenIn:   bptToken,
+			TokenOut:  tokenOut,
+			AmountIn:  bptAmount.ToBig(),
+			AmountOut: amountOut.ToBig(),
+		},
+	}
+
+	return s.buildSwapResult(tokenOut, amountOut, hops), nil
+}
+
+func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
+	basePoolIn, err := s.getBasePool(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+
+	basePoolOut, err := s.getBasePool(tokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	bptTokenIn := basePoolIn.GetAddress()
+	bptTokenOut := basePoolOut.GetAddress()
+
+	if bptTokenIn == bptTokenOut {
+		return nil, ErrSameBasePoolSwapNotAllowed
+	}
+
+	res, err := basePoolIn.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
+		TokenOut:      bptTokenIn,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bptAmountIn, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	bptInIndex := s.GetTokenIndex(bptTokenIn)
+	bptOutIndex := s.GetTokenIndex(bptTokenOut)
+
+	bptAmountOut, err := s.OnSwap(bptInIndex, bptOutIndex, bptAmountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err = basePoolOut.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: bptTokenOut, Amount: bptAmountOut.ToBig()},
+		TokenOut:      tokenOut,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	amountOut, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	hops := []shared.Hop{
+		{
+			PoolId:    basePoolIn.GetPoolId(),
+			Pool:      basePoolIn.GetAddress(),
+			TokenIn:   tokenIn,
+			TokenOut:  bptTokenIn,
+			AmountIn:  amountIn.ToBig(),
+			AmountOut: bptAmountIn.ToBig(),
+		},
+		{
+			PoolId:    s.poolID,
+			Pool:      s.GetAddress(),
+			TokenIn:   bptTokenIn,
+			TokenOut:  bptTokenOut,
+			AmountIn:  bptAmountIn.ToBig(),
+			AmountOut: bptAmountOut.ToBig(),
+		},
+		{
+			PoolId:    basePoolOut.GetPoolId(),
+			Pool:      basePoolOut.GetAddress(),
+			TokenIn:   bptTokenOut,
+			TokenOut:  tokenOut,
+			AmountIn:  bptAmountOut.ToBig(),
+			AmountOut: amountOut.ToBig(),
+		},
+	}
+
+	return s.buildSwapResult(tokenOut, amountOut, hops), nil
+}
+
+func (s *PoolSimulator) buildSwapResult(tokenOut string, amountOut *uint256.Int, hops []shared.Hop) *pool.CalcAmountOutResult {
+	var swapInfo shared.SwapInfo
+	if hops != nil {
+		swapInfo = shared.SwapInfo{
+			Hops: hops,
+		}
+	}
+
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: feeAmount.ToBig(),
-		},
-		Gas: defaultGas.Swap,
-	}, nil
+		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: bignumber.ZeroBI},
+		Gas:            defaultGas.Swap,
+		SwapInfo:       swapInfo,
+	}
+}
+
+func (s *PoolSimulator) getBasePool(token string) (shared.IBasePool, error) {
+	for _, basePool := range s.basePools {
+		index := basePool.GetTokenIndex(token)
+		if index >= 0 {
+			return basePool, nil
+		}
+	}
+
+	return nil, ErrTokenNotRegistered
+}
+
+// https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+
+	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+
+	if indexIn >= 0 && indexOut >= 0 {
+		return s.swapDirect(indexIn, indexOut, amountIn)
+	}
+
+	if indexIn < 0 && indexOut >= 0 {
+		return s.swapFromBase2Main(tokenAmountIn.Token, tokenOut, amountIn)
+	}
+
+	if indexIn >= 0 && indexOut < 0 {
+		return s.swapFromMain2Base(tokenAmountIn.Token, tokenOut, amountIn)
+	}
+
+	return s.swapBetweenBasePools(tokenAmountIn.Token, tokenOut, amountIn)
 }
 
 func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -417,23 +651,51 @@ func (s *PoolSimulator) validateMaxOutRatio(tokenIndex int, amountOut *uint256.I
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if params.SwapInfo == nil {
+		s.updateBalance(params.TokenAmountIn.Token, params.TokenAmountOut.Token,
+			params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
+
+		return
+	}
+
+	if swapInfo, ok := params.SwapInfo.(shared.SwapInfo); ok {
+		for _, hop := range swapInfo.Hops {
+			if basePool, ok := s.basePools[hop.Pool]; ok {
+				basePool.UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  hop.TokenIn,
+						Amount: hop.AmountIn,
+					},
+					TokenAmountOut: pool.TokenAmount{
+						Token:  hop.TokenOut,
+						Amount: hop.AmountOut,
+					},
+				})
+			} else {
+				s.updateBalance(hop.TokenIn, hop.TokenOut, hop.AmountIn, hop.AmountOut)
+			}
+		}
+	}
+}
+
+func (s *PoolSimulator) updateBalance(tokenIn, tokenOut string, amountIn, amountOut *big.Int) {
 	for idx, token := range s.Info.Tokens {
-		if token == params.TokenAmountIn.Token {
+		if token == tokenIn {
 			s.Info.Reserves[idx] = new(big.Int).Add(
 				s.Info.Reserves[idx],
-				params.TokenAmountIn.Amount,
+				amountIn,
 			)
 
 			s.totalAmountsIn[idx] = new(uint256.Int).Add(
 				s.totalAmountsIn[idx],
-				uint256.MustFromBig(params.TokenAmountIn.Amount),
+				uint256.MustFromBig(amountIn),
 			)
 		}
 
-		if token == params.TokenAmountOut.Token {
+		if token == tokenOut {
 			s.Info.Reserves[idx] = new(big.Int).Sub(
 				s.Info.Reserves[idx],
-				params.TokenAmountOut.Amount,
+				amountOut,
 			)
 		}
 	}
@@ -498,30 +760,88 @@ func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint2
 	return upscaled, nil
 }
 
-func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+func (t *PoolSimulator) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
 
 func (t *PoolSimulator) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
+	result := make(map[string]struct{})
 	var tokenIndex = t.GetTokenIndex(address)
+
 	if tokenIndex < 0 {
-		// check from underlying
-		tokenIndex = t.basePool.GetTokenIndex(address)
-		if tokenIndex >= 0 {
-			return t.Info.Tokens
+		found := false // Flag to check if any base pool contains the token
+
+		for _, basePool := range t.basePools {
+			if basePool.GetTokenIndex(address) >= 0 {
+				found = true
+
+				for _, token := range basePool.CanSwapTo(address) {
+					result[token] = struct{}{}
+				}
+			} else {
+				for _, underlyingToken := range basePool.GetTokens() {
+					if underlyingToken != address {
+						result[underlyingToken] = struct{}{}
+					}
+				}
+			}
 		}
-		return ret
+
+		if !found {
+			return []string{}
+		}
+
+		// Add tokens from main pool
+		for _, poolToken := range t.GetTokens() {
+			result[poolToken] = struct{}{}
+		}
+	} else {
+
+		// Add tokens from main pool except itself
+		for _, poolToken := range t.GetTokens() {
+			if poolToken != address {
+				result[poolToken] = struct{}{}
+			}
+		}
+
+		for _, basePool := range t.basePools {
+			for _, underlyingToken := range basePool.GetTokens() {
+				if underlyingToken != address {
+					result[underlyingToken] = struct{}{}
+				}
+			}
+		}
 	}
 
-	// exchange
-	for i := range t.GetTokens() {
-		if i != tokenIndex {
-			ret = append(ret, t.Info.Tokens[i])
+	return lo.Keys(result)
+}
+
+func (t *PoolSimulator) GetTokens() []string {
+	tokenSet := make(map[string]struct{})
+
+	for _, basePool := range t.basePools {
+		for _, token := range basePool.GetTokens() {
+			tokenSet[token] = struct{}{}
 		}
 	}
-	// exchange_underlying
-	// last meta token can't be swapped with underlying tokens
 
-	ret = append(ret, t.basePool.GetTokens()...)
+	for _, token := range t.GetInfo().Tokens {
+		tokenSet[token] = struct{}{}
+	}
 
-	return ret
+	return lo.Keys(tokenSet)
+}
+
+func (t *PoolSimulator) GetBasePool() pool.IPoolSimulator {
+	for _, basePool := range t.basePools {
+		return basePool
+	}
+
+	return nil
+}
+
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+	if basePool, ok := basePool.(shared.IBasePool); ok {
+		t.basePools[basePool.GetAddress()] = basePool
+	}
 }

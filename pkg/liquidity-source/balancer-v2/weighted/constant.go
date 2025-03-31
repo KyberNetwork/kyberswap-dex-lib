@@ -10,6 +10,7 @@ const (
 	poolMethodGetSwapFeePercentage = "getSwapFeePercentage"
 	poolMethodGetPausedState       = "getPausedState"
 	poolMethodGetVault             = "getVault"
+	poolMethodGetPoolId            = "getPoolId"
 
 	poolTypeVer1 = 1
 )

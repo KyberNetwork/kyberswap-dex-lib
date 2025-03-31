@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -25,6 +26,8 @@ type PoolSimulator struct {
 	poolID      string
 	poolTypeVer int
 }
+
+var _ shared.IBasePool = (*PoolSimulator)(nil)
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -98,6 +101,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		poolID:                 staticExtra.PoolID,
 		poolTypeVer:            staticExtra.PoolTypeVer,
 	}, nil
+}
+
+func (s *PoolSimulator) GetPoolId() string {
+	return s.poolID
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

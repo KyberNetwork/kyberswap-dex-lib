@@ -16,7 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -135,7 +135,7 @@ func (u *PoolsListUpdater) initPool(_ context.Context, subgraphPool *shared.Subg
 		reserves          = make([]string, len(subgraphPool.Tokens))
 		scalingFactors    = make([]*uint256.Int, len(subgraphPool.Tokens))
 		normalizedWeights = make([]*uint256.Int, len(subgraphPool.Tokens))
-		nesting           bool
+		basePools         = make(map[string][]string, len(subgraphPool.Tokens))
 		err               error
 	)
 
@@ -156,7 +156,10 @@ func (u *PoolsListUpdater) initPool(_ context.Context, subgraphPool *shared.Subg
 		if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
 			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
 		}
-		nesting = nesting || token.Token.Pool.ID != ""
+
+		if token.Token.Pool.ID != "" {
+			basePools[token.Address] = []string{}
+		}
 	}
 
 	staticExtra := StaticExtra{
@@ -166,7 +169,7 @@ func (u *PoolsListUpdater) initPool(_ context.Context, subgraphPool *shared.Subg
 		ScalingFactors:    scalingFactors,
 		NormalizedWeights: normalizedWeights,
 		Vault:             vault,
-		Nesting:           nesting,
+		BasePools:         basePools,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
