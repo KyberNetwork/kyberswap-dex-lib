@@ -52,6 +52,7 @@ common:
     - "balancer-v2-composable-stable"
     - "balancer-v3-weighted"
     - "balancer-v3-stable"
+    - "balancer-v3-eclp"
     - "mummy-finance"
     - "vodoo"
     - "curve-stable-plain"

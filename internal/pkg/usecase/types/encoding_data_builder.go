@@ -373,6 +373,7 @@ func getAddressToApproveMax(swap types.EncodingSwap) (string, error) {
 		dexValueObject.ExchangeBalancerV2ComposableStable,
 		dexValueObject.ExchangeBalancerV3Weighted,
 		dexValueObject.ExchangeBalancerV3Stable,
+		dexValueObject.ExchangeBalancerV3ECLP,
 		dexValueObject.ExchangeBeethovenXWeighted,
 		dexValueObject.ExchangeBeethovenXStable,
 		dexValueObject.ExchangeBeethovenXComposableStable,

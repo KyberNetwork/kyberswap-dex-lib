@@ -43,6 +43,7 @@ func TestIsApproveMaxExchange(t *testing.T) {
 		valueobject.ExchangeBurrBearComposableStable,
 		valueobject.ExchangeBalancerV3Weighted,
 		valueobject.ExchangeBalancerV3Stable,
+		valueobject.ExchangeBalancerV3ECLP,
 		valueobject.ExchangeBeethovenXV3Weighted,
 		valueobject.ExchangeBeethovenXV3Stable,
 		valueobject.ExchangeBalancerV1,

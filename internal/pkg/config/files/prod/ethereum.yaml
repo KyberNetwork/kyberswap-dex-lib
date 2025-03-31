@@ -78,6 +78,7 @@ common:
     - "balancer-v2-weighted"
     - "balancer-v3-stable"
     - "balancer-v3-weighted"
+    - "balancer-v3-eclp"
     - "bancor-v3"
     - "bedrock-unieth"
     - "blueprint"

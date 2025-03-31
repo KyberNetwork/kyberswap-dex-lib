@@ -64,6 +64,7 @@ common:
     - "balancer-v2-composable-stable"
     - "balancer-v2-stable"
     - "balancer-v2-weighted"
+    - "balancer-v3-eclp"
     - "bancor-v3"
     - "bedrock-unieth"
     - "blueprint"
