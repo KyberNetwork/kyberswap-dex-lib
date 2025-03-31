@@ -6,6 +6,9 @@ const (
 	SubgraphPoolType = "STABLE"
 
 	poolMethodGetAmplificationParameter = "getAmplificationParameter"
+
+	stableSurgeHookMethodGetMaxSurgeFeePercentage    = "getMaxSurgeFeePercentage"
+	stableSurgeHookMethodGetSurgeThresholdPercentage = "getSurgeThresholdPercentage"
 )
 
 var (

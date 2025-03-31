@@ -112,6 +112,7 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*SubgraphPool) ([]entity.Po
 		}
 
 		staticExtraBytes, _ := json.Marshal(&StaticExtra{
+			Hook:         subgraphPool.Hook.Address,
 			HookType:     subgraphPool.Hook.Type,
 			BufferTokens: bufferTokens,
 		})
