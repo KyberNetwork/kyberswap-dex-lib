@@ -186,6 +186,7 @@ var (
 
 	ExchangeBalancerV3Weighted   Exchange = "balancer-v3-weighted"
 	ExchangeBalancerV3Stable     Exchange = "balancer-v3-stable"
+	ExchangeBalancerV3ECLP       Exchange = "balancer-v3-eclp"
 	ExchangeBeethovenXV3Weighted Exchange = "beethovenx-v3-weighted"
 	ExchangeBeethovenXV3Stable   Exchange = "beethovenx-v3-stable"
 
@@ -584,6 +585,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancerV2ComposableStable: {},
 	ExchangeBalancerV3Weighted:         {},
 	ExchangeBalancerV3Stable:           {},
+	ExchangeBalancerV3ECLP:             {},
 	ExchangeBeethovenXV3Weighted:       {},
 	ExchangeBeethovenXV3Stable:         {},
 	ExchangeBeethovenXWeighted:         {},
