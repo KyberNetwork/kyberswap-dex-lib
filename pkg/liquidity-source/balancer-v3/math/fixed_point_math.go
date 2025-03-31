@@ -1,22 +1,8 @@
 package math
 
 import (
-	"errors"
-
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
-)
-
-var (
-	ErrAddOverflow  = errors.New("ADD_OVERFLOW")
-	ErrSubOverflow  = errors.New("SUB_OVERFLOW")
-	ErrMulOverflow  = errors.New("MUL_OVERFLOW")
-	ErrZeroDivision = errors.New("ZERO_DIVISION")
-
-	OneE18              = uint256.NewInt(1e18) // 18 decimal places
-	TwoE18              = uint256.NewInt(2e18)
-	FourE18             = uint256.NewInt(4e18)
-	MaxPowRelativeError = uint256.NewInt(10000) // 10^(-14)
 )
 
 var FixPoint *fixPoint
@@ -28,11 +14,11 @@ func (f *fixPoint) MulDivUp(a, b, c *uint256.Int) (*uint256.Int, error) {
 }
 
 func (f *fixPoint) MulUp(a, b *uint256.Int) (*uint256.Int, error) {
-	return v3Utils.MulDivRoundingUp(a, b, OneE18)
+	return v3Utils.MulDivRoundingUp(a, b, U1e18)
 }
 
 func (f *fixPoint) MulDown(a, b *uint256.Int) (*uint256.Int, error) {
-	res, overflow := new(uint256.Int).MulDivOverflow(a, b, OneE18)
+	res, overflow := new(uint256.Int).MulDivOverflow(a, b, U1e18)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
@@ -45,7 +31,7 @@ func (f *fixPoint) DivUp(a, b *uint256.Int) (*uint256.Int, error) {
 		return nil, ErrZeroDivision
 	}
 
-	return v3Utils.MulDivRoundingUp(a, OneE18, b)
+	return v3Utils.MulDivRoundingUp(a, U1e18, b)
 }
 
 func (f *fixPoint) DivDown(a, b *uint256.Int) (*uint256.Int, error) {
@@ -53,7 +39,7 @@ func (f *fixPoint) DivDown(a, b *uint256.Int) (*uint256.Int, error) {
 		return nil, ErrZeroDivision
 	}
 
-	res, overflow := new(uint256.Int).MulDivOverflow(a, OneE18, b)
+	res, overflow := new(uint256.Int).MulDivOverflow(a, U1e18, b)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
@@ -71,15 +57,15 @@ func (f *fixPoint) DivRawUp(a, b *uint256.Int) (*uint256.Int, error) {
 }
 
 func (f *fixPoint) PowUp(x, y *uint256.Int) (*uint256.Int, error) {
-	if y.Eq(OneE18) {
+	if y.Eq(U1e18) {
 		return x, nil
 	}
 
-	if y.Eq(TwoE18) {
+	if y.Eq(U2e18) {
 		return f.MulUp(x, x)
 	}
 
-	if y.Eq(FourE18) {
+	if y.Eq(U4e18) {
 		square, err := f.MulUp(x, x)
 		if err != nil {
 			return nil, err
@@ -94,12 +80,12 @@ func (f *fixPoint) PowUp(x, y *uint256.Int) (*uint256.Int, error) {
 	}
 
 	var maxError *uint256.Int
-	maxError, err = f.MulUp(raw, MaxPowRelativeError)
+	maxError, err = f.MulUp(raw, UMaxPowRelativeError)
 	if err != nil {
 		return nil, err
 	}
 
-	maxError, err = f.Add(maxError, ONE)
+	maxError, err = f.Add(maxError, U1)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +96,8 @@ func (f *fixPoint) PowUp(x, y *uint256.Int) (*uint256.Int, error) {
 func (f *fixPoint) Complement(x *uint256.Int) *uint256.Int {
 	// result = (x < ONE) ? (ONE - x) : 0
 	result := new(uint256.Int)
-	if x.Lt(OneE18) {
-		result.Sub(OneE18, x)
+	if x.Lt(U1e18) {
+		result.Sub(U1e18, x)
 	}
 
 	return result

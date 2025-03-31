@@ -188,10 +188,10 @@ func (v *Vault) ComputeAggregateSwapFees(index int, totalSwapFeeAmountScaled18, 
 			return
 		}
 
-		return totalSwapFeeAmountRaw, math.ZERO, nil
+		return totalSwapFeeAmountRaw, math.U0, nil
 	}
 
-	return math.ZERO, math.ZERO, nil
+	return math.U0, math.U0, nil
 }
 
 func (v *Vault) UpdateLiveBalance(

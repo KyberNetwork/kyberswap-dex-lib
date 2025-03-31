@@ -1,7 +1,8 @@
-package weighted
+package eclp
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -103,7 +103,7 @@ func (t *PoolTracker) getNewPoolState(
 			TotalSupply: totalSupply.Add(&totalSupply, shared.DecimalsOffsetPow),
 		}
 	})
-	extra.NormalizedWeights = shared.FromBigs(res.NormalizedWeights)
+	extra.ECLPParams = res.ECLPParamsRpc.toInt256()
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -176,8 +176,8 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 	}, []any{&isPoolInRecoveryMode}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
-		Method: poolMethodGetNormalizedWeights,
-	}, []any{&rpcRes.NormalizedWeights})
+		Method: poolMethodGetECLPParams,
+	}, []any{&rpcRes.ECLPParamsRpc})
 
 	for i, token := range staticExtra.BufferTokens {
 		if token != "" {

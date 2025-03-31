@@ -57,5 +57,5 @@ func (h *DirectionalFeeHook) calculatedExpectedSwapFeePercentage(balanceIn, bala
 		return diff, err
 	}
 
-	return math.ZERO, nil
+	return math.U0, nil
 }

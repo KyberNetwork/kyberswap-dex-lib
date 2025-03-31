@@ -33,7 +33,7 @@ func (s *stableSurgeMedian) findMedian(balances []*uint256.Int) (*uint256.Int, e
 
 	if len(sortedBalances)%2 == 0 {
 		var avg uint256.Int
-		return avg.Div(avg.Add(sortedBalances[mid-1], sortedBalances[mid]), TWO), nil
+		return avg.Div(avg.Add(sortedBalances[mid-1], sortedBalances[mid]), U2), nil
 	}
 
 	return sortedBalances[mid], nil

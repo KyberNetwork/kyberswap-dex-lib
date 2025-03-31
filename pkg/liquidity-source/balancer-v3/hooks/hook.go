@@ -26,9 +26,9 @@ func (h *NoOpHook) OnBeforeSwap(shared.PoolSwapParams) (bool, error) {
 }
 
 func (h *NoOpHook) OnAfterSwap(shared.AfterSwapParams) (bool, *uint256.Int, error) {
-	return false, math.ZERO, nil
+	return false, math.U0, nil
 }
 
 func (h *NoOpHook) OnComputeDynamicSwapFeePercentage(shared.PoolSwapParams) (bool, *uint256.Int, error) {
-	return false, math.ZERO, nil
+	return false, math.U0, nil
 }
