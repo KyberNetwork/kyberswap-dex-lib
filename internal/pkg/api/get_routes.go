@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -124,12 +125,17 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		}
 	}
 
+	excludedSources := utils.TransformSliceParams(params.ExcludedSources)
+	if params.ExcludeRFQSources {
+		excludedSources = append(excludedSources,
+			getrouteencode.GetExcludedRFQSources()...)
+	}
 	return dto.GetRoutesQuery{
 		TokenIn:             utils.CleanUpParam(params.TokenIn),
 		TokenOut:            utils.CleanUpParam(params.TokenOut),
 		AmountIn:            amountIn,
 		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
-		ExcludedSources:     utils.TransformSliceParams(params.ExcludedSources),
+		ExcludedSources:     excludedSources,
 		OnlyScalableSources: params.OnlyScalableSources,
 		SaveGas:             params.SaveGas,
 		OnlySinglePath:      params.OnlySinglePath,

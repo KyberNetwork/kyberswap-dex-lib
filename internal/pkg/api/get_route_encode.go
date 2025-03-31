@@ -163,7 +163,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		TokenOut:            utils.CleanUpParam(params.TokenOut),
 		AmountIn:            amountIn,
 		IncludedSources:     utils.TransformSliceParams(params.Dexes),
-		ExcludedSources:     getrouteencode.GetExcludedSources(),
+		ExcludedSources:     getrouteencode.GetExcludedRFQSources(),
 		OnlyScalableSources: params.OnlyScalableSources,
 		SaveGas:             params.SaveGas,
 		GasInclude:          params.GasInclude,

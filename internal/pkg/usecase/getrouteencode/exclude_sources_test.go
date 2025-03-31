@@ -10,7 +10,7 @@ import (
 
 func TestGetExcludedSources(t *testing.T) {
 	t.Run("it should get excluded sources correctly", func(t *testing.T) {
-		got := GetExcludedSources()
+		got := GetExcludedRFQSources()
 
 		assert.Len(t, got, len(valueobject.RFQSourceSet))
 		assert.Contains(t, got, string(valueobject.ExchangeKyberSwapLimitOrderDS))

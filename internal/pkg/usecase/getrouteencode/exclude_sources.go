@@ -2,7 +2,7 @@ package getrouteencode
 
 import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 
-func GetExcludedSources() []string {
+func GetExcludedRFQSources() []string {
 	var excludedSources []string
 
 	for source := range valueobject.RFQSourceSet {
