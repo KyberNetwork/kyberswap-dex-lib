@@ -70,7 +70,7 @@ var (
 
 func Pow(x, y *uint256.Int) (*uint256.Int, error) {
 	if y.IsZero() {
-		return ONE_E18, nil
+		return OneE18, nil
 	}
 
 	if x.IsZero() {

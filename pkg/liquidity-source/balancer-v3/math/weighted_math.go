@@ -18,10 +18,6 @@ var WeightedMath *weightedMath
 
 type weightedMath struct{}
 
-func init() {
-	WeightedMath = &weightedMath{}
-}
-
 func (s *weightedMath) ComputeOutGivenExactIn(
 	balanceIn,
 	weightIn,
@@ -117,7 +113,7 @@ func (s *weightedMath) ComputeInGivenExactOut(
 		return nil, err
 	}
 
-	ratio, err := FixPoint.Sub(power, ONE_E18)
+	ratio, err := FixPoint.Sub(power, OneE18)
 	if err != nil {
 		return nil, err
 	}

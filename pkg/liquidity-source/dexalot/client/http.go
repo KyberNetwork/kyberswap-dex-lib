@@ -56,6 +56,7 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams,
 			dexalot.ParamsTakerAmount: params.TakerAmount,
 			dexalot.ParamsUserAddress: params.UserAddress,
 			dexalot.ParamsExecutor:    params.Executor,
+			dexalot.ParamsSlippage:    params.Slippage,
 			dexalot.ParamsPartner:     params.Partner,
 		})
 

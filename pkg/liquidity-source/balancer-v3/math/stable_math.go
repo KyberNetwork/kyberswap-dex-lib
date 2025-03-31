@@ -17,10 +17,6 @@ var StableMath *stableMath
 
 type stableMath struct{}
 
-func init() {
-	StableMath = &stableMath{}
-}
-
 func (s *stableMath) ComputeOutGivenExactIn(
 	amplificationParameter *uint256.Int,
 	balances []*uint256.Int,
