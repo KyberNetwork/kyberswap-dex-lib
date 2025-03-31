@@ -7,33 +7,31 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 )
 
-type directionalFeeHook struct {
+type DirectionalFeeHook struct {
 	NoOpHook
-
-	staticSwapFeePercentage *uint256.Int
 }
 
-func NewDirectionalFeeHook(staticSwapFeePercentage *uint256.Int) *directionalFeeHook {
-	return &directionalFeeHook{
-		staticSwapFeePercentage: staticSwapFeePercentage,
-	}
+func NewDirectionalFeeHook() *DirectionalFeeHook {
+	return &DirectionalFeeHook{}
 }
 
-func (h *directionalFeeHook) OnComputeDynamicSwapFeePercentage(param shared.PoolSwapParams) (bool, *uint256.Int, error) {
-	calculatedSwapFeePercentage, err := h.calculatedExpectedSwapFeePercentage(param.BalancesLiveScaled18[param.IndexIn],
-		param.BalancesLiveScaled18[param.IndexOut], param.AmountGivenScaled18)
+func (h *DirectionalFeeHook) OnComputeDynamicSwapFeePercentage(params shared.PoolSwapParams) (bool, *uint256.Int,
+	error) {
+	calculatedSwapFeePercentage, err := h.calculatedExpectedSwapFeePercentage(params.BalancesScaled18[params.IndexIn],
+		params.BalancesScaled18[params.IndexOut], params.AmountGivenScaled18)
 	if err != nil {
 		return false, nil, err
 	}
 
-	if calculatedSwapFeePercentage.Gt(h.staticSwapFeePercentage) {
+	if calculatedSwapFeePercentage.Gt(params.StaticSwapFeePercentage) {
 		return true, calculatedSwapFeePercentage, nil
 	}
 
-	return false, new(uint256.Int).Set(h.staticSwapFeePercentage), nil
+	return false, params.StaticSwapFeePercentage, nil
 }
 
-func (h *directionalFeeHook) calculatedExpectedSwapFeePercentage(balanceIn, balanceOut, swapAmount *uint256.Int) (*uint256.Int, error) {
+func (h *DirectionalFeeHook) calculatedExpectedSwapFeePercentage(balanceIn, balanceOut, swapAmount *uint256.Int) (*uint256.Int,
+	error) {
 	finalBalanceTokenIn, err := math.FixPoint.Add(balanceIn, swapAmount)
 	if err != nil {
 		return nil, err

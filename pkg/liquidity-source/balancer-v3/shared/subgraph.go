@@ -4,7 +4,8 @@ type SubgraphPool struct {
 	Address    string `json:"address"`
 	CreateTime int64  `json:"createTime"`
 	Hook       struct {
-		Type HookType `json:"type"`
+		Address string   `json:"address"`
+		Type    HookType `json:"type"`
 	} `json:"hook"`
 	PoolTokens []SubgraphToken `json:"poolTokens"`
 }
@@ -45,6 +46,7 @@ const SubgraphPoolsQuery = `query(
 		address
 		createTime
 		hook {
+			address
 			type
 		}
 		poolTokens {

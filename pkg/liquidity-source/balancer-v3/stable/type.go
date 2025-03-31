@@ -9,34 +9,29 @@ import (
 )
 
 type Extra struct {
-	HooksConfig                shared.HooksConfig    `json:"hooksConfig"`
-	StaticSwapFeePercentage    *uint256.Int          `json:"staticSwapFeePercentage"`
-	AggregateSwapFeePercentage *uint256.Int          `json:"aggregateSwapFeePercentage"`
-	AmplificationParameter     *uint256.Int          `json:"amplificationParameter"`
-	BalancesLiveScaled18       []*uint256.Int        `json:"balancesLiveScaled18"`
-	DecimalScalingFactors      []*uint256.Int        `json:"decimalScalingFactors"`
-	TokenRates                 []*uint256.Int        `json:"tokenRates"`
-	Buffers                    []*shared.ExtraBuffer `json:"buffers"`
+	*shared.Extra
+	SurgePercentages       `json:"surge"`
+	AmplificationParameter *uint256.Int `json:"ampParam,omitempty"`
 }
 
-type AmplificationParameter struct {
+type SurgePercentages struct {
+	MaxSurgeFeePercentage    *uint256.Int `json:"max,omitempty"`
+	SurgeThresholdPercentage *uint256.Int `json:"thres,omitempty"`
+}
+
+type AmplificationParameterRpc struct {
 	Value      *big.Int
 	IsUpdating bool
 	Precision  *big.Int
 }
 
+type SurgePercentagesRpc struct {
+	MaxSurgeFeePercentage    *big.Int
+	SurgeThresholdPercentage *big.Int
+}
+
 type RpcResult struct {
-	HooksConfig                shared.HooksConfig
-	Buffers                    []*shared.ExtraBufferRPC
-	BalancesRaw                []*big.Int
-	BalancesLiveScaled18       []*big.Int
-	TokenRates                 []*big.Int
-	DecimalScalingFactors      []*big.Int
-	AmplificationParameter     *big.Int
-	StaticSwapFeePercentage    *big.Int
-	AggregateSwapFeePercentage *big.Int
-	IsVaultPaused              bool
-	IsPoolPaused               bool
-	IsPoolInRecoveryMode       bool
-	BlockNumber                uint64
+	shared.RpcResult
+	SurgePercentagesRpc
+	AmplificationParameterRpc
 }

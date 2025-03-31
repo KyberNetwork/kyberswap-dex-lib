@@ -5,13 +5,13 @@ import (
 )
 
 const (
+	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
 	VaultMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
 	VaultMethodGetPoolData                = "getPoolData"
-	VaultMethodGetHooksConfig             = "getHooksConfig"
 
-	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsVaultPaused        = "isVaultPaused"
+	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 
 	ERC4626MethodTotalAssets = "totalAssets"
