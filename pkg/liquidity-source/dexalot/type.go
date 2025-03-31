@@ -29,6 +29,7 @@ type FirmQuoteParams struct {
 	TakerAmount string `mapstructure:"takerAmount"`
 	UserAddress string `mapstructure:"userAddress"`
 	Executor    string `mapstructure:"executor"`
+	Slippage    int64  `mapstructure:"slippage"`
 	Partner     string `mapstructure:"partner"`
 }
 
