@@ -652,7 +652,7 @@ func (uc *BuildRouteUseCase) encode(
 		SetClientID(command.Source).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
-		SetReferral(lo.ValueOr(uc.config.ClientRefCode, command.Source, command.Referral)).
+		SetReferral(lo.CoalesceOrEmpty(command.Referral, uc.config.ClientRefCode[command.Source])).
 		GetData()
 	return encoder.Encode(encodingData)
 }
@@ -672,7 +672,7 @@ func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 		Source:       command.Source,
 		AmountInUSD:  strconv.FormatFloat(routeSummary.AmountInUSD, 'f', -1, 64),
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
-		Referral:     command.Referral,
+		Referral:     lo.CoalesceOrEmpty(command.Referral, uc.config.ClientRefCode[command.Source]),
 		Flags:        flags,
 		TokenOut:     routeSummary.TokenOut,
 		AmountOut:    routeSummary.AmountOut.String(),
