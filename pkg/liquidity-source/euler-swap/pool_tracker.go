@@ -2,7 +2,6 @@ package eulerswap
 
 import (
 	"context"
-	"log"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -187,7 +186,8 @@ func (d *PoolTracker) getPoolData(
 		return RPCData{}, nil, err
 	}
 
-	log.Fatalf("%+v\n", vaults)
+	_ = vaults
+
 	return RPCData{}, nil, nil
 }
 
