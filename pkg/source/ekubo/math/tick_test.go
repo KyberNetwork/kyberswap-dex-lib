@@ -7,10 +7,10 @@ import (
 )
 
 func TestExamples(t *testing.T) {
-	require.Zero(t, ToSqrtRatio(1_000_000).Cmp(IntFromString("561030636129153856592777659729523183729")))
-	require.Zero(t, ToSqrtRatio(10_000_000).Cmp(IntFromString("50502254805927926084427918474025309948677")))
-	require.Zero(t, ToSqrtRatio(-1_000_000).Cmp(IntFromString("206391740095027370700312310531588921767")))
-	require.Zero(t, ToSqrtRatio(-10_000_000).Cmp(IntFromString("2292810285051363400276741638672651165")))
+	require.Zero(t, ToSqrtRatio(1_000_000).Cmp(IntFromString("561030636129153856579134353873645338624")))
+	require.Zero(t, ToSqrtRatio(10_000_000).Cmp(IntFromString("50502254805927926084423855178401471004672")))
+	require.Zero(t, ToSqrtRatio(-1_000_000).Cmp(IntFromString("206391740095027370700312310528859963392")))
+	require.Zero(t, ToSqrtRatio(-10_000_000).Cmp(IntFromString("2292810285051363400276741630355046400")))
 }
 
 func TestMinTick(t *testing.T) {

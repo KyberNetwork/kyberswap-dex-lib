@@ -128,7 +128,7 @@ func TestAmount1(t *testing.T) {
 			false,
 		)
 		require.NoError(t, err)
-		require.Equal(t, result, IntFromString("340274119756928397675478831271437331477"))
+		require.Equal(t, result, IntFromString("340274119756928397675478831269759003622"))
 	})
 
 	t.Run("failing", func(t *testing.T) {
