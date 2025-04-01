@@ -16,7 +16,7 @@ var (
 	ErrMaxInvariantExceeded = errors.New("MAX_INVARIANT_EXCEEDED")
 )
 
-type gyroECLPMath struct {}
+type gyroECLPMath struct{}
 
 type (
 	ECLParams struct {
@@ -107,6 +107,70 @@ func (g *gyroECLPMath) CalcOutGivenIn(
 	}
 
 	return out, nil
+}
+
+func (g *gyroECLPMath) CalcInGivenOut(
+	balances []*uint256.Int,
+	amountOut *uint256.Int,
+	tokenInIsToken0 bool,
+	params *ECLParams,
+	derived *ECLDerivedParams,
+	invariant *Vector2,
+) (*uint256.Int, error) {
+	var calcGive calcGiven
+	var ixIn, ixOut int
+	if tokenInIsToken0 {
+		ixIn = 0
+		ixOut = 1
+		calcGive = g.calcXGivenY // this reverses compared to calcOutGivenIn
+	} else {
+		ixIn = 1
+		ixOut = 0
+		calcGive = g.calcYGivenX // this reverses compared to calcOutGivenIn
+	}
+
+	if amountOut.Gt(balances[ixOut]) {
+		return nil, ErrAssetBoundsExceeded
+	}
+
+	balOutNewU256, err := math.GyroFixedPoint.Sub(
+		balances[ixOut],
+		amountOut,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	balOutNew, err := math.SafeCast.ToInt256(balOutNewU256)
+	if err != nil {
+		return nil, err
+	}
+
+	balInNewI256, err := calcGive(balOutNew, params, derived, invariant)
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.checkAssetBounds(params, derived, invariant, balInNewI256, ixIn)
+	if err != nil {
+		return nil, err
+	}
+
+	balInNew, err := math.SafeCast.ToUint256(balInNewI256)
+	if err != nil {
+		return nil, err
+	}
+
+	in, err := math.GyroFixedPoint.Sub(
+		balInNew,
+		balances[ixIn],
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return in, nil
 }
 
 func (g *gyroECLPMath) CalculateInvariantWithError(

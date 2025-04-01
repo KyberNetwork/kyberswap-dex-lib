@@ -5,10 +5,6 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
@@ -17,6 +13,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 type PoolSimulator struct {
@@ -203,15 +202,14 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 		)
 	} else {
 		// TODO: implement calcInGivenOut
-		// amountOutScaled18, err = GyroECLPMath.calcInGivenOut(
-		// 	param.BalancesLiveScaled18,
-		// 	param.AmountGivenScaled18,
-		// 	param.IndexIn == 0,
-		// 	eclpParams,
-		// 	derivedECLPParams,
-		// 	invariant,
-		// )
-		return nil, errors.New("not implemented")
+		amountOutScaled18, err = math.GyroECLPMath.CalcInGivenOut(
+			param.BalancesScaled18,
+			param.AmountGivenScaled18,
+			param.IndexIn == 0,
+			eclpParams,
+			derivedECLPParams,
+			invariant,
+		)
 	}
 
 	if err != nil {
