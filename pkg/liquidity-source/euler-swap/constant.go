@@ -25,6 +25,7 @@ const (
 const (
 	poolMethodEulerAccount = "eulerAccount"
 
+	poolMethodPause       = "pause"
 	poolMethodAsset0      = "asset0"
 	poolMethodAsset1      = "asset1"
 	poolMethodGetReserves = "getReserves"

@@ -25,6 +25,7 @@ type PoolSimulator struct {
 
 	gas Gas
 
+	pause         uint32
 	feeMultiplier *uint256.Int
 
 	equilibriumReserve0 *uint256.Int
@@ -44,6 +45,7 @@ var (
 	ErrInvalidToken   = errors.New("invalid token")
 	ErrInvalidReserve = errors.New("invalid reserve")
 	ErrInvalidAmount  = errors.New("invalid amount")
+	ErrSwapIsPaused   = errors.New("swap is paused")
 	ErrOverflow       = errors.New("math overflow")
 	ErrCurveViolation = errors.New("curve violation")
 )
@@ -91,6 +93,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidAmount
 	}
 
+	if s.pause != 1 {
+		return nil, ErrSwapIsPaused
+	}
+
 	amountOut, swapInfo, err := s.swap(true, indexIn == 0, amountIn)
 	if err != nil {
 		return nil, err
@@ -118,6 +124,10 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
 		return nil, ErrInvalidAmount
+	}
+
+	if s.pause != 1 {
+		return nil, ErrSwapIsPaused
 	}
 
 	amountOut, swapInfo, err := s.swap(false, indexIn == 0, amountOut)

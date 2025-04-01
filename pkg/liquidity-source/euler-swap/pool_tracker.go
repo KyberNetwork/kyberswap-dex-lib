@@ -80,6 +80,7 @@ func (d *PoolTracker) getPoolData(
 
 	var (
 		reserves            ReserveRPC
+		pause               uint32
 		eulerAccount        common.Address
 		vault0              common.Address
 		vault1              common.Address
@@ -98,6 +99,13 @@ func (d *PoolTracker) getPoolData(
 		Method: poolMethodGetReserves,
 		Params: nil,
 	}, []any{&reserves})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodPause,
+		Params: nil,
+	}, []any{&pause})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
