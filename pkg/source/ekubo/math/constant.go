@@ -22,6 +22,7 @@ var (
 	TwoPow96  = new(big.Int).Exp(big.NewInt(2), big.NewInt(96), nil)
 	TwoPow127 = new(big.Int).Exp(big.NewInt(2), big.NewInt(127), nil)
 	TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
+	TwoPow160 = new(big.Int).Exp(big.NewInt(2), big.NewInt(160), nil)
 	TwoPow256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil)
 
 	U32Max  = new(big.Int).Sub(TwoPow32, One)
