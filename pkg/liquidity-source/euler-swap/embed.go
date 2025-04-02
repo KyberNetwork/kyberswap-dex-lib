@@ -10,6 +10,3 @@ var factoryABIJson []byte
 
 //go:embed abis/EVault.json
 var vaultABIJson []byte
-
-//go:embed abis/ERC20.json
-var erc20ABIJson []byte
