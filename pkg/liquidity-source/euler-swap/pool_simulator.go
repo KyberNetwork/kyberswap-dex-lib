@@ -190,21 +190,18 @@ func (s *PoolSimulator) swap(exactIn, asset0IsInput bool, amount *uint256.Int) (
 		return nil, SwapInfo{}, err
 	}
 
+	amountIn, amountOut := amount, quote
+	if !exactIn {
+		amountIn, amountOut = quote, amount
+	}
+
 	if exactIn {
 		if asset0IsInput {
-			reserve0.Add(reserve0, amount)
-			reserve1.Sub(reserve1, quote)
+			reserve0.Add(reserve0, amountIn)
+			reserve1.Sub(reserve1, amountOut)
 		} else {
-			reserve0.Sub(reserve0, quote)
-			reserve1.Add(reserve1, amount)
-		}
-	} else {
-		if asset0IsInput {
-			reserve0.Add(reserve0, quote)
-			reserve1.Sub(reserve1, amount)
-		} else {
-			reserve0.Sub(reserve0, amount)
-			reserve1.Add(reserve1, quote)
+			reserve0.Sub(reserve0, amountOut)
+			reserve1.Add(reserve1, amountIn)
 		}
 	}
 
