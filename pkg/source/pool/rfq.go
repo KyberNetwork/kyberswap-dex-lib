@@ -3,35 +3,38 @@ package pool
 import (
 	"context"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+// RFQParams is the params for firm quote operations such as calling firm-quote API
 type RFQParams struct {
-	NetworkID    uint   // blockchain network id
-	Sender       string // swap tx origin
-	Recipient    string // fund recipient of swap tx
-	RFQSender    string // RFQ caller
-	RFQRecipient string // RFQ fund recipient
-	Slippage     int64  // tolerance (in bps) for RFQs that also aggregate dexes
-	SwapInfo     any    // swap info of the RFQ swap
-	Source       string // source client
-	RequestID    string // request id from getRoute
-	AlphaFee     string
+	NetworkID    valueobject.ChainID // blockchain network id
+	RequestID    string              // request id from getRoute
+	Sender       string              // swap tx origin
+	Recipient    string              // fund recipient of swap tx
+	RFQSender    string              // RFQ caller (executor)
+	RFQRecipient string              // RFQ fund recipient (executor/next pool/recipient)
+	Source       string              // source client
+	Slippage     int64               // tolerance (in bps) for RFQs that also aggregate dexes
+	SwapInfo     any                 // swap info of the RFQ swap
+	FeeInfo      any                 // generic fee info
 }
 
+// RFQResult is the result for firm quote operations
 type RFQResult struct {
-	NewAmountOut  *big.Int
-	AlphaFee      *big.Int
-	AlphaFeeAsset string
-	Extra         any
+	NewAmountOut *big.Int
+	Extra        any
 }
 
+// RFQHandler is the default no-op RFQ handler
 type RFQHandler struct{}
 
-func (p *RFQHandler) RFQ(ctx context.Context, params RFQParams) (*RFQResult, error) {
+func (p *RFQHandler) RFQ(_ context.Context, _ RFQParams) (*RFQResult, error) {
 	return nil, nil
 }
 
-func (p *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []RFQParams) ([]*RFQResult, error) {
+func (p *RFQHandler) BatchRFQ(_ context.Context, _ []RFQParams) ([]*RFQResult, error) {
 	return nil, nil
 }
 
