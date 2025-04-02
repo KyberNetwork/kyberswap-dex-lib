@@ -241,54 +241,41 @@ func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, rese
 }
 
 func (s *PoolSimulator) calcLimits(asset0IsInput bool, reserve0, reserve1 *uint256.Int) (*uint256.Int, *uint256.Int) {
-	var (
-		outLimit     = new(uint256.Int)
-		inLimit      = new(uint256.Int)
-		cash         = new(uint256.Int)
-		maxWithdraw  = new(uint256.Int)
-		totalBorrows = new(uint256.Int)
-		vaultBalance = new(uint256.Int)
-	)
+	inLimit := new(uint256.Int)
+	outLimit := new(uint256.Int)
+
+	var vaultInIndex, vaultOutIndex int
+	var reserveOut *uint256.Int
 
 	if asset0IsInput {
-		inLimit.Add(s.vaults[0].Debt, s.vaults[0].MaxDeposit)
-		outLimit.Set(reserve1)
-
-		cash = s.vaults[1].Cash
-
-		if s.vaults[1].Cash.Lt(outLimit) {
-			outLimit.Set(cash)
-		}
-
-		maxWithdraw.Set(s.vaults[1].MaxWithdraw)
-
-		totalBorrows = s.vaults[1].TotalBorrows
-
-		vaultBalance = s.vaults[1].EulerAccountAssets
+		vaultInIndex = 0
+		vaultOutIndex = 1
+		reserveOut = reserve1
 	} else {
-		inLimit.Add(s.vaults[1].Debt, s.vaults[1].MaxDeposit)
-		outLimit.Set(reserve0)
-
-		cash = s.vaults[0].Cash
-
-		maxWithdraw.Set(s.vaults[0].MaxWithdraw)
-
-		totalBorrows = s.vaults[0].TotalBorrows
-
-		vaultBalance = s.vaults[0].EulerAccountAssets
+		vaultInIndex = 1
+		vaultOutIndex = 0
+		reserveOut = reserve0
 	}
 
-	if totalBorrows.Gt(maxWithdraw) {
+	inLimit.Add(s.vaults[vaultInIndex].Debt, s.vaults[vaultInIndex].MaxDeposit)
+
+	outLimit.Set(reserveOut)
+	if s.vaults[vaultOutIndex].Cash.Lt(outLimit) {
+		outLimit.Set(s.vaults[vaultOutIndex].Cash)
+	}
+
+	maxWithdraw := new(uint256.Int).Set(s.vaults[vaultOutIndex].MaxWithdraw)
+	if s.vaults[vaultOutIndex].TotalBorrows.Gt(maxWithdraw) {
 		maxWithdraw.SetUint64(0)
 	} else {
-		maxWithdraw.Sub(maxWithdraw, totalBorrows)
+		maxWithdraw.Sub(maxWithdraw, s.vaults[vaultOutIndex].TotalBorrows)
 	}
 
-	if maxWithdraw.Gt(cash) {
-		maxWithdraw.Set(cash)
+	if maxWithdraw.Gt(s.vaults[vaultOutIndex].Cash) {
+		maxWithdraw.Set(s.vaults[vaultOutIndex].Cash)
 	}
 
-	maxWithdraw.Add(maxWithdraw, vaultBalance)
+	maxWithdraw.Add(maxWithdraw, s.vaults[vaultOutIndex].EulerAccountAssets)
 
 	if maxWithdraw.Lt(outLimit) {
 		outLimit.Set(maxWithdraw)
