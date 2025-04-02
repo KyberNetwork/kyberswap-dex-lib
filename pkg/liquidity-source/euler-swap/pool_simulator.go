@@ -10,7 +10,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -25,7 +24,7 @@ type PoolSimulator struct {
 
 	gas Gas
 
-	pause         uint32
+	pause         uint32 // 0 = unactivated, 1 = unlocked, 2 = locked
 	feeMultiplier *uint256.Int
 
 	equilibriumReserve0 *uint256.Int
@@ -37,11 +36,11 @@ type PoolSimulator struct {
 	concentrationX *uint256.Int
 	concentrationY *uint256.Int
 
-	vault0 Vault
-	vault1 Vault
+	vaults []Vault
 }
 
 var (
+	ErrInvalidVaults  = errors.New("invalid vaults")
 	ErrInvalidToken   = errors.New("invalid token")
 	ErrInvalidReserve = errors.New("invalid reserve")
 	ErrInvalidAmount  = errors.New("invalid amount")
@@ -58,9 +57,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	var originalReserves uniswapv2.ReserveData
-	if err := json.Unmarshal([]byte(entityPool.Extra), &originalReserves); err != nil {
+	var extra Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+
+	if extra.Vaults == nil {
+		extra.Vaults = make([]Vault, 2)
 	}
 
 	return &PoolSimulator{
@@ -73,7 +76,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		gas: defaultGas,
+		vaults:              extra.Vaults,
+		pause:               extra.Pause,
+		feeMultiplier:       staticExtra.FeeMultiplier,
+		equilibriumReserve0: staticExtra.EquilibriumReserve0,
+		equilibriumReserve1: staticExtra.EquilibriumReserve1,
+		priceX:              staticExtra.PriceX,
+		priceY:              staticExtra.PriceY,
+		concentrationX:      staticExtra.ConcentrationX,
+		concentrationY:      staticExtra.ConcentrationY,
+		gas:                 defaultGas,
 	}, nil
 }
 
@@ -154,8 +166,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return uniswapv2.PoolMeta{
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+	return struct {
+		BlockNumber uint64
+	}{
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
 }
@@ -217,6 +231,63 @@ func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, rese
 	quote.Mul(quote, oneE18)
 	quote.Add(quote, new(uint256.Int).Sub(s.feeMultiplier, big256.One))
 	return quote.Div(quote, s.feeMultiplier), nil
+}
+
+func (s *PoolSimulator) calcLimits(asset0IsInput bool, reserve0, reserve1 *uint256.Int) (*uint256.Int, *uint256.Int) {
+	var (
+		outLimit     = new(uint256.Int)
+		inLimit      = new(uint256.Int)
+		cash         = new(uint256.Int)
+		maxWithdraw  = new(uint256.Int)
+		totalBorrows = new(uint256.Int)
+		vaultBalance = new(uint256.Int)
+	)
+
+	if asset0IsInput {
+		inLimit.Add(s.vaults[0].Debt, s.vaults[0].MaxDeposit)
+		outLimit.Set(reserve1)
+
+		cash = s.vaults[1].Cash
+
+		if s.vaults[1].Cash.Lt(outLimit) {
+			outLimit.Set(cash)
+		}
+
+		maxWithdraw.Set(s.vaults[1].MaxWithdraw)
+
+		totalBorrows = s.vaults[1].TotalBorrows
+
+		vaultBalance = s.vaults[1].EulerAccountAssets
+	} else {
+		inLimit.Add(s.vaults[1].Debt, s.vaults[1].MaxDeposit)
+		outLimit.Set(reserve0)
+
+		cash = s.vaults[0].Cash
+
+		maxWithdraw.Set(s.vaults[0].MaxWithdraw)
+
+		totalBorrows = s.vaults[0].TotalBorrows
+
+		vaultBalance = s.vaults[0].EulerAccountAssets
+	}
+
+	if totalBorrows.Gt(maxWithdraw) {
+		maxWithdraw.SetUint64(0)
+	} else {
+		maxWithdraw.Sub(maxWithdraw, totalBorrows)
+	}
+
+	if maxWithdraw.Gt(cash) {
+		maxWithdraw.Set(cash)
+	}
+
+	maxWithdraw.Add(maxWithdraw, vaultBalance)
+
+	if maxWithdraw.Lt(outLimit) {
+		outLimit.Set(maxWithdraw)
+	}
+
+	return inLimit, outLimit
 }
 
 func (s *PoolSimulator) verify(newReserve0, newReserve1 *uint256.Int) bool {
@@ -295,61 +366,4 @@ func f(
 	t1.Div(t1, py)
 
 	return new(uint256.Int).Add(y0, t1), nil
-}
-
-func (s *PoolSimulator) calcLimits(asset0IsInput bool, reserve0, reserve1 *uint256.Int) (*uint256.Int, *uint256.Int) {
-	var (
-		outLimit     = new(uint256.Int)
-		inLimit      = new(uint256.Int)
-		cash         = new(uint256.Int)
-		maxWithdraw  = new(uint256.Int)
-		totalBorrows = new(uint256.Int)
-		vaultBalance = new(uint256.Int)
-	)
-
-	if asset0IsInput {
-		inLimit.Add(s.vault0.Debt, s.vault0.MaxDeposit)
-		outLimit.Set(reserve1)
-
-		cash = s.vault1.Cash
-
-		if s.vault1.Cash.Lt(outLimit) {
-			outLimit.Set(cash)
-		}
-
-		maxWithdraw.Set(s.vault1.MaxWithdraw)
-
-		totalBorrows = s.vault1.TotalBorrows
-
-		vaultBalance = s.vault1.Balance
-	} else {
-		inLimit.Add(s.vault1.Debt, s.vault1.MaxDeposit)
-		outLimit.Set(reserve0)
-
-		cash = s.vault0.Cash
-
-		maxWithdraw.Set(s.vault0.MaxWithdraw)
-
-		totalBorrows = s.vault0.TotalBorrows
-
-		vaultBalance = s.vault0.Balance
-	}
-
-	if totalBorrows.Gt(maxWithdraw) {
-		maxWithdraw.SetUint64(0)
-	} else {
-		maxWithdraw.Sub(maxWithdraw, totalBorrows)
-	}
-
-	if maxWithdraw.Gt(cash) {
-		maxWithdraw.Set(cash)
-	}
-
-	maxWithdraw.Add(maxWithdraw, vaultBalance)
-
-	if maxWithdraw.Lt(outLimit) {
-		outLimit.Set(maxWithdraw)
-	}
-
-	return inLimit, outLimit
 }

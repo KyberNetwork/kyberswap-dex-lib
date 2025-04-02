@@ -3,55 +3,60 @@ package eulerswap
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
 type StaticExtra struct {
-	Fee          uint64 `json:"fee"`
-	FeePrecision uint64 `json:"feePrecision"`
+	Vault0              string       `json:"v0"`
+	Vault1              string       `json:"v1"`
+	EulerAccount        string       `json:"ea"`
+	FeeMultiplier       *uint256.Int `json:"fm"`
+	EquilibriumReserve0 *uint256.Int `json:"er0"`
+	EquilibriumReserve1 *uint256.Int `json:"er1"`
+	PriceX              *uint256.Int `json:"px"`
+	PriceY              *uint256.Int `json:"py"`
+	ConcentrationX      *uint256.Int `json:"cx"`
+	ConcentrationY      *uint256.Int `json:"cy"`
+	Pause               bool         `json:"p"`
+}
+
+type Extra struct {
+	Pause  uint32  `json:"p"`
+	Vaults []Vault `json:"v"`
 }
 
 type SwapInfo struct {
-	NewReserve0 *uint256.Int `json:"NewReserve0"`
-	NewReserve1 *uint256.Int `json:"NewReserve1"`
+	NewReserve0 *uint256.Int `json:"newReserve0"`
+	NewReserve1 *uint256.Int `json:"newReserve1"`
 }
 
 type Vault struct {
-	Cash         *uint256.Int
-	Debt         *uint256.Int
-	MaxDeposit   *uint256.Int
-	MaxWithdraw  *uint256.Int
-	TotalBorrows *uint256.Int
-	Balance      *uint256.Int
+	Cash               *uint256.Int
+	Debt               *uint256.Int
+	MaxDeposit         *uint256.Int
+	MaxWithdraw        *uint256.Int
+	TotalBorrows       *uint256.Int
+	EulerAccountAssets *uint256.Int
 }
 
 type ReserveRPC struct {
-	Reserve0       *big.Int
-	Reserve1       *big.Int
-	BlockTimestamp uint32
+	Reserve0 *big.Int
+	Reserve1 *big.Int
+	Pause    uint32
 }
 
 type VaultRPC struct {
-	Cash         *big.Int
-	Debt         *big.Int
-	MaxDeposit   *big.Int
-	MaxWithdraw  *big.Int
-	TotalBorrows *big.Int
-	Balance      *big.Int
+	Cash                *big.Int
+	Debt                *big.Int
+	MaxDeposit          *big.Int
+	MaxWithdraw         *big.Int
+	TotalBorrows        *big.Int
+	EulerAccountBalance *big.Int
+	TotalAssets         *big.Int
+	TotalSupply         *big.Int
 }
 
-type RPCData struct {
-	Vault0              Vault
-	Vault1              Vault
-	EulerAccount        common.Address
-	FeeMultiplier       *uint256.Int
-	Reserve0            *uint256.Int
-	Reserve1            *uint256.Int
-	EquilibriumReserve0 *uint256.Int
-	EquilibriumReserve1 *uint256.Int
-	PriceX              *uint256.Int
-	PriceY              *uint256.Int
-	ConcentrationX      *uint256.Int
-	ConcentrationY      *uint256.Int
+type TrackerData struct {
+	Vaults   []VaultRPC
+	Reserves ReserveRPC
 }
