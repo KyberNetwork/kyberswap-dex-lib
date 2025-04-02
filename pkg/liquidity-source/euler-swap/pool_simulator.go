@@ -142,13 +142,13 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrSwapIsPaused
 	}
 
-	amountOut, swapInfo, err := s.swap(false, indexIn == 0, amountOut)
+	amountIn, swapInfo, err := s.swap(false, indexIn == 0, amountOut)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountOut.ToBig()},
+		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:           s.gas.Swap,
 		SwapInfo:      swapInfo,
@@ -174,7 +174,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	}
 }
 
-func (s *PoolSimulator) swap(exactIn, asset0IsInput bool, amountIn *uint256.Int) (*uint256.Int, SwapInfo, error) {
+func (s *PoolSimulator) swap(exactIn, asset0IsInput bool, amount *uint256.Int) (*uint256.Int, SwapInfo, error) {
 	reserve0, overflow := uint256.FromBig(s.Pool.Info.Reserves[0])
 	if overflow {
 		return nil, SwapInfo{}, ErrInvalidReserve
@@ -185,46 +185,56 @@ func (s *PoolSimulator) swap(exactIn, asset0IsInput bool, amountIn *uint256.Int)
 		return nil, SwapInfo{}, ErrInvalidReserve
 	}
 
-	amountOut, err := s.computeQuote(exactIn, asset0IsInput, reserve0, reserve1, amountIn)
+	quote, err := s.computeQuote(exactIn, asset0IsInput, reserve0, reserve1, amount)
 	if err != nil {
 		return nil, SwapInfo{}, err
 	}
 
-	if asset0IsInput {
-		reserve0.Add(reserve0, amountIn)
-		reserve1.Sub(reserve1, amountOut)
+	if exactIn {
+		if asset0IsInput {
+			reserve0.Add(reserve0, amount)
+			reserve1.Sub(reserve1, quote)
+		} else {
+			reserve0.Sub(reserve0, quote)
+			reserve1.Add(reserve1, amount)
+		}
 	} else {
-		reserve0.Sub(reserve0, amountOut)
-		reserve1.Add(reserve1, amountIn)
+		if asset0IsInput {
+			reserve0.Add(reserve0, quote)
+			reserve1.Sub(reserve1, amount)
+		} else {
+			reserve0.Sub(reserve0, amount)
+			reserve1.Add(reserve1, quote)
+		}
 	}
 
 	if !s.verify(reserve0, reserve1) {
 		return nil, SwapInfo{}, ErrCurveViolation
 	}
 
-	return amountOut, SwapInfo{
+	return quote, SwapInfo{
 		NewReserve0: reserve0,
 		NewReserve1: reserve1,
 	}, nil
 }
 
-func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, reserve1, amountIn *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, reserve1, amount *uint256.Int) (*uint256.Int, error) {
 	inLimit, outLimit := s.calcLimits(asset0IsInput, reserve0, reserve1)
 
-	quote, err := BinarySearch(reserve0, reserve1, amountIn, exactIn, asset0IsInput, s.verify)
+	quote, err := BinarySearch(reserve0, reserve1, amount, exactIn, asset0IsInput, s.verify)
 	if err != nil {
 		return nil, err
 	}
 
 	if exactIn {
-		if amountIn.Gt(inLimit) || quote.Gt(outLimit) {
+		if amount.Gt(inLimit) || quote.Gt(outLimit) {
 			return nil, ErrSwapLimitExceeded
 		}
 
 		return quote, nil
 	}
 
-	if amountIn.Gt(outLimit) || quote.Gt(inLimit) {
+	if amount.Gt(outLimit) || quote.Gt(inLimit) {
 		return nil, ErrSwapLimitExceeded
 	}
 
