@@ -2,15 +2,13 @@ package params
 
 type (
 	RouteSummary struct {
-		TokenIn                     string `json:"tokenIn"`
-		AmountIn                    string `json:"amountIn"`
-		AmountInUSD                 string `json:"amountInUsd"`
-		TokenInMarketPriceAvailable bool   `json:"tokenInMarketPriceAvailable"`
+		TokenIn     string `json:"tokenIn"`
+		AmountIn    string `json:"amountIn"`
+		AmountInUSD string `json:"amountInUsd"`
 
-		TokenOut                     string `json:"tokenOut"`
-		AmountOut                    string `json:"amountOut"`
-		AmountOutUSD                 string `json:"amountOutUsd"`
-		TokenOutMarketPriceAvailable bool   `json:"tokenOutMarketPriceAvailable"`
+		TokenOut     string `json:"tokenOut"`
+		AmountOut    string `json:"amountOut"`
+		AmountOutUSD string `json:"amountOutUsd"`
 
 		Gas      string `json:"gas"`
 		GasPrice string `json:"gasPrice"`

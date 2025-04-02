@@ -177,15 +177,13 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 		}
 	}
 	return &params.RouteSummary{
-		TokenIn:                     routeSummary.TokenIn,
-		AmountIn:                    routeSummary.AmountIn.String(),
-		AmountInUSD:                 strconv.FormatFloat(routeSummary.AmountInUSD, 'f', -1, 64),
-		TokenInMarketPriceAvailable: routeSummary.TokenInMarketPriceAvailable,
+		TokenIn:     routeSummary.TokenIn,
+		AmountIn:    routeSummary.AmountIn.String(),
+		AmountInUSD: strconv.FormatFloat(routeSummary.AmountInUSD, 'f', -1, 64),
 
-		TokenOut:                     routeSummary.TokenOut,
-		AmountOut:                    routeSummary.AmountOut.String(),
-		AmountOutUSD:                 strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
-		TokenOutMarketPriceAvailable: routeSummary.TokenOutMarketPriceAvailable,
+		TokenOut:     routeSummary.TokenOut,
+		AmountOut:    routeSummary.AmountOut.String(),
+		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
 
 		Gas:      strconv.FormatInt(routeSummary.Gas, 10),
 		GasPrice: routeSummary.GasPrice.Text('f', -1),

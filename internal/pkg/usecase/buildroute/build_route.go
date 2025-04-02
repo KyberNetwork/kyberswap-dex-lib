@@ -10,9 +10,11 @@ import (
 	"sync"
 	"time"
 
+	v1 "github.com/KyberNetwork/aggregation-stats/messages/v1"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,9 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
-
-	v1 "github.com/KyberNetwork/aggregation-stats/messages/v1"
-	"github.com/KyberNetwork/kutils/klog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -605,7 +604,7 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 	}
 }
 
-// updateRouteSummary updates AmountInUSD/AmountOutUSD, TokenInMarketPriceAvailable/TokenOutMarketPriceAvailable in command.RouteSummary
+// updateRouteSummary updates AmountInUSD/AmountOutUSD in command.RouteSummary
 // and returns updated command
 // We need these values, and they should be calculated in backend side because some services such as campaign or data
 // need them for their business.
@@ -619,10 +618,7 @@ func (uc *BuildRouteUseCase) updateRouteSummary(
 	amountOutUSD := business.CalcAmountUSD(routeSummary.AmountOut, tokens[tokenOut].Decimals, prices[tokenOut])
 
 	routeSummary.AmountInUSD, _ = amountInUSD.Float64()
-	routeSummary.TokenInMarketPriceAvailable = false // we no longer have market price
-
 	routeSummary.AmountOutUSD, _ = amountOutUSD.Float64()
-	routeSummary.TokenOutMarketPriceAvailable = false // we no longer have market price
 
 	return routeSummary, nil
 }
@@ -660,10 +656,7 @@ func (uc *BuildRouteUseCase) encode(
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
 func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand,
 	routeSummary valueobject.RouteSummary) ([]byte, error) {
-	flags, err := clientdata.ConvertFlagsToBitInteger(encodeTypes.Flags{
-		TokenInMarketPriceAvailable:  routeSummary.TokenInMarketPriceAvailable,
-		TokenOutMarketPriceAvailable: routeSummary.TokenOutMarketPriceAvailable,
-	})
+	flags, err := clientdata.ConvertFlagsToBitInteger(encodeTypes.Flags{})
 	if err != nil {
 		return nil, err
 	}

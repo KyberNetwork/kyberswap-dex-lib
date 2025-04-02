@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/cespare/xxhash/v2"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 // RouteSummary contains route and summarized data around the route such as gas, amounts in USD,...
@@ -19,9 +20,6 @@ type RouteSummary struct {
 	// AmountInUSD amount in USD to be swapped
 	AmountInUSD float64 `json:"amountInUsd"`
 
-	// TokenInMarketPriceAvailable indicate if token in has market price or not
-	TokenInMarketPriceAvailable bool `json:"tokenInMarketPriceAvailable"`
-
 	// TokenOut address of token to be received
 	TokenOut string `json:"tokenOut"`
 
@@ -30,9 +28,6 @@ type RouteSummary struct {
 
 	// AmountOutUSD amount in USD of token to be received
 	AmountOutUSD float64 `json:"amountOutUsd"`
-
-	// TokenOutMarketPriceAvailable indicate if token out has market price or not
-	TokenOutMarketPriceAvailable bool `json:"tokenOutMarketPriceAvailable"`
 
 	// Gas total gas consumed for swapping
 	Gas int64 `json:"gas"`

@@ -124,20 +124,18 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(0),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          0,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
-						Route:                        [][]valueobject.Swap{},
-						Timestamp:                    time.Now().Unix(),
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(0),
+						AmountOutUSD: 0,
+						Gas:          0,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
+						Route:        [][]valueobject.Swap{},
+						Timestamp:    time.Now().Unix(),
 					},
 					Checksum:          12499967010441707798,
 					SlippageTolerance: 5,
@@ -241,18 +239,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(1000),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          0,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(1000),
+						AmountOutUSD: 0,
+						Gas:          0,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -375,18 +371,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(997),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          0,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(997),
+						AmountOutUSD: 0,
+						Gas:          0,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -509,18 +503,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(9999),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          0,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(9999),
+						AmountOutUSD: 0,
+						Gas:          0,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -657,18 +649,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(20000),
-					AmountInUSD:                  0,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(10000),
-					AmountOutUSD:                 0,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          15,
-					GasPrice:                     big.NewFloat(100.2),
-					GasUSD:                       100,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(20000),
+					AmountInUSD:  0,
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(10000),
+					AmountOutUSD: 0,
+					Gas:          15,
+					GasPrice:     big.NewFloat(100.2),
+					GasUSD:       100,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -808,18 +798,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      valueobject.EtherAddress,
-					AmountIn:                     amountIn,
-					AmountInUSD:                  0,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(10000),
-					AmountOutUSD:                 0,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          0,
-					GasPrice:                     big.NewFloat(100.2),
-					GasUSD:                       0,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      valueobject.EtherAddress,
+					AmountIn:     amountIn,
+					AmountInUSD:  0,
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(10000),
+					AmountOutUSD: 0,
+					Gas:          0,
+					GasPrice:     big.NewFloat(100.2),
+					GasUSD:       0,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -906,18 +894,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(10000),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          12,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       1.5,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(10000),
+						AmountOutUSD: 0,
+						Gas:          12,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       1.5,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -991,18 +977,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(10000),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          12,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(10000),
+						AmountOutUSD: 0,
+						Gas:          12,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -1074,18 +1058,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should return correct result and run estimate Gas in goroutine when there is no error because feature flag is on but disable estimateGas",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(20000),
-					AmountInUSD:                  0,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(10000),
-					AmountOutUSD:                 0,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          7,
-					GasPrice:                     big.NewFloat(100.2),
-					GasUSD:                       0,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(20000),
+					AmountInUSD:  0,
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(10000),
+					AmountOutUSD: 0,
+					Gas:          7,
+					GasPrice:     big.NewFloat(100.2),
+					GasUSD:       0,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1175,18 +1157,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:                     big.NewInt(20000),
-						AmountInUSD:                  0,
-						TokenInMarketPriceAvailable:  false,
-						TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:                    big.NewInt(10000),
-						AmountOutUSD:                 0,
-						TokenOutMarketPriceAvailable: false,
-						Gas:                          12,
-						GasPrice:                     big.NewFloat(100.2),
-						GasUSD:                       0,
-						ExtraFee:                     valueobject.ExtraFee{},
+						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:     big.NewInt(20000),
+						AmountInUSD:  0,
+						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:    big.NewInt(10000),
+						AmountOutUSD: 0,
+						Gas:          12,
+						GasPrice:     big.NewFloat(100.2),
+						GasUSD:       0,
+						ExtraFee:     valueobject.ExtraFee{},
 						Route: [][]valueobject.Swap{
 							{
 								{
@@ -1245,18 +1225,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should count faulty pools when estimate gas error is return amount not enough, feature flag is on",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-					AmountIn:                     big.NewInt(500000),
-					AmountInUSD:                  0.00000000192722,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-					AmountOut:                    big.NewInt(1626105316),
-					AmountOutUSD:                 0.000000001626105316,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          185000,
-					GasPrice:                     big.NewFloat(9511845152),
-					GasUSD:                       6.782624739119853,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:     big.NewInt(500000),
+					AmountInUSD:  0.00000000192722,
+					TokenOut:     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:    big.NewInt(1626105316),
+					AmountOutUSD: 0.000000001626105316,
+					Gas:          185000,
+					GasPrice:     big.NewFloat(9511845152),
+					GasUSD:       6.782624739119853,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1329,18 +1307,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should not count faulty pools when estimate gas error is some error, feature flag is on",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-					AmountIn:                     big.NewInt(500000),
-					AmountInUSD:                  0.00000000192722,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-					AmountOut:                    big.NewInt(1626105316),
-					AmountOutUSD:                 0.000000001626105316,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          185000,
-					GasPrice:                     big.NewFloat(9511845152),
-					GasUSD:                       6.782624739119853,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:     big.NewInt(500000),
+					AmountInUSD:  0.00000000192722,
+					TokenOut:     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:    big.NewInt(1626105316),
+					AmountOutUSD: 0.000000001626105316,
+					Gas:          185000,
+					GasPrice:     big.NewFloat(9511845152),
+					GasUSD:       6.782624739119853,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1428,18 +1404,16 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should not count faulty pools and still call estimate gas, feature flag is off",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-					AmountIn:                     big.NewInt(500000),
-					AmountInUSD:                  0.5,
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-					AmountOut:                    big.NewInt(1626105316),
-					AmountOutUSD:                 0.000000001626105316,
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          185000,
-					GasPrice:                     big.NewFloat(9511845152),
-					GasUSD:                       6.782624739119853,
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:     big.NewInt(500000),
+					AmountInUSD:  0.5,
+					TokenOut:     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:    big.NewInt(1626105316),
+					AmountOutUSD: 0.000000001626105316,
+					Gas:          185000,
+					GasPrice:     big.NewFloat(9511845152),
+					GasUSD:       6.782624739119853,
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1618,19 +1592,17 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and increase total count (failed count is 0) on Redis, check FOT on whitelist tokens",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
-					Timestamp:                    time.Now().Unix(),
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
+					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1745,18 +1717,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result although increase total count on Redis failed, route contains all whitelist tokens, no need to check fot tokens",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1869,18 +1839,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and not increase total count on Redis when feature flag is off",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -1967,19 +1935,17 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result, but increase total count only (failed count = 0) because slippage below min threshold",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
-					Timestamp:                    time.Now().Unix(),
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
+					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2092,19 +2058,17 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and increase total count on Redis because slippage above min threshold",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
-					Timestamp:                    time.Now().Unix(),
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
+					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2216,18 +2180,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and not increase total count on Redis because token out is FOT token",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2331,18 +2293,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and only increase total count in AMM dexes",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(1002),
-					AmountInUSD:                  float64(1000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(1000),
-					AmountOutUSD:                 float64(1000),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          50,
-					GasPrice:                     big.NewFloat(1),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(1002),
+					AmountInUSD:  float64(1000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(1000),
+					AmountOutUSD: float64(1000),
+					Gas:          50,
+					GasPrice:     big.NewFloat(1),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2477,18 +2437,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return correct result and not increase total count because some tokens is honeypot tokens",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(1002),
-					AmountInUSD:                  float64(1000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(1000),
-					AmountOutUSD:                 float64(1000),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          50,
-					GasPrice:                     big.NewFloat(1),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(1002),
+					AmountInUSD:  float64(1000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(1000),
+					AmountOutUSD: float64(1000),
+					Gas:          50,
+					GasPrice:     big.NewFloat(1),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2613,19 +2571,17 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			name: "it should return not count faulty pools on Redis because checksum is not correct",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
-					Timestamp:                    time.Now().Unix(),
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
+					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2807,18 +2763,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with kyber-pmm failed",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -2900,18 +2854,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with native-v1 failed",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -3010,18 +2962,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			name: "it should return correct result and increase total count (failed count is 0) on Redis when rfq firm has no error",
 			command: func() dto.BuildRouteCommand {
 				route := valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -3203,18 +3153,16 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			name: "it should not return error when rfq slippage is acceptable",
 			command: dto.BuildRouteCommand{
 				RouteSummary: valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{
@@ -3266,18 +3214,16 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			name: "it should return error when rfq slippage is not acceptable",
 			command: dto.BuildRouteCommand{
 				RouteSummary: valueobject.RouteSummary{
-					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					AmountIn:                     big.NewInt(2000000000000000000),
-					AmountInUSD:                  float64(2000000000000000000),
-					TokenInMarketPriceAvailable:  false,
-					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(4488767370609711072),
-					AmountOutUSD:                 float64(4488767370609711072),
-					TokenOutMarketPriceAvailable: false,
-					Gas:                          345000,
-					GasPrice:                     big.NewFloat(100000000),
-					GasUSD:                       float64(0.07912413535198341),
-					ExtraFee:                     valueobject.ExtraFee{},
+					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:     big.NewInt(2000000000000000000),
+					AmountInUSD:  float64(2000000000000000000),
+					TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:    big.NewInt(4488767370609711072),
+					AmountOutUSD: float64(4488767370609711072),
+					Gas:          345000,
+					GasPrice:     big.NewFloat(100000000),
+					GasUSD:       float64(0.07912413535198341),
+					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
 							{

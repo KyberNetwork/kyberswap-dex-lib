@@ -233,15 +233,13 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 	}
 
 	return valueobject.RouteSummary{
-		TokenIn:                     params.TokenIn,
-		AmountIn:                    amountIn,
-		AmountInUSD:                 amountInUSD,
-		TokenInMarketPriceAvailable: params.TokenInMarketPriceAvailable,
+		TokenIn:     params.TokenIn,
+		AmountIn:    amountIn,
+		AmountInUSD: amountInUSD,
 
-		TokenOut:                     params.TokenOut,
-		AmountOut:                    amountOut,
-		AmountOutUSD:                 amountOutUSD,
-		TokenOutMarketPriceAvailable: params.TokenOutMarketPriceAvailable,
+		TokenOut:     params.TokenOut,
+		AmountOut:    amountOut,
+		AmountOutUSD: amountOutUSD,
 
 		Gas:      gas,
 		GasPrice: gasPrice,
