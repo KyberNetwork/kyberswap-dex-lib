@@ -92,12 +92,8 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 
 		// If the amount in USD is nearly insignificant (or 0), price impact is -Inf, so ignore price impact check if cache point is base on amountIn (not amountInUSD)
 		// We don't support cache merged swaps route for now.
-		// TODO: Improve caching solution to support merged swaps route,
-		// and other more general routes that each path may not always
-		// start from params.TokenIn -> params.TokenOut.
-		if (routeSummary.AmountInUSD < c.config.MinAmountInUSD ||
-			routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold) &&
-			!isMergeSwapRoute(params, routeSummary) {
+		if routeSummary.AmountInUSD < c.config.MinAmountInUSD ||
+			routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
 			c.setRouteToCache(ctx, routeSummaries, keys)
 		}
 	} else {
@@ -266,7 +262,14 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 }
 
 func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject.RouteSummaries, keys []valueobject.RouteCacheKeyTTL) {
-	bestSimpleRoute := simplifyRouteSummary(routeSummaries.GetBestRouteSummary())
+	// We cache the best route before merge swap, instead of the merge swap route,
+	// for easier cache handling and avoid modify too much logic.
+	bestRouteSummary := routeSummaries.GetBestRouteSummary()
+	if routeSummaries.GetBestRouteBeforeMergeSwap() != nil {
+		bestRouteSummary = routeSummaries.GetBestRouteBeforeMergeSwap()
+	}
+
+	bestSimpleRoute := simplifyRouteSummary(bestRouteSummary)
 	route := valueobject.SimpleRouteWithExtraData{BestRoute: bestSimpleRoute}
 	if routeSummaries.GetAMMBestRouteSummary() != nil {
 		route.AMMRoute = simplifyRouteSummary(routeSummaries.GetAMMBestRouteSummary())
@@ -502,16 +505,4 @@ func (c *cache) convertSimpleRouteToConstructRoute(simpleRoute *valueobject.Simp
 	}
 
 	return constructRoute
-}
-
-func isMergeSwapRoute(params *types.AggregateParams, routeSummary *valueobject.RouteSummary) bool {
-	for _, path := range routeSummary.Route {
-		tokenIn := path[0].TokenIn
-		tokenOut := path[len(path)-1].TokenOut
-		if tokenIn != params.TokenIn.Address || tokenOut != params.TokenOut.Address {
-			return true
-		}
-	}
-
-	return false
 }

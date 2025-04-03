@@ -189,6 +189,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setRFQAcceptableSlippageFraction(remoteCfg.RFQAcceptableSlippageFraction)
 		cl.setDexalotUpscalePercent(remoteCfg.DexalotUpscalePercent)
 		cl.setAlphaFeeConfig(remoteCfg.AlphaFeeConfig)
+		cl.setScaleHelperClients(remoteCfg.ScaleHelperClients)
 		cl.mu.Unlock()
 	}
 
@@ -367,4 +368,8 @@ func (cl *ConfigLoader) setDexalotUpscalePercent(dexalotUpscalePercent int) {
 			dexalotCfg["upscale_percent"] = dexalotUpscalePercent
 		}
 	}
+}
+
+func (cl *ConfigLoader) setScaleHelperClients(scaleHelperClients []string) {
+	cl.config.UseCase.GetRoute.ScaleHelperClients = scaleHelperClients
 }

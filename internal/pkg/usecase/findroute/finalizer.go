@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/mergeswap"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
@@ -81,22 +82,6 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		l1GasFeePrice = params.L1GasFeePriceOverhead
 	)
 
-	// After EX-2542: Merge duplicate swaps in route,
-	// each path may not always start from params.TokenIn -> params.TokenOut.
-	// We will keep track the final reduction amount of each token in each path,
-	// so when the path starts from that token,
-	// we can apply the proper safety-quoting reduction.
-	//
-	// Since there can be multiple paths starting from the same token,
-	// we will apply the reduction equally for each path. Doing so require
-	// also keep track the number of paths starting from that token.
-	reduceAmountByEndToken := make(map[string]*big.Int)
-	numPathByStartToken := make(map[string]int)
-
-	for _, path := range constructRoute.Paths {
-		numPathByStartToken[path.TokensOrder[0]]++
-	}
-
 	// Step 1.1: Prepare alpha fee if needed
 	var alphaFee *entity.AlphaFee
 	if extraData != nil {
@@ -123,23 +108,14 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 	// Step 2: finalize route
 	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
+	amountReductionEachSwap := make([][]*big.Int, 0, len(constructRoute.Paths))
 	for pathId, path := range constructRoute.Paths {
 		// Step 2.1: finalize path
 		finalizedPath := make([]finderEntity.Swap, 0, len(path.PoolsOrder))
+		amountReductionInPath := make([]*big.Int, 0, len(path.PoolsOrder))
 
 		// Step 2.1.0: prepare input of the first swap
 		currentAmountIn := path.AmountIn
-
-		// If the path starts from the token that has been reduced by the previous paths,
-		// we need to apply the reduction here. For now, the reduction is applied equally
-		// for each path starting from that token.
-		startToken := path.TokensOrder[0]
-		if reduceAmountByEndToken[startToken] != nil && numPathByStartToken[startToken] > 0 {
-			var reduceAmountPerPath big.Int
-			reduceAmountPerPath.Div(reduceAmountByEndToken[startToken], big.NewInt(int64(numPathByStartToken[startToken])))
-			currentAmountIn.Sub(currentAmountIn, &reduceAmountPerPath)
-			numPathByStartToken[startToken]--
-		}
 
 		for i := 0; i < len(path.PoolsOrder); i++ {
 			fromToken := path.TokensOrder[i]
@@ -228,21 +204,13 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			}
 
 			finalizedPath = append(finalizedPath, swap)
+			amountReductionInPath = append(amountReductionInPath, new(big.Int).Sub(res.TokenAmountOut.Amount, reducedNextAmountIn))
 
 			// Step 2.1.9: add up gas fee
 			gasUsed += res.Gas
 
 			// Step 2.1.10: update input of the next swap is output of current swap
 			currentAmountIn = reducedNextAmountIn
-			if i == len(path.PoolsOrder)-1 && toToken != params.TokenOut {
-				if reduceAmountByEndToken[toToken] == nil {
-					reduceAmountByEndToken[toToken] = new(big.Int)
-				}
-
-				var reduceAmount big.Int
-				reduceAmount.Sub(res.TokenAmountOut.Amount, reducedNextAmountIn)
-				reduceAmountByEndToken[toToken].Add(reduceAmountByEndToken[toToken], &reduceAmount)
-			}
 
 			metrics.CountDexHit(ctx, string(swap.Exchange))
 			metrics.CountPoolTypeHit(ctx, swap.PoolType)
@@ -255,6 +223,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			amountOut.Add(amountOut, currentAmountIn)
 		}
 		finalizedRoute = append(finalizedRoute, finalizedPath)
+		amountReductionEachSwap = append(amountReductionEachSwap, amountReductionInPath)
 	}
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
@@ -296,7 +265,16 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		ExtraFinalizerData: extra,
 	}
 
-	return route, nil
+	if params.SkipMergeSwap {
+		return route, nil
+	}
+
+	mergeSwapRoute, err := mergeswap.MergeSwap(ctx, params, constructRoute, route, amountReductionEachSwap, f.CustomFuncs())
+	if err != nil {
+		return route, nil
+	}
+
+	return mergeSwapRoute, nil
 }
 
 func hasOnlyOneSwap(r *finderCommon.ConstructRoute) bool {

@@ -246,6 +246,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			ClientId:                      params.ClientId,
 			ExtraFee:                      valueobject.ZeroExtraFee,
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+			IsScaleHelperClient:           params.IsScaleHelperClient,
 		}
 
 		if lastSwapState != nil {
@@ -264,7 +265,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			priceByAddress,
 			state,
 		)
-		findRouteParams.SkipMergeSwap = lo.Contains(a.config.FinderOptions.ScaleHelperClients, params.ClientId)
+		findRouteParams.SkipMergeSwap = !a.config.FeatureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
 		result, err := a.finderEngine.Find(ctx, findRouteParams)
 

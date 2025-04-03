@@ -75,6 +75,8 @@ type AggregateParams struct {
 
 	// Flag to enable hill climbing for amm best route
 	EnableHillClaimForAlphaFee bool
+
+	IsScaleHelperClient bool
 }
 
 type AggregateBundledParamsPair struct {
@@ -131,4 +133,6 @@ type AggregateBundledParams struct {
 	ExtraWhitelistedTokens []string
 
 	KyberLimitOrderAllowedSenders string
+
+	IsScaleHelperClient bool
 }

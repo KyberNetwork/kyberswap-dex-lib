@@ -94,6 +94,10 @@ func (b *EncodingDataBuilder) SetRoute(
 		executorAddress,
 	)
 
+	if b.featureFlags.IsMergeDuplicateSwapEnabled {
+		encodingRoute = b.updateMergeDuplicateSwap(encodingRoute)
+	}
+
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
 	b.data.ExtraFee = encodeValueObject.ExtraFee{
@@ -161,6 +165,39 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 				(pathIdx == len(route)-1 ||
 					swap.TokenIn != route[pathIdx+1][0].TokenIn) {
 				route[pathIdx][swapIdx].CollectAmount = bignumber.MAX_UINT_128
+			}
+		}
+	}
+
+	return route
+}
+
+func (b *EncodingDataBuilder) updateMergeDuplicateSwap(
+	route [][]types.EncodingSwap,
+) [][]types.EncodingSwap {
+	routeTokenIn := route[0][0].TokenIn
+
+	for pathIdx, path := range route {
+		for swapIdx, swap := range path {
+			// After EX-2542: Merge duplicate swap in route sequence,
+			// if the first swap in a path doesn't start from tokenIn,
+			// and it's also the last path that start from that token,
+			// we need to add a "fake swap", indicating that executor
+			// will use all the balance of that token for this swap to
+			// avoid dust token left in the executor / insufficient
+			// amount for the swap.
+			if swapIdx == 0 &&
+				swap.TokenIn != routeTokenIn &&
+				(pathIdx == len(route)-1 || swap.TokenIn != route[pathIdx+1][0].TokenIn) {
+				route[pathIdx] = append([]types.EncodingSwap{
+					{
+						TokenIn:    swap.TokenIn,
+						SwapAmount: swap.SwapAmount,
+						Exchange:   dexValueObject.ExchangeFakePool,
+					},
+				}, route[pathIdx]...)
+
+				break
 			}
 		}
 	}

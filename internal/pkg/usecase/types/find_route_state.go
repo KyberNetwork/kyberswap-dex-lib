@@ -7,6 +7,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
+	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -215,7 +216,8 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 
 type FinalizeExtraData struct {
 	StateAfterSwap
-	AlphaFee *entity.AlphaFee
+	AlphaFee             *entity.AlphaFee
+	RouteBeforeMergeSwap *finderEntity.Route
 }
 
 type StateAfterSwap struct {

@@ -37,6 +37,7 @@ type RouteCacheKey struct {
 	ExcludedPools             []string
 	Index                     string
 	UseKyberPrivateLimitOrder bool
+	IsScaleHelperClient       bool
 }
 
 type RouteCacheKeyTTL struct {

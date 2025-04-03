@@ -11,6 +11,7 @@ type Config struct {
 	GasTokenAddress         string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
 	AvailableSources        []string            `mapstructure:"availableSources" json:"availableSources"`
 	UnscalableSources       []string            `mapstructure:"unscalableSources" json:"unscalableSources"`
+	ScaleHelperClients      []string            `mapstructure:"scaleHelperClients" json:"scaleHelperClients"`
 	ExcludedSourcesByClient map[string][]string `mapstructure:"excludedSourcesByClient" json:"excludedSourcesByClient"`
 
 	Aggregator        AggregatorConfig                        `mapstructure:"aggregator" json:"aggregator"`

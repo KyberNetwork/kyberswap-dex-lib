@@ -122,6 +122,7 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 				ExcludedPools:             setToSlice(params.ExcludedPools),
 				Index:                     string(params.Index),
 				UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
+				IsScaleHelperClient:       params.IsScaleHelperClient,
 			}, cachePoint.TTL, nil
 		}
 	}
@@ -151,6 +152,7 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams, a
 			ExcludedPools:             setToSlice(params.ExcludedPools),
 			Index:                     string(params.Index),
 			UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
+			IsScaleHelperClient:       params.IsScaleHelperClient,
 		},
 		TTL: ttl,
 	}), nil
@@ -192,6 +194,7 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 					ExcludedPools:             setToSlice(params.ExcludedPools),
 					Index:                     string(params.Index),
 					UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
+					IsScaleHelperClient:       params.IsScaleHelperClient,
 				},
 				TTL: ttl,
 			})

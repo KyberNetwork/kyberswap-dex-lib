@@ -95,7 +95,11 @@ func (rs RouteSummary) GetPriceImpact() float64 {
 	return (rs.AmountInUSD - rs.AmountOutUSD) / rs.AmountInUSD
 }
 
-type RouteSummaries [2]*RouteSummary
+type RouteSummaries struct {
+	BestRoute                *RouteSummary
+	AMMBestRoute             *RouteSummary
+	BestRouteBeforeMergeSwap *RouteSummary
+}
 
 const (
 	BestRoute int = iota
@@ -103,9 +107,13 @@ const (
 )
 
 func (b RouteSummaries) GetBestRouteSummary() *RouteSummary {
-	return b[BestRoute]
+	return b.BestRoute
 }
 
 func (b RouteSummaries) GetAMMBestRouteSummary() *RouteSummary {
-	return b[AMMBestRoute]
+	return b.AMMBestRoute
+}
+
+func (b RouteSummaries) GetBestRouteBeforeMergeSwap() *RouteSummary {
+	return b.BestRouteBeforeMergeSwap
 }

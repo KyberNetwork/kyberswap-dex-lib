@@ -11,6 +11,7 @@ import (
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -253,6 +254,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		ExcludedPools:                 query.ExcludedPools,
 		ClientId:                      query.ClientId,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
+		IsScaleHelperClient:           lo.Contains(u.config.ScaleHelperClients, query.ClientId),
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
 		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 	}, nil

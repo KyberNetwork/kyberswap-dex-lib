@@ -117,7 +117,7 @@ func (a *aggregator) findBestRoute(
 		priceByAddress,
 		state,
 	)
-	findRouteParams.SkipMergeSwap = lo.Contains(a.config.FinderOptions.ScaleHelperClients, params.ClientId)
+	findRouteParams.SkipMergeSwap = !a.config.FeatureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
 	routes, err := a.finderEngine.Find(ctx, findRouteParams)
 

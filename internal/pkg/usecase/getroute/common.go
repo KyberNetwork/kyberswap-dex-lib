@@ -7,7 +7,6 @@ import (
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/mergeswap"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
@@ -182,9 +181,19 @@ func GetPrice(
 
 func ConvertToRouteSummaries(params *types.AggregateParams, routes finderEntity.BestRoutes) *valueobject.RouteSummaries {
 	result := &valueobject.RouteSummaries{}
-	for i, r := range routes {
-		result[i] = ConvertToRouteSummary(params, r)
+	bestRoute := routes.GetBestRoute()
+
+	result.BestRoute = ConvertToRouteSummary(params, routes.GetBestRoute())
+	if len(routes) > 1 {
+		result.AMMBestRoute = ConvertToRouteSummary(params, routes.GetAMMBestRoute())
 	}
+
+	extra, ok := bestRoute.ExtraFinalizerData.(types.FinalizeExtraData)
+	if !ok || extra.RouteBeforeMergeSwap == nil {
+		return result
+	}
+
+	result.BestRouteBeforeMergeSwap = ConvertToRouteSummary(params, extra.RouteBeforeMergeSwap)
 
 	return result
 }
@@ -290,10 +299,6 @@ func InitializeFinderEngine(
 			finderOptions.DerivativeHillClimbImproveThreshold,
 			config.Aggregator.DexUseAEVM,
 		)
-	}
-
-	if config.Aggregator.FeatureFlags.IsMergeDuplicateSwapEnabled {
-		baseFinder = mergeswap.NewFinder(baseFinder)
 	}
 
 	baseFinder = aevm.NewAEVMLocalFinder(
