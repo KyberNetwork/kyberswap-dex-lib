@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 
 	"github.com/KyberNetwork/ethrpc"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 

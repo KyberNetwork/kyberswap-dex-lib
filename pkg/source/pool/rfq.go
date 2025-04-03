@@ -16,7 +16,12 @@ type RFQParams struct {
 	RFQSender    string              // RFQ caller (executor)
 	RFQRecipient string              // RFQ fund recipient (executor/next pool/recipient)
 	Source       string              // source client
+	TokenIn      string              // address of token swap from
+	TokenOut     string              // address of token swap to
+	SwapAmount   *big.Int            // amount of TokenIn to swap
+	AmountOut    *big.Int            // amount of TokenOut received
 	Slippage     int64               // tolerance (in bps) for RFQs that also aggregate dexes
+	PoolExtra    any                 // extra pool metadata
 	SwapInfo     any                 // swap info of the RFQ swap
 	FeeInfo      any                 // generic fee info
 }

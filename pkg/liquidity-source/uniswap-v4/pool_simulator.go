@@ -1,10 +1,10 @@
 package uniswapv4
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -19,6 +19,7 @@ var (
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
 	staticExtra StaticExtra
+	hook        Hook
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -29,8 +30,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	if HasSwapPermissions(staticExtra.HooksAddress) {
-		return nil, ErrUnsupportedHook
+	hook := Hooks[staticExtra.HooksAddress]
+	if hook == nil {
+		hook = (*BaseHook)(nil)
+		if HasSwapPermissions(staticExtra.HooksAddress) {
+			return nil, ErrUnsupportedHook
+		}
 	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
@@ -43,10 +48,16 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
+
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
+		hook:          hook,
 	}, nil
+}
+
+func (p *PoolSimulator) GetExchange() string {
+	return p.hook.GetExchange()
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {

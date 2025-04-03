@@ -2,7 +2,6 @@ package eclp
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
