@@ -5,7 +5,7 @@ go 1.23.1
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
-	github.com/KyberNetwork/ethrpc v0.7.4-0.20250330041711-04c834752187
+	github.com/KyberNetwork/ethrpc v0.7.4
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/logger v1.0.3
