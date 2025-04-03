@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -86,7 +86,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+func (u *PoolsListUpdater) getVaults(_ context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
 	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
 
@@ -152,7 +152,7 @@ func (u *PoolsListUpdater) initPools(
 }
 
 func (u *PoolsListUpdater) initPool(
-	ctx context.Context,
+	_ context.Context,
 	subgraphPool *shared.SubgraphPool,
 	bptIndex *big.Int,
 	vault string,
@@ -161,8 +161,8 @@ func (u *PoolsListUpdater) initPool(
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves       = make([]string, len(subgraphPool.Tokens))
 		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
-
-		err error
+		nesting        bool
+		err            error
 	)
 
 	for j, token := range subgraphPool.Tokens {
@@ -170,13 +170,12 @@ func (u *PoolsListUpdater) initPool(
 			Address:   strings.ToLower(token.Address),
 			Swappable: true,
 		}
-
 		reserves[j] = "0"
-
 		scalingFactors[j] = new(uint256.Int).Mul(
-			number.TenPow(18-uint8(token.Decimals)),
-			number.Number_1e18,
+			bignumber.TenPowInt(18-uint8(token.Decimals)),
+			bignumber.BONE,
 		)
+		nesting = nesting || token.Token.Pool.ID != ""
 	}
 
 	staticExtra := StaticExtra{
@@ -186,6 +185,7 @@ func (u *PoolsListUpdater) initPool(
 		BptIndex:       int(bptIndex.Int64()),
 		ScalingFactors: scalingFactors,
 		Vault:          vault,
+		Nesting:        nesting,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

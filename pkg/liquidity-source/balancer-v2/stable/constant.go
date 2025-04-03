@@ -14,6 +14,7 @@ const (
 	poolMethodGetAmplificationParameter = "getAmplificationParameter"
 	poolMethodGetVault                  = "getVault"
 	poolMethodGetScalingFactors         = "getScalingFactors"
+	poolMethodGetPoolId                 = "getPoolId"
 
 	defaultWeight = 1
 

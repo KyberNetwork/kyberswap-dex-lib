@@ -171,7 +171,7 @@ func (t *PoolSimulator) _get_y(
 }
 
 func (t *PoolSimulator) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*big.Int, *big.Int, error) {
-	vPrice, _, err := t.BasePool.GetVirtualPrice()
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -202,8 +202,8 @@ func (t *PoolSimulator) GetDy(
 func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoin = nCoins - 1
-	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
-	vPrice, D, err := t.BasePool.GetVirtualPrice()
+	var baseNCoins = len(t.basePool.GetInfo().Tokens)
+	vPrice, D, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,15 +233,15 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *
 				base_inputs[k] = constant.ZeroBI
 			}
 			base_inputs[base_i] = _dx
-			var temp, err = t.BasePool.CalculateTokenAmount(base_inputs, true)
+			var temp, err = t.basePool.CalculateTokenAmount(base_inputs, true)
 			if err != nil {
 				return nil, nil, err
 			}
 			x = new(big.Int).Div(new(big.Int).Mul(temp, rates[maxCoin]), Precision)
-			x = new(big.Int).Sub(x, new(big.Int).Div(new(big.Int).Mul(x, t.BasePool.GetInfo().SwapFee), new(big.Int).Mul(constant.Two, FeeDenominator)))
+			x = new(big.Int).Sub(x, new(big.Int).Div(new(big.Int).Mul(x, t.basePool.GetInfo().SwapFee), new(big.Int).Mul(constant.Two, FeeDenominator)))
 			x = new(big.Int).Add(x, xp[maxCoin])
 		} else {
-			return t.BasePool.GetDy(base_i, base_j, _dx, D)
+			return t.basePool.GetDy(base_i, base_j, _dx, D)
 		}
 	}
 	y, err := t._get_y(meta_i, meta_j, x, xp)
@@ -257,14 +257,14 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *
 		dy = new(big.Int).Div(new(big.Int).Mul(dy, Precision), rates[j])
 		dy_fee = new(big.Int).Div(new(big.Int).Mul(dy_fee, Precision), rates[j])
 	} else {
-		dy, dy_fee, err = t.BasePool.CalculateWithdrawOneCoin(new(big.Int).Div(new(big.Int).Mul(dy, Precision), rates[maxCoin]), base_j)
+		dy, dy_fee, err = t.basePool.CalculateWithdrawOneCoin(new(big.Int).Div(new(big.Int).Mul(dy, Precision), rates[maxCoin]), base_j)
 	}
 	return dy, dy_fee, err
 }
 
 func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
-	vPrice, _, err := t.BasePool.GetVirtualPrice()
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
@@ -298,8 +298,8 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoins = nCoins - 1
-	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
-	vPrice, _, err := t.BasePool.GetVirtualPrice()
+	var baseNCoins = len(t.basePool.GetInfo().Tokens)
+	vPrice, _, err := t.basePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +336,7 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int,
 				base_inputs[k] = constant.ZeroBI
 			}
 			base_inputs[base_i] = dx
-			var temp, err = t.BasePool.AddLiquidity(base_inputs)
+			var temp, err = t.basePool.AddLiquidity(base_inputs)
 			if err != nil {
 				return nil, err
 			}
@@ -357,7 +357,7 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int,
 		t.Info.Reserves[meta_j] = new(big.Int).Sub(new(big.Int).Sub(old_balances[meta_j], dy), dy_admin_fee)
 
 		if base_j >= 0 {
-			return t.BasePool.RemoveLiquidityOneCoin(dy, base_j)
+			return t.basePool.RemoveLiquidityOneCoin(dy, base_j)
 		}
 	} else {
 		return nil, ErrBasePoolExchangeNotSupported
