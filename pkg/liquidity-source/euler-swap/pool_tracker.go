@@ -227,9 +227,9 @@ func decodeCap(amountCap *uint256.Int) *uint256.Int {
 
 	multiplier := new(uint256.Int).Rsh(amountCap, 6)
 
-	result := tenToPower.Mul(tenToPower, multiplier)
+	amountCap = tenToPower.Mul(tenToPower, multiplier)
 
-	return result.Div(result, hundred)
+	return amountCap.Div(amountCap, hundred)
 }
 
 func convertToAssets(shares, totalAssets, totalSupply *uint256.Int) *uint256.Int {
