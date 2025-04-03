@@ -129,6 +129,57 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
+func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
+
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, shared.ErrInvalidToken
+	}
+
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, shared.ErrInvalidAmountOut
+	}
+
+	gas := baseGas
+	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
+		amountOut = bufferOut.ConvertToShares(amountOut)
+		gas += bufferGas
+	}
+
+	amountIn, totalSwapFee, aggregateFee, err := p.vault.Swap(shared.VaultSwapParams{
+		Kind:           shared.EXACT_OUT,
+		IndexIn:        indexIn,
+		IndexOut:       indexOut,
+		AmountGivenRaw: amountOut,
+	}, p.OnSwap)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
+		amountIn = bufferIn.ConvertToAssets(amountIn)
+		gas += bufferGas
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: totalSwapFee.ToBig(),
+		},
+		SwapInfo: shared.SwapInfo{
+			AggregateFee: aggregateFee.ToBig(),
+		},
+		Gas: gas,
+	}, nil
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
 	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
