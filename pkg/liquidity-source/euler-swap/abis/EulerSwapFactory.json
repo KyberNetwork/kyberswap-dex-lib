@@ -1,0 +1,430 @@
+[
+    {
+        "type": "constructor",
+        "inputs": [
+            {
+                "name": "evc",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "evkFactory_",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "EVC",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "allPools",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "allPoolsLength",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "computePoolAddress",
+        "inputs": [
+            {
+                "name": "poolParams",
+                "type": "tuple",
+                "internalType": "struct IEulerSwap.Params",
+                "components": [
+                    {
+                        "name": "vault0",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "vault1",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "eulerAccount",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "equilibriumReserve0",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "equilibriumReserve1",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "currReserve0",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "currReserve1",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "fee",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            },
+            {
+                "name": "curveParams",
+                "type": "tuple",
+                "internalType": "struct IEulerSwap.CurveParams",
+                "components": [
+                    {
+                        "name": "priceX",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "priceY",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "concentrationX",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "concentrationY",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            },
+            {
+                "name": "salt",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "deployPool",
+        "inputs": [
+            {
+                "name": "params",
+                "type": "tuple",
+                "internalType": "struct IEulerSwap.Params",
+                "components": [
+                    {
+                        "name": "vault0",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "vault1",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "eulerAccount",
+                        "type": "address",
+                        "internalType": "address"
+                    },
+                    {
+                        "name": "equilibriumReserve0",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "equilibriumReserve1",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "currReserve0",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "currReserve1",
+                        "type": "uint112",
+                        "internalType": "uint112"
+                    },
+                    {
+                        "name": "fee",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            },
+            {
+                "name": "curveParams",
+                "type": "tuple",
+                "internalType": "struct IEulerSwap.CurveParams",
+                "components": [
+                    {
+                        "name": "priceX",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "priceY",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "concentrationX",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    },
+                    {
+                        "name": "concentrationY",
+                        "type": "uint256",
+                        "internalType": "uint256"
+                    }
+                ]
+            },
+            {
+                "name": "salt",
+                "type": "bytes32",
+                "internalType": "bytes32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "eulerAccountToPool",
+        "inputs": [
+            {
+                "name": "eulerAccount",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "operator",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "evkFactory",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getAllPoolsListSlice",
+        "inputs": [
+            {
+                "name": "_start",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_end",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address[]",
+                "internalType": "address[]"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "PoolDeployed",
+        "inputs": [
+            {
+                "name": "asset0",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "asset1",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "vault0",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "vault1",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "feeMultiplier",
+                "type": "uint256",
+                "indexed": true,
+                "internalType": "uint256"
+            },
+            {
+                "name": "eulerAccount",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            },
+            {
+                "name": "reserve0",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "reserve1",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "priceX",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "priceY",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "concentrationX",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "concentrationY",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "pool",
+                "type": "address",
+                "indexed": false,
+                "internalType": "address"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "error",
+        "name": "ControllerDisabled",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "EVC_InvalidAddress",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidQuery",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "InvalidVaultImplementation",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "NotAuthorized",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "OldOperatorStillInstalled",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "OperatorNotInstalled",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "Unauthorized",
+        "inputs": []
+    }
+]
