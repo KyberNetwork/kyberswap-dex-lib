@@ -32,10 +32,11 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil || extra.Extra == nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
-	}
-	if extra.Buffers == nil {
+	} else if extra.Extra == nil {
+		return nil, shared.ErrInvalidExtra
+	} else if extra.Buffers == nil {
 		extra.Buffers = make([]*shared.ExtraBuffer, len(entityPool.Tokens))
 	}
 
