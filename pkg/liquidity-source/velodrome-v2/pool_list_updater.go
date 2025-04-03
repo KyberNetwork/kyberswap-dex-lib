@@ -248,7 +248,7 @@ func (u *PoolsListUpdater) initPools(
 	return pools, nil
 }
 
-// listPairTokens receives list of pair addresses and returns their token0 and token1
+// listPoolData retrieves pool metadata, fee information, and block number for given pool addresses
 func (u *PoolsListUpdater) listPoolData(
 	ctx context.Context,
 	poolAddresses []common.Address,
