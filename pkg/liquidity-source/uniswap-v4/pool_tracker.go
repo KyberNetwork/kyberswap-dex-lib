@@ -12,9 +12,11 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/custom-hook/bunni-v2"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -170,15 +172,34 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 
-	// reserve0 = liquidity / sqrtPriceX96 * Q96
-	reserve0 := new(big.Int).Mul(rpcData.Liquidity, Q96)
-	reserve0.Div(reserve0, rpcData.Slot0.SqrtPriceX96)
+	var staticExtra StaticExtra
+	var hookAddress common.Address
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to unmarshal static extra")
+	} else {
+		hookAddress = staticExtra.HooksAddress
+	}
 
-	// reserve1 = liquidity * sqrtPriceX96 / Q96
-	reserve1 := new(big.Int).Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
-	reserve1.Div(reserve1, Q96)
+	switch {
+	case hookAddress == bunniv2.HookAddress:
+		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err != nil {
+			p.Reserves = reserves
+		}
+	default:
+		// reserve0 = liquidity / sqrtPriceX96 * Q96
+		reserve0 := new(big.Int).Mul(rpcData.Liquidity, Q96)
+		reserve0.Div(reserve0, rpcData.Slot0.SqrtPriceX96)
 
-	p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+		// reserve1 = liquidity * sqrtPriceX96 / Q96
+		reserve1 := new(big.Int).Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
+		reserve1.Div(reserve1, Q96)
+
+		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+
+	}
+
 	p.BlockNumber = blockNumber
 
 	l.Infof("Finish updating state of pool")
