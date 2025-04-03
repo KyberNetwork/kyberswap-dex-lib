@@ -184,7 +184,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	switch {
 	case hookAddress == bunniv2.HookAddress:
-		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err != nil {
+		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
 			p.Reserves = reserves
 		}
 	default:
