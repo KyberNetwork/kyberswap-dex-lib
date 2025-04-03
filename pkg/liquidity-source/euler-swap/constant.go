@@ -36,7 +36,7 @@ const (
 	vaultMethodCash            = "cash"
 	vaultMethodDebtOf          = "debtOf"
 	vaultMethodMaxDeposit      = "maxDeposit"
-	vaultMethodMaxWithdraw     = "maxWithdraw"
+	vaultMethodCaps            = "caps"
 	vaultMethodTotalBorrows    = "totalBorrows"
 	vaultMethodBalanceOf       = "balanceOf"
 	vaultMethodConvertToAssets = "convertToAssets"

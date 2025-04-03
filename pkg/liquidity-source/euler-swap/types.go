@@ -49,11 +49,12 @@ type VaultRPC struct {
 	Cash                *big.Int
 	Debt                *big.Int
 	MaxDeposit          *big.Int
-	MaxWithdraw         *big.Int
 	TotalBorrows        *big.Int
 	EulerAccountBalance *big.Int
 	TotalAssets         *big.Int
 	TotalSupply         *big.Int
+	Caps                [2]uint16
+	MaxWithdraw         *big.Int
 }
 
 type TrackerData struct {

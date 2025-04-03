@@ -10,6 +10,10 @@ import (
 var (
 	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 112), bignumber.One) // 2^112 - 1
 	MaxUint248 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 248), bignumber.One) // 2^248 - 1
+	maxUint256 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 256), bignumber.One) // 2^256 - 1
+	hundred    = uint256.NewInt(100)
+	sixtyThree = uint256.NewInt(63)
+	ten        = uint256.NewInt(10)
 
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 )

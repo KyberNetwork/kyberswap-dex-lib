@@ -16,6 +16,7 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type (
@@ -137,9 +138,9 @@ func (d *PoolTracker) getPoolData(
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: vaultAddress,
-			Method: vaultMethodMaxWithdraw,
-			Params: []any{common.HexToAddress(eulerAccount)},
-		}, []any{&vaults[i].MaxWithdraw})
+			Method: vaultMethodCaps,
+			Params: nil,
+		}, []any{&vaults[i].Caps})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: vaultAddress,
@@ -189,9 +190,9 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 			Cash:               uint256.MustFromBig(data.Vaults[i].Cash),
 			Debt:               uint256.MustFromBig(data.Vaults[i].Debt),
 			MaxDeposit:         uint256.MustFromBig(data.Vaults[i].MaxDeposit),
-			MaxWithdraw:        uint256.MustFromBig(data.Vaults[i].MaxWithdraw),
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
 			EulerAccountAssets: convertToAssets(eulerAccountShare, totalAssets, totalSupply),
+			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
 		}
 	}
 
@@ -213,6 +214,22 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 	pool.Extra = string(extraBytes)
 
 	return pool, nil
+}
+
+func decodeCap(amountCap *uint256.Int) *uint256.Int {
+	//   10 ** (amountCap & 63) * (amountCap >> 6) / 100
+	if amountCap.Cmp(bignumber.ZeroBI) == 0 {
+		return new(uint256.Int).Set(maxUint256)
+	}
+
+	powerBits := new(uint256.Int).And(amountCap, sixtyThree)
+	tenToPower := new(uint256.Int).Exp(ten, powerBits)
+
+	multiplier := new(uint256.Int).Rsh(amountCap, 6)
+
+	result := tenToPower.Mul(tenToPower, multiplier)
+
+	return result.Div(result, hundred)
 }
 
 func convertToAssets(shares, totalAssets, totalSupply *uint256.Int) *uint256.Int {
