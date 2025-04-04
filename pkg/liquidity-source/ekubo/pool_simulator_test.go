@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
+	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -23,11 +23,11 @@ var (
 	oracleAddress = common.HexToAddress("0x0000000000000000000000000000000000000003")
 )
 
-func poolKey(fee uint64, tickSpacing uint32, extension common.Address) quoting.PoolKey {
-	return quoting.NewPoolKey(
+func poolKey(fee uint64, tickSpacing uint32, extension common.Address) quoting2.PoolKey {
+	return quoting2.NewPoolKey(
 		token0,
 		token1,
-		quoting.Config{
+		quoting2.Config{
 			Fee:         fee,
 			TickSpacing: tickSpacing,
 			Extension:   extension,
@@ -52,90 +52,90 @@ func TestBasePool(t *testing.T) {
 	entityPool := marshalPool(
 		t,
 		&Extra{
-			State: quoting.NewPoolState(
+			State: quoting2.NewPoolState(
 				big.NewInt(99999),
-				math.IntFromString("13967539110995781342936001321080700"),
+				math2.IntFromString("13967539110995781342936001321080700"),
 				-20201601,
-				[]quoting.Tick{
+				[]quoting2.Tick{
 					{
 						Number:         -88722000,
-						LiquidityDelta: math.IntFromString("99999"),
+						LiquidityDelta: math2.IntFromString("99999"),
 					},
 					{
 						Number:         -24124600,
-						LiquidityDelta: math.IntFromString("103926982998885"),
+						LiquidityDelta: math2.IntFromString("103926982998885"),
 					},
 					{
 						Number:         -24124500,
-						LiquidityDelta: math.IntFromString("-103926982998885"),
+						LiquidityDelta: math2.IntFromString("-103926982998885"),
 					},
 					{
 						Number:         -20236100,
-						LiquidityDelta: math.IntFromString("20192651866847"),
+						LiquidityDelta: math2.IntFromString("20192651866847"),
 					},
 					{
 						Number:         -20235900,
-						LiquidityDelta: math.IntFromString("676843433645"),
+						LiquidityDelta: math2.IntFromString("676843433645"),
 					},
 					{
 						Number:         -20235400,
-						LiquidityDelta: math.IntFromString("620315686813"),
+						LiquidityDelta: math2.IntFromString("620315686813"),
 					},
 					{
 						Number:         -20235000,
-						LiquidityDelta: math.IntFromString("3899271022058"),
+						LiquidityDelta: math2.IntFromString("3899271022058"),
 					},
 					{
 						Number:         -20234900,
-						LiquidityDelta: math.IntFromString("1985516133391"),
+						LiquidityDelta: math2.IntFromString("1985516133391"),
 					},
 					{
 						Number:         -20233000,
-						LiquidityDelta: math.IntFromString("2459469409600"),
+						LiquidityDelta: math2.IntFromString("2459469409600"),
 					},
 					{
 						Number:         -20232100,
-						LiquidityDelta: math.IntFromString("-20192651866847"),
+						LiquidityDelta: math2.IntFromString("-20192651866847"),
 					},
 					{
 						Number:         -20231900,
-						LiquidityDelta: math.IntFromString("-663892969024"),
+						LiquidityDelta: math2.IntFromString("-663892969024"),
 					},
 					{
 						Number:         -20231400,
-						LiquidityDelta: math.IntFromString("-620315686813"),
+						LiquidityDelta: math2.IntFromString("-620315686813"),
 					},
 					{
 						Number:         -20231000,
-						LiquidityDelta: math.IntFromString("-3516445235227"),
+						LiquidityDelta: math2.IntFromString("-3516445235227"),
 					},
 					{
 						Number:         -20230900,
-						LiquidityDelta: math.IntFromString("-1985516133391"),
+						LiquidityDelta: math2.IntFromString("-1985516133391"),
 					},
 					{
 						Number:         -20229000,
-						LiquidityDelta: math.IntFromString("-2459469409600"),
+						LiquidityDelta: math2.IntFromString("-2459469409600"),
 					},
 					{
 						Number:         -20227900,
-						LiquidityDelta: math.IntFromString("-12950464621"),
+						LiquidityDelta: math2.IntFromString("-12950464621"),
 					},
 					{
 						Number:         -20227000,
-						LiquidityDelta: math.IntFromString("-382825786831"),
+						LiquidityDelta: math2.IntFromString("-382825786831"),
 					},
 					{
 						Number:         -2000,
-						LiquidityDelta: math.IntFromString("140308196"),
+						LiquidityDelta: math2.IntFromString("140308196"),
 					},
 					{
 						Number:         2000,
-						LiquidityDelta: math.IntFromString("-140308196"),
+						LiquidityDelta: math2.IntFromString("-140308196"),
 					},
 					{
 						Number:         88722000,
-						LiquidityDelta: math.IntFromString("-99999"),
+						LiquidityDelta: math2.IntFromString("-99999"),
 					},
 				},
 				[2]int32{-88722000, 88722000},
@@ -187,21 +187,21 @@ func TestOraclePool(t *testing.T) {
 	entityPool := marshalPool(
 		t,
 		&Extra{
-			State: quoting.NewPoolState(
+			State: quoting2.NewPoolState(
 				big.NewInt(10_000_000),
-				math.TwoPow128,
+				math2.TwoPow128,
 				0,
-				[]quoting.Tick{
+				[]quoting2.Tick{
 					{
-						Number:         math.MinTick,
+						Number:         math2.MinTick,
 						LiquidityDelta: big.NewInt(10_000_000),
 					},
 					{
-						Number:         math.MaxTick,
+						Number:         math2.MaxTick,
 						LiquidityDelta: big.NewInt(-10_000_000),
 					},
 				},
-				[2]int32{math.MinTick, math.MaxTick},
+				[2]int32{math2.MinTick, math2.MaxTick},
 			),
 		},
 		&StaticExtra{

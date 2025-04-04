@@ -14,9 +14,9 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
+	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -30,10 +30,10 @@ type PoolListTrackerTestSuite struct {
 type testcase struct {
 	name               string
 	txHash             string
-	poolKey            quoting.PoolKey
+	poolKey            quoting2.PoolKey
 	extension          ekubo_pool.Extension
-	stateBefore        quoting.PoolState
-	expectedStateAfter quoting.PoolState
+	stateBefore        quoting2.PoolState
+	expectedStateAfter quoting2.PoolState
 }
 
 func (ts *PoolListTrackerTestSuite) run(cases []*testcase) {
@@ -83,10 +83,10 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 			{
 				name:   "Add liquidity",
 				txHash: "0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0",
-				poolKey: quoting.PoolKey{
+				poolKey: quoting2.PoolKey{
 					Token0: common.Address{},
 					Token1: common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-					Config: quoting.Config{
+					Config: quoting2.Config{
 						Fee:         55340232221128654,
 						TickSpacing: 5982,
 						Extension:   common.Address{},
@@ -94,30 +94,30 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 				},
 				extension: ekubo_pool.Base,
 				// State after pool initialization https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#423
-				stateBefore: quoting.NewPoolState(
+				stateBefore: quoting2.NewPoolState(
 					new(big.Int),
-					math.IntFromString("14918731339943421144221696791674880"),
+					math2.IntFromString("14918731339943421144221696791674880"),
 					-20069837,
-					[]quoting.Tick{
+					[]quoting2.Tick{
 						{
-							Number:         math.MinTick,
+							Number:         math2.MinTick,
 							LiquidityDelta: new(big.Int),
 						},
 						{
-							Number:         math.MaxTick,
+							Number:         math2.MaxTick,
 							LiquidityDelta: new(big.Int),
 						},
 					},
-					[2]int32{math.MinTick, math.MaxTick},
+					[2]int32{math2.MinTick, math2.MaxTick},
 				),
 				// Position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
-				expectedStateAfter: quoting.NewPoolState(
+				expectedStateAfter: quoting2.NewPoolState(
 					big.NewInt(65496697411278),
-					math.IntFromString("14918731339943421144221696791674880"),
+					math2.IntFromString("14918731339943421144221696791674880"),
 					-20069837,
-					[]quoting.Tick{
+					[]quoting2.Tick{
 						{
-							Number:         math.MinTick,
+							Number:         math2.MinTick,
 							LiquidityDelta: new(big.Int),
 						},
 						{
@@ -129,11 +129,11 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 							LiquidityDelta: big.NewInt(-65496697411278),
 						},
 						{
-							Number:         math.MaxTick,
+							Number:         math2.MaxTick,
 							LiquidityDelta: new(big.Int),
 						},
 					},
-					[2]int32{math.MinTick, math.MaxTick},
+					[2]int32{math2.MinTick, math2.MaxTick},
 				),
 			},
 		})
@@ -145,10 +145,10 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 		{
 			name:   "Multiswap",
 			txHash: "0xc401cc3007a2c0efd705c4c0dee5690ce8592858476b32cda8a4b000ceda0f24",
-			poolKey: quoting.PoolKey{
+			poolKey: quoting2.PoolKey{
 				Token0: common.Address{},
 				Token1: common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
-				Config: quoting.Config{
+				Config: quoting2.Config{
 					Fee:         55340232221128654,
 					TickSpacing: 5982,
 					Extension:   common.Address{},
@@ -156,13 +156,13 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 			},
 			extension: ekubo_pool.Base,
 			// State after position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
-			stateBefore: quoting.NewPoolState(
+			stateBefore: quoting2.NewPoolState(
 				big.NewInt(65496697411278),
-				math.IntFromString("14918731339943421144221696791674880"),
+				math2.IntFromString("14918731339943421144221696791674880"),
 				-20069837,
-				[]quoting.Tick{
+				[]quoting2.Tick{
 					{
-						Number:         math.MinTick,
+						Number:         math2.MinTick,
 						LiquidityDelta: new(big.Int),
 					},
 					{
@@ -174,19 +174,19 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 						LiquidityDelta: big.NewInt(-65496697411278),
 					},
 					{
-						Number:         math.MaxTick,
+						Number:         math2.MaxTick,
 						LiquidityDelta: new(big.Int),
 					},
 				},
-				[2]int32{math.MinTick, math.MaxTick},
+				[2]int32{math2.MinTick, math2.MaxTick},
 			),
-			expectedStateAfter: quoting.NewPoolState(
+			expectedStateAfter: quoting2.NewPoolState(
 				big.NewInt(65496697411278),
-				math.IntFromString("14918630557421420908805229423624192"),
+				math2.IntFromString("14918630557421420908805229423624192"),
 				-20069851,
-				[]quoting.Tick{
+				[]quoting2.Tick{
 					{
-						Number:         math.MinTick,
+						Number:         math2.MinTick,
 						LiquidityDelta: new(big.Int),
 					},
 					{
@@ -198,11 +198,11 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 						LiquidityDelta: big.NewInt(-65496697411278),
 					},
 					{
-						Number:         math.MaxTick,
+						Number:         math2.MaxTick,
 						LiquidityDelta: new(big.Int),
 					},
 				},
-				[2]int32{math.MinTick, math.MaxTick},
+				[2]int32{math2.MinTick, math2.MaxTick},
 			),
 		},
 	})

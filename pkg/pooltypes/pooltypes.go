@@ -31,6 +31,7 @@ import (
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"

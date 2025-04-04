@@ -12,7 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 

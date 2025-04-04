@@ -4,18 +4,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 )
 
-func oraclePoolKey() quoting.PoolKey {
-	return quoting.NewPoolKey(
+func oraclePoolKey() quoting2.PoolKey {
+	return quoting2.NewPoolKey(
 		common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		common.HexToAddress("0x0000000000000000000000000000000000000001"),
-		quoting.Config{
+		quoting2.Config{
 			Fee:         0,
 			TickSpacing: 0,
 			Extension:   common.HexToAddress("0x0000000000000000000000000000000000000002"),
@@ -26,7 +27,7 @@ func oraclePoolKey() quoting.PoolKey {
 func TestQuoteToken1Input(t *testing.T) {
 	p := pool.NewOraclePool(
 		oraclePoolKey(),
-		quoting.NewPoolState(
+		quoting2.NewPoolState(
 			big.NewInt(1_000_000_000),
 			math.ToSqrtRatio(0),
 			0,
@@ -45,7 +46,7 @@ func TestQuoteToken1Input(t *testing.T) {
 func TestQuoteToken0Input(t *testing.T) {
 	p := pool.NewOraclePool(
 		oraclePoolKey(),
-		quoting.NewPoolState(
+		quoting2.NewPoolState(
 			big.NewInt(1_000_000_000),
 			math.ToSqrtRatio(0),
 			0,
