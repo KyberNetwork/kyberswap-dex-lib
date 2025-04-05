@@ -15,18 +15,18 @@ import (
 
 func TestPoolFactory(t *testing.T) {
 	excludedPoolTypes := []string{
-		"ambient",     // aevm
-		"maverick-v2", // aevm
-		"uniswap-v4",  // aevm
+		"ambient",     // private
+		"maverick-v2", // private
+		"kyber-pmm",   // private
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
 	poolTypes := lo.OmitByValues(poolTypesMap, excludedPoolTypes)
 
-	for _, poolType := range poolTypes {
+	for key, poolType := range poolTypes {
 		t.Run(poolType, func(t *testing.T) {
 			got := pool.Factory(poolType)
-			assert.NotNil(t, got)
+			assert.NotNil(t, got, key)
 		})
 	}
 }

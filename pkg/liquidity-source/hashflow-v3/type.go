@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type HTTPClientConfig struct {
@@ -22,8 +24,8 @@ type QuoteParams struct {
 }
 
 type Chain struct {
-	ChainType string `json:"chainType"`
-	ChainId   uint   `json:"chainId"`
+	ChainType string              `json:"chainType"`
+	ChainId   valueobject.ChainID `json:"chainId"`
 }
 
 type RFQ struct {

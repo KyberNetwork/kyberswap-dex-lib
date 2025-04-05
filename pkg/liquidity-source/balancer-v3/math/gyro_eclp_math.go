@@ -16,7 +16,7 @@ var (
 	ErrMaxInvariantExceeded = errors.New("MAX_INVARIANT_EXCEEDED")
 )
 
-type gyroECLPMath struct {}
+type gyroECLPMath struct{}
 
 type (
 	ECLParams struct {

@@ -1,5 +1,9 @@
 package client
 
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
 type QuoteParams struct {
 	// Origin address of the end trader
 	Origin string `json:"origin"`
@@ -20,7 +24,7 @@ type QuoteParams struct {
 	// Tolerance price tolerance. should be > 0 or will be mapped to 0.01618034 (1.618034%)
 	Tolerance float64 `json:"tolerance,omitempty"`
 	// NetworkID e.g. 1 for Ethereum, 137 for Polygon
-	NetworkID uint `json:"network_id"`
+	NetworkID valueobject.ChainID `json:"network_id"`
 	// ReferralFees e.g. 0.0001 for 1bps
 	ReferralFees float64 `json:"referral_fees"`
 	// Authorizer NB: Only for solvers

@@ -1,7 +1,11 @@
 package uniswapv4
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 // HookOption represents different hook operation types
@@ -37,4 +41,28 @@ func hasPermission(address common.Address, hookOption HookOption) bool {
 func HasSwapPermissions(address common.Address) bool {
 	// This implicitly encapsulates swap delta permissions
 	return hasPermission(address, BeforeSwap) || hasPermission(address, AfterSwap)
+}
+
+type Hook interface {
+	GetExchange() string
+	RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error)
+}
+
+var Hooks = map[common.Address]Hook{}
+
+func RegisterHooks(hook Hook, addresses ...common.Address) bool {
+	for _, address := range addresses {
+		Hooks[address] = hook
+	}
+	return true
+}
+
+type BaseHook struct{}
+
+func (*BaseHook) GetExchange() string {
+	return DexType
+}
+
+func (*BaseHook) RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error) {
+	return nil, nil
 }

@@ -431,8 +431,11 @@ var (
 	ExchangeKatanaV2 Exchange = "katana-v2"
 	ExchangeKatanaV3 Exchange = "katana-v3"
 
+	ExchangeUniswapV4        Exchange = "uniswap-v4"
+	ExchangeUniswapV4BunniV2 Exchange = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Kem     Exchange = "uniswap-v4-kem"
+
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
-	ExchangeUniswapV4     Exchange = "uniswap-v4"
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 	ExchangeSavingsUSDS   Exchange = "savings-usds"
 	ExchangeSkyPSM        Exchange = "sky-psm"
@@ -795,8 +798,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoney:                      {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
-	ExchangeEtherFieBTC:                {},
 	ExchangeUniswapV4:                  {},
+	ExchangeUniswapV4BunniV2:           {},
+	ExchangeUniswapV4Kem:               {},
+	ExchangeEtherFieBTC:                {},
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
