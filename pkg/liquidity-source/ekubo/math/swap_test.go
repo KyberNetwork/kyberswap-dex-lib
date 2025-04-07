@@ -6,16 +6,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestZeroAmountToken0(t *testing.T) {
-	sqrtRatio := math2.TwoPow128
+	sqrtRatio := math.TwoPow128
 
-	res, err := math2.ComputeStep(
+	res, err := math.ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math2.MinSqrtRatio,
+		math.MinSqrtRatio,
 		new(big.Int),
 		false,
 		0,
@@ -29,12 +30,12 @@ func TestZeroAmountToken0(t *testing.T) {
 }
 
 func TestZeroAmountToken1(t *testing.T) {
-	sqrtRatio := math2.TwoPow128
+	sqrtRatio := math.TwoPow128
 
-	res, err := math2.ComputeStep(
+	res, err := math.ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math2.MinSqrtRatio,
+		math.MinSqrtRatio,
 		new(big.Int),
 		true,
 		0,
@@ -48,9 +49,9 @@ func TestZeroAmountToken1(t *testing.T) {
 }
 
 func TestSwapRatioEqualLimitToken1(t *testing.T) {
-	sqrtRatio := math2.TwoPow128
+	sqrtRatio := math.TwoPow128
 
-	res, err := math2.ComputeStep(
+	res, err := math.ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
 		sqrtRatio,
@@ -67,12 +68,12 @@ func TestSwapRatioEqualLimitToken1(t *testing.T) {
 }
 
 func TestMaxLimitToken0Input(t *testing.T) {
-	sqrtRatio := math2.TwoPow128
+	sqrtRatio := math.TwoPow128
 
-	res, err := math2.ComputeStep(
+	res, err := math.ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math2.MinSqrtRatio,
+		math.MinSqrtRatio,
 		big.NewInt(10_000),
 		false,
 		1<<63,
@@ -82,14 +83,14 @@ func TestMaxLimitToken0Input(t *testing.T) {
 	require.Zero(t, res.CalculatedAmount.Cmp(big.NewInt(4_761)))
 	require.Zero(t, res.ConsumedAmount.Cmp(big.NewInt(10_000)))
 	require.Zero(t, res.FeeAmount.Cmp(big.NewInt(5_000)))
-	require.Zero(t, res.SqrtRatioNext.Cmp(math2.IntFromString("324078444686608060441309149935017344244")))
+	require.Zero(t, res.SqrtRatioNext.Cmp(bignum.NewBig("324078444686608060441309149935017344244")))
 }
 
 func TestMaxLimitToken1Input(t *testing.T) {
-	res, err := math2.ComputeStep(
-		math2.TwoPow128,
+	res, err := math.ComputeStep(
+		math.TwoPow128,
 		big.NewInt(100_000),
-		math2.MaxSqrtRatio,
+		math.MaxSqrtRatio,
 		big.NewInt(10_000),
 		true,
 		1<<63,
@@ -99,14 +100,14 @@ func TestMaxLimitToken1Input(t *testing.T) {
 	require.Zero(t, res.CalculatedAmount.Cmp(big.NewInt(4_761)))
 	require.Zero(t, res.ConsumedAmount.Cmp(big.NewInt(10_000)))
 	require.Zero(t, res.FeeAmount.Cmp(big.NewInt(5_000)))
-	require.Zero(t, res.SqrtRatioNext.Cmp(math2.IntFromString("357296485266985386636543337803356622028")))
+	require.Zero(t, res.SqrtRatioNext.Cmp(bignum.NewBig("357296485266985386636543337803356622028")))
 }
 
 func TestMaxLimitToken0Output(t *testing.T) {
-	res, err := math2.ComputeStep(
-		math2.TwoPow128,
+	res, err := math.ComputeStep(
+		math.TwoPow128,
 		big.NewInt(100_000),
-		math2.MaxSqrtRatio,
+		math.MaxSqrtRatio,
 		big.NewInt(-10_000),
 		false,
 		1<<63,
@@ -116,14 +117,14 @@ func TestMaxLimitToken0Output(t *testing.T) {
 	require.Zero(t, res.CalculatedAmount.Cmp(big.NewInt(22_224)))
 	require.Zero(t, res.ConsumedAmount.Cmp(big.NewInt(-10_000)))
 	require.Zero(t, res.FeeAmount.Cmp(big.NewInt(11_112)))
-	require.Zero(t, res.SqrtRatioNext.Cmp(math2.IntFromString("378091518801042737181527341590853568285")))
+	require.Zero(t, res.SqrtRatioNext.Cmp(bignum.NewBig("378091518801042737181527341590853568285")))
 }
 
 func TestMaxLimitToken1Output(t *testing.T) {
-	res, err := math2.ComputeStep(
-		math2.TwoPow128,
+	res, err := math.ComputeStep(
+		math.TwoPow128,
 		big.NewInt(100_000),
-		math2.MinSqrtRatio,
+		math.MinSqrtRatio,
 		big.NewInt(-10_000),
 		true,
 		1<<63,
@@ -133,14 +134,14 @@ func TestMaxLimitToken1Output(t *testing.T) {
 	require.Zero(t, res.CalculatedAmount.Cmp(big.NewInt(22_224)))
 	require.Zero(t, res.ConsumedAmount.Cmp(big.NewInt(-10_000)))
 	require.Zero(t, res.FeeAmount.Cmp(big.NewInt(11_112)))
-	require.Zero(t, res.SqrtRatioNext.Cmp(math2.IntFromString("306254130228844617117037146688591390310")))
+	require.Zero(t, res.SqrtRatioNext.Cmp(bignum.NewBig("306254130228844617117037146688591390310")))
 }
 
 func TestLimitedToken0Output(t *testing.T) {
-	sqrtRatioLimit := math2.IntFromString("359186942860990600322450974511310889870")
+	sqrtRatioLimit := bignum.NewBig("359186942860990600322450974511310889870")
 
-	res, err := math2.ComputeStep(
-		math2.TwoPow128,
+	res, err := math.ComputeStep(
+		math.TwoPow128,
 		big.NewInt(100_000),
 		sqrtRatioLimit,
 		big.NewInt(-10_000),
@@ -156,10 +157,10 @@ func TestLimitedToken0Output(t *testing.T) {
 }
 
 func TestLimitedToken1Output(t *testing.T) {
-	sqrtRatioLimit := math2.IntFromString("323268248574891540290205877060179800883")
+	sqrtRatioLimit := bignum.NewBig("323268248574891540290205877060179800883")
 
-	res, err := math2.ComputeStep(
-		math2.TwoPow128,
+	res, err := math.ComputeStep(
+		math.TwoPow128,
 		big.NewInt(100_000),
 		sqrtRatioLimit,
 		big.NewInt(-10_000),

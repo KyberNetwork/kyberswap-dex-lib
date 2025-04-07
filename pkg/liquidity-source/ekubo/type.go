@@ -1,70 +1,51 @@
 package ekubo
 
 import (
-	"errors"
-	"fmt"
 	"math/big"
-	"slices"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
+type ExtensionType int
+
+type QuoteData struct {
+	Tick      int32          `json:"tick"`
+	SqrtRatio *big.Int       `json:"sqrtRatio"`
+	Liquidity *big.Int       `json:"liquidity"`
+	MinTick   int32          `json:"minTick"`
+	MaxTick   int32          `json:"maxTick"`
+	Ticks     []quoting.Tick `json:"ticks"`
+}
+
+type PoolData struct {
+	CoreAddress string `json:"core_address"`
+	Token0      string `json:"token0"`
+	Token1      string `json:"token1"`
+	Fee         string `json:"fee"`
+	TickSpacing uint32 `json:"tick_spacing"`
+	Extension   string `json:"extension"`
+}
+
+type GetAllPoolsResult = []PoolData
+
 type Extra struct {
-	State quoting2.PoolState `json:"state"`
+	quoting.PoolState
 }
 
 type StaticExtra struct {
-	PoolKey   quoting2.PoolKey `json:"poolKey"`
-	Extension pool.Extension   `json:"extension"`
+	ExtensionType ExtensionType   `json:"extensionType"`
+	PoolKey       quoting.PoolKey `json:"poolKey"`
 }
 
-type addressWrapper struct {
-	common.Address
+type nextInitializedTick struct {
+	*quoting.Tick
+	Index     int
+	SqrtRatio *big.Int
 }
 
-func (b *addressWrapper) UnmarshalJSON(input []byte) error {
-	if len(input) <= 4 {
-		return errors.New("expected non-empty prefixed hex string")
-	}
-
-	hexString := input[1 : len(input)-1]
-	if len(hexString)%2 != 0 {
-		hexString = slices.Insert(hexString, 3, []byte("0")[0])
-	}
-	bytes, err := hexutil.Decode(string(hexString))
-	if err != nil {
-		return fmt.Errorf("decoding hex string: %w", err)
-	}
-
-	b.Address = common.BytesToAddress(bytes)
-
-	return nil
-}
-
-type uint64Wrapper struct {
-	uint64
-}
-
-func (b *uint64Wrapper) UnmarshalJSON(input []byte) error {
-	if len(input) <= 4 {
-		return errors.New("expected non-empty prefixed hex string")
-	}
-
-	bi := new(big.Int)
-	if err := bi.UnmarshalJSON(input[1 : len(input)-1]); err != nil {
-		return fmt.Errorf("parsing big int: %w", err)
-	}
-
-	if bi.Cmp(math.TwoPow64) != -1 {
-		return errors.New("fee expected to fit into uint64")
-	}
-
-	b.uint64 = bi.Uint64()
-
-	return nil
+type SwapInfo struct {
+	SkipAhead       uint32
+	SqrtRatio       *big.Int
+	Liquidity       *big.Int
+	ActiveTickIndex int
 }

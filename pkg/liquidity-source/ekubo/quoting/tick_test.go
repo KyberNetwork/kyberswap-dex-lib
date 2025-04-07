@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestNearestInitializedTickIndex(t *testing.T) {
@@ -18,7 +18,7 @@ func TestNearestInitializedTickIndex(t *testing.T) {
 		require.Equal(t, 0, NearestInitializedTickIndex([]Tick{
 			{
 				Number:         -1,
-				LiquidityDelta: math.One,
+				LiquidityDelta: bignum.One,
 			},
 		}, 0))
 	})
@@ -27,7 +27,7 @@ func TestNearestInitializedTickIndex(t *testing.T) {
 		require.Equal(t, 0, NearestInitializedTickIndex([]Tick{
 			{
 				Number:         0,
-				LiquidityDelta: math.One,
+				LiquidityDelta: bignum.One,
 			},
 		}, 0))
 	})
@@ -36,7 +36,7 @@ func TestNearestInitializedTickIndex(t *testing.T) {
 		require.Equal(t, InvalidTickIndex, NearestInitializedTickIndex([]Tick{
 			{
 				Number:         1,
-				LiquidityDelta: math.One,
+				LiquidityDelta: bignum.One,
 			},
 		}, 0))
 	})

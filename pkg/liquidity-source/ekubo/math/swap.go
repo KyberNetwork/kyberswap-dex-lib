@@ -3,6 +3,8 @@ package math
 import (
 	"fmt"
 	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type SwapResult struct {
@@ -17,36 +19,31 @@ func IsPriceIncreasing(amount *big.Int, isToken1 bool) bool {
 }
 
 func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
-	quotient, remainder := new(big.Int).DivMod(
+	result, err := div(
 		new(big.Int).Lsh(afterFee, 64),
 		new(big.Int).Sub(TwoPow64, new(big.Int).SetUint64(fee)),
-		new(big.Int),
+		true,
 	)
-
-	if remainder.Sign() != 0 {
-		quotient.Add(quotient, One)
+	if err != nil {
+		return nil, err
 	}
 
-	if quotient.Cmp(TwoPow128) != -1 {
+	if result.Cmp(bignum.MAX_UINT_128) > 0 {
 		return nil, ErrOverflow
 	}
 
-	return quotient, nil
+	return result, nil
 }
 
 func computeFee(amount *big.Int, fee uint64) *big.Int {
-	num := new(big.Int).Mul(amount, new(big.Int).SetUint64(fee))
-	quotient, remainder := num.DivMod(
-		num,
+	result, _ := mulDivOverflow(
+		amount,
+		new(big.Int).SetUint64(fee),
 		TwoPow64,
-		new(big.Int),
+		true,
 	)
 
-	if remainder.Sign() != 0 {
-		quotient.Add(quotient, One)
-	}
-
-	return quotient
+	return result
 }
 
 func noOp(sqrtRatioNext *big.Int) *SwapResult {
