@@ -82,6 +82,7 @@ common:
     - "uniswap-v4"
     - "overnight-usdp"
     - "owlswap-v3"
+    - "uniswap-v4-kem"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
