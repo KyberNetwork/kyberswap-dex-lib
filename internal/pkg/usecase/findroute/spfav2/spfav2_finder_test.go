@@ -116,7 +116,8 @@ var (
 			[]testPaths{
 				{{"pool-ad-1", 760, 9}},
 				{{"pool-ac-1", 570, 9}, {"pool-cd-1", 9, 4}},
-				{{"pool-ab-2", 570, 19}, {"pool-bc-1", 19, 6}, {"pool-cd-1", 6, 1}}, // cd1 has been used above, so has lower yield here
+				{{"pool-ab-2", 570, 19}, {"pool-bc-1", 19, 6},
+					{"pool-cd-1", 6, 1}}, // cd1 has been used above, so has lower yield here
 			}},
 
 		// this is expected behavior for spfav2: there will be 4 "best paths", 3 of them use pool-cd-1
@@ -173,7 +174,8 @@ func TestFindRoute(t *testing.T) {
 	)
 
 	for _, tc := range testCases {
-		f := func(t *testing.T, tc testcase, priceUSDByAddress map[string]float64, priceInNative map[string]*big.Float) {
+		f := func(t *testing.T, tc testcase, priceUSDByAddress map[string]float64,
+			priceInNative map[string]*big.Float) {
 			params := &types.AggregateParams{
 				TokenIn:          *tokenByAddress[tc.tokenIn],
 				TokenOut:         *tokenByAddress[tc.tokenOut],
@@ -183,7 +185,7 @@ func TestFindRoute(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         tc.amountIn,
 				Sources:          []string{},
-				SaveGas:          tc.saveGas,
+				OnlySinglePath:   tc.saveGas,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1000),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -195,7 +197,7 @@ func TestFindRoute(t *testing.T) {
 				AmountIn:         params.AmountIn,
 				GasPrice:         params.GasPrice,
 				GasTokenPriceUSD: params.GasTokenPriceUSD,
-				SaveGas:          params.SaveGas,
+				SaveGas:          params.OnlySinglePath,
 				GasInclude:       params.GasInclude,
 			}
 
@@ -206,10 +208,11 @@ func TestFindRoute(t *testing.T) {
 					NativePrice:    routerEntity.Price{Buy: priceDecimals, Sell: priceDecimals},
 				}
 			})
-			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, priceByAddress, &types.FindRouteState{
-				Pools:     poolByAddress,
-				SwapLimit: make(map[string]poolpkg.SwapLimit),
-			})
+			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, priceByAddress,
+				&types.FindRouteState{
+					Pools:     poolByAddress,
+					SwapLimit: make(map[string]poolpkg.SwapLimit),
+				})
 
 			allRoutes, err := finder.Find(context.TODO(), input, data)
 
@@ -231,37 +234,41 @@ func TestFindRoute(t *testing.T) {
 			require.Equal(t, len(tc.expectedPaths), len(routes.Paths))
 
 			// then check each path
-			lo.ForEach(lo.Zip2(tc.expectedPaths, routes.Paths), func(tp lo.Tuple2[testPaths, *valueobject.Path], _ int) {
-				expectedPath := tp.A
-				actualPath := tp.B.PoolAddresses
-				// should have the expected number of pool along the path
-				require.Equal(t, len(expectedPath), len(actualPath))
-				lo.ForEach(lo.Zip2(expectedPath, actualPath), func(tp lo.Tuple2[testSwap, string], _ int) {
-					expectedPool := tp.A
-					actualPool := tp.B
-					assert.Equal(t, expectedPool.poolName, actualPool)
-				})
+			lo.ForEach(lo.Zip2(tc.expectedPaths, routes.Paths),
+				func(tp lo.Tuple2[testPaths, *valueobject.Path], _ int) {
+					expectedPath := tp.A
+					actualPath := tp.B.PoolAddresses
+					// should have the expected number of pool along the path
+					require.Equal(t, len(expectedPath), len(actualPath))
+					lo.ForEach(lo.Zip2(expectedPath, actualPath), func(tp lo.Tuple2[testSwap, string], _ int) {
+						expectedPool := tp.A
+						actualPool := tp.B
+						assert.Equal(t, expectedPool.poolName, actualPool)
+					})
 
-				// assert.Equal(t, expectedPool.amountIn, actualPool.Input.Amount.Uint64())
-				// assert.Equal(t, expectedPool.amountOut, actualPool.Output.Amount.Uint64())
-			})
+					// assert.Equal(t, expectedPool.amountIn, actualPool.Input.Amount.Uint64())
+					// assert.Equal(t, expectedPool.amountOut, actualPool.Output.Amount.Uint64())
+				})
 		}
 
 		normalPriceUSD := lo.SliceToMap(tokenAddressList, func(adr string) (string, float64) { return adr, 1 })
 		normalPriceUSD["gas"] = 20000000000
-		normalPriceNative := lo.SliceToMap(tokenAddressList, func(adr string) (string, *big.Float) { return adr, big.NewFloat(100000000) })
+		normalPriceNative := lo.SliceToMap(tokenAddressList,
+			func(adr string) (string, *big.Float) { return adr, big.NewFloat(100000000) })
 
 		// use usd alone
 		t.Run(fmt.Sprintf("%s - use USD price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, nil) })
 
 		// if all tokens has the same Native price then the result should be the same
-		t.Run(fmt.Sprintf("%s - use Native price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, normalPriceNative) })
+		t.Run(fmt.Sprintf("%s - use Native price", tc.name),
+			func(t *testing.T) { f(t, tc, normalPriceUSD, normalPriceNative) })
 
 		// if we're missing price for all or some tokens, then will fallback to compare amountOut
 		// the result should be different (because now `pool-ab-1-highgas` is better than `pool-ab-1`)
 		// but when comparing path we're still using usd, so should give the same result for now
 		// will be split into another test later
-		t.Run(fmt.Sprintf("%s - use Native price (none)", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, map[string]*big.Float{}) })
+		t.Run(fmt.Sprintf("%s - use Native price (none)", tc.name),
+			func(t *testing.T) { f(t, tc, normalPriceUSD, map[string]*big.Float{}) })
 
 		t.Run(fmt.Sprintf("%s - use Native price (some)", tc.name), func(t *testing.T) {
 			f(t, tc, normalPriceUSD, map[string]*big.Float{
@@ -271,7 +278,8 @@ func TestFindRoute(t *testing.T) {
 		})
 
 		// still need usd for native token (gas token)
-		t.Run(fmt.Sprintf("%s - use Native price only", tc.name), func(t *testing.T) { f(t, tc, map[string]float64{"gas": 10000000000}, normalPriceNative) })
+		t.Run(fmt.Sprintf("%s - use Native price only", tc.name),
+			func(t *testing.T) { f(t, tc, map[string]float64{"gas": 10000000000}, normalPriceNative) })
 	}
 }
 
@@ -350,7 +358,8 @@ func initBalancerPools() findroute.FinderData {
 			[]*entity.PoolToken{
 				{Address: "w1"}, {Address: "w2"}, {Address: "a"}, {Address: "b"},
 			},
-			[]string{"2596148432157077319352279762223175", "40898799479796189246", "96043801875260816584", "29663011490936802030"},
+			[]string{"2596148432157077319352279762223175", "40898799479796189246", "96043801875260816584",
+				"29663011490936802030"},
 			[]string{"1000000000000000000", "1000000009603216581", "1000000000137236044", "1000000000000000000"},
 			[]string{"0x0000000000000000000000000000000000000000", "w2", "a", "b"},
 			1000000000000,
@@ -391,9 +400,13 @@ func initBalancerPools() findroute.FinderData {
 			tokens: []*entity.PoolToken{
 				{Address: "w3"}, {Address: "w4"}, {Address: "b"}, {Address: "c"}, {Address: "d"},
 			},
-			reserves:                          []string{"3560721061507068661", "1315000334745039328", "25961484291276274900964501", "2636305", "44886"},
-			scalingFactors:                    []string{"999000000000000000", "1001000000000000000", "1000000000000000000", "1001000000000000000000000000000", "100000000000000000000000000000"},
-			rateProviders:                     []string{"0x47b584e4c7c4a030060450ec9e51d52d919b1fcb", "0x1a867225414678c2c6faf54b1123dcf86e09cae7", "0x0000000000000000000000000000000000000000", "0xbacd5f6a91e8d040f2989af877ac06b5a26f1c85", "0xf8bbc8c2ced9c24992b6ec9bbd0eddaf3bce70eb"},
+			reserves: []string{"3560721061507068661", "1315000334745039328",
+				"25961484291276274900964501", "2636305", "44886"},
+			scalingFactors: []string{"999000000000000000", "1001000000000000000",
+				"1000000000000000000", "1001000000000000000000000000000", "100000000000000000000000000000"},
+			rateProviders: []string{"0x47b584e4c7c4a030060450ec9e51d52d919b1fcb",
+				"0x1a867225414678c2c6faf54b1123dcf86e09cae7", "0x0000000000000000000000000000000000000000",
+				"0xbacd5f6a91e8d040f2989af877ac06b5a26f1c85", "0xf8bbc8c2ced9c24992b6ec9bbd0eddaf3bce70eb"},
 			swapFeePercentage:                 1000000000000,
 			bptIndex:                          0,
 			amp:                               5000000,
@@ -438,9 +451,12 @@ func initBalancerPools() findroute.FinderData {
 			tokens: []*entity.PoolToken{
 				{Address: "w2"}, {Address: "w3"}, {Address: "w4"},
 			},
-			reserves:                          []string{"3690000000000000000", "6156138011132578142", "2596148429267403832116683817120311"},
-			scalingFactors:                    []string{"1000000000000000000", "1000000000000000000", "1000000000000000000"},
-			rateProviders:                     []string{"0xc7177b6e18c1abd725f5b75792e5f7a3ba5dbc2c", "0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"},
+			reserves: []string{"3690000000000000000", "6156138011132578142",
+				"2596148429267403832116683817120311"},
+			scalingFactors: []string{"1000000000000000000", "1000000000000000000",
+				"1000000000000000000"},
+			rateProviders: []string{"0xc7177b6e18c1abd725f5b75792e5f7a3ba5dbc2c",
+				"0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"},
 			swapFeePercentage:                 100000000000000,
 			bptIndex:                          2,
 			amp:                               200000,
@@ -543,10 +559,11 @@ func initBalancerPools() findroute.FinderData {
 		pool, _ := composablestable.NewPoolSimulator(poolEntity)
 		return pool.GetAddress(), pool
 	})
-	return findroute.NewFinderData(context.Background(), balancerTokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
-		Pools:     poolByAddress,
-		SwapLimit: make(map[string]poolpkg.SwapLimit),
-	})
+	return findroute.NewFinderData(context.Background(), balancerTokenByAddress, priceUSDByAddress, nil,
+		&types.FindRouteState{
+			Pools:     poolByAddress,
+			SwapLimit: make(map[string]poolpkg.SwapLimit),
+		})
 }
 
 // Using pools with multiple tokens as composable balancer
@@ -586,7 +603,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -603,7 +620,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -620,7 +637,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -637,7 +654,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -662,7 +679,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -686,7 +703,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				GasTokenPriceUSD: priceUSDByAddress["gas"],
 				AmountIn:         big.NewInt(10000000000),
 				Sources:          []string{},
-				SaveGas:          false,
+				OnlySinglePath:   false,
 				GasInclude:       true,
 				GasPrice:         big.NewFloat(1),
 				ExtraFee:         valueobject.ZeroExtraFee,
@@ -707,7 +724,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 				AmountIn:         tc.params.AmountIn,
 				GasPrice:         tc.params.GasPrice,
 				GasTokenPriceUSD: tc.params.GasTokenPriceUSD,
-				SaveGas:          tc.params.SaveGas,
+				SaveGas:          tc.params.OnlySinglePath,
 				GasInclude:       tc.params.GasInclude,
 			}
 			allRoutes, err := finder.Find(context.TODO(), input, data)
@@ -738,28 +755,29 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 			require.Equal(t, len(tc.expectedPaths), len(routes.Paths))
 
 			// then check each path
-			lo.ForEach(lo.Zip2(tc.expectedPaths, routes.Paths), func(tp lo.Tuple2[balancerTestPaths, *valueobject.Path], _ int) {
-				expectedPath := tp.A
-				actualPath := tp.B.PoolAddresses
-				expectedTokens := []string{}
-				expectedTokens = append(expectedTokens, input.TokenInAddress)
+			lo.ForEach(lo.Zip2(tc.expectedPaths, routes.Paths),
+				func(tp lo.Tuple2[balancerTestPaths, *valueobject.Path], _ int) {
+					expectedPath := tp.A
+					actualPath := tp.B.PoolAddresses
+					var expectedTokens []string
+					expectedTokens = append(expectedTokens, input.TokenInAddress)
 
-				// should have the expected number of pool along the path
-				require.Equal(t, len(expectedPath), len(actualPath))
-				lo.ForEach(lo.Zip2(expectedPath, actualPath), func(tp lo.Tuple2[balancerTestSwap, string], _ int) {
-					expectedPool := tp.A
-					actualPool := tp.B
+					// should have the expected number of pool along the path
+					require.Equal(t, len(expectedPath), len(actualPath))
+					lo.ForEach(lo.Zip2(expectedPath, actualPath), func(tp lo.Tuple2[balancerTestSwap, string], _ int) {
+						expectedPool := tp.A
+						actualPool := tp.B
 
-					assert.Equal(t, poolAddressByName[expectedPool.poolName], actualPool)
-					expectedTokens = append(expectedTokens, expectedPool.tokens[1])
+						assert.Equal(t, poolAddressByName[expectedPool.poolName], actualPool)
+						expectedTokens = append(expectedTokens, expectedPool.tokens[1])
+					})
+
+					// should compare tokens because a pool contains many tokens
+					actualTokens := tp.B.Tokens
+					lo.ForEach(lo.Zip2(expectedTokens, actualTokens), func(tp lo.Tuple2[string, *entity.Token], _ int) {
+						assert.Equal(t, tp.A, tp.B.Address)
+					})
 				})
-
-				// should compare tokens because a pool contains many tokens
-				actualTokens := tp.B.Tokens
-				lo.ForEach(lo.Zip2(expectedTokens, actualTokens), func(tp lo.Tuple2[string, *entity.Token], _ int) {
-					assert.Equal(t, tp.A, tp.B.Address)
-				})
-			})
 		})
 	}
 }

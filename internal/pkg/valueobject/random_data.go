@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"

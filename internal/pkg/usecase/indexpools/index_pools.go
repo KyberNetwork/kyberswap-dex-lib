@@ -150,7 +150,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 				totalFailedPoolAddresses = append(totalFailedPoolAddresses, p.Address)
 			}
 		}
-		mempool.ReserveMany(chunkPool)
+		mempool.ReserveMany(chunkPool...)
 	}
 
 	return dto.NewIndexPoolsResult(totalCount, totalFailedPoolAddresses, oldPoolCount)

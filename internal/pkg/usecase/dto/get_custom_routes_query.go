@@ -2,5 +2,6 @@ package dto
 
 type GetCustomRoutesQuery struct {
 	GetRoutesQuery
-	PoolIds []string
+	PoolIds        []string
+	EnableAlphaFee bool
 }

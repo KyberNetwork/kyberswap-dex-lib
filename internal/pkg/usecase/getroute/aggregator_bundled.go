@@ -236,7 +236,6 @@ func (a *bundledAggregator) findBestBundledRoute(
 			AmountIn:                      pair.AmountIn,
 			AmountInUsd:                   pair.AmountInUsd,
 			Sources:                       params.Sources,
-			SaveGas:                       params.SaveGas,
 			GasInclude:                    params.GasInclude,
 			GasPrice:                      params.GasPrice,
 			L1FeeOverhead:                 params.L1FeeOverhead,

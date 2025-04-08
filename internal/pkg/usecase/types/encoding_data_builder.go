@@ -328,17 +328,15 @@ func transformRoute(route [][]valueobject.Swap) [][]types.EncodingSwap {
 
 		for _, swap := range path {
 			encodingPath = append(encodingPath, types.EncodingSwap{
-				Pool:              swap.Pool,
-				TokenIn:           swap.TokenIn,
-				TokenOut:          swap.TokenOut,
-				SwapAmount:        swap.SwapAmount,
-				AmountOut:         swap.AmountOut,
-				LimitReturnAmount: swap.LimitReturnAmount,
-				Exchange:          swap.Exchange,
-				PoolLength:        swap.PoolLength,
-				PoolType:          swap.PoolType,
-				PoolExtra:         swap.PoolExtra,
-				Extra:             swap.Extra,
+				Pool:       swap.Pool,
+				TokenIn:    swap.TokenIn,
+				TokenOut:   swap.TokenOut,
+				SwapAmount: swap.SwapAmount,
+				AmountOut:  swap.AmountOut,
+				Exchange:   swap.Exchange,
+				PoolType:   swap.PoolType,
+				PoolExtra:  swap.PoolExtra,
+				Extra:      swap.Extra,
 			})
 		}
 

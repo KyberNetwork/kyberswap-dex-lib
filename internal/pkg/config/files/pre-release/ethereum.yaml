@@ -11,8 +11,9 @@ common:
   chainId: &chainId 1
   chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
+  rpcTimeout: 100ms
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
+  executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   whitelistedTokenSet: &whitelistedTokenSet
     0xf951e335afb289353dc249e82926178eac7ded78: true # swETH
@@ -64,6 +65,8 @@ common:
     - "balancer-v2-composable-stable"
     - "balancer-v2-stable"
     - "balancer-v2-weighted"
+    - "balancer-v3-stable"
+    - "balancer-v3-weighted"
     - "balancer-v3-eclp"
     - "bancor-v3"
     - "bedrock-unieth"
@@ -98,6 +101,8 @@ common:
     - "maker-psm"
     - "maker-savingsdai"
     - "maverick-v1"
+    - "native-v1"
+    - "native-v2"
     - "pancake"
     - "pancake-v3"
     - "pol-matic"
@@ -126,9 +131,6 @@ common:
     - "fluid-vault-t1"
     - "fluid-dex-t1"
     - "usd0pp"
-    - "hashflow-v3"
-    - "bancor-v21"
-    - "native-v1"
     - "bebop"
     - "wbeth"
     - "oeth"
@@ -146,6 +148,9 @@ common:
     - "etherfi-vampire"
     - "mx-trading"
     - "lo1inch"
+    - "etherfi-ebtc"
+    - "uniswap-v4"
+    - "savings-usds"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false
@@ -161,8 +166,7 @@ common:
     amplifiedTvlWhitelistPoolsCount: 200
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
-    amountInThreshold: 10000
-  useAEVM: &useAEVM false
+    amountInThreshold: *maxThresholdAmountInUSD
   dexUseAEVM: &dexUseAEVM
     uniswap: false
     uniswapv3: false
@@ -170,17 +174,21 @@ common:
     liquiditybook-v21: false
     ambient: true
     maverick-v2: true
+    uniswap-v4: true
+  useAEVM: &useAEVM false
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
-      maxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
-      defaultAlphaFeePercentageBps: 0.1651
+        uniswap-v4-kem: 5000
+      maxThresholdPercentageInBps: 8000
+      minDifferentThresholdUSD: 0.005
+      minDifferentThresholdBps: 20
+      defaultAlphaFeePercentageBps: 100
     ttl: 600s
   aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
-
+  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
+  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -257,7 +265,6 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
   partnerPositiveSlippageInfo:
     tritium-research:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
@@ -273,6 +280,12 @@ encoder:
     kyberswap-earn:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
       feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
+    unibot-tg:
+      receiver: 0x0000000000000000000000000000000000000001
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+    debot-kyber-8@dK#:
+      receiver: 0x0000000000000000000000000000000000000002
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
     bitgetswap:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
       feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
@@ -473,6 +486,14 @@ useCase:
           http:
             api_key:
             base_url: "https://newapi.native.org"
+            timeout: 5s
+            retry_count: 3
+      native-v2:
+        handler: native-v1
+        properties:
+          http:
+            api_key:
+            base_url: "https://v2.api.native.org/swap-api-v2"
             timeout: 5s
             retry_count: 3
       bebop:

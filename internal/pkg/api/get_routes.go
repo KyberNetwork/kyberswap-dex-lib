@@ -137,7 +137,6 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
 		ExcludedSources:     excludedSources,
 		OnlyScalableSources: params.OnlyScalableSources,
-		SaveGas:             params.SaveGas,
 		OnlySinglePath:      params.OnlySinglePath,
 		GasInclude:          params.GasInclude,
 		GasPrice:            gasPrice,
@@ -222,16 +221,14 @@ func transformRoute(route [][]valueobject.Swap) [][]params.Swap {
 
 func transformSwap(swap valueobject.Swap) params.Swap {
 	return params.Swap{
-		Pool:              swap.Pool,
-		TokenIn:           swap.TokenIn,
-		TokenOut:          swap.TokenOut,
-		LimitReturnAmount: swap.LimitReturnAmount.String(),
-		SwapAmount:        swap.SwapAmount.String(),
-		AmountOut:         swap.AmountOut.String(),
-		Exchange:          string(swap.Exchange),
-		PoolLength:        swap.PoolLength,
-		PoolType:          swap.PoolType,
-		PoolExtra:         swap.PoolExtra,
-		Extra:             swap.Extra,
+		Pool:       swap.Pool,
+		TokenIn:    swap.TokenIn,
+		TokenOut:   swap.TokenOut,
+		SwapAmount: swap.SwapAmount.String(),
+		AmountOut:  swap.AmountOut.String(),
+		Exchange:   string(swap.Exchange),
+		PoolType:   swap.PoolType,
+		PoolExtra:  swap.PoolExtra,
+		Extra:      swap.Extra,
 	}
 }

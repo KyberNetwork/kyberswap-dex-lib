@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,12 +12,14 @@ import (
 
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/pool-service/pkg/message"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/consumer"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 const NON_FILTER_ENTROPY = 1.0

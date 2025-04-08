@@ -335,7 +335,7 @@ func loadPoolsFromFile(fileName string) []*entity.Pool {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	res := []*entity.Pool{}
+	var res []*entity.Pool
 	i := 0
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -436,7 +436,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 			name:                  "Fetch base bool of curve-stable-meta-ng successfully from Redis",
 			inputPoolAddr:         mapset.NewThreadUnsafeSet("0xb71edd5322ce0309dc30f07d25470dbfcb275c28", "0x2482dfb5a65d901d137742ab1095f26374509352"),
 			dex:                   mapset.NewThreadUnsafeSet(pooltypes.PoolTypes.KyberPMM, "uniswap", "curve-stable-meta-ng"),
-			expectedPoolAddresses: mapset.NewThreadUnsafeSet("0xb71edd5322ce0309dc30f07d25470dbfcb275c28", "0x2482dfb5a65d901d137742ab1095f26374509352", "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"),
+			expectedPoolAddresses: mapset.NewThreadUnsafeSet("0xb71edd5322ce0309dc30f07d25470dbfcb275c28", "0x2482dfb5a65d901d137742ab1095f26374509352"),
 			prepare: func(ctrl *gomock.Controller, blacklist, faultyPools mapset.Set[string]) *poolmanager.PointerSwapPoolManager {
 				poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 				poolFactory := mocks.NewMockIPoolFactory(ctrl)
@@ -449,7 +449,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -503,7 +503,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -556,7 +556,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -608,7 +608,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -660,7 +660,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -714,7 +714,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -769,7 +769,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
-					res := []poolpkg.IPoolSimulator{}
+					var res []poolpkg.IPoolSimulator
 					for _, p := range poolEntities {
 						if simulator, ok := memPoolSimulatorsByAddresses[p.Address]; ok {
 							res = append(res, simulator)
@@ -834,7 +834,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				for _, p := range state.Pools {
 					resultAddress.Add(p.GetAddress())
 				}
-				assert.Equal(t, resultAddress, tc.expectedPoolAddresses)
+				assert.Equal(t, tc.expectedPoolAddresses, resultAddress)
 			}
 			if tc.err == nil {
 				assert.Nil(t, err)

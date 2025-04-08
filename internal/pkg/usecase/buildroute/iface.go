@@ -72,3 +72,7 @@ type IAlphaFeeRepository interface {
 type IPublisherRepository interface {
 	Publish(ctx context.Context, topic string, data []byte) error
 }
+
+type WithAlphaFee interface {
+	AlphaFee() (*big.Int, string)
+}

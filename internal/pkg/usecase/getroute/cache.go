@@ -8,13 +8,13 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -201,7 +201,8 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 		return nil, err
 	}
 
-	routeSummaries, err := c.summarizeSimpleRouteWithExtraData(ctx, bestRoute, params, stateRoot, tokenByAddress, priceByAddress)
+	routeSummaries, err := c.summarizeSimpleRouteWithExtraData(ctx, bestRoute, params, stateRoot, tokenByAddress,
+		priceByAddress)
 	if err != nil {
 		logger.
 			WithFields(ctx, logger.Fields{
@@ -261,7 +262,8 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	return routeSummaries, nil
 }
 
-func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject.RouteSummaries, keys []valueobject.RouteCacheKeyTTL) {
+func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject.RouteSummaries,
+	keys []valueobject.RouteCacheKeyTTL) {
 	// We cache the best route before merge swap, instead of the merge swap route,
 	// for easier cache handling and avoid modify too much logic.
 	bestRouteSummary := routeSummaries.GetBestRouteSummary()
@@ -301,6 +303,10 @@ func (c *cache) summarizeSimpleRoute(
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*finderCommon.ConstructRoute, error) {
+	if simpleRoute == nil {
+		return nil, nil
+	}
+
 	// Step 1: prepare pool data
 	var err error
 	constructRoute := c.convertSimpleRouteToConstructRoute(simpleRoute, params)
@@ -333,7 +339,8 @@ func (c *cache) getRFQMakerTokenAddresses(route *valueobject.SimpleRoute) mapset
 	return addresses
 }
 
-func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams, addresses []string) (map[string]*entity.Token, error) {
+func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams,
+	addresses []string) (map[string]*entity.Token, error) {
 	tokenByAddress := map[string]*entity.Token{
 		params.TokenIn.Address:  &params.TokenIn,
 		params.TokenOut.Address: &params.TokenOut,
@@ -356,7 +363,8 @@ func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams, ad
 	return tokenByAddress, nil
 }
 
-func (c *cache) getPrices(ctx context.Context, params *types.AggregateParams, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
+func (c *cache) getPrices(ctx context.Context, params *types.AggregateParams,
+	addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	priceByAddress := map[string]*routerEntity.OnchainPrice{}
 	if len(addresses) != 0 {
 		prices, err := c.onchainpriceRepository.FindByAddresses(ctx, addresses)
@@ -396,8 +404,8 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	simpleRoute *valueobject.SimpleRouteWithExtraData,
 	params *types.AggregateParams,
 	stateRoot aevmcommon.Hash,
-	tokenByAddress map[string]*entity.Token,
-	priceByAddress map[string]*routerEntity.OnchainPrice,
+	tokenMap map[string]*entity.Token,
+	priceMap map[string]*routerEntity.OnchainPrice,
 ) (*valueobject.RouteSummaries, error) {
 	var err error
 	// Step 1: prepare pool data
@@ -422,26 +430,22 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	}
 
 	// Step 2: We need to refresh construct route first to re-calculate alpha fee correctly
-	bestConstructRoute, err := c.summarizeSimpleRoute(ctx, simpleRoute.BestRoute, params, tokenByAddress, priceByAddress, state)
+	bestConstructRoute, err := c.summarizeSimpleRoute(ctx, simpleRoute.BestRoute, params, tokenMap, priceMap, state)
 	if err != nil {
 		return nil, fmt.Errorf("summarize best route failed %v request_id %s", err, requestid.GetRequestIDFromCtx(ctx))
 	}
 
-	// If route contains AMM best route, then summarize AMM best route first
-	var ammConstructRoute *finderCommon.ConstructRoute
-	if simpleRoute.AMMRoute != nil {
-		ammConstructRoute, err = c.summarizeSimpleRoute(
-			ctx, simpleRoute.AMMRoute, params, tokenByAddress, priceByAddress, state)
-		if err != nil {
-			logger.
-				WithFields(ctx, logger.Fields{
-					"error":      err,
-					"request_id": requestid.GetRequestIDFromCtx(ctx),
-					"client_id":  clientid.GetClientIDFromCtx(ctx),
-				}).
-				Warnf("summarize ammRoute failed")
-			// TODO: count metric
-		}
+	// Step 2.1: summarize ammRoute
+	ammConstructRoute, err := c.summarizeSimpleRoute(ctx, simpleRoute.AMMRoute, params, tokenMap, priceMap, state)
+	if err != nil {
+		logger.
+			WithFields(ctx, logger.Fields{
+				"error":      err,
+				"request_id": requestid.GetRequestIDFromCtx(ctx),
+				"client_id":  clientid.GetClientIDFromCtx(ctx),
+			}).
+			Warnf("summarize ammRoute failed")
+		// TODO: count metric
 	}
 	if ammConstructRoute != nil && ammConstructRoute.Cmp(bestConstructRoute, params.GasInclude) > 0 {
 		logger.
@@ -463,13 +467,14 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	findRouteParams := ConvertToPathfinderParams(
 		nil,
 		params,
-		tokenByAddress,
-		priceByAddress,
+		tokenMap,
+		priceMap,
 		state,
 	)
 
 	finalizer := c.finderEngine.GetFinalizer()
-	route, err := finalizer.Finalize(ctx, findRouteParams, bestConstructRoute, finalizer.GetExtraData(ctx, &bestRouteResult))
+	route, err := finalizer.Finalize(ctx, findRouteParams, bestConstructRoute,
+		finalizer.GetExtraData(ctx, &bestRouteResult))
 	if err != nil {
 		return nil, err
 	}
@@ -488,12 +493,15 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	return ConvertToRouteSummaries(params, finderEntity.BestRoutes{route, ammRoute}), nil
 }
 
-func (c *cache) convertSimpleRouteToConstructRoute(simpleRoute *valueobject.SimpleRoute, params *types.AggregateParams) *finderCommon.ConstructRoute {
+func (c *cache) convertSimpleRouteToConstructRoute(simpleRoute *valueobject.SimpleRoute,
+	params *types.AggregateParams) *finderCommon.ConstructRoute {
 	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
 
-	constructRoute := finderCommon.NewConstructRoute(params.TokenIn.Address, params.TokenOut.Address, c.finderEngine.GetFinder().CustomFuncs())
+	constructRoute := finderCommon.NewConstructRoute(params.TokenIn.Address, params.TokenOut.Address,
+		c.finderEngine.GetFinder().CustomFuncs())
 	for pathIdx, simplePath := range simpleRoute.Paths {
-		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx], c.finderEngine.GetFinder().CustomFuncs())
+		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx],
+			c.finderEngine.GetFinder().CustomFuncs())
 		constructPath.AddToken(params.TokenIn.Address)
 
 		for _, simpleSwap := range simplePath {

@@ -21,9 +21,6 @@ type GetBundledRoutesParams struct {
 	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
 	OnlyScalableSources bool `form:"onlyScalableSources"`
 
-	// SaveGas best route is a single path route
-	SaveGas bool `form:"saveGas"`
-
 	// GasInclude gas is included when finding route
 	GasInclude bool `form:"gasInclude"`
 

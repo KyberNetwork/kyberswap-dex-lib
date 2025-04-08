@@ -279,15 +279,6 @@ func transformExtraFeeParams(params params.ExtraFee) (valueobject.ExtraFee, erro
 
 // transformSwapParams transforms params.Swap to valueobject.Swap
 func transformSwapParams(params params.Swap) (valueobject.Swap, error) {
-	limitReturnAmount, ok := new(big.Int).SetString(params.LimitReturnAmount, 10)
-	if !ok {
-		return valueobject.Swap{}, errors.WithMessagef(
-			ErrInvalidRoute,
-			"invalid swap.limitReturnAmount [%s]",
-			params.LimitReturnAmount,
-		)
-	}
-
 	swapAmount, ok := new(big.Int).SetString(params.SwapAmount, 10)
 	if !ok {
 		return valueobject.Swap{}, errors.WithMessagef(
@@ -307,16 +298,14 @@ func transformSwapParams(params params.Swap) (valueobject.Swap, error) {
 	}
 
 	return valueobject.Swap{
-		Pool:              params.Pool,
-		TokenIn:           params.TokenIn,
-		TokenOut:          params.TokenOut,
-		LimitReturnAmount: limitReturnAmount,
-		SwapAmount:        swapAmount,
-		AmountOut:         amountOut,
-		Exchange:          valueobject.Exchange(params.Exchange),
-		PoolLength:        params.PoolLength,
-		PoolType:          params.PoolType,
-		PoolExtra:         params.PoolExtra,
-		Extra:             params.Extra,
+		Pool:       params.Pool,
+		TokenIn:    params.TokenIn,
+		TokenOut:   params.TokenOut,
+		SwapAmount: swapAmount,
+		AmountOut:  amountOut,
+		Exchange:   valueobject.Exchange(params.Exchange),
+		PoolType:   params.PoolType,
+		PoolExtra:  params.PoolExtra,
+		Extra:      params.Extra,
 	}, nil
 }

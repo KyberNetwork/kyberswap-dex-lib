@@ -522,25 +522,6 @@ func Test_transformBuildRouteParams(t *testing.T) {
 			err:     ErrInvalidRoute,
 		},
 		{
-			name: "it should return correct error when swap.LimitReturnAmount is invalid",
-			params: params.BuildRouteParams{
-				RouteSummary: params.RouteSummary{
-					AmountIn:  "1000000",
-					AmountOut: "999999",
-					Route: [][]params.Swap{
-						{
-							{
-								LimitReturnAmount: "a",
-							},
-						},
-					},
-				},
-			},
-			command: dto.BuildRouteCommand{},
-			nowFunc: timeutil.NowFunc,
-			err:     ErrInvalidRoute,
-		},
-		{
 			name: "it should return correct error when swap.SwapAmount is invalid",
 			params: params.BuildRouteParams{
 				RouteSummary: params.RouteSummary{
@@ -549,8 +530,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]params.Swap{
 						{
 							{
-								LimitReturnAmount: "0",
-								SwapAmount:        "a",
+								SwapAmount: "a",
 							},
 						},
 					},
@@ -569,9 +549,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]params.Swap{
 						{
 							{
-								LimitReturnAmount: "0",
-								SwapAmount:        "10000",
-								AmountOut:         "a",
+								SwapAmount: "10000",
+								AmountOut:  "a",
 							},
 						},
 					},
@@ -603,16 +582,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]params.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: "0",
-								SwapAmount:        "10000",
-								AmountOut:         "9999",
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: "10000",
+								AmountOut:  "9999",
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},
@@ -643,16 +620,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]valueobject.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: big.NewInt(0),
-								SwapAmount:        big.NewInt(10000),
-								AmountOut:         big.NewInt(9999),
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: big.NewInt(10000),
+								AmountOut:  big.NewInt(9999),
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},
@@ -691,16 +666,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]params.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: "0",
-								SwapAmount:        "10000",
-								AmountOut:         "9999",
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: "10000",
+								AmountOut:  "9999",
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},
@@ -732,16 +705,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]valueobject.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: big.NewInt(0),
-								SwapAmount:        big.NewInt(10000),
-								AmountOut:         big.NewInt(9999),
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: big.NewInt(10000),
+								AmountOut:  big.NewInt(9999),
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},
@@ -781,16 +752,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]params.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: "0",
-								SwapAmount:        "10000",
-								AmountOut:         "9999",
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: "10000",
+								AmountOut:  "9999",
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},
@@ -821,16 +790,14 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					Route: [][]valueobject.Swap{
 						{
 							{
-								Pool:              "Pool",
-								TokenIn:           "TokenIn",
-								TokenOut:          "TokenOut",
-								LimitReturnAmount: big.NewInt(0),
-								SwapAmount:        big.NewInt(10000),
-								AmountOut:         big.NewInt(9999),
-								Exchange:          "Exchange",
-								PoolLength:        2,
-								PoolType:          "PoolType",
-								Extra:             "",
+								Pool:       "Pool",
+								TokenIn:    "TokenIn",
+								TokenOut:   "TokenOut",
+								SwapAmount: big.NewInt(10000),
+								AmountOut:  big.NewInt(9999),
+								Exchange:   "Exchange",
+								PoolType:   "PoolType",
+								Extra:      "",
 							},
 						},
 					},

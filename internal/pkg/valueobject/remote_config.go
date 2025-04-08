@@ -41,7 +41,7 @@ type (
 		CgkId    string `mapstructure:"cgkId" json:"cgkId"`
 	}
 
-	// should include variable which need not to restart pods.
+	// FeatureFlags includes flags to modify behavior without restarting the server.
 	FeatureFlags struct {
 		IsHillClimbEnabled                bool `mapstructure:"isHillClimbEnabled" json:"isHillClimbEnabled"`
 		IsDerivativeHillClimbEnabled      bool `mapstructure:"isDerivativeHillClimbEnabled" json:"isDerivativeHillClimbEnabled"`
@@ -57,7 +57,6 @@ type (
 		IsKyberPrivateLimitOrdersEnabled  bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
 		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAFEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
-		ShouldReturnAlphaFee              bool `mapstructure:"shouldReturnAlphaFee" json:"shouldReturnAF"`
 	}
 
 	Log struct {
@@ -159,8 +158,8 @@ type (
 
 	AlphaFeeReductionConfig struct {
 		ReductionFactorInBps map[string]float64 `mapstructure:"reductionFactorInBps" json:"afFactorInBps"`
-		// To avoid amm best path returns weird route due to lack of swap source, we must check differency between
-		// amm best path and multi best path do not exeed AlphaFeeSlippageTolerance config
+		// To avoid amm best path returns weird route due to lack of swap source, we must check difference between
+		// amm best path and multi best path do not exceed AlphaFeeSlippageTolerance config
 		MaxThresholdPercentageInBps  int64   `mapstructure:"maxThresholdPercentageInBps" json:"maxThresholdPercentageInBps"`
 		MinDifferentThresholdUSD     float64 `mapstructure:"minDifferentThresholdUSD" json:"minDifferentThresholdUSD"`
 		MinDifferentThresholdBps     int64   `mapstructure:"minDifferentThresholdBps" json:"minDifferentThresholdBps"`

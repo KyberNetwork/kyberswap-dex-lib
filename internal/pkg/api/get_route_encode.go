@@ -165,7 +165,6 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		IncludedSources:     utils.TransformSliceParams(params.Dexes),
 		ExcludedSources:     getrouteencode.GetExcludedRFQSources(),
 		OnlyScalableSources: params.OnlyScalableSources,
-		SaveGas:             params.SaveGas,
 		GasInclude:          params.GasInclude,
 		GasPrice:            gasPrice,
 		ExtraFee:            extraFee,
@@ -277,18 +276,15 @@ func transformGetRouteEncodeResponseTokens(tokens []*dto.GetTokensResultToken) m
 
 func transformGetRouteEncodeSwap(swap valueobject.Swap) params.GetRouteEncodeResponseSwap {
 	return params.GetRouteEncodeResponseSwap{
-		Pool:              swap.Pool,
-		TokenIn:           swap.TokenIn,
-		TokenOut:          swap.TokenOut,
-		LimitReturnAmount: swap.LimitReturnAmount.String(),
-		SwapAmount:        swap.SwapAmount.String(),
-		AmountOut:         swap.AmountOut.String(),
-		Exchange:          string(swap.Exchange),
-		PoolLength:        swap.PoolLength,
-		PoolType:          swap.PoolType,
-		PoolExtra:         swap.PoolExtra,
-		Extra:             swap.Extra,
-		MaxPrice:          "",
+		Pool:       swap.Pool,
+		TokenIn:    swap.TokenIn,
+		TokenOut:   swap.TokenOut,
+		SwapAmount: swap.SwapAmount.String(),
+		AmountOut:  swap.AmountOut.String(),
+		Exchange:   string(swap.Exchange),
+		PoolType:   swap.PoolType,
+		PoolExtra:  swap.PoolExtra,
+		Extra:      swap.Extra,
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
@@ -30,14 +31,23 @@ func NewLockedState() *LockedState {
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+	s.poolByAddress = poolByAddress
+	s.clearLimits()
+	UpdateLimits(s.limits, poolByAddress)
+}
 
-	//update the inventory and tokenToPoolAddress list
-	for poolAddress := range poolByAddress {
-		//soft copy to save some lookupTime:
-		pool := poolByAddress[poolAddress]
+func (s *LockedState) clearLimits() {
+	for _, dexLimit := range s.limits {
+		for k := range dexLimit {
+			delete(dexLimit, k)
+		}
+	}
+}
 
-		dexLimit, avail := s.limits[pool.GetType()]
-		if !avail {
+func UpdateLimits(limits map[string]map[string]*big.Int, poolByAddress map[string]poolpkg.IPoolSimulator) {
+	for _, pool := range poolByAddress {
+		dexLimit, ok := limits[pool.GetType()]
+		if !ok {
 			continue
 		}
 		limitMap := pool.CalculateLimit()
@@ -47,6 +57,4 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 			}
 		}
 	}
-	s.poolByAddress = poolByAddress
-	// Optimize graph traversal by using tokenToPoolAddress list
 }

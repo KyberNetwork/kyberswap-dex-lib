@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -15,31 +16,36 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type useCase struct {
-	aggregator             IAggregator
-	tokenRepository        ITokenRepository
-	gasRepository          IGasRepository
-	l1FeeEstimator         IL1FeeEstimator
-	onchainpriceRepository IOnchainPriceRepository
+	config getroute.Config
 
-	config Config
-	mu     sync.Mutex
+	aggregator             IAggregator
+	tokenRepository        getroute.ITokenRepository
+	gasRepository          getroute.IGasRepository
+	alphaFeeRepository     getroute.IAlphaFeeRepository
+	l1FeeEstimator         getroute.IL1FeeEstimator
+	onchainpriceRepository getroute.IOnchainPriceRepository
+
+	mu sync.Mutex
 }
 
 func NewCustomRoutesUseCase(
-	poolFactory IPoolFactory,
-	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
-	gasRepository IGasRepository,
-	l1FeeEstimator IL1FeeEstimator,
-	poolManager IPoolManager,
-	poolRepository IPoolRepository,
+	poolFactory getroute.IPoolFactory,
+	tokenRepository getroute.ITokenRepository,
+	onchainpriceRepository getroute.IOnchainPriceRepository,
+	gasRepository getroute.IGasRepository,
+	alphaFeeRepository getroute.IAlphaFeeRepository,
+	l1FeeEstimator getroute.IL1FeeEstimator,
+	poolManager getroute.IPoolManager,
+	poolRepository getroute.IPoolRepository,
 	finderEngine finderEngine.IPathFinderEngine,
-	config Config,
+	config getroute.Config,
 ) *useCase {
 	aggregator := NewCustomAggregator(
 		poolFactory,
@@ -55,6 +61,7 @@ func NewCustomRoutesUseCase(
 		aggregator:             aggregator,
 		tokenRepository:        tokenRepository,
 		gasRepository:          gasRepository,
+		alphaFeeRepository:     alphaFeeRepository,
 		l1FeeEstimator:         l1FeeEstimator,
 		onchainpriceRepository: onchainpriceRepository,
 
@@ -81,13 +88,26 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetCustomRoutesQuery) (*
 		return nil, getroute.ErrAmountInIsGreaterThanMaxAllowed
 	}
 
-	routeSummary, err := u.aggregator.Aggregate(ctx, params, query.PoolIds)
+	routeSummaries, err := u.aggregator.Aggregate(ctx, params, query.PoolIds)
 	if err != nil {
 		return nil, err
+	}
+	routeSummary := routeSummaries.GetBestRouteSummary()
+
+	routeID := requestid.GetRequestIDFromCtx(ctx)
+
+	// Only save route which including alphaFee
+	if routeSummary.AlphaFee != nil {
+		err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	routeSummary.TokenIn = originalTokenIn
 	routeSummary.TokenOut = originalTokenOut
+	routeSummary.Timestamp = time.Now().Unix()
+	routeSummary.RouteID = routeID
 
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,
@@ -155,22 +175,44 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		}
 	}
 
+	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
+
+	index := valueobject.NativeTvl
+	if u.config.Aggregator.FeatureFlags.IsLiquidityScoreIndexEnable {
+		if query.Index != "" {
+			index = valueobject.IndexType(query.Index)
+		} else {
+			index = valueobject.IndexType(u.config.DefaultPoolsIndex)
+		}
+	}
+
+	var kyberLimitOrderAllowedSenders string
+	if u.config.Aggregator.FeatureFlags.IsKyberPrivateLimitOrdersEnabled && query.ClientId == clientid.KyberSwap {
+		kyberLimitOrderAllowedSenders = u.config.KyberExecutorAddress
+	}
+
 	return &types.AggregateParams{
-		TokenIn:          tokenIn,
-		TokenOut:         tokenOut,
-		GasToken:         tokenByAddress[u.config.GasTokenAddress],
-		TokenInPriceUSD:  tokenInPriceUSD,
-		TokenOutPriceUSD: tokenOutPriceUSD,
-		GasTokenPriceUSD: gasTokenPriceUSD,
-		AmountIn:         query.AmountIn,
-		Sources: u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources,
-			query.OnlyScalableSources),
-		SaveGas:       query.SaveGas,
-		GasInclude:    query.GasInclude,
-		GasPrice:      gasPrice,
-		L1FeeOverhead: l1FeeOverhead,
-		L1FeePerPool:  l1FeePerPool,
-		ExtraFee:      query.ExtraFee,
+		TokenIn:                       tokenIn,
+		TokenOut:                      tokenOut,
+		GasToken:                      tokenByAddress[u.config.GasTokenAddress],
+		TokenInPriceUSD:               tokenInPriceUSD,
+		TokenOutPriceUSD:              tokenOutPriceUSD,
+		GasTokenPriceUSD:              gasTokenPriceUSD,
+		AmountIn:                      query.AmountIn,
+		Sources:                       sources,
+		OnlySinglePath:                query.OnlySinglePath,
+		GasInclude:                    query.GasInclude,
+		GasPrice:                      gasPrice,
+		L1FeeOverhead:                 l1FeeOverhead,
+		L1FeePerPool:                  l1FeePerPool,
+		ExtraFee:                      query.ExtraFee,
+		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:                         index,
+		ExcludedPools:                 query.ExcludedPools,
+		ClientId:                      query.ClientId,
+		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
+		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable && query.EnableAlphaFee,
+		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 	}, nil
 }
 

@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	mapset "github.com/deckarep/golang-set/v2"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type routeKeyGenerator struct {

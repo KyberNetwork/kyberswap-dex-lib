@@ -9,12 +9,12 @@ import (
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
-	poolMocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/pool"
-
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	poolMocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestAlphaFee_Calculation(t *testing.T) {
@@ -165,7 +165,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(30),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 O
+						// 30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 O
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-O-W5-O"},
 						TokensOrder: []string{"I", "W3", "W5", "O"},
 					},
@@ -177,7 +177,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 5000, //50%
+					"kyber-pmm": 5000, // 50%
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
@@ -199,7 +199,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(10),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- amm -- 10 O1
+						// 30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- amm -- 10 O1
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-O1-W5-O1"},
 						TokensOrder: []string{"I", "W3", "W5", "O1"},
 					},
@@ -219,7 +219,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 1000, //10%
+					"kyber-pmm": 1000, // 10%
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
@@ -238,20 +238,20 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				AmountOutPrice: 300,
 				Paths: []*finderCommon.ConstructPath{
 					{
-						AmountIn:  big.NewInt(30),
+						AmountIn:  big.NewInt(70),
 						AmountOut: big.NewInt(150),
 
-						//30 W3 -- amm -- 50 W4 -- amm -- 150 O
-						PoolsOrder:  []string{"pool-W3-W4-W3-W4", "pool-W4-O-W4-O"},
-						TokensOrder: []string{"W3", "W4", "O"},
+						// 70 I -- amm -- 100 W1 -- pmm -- 200 W2 -- rfq -- 190 W4 -- amm -- 150 NonPrice
+						PoolsOrder:  []string{"pool-I-W1-I-W1", "pool-W1-W2-W1-W2", "pool-W2-W4-W2-W4", "pool-W4-NonPrice-W4-NonPrice"},
+						TokensOrder: []string{"I", "W1", "W2", "W4", "NonPrice"},
 					},
 					{
-						AmountIn:  big.NewInt(90),
-						AmountOut: big.NewInt(150),
+						AmountIn:  big.NewInt(30),
+						AmountOut: big.NewInt(30),
 
-						// 90 I -- amm -- 100 W1 -- amm -- 150 O
-						PoolsOrder:  []string{"pool-I-W1-I-W1", "pool-W1-O-W1-O"},
-						TokensOrder: []string{"I", "W1", "O"},
+						// 30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
+						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-NonPrice-W5-NonPrice"},
+						TokensOrder: []string{"I", "W3", "W5", "NonPrice"},
 					},
 				},
 			},
@@ -261,7 +261,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 1000, //10%
+					"kyber-pmm": 1000, // 10%
 				},
 			},
 			err: ErrAlphaFeeNotExists,
@@ -287,7 +287,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(30),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
+						// 30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-NonPrice-W5-NonPrice"},
 						TokensOrder: []string{"I", "W3", "W5", "NonPrice"},
 					},
@@ -299,7 +299,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 2000, //20%
+					"kyber-pmm": 2000, // 20%
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
@@ -329,7 +329,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(30),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
+						// 30 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-NonPrice-W5-NonPrice"},
 						TokensOrder: []string{"I", "W3", "W5", "NonPrice"},
 					},
@@ -341,10 +341,10 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 4000, //40%
+					"kyber-pmm": 4000, // 40%
 				},
 			},
-			err: ErrPMMSwapNotEnoughToCoverAlphaFee,
+			err: ErrAlphaSwapNotEnoughToCoverAlphaFee,
 		},
 		{
 			name: "Still reduce alpha fee if the amount yeild by applying alpha fee is equal to amm best amount out",
@@ -367,7 +367,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(10),
 						AmountOut: big.NewInt(30),
 
-						//10 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
+						// 10 I -- amm -- 40 W3 -- pmm -- 20 W5 -- pmm -- 30 NonPrice
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-NonPrice-W5-NonPrice"},
 						TokensOrder: []string{"I", "W3", "W5", "NonPrice"},
 					},
@@ -409,7 +409,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(50),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 30 W5 -- amm -- 50 O2
+						// 30 I -- amm -- 40 W3 -- pmm -- 30 W5 -- amm -- 50 O2
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-O2-W5-O2"},
 						TokensOrder: []string{"I", "W3", "W5", "O2"},
 					},
@@ -421,7 +421,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 4000, //40%
+					"kyber-pmm": 4000, // 40%
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
@@ -451,7 +451,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 						AmountIn:  big.NewInt(30),
 						AmountOut: big.NewInt(50),
 
-						//30 I -- amm -- 40 W3 -- pmm -- 30 W5 -- amm -- 50 O2
+						// 30 I -- amm -- 40 W3 -- pmm -- 30 W5 -- amm -- 50 O2
 						PoolsOrder:  []string{"pool-I-W3-I-W3", "pool-W3-W5-W3-W5", "pool-W5-O2-W5-O2"},
 						TokensOrder: []string{"I", "W3", "W5", "O2"},
 					},
@@ -463,7 +463,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			},
 			config: valueobject.AlphaFeeReductionConfig{
 				ReductionFactorInBps: map[string]float64{
-					"kyber-pmm": 4000, //40%
+					"kyber-pmm": 4000, // 40%
 				},
 				MaxThresholdPercentageInBps: int64(8000),
 			},

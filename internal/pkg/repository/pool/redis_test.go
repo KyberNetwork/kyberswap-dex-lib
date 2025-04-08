@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -229,7 +228,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		}
 
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1", "address2", "address4"})
-		defer mempool.ReserveMany(pools)
+		defer mempool.ReserveMany(pools...)
 
 		expectedPools := []*entity.Pool{
 			{
@@ -328,7 +327,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			},
 		})
 		pools, err := redisRepository.FindByAddresses(context.Background(), nil)
-		defer mempool.ReserveMany(pools)
+		defer mempool.ReserveMany(pools...)
 
 		assert.Nil(t, pools)
 		assert.Nil(t, err)
@@ -362,7 +361,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		})
 		redisServer.Close()
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1"})
-		defer mempool.ReserveMany(pools)
+		defer mempool.ReserveMany(pools...)
 
 		assert.Error(t, err)
 		assert.Nil(t, pools)

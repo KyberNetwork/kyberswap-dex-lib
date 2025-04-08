@@ -420,18 +420,12 @@ func apiAction(c *cli.Context) (err error) {
 		tokenRepository,
 		onchainpriceRepository,
 		gasRepository,
+		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
 		poolRepository,
 		customRouteFinderEngine,
-		getcustomroute.Config{
-			ChainID:           customRouteConfig.ChainID,
-			RouterAddress:     customRouteConfig.RouterAddress,
-			GasTokenAddress:   customRouteConfig.GasTokenAddress,
-			AvailableSources:  customRouteConfig.AvailableSources,
-			UnscalableSources: customRouteConfig.UnscalableSources,
-			Aggregator:        customRouteConfig.Aggregator,
-		},
+		customRouteConfig,
 	)
 	l1Decoder := &decode.Decoder{}
 	l2Decoder := decode.NewL2Decoder()

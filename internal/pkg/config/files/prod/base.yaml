@@ -105,8 +105,8 @@ common:
     - "uniswap-v4"
     - "overnight-usdp"
     - "sky-psm"
+    - "uniswap-v4-kem"
   excludedSourcesByClient: &excludedSourcesByClient
-  featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
@@ -126,10 +126,11 @@ common:
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
-      maxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
-      defaultAlphaFeePercentageBps: 0.1651
+        uniswap-v4-kem: 5000
+      maxThresholdPercentageInBps: 8000
+      minDifferentThresholdUSD: 0.005
+      minDifferentThresholdBps: 20
+      defaultAlphaFeePercentageBps: 100
     ttl: 600s
   aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
@@ -445,6 +446,13 @@ useCase:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
+      uniswap-v4:
+        handler: uniswap-v4
+        properties:
+          kyberExclusiveAMM:
+            maxAmountInFactor: 1.2
+            expiry: 180000000000 # 3m
+            signerPrivateKey:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
@@ -614,6 +622,7 @@ repository:
   alphaFee:
     redis:
       prefix: *chainName
+      separator: ":"
       ttl: 60s
 validator:
   slippageValidatorConfig:

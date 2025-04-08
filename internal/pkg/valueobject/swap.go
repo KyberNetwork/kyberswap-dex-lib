@@ -15,9 +15,6 @@ type Swap struct {
 	// TokenOut address of token swap to
 	TokenOut string `json:"tokenOut"`
 
-	// LimitReturnAmount
-	LimitReturnAmount *big.Int `json:"limitReturnAmount"`
-
 	// SwapAmount amount of TokenIn to swap
 	SwapAmount *big.Int `json:"swapAmount"`
 
@@ -27,15 +24,12 @@ type Swap struct {
 	// Exchange name of exchange
 	Exchange Exchange `json:"exchange"`
 
-	// PoolLength number of tokens inside the pools
-	PoolLength int `json:"poolLength"`
-
 	// PoolType type of the pool
 	PoolType string `json:"poolType"`
 
 	// Extra metadata of the pool
-	PoolExtra interface{} `json:"poolExtra"`
+	PoolExtra any `json:"poolExtra"`
 
 	// Extra metadata of swap
-	Extra interface{} `json:"extra"`
+	Extra any `json:"extra"`
 }

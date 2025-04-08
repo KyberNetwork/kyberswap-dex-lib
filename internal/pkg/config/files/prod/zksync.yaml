@@ -66,18 +66,19 @@ common:
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: *maxThresholdAmountInUSD
   useAEVM: &useAEVM false
-  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
-  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
-  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
-      maxThresholdPercentageInBps: 9900
-      minDifferentThresholdUSD: 0.01
-      minDifferentThresholdBps: 1000
-      defaultAlphaFeePercentageBps: 0.1651
+        uniswap-v4-kem: 5000
+      maxThresholdPercentageInBps: 8000
+      minDifferentThresholdUSD: 0.005
+      minDifferentThresholdBps: 20
+      defaultAlphaFeePercentageBps: 100
     ttl: 600s
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
+  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
+  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info

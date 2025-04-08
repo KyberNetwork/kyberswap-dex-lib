@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/redis/go-redis/v9"
 )
 
 type redisRepository struct {
@@ -34,11 +34,13 @@ func (r *redisRepository) Save(ctx context.Context, routeId string, alphaFee *en
 		return err
 	}
 
-	return r.redisClient.Set(ctx, formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId), data, r.config.Redis.TTL).Err()
+	return r.redisClient.Set(ctx, formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId),
+		data, r.config.Redis.TTL).Err()
 }
 
 func (r *redisRepository) GetByRouteId(ctx context.Context, routeId string) (*entity.AlphaFee, error) {
-	data, err := r.redisClient.Get(ctx, formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId)).Result()
+	data, err := r.redisClient.Get(ctx,
+		formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId)).Result()
 	if err != nil {
 		return nil, err
 	}

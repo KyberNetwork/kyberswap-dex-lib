@@ -6,16 +6,14 @@ import (
 	"math/big"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -23,22 +21,23 @@ import (
 )
 
 type aggregator struct {
-	poolFactory            IPoolFactory
-	tokenRepository        ITokenRepository
-	onchainpriceRepository IOnchainPriceRepository
-	poolManager            IPoolManager
-	poolRepository         IPoolRepository
+	poolFactory            getroute.IPoolFactory
+	tokenRepository        getroute.ITokenRepository
+	onchainpriceRepository getroute.IOnchainPriceRepository
+	poolManager            getroute.IPoolManager
+	poolRepository         getroute.IPoolRepository
 
 	finderEngine finderEngine.IPathFinderEngine
-	config       getroute.AggregatorConfig
+
+	config getroute.AggregatorConfig
 }
 
 func NewCustomAggregator(
-	poolFactory IPoolFactory,
-	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
-	poolManager IPoolManager,
-	poolRepository IPoolRepository,
+	poolFactory getroute.IPoolFactory,
+	tokenRepository getroute.ITokenRepository,
+	onchainpriceRepository getroute.IOnchainPriceRepository,
+	poolManager getroute.IPoolManager,
+	poolRepository getroute.IPoolRepository,
 	config getroute.AggregatorConfig,
 	finderEngine finderEngine.IPathFinderEngine,
 ) *aggregator {
@@ -54,7 +53,7 @@ func NewCustomAggregator(
 }
 
 func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams,
-	poolIds []string) (*valueobject.RouteSummary, error) {
+	poolIds []string) (*valueobject.RouteSummaries, error) {
 	// Step 1: get pool set
 	poolEntities, err := a.poolRepository.FindByAddresses(ctx, poolIds)
 	if err != nil {
@@ -103,10 +102,9 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	var limits = make(map[string]map[string]*big.Int)
-	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.LimitOrder] = make(map[string]*big.Int)
+	for _, poolType := range constant.DexUseSwapLimit {
+		limits[poolType] = make(map[string]*big.Int)
+	}
 	for _, pool := range poolInterfaces {
 		dexLimit, avail := limits[pool.GetType()]
 		if !avail {
@@ -136,7 +134,7 @@ func (a *aggregator) findBestRoute(
 	tokenByAddress map[string]*entity.Token,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
-) (*valueobject.RouteSummary, error) {
+) (*valueobject.RouteSummaries, error) {
 	findRouteParams := getroute.ConvertToPathfinderParams(
 		a.config.WhitelistedTokenSet,
 		params,
@@ -144,8 +142,9 @@ func (a *aggregator) findBestRoute(
 		priceByAddress,
 		state,
 	)
+	findRouteParams.SkipMergeSwap = !a.config.FeatureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
-	route, err := a.finderEngine.Find(ctx, findRouteParams)
+	routes, err := a.finderEngine.Find(ctx, findRouteParams)
 
 	if err != nil {
 		if errors.Is(err, finderEngine.ErrInvalidSwap) {
@@ -158,11 +157,11 @@ func (a *aggregator) findBestRoute(
 	}
 
 	// We don't expect this logic happens but safe check and log here
-	if route.GetBestRoute() == nil {
+	if routes.GetBestRoute() == nil {
 		return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "bet route is nil")
 	}
 
-	return getroute.ConvertToRouteSummary(params, route.GetBestRoute()), nil
+	return getroute.ConvertToRouteSummaries(params, routes), nil
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token

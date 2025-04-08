@@ -28,17 +28,16 @@ import (
 )
 
 type useCase struct {
-	aggregator IAggregator
+	config Config
 
-	tokenRepository    ITokenRepository
-	gasRepository      IGasRepository
-	alphaFeeRepository IAlphaFeeRepository
-	l1FeeEstimator     IL1FeeEstimator
-
+	aggregator             IAggregator
+	tokenRepository        ITokenRepository
+	gasRepository          IGasRepository
+	alphaFeeRepository     IAlphaFeeRepository
+	l1FeeEstimator         IL1FeeEstimator
 	onchainpriceRepository IOnchainPriceRepository
 
-	config Config
-	mu     sync.RWMutex
+	mu sync.RWMutex
 }
 
 func NewUseCase(
@@ -81,12 +80,13 @@ func NewUseCase(
 	aggregatorWithChargeExtraFee := NewChargeExtraFee(finalizedAggregator)
 
 	return &useCase{
+		config: config,
+
 		aggregator:             aggregatorWithChargeExtraFee,
 		tokenRepository:        tokenRepository,
 		gasRepository:          gasRepository,
-		l1FeeEstimator:         l1FeeEstimator,
-		config:                 config,
 		alphaFeeRepository:     alphaFeeRepository,
+		l1FeeEstimator:         l1FeeEstimator,
 		onchainpriceRepository: onchainpriceRepository,
 	}
 }
@@ -127,10 +127,9 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 
 	routeID := requestid.GetRequestIDFromCtx(ctx)
 
-	// Only save route which including alphaFee
+	// Only save routes including alphaFee
 	if routeSummary.AlphaFee != nil {
-		err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee)
-		if err != nil {
+		if err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
 			return nil, err
 		}
 	}
@@ -141,11 +140,6 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	routeSummary.RouteID = routeID
 
 	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
-
-	// TOTO: this line of code will be removed later, do not return alpha
-	if !u.config.Aggregator.FeatureFlags.ShouldReturnAlphaFee {
-		routeSummary.AlphaFee = nil
-	}
 
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,
@@ -242,7 +236,6 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		GasTokenPriceUSD:              gasTokenPriceUSD,
 		AmountIn:                      query.AmountIn,
 		Sources:                       sources,
-		SaveGas:                       query.SaveGas,
 		OnlySinglePath:                query.OnlySinglePath,
 		GasInclude:                    query.GasInclude,
 		GasPrice:                      gasPrice,

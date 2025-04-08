@@ -7,14 +7,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -133,8 +133,8 @@ func (f *Spfav2Finder) splitAmountIn(input findroute.Input, data findroute.Finde
 
 		amountInPerSplit = new(big.Int).Div(amountInBigInt, big.NewInt(maxNumSplits))
 	)
-	if amountInPerSplit.Cmp(constant.Zero) == 0 {
-		amountInPerSplit = constant.One
+	if amountInPerSplit.Sign() == 0 {
+		amountInPerSplit = bignumber.One
 	}
 
 	var amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPrice)

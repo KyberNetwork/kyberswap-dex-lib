@@ -45,17 +45,15 @@ type (
 	}
 
 	Swap struct {
-		Pool              string      `json:"pool"`
-		TokenIn           string      `json:"tokenIn"`
-		TokenOut          string      `json:"tokenOut"`
-		LimitReturnAmount string      `json:"limitReturnAmount"`
-		SwapAmount        string      `json:"swapAmount"`
-		AmountOut         string      `json:"amountOut"`
-		Exchange          string      `json:"exchange"`
-		PoolLength        int         `json:"poolLength"`
-		PoolType          string      `json:"poolType"`
-		PoolExtra         interface{} `json:"poolExtra"`
-		Extra             interface{} `json:"extra"`
+		Pool       string      `json:"pool"`
+		TokenIn    string      `json:"tokenIn"`
+		TokenOut   string      `json:"tokenOut"`
+		SwapAmount string      `json:"swapAmount"`
+		AmountOut  string      `json:"amountOut"`
+		Exchange   string      `json:"exchange"`
+		PoolType   string      `json:"poolType"`
+		PoolExtra  interface{} `json:"poolExtra"`
+		Extra      interface{} `json:"extra"`
 	}
 
 	ChunkInfo struct {

@@ -7,14 +7,16 @@ import (
 	"math"
 	"math/big"
 
+	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	"github.com/samber/lo"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -25,9 +27,11 @@ var (
 	ErrInvalidSwap                         = errors.New("invalid swap")
 	ErrCalcAmountOutEmpty                  = errors.New("calc amount out empty")
 	ErrAlphaFeeNotExists                   = errors.New("alpha fee doesn't exit")
-	ErrRouteNotHavePMM                     = errors.New("route doesn't have pmm swaps")
-	ErrPMMSwapNotEnoughToCoverAlphaFee     = errors.New("pmm swap doesn't have enough amount out to cover alpha fee")
-	ErrApplyAlphaFeeYeildLessAmountThanAMM = errors.New("applying alpha fee yeilds less amount out than amm route")
+	ErrRouteNotHaveAlphaFeeDex             = errors.New("route doesn't have alpha-able swaps")
+	ErrAlphaSwapNotEnoughToCoverAlphaFee   = errors.New("alpha swap doesn't have enough amount out to cover alpha fee")
+	ErrApplyAlphaFeeYieldLessAmountThanAMM = errors.New("applying alpha fee yields less amount out than amm route")
+
+	DefaultReductionFactorInBps = big.NewInt(5000)
 )
 
 type SwapIndex struct {
@@ -50,7 +54,7 @@ type DefaultAlphaFeeParams struct {
 
 type SwapInfo struct {
 	pool     string
-	poolType string
+	exchange valueobject.Exchange
 }
 
 type PathInfo struct {
@@ -60,7 +64,7 @@ type PathInfo struct {
 type AlphaFeeCalculation struct {
 	// Config alpha Fee rate using percentage in BPS, the same as safety quoting, 1 bps = 0.01%
 	// Convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
-	ReductionFactorInBps map[valueobject.Exchange]*big.Int
+	ReductionFactorInBps map[string]*big.Int
 	config               routerValueObject.AlphaFeeConfig
 	entity.ICustomFuncsHolder
 }
@@ -68,9 +72,9 @@ type AlphaFeeCalculation struct {
 func NewAlphaFeeCalculation(
 	config routerValueObject.AlphaFeeConfig,
 	customFuncs entity.ICustomFuncs) *AlphaFeeCalculation {
-	factors := map[valueobject.Exchange]*big.Int{}
+	factors := map[string]*big.Int{}
 	for dex, number := range config.ReductionConfig.ReductionFactorInBps {
-		factors[valueobject.Exchange(dex)] = big.NewInt(int64(number * 10))
+		factors[dex] = big.NewInt(int64(number * 10))
 	}
 	return &AlphaFeeCalculation{
 		ReductionFactorInBps: factors,
@@ -80,44 +84,43 @@ func NewAlphaFeeCalculation(
 }
 
 func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParams) (*routerEntity.AlphaFee, error) {
-	if param.BestAmmRoute == nil {
-		return nil, fmt.Errorf("amm route is nil %w", ErrAlphaFeeNotExists)
-	}
-
-	reductionDelta := new(big.Int).Sub(param.BestRoute.AmountOut, param.BestAmmRoute.AmountOut)
-	if reductionDelta.Sign() <= 0 {
-		return nil, fmt.Errorf("reductionDelta is negative reduction delta %v, best Amount %s, ammRoute %v, %w",
-			reductionDelta, param.BestRoute.AmountOut, param.BestAmmRoute, ErrAlphaFeeNotExists)
-	}
-
-	// If AMM best path and pmm best path almost equal, return error
-	if c.AlmostEqual(param.BestRoute, param.BestAmmRoute, true) {
-		return nil, fmt.Errorf("amm route is almost equal with best route %w", ErrAlphaFeeNotExists)
+	swapIndex := c.findValidAlphaFeeSwap(c.convertToPathInfo(param.BestRoute, param.PoolSimulatorBucket))
+	// swap doesn't contains valid alpha fee swap
+	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
+		return nil, ErrRouteNotHaveAlphaFeeDex
 	}
 
 	var alphaFee *dexlibPool.TokenAmount
-	ammBestRouteAmountOut := param.BestAmmRoute.AmountOut
+	ammBestRouteAmountOut := bignumber.ZeroBI
+	if param.BestAmmRoute != nil {
+		ammBestRouteAmountOut = param.BestAmmRoute.AmountOut
 
-	// To avoid amm best path returns weird route due to lack of swap source, we must check differency between
-	// amm best path and multi best path do not exeed AlphaFeeSlippageTolerance config
-	reducedAmountOutWithSlippageTolerance := new(big.Int).Div(
-		new(big.Int).Mul(
+		// If best route is not that much better than amm route, we don't need to apply alpha fee
+		if c.NotMuchBetter(param.BestRoute, param.BestAmmRoute, true) {
+			return nil, fmt.Errorf("amm route is almost equal with best route %w", ErrAlphaFeeNotExists)
+		}
+	}
+
+	// To avoid amm best path returns weird route due to lack of swap source, we must check difference between
+	// amm best path and multi best path do not exceed AlphaFeeSlippageTolerance config
+	var tmp big.Int
+	maxReducedAmountOut := tmp.Div(
+		tmp.Mul(
 			param.BestRoute.AmountOut,
-			big.NewInt(c.config.ReductionConfig.MaxThresholdPercentageInBps),
+			tmp.SetInt64(c.config.ReductionConfig.MaxThresholdPercentageInBps),
 		),
 		valueobject.BasisPoint,
 	)
 	// if amm best path returns weird route due to lack of swap source
 	// we must cap amm best path amount out to a specific amount base on configuration rate
-	if param.BestAmmRoute.AmountOut.Cmp(reducedAmountOutWithSlippageTolerance) < 0 {
-		ammBestRouteAmountOut = reducedAmountOutWithSlippageTolerance
-		reductionDelta = new(big.Int).Sub(param.BestRoute.AmountOut, ammBestRouteAmountOut)
+	if ammBestRouteAmountOut.Cmp(maxReducedAmountOut) < 0 {
+		ammBestRouteAmountOut = maxReducedAmountOut
 	}
 
-	swapIndex := c.findValidPmmSwap(c.convertToPathInfo(param.BestRoute, param.PoolSimulatorBucket))
-	// swap doesn't contains valid pmm swap
-	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
-		return nil, ErrRouteNotHavePMM
+	reductionDelta := new(big.Int).Sub(param.BestRoute.AmountOut, ammBestRouteAmountOut)
+	if reductionDelta.Sign() <= 0 {
+		return nil, fmt.Errorf("reductionDelta is negative reduction delta %v, best Amount %s, ammRoute %v, %w",
+			reductionDelta, param.BestRoute.AmountOut, ammBestRouteAmountOut, ErrAlphaFeeNotExists)
 	}
 
 	currentPath := param.BestRoute.Paths[swapIndex.PathId]
@@ -146,25 +149,30 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		currentAmountIn = res.TokenAmountOut.Amount
 		if i == swapIndex.SwapId {
 			pmmTokenAmount = res.TokenAmountOut
-			alphaFee = c.calculateAlphaFee(param, reductionDelta, pmmTokenAmount, currentPath)
-			currentAmountIn = new(big.Int).Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
+			alphaFee = c.calculateAlphaFee(param, reductionDelta, pmmTokenAmount, currentPath, pool.GetExchange())
+			currentAmountIn = tmp.Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
 			if currentAmountIn.Sign() < 0 {
 				// return error if amount out of pmm swap isn't enough to cover alpha fee
-				// (this may not happen in reality but we must have a check here to avoid weird error in calculation)
-				logger.Errorf(ctx, "pmm swap amount %s are not enough to cover alpha fee %s", pmmTokenAmount.Amount.Text(10), alphaFee.Amount.Text(10))
-				return nil, ErrPMMSwapNotEnoughToCoverAlphaFee
+				// (this may not happen in reality, but we must have a check here to avoid weird error in calculation)
+				logger.Errorf(ctx, "pmm swap amount %s are not enough to cover alpha fee %s",
+					pmmTokenAmount.Amount, alphaFee.Amount)
+				return nil, ErrAlphaSwapNotEnoughToCoverAlphaFee
 			}
 		}
 	}
+	if alphaFee == nil {
+		return nil, ErrAlphaFeeNotExists
+	}
 
 	// recalculate total amount for the whole route
-	totalAmount := new(big.Int).Sub(currentPath.AmountOut, currentAmountIn)
+	totalAmount := tmp.Sub(currentPath.AmountOut, currentAmountIn)
 	totalAmount = totalAmount.Sub(param.BestRoute.AmountOut, totalAmount)
 
-	// final check alpha fee is valid if it still provide better amount than amm amount out
+	// final check alpha fee is valid if it still provides better amount than amm amount out
 	if totalAmount.Cmp(ammBestRouteAmountOut) < 0 {
-		logger.Errorf(ctx, "apply alpha fee %s provides less amount than amm amount %s", alphaFee.Amount.Text(10), currentAmountIn.Text(10))
-		return nil, ErrApplyAlphaFeeYeildLessAmountThanAMM
+		logger.Errorf(ctx, "apply alpha fee %s provides less amount than amm amount %s",
+			alphaFee.Amount, currentAmountIn)
+		return nil, ErrApplyAlphaFeeYieldLessAmountThanAMM
 	}
 
 	return &routerEntity.AlphaFee{
@@ -175,7 +183,6 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		PathId:    swapIndex.PathId,
 		SwapId:    swapIndex.SwapId,
 	}, nil
-
 }
 
 func (c *AlphaFeeCalculation) convertToPathInfo(
@@ -187,7 +194,7 @@ func (c *AlphaFeeCalculation) convertToPathInfo(
 			poolSim := simulatorBucket.GetPool(pool)
 			swaps = append(swaps, SwapInfo{
 				pool:     pool,
-				poolType: poolSim.GetType(),
+				exchange: valueobject.Exchange(poolSim.GetExchange()),
 			})
 		}
 		result = append(result, PathInfo{swaps})
@@ -196,17 +203,17 @@ func (c *AlphaFeeCalculation) convertToPathInfo(
 	return result
 }
 
-func (c *AlphaFeeCalculation) findValidPmmSwap(paths []PathInfo) SwapIndex {
+func (c *AlphaFeeCalculation) findValidAlphaFeeSwap(paths []PathInfo) SwapIndex {
 	minDistance := math.MaxInt
 	minLen := math.MaxInt
 	pathId := -1
 
-	for i := 0; i < len(paths); i++ {
-		pathLen := len(paths[i].SwapInfo)
+	for i, path := range paths {
+		pathLen := len(path.SwapInfo)
 		j := pathLen - 1 // last pmm pool
 		for ; j >= 0; j-- {
-			swap := paths[i].SwapInfo[j]
-			if kyberpmm.DexTypeKyberPMM == valueobject.Exchange(swap.poolType) {
+			swap := path.SwapInfo[j]
+			if privo.IsAlphaFeeSource(swap.exchange) {
 				break
 			}
 		}
@@ -234,14 +241,13 @@ func (c *AlphaFeeCalculation) findValidPmmSwap(paths []PathInfo) SwapIndex {
 	}
 }
 
-func (c *AlphaFeeCalculation) calculateAlphaFee(
-	param AlphaFeeParams,
-	reductionDelta *big.Int,
-	pmmTokenAmount *dexlibPool.TokenAmount,
-	currentPath *finderCommon.ConstructPath) *dexlibPool.TokenAmount {
+func (c *AlphaFeeCalculation) calculateAlphaFee(param AlphaFeeParams, reductionDelta *big.Int,
+	pmmTokenAmount *dexlibPool.TokenAmount, currentPath *finderCommon.ConstructPath,
+	exchange string) *dexlibPool.TokenAmount {
 	// deductionFactors are converted from float to integer by multiply it by 10, so we will div (BasisPoint * 10)
-	alphaFee := new(big.Int).Div(
-		new(big.Int).Mul(reductionDelta, c.ReductionFactorInBps[valueobject.ExchangeKyberPMM]),
+	alphaFee := new(big.Int)
+	alphaFee.Div(
+		alphaFee.Mul(reductionDelta, lo.CoalesceOrEmpty(c.ReductionFactorInBps[exchange], DefaultReductionFactorInBps)),
 		types.BasisPointMulByTen,
 	)
 
@@ -276,11 +282,12 @@ func (c *AlphaFeeCalculation) calculateAlphaFee(
 func (c *AlphaFeeCalculation) calculatePmmAlphaFeeExactly(
 	pmmSwapTokenOut *dexlibPool.TokenAmount,
 	alphaFee *dexlibPool.TokenAmount,
-	prices map[string]float64, //usd prices
+	prices map[string]float64, // usd prices
 	tokens map[string]dexlibEntity.Token,
 ) *dexlibPool.TokenAmount {
 	alphaFeeUsd := finderUtil.CalcAmountPrice(alphaFee.Amount, tokens[alphaFee.Token].Decimals, prices[alphaFee.Token])
-	pmmSwapTokenOutAlphaFee := finderUtil.CalcAmountFromPrice(alphaFeeUsd, tokens[pmmSwapTokenOut.Token].Decimals, prices[pmmSwapTokenOut.Token])
+	pmmSwapTokenOutAlphaFee := finderUtil.CalcAmountFromPrice(alphaFeeUsd, tokens[pmmSwapTokenOut.Token].Decimals,
+		prices[pmmSwapTokenOut.Token])
 
 	return &dexlibPool.TokenAmount{
 		Token:     pmmSwapTokenOut.Token,
@@ -296,66 +303,55 @@ func (c *AlphaFeeCalculation) calculateAlphaFeeApproximately(
 	alphaFee *big.Int,
 ) *dexlibPool.TokenAmount {
 	// Calculate split amount between the path contains pmmSwap need to be reduced and total amount
-	routeAmountOutFloat := new(big.Float).SetInt(bestRoute.AmountOut)
-	pmmPathAmountOutFloat := new(big.Float).SetInt(pmmPathAmountOut)
-	splitPercentage := new(big.Float).Quo(routeAmountOutFloat, pmmPathAmountOutFloat)
+	routeAmountOutF, _ := bestRoute.AmountOut.Float64()
+	pmmPathAmountOutF, _ := pmmPathAmountOut.Float64()
+	splitPercentage := routeAmountOutF / pmmPathAmountOutF
 
 	// Calculate the rate between alpha fee and total amount out
-	alphaFeeAmountFloat := new(big.Float).SetInt(alphaFee)
-	amountOutFloat := new(big.Float).SetInt(bestRoute.AmountOut)
-	alphaFeeRate := new(big.Float).Quo(alphaFeeAmountFloat, amountOutFloat)
+	alphaFeeAmountF, _ := alphaFee.Float64()
+	amountOutF, _ := bestRoute.AmountOut.Float64()
+	alphaFeeRate := alphaFeeAmountF / amountOutF
 
-	// Calculate alpha fee in pmm swap using propotion formula
-	pmmSwapAmountFloat := new(big.Float).SetInt(pmmSwapTokenOut.Amount)
-	pmmSwapTokenOutAlphaFee := new(big.Float).Mul(alphaFeeRate, pmmSwapAmountFloat)
-	finalResult := new(big.Float).Mul(pmmSwapTokenOutAlphaFee, splitPercentage)
+	// Calculate alpha fee in pmm swap using proportion formula
+	pmmSwapAmountF, _ := pmmSwapTokenOut.Amount.Float64()
+	pmmSwapTokenOutAlphaFee := alphaFeeRate * pmmSwapAmountF
+	finalResult := pmmSwapTokenOutAlphaFee * splitPercentage
 
 	// Convert float to int
-	pmmAlphaFeeInt := new(big.Int)
-	pmmAlphaFeeInt, _ = finalResult.Int(pmmAlphaFeeInt)
+	pmmAlphaFeeInt, _ := big.NewFloat(finalResult).Int(nil)
 
 	return &dexlibPool.TokenAmount{
 		Token:  pmmSwapTokenOut.Token,
 		Amount: pmmAlphaFeeInt,
 	}
-
 }
 
-func (c *AlphaFeeCalculation) AlmostEqual(
-	r *finderCommon.ConstructRoute, y *finderCommon.ConstructRoute, gasIncluded bool) bool {
-	priceAvailable := r.AmountOutPrice != 0 || y.AmountOutPrice != 0
-
-	if gasIncluded && priceAvailable {
-		xValue := r.AmountOutPrice - r.L1GasFeePrice
-		yValue := y.AmountOutPrice - y.L1GasFeePrice
-
-		return math.Abs(xValue-yValue) <= c.config.ReductionConfig.MinDifferentThresholdUSD
+func (c *AlphaFeeCalculation) NotMuchBetter(best, amm *finderCommon.ConstructRoute, gasIncluded bool) bool {
+	if bestPrice, ammPrice := best.AmountOutPrice, amm.AmountOutPrice; bestPrice != 0 || ammPrice != 0 {
+		if gasIncluded {
+			bestPrice -= best.GasFeePrice + best.L1GasFeePrice
+			ammPrice -= amm.GasFeePrice + amm.L1GasFeePrice
+		}
+		return bestPrice-ammPrice <= c.config.ReductionConfig.MinDifferentThresholdUSD
 	}
 
-	diff := r.AmountOut.Sub(r.AmountOut, y.AmountOut)
-	diff.Abs(diff)
-
-	return diff.Cmp(big.NewInt(c.config.ReductionConfig.MinDifferentThresholdBps)) < 0
+	diff := new(big.Int).Sub(best.AmountOut, amm.AmountOut)
+	diff.Mul(diff, valueobject.BasisPoint).Div(diff, amm.AmountOut)
+	return diff.Int64() <= c.config.ReductionConfig.MinDifferentThresholdBps
 }
 
-func (uc *AlphaFeeCalculation) CalculateDefaultAlphaFee(ctx context.Context, param DefaultAlphaFeeParams) (*routerEntity.AlphaFee, error) {
-	swapIndex := uc.findValidPmmSwap(uc.convertRouteSummaryToPathInfo(param.RouteSummary))
-
+func (c *AlphaFeeCalculation) CalculateDefaultAlphaFee(_ context.Context,
+	param DefaultAlphaFeeParams) (*routerEntity.AlphaFee, error) {
+	swapIndex := c.findValidAlphaFeeSwap(c.convertRouteSummaryToPathInfo(param.RouteSummary))
 	// swap doesn't contains valid pmm swap
 	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
-		return nil, ErrRouteNotHavePMM
+		return nil, ErrRouteNotHaveAlphaFeeDex
 	}
 	currentSwap := param.RouteSummary.Route[swapIndex.PathId][swapIndex.SwapId]
 
-	percentageBps := big.NewFloat(uc.config.ReductionConfig.DefaultAlphaFeePercentageBps)
-	basisPointF := new(big.Float).SetInt(valueobject.BasisPoint)
-	amountF := new(big.Float).SetInt(currentSwap.AmountOut)
-
-	feeAmountF := new(big.Float).Mul(amountF, percentageBps)
-	feeAmountF.Quo(feeAmountF, basisPointF)
-
-	feeAmount := new(big.Int)
-	feeAmountF.Int(feeAmount)
+	amountF, _ := currentSwap.AmountOut.Float64()
+	feeAmountF := amountF * c.config.ReductionConfig.DefaultAlphaFeePercentageBps / 1e4
+	feeAmount, _ := big.NewFloat(feeAmountF).Int(nil)
 
 	return &routerEntity.AlphaFee{
 		Pool:   currentSwap.Pool,
@@ -373,7 +369,7 @@ func (c *AlphaFeeCalculation) convertRouteSummaryToPathInfo(route routerValueObj
 		for _, swap := range path {
 			swaps = append(swaps, SwapInfo{
 				pool:     swap.Pool,
-				poolType: swap.PoolType,
+				exchange: swap.Exchange,
 			})
 		}
 		result = append(result, PathInfo{swaps})

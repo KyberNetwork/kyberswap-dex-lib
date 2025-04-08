@@ -104,7 +104,6 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 		IncludedSources:        utils.TransformSliceParams(params.IncludedSources),
 		ExcludedSources:        utils.TransformSliceParams(params.ExcludedSources),
 		OnlyScalableSources:    params.OnlyScalableSources,
-		SaveGas:                params.SaveGas,
 		GasInclude:             params.GasInclude,
 		GasPrice:               gasPrice,
 		ExcludedPools:          mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),

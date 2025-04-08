@@ -3,6 +3,9 @@ package bootstrap
 import (
 	"context"
 
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
+	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm/client"
+	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
@@ -11,8 +14,6 @@ import (
 	dexalotclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	hashflowv3client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
-	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm/client"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
@@ -50,8 +51,7 @@ func NewRFQHandler(
 	switch rfqCfg.Handler {
 	case kyberpmm.DexTypeKyberPMM:
 		var cfg kyberpmm.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -62,8 +62,7 @@ func NewRFQHandler(
 
 	case limitorder.DexTypeLimitOrder:
 		var cfg limitorder.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -72,8 +71,7 @@ func NewRFQHandler(
 
 	case swaapv2.DexType:
 		var cfg swaapv2.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -84,8 +82,7 @@ func NewRFQHandler(
 
 	case hashflowv3.DexType:
 		var cfg hashflowv3.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -96,8 +93,7 @@ func NewRFQHandler(
 
 	case nativev1.DexType:
 		var cfg nativev1.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -108,8 +104,7 @@ func NewRFQHandler(
 
 	case bebop.DexType:
 		var cfg bebop.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -120,8 +115,7 @@ func NewRFQHandler(
 
 	case clipper.DexType:
 		var cfg clipper.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -132,8 +126,7 @@ func NewRFQHandler(
 
 	case dexalot.DexType:
 		var cfg dexalot.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -144,8 +137,7 @@ func NewRFQHandler(
 
 	case mxtrading.DexType:
 		var cfg mxtrading.Config
-		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
-		if err != nil {
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
 			return nil, err
 		}
 
@@ -153,6 +145,13 @@ func NewRFQHandler(
 		httpClient := mxtradingclient.NewHTTPClient(&cfg.HTTP)
 
 		return mxtrading.NewRFQHandler(&cfg, httpClient), nil
+
+	case uniswapv4.DexType:
+		var cfg uniswapv4.RFQConfig
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
+			return nil, err
+		}
+		return uniswapv4.NewRFQHandler(&cfg), nil
 
 	default:
 		return NewNoopRFQHandler(), nil

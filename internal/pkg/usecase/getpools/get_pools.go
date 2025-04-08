@@ -1,10 +1,10 @@
 package getpools
 
 import (
+	"context"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
-
-	"context"
 )
 
 type GetPoolsUseCase struct {
@@ -26,6 +26,6 @@ func (u *GetPoolsUseCase) Handle(ctx context.Context, query dto.GetPoolsQuery) (
 	}
 
 	result := dto.NewGetPoolsResult(pools)
-	defer mempool.ReserveMany(pools)
+	defer mempool.ReserveMany(pools...)
 	return result, nil
 }

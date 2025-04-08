@@ -56,5 +56,6 @@ func transformGetCustomRoutesParams(params params.GetCustomRoutesParams) (dto.Ge
 	return dto.GetCustomRoutesQuery{
 		GetRoutesQuery: query,
 		PoolIds:        utils.TransformSliceParams(params.PoolIds),
+		EnableAlphaFee: params.EnableAlphaFee,
 	}, nil
 }

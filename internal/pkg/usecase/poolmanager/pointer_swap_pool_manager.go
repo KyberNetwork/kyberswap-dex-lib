@@ -3,6 +3,7 @@ package poolmanager
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -10,8 +11,8 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -83,7 +84,7 @@ func NewPointerSwapPoolManager(
 	for i := 0; i < NState; i++ {
 		states[i] = NewLockedState()
 	}
-	//TODO try policies other than LRU, ex LFU
+	// TODO try policies other than LRU, ex LFU
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
 	if err != nil {
 		return nil, err
@@ -235,7 +236,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	// Any item stored in the Pool may be removed automatically at any time without notification.
 	// If the Pool holds the only reference when this happens, the item might be deallocated.
 	// So only put pool entities into sync.Pool after using these entities to avoid deallocated, in this case using defer is correct.
-	defer mempool.ReserveMany(poolEntities)
+	defer mempool.ReserveMany(poolEntities...)
 	if err != nil {
 		return err
 	}
@@ -266,22 +267,22 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 		p.addressSetsPool.Put(tokens)
 	}
 
-	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash(stateRoot))
+	pools := p.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash(stateRoot))
 	if p.config.UseAEVMRemoteFinder && p.poolsPublisher != nil {
 		start := time.Now()
-		storageID, err := p.poolsPublisher.Publish(ctx, poolByAddress)
+		storageID, err := p.poolsPublisher.Publish(ctx, pools)
 		if err != nil {
 			return fmt.Errorf("could not publish pools: %w", err)
 		}
 		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
 		p.publishedStorageIDs[writeTo] = storageID
 	}
-	p.states[writeTo].update(poolByAddress)
+	p.states[writeTo].update(pools)
 
-	//swapping pointer
+	// swapping pointer
 	p.swapPointer(writeTo)
 
-	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
+	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(pools))
 	return nil
 }
 
@@ -289,17 +290,16 @@ func (p *PointerSwapPoolManager) swapPointer(writeTo int32) {
 	// TODO: zero out dangling ref but for now we dont need it.
 	// release resources from dangling
 
-	//from now on we read from the latest state.
+	// from now on we read from the latest state.
 	p.readFrom.Store(writeTo)
-
 }
 
 func (p *PointerSwapPoolManager) filterInvalidPoolAddresses(poolAddresses []string) []string {
-	filters := func(poolAddress string, _ int) bool {
-		return !p.blackListPools.ContainsOne(poolAddress) && !p.faultyPools.ContainsOne(poolAddress) && !p.config.BlacklistedPoolSet[poolAddress]
-	}
-
-	return lo.Filter(poolAddresses, filters)
+	return lo.Filter(poolAddresses, func(poolAddress string, _ int) bool {
+		return !p.blackListPools.ContainsOne(poolAddress) &&
+			!p.faultyPools.ContainsOne(poolAddress) &&
+			!p.config.BlacklistedPoolSet[poolAddress]
+	})
 
 }
 
@@ -313,7 +313,9 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(
 ) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
-		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
+		logger.Errorf(ctx,
+			"filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d",
+			p.config.BlacklistedPoolSet, len(poolAddresses))
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -345,18 +347,19 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	extraData types.PoolManagerExtraData,
 ) (*types.FindRouteState, error) {
 	var (
-		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
-		resultLimits        = make(map[string]map[string]*big.Int)
-		poolsToFetchFromDB  []string
-		whitelistDexSet     = sets.NewString(whitelistDexes...)
+		pools              = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
+		resultLimits       map[string]map[string]*big.Int
+		poolsToFetchFromDB []string
+		whitelistDexSet    = sets.NewString(whitelistDexes...)
 	)
 
 	readFrom := p.readFrom.Load()
+	state := p.states[readFrom]
 
 	// 1. Read all pool entities that are available in read state
-	p.states[readFrom].lock.RLock()
+	state.lock.RLock()
 	for _, key := range poolAddresses {
-		if pool, ok := p.states[readFrom].poolByAddress[key]; ok {
+		if pool, ok := state.poolByAddress[key]; ok {
 			if !whitelistDexSet.Has(pool.GetExchange()) {
 				continue
 			}
@@ -367,89 +370,88 @@ func (p *PointerSwapPoolManager) getPoolStates(
 				poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 				continue
 			}
-			resultPoolByAddress[key] = pool
+			pools[key] = pool
 		} else {
 			poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 		}
 	}
-	//given a clone of limit
-	for dexName, limits := range p.states[readFrom].limits {
-		resLimit := make(map[string]*big.Int, len(limits))
-		for key, l := range limits {
-			resLimit[key] = big.NewInt(0).Set(l)
-		}
-		resultLimits[dexName] = resLimit
-	}
-	p.states[readFrom].lock.RUnlock()
 
-	// return must be happened after unlock, check to return filter out all of pools here
-	if len(resultPoolByAddress) == 0 && len(poolsToFetchFromDB) == 0 {
+	// shallow clone limits. limits are supposed to copy on write
+	resultLimits = make(map[string]map[string]*big.Int, len(state.limits))
+	for dexName, limits := range state.limits {
+		resultLimits[dexName] = maps.Clone(limits)
+	}
+	state.lock.RUnlock()
+
+	if len(pools) == 0 && len(poolsToFetchFromDB) == 0 {
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
 	// check to return immediately if we don't need to fetch pools from Redis
 	if len(poolsToFetchFromDB) == 0 {
 		return &types.FindRouteState{
-			Pools:                   resultPoolByAddress,
+			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 
 	// 2. Fetch all pools that are not cached locally from Redis
-	poolEntitiesFromDB, err := p.GetPoolsIncludingBasePools.Handle(ctx, poolsToFetchFromDB, func(pool *entity.Pool) bool {
-		return whitelistDexSet.Has(pool.Exchange)
-	})
+	poolEntitiesFromDB, err := p.GetPoolsIncludingBasePools.Handle(ctx, poolsToFetchFromDB,
+		func(pool *entity.Pool) bool { return whitelistDexSet.Has(pool.Exchange) })
 
 	// reserve memory for pool entities, avoid mem allocation burden
-	defer mempool.ReserveMany(poolEntitiesFromDB)
+	defer mempool.ReserveMany(poolEntitiesFromDB...)
 
 	if err != nil {
 		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err : %v", err)
 		return &types.FindRouteState{
-			Pools:                   resultPoolByAddress,
+			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 
-	//  check to return filter out all of pools again here
-	if len(resultPoolByAddress) == 0 && len(poolEntitiesFromDB) == 0 {
+	if len(pools) == 0 && len(poolEntitiesFromDB) == 0 {
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
 	// If there are no pools need to be initialized, return the result from mem state
 	if len(poolEntitiesFromDB) == 0 {
 		return &types.FindRouteState{
-			Pools:                   resultPoolByAddress,
+			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 
 	// 3. Init pool simulators
-	poolInterfaces := p.poolFactory.NewPools(ctx, poolEntitiesFromDB, stateRoot)
-	for i := range poolInterfaces {
-		if p.isPMMStalled(poolInterfaces[i]) {
-			logger.Debugf(ctx, "stalling PMM pool %s", poolInterfaces[i].GetAddress())
+	dbPools := p.poolFactory.NewPools(ctx, poolEntitiesFromDB, stateRoot)
+	for _, pool := range dbPools {
+		if p.isPMMStalled(pool) {
+			logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
 			continue
 		}
-		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
+		if !whitelistDexSet.Has(pool.GetExchange()) { // some PoolSimulator might change Exchange
+			continue
+		}
+		pools[pool.GetAddress()] = pool
 	}
 
-	if len(resultPoolByAddress) == 0 {
+	if len(pools) == 0 {
 		return nil, getroute.ErrPoolSetEmpty
 	}
 
+	UpdateLimits(resultLimits, pools)
 	return &types.FindRouteState{
-		Pools:                   resultPoolByAddress,
-		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData), // TODO: do we need to update swap limit here for pools from DB?
+		Pools:                   pools,
+		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
 		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
 }
 
 func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {
-	//special case, non-configured stalling threshold is treat as non-enabling stalling threshold
+	// special case, non-configured stalling threshold is treat as non-enabling stalling threshold
 	if p.config.StallingPMMThreshold == 0 {
 		return false
 	}

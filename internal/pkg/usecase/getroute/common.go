@@ -210,17 +210,15 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 
 		for _, swap := range path {
 			swaps = append(swaps, valueobject.Swap{
-				Pool:              swap.Pool,
-				TokenIn:           swap.TokenIn,
-				TokenOut:          swap.TokenOut,
-				LimitReturnAmount: swap.LimitReturnAmount,
-				SwapAmount:        swap.SwapAmount,
-				AmountOut:         swap.AmountOut,
-				Exchange:          swap.Exchange,
-				PoolLength:        swap.PoolLength,
-				PoolType:          swap.PoolType,
-				PoolExtra:         swap.PoolExtra,
-				Extra:             swap.Extra,
+				Pool:       swap.Pool,
+				TokenIn:    swap.TokenIn,
+				TokenOut:   swap.TokenOut,
+				SwapAmount: swap.SwapAmount,
+				AmountOut:  swap.AmountOut,
+				Exchange:   swap.Exchange,
+				PoolType:   swap.PoolType,
+				PoolExtra:  swap.PoolExtra,
+				Extra:      swap.Extra,
 			})
 		}
 

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
+	kyberpmmClient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
-	kyberpmmClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	nativev1Client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

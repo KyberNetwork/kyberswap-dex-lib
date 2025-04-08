@@ -2,13 +2,15 @@ package getpools
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type GetPoolsIncludingBasePools struct {
@@ -50,6 +52,7 @@ func (u *GetPoolsIncludingBasePools) Handle(ctx context.Context, addresses []str
 	curveMetaBasePoolAddresses := mapset.NewThreadUnsafeSet[string]()
 	for _, pool := range poolEntities {
 		if !filter(pool) {
+			mempool.EntityPool.Put(pool)
 			continue
 		}
 		filteredPoolEntities = append(filteredPoolEntities, pool)
