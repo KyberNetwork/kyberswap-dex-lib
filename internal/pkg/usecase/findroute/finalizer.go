@@ -14,6 +14,7 @@ import (
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/pkg/errors"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -81,18 +82,21 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	)
 
 	// Step 1.1: Prepare alpha fee if needed
-	feeReductionFinalizerExtraData, _ := extraData.(FeeReductionFinalizerExtraData)
-	alphaFee, err := f.alphaFeeCalculation.Calculate(
-		ctx, alphafee.AlphaFeeParams{
-			BestRoute:           constructRoute,
-			BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmRoute,
-			Prices:              params.Prices,
-			Tokens:              params.Tokens,
-			PoolSimulatorBucket: simulatorBucket,
-		},
-	)
-	if err != nil {
-		logger.WithFields(logger.Fields{"error": err, "routeId": routeId}).Debug("error when calculate alpha fee")
+	var alphaFee *routerEntity.AlphaFee
+	if params.ReturnAMMBestPath {
+		feeReductionFinalizerExtraData, _ := extraData.(FeeReductionFinalizerExtraData)
+		alphaFee, err = f.alphaFeeCalculation.Calculate(
+			ctx, alphafee.AlphaFeeParams{
+				BestRoute:           constructRoute,
+				BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmRoute,
+				Prices:              params.Prices,
+				Tokens:              params.Tokens,
+				PoolSimulatorBucket: simulatorBucket,
+			},
+		)
+		if err != nil {
+			logger.WithFields(logger.Fields{"error": err, "routeId": routeId}).Debug("error when calculate alpha fee")
+		}
 	}
 
 	// Step 2: finalize route
