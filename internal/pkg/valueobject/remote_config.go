@@ -21,7 +21,7 @@ type (
 		PregenFinderOptions     FinderOptions       `json:"pregenFinderOptions"`
 		CacheConfig             CacheConfig         `json:"cache"`
 		BlacklistedRecipients   []string            `json:"blacklistedRecipients"`
-		ScaleHelperClients      []string            `mapstructure:"scaleHelperClients" json:"scaleHelperClients"`
+		ScaleHelperClients      []string            `json:"scaleHelperClients"`
 
 		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`

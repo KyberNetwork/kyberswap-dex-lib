@@ -32,6 +32,7 @@ type ConfigResponseDataConfig struct {
 	CacheConfig           valueobject.CacheConfig         `json:"cache"`
 	FaultyPoolsConfig     valueobject.FaultyPoolsConfig   `json:"faultyPoolsConfig"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
+	ScaleHelperClients    []string                        `json:"scaleHelperClients"`
 
 	TokensThresholdForOnchainPrice uint32                                 `json:"tokensThresholdForOnchainPrice"`
 	RFQAcceptableSlippageFraction  int64                                  `json:"rfqAcceptableSlippageFraction"`
@@ -112,6 +113,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string,
 		BlacklistedRecipients:   cfgResp.Data.Config.BlacklistedRecipients,
 		FaultyPoolsConfig:       cfgResp.Data.Config.FaultyPoolsConfig,
 		SafetyQuoteReduction:    cfgResp.Data.Config.SafetyQuoteReduction,
+		ScaleHelperClients:      cfgResp.Data.Config.ScaleHelperClients,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 		RFQAcceptableSlippageFraction:  cfgResp.Data.Config.RFQAcceptableSlippageFraction,
