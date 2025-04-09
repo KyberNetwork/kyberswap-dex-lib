@@ -1,11 +1,11 @@
 package eclp
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -33,10 +33,11 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil || extra.Extra == nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
-	}
-	if extra.Buffers == nil {
+	} else if extra.Extra == nil {
+		return nil, shared.ErrInvalidExtra
+	} else if extra.Buffers == nil {
 		extra.Buffers = make([]*shared.ExtraBuffer, len(entityPool.Tokens))
 	}
 
