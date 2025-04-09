@@ -16,13 +16,6 @@ func getPointDelta(fee int) int {
 	return pointDeltas[fee]
 }
 
-func minInt(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LiquidityPoint, error) {
 	ptRange := d.config.PointRange
 	if ptRange <= 0 {
@@ -50,7 +43,7 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 	liqudityPointLen := (rightPoint - leftPoint) / pointDelta
 	liquidityPointData := make([]swap.LiquidityPoint, 0, liqudityPointLen)
 	for start := leftPoint; start < rightPoint; start += batchLen {
-		end := minInt(start+batchLen, rightPoint)
+		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
 		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -118,7 +111,7 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 	limitOrderPointLen := (rightPoint - leftPoint) / pointDelta
 	limitOrderPointData := make([]swap.LimitOrderPoint, 0, limitOrderPointLen)
 	for start := leftPoint; start < rightPoint; start += batchLen {
-		end := minInt(start+batchLen, rightPoint)
+		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
 		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
 		rpcRequest.AddCall(&ethrpc.Call{
