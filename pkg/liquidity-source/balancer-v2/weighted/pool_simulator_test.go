@@ -235,7 +235,7 @@ func Test_CalcAmountOut(t *testing.T) {
 		expectedAmountOut := "1014934149732776116160723"
 
 		// calculation
-		simulator, err := NewPoolSimulator(pool)
+		simulator, err := NewPoolSimulator(pool, nil)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("2000000000000000000000", 10)
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
@@ -350,7 +350,7 @@ func Test_CalcAmountOut(t *testing.T) {
 		expectedAmountOut := "49523009318781117474536"
 
 		// calculation
-		simulator, err := NewPoolSimulator(pool)
+		simulator, err := NewPoolSimulator(pool, nil)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("77000000000000000000", 10)
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
@@ -750,7 +750,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			err := json.Unmarshal([]byte(tt.fields.p), &pool)
 			assert.Nil(t, err)
 
-			simulator, err := NewPoolSimulator(pool)
+			simulator, err := NewPoolSimulator(pool, nil)
 			assert.Nil(t, err)
 
 			got, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
