@@ -8,7 +8,6 @@ type (
 		Cfg *C
 	}
 	FactoryParams struct {
-		Exchange string
 		Properties
 	}
 	Properties map[string]any

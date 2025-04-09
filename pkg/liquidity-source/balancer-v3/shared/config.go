@@ -13,5 +13,4 @@ type Config struct {
 	VaultExplorer    string      `json:"vaultExplorer"`
 	SubgraphChain    string      `json:"subgraphChain"`
 	SubgraphPoolType string      `json:"-"`
-	Vault            string      `json:"vault,omitempty"`
 }

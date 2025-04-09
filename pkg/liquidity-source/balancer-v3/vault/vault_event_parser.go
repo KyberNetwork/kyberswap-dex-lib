@@ -1,31 +1,42 @@
-package eclp
+package vault
 
 import (
 	"context"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	pooldecoder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 )
 
-type PoolDecoder struct {
-	config *shared.Config
+type Config struct {
+	Vault string `json:"vault,omitempty"`
 }
 
-var _ = pooldecoder.RegisterFactoryC(DexType, NewPoolDecoder)
+type EventParser struct {
+	config *Config
+}
 
-func NewPoolDecoder(config *shared.Config) *PoolDecoder {
-	return &PoolDecoder{
+var _ = pooldecoder.RegisterFactoryC(Type, NewEventParser)
+
+func NewEventParser(config *Config) *EventParser {
+	return &EventParser{
 		config: config,
 	}
 }
 
-func (p *PoolDecoder) Decode(ctx context.Context, logs []types.Log) ([]string, error) {
+func (p *EventParser) Decode(ctx context.Context, logs []types.Log) ([]string, error) {
+	vaultAddress, err := p.GetKey(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var poolAddresses []string
 	for _, log := range logs {
+		if log.Address != common.HexToAddress(vaultAddress) {
+			continue
+		}
 		switch log.Topics[0] {
 		case vaultABI.Events["Swap"].ID,
 			vaultABI.Events["AggregateSwapFeePercentageChanged"].ID,
@@ -43,14 +54,15 @@ func (p *PoolDecoder) Decode(ctx context.Context, logs []types.Log) ([]string, e
 			if len(log.Topics) < 2 {
 				break
 			}
-			poolAddresses = append(poolAddresses, hexutil.Encode(log.Topics[1][:]))
+			p := common.HexToAddress(hexutil.Encode(log.Topics[1][:])).Hex()
+			poolAddresses = append(poolAddresses, strings.ToLower(p))
 		}
 	}
 
 	return poolAddresses, nil
 }
 
-func (p *PoolDecoder) GetKey(ctx context.Context) (poolAddress string, err error) {
+func (p *EventParser) GetKey(ctx context.Context) (poolAddress string, err error) {
 	if p.config.Vault == "" {
 		return "", errors.New("vault address is not set")
 	}
