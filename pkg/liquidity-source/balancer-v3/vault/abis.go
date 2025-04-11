@@ -1,4 +1,4 @@
-package eclp
+package vault
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	poolABI  abi.ABI
 	vaultABI abi.ABI
 )
 
@@ -16,7 +15,6 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&poolABI, poolJson},
 		{&vaultABI, vaultJson},
 	}
 
