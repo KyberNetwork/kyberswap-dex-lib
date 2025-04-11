@@ -441,6 +441,7 @@ var (
 	ExchangeSkyPSM        Exchange = "sky-psm"
 
 	ExchangeFakePool Exchange = "fake-pool"
+	ExchangeOneBit   Exchange = "one-bit"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -827,6 +828,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeDexalot:    {},
 	ExchangeMxTrading:  {},
 	ExchangeLO1inch:    {},
+	ExchangeOneBit:     {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
