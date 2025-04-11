@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/logger"
@@ -19,12 +20,12 @@ const (
 )
 
 type QuoteData struct {
-	Tick      int32          `json:"tick"`
-	SqrtRatio *big.Int       `json:"sqrtRatio"`
-	Liquidity *big.Int       `json:"liquidity"`
-	MinTick   int32          `json:"minTick"`
-	MaxTick   int32          `json:"maxTick"`
-	Ticks     []quoting.Tick `json:"ticks"`
+	Tick           int32          `json:"tick"`
+	SqrtRatioFloat *big.Int       `json:"sqrtRatio"`
+	Liquidity      *big.Int       `json:"liquidity"`
+	MinTick        int32          `json:"minTick"`
+	MaxTick        int32          `json:"maxTick"`
+	Ticks          []quoting.Tick `json:"ticks"`
 }
 
 func fetchPools(
@@ -69,7 +70,7 @@ func fetchPools(
 			extraJson, err := json.Marshal(Extra{
 				State: quoting.NewPoolState(
 					data.Liquidity,
-					data.SqrtRatio,
+					math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
 					data.Tick,
 					data.Ticks,
 					[2]int32{data.MinTick, data.MaxTick},
