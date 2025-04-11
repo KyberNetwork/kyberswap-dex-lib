@@ -27,12 +27,12 @@ func NewEventParser(config *Config) *EventParser {
 	}
 }
 
-func (p *EventParser) Decode(ctx context.Context, logs []types.Log) ([]string, error) {
+func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string][]types.Log, error) {
 	vaultAddress, err := p.GetKey(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var poolAddresses []string
+	addressLogs := make(map[string][]types.Log)
 	for _, log := range logs {
 		if log.Address != common.HexToAddress(vaultAddress) {
 			continue
@@ -54,12 +54,12 @@ func (p *EventParser) Decode(ctx context.Context, logs []types.Log) ([]string, e
 			if len(log.Topics) < 2 {
 				break
 			}
-			p := common.HexToAddress(hexutil.Encode(log.Topics[1][:])).Hex()
-			poolAddresses = append(poolAddresses, strings.ToLower(p))
+			p := strings.ToLower(common.HexToAddress(hexutil.Encode(log.Topics[1][:])).Hex())
+			addressLogs[p] = append(addressLogs[p], log)
 		}
 	}
 
-	return poolAddresses, nil
+	return addressLogs, nil
 }
 
 func (p *EventParser) GetKey(ctx context.Context) (poolAddress string, err error) {
