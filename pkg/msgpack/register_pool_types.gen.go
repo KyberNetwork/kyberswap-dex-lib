@@ -97,6 +97,7 @@ import (
 	pkg_source_curve_tricrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/tricrypto"
 	pkg_source_curve_two "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/two"
 	pkg_source_dmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
+	pkg_source_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo"
 	pkg_source_elastic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	pkg_source_equalizer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	pkg_source_fraxswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
@@ -232,6 +233,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_curve_tricrypto.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_two.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_dmm.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_source_ekubo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_elastic.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_equalizer.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_fraxswap.PoolSimulator{})
