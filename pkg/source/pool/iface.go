@@ -86,6 +86,6 @@ type ITicksBasedPoolTracker interface {
 }
 
 type IPoolDecoder interface {
-	Decode(ctx context.Context, logs []types.Log) (poolAddresses []string, err error)
+	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
 	GetKey(ctx context.Context) (poolAddress string, err error)
 }
