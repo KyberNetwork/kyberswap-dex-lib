@@ -18,7 +18,7 @@ func TestDecode(t *testing.T) {
 		poolDecoder := NewEventParser(&Config{
 			Vault: "0xbA1333333333a1BA1108E8412f11850A5C319bA9",
 		})
-		poolAddresses, _ := poolDecoder.Decode(context.Background(), logs)
-		assert.Equal(t, []string{"0x6b49054c350b47ca9aa1331ab156a1eedbe94e79"}, poolAddresses)
+		addressLogs, _ := poolDecoder.Decode(context.Background(), logs)
+		assert.Equal(t, int(addressLogs["0x6b49054c350b47ca9aa1331ab156a1eedbe94e79"][0].Index), 217)
 	})
 }
