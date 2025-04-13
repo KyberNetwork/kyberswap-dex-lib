@@ -24,7 +24,13 @@ type (
 	}
 
 	StaticExtra struct {
+		Core          string             `json:"core"`
 		ExtensionType pool.ExtensionType `json:"extensionType"`
 		PoolKey       *quoting.PoolKey   `json:"poolKey"`
+	}
+
+	Meta struct {
+		Core    string             `json:"core"`
+		PoolKey quoting.AbiPoolKey `json:"poolKey"`
 	}
 )

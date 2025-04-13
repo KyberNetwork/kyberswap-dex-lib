@@ -20,6 +20,7 @@ type EkuboPool = quoting.Pool
 type PoolSimulator struct {
 	pool.Pool
 	EkuboPool
+	Core string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -65,6 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		EkuboPool: ekuboPool,
+		Core:      staticExtra.Core,
 	}, nil
 }
 
@@ -132,5 +134,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+	return Meta{
+		Core:    p.Core,
+		PoolKey: p.EkuboPool.GetKey().ToAbi(),
+	}
 }

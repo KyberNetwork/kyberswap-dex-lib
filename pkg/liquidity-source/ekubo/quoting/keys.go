@@ -21,9 +21,9 @@ type PoolKey struct {
 }
 
 type AbiPoolKey struct {
-	Token0 common.Address
-	Token1 common.Address
-	Config [32]byte
+	Token0 common.Address `json:"token0"`
+	Token1 common.Address `json:"token1"`
+	Config [32]byte       `json:"config"`
 }
 
 func NewPoolKey(token0, token1 common.Address, config Config) *PoolKey {

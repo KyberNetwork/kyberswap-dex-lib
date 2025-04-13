@@ -122,6 +122,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		}
 
 		staticExtraBytes, err := json.Marshal(StaticExtra{
+			Core:          u.config.Core,
 			ExtensionType: extensionType,
 			PoolKey:       poolKey,
 		})
