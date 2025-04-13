@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestNoRounding(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
 		big.NewInt(2),
@@ -19,7 +21,7 @@ func TestNoRounding(t *testing.T) {
 }
 
 func TestWithRounding(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
 		big.NewInt(4),
@@ -30,7 +32,7 @@ func TestWithRounding(t *testing.T) {
 }
 
 func TestNoRoundingNeeded(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		big.NewInt(8),
 		big.NewInt(2),
 		big.NewInt(4),
@@ -41,7 +43,7 @@ func TestNoRoundingNeeded(t *testing.T) {
 }
 
 func TestDivideByZero(t *testing.T) {
-	_, err := muldiv(
+	_, err := mulDivOverflow(
 		big.NewInt(1),
 		big.NewInt(1),
 		new(big.Int),
@@ -51,42 +53,42 @@ func TestDivideByZero(t *testing.T) {
 }
 
 func TestOverflow(t *testing.T) {
-	_, err := muldiv(
+	_, err := mulDivOverflow(
 		U256Max,
 		big.NewInt(2),
-		One,
+		bignum.One,
 		false,
 	)
-	require.Equal(t, err, ErrOverflow)
+	require.Equal(t, err, ErrMulDivOverflow)
 }
 
 func TestLargeNumbers(t *testing.T) {
-	res, err := muldiv(
-		IntFromString("123456789012345678901234567890"),
-		IntFromString("987654321098765432109876543210"),
-		One,
+	res, err := mulDivOverflow(
+		bignum.NewBig("123456789012345678901234567890"),
+		bignum.NewBig("987654321098765432109876543210"),
+		bignum.One,
 		false,
 	)
 	require.NoError(t, err)
-	require.Zero(t, res.Cmp(IntFromString("121932631137021795226185032733622923332237463801111263526900")))
+	require.Zero(t, res.Cmp(bignum.NewBig("121932631137021795226185032733622923332237463801111263526900")))
 }
 
 func TestRoundingBehavior(t *testing.T) {
 	x, y, d := big.NewInt(10), big.NewInt(10), big.NewInt(5)
 
-	res, err := muldiv(x, y, d, true)
+	res, err := mulDivOverflow(x, y, d, true)
 	require.NoError(t, err)
 	require.Zero(t, res.Cmp(big.NewInt(20)))
 
 	d = big.NewInt(6)
 
-	res, err = muldiv(x, y, d, true)
+	res, err = mulDivOverflow(x, y, d, true)
 	require.NoError(t, err)
 	require.Zero(t, res.Cmp(big.NewInt(17)))
 }
 
 func TestZeroNumerator(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		new(big.Int),
 		big.NewInt(100),
 		big.NewInt(10),
@@ -97,10 +99,10 @@ func TestZeroNumerator(t *testing.T) {
 }
 
 func TestOneDenominator(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		big.NewInt(123456789),
 		big.NewInt(987654321),
-		One,
+		bignum.One,
 		false,
 	)
 	require.NoError(t, err)
@@ -108,10 +110,10 @@ func TestOneDenominator(t *testing.T) {
 }
 
 func TestMaxValuesNoRounding(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		U256Max,
-		One,
-		One,
+		bignum.One,
+		bignum.One,
 		false,
 	)
 	require.NoError(t, err)
@@ -119,10 +121,10 @@ func TestMaxValuesNoRounding(t *testing.T) {
 }
 
 func TestMaxValuesWithRounding(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		U256Max,
-		One,
-		One,
+		bignum.One,
+		bignum.One,
 		true,
 	)
 	require.NoError(t, err)
@@ -130,39 +132,39 @@ func TestMaxValuesWithRounding(t *testing.T) {
 }
 
 func TestRoundingUp(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		U256Max,
-		One,
+		bignum.One,
 		big.NewInt(2),
 		true,
 	)
 	require.NoError(t, err)
-	require.Zero(t, res.Cmp(IntFromString("57896044618658097711785492504343953926634992332820282019728792003956564819968")))
+	require.Zero(t, res.Cmp(bignum.NewBig("57896044618658097711785492504343953926634992332820282019728792003956564819968")))
 }
 
 func TestIntermediateOverflow(t *testing.T) {
-	_, err := muldiv(
+	_, err := mulDivOverflow(
 		U256Max,
 		U256Max,
-		One,
+		bignum.One,
 		false,
 	)
-	require.Equal(t, err, ErrOverflow)
+	require.Equal(t, err, ErrMulDivOverflow)
 }
 
 func TestMaxValuesRoundingUpOverflow(t *testing.T) {
-	res, err := muldiv(
-		new(big.Int).Sub(U256Max, One),
+	res, err := mulDivOverflow(
+		new(big.Int).Sub(U256Max, bignum.One),
 		U256Max,
-		new(big.Int).Sub(U256Max, One),
+		new(big.Int).Sub(U256Max, bignum.One),
 		true,
 	)
 	require.NoError(t, err)
-	require.Zero(t, res.Cmp(IntFromString("115792089237316195423570985008687907853269984665640564039457584007913129639935")))
+	require.Zero(t, res.Cmp(bignum.NewBig("115792089237316195423570985008687907853269984665640564039457584007913129639935")))
 }
 
 func TestRoundingEdgeCase(t *testing.T) {
-	res, err := muldiv(
+	res, err := mulDivOverflow(
 		big.NewInt(5),
 		big.NewInt(5),
 		big.NewInt(2),
@@ -173,10 +175,10 @@ func TestRoundingEdgeCase(t *testing.T) {
 }
 
 func TestLargeIntermediateResult(t *testing.T) {
-	res, err := muldiv(
-		IntFromString("123456789012345678901234567890"),
-		IntFromString("98765432109876543210987654321"),
-		IntFromString("1219326311370217952261850327336229233322374638011112635269"),
+	res, err := mulDivOverflow(
+		bignum.NewBig("123456789012345678901234567890"),
+		bignum.NewBig("98765432109876543210987654321"),
+		bignum.NewBig("1219326311370217952261850327336229233322374638011112635269"),
 		false,
 	)
 	require.NoError(t, err)
@@ -184,12 +186,12 @@ func TestLargeIntermediateResult(t *testing.T) {
 }
 
 func TestSmallDenominatorLargeNumerator(t *testing.T) {
-	res, err := muldiv(
-		IntFromString("340282366920938463463374607431768211455"),
+	res, err := mulDivOverflow(
+		bignum.NewBig("340282366920938463463374607431768211455"),
 		big.NewInt(2),
 		big.NewInt(3),
 		false,
 	)
 	require.NoError(t, err)
-	require.Zero(t, res.Cmp(IntFromString("226854911280625642308916404954512140970")))
+	require.Zero(t, res.Cmp(bignum.NewBig("226854911280625642308916404954512140970")))
 }

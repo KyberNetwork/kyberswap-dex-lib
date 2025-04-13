@@ -3,22 +3,21 @@ package math
 import (
 	"fmt"
 	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
-	bitMask    = IntFromString("0xc00000000000000000000000")
-	notBitMask = IntFromString("0x3fffffffffffffffffffffff")
+	bitMask    = bignum.NewBig("0xc00000000000000000000000")
+	notBitMask = bignum.NewBig("0x3fffffffffffffffffffffff")
 )
 
 func FloatSqrtRatioToFixed(sqrtRatioFloat *big.Int) *big.Int {
 	op1 := new(big.Int).And(sqrtRatioFloat, notBitMask)
-	op2 := new(big.Int).Add(
-		big.NewInt(2),
-		new(big.Int).Rsh(
-			new(big.Int).And(sqrtRatioFloat, bitMask),
-			89,
-		),
-	)
+
+	op2 := new(big.Int).And(sqrtRatioFloat, bitMask)
+	op2.Rsh(op2, 89)
+	op2.Add(bignum.Two, op2)
 
 	return op1.Lsh(op1, uint(op2.Uint64()))
 }
@@ -52,7 +51,7 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *big.Int) (*big.Int,
 			return nil, ErrUnderflow
 		}
 
-		res, err = muldiv(numerator1, sqrtRatio, denominator, true)
+		res, err = mulDivOverflow(numerator1, sqrtRatio, denominator, true)
 	} else {
 		denomP1 := new(big.Int).Div(numerator1, sqrtRatio)
 
@@ -61,7 +60,7 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *big.Int) (*big.Int,
 			return nil, ErrOverflow
 		}
 
-		res, err = muldiv(numerator1, One, denom, true)
+		res, err = mulDivOverflow(numerator1, bignum.One, denom, true)
 	}
 
 	if err != nil {
@@ -83,7 +82,7 @@ func nextSqrtRatioFromAmount1(sqrtRatio, liquidity, amount1 *big.Int) (*big.Int,
 	amount1Abs := new(big.Int).Abs(amount1)
 	roundUp := amount1.Sign() == -1
 
-	quotient, err := muldiv(amount1Abs, TwoPow128, liquidity, roundUp)
+	quotient, err := mulDivOverflow(amount1Abs, TwoPow128, liquidity, roundUp)
 	if err != nil {
 		return nil, fmt.Errorf("muldiv error: %w", err)
 	}

@@ -3,6 +3,10 @@ package math
 import (
 	"math"
 	"math/big"
+
+	"github.com/KyberNetwork/kutils"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -11,20 +15,14 @@ const (
 )
 
 var (
-	MaxSqrtRatio = IntFromString("6276949602062853172742588666607187473671941430179807625216")
-	MinSqrtRatio = IntFromString("18447191164202170524")
+	MaxSqrtRatio = bignum.NewBig("6276949602062853172742588666607187473671941430179807625216")
+	MinSqrtRatio = bignum.NewBig("18447191164202170524")
 )
 
 func ToSqrtRatio(tick int32) *big.Int {
-	ratio := new(big.Int).Set(oneX128)
+	ratio := new(big.Int).Set(TwoPow128)
 
-	var tickAbs int32
-	if tick < 0 {
-		tickAbs = -tick
-	} else {
-		tickAbs = tick
-	}
-
+	tickAbs := kutils.Abs(tick)
 	for i, mask := range tickMasks {
 		if tickAbs&(1<<i) != 0 {
 			ratio.Rsh(

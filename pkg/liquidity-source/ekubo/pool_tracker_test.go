@@ -18,6 +18,7 @@ import (
 	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -96,7 +97,7 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 				// State after pool initialization https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#423
 				stateBefore: quoting2.NewPoolState(
 					new(big.Int),
-					math2.IntFromString("14918731339943421144221696791674880"),
+					bignum.NewBig("14918731339943421144221696791674880"),
 					-20069837,
 					[]quoting2.Tick{
 						{
@@ -113,7 +114,7 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 				// Position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
 				expectedStateAfter: quoting2.NewPoolState(
 					big.NewInt(65496697411278),
-					math2.IntFromString("14918731339943421144221696791674880"),
+					bignum.NewBig("14918731339943421144221696791674880"),
 					-20069837,
 					[]quoting2.Tick{
 						{
@@ -158,7 +159,7 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 			// State after position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
 			stateBefore: quoting2.NewPoolState(
 				big.NewInt(65496697411278),
-				math2.IntFromString("14918731339943421144221696791674880"),
+				bignum.NewBig("14918731339943421144221696791674880"),
 				-20069837,
 				[]quoting2.Tick{
 					{
@@ -182,7 +183,7 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 			),
 			expectedStateAfter: quoting2.NewPoolState(
 				big.NewInt(65496697411278),
-				math2.IntFromString("14918630557421420908805229423624192"),
+				bignum.NewBig("14918630557421420908805229423624192"),
 				-20069851,
 				[]quoting2.Tick{
 					{

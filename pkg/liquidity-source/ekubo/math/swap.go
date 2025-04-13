@@ -17,36 +17,31 @@ func IsPriceIncreasing(amount *big.Int, isToken1 bool) bool {
 }
 
 func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
-	quotient, remainder := new(big.Int).DivMod(
+	result, err := div(
 		new(big.Int).Lsh(afterFee, 64),
 		new(big.Int).Sub(TwoPow64, new(big.Int).SetUint64(fee)),
-		new(big.Int),
+		true,
 	)
-
-	if remainder.Sign() != 0 {
-		quotient.Add(quotient, One)
+	if err != nil {
+		return nil, err
 	}
 
-	if quotient.Cmp(TwoPow128) != -1 {
+	if result.Cmp(U128Max) > 0 {
 		return nil, ErrOverflow
 	}
 
-	return quotient, nil
+	return result, nil
 }
 
 func computeFee(amount *big.Int, fee uint64) *big.Int {
-	num := new(big.Int).Mul(amount, new(big.Int).SetUint64(fee))
-	quotient, remainder := num.DivMod(
-		num,
+	result, _ := mulDivOverflow(
+		amount,
+		new(big.Int).SetUint64(fee),
 		TwoPow64,
-		new(big.Int),
+		true,
 	)
 
-	if remainder.Sign() != 0 {
-		quotient.Add(quotient, One)
-	}
-
-	return quotient
+	return result
 }
 
 func noOp(sqrtRatioNext *big.Int) *SwapResult {
@@ -111,13 +106,12 @@ func ComputeStep(
 
 			var calculatedAmountExcludingFee *big.Int
 			if isToken1 {
-				calculatedAmountExcludingFee, err = amount0Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
+				calculatedAmountExcludingFee, err = Amount0Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
 			} else {
-				calculatedAmountExcludingFee, err = amount1Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
+				calculatedAmountExcludingFee, err = Amount1Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
 			}
-
 			if err != nil {
-				return nil, fmt.Errorf("amount delta: %w", err)
+				return nil, err
 			}
 
 			if isExactOut {
@@ -145,24 +139,24 @@ func ComputeStep(
 
 	var specifiedAmountDelta, calculatedAmountDelta *big.Int
 	if isToken1 {
-		specifiedAmountDelta, err = amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
+		specifiedAmountDelta, err = Amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
 		if err != nil {
-			return nil, fmt.Errorf("amount1 delta: %w", err)
+			return nil, err
 		}
 
-		calculatedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
+		calculatedAmountDelta, err = Amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
 		if err != nil {
-			return nil, fmt.Errorf("amount0 delta: %w", err)
+			return nil, err
 		}
 	} else {
-		specifiedAmountDelta, err = amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
+		specifiedAmountDelta, err = Amount0Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
 		if err != nil {
-			return nil, fmt.Errorf("amount1 delta: %w", err)
+			return nil, err
 		}
 
-		calculatedAmountDelta, err = amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
+		calculatedAmountDelta, err = Amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactOut)
 		if err != nil {
-			return nil, fmt.Errorf("amount0 delta: %w", err)
+			return nil, err
 		}
 	}
 

@@ -13,6 +13,7 @@ import (
 	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -54,88 +55,88 @@ func TestBasePool(t *testing.T) {
 		&Extra{
 			State: quoting2.NewPoolState(
 				big.NewInt(99999),
-				math2.IntFromString("13967539110995781342936001321080700"),
+				bignum.NewBig("13967539110995781342936001321080700"),
 				-20201601,
 				[]quoting2.Tick{
 					{
 						Number:         -88722000,
-						LiquidityDelta: math2.IntFromString("99999"),
+						LiquidityDelta: bignum.NewBig("99999"),
 					},
 					{
 						Number:         -24124600,
-						LiquidityDelta: math2.IntFromString("103926982998885"),
+						LiquidityDelta: bignum.NewBig("103926982998885"),
 					},
 					{
 						Number:         -24124500,
-						LiquidityDelta: math2.IntFromString("-103926982998885"),
+						LiquidityDelta: bignum.NewBig("-103926982998885"),
 					},
 					{
 						Number:         -20236100,
-						LiquidityDelta: math2.IntFromString("20192651866847"),
+						LiquidityDelta: bignum.NewBig("20192651866847"),
 					},
 					{
 						Number:         -20235900,
-						LiquidityDelta: math2.IntFromString("676843433645"),
+						LiquidityDelta: bignum.NewBig("676843433645"),
 					},
 					{
 						Number:         -20235400,
-						LiquidityDelta: math2.IntFromString("620315686813"),
+						LiquidityDelta: bignum.NewBig("620315686813"),
 					},
 					{
 						Number:         -20235000,
-						LiquidityDelta: math2.IntFromString("3899271022058"),
+						LiquidityDelta: bignum.NewBig("3899271022058"),
 					},
 					{
 						Number:         -20234900,
-						LiquidityDelta: math2.IntFromString("1985516133391"),
+						LiquidityDelta: bignum.NewBig("1985516133391"),
 					},
 					{
 						Number:         -20233000,
-						LiquidityDelta: math2.IntFromString("2459469409600"),
+						LiquidityDelta: bignum.NewBig("2459469409600"),
 					},
 					{
 						Number:         -20232100,
-						LiquidityDelta: math2.IntFromString("-20192651866847"),
+						LiquidityDelta: bignum.NewBig("-20192651866847"),
 					},
 					{
 						Number:         -20231900,
-						LiquidityDelta: math2.IntFromString("-663892969024"),
+						LiquidityDelta: bignum.NewBig("-663892969024"),
 					},
 					{
 						Number:         -20231400,
-						LiquidityDelta: math2.IntFromString("-620315686813"),
+						LiquidityDelta: bignum.NewBig("-620315686813"),
 					},
 					{
 						Number:         -20231000,
-						LiquidityDelta: math2.IntFromString("-3516445235227"),
+						LiquidityDelta: bignum.NewBig("-3516445235227"),
 					},
 					{
 						Number:         -20230900,
-						LiquidityDelta: math2.IntFromString("-1985516133391"),
+						LiquidityDelta: bignum.NewBig("-1985516133391"),
 					},
 					{
 						Number:         -20229000,
-						LiquidityDelta: math2.IntFromString("-2459469409600"),
+						LiquidityDelta: bignum.NewBig("-2459469409600"),
 					},
 					{
 						Number:         -20227900,
-						LiquidityDelta: math2.IntFromString("-12950464621"),
+						LiquidityDelta: bignum.NewBig("-12950464621"),
 					},
 					{
 						Number:         -20227000,
-						LiquidityDelta: math2.IntFromString("-382825786831"),
+						LiquidityDelta: bignum.NewBig("-382825786831"),
 					},
 					{
 						Number:         -2000,
-						LiquidityDelta: math2.IntFromString("140308196"),
+						LiquidityDelta: bignum.NewBig("140308196"),
 					},
 					{
 						Number:         2000,
-						LiquidityDelta: math2.IntFromString("-140308196"),
+						LiquidityDelta: bignum.NewBig("-140308196"),
 					},
 					{
 						Number:         88722000,
-						LiquidityDelta: math2.IntFromString("-99999"),
+						LiquidityDelta: bignum.NewBig("-99999"),
 					},
 				},
 				[2]int32{-88722000, 88722000},

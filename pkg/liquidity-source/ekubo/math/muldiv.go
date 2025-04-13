@@ -2,33 +2,37 @@ package math
 
 import (
 	"math/big"
+
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func muldiv(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
+func mulDivOverflow(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
 	if d.Sign() == 0 {
 		return nil, ErrDivZero
 	}
 
-	intermediate := new(big.Int)
+	temp := new(big.Int).Mul(x, y)
+	res := new(big.Int).Div(temp, d)
 
-	if y.Cmp(One) == 0 {
-		intermediate.Set(x)
-	} else {
-		intermediate.Mul(x, y)
+	if roundUp && temp.Mod(temp, d).Sign() > 0 {
+		res.Add(res, bignum.One)
 	}
 
-	quotient, remainder := intermediate.DivMod(
-		intermediate,
-		d,
-		new(big.Int),
-	)
+	if res.Cmp(U256Max) > 0 {
+		return nil, ErrMulDivOverflow
+	}
 
+	return res, nil
+}
+
+func div(x, y *big.Int, roundUp bool) (*big.Int, error) {
+	if y.Sign() == 0 {
+		return nil, ErrDivZero
+	}
+
+	quotient, remainder := new(big.Int).DivMod(x, y, new(big.Int))
 	if roundUp && remainder.Sign() != 0 {
-		quotient.Add(quotient, One)
-	}
-
-	if quotient.Cmp(TwoPow256) != -1 {
-		return nil, ErrOverflow
+		quotient.Add(quotient, bignum.One)
 	}
 
 	return quotient, nil
