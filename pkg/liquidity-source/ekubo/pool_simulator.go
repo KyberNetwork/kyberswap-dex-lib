@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	pool2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type EkuboPool = quoting.Pool
+type EkuboPool = quoting2.Pool
 
 type PoolSimulator struct {
 	pool.Pool
@@ -35,14 +36,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	extension := staticExtra.Extension
 	var ekuboPool EkuboPool
 
-	if extension == ekubo_pool.Base {
-		p := ekubo_pool.NewBasePool(
+	if extension == pool2.Base {
+		p := pool2.NewBasePool(
 			staticExtra.PoolKey,
 			extra.State,
 		)
 		ekuboPool = &p
-	} else if extension == ekubo_pool.Oracle {
-		p := ekubo_pool.NewOraclePool(
+	} else if extension == pool2.Oracle {
+		p := pool2.NewOraclePool(
 			staticExtra.PoolKey,
 			extra.State,
 		)
@@ -117,7 +118,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	p.SetState(params.SwapInfo.(quoting.SwapInfo).StateAfter)
+	p.SetState(params.SwapInfo.(quoting2.SwapInfo).StateAfter)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {

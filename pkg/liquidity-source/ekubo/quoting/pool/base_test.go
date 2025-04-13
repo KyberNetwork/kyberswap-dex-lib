@@ -4,33 +4,34 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 )
 
-var maxTickBounds = [2]int32{math.MinTick, math.MaxTick}
+var maxTickBounds = [2]int32{math2.MinTick, math2.MaxTick}
 
-func ticks(liquidity *big.Int) []quoting.Tick {
-	return []quoting.Tick{
+func ticks(liquidity *big.Int) []quoting2.Tick {
+	return []quoting2.Tick{
 		{
-			Number:         math.MinTick,
+			Number:         math2.MinTick,
 			LiquidityDelta: new(big.Int).Set(liquidity),
 		},
 		{
-			Number:         math.MaxTick,
+			Number:         math2.MaxTick,
 			LiquidityDelta: new(big.Int).Set(liquidity),
 		},
 	}
 }
 
-func poolKey(tickSpacing uint32, fee uint64) quoting.PoolKey {
-	return quoting.NewPoolKey(
+func poolKey(tickSpacing uint32, fee uint64) quoting2.PoolKey {
+	return quoting2.NewPoolKey(
 		common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		common.HexToAddress("0x0000000000000000000000000000000000000001"),
-		quoting.Config{
+		quoting2.Config{
 			Fee:         fee,
 			TickSpacing: tickSpacing,
 			Extension:   common.Address{},
@@ -41,16 +42,16 @@ func poolKey(tickSpacing uint32, fee uint64) quoting.PoolKey {
 func TestQuoteZeroLiquidityToken1Input(t *testing.T) {
 	p := pool.NewBasePool(
 		poolKey(1, 0),
-		quoting.NewPoolState(
+		quoting2.NewPoolState(
 			new(big.Int),
-			math.TwoPow128,
+			math2.TwoPow128,
 			0,
 			ticks(new(big.Int)),
 			maxTickBounds,
 		),
 	)
 
-	quote, err := p.Quote(math.One, true)
+	quote, err := p.Quote(math2.One, true)
 	require.NoError(t, err)
 
 	require.Zero(t, quote.CalculatedAmount.Sign())
@@ -59,16 +60,16 @@ func TestQuoteZeroLiquidityToken1Input(t *testing.T) {
 func TestQuoteZeroLiquidityToken0Input(t *testing.T) {
 	p := pool.NewBasePool(
 		poolKey(1, 0),
-		quoting.NewPoolState(
+		quoting2.NewPoolState(
 			new(big.Int),
-			math.TwoPow128,
+			math2.TwoPow128,
 			0,
 			ticks(new(big.Int)),
 			maxTickBounds,
 		),
 	)
 
-	quote, err := p.Quote(math.One, false)
+	quote, err := p.Quote(math2.One, false)
 	require.NoError(t, err)
 
 	require.Zero(t, quote.CalculatedAmount.Sign())
@@ -77,18 +78,18 @@ func TestQuoteZeroLiquidityToken0Input(t *testing.T) {
 func TestQuoteLiquidityToken1Input(t *testing.T) {
 	p := pool.NewBasePool(
 		poolKey(1, 0),
-		quoting.NewPoolState(
-			math.IntFromString("1_000_000_000"),
-			math.TwoPow128,
+		quoting2.NewPoolState(
+			math2.IntFromString("1_000_000_000"),
+			math2.TwoPow128,
 			0,
-			[]quoting.Tick{
+			[]quoting2.Tick{
 				{
 					Number:         0,
-					LiquidityDelta: math.IntFromString("1_000_000_000"),
+					LiquidityDelta: math2.IntFromString("1_000_000_000"),
 				},
 				{
 					Number:         1,
-					LiquidityDelta: math.IntFromString("-1_000_000_000"),
+					LiquidityDelta: math2.IntFromString("-1_000_000_000"),
 				},
 			},
 			[2]int32{0, 1},
@@ -104,18 +105,18 @@ func TestQuoteLiquidityToken1Input(t *testing.T) {
 func TestQuoteLiquidityToken0Input(t *testing.T) {
 	p := pool.NewBasePool(
 		poolKey(1, 0),
-		quoting.NewPoolState(
+		quoting2.NewPoolState(
 			new(big.Int),
-			math.ToSqrtRatio(1),
+			math2.ToSqrtRatio(1),
 			1,
-			[]quoting.Tick{
+			[]quoting2.Tick{
 				{
 					Number:         0,
-					LiquidityDelta: math.IntFromString("1_000_000_000"),
+					LiquidityDelta: math2.IntFromString("1_000_000_000"),
 				},
 				{
 					Number:         1,
-					LiquidityDelta: math.IntFromString("-1_000_000_000"),
+					LiquidityDelta: math2.IntFromString("-1_000_000_000"),
 				},
 			},
 			[2]int32{0, 1},

@@ -6,20 +6,21 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 )
 
 type Extra struct {
-	State quoting.PoolState `json:"state"`
+	State quoting2.PoolState `json:"state"`
 }
 
 type StaticExtra struct {
-	PoolKey   quoting.PoolKey `json:"poolKey"`
-	Extension pool.Extension  `json:"extension"`
+	PoolKey   quoting2.PoolKey `json:"poolKey"`
+	Extension pool.Extension   `json:"extension"`
 }
 
 type addressWrapper struct {

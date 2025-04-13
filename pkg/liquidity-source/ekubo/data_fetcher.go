@@ -6,10 +6,12 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo/quoting/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -20,23 +22,23 @@ const (
 )
 
 type QuoteData struct {
-	Tick           int32          `json:"tick"`
-	SqrtRatioFloat *big.Int       `json:"sqrtRatio"`
-	Liquidity      *big.Int       `json:"liquidity"`
-	MinTick        int32          `json:"minTick"`
-	MaxTick        int32          `json:"maxTick"`
-	Ticks          []quoting.Tick `json:"ticks"`
+	Tick           int32           `json:"tick"`
+	SqrtRatioFloat *big.Int        `json:"sqrtRatio"`
+	Liquidity      *big.Int        `json:"liquidity"`
+	MinTick        int32           `json:"minTick"`
+	MaxTick        int32           `json:"maxTick"`
+	Ticks          []quoting2.Tick `json:"ticks"`
 }
 
 func fetchPools(
 	ctx context.Context,
 	client *ethrpc.Client,
 	dataFetcher string,
-	poolKeys []quoting.PoolKey,
+	poolKeys []quoting2.PoolKey,
 	extensions map[common.Address]pool.Extension,
 	registeredPools map[string]bool,
 ) ([]entity.Pool, error) {
-	poolKeysAbi := make([]quoting.AbiPoolKey, 0, len(poolKeys))
+	poolKeysAbi := make([]quoting2.AbiPoolKey, 0, len(poolKeys))
 	for i := range poolKeys {
 		poolKeysAbi = append(poolKeysAbi, (&poolKeys[i]).ToAbi())
 	}
@@ -68,7 +70,7 @@ func fetchPools(
 
 		for i, data := range quoteData {
 			extraJson, err := json.Marshal(Extra{
-				State: quoting.NewPoolState(
+				State: quoting2.NewPoolState(
 					data.Liquidity,
 					math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
 					data.Tick,
