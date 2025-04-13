@@ -5,23 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
-	coreAddress  common.Address
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
@@ -29,12 +30,9 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	coreAddress := common.HexToAddress(config.Core)
-
 	return &PoolTracker{
-		coreAddress,
-		config,
-		ethrpcClient,
+		config:       config,
+		ethrpcClient: ethrpcClient,
 	}
 }
 
@@ -43,58 +41,59 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return p, fmt.Errorf("unmarshalling extra: %w", err)
-	}
+	lg := klog.WithFields(ctx, klog.Fields{
+		"dexId":       d.config.DexId,
+		"poolAddress": p.Address,
+	})
+	defer func() {
+		lg.Info("Finish updating state.")
+	}()
+
+	var (
+		blockNumber *big.Int
+		err         error
+	)
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, fmt.Errorf("unmarshalling staticExtra: %w", err)
+	if err = json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return p, err
 	}
 
-	poolKey := staticExtra.PoolKey
+	var extra Extra
+	if err = json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return p, err
+	}
 
-	err := d.applyLogs(params.Logs, poolKey, &extra.State)
-	if err == nil {
-		extraJson, err := json.Marshal(extra)
+	if err = d.applyLogs(&p, params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
+		lg.Errorf("log application failed, falling back to RPC, error: %v", err)
+		extra.PoolState, blockNumber, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
 		if err != nil {
-			return p, fmt.Errorf("marshalling extra: %w", err)
+			return p, err
 		}
-
-		p.Extra = string(extraJson)
-
-		return p, nil
 	}
 
-	logger.WithFields(logger.Fields{
-		"error": err,
-	}).Warnf("log application failed, falling back to RPC")
-
-	extensions := map[common.Address]ekubo_pool.Extension{
-		poolKey.Config.Extension: staticExtra.Extension,
-	}
-
-	pools, err := fetchPools(ctx, d.ethrpcClient, d.config.DataFetcher, []quoting.PoolKey{poolKey}, extensions, nil)
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		return p, fmt.Errorf("fetching pool state: %w", err)
+		return p, err
 	}
 
-	if len(pools) == 0 {
-		return entity.Pool{}, errors.New("failed to fetch pool from RPC")
+	p.Timestamp = time.Now().Unix()
+	p.Extra = string(extraBytes)
+	if blockNumber != nil {
+		p.BlockNumber = blockNumber.Uint64()
 	}
 
-	return pools[0], nil
+	return p, nil
 }
 
-func (d *PoolTracker) applyLogs(logs []types.Log, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
+func (d *PoolTracker) applyLogs(p *entity.Pool, logs []types.Log, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	for _, log := range logs {
-		if d.coreAddress.Cmp(log.Address) != 0 {
+		if !strings.EqualFold(d.config.Core, log.Address.String()) {
 			continue
 		}
 
 		if log.Removed {
-			return errors.New("chain reorg")
+			continue
 		}
 
 		if len(log.Topics) == 0 {
@@ -106,57 +105,62 @@ func (d *PoolTracker) applyLogs(logs []types.Log, poolKey quoting.PoolKey, poolS
 				return fmt.Errorf("handling position updated event: %w", err)
 			}
 		}
+
+		p.BlockNumber = log.BlockNumber
 	}
 
 	return nil
 }
 
-func handleSwappedEvent(data []byte, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
+func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *quoting.PoolKey) (quoting.PoolState, *big.Int, error) {
+	logger.WithFields(logger.Fields{
+		"dexId":       d.config.DexId,
+		"poolAddress": poolKey.StringId(),
+	}).Info("update state from data fetcher")
+
+	poolStates, blockNumber, err := fetchPoolStates(
+		ctx,
+		d.ethrpcClient,
+		d.config.DataFetcher,
+		[]*quoting.PoolKey{poolKey})
+	if err != nil {
+		return quoting.PoolState{}, nil, fmt.Errorf("fetching pool state: %w", err)
+	}
+
+	return poolStates[0], blockNumber, nil
+}
+
+func handleSwappedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	n := new(big.Int).SetBytes(data)
 
-	poolId := new(big.Int).And(
-		new(big.Int).Rsh(n, 512),
-		math.U256Max,
-	)
+	poolId := new(big.Int).And(new(big.Int).Rsh(n, 512), bignum.MAX_UINT_256)
 
 	expectedPoolId, err := poolKey.NumId()
 	if err != nil {
 		return fmt.Errorf("computing expected pool id: %w", err)
 	}
-
 	if expectedPoolId.Cmp(poolId) != 0 {
 		return nil
 	}
 
-	tickRaw := new(big.Int).And(
-		n,
-		math.U32Max,
-	)
-
-	if tickRaw.Cmp(math.TwoPow31) == -1 {
+	tickRaw := new(big.Int).And(n, math.U32Max)
+	if tickRaw.Cmp(math.TwoPow31) < 0 {
 		poolState.ActiveTick = int32(tickRaw.Uint64())
 	} else {
 		poolState.ActiveTick = int32(tickRaw.Sub(tickRaw, math.TwoPow32).Int64())
 	}
 	n.Rsh(n, 32)
 
-	sqrtRatioAfterCompact := new(big.Int).And(
-		n,
-		math.U96Max,
-	)
+	sqrtRatioAfterCompact := new(big.Int).And(n, math.U96Max)
 	n.Rsh(n, 96)
 
 	poolState.SqrtRatio = math.FloatSqrtRatioToFixed(sqrtRatioAfterCompact)
-
-	poolState.Liquidity.And(
-		n,
-		math.U128Max,
-	)
+	poolState.Liquidity.And(n, bignum.MAX_UINT_128)
 
 	return nil
 }
 
-func handlePositionUpdatedEvent(data []byte, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
+func handlePositionUpdatedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	values, err := positionUpdatedEvent.Inputs.Unpack(data)
 	if err != nil {
 		return fmt.Errorf("unpacking event data: %w", err)
