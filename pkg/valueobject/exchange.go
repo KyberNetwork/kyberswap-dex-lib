@@ -441,6 +441,7 @@ var (
 	ExchangeSkyPSM        Exchange = "sky-psm"
 
 	ExchangeFakePool Exchange = "fake-pool"
+	ExchangeEkubo    Exchange = "ekubo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -805,6 +806,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
+	ExchangeEkubo:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

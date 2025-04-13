@@ -34,7 +34,7 @@ import (
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	pkg_liquiditysource_dodo_dsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
-	pkg_source_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
+	pkg_liquiditysource_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	pkg_liquiditysource_ethena_susde "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	pkg_liquiditysource_ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	pkg_liquiditysource_etherfi_ebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
@@ -170,6 +170,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dsp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_ebtc.PoolSimulator{})
@@ -233,7 +234,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_curve_tricrypto.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_two.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_dmm.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_ekubo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_elastic.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_equalizer.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_fraxswap.PoolSimulator{})
