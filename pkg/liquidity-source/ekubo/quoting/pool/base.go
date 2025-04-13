@@ -8,7 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
-func NewBasePool(poolKey quoting.PoolKey, poolState quoting.PoolState) BasePool {
+func NewBasePool(poolKey *quoting.PoolKey, poolState quoting.PoolState) BasePool {
 	return BasePool{
 		sqrtRatio:       new(big.Int).Set(poolState.SqrtRatio),
 		liquidity:       new(big.Int).Set(poolState.Liquidity),
@@ -26,7 +26,7 @@ type BasePool struct {
 	sortedTicks     []quoting.Tick
 	tickBounds      [2]int32
 
-	poolKey quoting.PoolKey
+	poolKey *quoting.PoolKey
 }
 
 type nextInitializedTick struct {
@@ -47,20 +47,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 	activeTickIndex := p.activeTickIndex
 
 	if amount.Sign() == 0 {
-		return &quoting.Quote{
-			ConsumedAmount:   new(big.Int),
-			CalculatedAmount: new(big.Int),
-			FeesPaid:         new(big.Int),
-			Gas:              0,
-			SwapInfo: quoting.SwapInfo{
-				StateAfter: quoting.StateAfter{
-					SqrtRatio:       sqrtRatio,
-					Liquidity:       liquidity,
-					ActiveTickIndex: activeTickIndex,
-				},
-				SkipAhead: 0,
-			},
-		}, nil
+		return nil, ErrZeroAmount
 	}
 
 	isIncreasing := math.IsPriceIncreasing(amount, isToken1)
@@ -168,6 +155,10 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 		}
 	}
 
+	if calculatedAmount.Sign() == 0 {
+		return nil, ErrZeroAmount
+	}
+
 	tickSpacingsCrossed := math.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio, p.poolKey.Config.TickSpacing)
 
 	var skipAhead uint32
@@ -179,7 +170,9 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: calculatedAmount,
 		FeesPaid:         feesPaid,
-		Gas:              quoting.BaseGasCostOfOneSwap + int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
+		Gas: quoting.BaseGasCostOfOneSwap +
+			int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed +
+			int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
 			StateAfter: quoting.StateAfter{
@@ -187,10 +180,11 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 				Liquidity:       liquidity,
 				ActiveTickIndex: activeTickIndex,
 			},
+			TickSpacingsCrossed: tickSpacingsCrossed,
 		},
 	}, nil
 }
 
 func (p *BasePool) GetKey() *quoting.PoolKey {
-	return &p.poolKey
+	return p.poolKey
 }

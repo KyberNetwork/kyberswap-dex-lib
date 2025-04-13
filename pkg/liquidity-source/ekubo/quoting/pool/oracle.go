@@ -10,7 +10,7 @@ type OraclePool struct {
 	BasePool
 }
 
-func NewOraclePool(poolKey quoting.PoolKey, poolState quoting.PoolState) OraclePool {
+func NewOraclePool(poolKey *quoting.PoolKey, poolState quoting.PoolState) OraclePool {
 	return OraclePool{
 		BasePool: NewBasePool(poolKey, poolState),
 	}

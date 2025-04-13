@@ -47,8 +47,8 @@ func TestPoolListUpdater(t *testing.T) {
 	require.Greater(t, len(newPools), 0)
 
 	testPk := quoting.NewPoolKey(
-		valueobject.ZeroAddress,
-		"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+		common.HexToAddress(valueobject.ZeroAddress),
+		common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
 		quoting.Config{
 			Fee:         0,
 			TickSpacing: 0,

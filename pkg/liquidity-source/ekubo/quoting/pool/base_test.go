@@ -17,18 +17,12 @@ var maxTickBounds = [2]int32{math.MinTick, math.MaxTick}
 
 func ticks(liquidity *big.Int) []quoting.Tick {
 	return []quoting.Tick{
-		{
-			Number:         math.MinTick,
-			LiquidityDelta: new(big.Int).Set(liquidity),
-		},
-		{
-			Number:         math.MaxTick,
-			LiquidityDelta: new(big.Int).Set(liquidity),
-		},
+		{Number: math.MinTick, LiquidityDelta: new(big.Int).Set(liquidity)},
+		{Number: math.MaxTick, LiquidityDelta: new(big.Int).Set(liquidity)},
 	}
 }
 
-func poolKey(tickSpacing uint32, fee uint64) quoting.PoolKey {
+func poolKey(tickSpacing uint32, fee uint64) *quoting.PoolKey {
 	return quoting.NewPoolKey(
 		common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		common.HexToAddress("0x0000000000000000000000000000000000000001"),
@@ -51,11 +45,8 @@ func TestQuoteZeroLiquidityToken1Input(t *testing.T) {
 			maxTickBounds,
 		),
 	)
-
-	quote, err := p.Quote(bignum.One, true)
-	require.NoError(t, err)
-
-	require.Zero(t, quote.CalculatedAmount.Sign())
+	_, err := p.Quote(bignum.One, true)
+	require.ErrorIs(t, err, pool.ErrZeroAmount)
 }
 
 func TestQuoteZeroLiquidityToken0Input(t *testing.T) {
@@ -69,11 +60,8 @@ func TestQuoteZeroLiquidityToken0Input(t *testing.T) {
 			maxTickBounds,
 		),
 	)
-
-	quote, err := p.Quote(bignum.One, false)
-	require.NoError(t, err)
-
-	require.Zero(t, quote.CalculatedAmount.Sign())
+	_, err := p.Quote(bignum.One, true)
+	require.ErrorIs(t, err, pool.ErrZeroAmount)
 }
 
 func TestQuoteLiquidityToken1Input(t *testing.T) {
@@ -84,19 +72,12 @@ func TestQuoteLiquidityToken1Input(t *testing.T) {
 			math.TwoPow128,
 			0,
 			[]quoting.Tick{
-				{
-					Number:         0,
-					LiquidityDelta: bignum.NewBig("1_000_000_000"),
-				},
-				{
-					Number:         1,
-					LiquidityDelta: bignum.NewBig("-1_000_000_000"),
-				},
+				{Number: 0, LiquidityDelta: bignum.NewBig("1_000_000_000")},
+				{Number: 1, LiquidityDelta: bignum.NewBig("-1_000_000_000")},
 			},
 			[2]int32{0, 1},
 		),
 	)
-
 	quote, err := p.Quote(big.NewInt(1000), true)
 	require.NoError(t, err)
 
@@ -111,14 +92,8 @@ func TestQuoteLiquidityToken0Input(t *testing.T) {
 			math.ToSqrtRatio(1),
 			1,
 			[]quoting.Tick{
-				{
-					Number:         0,
-					LiquidityDelta: bignum.NewBig("1_000_000_000"),
-				},
-				{
-					Number:         1,
-					LiquidityDelta: bignum.NewBig("-1_000_000_000"),
-				},
+				{Number: 0, LiquidityDelta: bignum.NewBig("1_000_000_000")},
+				{Number: 1, LiquidityDelta: bignum.NewBig("-1_000_000_000")},
 			},
 			[2]int32{0, 1},
 		),

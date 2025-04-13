@@ -20,7 +20,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -50,18 +49,27 @@ func (d *PoolTracker) GetNewPoolState(
 		lg.Info("Finish updating state.")
 	}()
 
+	var err error
+
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err = json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+	if err = json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return p, err
 	}
 
-	if err := d.applyLogs(&p, params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
-		lg.Errorf("log application failed, falling back to RPC, error: %v", err)
+	needRpcCall := len(params.Logs) == 0
+	if !needRpcCall {
+		if err := d.applyLogs(params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
+			lg.Errorf("log application failed, falling back to RPC, error: %v", err)
+			needRpcCall = true
+		}
+	}
+
+	if needRpcCall {
 		extra.PoolState, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
 		if err != nil {
 			return p, err
@@ -130,7 +138,7 @@ func (d *PoolTracker) calcBalances(state *quoting.PoolState) ([]big.Int, error) 
 	return balances, nil
 }
 
-func (d *PoolTracker) applyLogs(p *entity.Pool, logs []types.Log, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
+func (d *PoolTracker) applyLogs(logs []types.Log, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	for _, log := range logs {
 		if !strings.EqualFold(d.config.Core, log.Address.String()) {
 			continue
@@ -177,7 +185,7 @@ func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *quoting.Poo
 func handleSwappedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	n := new(big.Int).SetBytes(data)
 
-	poolId := new(big.Int).And(new(big.Int).Rsh(n, 512), bignum.MAX_UINT_256)
+	poolId := new(big.Int).And(new(big.Int).Rsh(n, 512), math.U256Max)
 
 	expectedPoolId, err := poolKey.NumId()
 	if err != nil {
@@ -199,7 +207,7 @@ func handleSwappedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quotin
 	n.Rsh(n, 96)
 
 	poolState.SqrtRatio = math.FloatSqrtRatioToFixed(sqrtRatioAfterCompact)
-	poolState.Liquidity.And(n, bignum.MAX_UINT_128)
+	poolState.Liquidity.And(n, math.U128Max)
 
 	return nil
 }

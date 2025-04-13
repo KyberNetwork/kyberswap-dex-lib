@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
-	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
@@ -57,8 +56,8 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*quoting.PoolKe
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	if !resp.IsSuccess() {
-		return nil, errors.WithMessagef(ErrGetPoolKeysFailed,
-			"status code: %d, message: %v", resp.StatusCode(), util.MaxBytesToString(resp.Body(), 256))
+		return nil, fmt.Errorf("get pool keys failed status code: %d, message: %v",
+			resp.StatusCode(), util.MaxBytesToString(resp.Body(), 256))
 	}
 
 	newPoolKeys := make([]*quoting.PoolKey, 0)
@@ -72,15 +71,14 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*quoting.PoolKe
 			return nil, fmt.Errorf("parsing fee: %w", err)
 		}
 
-		poolKey := &quoting.PoolKey{
-			Token0: common.HexToAddress(p.Token0),
-			Token1: common.HexToAddress(p.Token1),
-			Config: quoting.Config{
+		poolKey := quoting.NewPoolKey(
+			common.HexToAddress(p.Token0),
+			common.HexToAddress(p.Token1),
+			quoting.Config{
 				Fee:         fee,
 				TickSpacing: p.TickSpacing,
 				Extension:   common.HexToAddress(p.Extension),
-			},
-		}
+			})
 
 		if u.registeredPools[poolKey.StringId()] {
 			continue

@@ -11,8 +11,9 @@ type StateAfter struct {
 }
 
 type SwapInfo struct {
-	StateAfter StateAfter
-	SkipAhead  uint32
+	SkipAhead           uint32     `json:"skipAhead"`
+	StateAfter          StateAfter `json:"-"`
+	TickSpacingsCrossed uint32     `json:"-"`
 }
 
 type Quote struct {

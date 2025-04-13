@@ -26,8 +26,8 @@ type AbiPoolKey struct {
 	Config [32]byte
 }
 
-func NewPoolKey(token0, token1 common.Address, config Config) PoolKey {
-	return PoolKey{
+func NewPoolKey(token0, token1 common.Address, config Config) *PoolKey {
+	return &PoolKey{
 		Token0: token0,
 		Token1: token1,
 		Config: config,
@@ -36,7 +36,10 @@ func NewPoolKey(token0, token1 common.Address, config Config) PoolKey {
 
 func (k *PoolKey) StringId() string {
 	if k.stringId == "" {
-		k.stringId = k.Token0.Hex() + "/" + k.Token1.Hex() + "_" + strconv.FormatUint(k.Config.Fee, 10) + "_" + strconv.FormatUint(uint64(k.Config.TickSpacing), 10) + "_" + k.Config.Extension.Hex()
+		k.stringId = k.Token0.Hex() + "/" + k.Token1.Hex() +
+			"_" + strconv.FormatUint(k.Config.Fee, 10) +
+			"_" + strconv.FormatUint(uint64(k.Config.TickSpacing), 10) +
+			"_" + k.Config.Extension.Hex()
 	}
 
 	return k.stringId

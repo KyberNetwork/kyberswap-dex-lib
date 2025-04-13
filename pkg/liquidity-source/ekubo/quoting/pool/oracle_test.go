@@ -12,7 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 )
 
-func oraclePoolKey() quoting.PoolKey {
+func oraclePoolKey() *quoting.PoolKey {
 	return quoting.NewPoolKey(
 		common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		common.HexToAddress("0x0000000000000000000000000000000000000001"),
