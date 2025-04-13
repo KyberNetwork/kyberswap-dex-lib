@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
@@ -77,6 +78,12 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	balances, err := d.calcBalances(&extra.PoolState)
+	if err != nil {
+		return p, err
+	}
+
+	p.Reserves = lo.Map(balances, func(v big.Int, _ int) string { return v.String() })
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	if blockNumber != nil {
@@ -84,6 +91,50 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	return p, nil
+}
+
+func (d *PoolTracker) calcBalances(state *quoting.PoolState) ([]big.Int, error) {
+	stateSqrtRatio := new(big.Int).Set(state.SqrtRatio)
+
+	balances := make([]big.Int, 2)
+	liquidity := new(big.Int)
+	sqrtRatio := new(big.Int).Set(math.MinSqrtRatio)
+
+	for _, tick := range state.Ticks {
+		tickSqrtRatio := math.ToSqrtRatio(tick.Number)
+		var minAmount1SqrtRatio, maxAmount0SqrtRatio *big.Int
+		if stateSqrtRatio.Cmp(tickSqrtRatio) > 0 {
+			minAmount1SqrtRatio = new(big.Int).Set(tickSqrtRatio)
+		} else {
+			minAmount1SqrtRatio = new(big.Int).Set(stateSqrtRatio)
+		}
+
+		if stateSqrtRatio.Cmp(sqrtRatio) > 0 {
+			maxAmount0SqrtRatio = new(big.Int).Set(stateSqrtRatio)
+		} else {
+			maxAmount0SqrtRatio = new(big.Int).Set(sqrtRatio)
+		}
+
+		if sqrtRatio.Cmp(minAmount1SqrtRatio) < 0 {
+			amount1Delta, err := math.Amount1Delta(sqrtRatio, minAmount1SqrtRatio, liquidity, false)
+			if err != nil {
+				return nil, math.ErrAmount1DeltaOverflow
+			}
+			balances[1].Add(&balances[1], amount1Delta)
+		}
+		if maxAmount0SqrtRatio.Cmp(tickSqrtRatio) < 0 {
+			amount0Delta, err := math.Amount0Delta(maxAmount0SqrtRatio, tickSqrtRatio, liquidity, false)
+			if err != nil {
+				return nil, math.ErrAmount0DeltaOverflow
+			}
+			balances[0].Add(&balances[0], amount0Delta)
+		}
+
+		sqrtRatio.Set(tickSqrtRatio)
+		liquidity.Add(liquidity, tick.LiquidityDelta)
+	}
+
+	return balances, nil
 }
 
 func (d *PoolTracker) applyLogs(p *entity.Pool, logs []types.Log, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
