@@ -11,6 +11,8 @@ type PoolState struct {
 	ActiveTick int32    `json:"activeTick"`
 	Ticks      []Tick   `json:"ticks"`
 	TickBounds [2]int32 `json:"tickBounds"`
+
+	blockNumber uint64
 }
 
 func NewPoolState(liquidity, sqrtRatio *big.Int, activeTick int32, ticks []Tick, tickBounds [2]int32) PoolState {
@@ -104,4 +106,12 @@ func (s *PoolState) addLiquidityCutoffs() {
 
 	s.UpdateTick(s.TickBounds[0], liquidityDeltaMin, false, true)
 	s.UpdateTick(s.TickBounds[1], currentLiquidity, true, true)
+}
+
+func (s *PoolState) SetBlockNumber(blockNumber uint64) {
+	s.blockNumber = blockNumber
+}
+
+func (s *PoolState) GetBlockNumber() uint64 {
+	return s.blockNumber
 }

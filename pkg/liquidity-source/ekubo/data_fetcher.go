@@ -5,12 +5,10 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/samber/lo"
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-
-	"github.com/KyberNetwork/logger"
 )
 
 type QuoteData struct {
@@ -27,18 +25,24 @@ func fetchPoolStates(
 	ethrpcClient *ethrpc.Client,
 	dataFetcher string,
 	poolKeys []*quoting.PoolKey,
-) ([]quoting.PoolState, *big.Int, error) {
-	abiPoolKeys := lo.Map(poolKeys, func(key *quoting.PoolKey, _ int) quoting.AbiPoolKey {
-		return key.ToAbi()
-	})
+) ([]quoting.PoolState, error) {
+	if len(poolKeys) == 0 {
+		return nil, nil
+	}
 
-	quoteData := make([]QuoteData, 0, len(abiPoolKeys))
+	abiPoolKeys := make([]quoting.AbiPoolKey, 0, len(poolKeys))
+	for i := range poolKeys {
+		abiPoolKeys = append(abiPoolKeys, poolKeys[i].ToAbi())
+	}
+
+	poolStates := make([]quoting.PoolState, len(abiPoolKeys))
 
 	req := ethrpcClient.R().SetContext(ctx)
 	for startIdx := 0; startIdx < len(abiPoolKeys); startIdx += maxBatchSize {
 		endIdx := min(startIdx+maxBatchSize, len(abiPoolKeys))
 
-		req.AddCall(&ethrpc.Call{
+		batchQuoteData := make([]QuoteData, endIdx-startIdx)
+		resp, err := req.AddCall(&ethrpc.Call{
 			ABI:    dataFetcherABI,
 			Target: dataFetcher,
 			Method: dataFetcherMethodGetQuoteData,
@@ -46,23 +50,28 @@ func fetchPoolStates(
 				abiPoolKeys[startIdx:endIdx],
 				minTickSpacingsPerPool,
 			},
-		}, []any{&quoteData})
-	}
-	resp, err := req.Aggregate()
-	if err != nil {
-		logger.Errorf("failed to aggregate quote data from data fetcher: %v", err)
-		return nil, nil, err
+		}, []any{&batchQuoteData}).Call()
+		if err != nil {
+			logger.Errorf("failed to retrieve quote data from data fetcher: %v", err)
+			return nil, err
+		}
+
+		var blockNumber uint64
+		if resp.BlockNumber != nil {
+			blockNumber = resp.BlockNumber.Uint64()
+		}
+
+		for i, data := range batchQuoteData {
+			poolStates[i] = quoting.NewPoolState(
+				data.Liquidity,
+				math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
+				data.Tick,
+				data.Ticks,
+				[2]int32{data.MinTick, data.MaxTick},
+			)
+			poolStates[i].SetBlockNumber(blockNumber)
+		}
 	}
 
-	poolStates := lo.Map(quoteData, func(data QuoteData, _ int) quoting.PoolState {
-		return quoting.NewPoolState(
-			data.Liquidity,
-			math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
-			data.Tick,
-			data.Ticks,
-			[2]int32{data.MinTick, data.MaxTick},
-		)
-	})
-
-	return poolStates, resp.BlockNumber, nil
+	return poolStates, nil
 }

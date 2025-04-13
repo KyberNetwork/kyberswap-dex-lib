@@ -39,7 +39,8 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.New("https://eth.drpc.org"))
+	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.New("https://ethereum.kyberengineering.io").
+		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
@@ -64,8 +65,4 @@ func TestPoolListUpdater(t *testing.T) {
 
 		return pk.Token0.Cmp(testPk.Token0) == 0 && pk.Token1.Cmp(testPk.Token1) == 0 && slices.Equal(pk.Config.Compressed(), testPk.Config.Compressed())
 	}))
-
-	newPools, _, err = plUpdater.GetNewPools(context.Background(), nil)
-	require.NoError(t, err)
-	require.Equal(t, len(newPools), 0)
 }

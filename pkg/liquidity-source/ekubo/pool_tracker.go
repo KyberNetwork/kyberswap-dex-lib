@@ -50,24 +50,19 @@ func (d *PoolTracker) GetNewPoolState(
 		lg.Info("Finish updating state.")
 	}()
 
-	var (
-		blockNumber *big.Int
-		err         error
-	)
-
 	var staticExtra StaticExtra
-	if err = json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
 
 	var extra Extra
-	if err = json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return p, err
 	}
 
-	if err = d.applyLogs(&p, params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
+	if err := d.applyLogs(&p, params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
 		lg.Errorf("log application failed, falling back to RPC, error: %v", err)
-		extra.PoolState, blockNumber, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
+		extra.PoolState, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
 		if err != nil {
 			return p, err
 		}
@@ -86,9 +81,7 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = lo.Map(balances, func(v big.Int, _ int) string { return v.String() })
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	if blockNumber != nil {
-		p.BlockNumber = blockNumber.Uint64()
-	}
+	p.BlockNumber = extra.PoolState.GetBlockNumber()
 
 	return p, nil
 }
@@ -157,28 +150,28 @@ func (d *PoolTracker) applyLogs(p *entity.Pool, logs []types.Log, poolKey *quoti
 			}
 		}
 
-		p.BlockNumber = log.BlockNumber
+		poolState.SetBlockNumber(log.BlockNumber)
 	}
 
 	return nil
 }
 
-func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *quoting.PoolKey) (quoting.PoolState, *big.Int, error) {
+func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *quoting.PoolKey) (quoting.PoolState, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       d.config.DexId,
 		"poolAddress": poolKey.StringId(),
 	}).Info("update state from data fetcher")
 
-	poolStates, blockNumber, err := fetchPoolStates(
+	poolStates, err := fetchPoolStates(
 		ctx,
 		d.ethrpcClient,
 		d.config.DataFetcher,
 		[]*quoting.PoolKey{poolKey})
 	if err != nil {
-		return quoting.PoolState{}, nil, fmt.Errorf("fetching pool state: %w", err)
+		return quoting.PoolState{}, fmt.Errorf("fetching pool state: %w", err)
 	}
 
-	return poolStates[0], blockNumber, nil
+	return poolStates[0], nil
 }
 
 func handleSwappedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {

@@ -180,7 +180,11 @@ func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) []typ
 }
 
 func (ts *PoolListTrackerTestSuite) SetupSuite() {
-	ts.tracker = NewPoolTracker(&MainnetConfig, ethrpc.New("https://ethereum.kyberengineering.io"))
+	ts.tracker = NewPoolTracker(
+		&MainnetConfig,
+		ethrpc.New("https://ethereum.kyberengineering.io").
+			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
+	)
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {

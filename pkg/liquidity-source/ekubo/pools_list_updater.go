@@ -103,7 +103,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		return nil, nil, err
 	}
 
-	poolStates, _, err := fetchPoolStates(ctx, u.ethrpcClient, u.config.DataFetcher, newPoolKeys)
+	poolStates, err := fetchPoolStates(ctx, u.ethrpcClient, u.config.DataFetcher, newPoolKeys)
 	if err != nil {
 		return nil, nil, err
 	}
