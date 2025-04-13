@@ -2,8 +2,8 @@ package ekubo
 
 import _ "embed"
 
-//go:embed abis/core.json
+//go:embed abis/Core.json
 var coreJson []byte
 
-//go:embed abis/data-fetcher.json
+//go:embed abis/DataFetcher.json
 var dataFetcherJson []byte
