@@ -8,12 +8,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	quoting "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	pool2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type EkuboPool = quoting2.Pool
+type EkuboPool = quoting.Pool
 
 type PoolSimulator struct {
 	pool.Pool
@@ -118,7 +118,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	p.SetState(params.SwapInfo.(quoting2.SwapInfo).StateAfter)
+	p.SetState(params.SwapInfo.(quoting.SwapInfo).StateAfter)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {

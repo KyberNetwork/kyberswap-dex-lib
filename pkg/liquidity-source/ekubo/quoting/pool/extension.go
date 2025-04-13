@@ -1,8 +1,8 @@
 package pool
 
-type Extension int
+type ExtensionType int
 
 const (
-	Base Extension = iota
+	Base ExtensionType = iota
 	Oracle
 )

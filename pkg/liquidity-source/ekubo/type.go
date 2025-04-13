@@ -10,17 +10,17 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 )
 
 type Extra struct {
-	State quoting2.PoolState `json:"state"`
+	State quoting.PoolState `json:"state"`
 }
 
 type StaticExtra struct {
-	PoolKey   quoting2.PoolKey `json:"poolKey"`
-	Extension pool.Extension   `json:"extension"`
+	PoolKey   quoting.PoolKey    `json:"poolKey"`
+	Extension pool.ExtensionType `json:"extensionType"`
 }
 
 type addressWrapper struct {

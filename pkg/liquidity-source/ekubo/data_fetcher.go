@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 
 	"github.com/KyberNetwork/logger"
@@ -22,23 +22,23 @@ const (
 )
 
 type QuoteData struct {
-	Tick           int32           `json:"tick"`
-	SqrtRatioFloat *big.Int        `json:"sqrtRatio"`
-	Liquidity      *big.Int        `json:"liquidity"`
-	MinTick        int32           `json:"minTick"`
-	MaxTick        int32           `json:"maxTick"`
-	Ticks          []quoting2.Tick `json:"ticks"`
+	Tick           int32          `json:"tick"`
+	SqrtRatioFloat *big.Int       `json:"sqrtRatio"`
+	Liquidity      *big.Int       `json:"liquidity"`
+	MinTick        int32          `json:"minTick"`
+	MaxTick        int32          `json:"maxTick"`
+	Ticks          []quoting.Tick `json:"ticks"`
 }
 
 func fetchPools(
 	ctx context.Context,
 	client *ethrpc.Client,
 	dataFetcher string,
-	poolKeys []quoting2.PoolKey,
-	extensions map[common.Address]pool.Extension,
+	poolKeys []quoting.PoolKey,
+	extensions map[common.Address]pool.ExtensionType,
 	registeredPools map[string]bool,
 ) ([]entity.Pool, error) {
-	poolKeysAbi := make([]quoting2.AbiPoolKey, 0, len(poolKeys))
+	poolKeysAbi := make([]quoting.AbiPoolKey, 0, len(poolKeys))
 	for i := range poolKeys {
 		poolKeysAbi = append(poolKeysAbi, (&poolKeys[i]).ToAbi())
 	}
@@ -70,7 +70,7 @@ func fetchPools(
 
 		for i, data := range quoteData {
 			extraJson, err := json.Marshal(Extra{
-				State: quoting2.NewPoolState(
+				State: quoting.NewPoolState(
 					data.Liquidity,
 					math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
 					data.Tick,
@@ -89,7 +89,7 @@ func fetchPools(
 			poolKey := poolKeys[startIdx+i]
 			extension := poolKey.Config.Extension
 
-			var extensionId pool.Extension
+			var extensionId pool.ExtensionType
 			if extension.Cmp(common.Address{}) == 0 {
 				extensionId = pool.Base
 			} else if ext, ok := extensions[extension]; ok {

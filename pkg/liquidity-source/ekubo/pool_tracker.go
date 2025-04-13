@@ -13,8 +13,8 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -75,7 +75,7 @@ func (d *PoolTracker) GetNewPoolState(
 		poolKey.Config.Extension: staticExtra.Extension,
 	}
 
-	pools, err := fetchPools(ctx, d.ethrpcClient, d.config.DataFetcher, []quoting2.PoolKey{poolKey}, extensions, nil)
+	pools, err := fetchPools(ctx, d.ethrpcClient, d.config.DataFetcher, []quoting.PoolKey{poolKey}, extensions, nil)
 	if err != nil {
 		return p, fmt.Errorf("fetching pool state: %w", err)
 	}
@@ -87,7 +87,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return pools[0], nil
 }
 
-func (d *PoolTracker) applyLogs(logs []types.Log, poolKey quoting2.PoolKey, poolState *quoting2.PoolState) error {
+func (d *PoolTracker) applyLogs(logs []types.Log, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
 	for _, log := range logs {
 		if d.coreAddress.Cmp(log.Address) != 0 {
 			continue
@@ -111,12 +111,12 @@ func (d *PoolTracker) applyLogs(logs []types.Log, poolKey quoting2.PoolKey, pool
 	return nil
 }
 
-func handleSwappedEvent(data []byte, poolKey quoting2.PoolKey, poolState *quoting2.PoolState) error {
+func handleSwappedEvent(data []byte, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
 	n := new(big.Int).SetBytes(data)
 
 	poolId := new(big.Int).And(
 		new(big.Int).Rsh(n, 512),
-		math2.U256Max,
+		math.U256Max,
 	)
 
 	expectedPoolId, err := poolKey.NumId()
@@ -130,33 +130,33 @@ func handleSwappedEvent(data []byte, poolKey quoting2.PoolKey, poolState *quotin
 
 	tickRaw := new(big.Int).And(
 		n,
-		math2.U32Max,
+		math.U32Max,
 	)
 
-	if tickRaw.Cmp(math2.TwoPow31) == -1 {
+	if tickRaw.Cmp(math.TwoPow31) == -1 {
 		poolState.ActiveTick = int32(tickRaw.Uint64())
 	} else {
-		poolState.ActiveTick = int32(tickRaw.Sub(tickRaw, math2.TwoPow32).Int64())
+		poolState.ActiveTick = int32(tickRaw.Sub(tickRaw, math.TwoPow32).Int64())
 	}
 	n.Rsh(n, 32)
 
 	sqrtRatioAfterCompact := new(big.Int).And(
 		n,
-		math2.U96Max,
+		math.U96Max,
 	)
 	n.Rsh(n, 96)
 
-	poolState.SqrtRatio = math2.FloatSqrtRatioToFixed(sqrtRatioAfterCompact)
+	poolState.SqrtRatio = math.FloatSqrtRatioToFixed(sqrtRatioAfterCompact)
 
 	poolState.Liquidity.And(
 		n,
-		math2.U128Max,
+		math.U128Max,
 	)
 
 	return nil
 }
 
-func handlePositionUpdatedEvent(data []byte, poolKey quoting2.PoolKey, poolState *quoting2.PoolState) error {
+func handlePositionUpdatedEvent(data []byte, poolKey quoting.PoolKey, poolState *quoting.PoolState) error {
 	values, err := positionUpdatedEvent.Inputs.Unpack(data)
 	if err != nil {
 		return fmt.Errorf("unpacking event data: %w", err)

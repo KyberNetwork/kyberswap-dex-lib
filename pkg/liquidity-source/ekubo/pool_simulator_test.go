@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	ekubo_pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -24,11 +24,11 @@ var (
 	oracleAddress = common.HexToAddress("0x0000000000000000000000000000000000000003")
 )
 
-func poolKey(fee uint64, tickSpacing uint32, extension common.Address) quoting2.PoolKey {
-	return quoting2.NewPoolKey(
+func poolKey(fee uint64, tickSpacing uint32, extension common.Address) quoting.PoolKey {
+	return quoting.NewPoolKey(
 		token0,
 		token1,
-		quoting2.Config{
+		quoting.Config{
 			Fee:         fee,
 			TickSpacing: tickSpacing,
 			Extension:   extension,
@@ -53,11 +53,11 @@ func TestBasePool(t *testing.T) {
 	entityPool := marshalPool(
 		t,
 		&Extra{
-			State: quoting2.NewPoolState(
+			State: quoting.NewPoolState(
 				big.NewInt(99999),
 				bignum.NewBig("13967539110995781342936001321080700"),
 				-20201601,
-				[]quoting2.Tick{
+				[]quoting.Tick{
 					{
 						Number:         -88722000,
 						LiquidityDelta: bignum.NewBig("99999"),
@@ -188,21 +188,21 @@ func TestOraclePool(t *testing.T) {
 	entityPool := marshalPool(
 		t,
 		&Extra{
-			State: quoting2.NewPoolState(
+			State: quoting.NewPoolState(
 				big.NewInt(10_000_000),
-				math2.TwoPow128,
+				math.TwoPow128,
 				0,
-				[]quoting2.Tick{
+				[]quoting.Tick{
 					{
-						Number:         math2.MinTick,
+						Number:         math.MinTick,
 						LiquidityDelta: big.NewInt(10_000_000),
 					},
 					{
-						Number:         math2.MaxTick,
+						Number:         math.MaxTick,
 						LiquidityDelta: big.NewInt(-10_000_000),
 					},
 				},
-				[2]int32{math2.MinTick, math2.MaxTick},
+				[2]int32{math.MinTick, math.MaxTick},
 			),
 		},
 		&StaticExtra{

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"math/big"
 
-	math2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
-func NewBasePool(poolKey quoting2.PoolKey, poolState quoting2.PoolState) BasePool {
+func NewBasePool(poolKey quoting.PoolKey, poolState quoting.PoolState) BasePool {
 	return BasePool{
 		sqrtRatio:       new(big.Int).Set(poolState.SqrtRatio),
 		liquidity:       new(big.Int).Set(poolState.Liquidity),
-		activeTickIndex: quoting2.NearestInitializedTickIndex(poolState.Ticks, poolState.ActiveTick),
+		activeTickIndex: quoting.NearestInitializedTickIndex(poolState.Ticks, poolState.ActiveTick),
 		sortedTicks:     poolState.Ticks,
 		tickBounds:      poolState.TickBounds,
 		poolKey:         poolKey,
@@ -23,37 +23,37 @@ type BasePool struct {
 	sqrtRatio       *big.Int
 	liquidity       *big.Int
 	activeTickIndex int
-	sortedTicks     []quoting2.Tick
+	sortedTicks     []quoting.Tick
 	tickBounds      [2]int32
 
-	poolKey quoting2.PoolKey
+	poolKey quoting.PoolKey
 }
 
 type nextInitializedTick struct {
-	*quoting2.Tick
+	*quoting.Tick
 	Index     int
 	SqrtRatio *big.Int
 }
 
-func (p *BasePool) SetState(state quoting2.StateAfter) {
+func (p *BasePool) SetState(state quoting.StateAfter) {
 	p.sqrtRatio = new(big.Int).Set(state.SqrtRatio)
 	p.liquidity = new(big.Int).Set(state.Liquidity)
 	p.activeTickIndex = state.ActiveTickIndex
 }
 
-func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error) {
+func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
 	sqrtRatio := new(big.Int).Set(p.sqrtRatio)
 	liquidity := new(big.Int).Set(p.liquidity)
 	activeTickIndex := p.activeTickIndex
 
 	if amount.Sign() == 0 {
-		return &quoting2.Quote{
+		return &quoting.Quote{
 			ConsumedAmount:   new(big.Int),
 			CalculatedAmount: new(big.Int),
 			FeesPaid:         new(big.Int),
 			Gas:              0,
-			SwapInfo: quoting2.SwapInfo{
-				StateAfter: quoting2.StateAfter{
+			SwapInfo: quoting.SwapInfo{
+				StateAfter: quoting.StateAfter{
 					SqrtRatio:       sqrtRatio,
 					Liquidity:       liquidity,
 					ActiveTickIndex: activeTickIndex,
@@ -63,13 +63,13 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 		}, nil
 	}
 
-	isIncreasing := math2.IsPriceIncreasing(amount, isToken1)
+	isIncreasing := math.IsPriceIncreasing(amount, isToken1)
 
 	var sqrtRatioLimit *big.Int
 	if isIncreasing {
-		sqrtRatioLimit = math2.MaxSqrtRatio
+		sqrtRatioLimit = math.MaxSqrtRatio
 	} else {
-		sqrtRatioLimit = math2.MinSqrtRatio
+		sqrtRatioLimit = math.MinSqrtRatio
 	}
 
 	calculatedAmount := new(big.Int)
@@ -82,14 +82,14 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 	for amountRemaining.Sign() != 0 && sqrtRatio.Cmp(sqrtRatioLimit) != 0 {
 		var nextInitTick *nextInitializedTick
 		if isIncreasing {
-			if activeTickIndex != quoting2.InvalidTickIndex {
+			if activeTickIndex != quoting.InvalidTickIndex {
 				nextTickIndex := activeTickIndex + 1
 				if nextTickIndex < len(p.sortedTicks) {
 					tick := &p.sortedTicks[nextTickIndex]
 					nextInitTick = &nextInitializedTick{
 						Tick:      tick,
 						Index:     nextTickIndex,
-						SqrtRatio: math2.ToSqrtRatio(tick.Number),
+						SqrtRatio: math.ToSqrtRatio(tick.Number),
 					}
 				}
 			} else if len(p.sortedTicks) > 0 {
@@ -97,15 +97,15 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 				nextInitTick = &nextInitializedTick{
 					Tick:      tick,
 					Index:     0,
-					SqrtRatio: math2.ToSqrtRatio(tick.Number),
+					SqrtRatio: math.ToSqrtRatio(tick.Number),
 				}
 			}
-		} else if activeTickIndex != quoting2.InvalidTickIndex {
+		} else if activeTickIndex != quoting.InvalidTickIndex {
 			tick := &p.sortedTicks[activeTickIndex]
 			nextInitTick = &nextInitializedTick{
 				Tick:      tick,
 				Index:     activeTickIndex,
-				SqrtRatio: math2.ToSqrtRatio(tick.Number),
+				SqrtRatio: math.ToSqrtRatio(tick.Number),
 			}
 		}
 
@@ -121,7 +121,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 			}
 		}
 
-		step, err := math2.ComputeStep(
+		step, err := math.ComputeStep(
 			sqrtRatio,
 			liquidity,
 			stepSqrtRatioLimit,
@@ -146,7 +146,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 				} else if tickIndex != 0 {
 					activeTickIndex = tickIndex - 1
 				} else {
-					activeTickIndex = quoting2.InvalidTickIndex
+					activeTickIndex = quoting.InvalidTickIndex
 				}
 
 				initializedTicksCrossed += 1
@@ -163,26 +163,26 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 			if isIncreasing && len(p.sortedTicks) > 0 {
 				activeTickIndex = len(p.sortedTicks) - 1
 			} else {
-				activeTickIndex = quoting2.InvalidTickIndex
+				activeTickIndex = quoting.InvalidTickIndex
 			}
 		}
 	}
 
-	tickSpacingsCrossed := math2.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio, p.poolKey.Config.TickSpacing)
+	tickSpacingsCrossed := math.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio, p.poolKey.Config.TickSpacing)
 
 	var skipAhead uint32
 	if initializedTicksCrossed != 0 {
 		skipAhead = tickSpacingsCrossed / initializedTicksCrossed
 	}
 
-	return &quoting2.Quote{
+	return &quoting.Quote{
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: calculatedAmount,
 		FeesPaid:         feesPaid,
-		Gas:              quoting2.BaseGasCostOfOneSwap + int64(initializedTicksCrossed)*quoting2.GasCostOfOneInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting2.GasCostOfOneTickSpacingCrossed,
-		SwapInfo: quoting2.SwapInfo{
+		Gas:              quoting.BaseGasCostOfOneSwap + int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
+		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
-			StateAfter: quoting2.StateAfter{
+			StateAfter: quoting.StateAfter{
 				SqrtRatio:       sqrtRatio,
 				Liquidity:       liquidity,
 				ActiveTickIndex: activeTickIndex,
@@ -191,6 +191,6 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting2.Quote, error
 	}, nil
 }
 
-func (p *BasePool) GetKey() *quoting2.PoolKey {
+func (p *BasePool) GetKey() *quoting.PoolKey {
 	return &p.poolKey
 }

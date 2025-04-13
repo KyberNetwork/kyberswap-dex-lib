@@ -8,18 +8,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	quoting2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
 var (
 	checkedTickNumberBounds     = [2]int32{-2, 2}
 	minCheckedTickNumber        = checkedTickNumberBounds[0]
 	maxCheckedTickNumber        = checkedTickNumberBounds[1]
-	minCheckedTickUninitialized = quoting2.Tick{
+	minCheckedTickUninitialized = quoting.Tick{
 		Number:         minCheckedTickNumber,
 		LiquidityDelta: new(big.Int),
 	}
-	maxCheckedTickUninitialized = quoting2.Tick{
+	maxCheckedTickUninitialized = quoting.Tick{
 		Number:         maxCheckedTickNumber,
 		LiquidityDelta: new(big.Int),
 	}
@@ -29,8 +29,8 @@ var (
 	positiveLiquidity                   = big.NewInt(10)
 )
 
-func newPoolState(liquidity *big.Int, ticks []quoting2.Tick) quoting2.PoolState {
-	return quoting2.NewPoolState(
+func newPoolState(liquidity *big.Int, ticks []quoting.Tick) quoting.PoolState {
+	return quoting.NewPoolState(
 		liquidity,
 		math.ToSqrtRatio(activeTickNumber),
 		activeTickNumber,
@@ -39,30 +39,30 @@ func newPoolState(liquidity *big.Int, ticks []quoting2.Tick) quoting2.PoolState 
 	)
 }
 
-func requireTicksEqual(t *testing.T, expected []quoting2.Tick, actual []quoting2.Tick) {
-	require.True(t, slices.EqualFunc(expected, actual, func(e1, e2 quoting2.Tick) bool {
+func requireTicksEqual(t *testing.T, expected []quoting.Tick, actual []quoting.Tick) {
+	require.True(t, slices.EqualFunc(expected, actual, func(e1, e2 quoting.Tick) bool {
 		return e1.Number == e2.Number && e1.LiquidityDelta.Cmp(e2.LiquidityDelta) == 0
 	}))
 }
 
 func TestEmptyTicks(t *testing.T) {
-	state := newPoolState(new(big.Int), []quoting2.Tick{})
+	state := newPoolState(new(big.Int), []quoting.Tick{})
 
-	require.Equal(t, []quoting2.Tick{minCheckedTickUninitialized, maxCheckedTickUninitialized}, state.Ticks)
+	require.Equal(t, []quoting.Tick{minCheckedTickUninitialized, maxCheckedTickUninitialized}, state.Ticks)
 }
 
 func TestPositiveLiquidityDelta(t *testing.T) {
 	liquidityDelta := positiveLiquidity
 
 	t.Run("initialized active tick", func(t *testing.T) {
-		activeTickInitialized := quoting2.Tick{
+		activeTickInitialized := quoting.Tick{
 			Number:         activeTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(positiveLiquidity, []quoting2.Tick{activeTickInitialized})
+		state := newPoolState(positiveLiquidity, []quoting.Tick{activeTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickUninitialized,
 			activeTickInitialized,
 			{
@@ -73,14 +73,14 @@ func TestPositiveLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized minCheckedTick", func(t *testing.T) {
-		minCheckedTickInitialized := quoting2.Tick{
+		minCheckedTickInitialized := quoting.Tick{
 			Number:         minCheckedTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(positiveLiquidity, []quoting2.Tick{minCheckedTickInitialized})
+		state := newPoolState(positiveLiquidity, []quoting.Tick{minCheckedTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickInitialized,
 			{
 				Number:         maxCheckedTickNumber,
@@ -90,28 +90,28 @@ func TestPositiveLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized maxCheckedTick", func(t *testing.T) {
-		maxCheckedTickInitialized := quoting2.Tick{
+		maxCheckedTickInitialized := quoting.Tick{
 			Number:         maxCheckedTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(new(big.Int), []quoting2.Tick{maxCheckedTickInitialized})
+		state := newPoolState(new(big.Int), []quoting.Tick{maxCheckedTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickUninitialized,
 			maxCheckedTickUninitialized,
 		}, state.Ticks)
 	})
 
 	t.Run("initialized minCheckedTick < tick < activeTick", func(t *testing.T) {
-		tickInitialized := quoting2.Tick{
+		tickInitialized := quoting.Tick{
 			Number:         betweenMinAndActiveTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(positiveLiquidity, []quoting2.Tick{tickInitialized})
+		state := newPoolState(positiveLiquidity, []quoting.Tick{tickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickUninitialized,
 			tickInitialized,
 			{
@@ -122,14 +122,14 @@ func TestPositiveLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized activeTick < tick < maxCheckedTick", func(t *testing.T) {
-		tickInitialized := quoting2.Tick{
+		tickInitialized := quoting.Tick{
 			Number:         betweenActiveAndMaxTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(new(big.Int), []quoting2.Tick{tickInitialized})
+		state := newPoolState(new(big.Int), []quoting.Tick{tickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickUninitialized,
 			tickInitialized,
 			{
@@ -144,14 +144,14 @@ func TestNegativeLiquidityDelta(t *testing.T) {
 	liquidityDelta := new(big.Int).Neg(positiveLiquidity)
 
 	t.Run("initialized active tick", func(t *testing.T) {
-		activeTickInitialized := quoting2.Tick{
+		activeTickInitialized := quoting.Tick{
 			Number:         activeTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(new(big.Int), []quoting2.Tick{activeTickInitialized})
+		state := newPoolState(new(big.Int), []quoting.Tick{activeTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			{
 				Number:         minCheckedTickNumber,
 				LiquidityDelta: new(big.Int).Neg(liquidityDelta),
@@ -162,28 +162,28 @@ func TestNegativeLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized minCheckedTick", func(t *testing.T) {
-		minCheckedTickInitialized := quoting2.Tick{
+		minCheckedTickInitialized := quoting.Tick{
 			Number:         minCheckedTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(new(big.Int), []quoting2.Tick{minCheckedTickInitialized})
+		state := newPoolState(new(big.Int), []quoting.Tick{minCheckedTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			minCheckedTickUninitialized,
 			maxCheckedTickUninitialized,
 		}, state.Ticks)
 	})
 
 	t.Run("initialized maxCheckedTick", func(t *testing.T) {
-		maxCheckedTickInitialized := quoting2.Tick{
+		maxCheckedTickInitialized := quoting.Tick{
 			Number:         maxCheckedTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(positiveLiquidity, []quoting2.Tick{maxCheckedTickInitialized})
+		state := newPoolState(positiveLiquidity, []quoting.Tick{maxCheckedTickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			{
 				Number:         minCheckedTickNumber,
 				LiquidityDelta: new(big.Int).Neg(liquidityDelta),
@@ -193,14 +193,14 @@ func TestNegativeLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized minCheckedTick < tick < activeTick", func(t *testing.T) {
-		tickInitialized := quoting2.Tick{
+		tickInitialized := quoting.Tick{
 			Number:         betweenMinAndActiveTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(new(big.Int), []quoting2.Tick{tickInitialized})
+		state := newPoolState(new(big.Int), []quoting.Tick{tickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			{
 				Number:         minCheckedTickNumber,
 				LiquidityDelta: new(big.Int).Neg(liquidityDelta),
@@ -211,14 +211,14 @@ func TestNegativeLiquidityDelta(t *testing.T) {
 	})
 
 	t.Run("initialized activeTick < tick < maxCheckedTick", func(t *testing.T) {
-		tickInitialized := quoting2.Tick{
+		tickInitialized := quoting.Tick{
 			Number:         betweenActiveAndMaxTickNumber,
 			LiquidityDelta: new(big.Int).Set(liquidityDelta),
 		}
 
-		state := newPoolState(positiveLiquidity, []quoting2.Tick{tickInitialized})
+		state := newPoolState(positiveLiquidity, []quoting.Tick{tickInitialized})
 
-		requireTicksEqual(t, []quoting2.Tick{
+		requireTicksEqual(t, []quoting.Tick{
 			{
 				Number:         minCheckedTickNumber,
 				LiquidityDelta: new(big.Int).Neg(liquidityDelta),
