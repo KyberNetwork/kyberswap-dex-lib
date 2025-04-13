@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	quoting "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	pool2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	ekubopool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type EkuboPool = quoting.Pool
@@ -25,48 +27,56 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
-		return nil, fmt.Errorf("unmarshalling extra: %w", err)
+		return nil, err
 	}
-
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, fmt.Errorf("unmarshalling staticExtra: %w", err)
+		return nil, err
 	}
 
-	extension := staticExtra.Extension
 	var ekuboPool EkuboPool
-
-	if extension == pool2.Base {
-		p := pool2.NewBasePool(
-			staticExtra.PoolKey,
-			extra.State,
-		)
+	switch staticExtra.ExtensionType {
+	case ekubopool.Base:
+		p := ekubopool.NewBasePool(staticExtra.PoolKey, extra.PoolState)
 		ekuboPool = &p
-	} else if extension == pool2.Oracle {
-		p := pool2.NewOraclePool(
-			staticExtra.PoolKey,
-			extra.State,
-		)
+	case ekubopool.Oracle:
+		p := ekubopool.NewOraclePool(staticExtra.PoolKey, extra.PoolState)
 		ekuboPool = &p
-	} else {
-		return nil, fmt.Errorf("unknown pool extension %v", extension)
+	default:
+		return nil, fmt.Errorf("unknown pool extension %v, %v",
+			staticExtra.ExtensionType, staticExtra.PoolKey.Config.Extension)
 	}
+
+	tokens := lo.Map(entityPool.Tokens, func(item *entity.PoolToken, _ int) string {
+		return item.Address
+	})
+
+	reserves := lo.Map(entityPool.Reserves, func(item string, _ int) *big.Int {
+		return bignumber.NewBig(item)
+	})
 
 	return &PoolSimulator{
-		Pool:      pool.Pool{},
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			BlockNumber: entityPool.BlockNumber,
+		}},
 		EkuboPool: ekuboPool,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenIn := common.HexToAddress(params.TokenAmountIn.Token)
+	tokenIn := params.TokenAmountIn.Token
 
 	quote, err := p.Quote(
 		params.TokenAmountIn.Amount,
-		p.GetKey().Token1.Cmp(tokenIn) == 0,
+		strings.EqualFold(tokenIn, p.GetTokens()[1]),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("quoting: %w", err)
+		return nil, fmt.Errorf("ekubo quoting: %w", err)
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -88,15 +98,15 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	tokenOut := common.HexToAddress(params.TokenAmountOut.Token)
+	tokenOut := params.TokenAmountOut.Token
 	input := new(big.Int).Neg(params.TokenAmountOut.Amount)
 
 	quote, err := p.Quote(
 		input,
-		p.GetKey().Token1.Cmp(tokenOut) == 0,
+		strings.EqualFold(tokenOut, p.GetTokens()[1]),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("quoting: %w", err)
+		return nil, fmt.Errorf("ekubo quoting: %w", err)
 	}
 
 	return &pool.CalcAmountInResult{
