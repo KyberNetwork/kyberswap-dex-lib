@@ -76,7 +76,8 @@ func getAmountOutFromToSign(onchainOrderType string, rawTxSign json.RawMessage) 
 	case OnchainOrderTypeOrderWithBatchPermit2:
 		return getAmountOutOfOrderWithBatchPermit2ToSign(rawTxSign)
 	default:
-		return nil, fmt.Errorf("unsupported onchain order type: %s", onchainOrderType)
+		return nil, fmt.Errorf("unsupported onchain order type: %s, rawTxSign: %s",
+			onchainOrderType, string(rawTxSign))
 	}
 }
 

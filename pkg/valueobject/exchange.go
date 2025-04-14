@@ -239,13 +239,15 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM     Exchange = "kyber-pmm"
-	ExchangeSwaapV2      Exchange = "swaap-v2"
-	ExchangeHashflowV3   Exchange = "hashflow-v3"
-	ExchangeNativeV1     Exchange = "native-v1"
-	ExchangeNativeV2     Exchange = "native-v2"
-	ExchangeBebop        Exchange = "bebop"
-	ExchangeDexalot      Exchange = "dexalot"
+	ExchangeKyberPMM   Exchange = "kyber-pmm"
+	ExchangeSwaapV2    Exchange = "swaap-v2"
+	ExchangeHashflowV3 Exchange = "hashflow-v3"
+	ExchangeNativeV1   Exchange = "native-v1"
+	ExchangeNativeV2   Exchange = "native-v2"
+	ExchangeBebop      Exchange = "bebop"
+	ExchangeDexalot    Exchange = "dexalot"
+	ExchangeOneBit     Exchange = "onebit"
+
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
 	ExchangeTraderJoeV22 Exchange = "traderjoe-v22"
@@ -431,13 +433,17 @@ var (
 	ExchangeKatanaV2 Exchange = "katana-v2"
 	ExchangeKatanaV3 Exchange = "katana-v3"
 
+	ExchangeUniswapV4        Exchange = "uniswap-v4"
+	ExchangeUniswapV4BunniV2 Exchange = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Kem     Exchange = "uniswap-v4-kem"
+
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
-	ExchangeUniswapV4     Exchange = "uniswap-v4"
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 	ExchangeSavingsUSDS   Exchange = "savings-usds"
 	ExchangeSkyPSM        Exchange = "sky-psm"
 
 	ExchangeFakePool Exchange = "fake-pool"
+	ExchangeEkubo    Exchange = "ekubo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -795,11 +801,14 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoney:                      {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
-	ExchangeEtherFieBTC:                {},
 	ExchangeUniswapV4:                  {},
+	ExchangeUniswapV4BunniV2:           {},
+	ExchangeUniswapV4Kem:               {},
+	ExchangeEtherFieBTC:                {},
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
+	ExchangeEkubo:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -822,6 +831,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeDexalot:    {},
 	ExchangeMxTrading:  {},
 	ExchangeLO1inch:    {},
+	ExchangeOneBit:     {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

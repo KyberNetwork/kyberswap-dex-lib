@@ -30,7 +30,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 
 	config := Config{
 		DexID:                    DexTypeWooFiV21,
-		WooPPV2Address:           "0xEd9e3f98bBed560e66B89AaC922E29D4596A9642",
+		WooPPV2Address:           "0x5520385bFcf07Ec87C4c53A7d8d65595Dff69FA4",
 		IntegrationHelperAddress: "0x28D2B949024FE50627f1EbC5f0Ca3Ca721148E40",
 	}
 
@@ -42,7 +42,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	pool, _ := ts.tracker.GetNewPoolState(context.Background(), entity.Pool{
-		Address: "0xed9e3f98bbed560e66b89aac922e29d4596a9642",
+		Address: "0x5520385bFcf07Ec87C4c53A7d8d65595Dff69FA4",
 		Tokens: []*entity.PoolToken{
 			{
 				Address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",

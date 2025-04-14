@@ -1,10 +1,13 @@
 package eclp
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
@@ -13,9 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 )
 
 type PoolSimulator struct {
