@@ -61,3 +61,17 @@ type TrackerData struct {
 	Vaults   []VaultRPC
 	Reserves ReserveRPC
 }
+
+type PoolExtra struct {
+	Vault0              string
+	Vault1              string
+	EulerAccount        string
+	EquilibriumReserve0 *big.Int
+	EquilibriumReserve1 *big.Int
+	FeeMultiplier       *big.Int
+	PriceY              *big.Int
+	PriceX              *big.Int
+	ConcentrationY      *big.Int
+	ConcentrationX      *big.Int
+	BlockNumber         uint64
+}
