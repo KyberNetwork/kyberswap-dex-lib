@@ -163,6 +163,7 @@ common:
     - "uniswap-v4"
     - "savings-usds"
     - "uniswap-v4-kem"
+    - "ekubo"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
