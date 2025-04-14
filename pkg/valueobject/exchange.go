@@ -239,13 +239,15 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM     Exchange = "kyber-pmm"
-	ExchangeSwaapV2      Exchange = "swaap-v2"
-	ExchangeHashflowV3   Exchange = "hashflow-v3"
-	ExchangeNativeV1     Exchange = "native-v1"
-	ExchangeNativeV2     Exchange = "native-v2"
-	ExchangeBebop        Exchange = "bebop"
-	ExchangeDexalot      Exchange = "dexalot"
+	ExchangeKyberPMM   Exchange = "kyber-pmm"
+	ExchangeSwaapV2    Exchange = "swaap-v2"
+	ExchangeHashflowV3 Exchange = "hashflow-v3"
+	ExchangeNativeV1   Exchange = "native-v1"
+	ExchangeNativeV2   Exchange = "native-v2"
+	ExchangeBebop      Exchange = "bebop"
+	ExchangeDexalot    Exchange = "dexalot"
+	ExchangeOneBit     Exchange = "onebit"
+
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
 	ExchangeTraderJoeV22 Exchange = "traderjoe-v22"
@@ -441,6 +443,7 @@ var (
 	ExchangeSkyPSM        Exchange = "sky-psm"
 
 	ExchangeFakePool Exchange = "fake-pool"
+	ExchangeEkubo    Exchange = "ekubo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -805,6 +808,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
+	ExchangeEkubo:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -827,6 +831,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeDexalot:    {},
 	ExchangeMxTrading:  {},
 	ExchangeLO1inch:    {},
+	ExchangeOneBit:     {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

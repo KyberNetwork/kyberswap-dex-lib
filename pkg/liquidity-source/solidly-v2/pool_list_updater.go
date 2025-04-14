@@ -286,7 +286,7 @@ func (u *PoolsListUpdater) listStandardPools(
 	return pools, nil
 }
 
-// listPairTokens receives list of pair addresses and returns their token0 and token1
+// listMemecorePools creates entity.Pool list for Memecore pools by fetching token addresses
 func (u *PoolsListUpdater) listMemecorePools(
 	ctx context.Context,
 	poolAddresses []common.Address,
