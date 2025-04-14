@@ -83,6 +83,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__", "-", "_"))
 	viper.AutomaticEnv()
+	viper.AllowEmptyEnv(true)
 
 	// Load and merge additional custom path configuration
 	for _, configPath := range cl.additionConfigPaths {
