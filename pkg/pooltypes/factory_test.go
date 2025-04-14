@@ -18,6 +18,7 @@ func TestPoolFactory(t *testing.T) {
 		"ambient",     // private
 		"maverick-v2", // private
 		"kyber-pmm",   // private
+		"onebit",      // private
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
