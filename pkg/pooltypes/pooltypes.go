@@ -93,6 +93,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dystopia"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ekubo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
@@ -292,6 +293,7 @@ type Types struct {
 	Honey                      string
 	PandaFun                   string
 	Ekubo                      string
+	OneBit                     string
 }
 
 var (
@@ -446,5 +448,6 @@ var (
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
 		Ekubo:                      ekubo.DexType,
+		OneBit:                     string(valueobject.ExchangeOneBit),
 	}
 )

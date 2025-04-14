@@ -1,4 +1,4 @@
-package eclp
+package ekubo
 
 import (
 	"bytes"
@@ -6,18 +6,16 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var (
-	poolABI  abi.ABI
-	vaultABI abi.ABI
-)
+var coreABI, dataFetcherABI abi.ABI
+var positionUpdatedEvent abi.Event
 
 func init() {
 	builder := []struct {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&poolABI, poolJson},
-		{&vaultABI, vaultJson},
+		{&coreABI, coreJson},
+		{&dataFetcherABI, dataFetcherJson},
 	}
 
 	for _, b := range builder {
@@ -27,4 +25,6 @@ func init() {
 			panic(err)
 		}
 	}
+
+	positionUpdatedEvent = coreABI.Events["PositionUpdated"]
 }
