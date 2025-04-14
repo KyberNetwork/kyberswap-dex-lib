@@ -292,6 +292,7 @@ type Types struct {
 	Honey                      string
 	PandaFun                   string
 	Ekubo                      string
+	OneBit                     string
 }
 
 var (
@@ -446,5 +447,6 @@ var (
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
 		Ekubo:                      ekubo.DexType,
+		OneBit:                     string(valueobject.ExchangeOneBit),
 	}
 )
