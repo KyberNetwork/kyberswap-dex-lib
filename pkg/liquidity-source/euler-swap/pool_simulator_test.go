@@ -4,12 +4,12 @@ import (
 	"math/big"
 	"testing"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {

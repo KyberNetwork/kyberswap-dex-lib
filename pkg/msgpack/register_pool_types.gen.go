@@ -34,6 +34,7 @@ import (
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	pkg_liquiditysource_dodo_dsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	pkg_liquiditysource_ekubo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	pkg_liquiditysource_ethena_susde "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	pkg_liquiditysource_ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	pkg_liquiditysource_etherfi_ebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
@@ -53,7 +54,6 @@ import (
 	pkg_liquiditysource_honey "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	pkg_liquiditysource_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	pkg_liquiditysource_kelp_rseth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
-	pkg_liquiditysource_kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	pkg_liquiditysource_lo1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -171,6 +171,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dsp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_ekubo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_ebtc.PoolSimulator{})
@@ -190,7 +191,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_honey.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_integral.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rseth.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_kyberpmm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_lo1inch.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})

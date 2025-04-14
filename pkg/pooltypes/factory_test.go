@@ -15,18 +15,19 @@ import (
 
 func TestPoolFactory(t *testing.T) {
 	excludedPoolTypes := []string{
-		"ambient",     // aevm
-		"maverick-v2", // aevm
-		"uniswap-v4",  // aevm
+		"ambient",     // private
+		"maverick-v2", // private
+		"kyber-pmm",   // private
+		"onebit",      // private
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
 	poolTypes := lo.OmitByValues(poolTypesMap, excludedPoolTypes)
 
-	for _, poolType := range poolTypes {
+	for key, poolType := range poolTypes {
 		t.Run(poolType, func(t *testing.T) {
 			got := pool.Factory(poolType)
-			assert.NotNil(t, got)
+			assert.NotNil(t, got, key)
 		})
 	}
 }
@@ -49,7 +50,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
-		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp"}
+		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -77,7 +78,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
-		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp"}
+		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {

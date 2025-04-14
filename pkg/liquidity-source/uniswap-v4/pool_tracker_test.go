@@ -2,7 +2,6 @@ package uniswapv4
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"os"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

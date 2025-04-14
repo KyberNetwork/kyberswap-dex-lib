@@ -3,8 +3,9 @@ package eulerswap
 import (
 	"errors"
 
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
