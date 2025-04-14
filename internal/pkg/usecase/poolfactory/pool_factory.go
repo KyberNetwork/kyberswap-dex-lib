@@ -257,7 +257,8 @@ func newSwapLimit(
 		pooltypes.PoolTypes.RingSwap,
 		pooltypes.PoolTypes.MxTrading,
 		pooltypes.PoolTypes.LO1inch,
-		pooltypes.PoolTypes.KyberPMM:
+		pooltypes.PoolTypes.KyberPMM,
+		pooltypes.PoolTypes.OneBit:
 		return swaplimit.NewInventory(dex, limit)
 
 	case pooltypes.PoolTypes.LimitOrder:

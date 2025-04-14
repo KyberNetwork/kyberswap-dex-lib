@@ -50,6 +50,7 @@ var DexUseSwapLimit = []string{
 	pooltypes.PoolTypes.RingSwap,
 	pooltypes.PoolTypes.MxTrading,
 	pooltypes.PoolTypes.LO1inch,
+	pooltypes.PoolTypes.OneBit,
 }
 
 func init() {

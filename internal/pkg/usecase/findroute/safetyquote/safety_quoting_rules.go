@@ -83,7 +83,8 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.SwaapV2, pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.Bebop, pooltypes.PoolTypes.Clipper,
-		pooltypes.PoolTypes.LO1inch, pooltypes.PoolTypes.MxTrading:
+		pooltypes.PoolTypes.LO1inch, pooltypes.PoolTypes.MxTrading,
+		pooltypes.PoolTypes.OneBit:
 		return f.deductionFactorInBps[types.StrictlyStable]
 	}
 

@@ -4,6 +4,10 @@ import (
 	"context"
 
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
+	onebit "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/one-bit"
+
+	onebitclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/one-bit/client"
+
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm/client"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
@@ -152,6 +156,17 @@ func NewRFQHandler(
 			return nil, err
 		}
 		return uniswapv4.NewRFQHandler(&cfg), nil
+
+	case onebit.DexType:
+		var cfg onebit.Config
+		if err := PropertiesToStruct(rfqCfg.Properties, &cfg); err != nil {
+			return nil, err
+		}
+
+		cfg.DexID = dexId
+		httpClient := onebitclient.NewHTTPClient(&cfg.HTTP)
+
+		return onebit.NewRFQHandler(&cfg, httpClient), nil
 
 	default:
 		return NewNoopRFQHandler(), nil

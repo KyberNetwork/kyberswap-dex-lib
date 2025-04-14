@@ -126,6 +126,7 @@ common:
     - "uniswap-v4"
     - "sky-psm"
     - "overnight-usdp"
+    - "onebit"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -147,6 +148,7 @@ common:
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
+        onebit: 5000
         uniswap-v4-kem: 5000
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
@@ -487,6 +489,13 @@ useCase:
             maxAmountInFactor: 1.2
             expiry: 180000000000 # 3m
             signerPrivateKey:
+      onebit:
+        handler: onebit
+        properties:
+          http:
+            base_url: "https://kyber-arbi.myeth.top"
+            timeout: 10s
+            retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet

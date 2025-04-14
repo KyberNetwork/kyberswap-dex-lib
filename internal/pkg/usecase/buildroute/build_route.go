@@ -16,6 +16,7 @@ import (
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kutils/klog"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
+	onebit "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/one-bit"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -596,6 +597,22 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 			rfqRouteMsg.PartnerName = kyberpmmExtra.Partner
 		}
 		rfqRouteMsg.RouteType = string(RFQ)
+
+	case dexValueObject.ExchangeOneBit:
+		onebitExtra, ok := extra.(onebit.RFQExtra)
+		if ok {
+			rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(onebitExtra.QuoteTimestamp, 0))
+			takerAmount, _ := new(big.Int).SetString(onebitExtra.TakerAmount, 10)
+			makerAmount, _ := new(big.Int).SetString(onebitExtra.MakerAmount, 10)
+
+			rfqRouteMsg.TakerAmount = takerAmount.Text(10)
+			rfqRouteMsg.MakerAmount = makerAmount.Text(10)
+			rfqRouteMsg.TakerAsset = onebitExtra.TakerAsset
+			rfqRouteMsg.MakerAsset = onebitExtra.MakerAsset
+			rfqRouteMsg.PartnerName = onebitExtra.Partner
+		}
+		rfqRouteMsg.RouteType = string(RFQ)
+
 	case dexValueObject.ExchangeUniswapV4Kem:
 		// TODO implement me
 		rfqRouteMsg.RouteType = string(RFQ)

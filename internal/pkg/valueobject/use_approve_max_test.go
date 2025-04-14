@@ -101,6 +101,7 @@ func TestIsApproveMaxExchange(t *testing.T) {
 		valueobject.ExchangeOvernightUsdp,
 		valueobject.ExchangePandaFun,
 		valueobject.ExchangeHoney,
+		valueobject.ExchangeOneBit,
 	}
 	for _, exchange := range exchanges {
 		t.Run(string(exchange), func(t *testing.T) {
