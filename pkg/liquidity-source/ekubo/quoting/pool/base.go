@@ -175,6 +175,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 			int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
+			IsToken1:  isToken1,
 			StateAfter: quoting.StateAfter{
 				SqrtRatio:       sqrtRatio,
 				Liquidity:       liquidity,

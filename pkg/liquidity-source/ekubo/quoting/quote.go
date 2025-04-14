@@ -12,6 +12,7 @@ type StateAfter struct {
 
 type SwapInfo struct {
 	SkipAhead           uint32     `json:"skipAhead"`
+	IsToken1            bool       `json:"isToken1"`
 	StateAfter          StateAfter `json:"-"`
 	TickSpacingsCrossed uint32     `json:"-"`
 }
