@@ -8,8 +8,9 @@ import (
 )
 
 type Extra struct {
-	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
-	Paused            bool         `json:"paused"`
+	SwapFeePercentage  *uint256.Int `json:"swapFeePercentage"`
+	Paused             bool         `json:"paused"`
+	DependenciesStored bool         `json:"ds"`
 }
 
 type StaticExtra struct {
