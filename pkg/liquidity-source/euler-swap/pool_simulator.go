@@ -223,6 +223,7 @@ func (s *PoolSimulator) swap(exactIn, asset0IsInput bool, amount *uint256.Int) (
 	return quote, SwapInfo{
 		NewReserve0: reserve0,
 		NewReserve1: reserve1,
+		ZeroForOne:  asset0IsInput,
 	}, nil
 }
 

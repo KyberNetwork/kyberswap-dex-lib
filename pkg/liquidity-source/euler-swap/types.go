@@ -28,6 +28,7 @@ type Extra struct {
 type SwapInfo struct {
 	NewReserve0 *uint256.Int `json:"newReserve0"`
 	NewReserve1 *uint256.Int `json:"newReserve1"`
+	ZeroForOne  bool         `json:"zeroForOne"`
 }
 
 type Vault struct {
