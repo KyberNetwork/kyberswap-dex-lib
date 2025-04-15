@@ -82,8 +82,8 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 
 	source := params.Source
 	if ginCtx != nil {
-		normalizedClientId := strings.ReplaceAll(ginCtx.ClientIP(), ".", "_")
-		if forcedSource, ok := cfg.ForceSourceByIp[normalizedClientId]; ok {
+		normalizedClientIp := strings.ReplaceAll(ginCtx.ClientIP(), ".", "_")
+		if forcedSource, ok := cfg.ForceSourceByIp[normalizedClientIp]; ok {
 			source = forcedSource
 		}
 	}

@@ -54,7 +54,7 @@ func (b *EncodingDataBuilder) SetDeadline(deadline *big.Int) *EncodingDataBuilde
 }
 
 func (b *EncodingDataBuilder) SetClientID(clientID string) *EncodingDataBuilder {
-	b.data.ClientID = clientID
+	b.data.ClientID = strings.ReplaceAll(strings.ToLower(clientID), ".", "_")
 
 	return b
 }
