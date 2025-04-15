@@ -437,13 +437,13 @@ var (
 	ExchangeUniswapV4BunniV2 Exchange = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Kem     Exchange = "uniswap-v4-kem"
 
+	ExchangeFakePool      Exchange = "fake-pool"
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 	ExchangeSavingsUSDS   Exchange = "savings-usds"
 	ExchangeSkyPSM        Exchange = "sky-psm"
-
-	ExchangeFakePool Exchange = "fake-pool"
-	ExchangeEkubo    Exchange = "ekubo"
+	ExchangeEulerSwap     Exchange = "euler-swap"
+	ExchangeEkubo         Exchange = "ekubo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -808,6 +808,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
+	ExchangeEulerSwap:                  {},
 	ExchangeEkubo:                      {},
 }
 
