@@ -143,32 +143,22 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := range batchSize {
-		index := big.NewInt(int64(offset + i))
+	startIdx := big.NewInt(int64(offset))
+	endIdx := big.NewInt(int64(offset + batchSize))
 
-		req.AddCall(&ethrpc.Call{
-			ABI:    factoryABI,
-			Target: u.config.FactoryAddress,
-			Method: factoryMethodPools,
-			Params: []any{index},
-		}, []any{&result[i]})
-	}
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodAllPools,
+		Params: []any{startIdx, endIdx},
+	}, []any{&result})
 
-	resp, err := req.TryAggregate()
+	_, err := req.Aggregate()
 	if err != nil {
 		return nil, err
 	}
 
-	var poolAddresses []common.Address
-	for i, isSuccess := range resp.Result {
-		if !isSuccess {
-			continue
-		}
-
-		poolAddresses = append(poolAddresses, result[i])
-	}
-
-	return poolAddresses, nil
+	return result, nil
 }
 
 func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {

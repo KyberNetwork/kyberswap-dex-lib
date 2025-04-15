@@ -9,7 +9,7 @@ const (
 )
 
 var (
-	defaultGas = Gas{Swap: 225000}
+	defaultGas = Gas{Swap: 400000}
 
 	oneE18         = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18)) // 1e18
 	VIRTUAL_AMOUNT = uint256.NewInt(1e6)                                          // 1e6
@@ -17,7 +17,7 @@ var (
 
 const (
 	factoryMethodPoolsLength = "poolsLength"
-	factoryMethodPools       = "allPools"
+	factoryMethodAllPools    = "allPools"
 
 	poolMethodEulerAccount        = "eulerAccount"
 	poolMethodAsset0              = "asset0"

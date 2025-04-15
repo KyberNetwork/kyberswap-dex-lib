@@ -30,10 +30,15 @@
     },
     {
         "type": "function",
-        "name": "allPools",
+        "name": "getAllPoolsListSlice",
         "inputs": [
             {
-                "name": "",
+                "name": "_start",
+                "type": "uint256",
+                "internalType": "uint256"
+            },
+            {
+                "name": "_end",
                 "type": "uint256",
                 "internalType": "uint256"
             }
@@ -41,8 +46,8 @@
         "outputs": [
             {
                 "name": "",
-                "type": "address",
-                "internalType": "address"
+                "type": "address[]",
+                "internalType": "address[]"
             }
         ],
         "stateMutability": "view"
