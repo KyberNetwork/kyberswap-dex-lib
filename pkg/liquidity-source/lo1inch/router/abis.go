@@ -1,4 +1,4 @@
-package lo1inch
+package router
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	routerABI abi.ABI
+	RouterABI abi.ABI
 )
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&routerABI, routerABIBytes},
+		{&RouterABI, routerABIBytes},
 	}
 
 	for _, b := range builder {
