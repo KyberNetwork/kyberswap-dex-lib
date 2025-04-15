@@ -163,6 +163,7 @@ common:
     - "uniswap-v4"
     - "savings-usds"
     - "uniswap-v4-kem"
+    - "euler-swap"
     - "ekubo"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
