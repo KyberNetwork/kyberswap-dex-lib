@@ -5,9 +5,11 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	lo1inchRouter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/router"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 )
@@ -44,7 +46,7 @@ func (t *PoolTracker) getNewPoolState(
 			continue
 		}
 		switch log.Topics[0] {
-		case routerABI.Events["OrderFilled"].ID:
+		case lo1inchRouter.RouterABI.Events["OrderFilled"].ID:
 			// TODO: Convert hex topic to uint256.Int
 			// Extract orderHash and remainingAmount from log.Data
 			orderHash := common.BytesToHash(log.Data[:32]).Hex()
@@ -69,7 +71,7 @@ func (t *PoolTracker) getNewPoolState(
 					break
 				}
 			}
-		case routerABI.Events["OrderCancelled"].ID:
+		case lo1inchRouter.RouterABI.Events["OrderCancelled"].ID:
 		}
 	}
 
