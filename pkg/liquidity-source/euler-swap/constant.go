@@ -16,8 +16,8 @@ var (
 )
 
 const (
-	factoryMethodAllPoolsLength = "allPoolsLength"
-	factoryMethodAllPools       = "allPools"
+	factoryMethodPoolsLength = "poolsLength"
+	factoryMethodPools       = "allPools"
 
 	poolMethodEulerAccount        = "eulerAccount"
 	poolMethodAsset0              = "asset0"

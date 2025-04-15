@@ -114,7 +114,7 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodAllPoolsLength,
+		Method: factoryMethodPoolsLength,
 		Params: nil,
 	}, []any{&allPoolsLength})
 
@@ -149,7 +149,7 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,
-			Method: factoryMethodAllPools,
+			Method: factoryMethodPools,
 			Params: []any{index},
 		}, []any{&result[i]})
 	}
