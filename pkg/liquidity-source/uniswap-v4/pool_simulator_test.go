@@ -2,9 +2,9 @@ package uniswapv4
 
 import (
 	_ "embed"
-	"encoding/json"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

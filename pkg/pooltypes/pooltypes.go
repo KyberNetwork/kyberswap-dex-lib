@@ -8,6 +8,7 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
 	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
 	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
@@ -30,12 +31,14 @@ import (
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
@@ -48,7 +51,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -138,6 +140,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Types struct {
@@ -220,6 +223,7 @@ type Types struct {
 	BalancerV2ComposableStable string
 	BalancerV3Stable           string
 	BalancerV3Weighted         string
+	BalancerV3ECLP             string
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
 	Fulcrom                    string
@@ -288,11 +292,13 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
+	EulerSwap                  string
+	Ekubo                      string
+	OneBit                     string
 }
 
 var (
-	// PoolTypes is a list of supported pool types. It is very important that we load PoolType constants from each
-	// pool type's package to load and run init code, which registers the pool type's simulator factory.
+	// PoolTypes is a list of supported pool types.
 	PoolTypes = Types{
 		CurveBase:                  curve.PoolTypeBase,
 		CurvePlainOracle:           curve.PoolTypePlainOracle,
@@ -347,7 +353,7 @@ var (
 		PancakeV3:                  pancakev3.DexTypePancakeV3,
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
-		KyberPMM:                   kyberpmm.DexTypeKyberPMM,
+		KyberPMM:                   string(valueobject.ExchangeKyberPMM),
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
 		WooFiV2:                    woofiv2.DexTypeWooFiV2,
 		WooFiV21:                   woofiv21.DexTypeWooFiV21,
@@ -372,6 +378,7 @@ var (
 		BalancerV2ComposableStable: balancerv2composablestable.DexType,
 		BalancerV3Stable:           balancerv3stable.DexType,
 		BalancerV3Weighted:         balancerv3weighted.DexType,
+		BalancerV3ECLP:             eclp.DexType,
 		VelocoreV2CPMM:             velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
 		Fulcrom:                    fulcrom.DexTypeFulcrom,
@@ -441,5 +448,8 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
+		EulerSwap:                  eulerswap.DexType,
+		Ekubo:                      ekubo.DexType,
+		OneBit:                     string(valueobject.ExchangeOneBit),
 	}
 )

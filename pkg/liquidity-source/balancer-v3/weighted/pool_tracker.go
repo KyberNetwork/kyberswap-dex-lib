@@ -16,7 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
@@ -40,7 +40,7 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	params poolpkg.GetNewPoolStateParams,
+	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	return t.getNewPoolState(ctx, p, params, nil)
 }
@@ -48,15 +48,15 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	ctx context.Context,
 	p entity.Pool,
-	params poolpkg.GetNewPoolStateWithOverridesParams,
+	params pool.GetNewPoolStateWithOverridesParams,
 ) (entity.Pool, error) {
-	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
 }
 
 func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ poolpkg.GetNewPoolStateParams,
+	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	l := klog.WithFields(ctx, klog.Fields{

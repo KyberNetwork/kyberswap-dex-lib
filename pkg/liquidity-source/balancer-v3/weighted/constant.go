@@ -1,5 +1,9 @@
 package weighted
 
+import (
+	"errors"
+)
+
 const (
 	DexType = "balancer-v3-weighted"
 
@@ -9,6 +13,8 @@ const (
 )
 
 var (
-	baseGas   int64 = 237494
+	ErrInvalidToken = errors.New("invalid token")
+
+	baseGas   int64 = 213745
 	bufferGas int64 = 120534
 )

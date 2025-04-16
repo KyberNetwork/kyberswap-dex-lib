@@ -1,7 +1,13 @@
 package uniswapv4
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/common"
+
+	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 // HookOption represents different hook operation types
@@ -37,4 +43,33 @@ func hasPermission(address common.Address, hookOption HookOption) bool {
 func HasSwapPermissions(address common.Address) bool {
 	// This implicitly encapsulates swap delta permissions
 	return hasPermission(address, BeforeSwap) || hasPermission(address, AfterSwap)
+}
+
+type Hook interface {
+	GetExchange() string
+	RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error)
+}
+
+var Hooks = map[common.Address]Hook{}
+
+func RegisterHooks(hook Hook, addresses ...common.Address) bool {
+	for _, address := range addresses {
+		Hooks[address] = hook
+	}
+	return true
+}
+
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddress)
+
+type BaseHook struct{ Exchange valueobject.Exchange }
+
+func (h *BaseHook) GetExchange() string {
+	if h != nil {
+		return string(h.Exchange)
+	}
+	return DexType
+}
+
+func (*BaseHook) RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error) {
+	return nil, nil
 }
