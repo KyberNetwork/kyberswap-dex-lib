@@ -9,11 +9,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type correlatedPairs struct {
@@ -180,6 +182,7 @@ func (c *correlatedPairs) getStateByAddress(
 	stateRoot common.Hash,
 ) (*types.FindRouteState, error) {
 	if len(params.Sources) == 0 {
+		logger.Errorf(ctx, "sources list is empty, returning error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
 	}
 
@@ -212,6 +215,7 @@ func (c *correlatedPairs) getStateByAddress(
 	}
 
 	if len(filteredPoolIDs) == 0 {
+		logger.Errorf(ctx, "empty filtered pool IDs after excluding pools, returning error: %v, bestPoolIDs: %v, index: %v", ErrPoolSetFiltered, bestPoolIDs, params.Index)
 		return nil, ErrPoolSetFiltered
 	}
 

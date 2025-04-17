@@ -133,7 +133,7 @@ func (a *aggregator) findBestRoute(
 
 	// We don't expect this logic happens but safe check and log here
 	if routes.GetBestRoute() == nil {
-		return nil, errors.WithMessagef(ErrRouteNotFound, "bet route is nil")
+		return nil, errors.WithMessagef(ErrRouteNotFound, "best route is nil")
 	}
 
 	return ConvertToRouteSummaries(params, routes), nil
@@ -145,6 +145,7 @@ func (a *aggregator) getStateByAddress(
 	stateRoot common.Hash,
 ) (*types.FindRouteState, error) {
 	if len(params.Sources) == 0 {
+		logger.Errorf(ctx, "sources list is empty, error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
 	}
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
@@ -173,8 +174,8 @@ func (a *aggregator) getStateByAddress(
 	}
 
 	if len(filteredPoolIDs) == 0 {
-		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
-			bestPoolIDs, params.ExcludedPools.String())
+		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v, returning error: %v",
+			bestPoolIDs, params.ExcludedPools.String(), ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
 	}
 

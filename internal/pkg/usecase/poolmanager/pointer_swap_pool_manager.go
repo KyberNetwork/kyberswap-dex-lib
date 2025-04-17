@@ -325,6 +325,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(
 	}
 
 	if len(dex) == 0 {
+		logger.Errorf(ctx, "dex list is empty, error: %v", getroute.ErrPoolSetFiltered)
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -384,6 +385,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	state.lock.RUnlock()
 
 	if len(pools) == 0 && len(poolsToFetchFromDB) == 0 {
+		logger.Errorf(ctx, "no pools available and no pools to fetch from DB, error: %v", getroute.ErrPoolSetFiltered)
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -413,6 +415,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	}
 
 	if len(pools) == 0 && len(poolEntitiesFromDB) == 0 {
+		logger.Errorf(ctx, "no pools available and no pool entities from DB, error: %v", getroute.ErrPoolSetFiltered)
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
