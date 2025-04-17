@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -33,9 +34,6 @@ var (
 
 var (
 	defaultGas = Gas{Swap: 80000}
-
-	_MAX_IN_RATIO  = uint256.NewInt(0.3e18)
-	_MAX_OUT_RATIO = uint256.NewInt(0.3e18)
 )
 
 type (
@@ -44,9 +42,12 @@ type (
 		basePools map[string]shared.IBasePool
 		paused    bool
 
-		swapFeePercentage *uint256.Int
-		scalingFactors    []*uint256.Int
-		normalizedWeights []*uint256.Int
+		swapFeePercentage         *uint256.Int
+		protocolSwapFeePercentage *uint256.Int
+		scalingFactors            []*uint256.Int
+		normalizedWeights         []*uint256.Int
+		lastInvariant             *uint256.Int
+		totalSupply               *uint256.Int
 
 		vault       string
 		poolID      string
@@ -63,6 +64,8 @@ type (
 		Swap int64
 	}
 )
+
+var _ shared.IBasePool = (*PoolSimulator)(nil)
 
 var _ = pool.RegisterFactoryMeta(DexType, NewPoolSimulator)
 
@@ -111,13 +114,13 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		totalAmountsIn[idx] = number.Zero
 		totalAmountsOut[idx] = number.Zero
 
-		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
+		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], math.MAX_IN_RATIO)
 		if err != nil {
 			return nil, err
 		}
 		scaledMaxTotalAmountsIn[idx] = maxIn
 
-		maxOut, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_OUT_RATIO)
+		maxOut, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], math.MAX_OUT_RATIO)
 		if err != nil {
 			return nil, err
 		}
@@ -135,19 +138,22 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}
 
 	p := &PoolSimulator{
-		Pool:                     pool.Pool{Info: poolInfo},
-		basePools:                basePools,
-		paused:                   extra.Paused,
-		swapFeePercentage:        extra.SwapFeePercentage,
-		scalingFactors:           staticExtra.ScalingFactors,
-		normalizedWeights:        staticExtra.NormalizedWeights,
-		vault:                    staticExtra.Vault,
-		poolID:                   staticExtra.PoolID,
-		poolTypeVer:              staticExtra.PoolTypeVer,
-		totalAmountsIn:           totalAmountsIn,
-		scaledMaxTotalAmountsIn:  scaledMaxTotalAmountsIn,
-		totalAmountsOut:          totalAmountsOut,
-		scaledMaxTotalAmountsOut: scaledMaxTotalAmountsOut,
+		Pool:                      pool.Pool{Info: poolInfo},
+		basePools:                 basePools,
+		paused:                    extra.Paused,
+		swapFeePercentage:         extra.SwapFeePercentage,
+		protocolSwapFeePercentage: extra.ProtocolSwapFeePercentage,
+		totalSupply:               extra.TotalSupply,
+		lastInvariant:             extra.LastInvariant,
+		scalingFactors:            staticExtra.ScalingFactors,
+		normalizedWeights:         staticExtra.NormalizedWeights,
+		vault:                     staticExtra.Vault,
+		poolID:                    staticExtra.PoolID,
+		poolTypeVer:               staticExtra.PoolTypeVer,
+		totalAmountsIn:            totalAmountsIn,
+		scaledMaxTotalAmountsIn:   scaledMaxTotalAmountsIn,
+		totalAmountsOut:           totalAmountsOut,
+		scaledMaxTotalAmountsOut:  scaledMaxTotalAmountsOut,
 	}
 
 	return p, nil
@@ -157,7 +163,103 @@ func (s *PoolSimulator) GetPoolId() string {
 	return s.poolID
 }
 
-func (s *PoolSimulator) OnSwap(indexIn, indexOut int, amountIn *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) OnJoin(tokenIn string, amountIn *uint256.Int) (*uint256.Int, error) {
+	var scaledAmountsIn = make([]*uint256.Int, len(s.GetReserves()))
+
+	indexIn := s.GetTokenIndex(tokenIn)
+
+	scaledBalances, err := _upscaleArray(s.poolTypeVer, s.GetReserves(), s.scalingFactors)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range s.Info.Tokens {
+		if i == indexIn {
+			scaledAmountsIn[i], err = _upscale(s.poolTypeVer, amountIn, s.scalingFactors[i])
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			scaledAmountsIn[i] = number.Zero
+		}
+	}
+
+	err = chargeDueProtocolFee(s.poolTypeVer, scaledBalances, s.normalizedWeights, s.lastInvariant, s.protocolSwapFeePercentage)
+	if err != nil {
+		return nil, err
+	}
+
+	bptAmountOut, err := calcBptOutGivenExactTokensIn(s.poolTypeVer, scaledAmountsIn, scaledBalances, s.normalizedWeights, s.totalSupply, s.swapFeePercentage)
+	if err != nil {
+		return nil, err
+	}
+
+	return bptAmountOut, nil
+}
+
+func chargeDueProtocolFee(
+	poolTypeVer int,
+	balances, normalizedWeights []*uint256.Int,
+	lastInvariant, swapFeePercentage *uint256.Int,
+) error {
+	if swapFeePercentage.IsZero() {
+		return nil
+	}
+
+	invariantBeforeJoin, err := calculateInvariant(poolTypeVer, balances, normalizedWeights)
+	if err != nil {
+		return err
+	}
+
+	var chosenTokenIndex = 0
+	maxWeight := normalizedWeights[0]
+	for i := 1; i < len(normalizedWeights); i++ {
+		if normalizedWeights[i].Gt(maxWeight) {
+			chosenTokenIndex = i
+			maxWeight = normalizedWeights[i]
+		}
+	}
+
+	dueProtocolFeeAmount, err := math.WeightedMath.CalcDueTokenProtocolSwapFeeAmount(balances[chosenTokenIndex], normalizedWeights[chosenTokenIndex],
+		lastInvariant, invariantBeforeJoin, swapFeePercentage)
+	if err != nil {
+		return err
+	}
+
+	balances[chosenTokenIndex].Sub(balances[chosenTokenIndex], dueProtocolFeeAmount)
+
+	return nil
+}
+
+func (s *PoolSimulator) OnExit(tokenOut string, bptAmountIn *uint256.Int) (*uint256.Int, error) {
+	indexOut := s.GetTokenIndex(tokenOut)
+
+	scaledBalances, err := _upscaleArray(s.poolTypeVer, s.GetReserves(), s.scalingFactors)
+	if err != nil {
+		return nil, err
+	}
+
+	if !s.paused {
+		chargeDueProtocolFee(s.poolTypeVer, scaledBalances, s.normalizedWeights, s.lastInvariant, s.protocolSwapFeePercentage)
+	}
+
+	amountOut, err := calcTokenOutGivenExactBptIn(s.poolTypeVer, bptAmountIn, scaledBalances[indexOut],
+		s.normalizedWeights[indexOut], s.totalSupply, s.swapFeePercentage)
+	if err != nil {
+		return nil, err
+	}
+
+	amountOut, err = _downscaleDown(s.poolTypeVer, amountOut, s.scalingFactors[indexOut])
+	if err != nil {
+		return nil, err
+	}
+
+	return amountOut, nil
+}
+
+func (s *PoolSimulator) OnSwap(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
+
 	balanceIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrOverflow
@@ -197,7 +299,7 @@ func (s *PoolSimulator) OnSwap(indexIn, indexOut int, amountIn *uint256.Int) (*u
 		return nil, err
 	}
 
-	scaledAmountOut, err := s._onSwapGivenIn(
+	amountOut, err := s._onSwapGivenIn(
 		scaledBalanceIn,
 		s.normalizedWeights[indexIn],
 		scaledBalanceOut,
@@ -208,7 +310,7 @@ func (s *PoolSimulator) OnSwap(indexIn, indexOut int, amountIn *uint256.Int) (*u
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(s.poolTypeVer, scaledAmountOut, s.scalingFactors[indexOut])
+	amountOut, err = _downscaleDown(s.poolTypeVer, amountOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
@@ -216,13 +318,13 @@ func (s *PoolSimulator) OnSwap(indexIn, indexOut int, amountIn *uint256.Int) (*u
 	return amountOut, nil
 }
 
-func (s *PoolSimulator) swapDirect(indexIn, indexOut int, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
-	amountOut, err := s.OnSwap(indexIn, indexOut, amountIn)
+func (s *PoolSimulator) swapDirect(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
+	amountOut, err := s.OnSwap(tokenIn, tokenOut, amountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.buildSwapResult(s.Info.Tokens[indexOut], amountOut, nil), nil
+	return s.buildSwapResult(tokenOut, amountOut, nil), nil
 }
 
 func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *uint256.Int) (*pool.CalcAmountOutResult, error) {
@@ -233,45 +335,46 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 
 	bptToken := basePool.GetAddress()
 
-	res, err := basePool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
+	var (
+		hops      = make([]shared.Hop, 0, 2)
+		bptAmount *uint256.Int
+		joinIndex *big.Int
+	)
+
+	switch basePool.GetType() {
+	case composablestable.DexType:
+		bptAmount, err = basePool.OnSwap(tokenIn, bptToken, amountIn)
+	default:
+		bptAmount, err = basePool.OnJoin(tokenIn, amountIn)
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, basePool.GetTokenIndex(tokenIn))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	hops = append(hops, shared.Hop{
+		PoolId:        basePool.GetPoolId(),
+		Pool:          basePool.GetAddress(),
+		TokenIn:       tokenIn,
 		TokenOut:      bptToken,
+		AmountIn:      amountIn.ToBig(),
+		AmountOut:     bptAmount.ToBig(),
+		JoinExitIndex: joinIndex,
 	})
+
+	amountOut, err := s.OnSwap(bptToken, tokenOut, bptAmount)
 	if err != nil {
 		return nil, err
 	}
 
-	bptAmount, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountOut
-	}
-
-	bptIndex := s.GetTokenIndex(bptToken)
-	indexOut := s.GetTokenIndex(tokenOut)
-
-	amountOut, err := s.OnSwap(bptIndex, indexOut, bptAmount)
-	if err != nil {
-		return nil, err
-	}
-
-	hops := []shared.Hop{
-		{
-			PoolId:    basePool.GetPoolId(),
-			Pool:      basePool.GetAddress(),
-			TokenIn:   tokenIn,
-			TokenOut:  bptToken,
-			AmountIn:  amountIn.ToBig(),
-			AmountOut: bptAmount.ToBig(),
-		},
-		{
-			PoolId:    s.GetPoolId(),
-			Pool:      s.GetAddress(),
-			TokenIn:   bptToken,
-			TokenOut:  tokenOut,
-			AmountIn:  bptAmount.ToBig(),
-			AmountOut: amountOut.ToBig(),
-		},
-	}
+	hops = append(hops, shared.Hop{
+		PoolId:    s.GetPoolId(),
+		Pool:      s.GetAddress(),
+		TokenIn:   bptToken,
+		TokenOut:  tokenOut,
+		AmountIn:  bptAmount.ToBig(),
+		AmountOut: amountOut.ToBig(),
+	})
 
 	return s.buildSwapResult(tokenOut, amountOut, hops), nil
 }
@@ -284,45 +387,47 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 
 	bptToken := basePool.GetAddress()
 
-	indexIn := s.GetTokenIndex(tokenIn)
-	bptIndex := s.GetTokenIndex(bptToken)
+	var hops = make([]shared.Hop, 0, 2)
 
-	bptAmount, err := s.OnSwap(indexIn, bptIndex, amountIn)
+	bptAmount, err := s.OnSwap(tokenIn, bptToken, amountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := basePool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: bptToken, Amount: bptAmount.ToBig()},
-		TokenOut:      tokenOut,
+	hops = append(hops, shared.Hop{
+		PoolId:    s.poolID,
+		Pool:      s.GetAddress(),
+		TokenIn:   tokenIn,
+		TokenOut:  bptToken,
+		AmountIn:  amountIn.ToBig(),
+		AmountOut: bptAmount.ToBig(),
 	})
+
+	var (
+		amountOut *uint256.Int
+		exitIndex *big.Int
+	)
+
+	switch basePool.GetType() {
+	case composablestable.DexType:
+		amountOut, err = basePool.OnSwap(bptToken, tokenOut, bptAmount)
+	default:
+		amountOut, err = basePool.OnExit(tokenOut, bptAmount)
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, basePool.GetTokenIndex(tokenOut))
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	amountOut, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountOut
-	}
-
-	hops := []shared.Hop{
-		{
-			PoolId:    s.poolID,
-			Pool:      s.GetAddress(),
-			TokenIn:   tokenIn,
-			TokenOut:  bptToken,
-			AmountIn:  amountIn.ToBig(),
-			AmountOut: bptAmount.ToBig(),
-		},
-		{
-			PoolId:    basePool.GetPoolId(),
-			Pool:      basePool.GetAddress(),
-			TokenIn:   bptToken,
-			TokenOut:  tokenOut,
-			AmountIn:  bptAmount.ToBig(),
-			AmountOut: amountOut.ToBig(),
-		},
-	}
+	hops = append(hops, shared.Hop{
+		PoolId:        basePool.GetPoolId(),
+		Pool:          basePool.GetAddress(),
+		TokenIn:       bptToken,
+		TokenOut:      tokenOut,
+		AmountIn:      bptAmount.ToBig(),
+		AmountOut:     amountOut.ToBig(),
+		JoinExitIndex: exitIndex,
+	})
 
 	return s.buildSwapResult(tokenOut, amountOut, hops), nil
 }
@@ -345,66 +450,72 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		return nil, ErrSameBasePoolSwapNotAllowed
 	}
 
-	res, err := basePoolIn.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn.ToBig()},
+	var (
+		hops        = make([]shared.Hop, 0, 3)
+		bptAmountIn *uint256.Int
+		joinIndex   *big.Int
+	)
+
+	switch basePoolIn.GetType() {
+	case composablestable.DexType:
+		bptAmountIn, err = basePoolIn.OnSwap(tokenIn, bptTokenIn, amountIn)
+	default:
+		bptAmountIn, err = basePoolIn.OnJoin(tokenIn, amountIn)
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, basePoolIn.GetTokenIndex(tokenIn))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	hops = append(hops, shared.Hop{
+		PoolId:        basePoolIn.GetPoolId(),
+		Pool:          basePoolIn.GetAddress(),
+		TokenIn:       tokenIn,
 		TokenOut:      bptTokenIn,
+		AmountIn:      amountIn.ToBig(),
+		AmountOut:     bptAmountIn.ToBig(),
+		JoinExitIndex: joinIndex,
 	})
+
+	bptAmountOut, err := s.OnSwap(bptTokenIn, bptTokenOut, bptAmountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	bptAmountIn, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountOut
+	hops = append(hops, shared.Hop{
+		PoolId:    s.poolID,
+		Pool:      s.GetAddress(),
+		TokenIn:   bptTokenIn,
+		TokenOut:  bptTokenOut,
+		AmountIn:  bptAmountIn.ToBig(),
+		AmountOut: bptAmountOut.ToBig(),
+	})
+
+	var (
+		amountOut *uint256.Int
+		exitIndex *big.Int
+	)
+
+	switch basePoolOut.GetType() {
+	case composablestable.DexType:
+		amountOut, err = basePoolOut.OnSwap(bptTokenOut, tokenOut, bptAmountOut)
+	default:
+		amountOut, err = basePoolOut.OnExit(tokenOut, bptAmountOut)
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, basePoolOut.GetTokenIndex(tokenOut))
 	}
-
-	bptInIndex := s.GetTokenIndex(bptTokenIn)
-	bptOutIndex := s.GetTokenIndex(bptTokenOut)
-
-	bptAmountOut, err := s.OnSwap(bptInIndex, bptOutIndex, bptAmountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err = basePoolOut.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{Token: bptTokenOut, Amount: bptAmountOut.ToBig()},
+	hops = append(hops, shared.Hop{
+		PoolId:        basePoolOut.GetPoolId(),
+		Pool:          basePoolOut.GetAddress(),
+		TokenIn:       bptTokenOut,
 		TokenOut:      tokenOut,
+		AmountIn:      bptAmountOut.ToBig(),
+		AmountOut:     amountOut.ToBig(),
+		JoinExitIndex: exitIndex,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	amountOut, overflow := uint256.FromBig(res.TokenAmountOut.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountOut
-	}
-
-	hops := []shared.Hop{
-		{
-			PoolId:    basePoolIn.GetPoolId(),
-			Pool:      basePoolIn.GetAddress(),
-			TokenIn:   tokenIn,
-			TokenOut:  bptTokenIn,
-			AmountIn:  amountIn.ToBig(),
-			AmountOut: bptAmountIn.ToBig(),
-		},
-		{
-			PoolId:    s.poolID,
-			Pool:      s.GetAddress(),
-			TokenIn:   bptTokenIn,
-			TokenOut:  bptTokenOut,
-			AmountIn:  bptAmountIn.ToBig(),
-			AmountOut: bptAmountOut.ToBig(),
-		},
-		{
-			PoolId:    basePoolOut.GetPoolId(),
-			Pool:      basePoolOut.GetAddress(),
-			TokenIn:   bptTokenOut,
-			TokenOut:  tokenOut,
-			AmountIn:  bptAmountOut.ToBig(),
-			AmountOut: amountOut.ToBig(),
-		},
-	}
 
 	return s.buildSwapResult(tokenOut, amountOut, hops), nil
 }
@@ -451,7 +562,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 
 	if indexIn >= 0 && indexOut >= 0 {
-		return s.swapDirect(indexIn, indexOut, amountIn)
+		return s.swapDirect(tokenAmountIn.Token, tokenOut, amountIn)
 	}
 
 	if indexIn < 0 && indexOut >= 0 {
@@ -710,6 +821,93 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
+func (t *PoolSimulator) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
+
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	result := make(map[string]struct{})
+	var tokenIndex = t.GetTokenIndex(address)
+
+	if tokenIndex < 0 {
+		found := false // Flag to check if any base pool contains the token
+
+		for _, basePool := range t.basePools {
+			if basePool.GetTokenIndex(address) >= 0 {
+				found = true
+
+				for _, token := range basePool.CanSwapTo(address) {
+					result[token] = struct{}{}
+				}
+			} else {
+				for _, underlyingToken := range basePool.GetTokens() {
+					if underlyingToken != address {
+						result[underlyingToken] = struct{}{}
+					}
+				}
+			}
+		}
+
+		if !found {
+			return []string{}
+		}
+
+		// Add tokens from main pool
+		for _, poolToken := range t.Info.Tokens {
+			result[poolToken] = struct{}{}
+		}
+	} else {
+
+		// Add tokens from main pool except itself
+		for _, poolToken := range t.Info.Tokens {
+			if poolToken != address {
+				result[poolToken] = struct{}{}
+			}
+		}
+
+		for _, basePool := range t.basePools {
+			for _, underlyingToken := range basePool.GetTokens() {
+				if underlyingToken != address {
+					result[underlyingToken] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return lo.Keys(result)
+}
+
+func (t *PoolSimulator) GetTokens() []string {
+	tokenSet := make(map[string]struct{})
+
+	for _, basePool := range t.basePools {
+		for _, token := range basePool.GetTokens() {
+			tokenSet[token] = struct{}{}
+		}
+	}
+
+	for _, token := range t.GetInfo().Tokens {
+		tokenSet[token] = struct{}{}
+	}
+
+	return lo.Keys(tokenSet)
+}
+
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	var result = make([]pool.IPoolSimulator, 0, len(t.basePools))
+	for _, basePool := range t.basePools {
+		result = append(result, basePool)
+	}
+
+	return result
+}
+
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+	if basePool, ok := basePool.(shared.IBasePool); ok {
+		t.basePools[basePool.GetAddress()] = basePool
+	}
+}
+
 // Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F27#L529
 //
 // Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F13#L681
@@ -760,88 +958,31 @@ func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint2
 	return upscaled, nil
 }
 
-func (t *PoolSimulator) CanSwapFrom(address string) []string {
-	return t.CanSwapTo(address)
+func calculateInvariant(poolTypeVer int, balances, normalizedWeights []*uint256.Int) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.WeightedMath.CalculateInvariantV1(normalizedWeights, balances)
+	}
+	return math.WeightedMath.CalculateInvariant(normalizedWeights, balances)
 }
 
-func (t *PoolSimulator) CanSwapTo(address string) []string {
-	result := make(map[string]struct{})
-	var tokenIndex = t.GetTokenIndex(address)
-
-	if tokenIndex < 0 {
-		found := false // Flag to check if any base pool contains the token
-
-		for _, basePool := range t.basePools {
-			if basePool.GetTokenIndex(address) >= 0 {
-				found = true
-
-				for _, token := range basePool.CanSwapTo(address) {
-					result[token] = struct{}{}
-				}
-			} else {
-				for _, underlyingToken := range basePool.GetTokens() {
-					if underlyingToken != address {
-						result[underlyingToken] = struct{}{}
-					}
-				}
-			}
-		}
-
-		if !found {
-			return []string{}
-		}
-
-		// Add tokens from main pool
-		for _, poolToken := range t.GetTokens() {
-			result[poolToken] = struct{}{}
-		}
-	} else {
-
-		// Add tokens from main pool except itself
-		for _, poolToken := range t.GetTokens() {
-			if poolToken != address {
-				result[poolToken] = struct{}{}
-			}
-		}
-
-		for _, basePool := range t.basePools {
-			for _, underlyingToken := range basePool.GetTokens() {
-				if underlyingToken != address {
-					result[underlyingToken] = struct{}{}
-				}
-			}
-		}
+func calcBptOutGivenExactTokensIn(
+	poolTypeVer int,
+	amountsIn, balances, normalizedWeights []*uint256.Int,
+	totalSupply, swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.WeightedMath.CalcBptOutGivenExactTokensInV1(balances, normalizedWeights, amountsIn, totalSupply, swapFeePercentage)
 	}
-
-	return lo.Keys(result)
+	return math.WeightedMath.CalcBptOutGivenExactTokensIn(balances, normalizedWeights, amountsIn, totalSupply, swapFeePercentage)
 }
 
-func (t *PoolSimulator) GetTokens() []string {
-	tokenSet := make(map[string]struct{})
-
-	for _, basePool := range t.basePools {
-		for _, token := range basePool.GetTokens() {
-			tokenSet[token] = struct{}{}
-		}
+func calcTokenOutGivenExactBptIn(
+	poolTypeVer int,
+	bptAmountIn, balance, normalizedWeight,
+	totalSupply, swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.WeightedMath.CalcTokenOutGivenExactBptInV1(balance, normalizedWeight, bptAmountIn, totalSupply, swapFeePercentage)
 	}
-
-	for _, token := range t.GetInfo().Tokens {
-		tokenSet[token] = struct{}{}
-	}
-
-	return lo.Keys(tokenSet)
-}
-
-func (t *PoolSimulator) GetBasePool() pool.IPoolSimulator {
-	for _, basePool := range t.basePools {
-		return basePool
-	}
-
-	return nil
-}
-
-func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
-	if basePool, ok := basePool.(shared.IBasePool); ok {
-		t.basePools[basePool.GetAddress()] = basePool
-	}
+	return math.WeightedMath.CalcTokenOutGivenExactBptIn(balance, normalizedWeight, bptAmountIn, totalSupply, swapFeePercentage)
 }

@@ -73,7 +73,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, bptIndexes, vaults)
+	pools, err := u.initPools(subgraphPools, bptIndexes, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -86,17 +86,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getVaults(_ context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
 	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
 
-	req := u.ethrpcClient.R()
+	req := u.ethrpcClient.R().SetContext(ctx)
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -122,7 +122,7 @@ func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*sha
 			ABI:    poolABI,
 			Target: p.Address,
 			Method: poolMethodGetBptIndex,
-		}, []interface{}{&bptIndexes[i]})
+		}, []any{&bptIndexes[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
@@ -133,14 +133,13 @@ func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*sha
 }
 
 func (u *PoolsListUpdater) initPools(
-	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	bptIndexes []*big.Int,
 	vaults []string,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for idx := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPools[idx], bptIndexes[idx], vaults[idx])
+		pool, err := u.initPool(subgraphPools[idx], bptIndexes[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +151,6 @@ func (u *PoolsListUpdater) initPools(
 }
 
 func (u *PoolsListUpdater) initPool(
-	_ context.Context,
 	subgraphPool *shared.SubgraphPool,
 	bptIndex *big.Int,
 	vault string,
@@ -161,7 +159,6 @@ func (u *PoolsListUpdater) initPool(
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves       = make([]string, len(subgraphPool.Tokens))
 		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
-		nesting        bool
 		err            error
 	)
 
@@ -175,7 +172,6 @@ func (u *PoolsListUpdater) initPool(
 			bignumber.TenPowInt(18-uint8(token.Decimals)),
 			bignumber.BONE,
 		)
-		nesting = nesting || token.Token.Pool.ID != ""
 	}
 
 	staticExtra := StaticExtra{
@@ -185,7 +181,6 @@ func (u *PoolsListUpdater) initPool(
 		BptIndex:       int(bptIndex.Int64()),
 		ScalingFactors: scalingFactors,
 		Vault:          vault,
-		Nesting:        nesting,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

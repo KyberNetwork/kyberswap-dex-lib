@@ -72,7 +72,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, vaults)
+	pools, err := u.initPools(subgraphPools, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -85,17 +85,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getVaults(_ context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
 	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
 
-	req := u.ethrpcClient.R()
+	req := u.ethrpcClient.R().SetContext(ctx)
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -112,12 +112,12 @@ func (u *PoolsListUpdater) getVaults(_ context.Context, subgraphPools []*shared.
 	return vaults, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool,
+func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool,
 	vaults []string) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
 	for idx := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
+		pool, err := u.initPool(subgraphPools[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -128,8 +128,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPool(_ context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool,
-	error) {
+func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
 	var (
 		poolTokens        = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves          = make([]string, len(subgraphPool.Tokens))
@@ -157,7 +156,7 @@ func (u *PoolsListUpdater) initPool(_ context.Context, subgraphPool *shared.Subg
 			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
 		}
 
-		if token.Token.Pool.ID != "" {
+		if token.Token.Pool.Address != "" {
 			basePools[token.Address] = []string{}
 		}
 	}

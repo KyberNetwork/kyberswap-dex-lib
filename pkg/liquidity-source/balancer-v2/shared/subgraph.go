@@ -18,7 +18,7 @@ type SubgraphPool struct {
 		Weight   string `json:"weight"`
 		Token    struct {
 			Pool struct {
-				ID string `json:"id"`
+				Address string `json:"address"`
 			} `json:"pool"`
 		} `json:"token"`
 	} `json:"tokens"`

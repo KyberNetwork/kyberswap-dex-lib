@@ -6,6 +6,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -107,6 +108,51 @@ func (s *PoolSimulator) GetPoolId() string {
 	return s.poolID
 }
 
+func (s *PoolSimulator) OnJoin(tokenIn string, amountIn *uint256.Int) (*uint256.Int, error) {
+	return number.Zero, nil
+}
+
+func (s *PoolSimulator) OnExit(tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
+	return number.Zero, nil
+}
+
+func (s *PoolSimulator) OnSwap(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
+	if s.canNotUpdateTokenRates {
+		return nil, ErrBeforeSwapJoinExit
+	}
+
+	indexIn := s.GetTokenIndex(tokenIn)
+	indexOut := s.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrUnknownToken
+	}
+
+	balances := make([]*uint256.Int, len(s.Info.Reserves))
+	for i, reserve := range s.Info.Reserves {
+		r, overflow := uint256.FromBig(reserve)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		balances[i] = r
+	}
+
+	var (
+		amountOut *uint256.Int
+		err       error
+	)
+	if tokenIn == s.Info.Address || tokenOut == s.Info.Address {
+		amountOut, _, _, err = s.bptSimulator._swapWithBpt(true, amountIn, balances, indexIn, indexOut)
+	} else {
+		amountOut, _, _, err = s.regularSimulator._swapGivenIn(amountIn, balances, indexIn, indexOut)
+	}
+
+	return amountOut, err
+}
+
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
@@ -121,7 +167,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
 	indexOut := s.GetTokenIndex(tokenOut)
-	if indexIn == unknownInt || indexOut == unknownInt {
+	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrUnknownToken
 	}
 
@@ -179,7 +225,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	indexIn := s.GetTokenIndex(tokenIn)
 	indexOut := s.GetTokenIndex(tokenAmountOut.Token)
-	if indexIn == unknownInt || indexOut == unknownInt {
+	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrUnknownToken
 	}
 

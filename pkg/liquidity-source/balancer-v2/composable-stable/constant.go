@@ -29,8 +29,6 @@ const (
 	poolMethodGetRate                           = "getRate"
 	poolMethodGetVault                          = "getVault"
 
-	unknownInt = -1
-
 	feeTypeSwap  = 0
 	feeTypeYield = 2
 

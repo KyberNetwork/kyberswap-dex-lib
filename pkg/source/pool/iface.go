@@ -78,7 +78,7 @@ type IPoolExactOutSimulator interface {
 
 type IMetaPoolSimulator interface {
 	IPoolSimulator
-	GetBasePool() IPoolSimulator         // get base pool
+	GetBasePools() []IPoolSimulator      // get base pools
 	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 

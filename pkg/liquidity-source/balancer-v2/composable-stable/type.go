@@ -57,7 +57,6 @@ type StaticExtra struct {
 	BptIndex       int            `json:"bptIndex"`
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
 	Vault          string         `json:"vault"`
-	Nesting        bool           `json:"nesting"`
 }
 
 type AmplificationParameterResp struct {

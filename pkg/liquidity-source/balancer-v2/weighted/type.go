@@ -8,19 +8,23 @@ import (
 )
 
 type Extra struct {
-	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
-	Paused            bool         `json:"paused"`
+	SwapFeePercentage         *uint256.Int `json:"swapFeePercentage"`
+	ProtocolSwapFeePercentage *uint256.Int `json:"protocolSwapFeePercentage"`
+	LastInvariant             *uint256.Int `json:"lastInvariant"`
+	TotalSupply               *uint256.Int `json:"totalSupply"`
+	Paused                    bool         `json:"paused"`
 }
 
 type StaticExtra struct {
-	PoolID            string              `json:"poolId"`
-	PoolType          string              `json:"poolType"`
-	PoolTypeVer       int                 `json:"poolTypeVer"`
-	ScalingFactors    []*uint256.Int      `json:"scalingFactors"`
-	NormalizedWeights []*uint256.Int      `json:"normalizedWeights"`
-	Vault             string              `json:"vault"`
-	BasePoolScanned   bool                `json:"basePoolScanned"`
-	BasePools         map[string][]string `json:"basePools,omitempty"`
+	PoolID                string              `json:"poolId"`
+	PoolType              string              `json:"poolType"`
+	PoolTypeVer           int                 `json:"poolTypeVer"`
+	ScalingFactors        []*uint256.Int      `json:"scalingFactors"`
+	NormalizedWeights     []*uint256.Int      `json:"normalizedWeights"`
+	Vault                 string              `json:"vault"`
+	BasePoolScanned       bool                `json:"basePoolScanned"`
+	ProtocolFeesCollector string              `json:"protocolFeesCollector"`
+	BasePools             map[string][]string `json:"basePools,omitempty"`
 }
 
 type PoolTokens struct {
@@ -43,8 +47,11 @@ type PoolMetaInfo struct {
 }
 
 type rpcRes struct {
-	PoolTokens        PoolTokens
-	SwapFeePercentage *uint256.Int
-	PausedState       PausedState
-	BlockNumber       uint64
+	PoolTokens                PoolTokens
+	SwapFeePercentage         *uint256.Int
+	ProtocolSwapFeePercentage *uint256.Int
+	PausedState               PausedState
+	LastInvariant             *uint256.Int
+	TotalSupply               *uint256.Int
+	BlockNumber               uint64
 }

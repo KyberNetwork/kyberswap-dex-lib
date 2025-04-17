@@ -112,7 +112,10 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}, nil
 }
 
-func (t *PoolSimulator) GetBasePool() pool.IPoolSimulator { return t.basePool }
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	return []pool.IPoolSimulator{t.basePool}
+}
+
 func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
 	if curveBasePool, ok := basePool.(ICurveBasePool); ok {
 		t.basePool = curveBasePool
