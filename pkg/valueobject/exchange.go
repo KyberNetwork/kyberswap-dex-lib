@@ -433,6 +433,8 @@ var (
 	ExchangeKatanaV2 Exchange = "katana-v2"
 	ExchangeKatanaV3 Exchange = "katana-v3"
 
+	ExchangeUcsFinance Exchange = "ucs-finance"
+
 	ExchangeUniswapV4        Exchange = "uniswap-v4"
 	ExchangeUniswapV4BunniV2 Exchange = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Kem     Exchange = "uniswap-v4-kem"

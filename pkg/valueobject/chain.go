@@ -39,6 +39,7 @@ const (
 	ChainIDSonic           ChainID = 146
 	ChainIDBerachain       ChainID = 80094
 	ChainIDRonin           ChainID = 2020
+	ChainIDUnichain        ChainID = 130
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
@@ -77,6 +78,7 @@ var ChainNameMap = map[ChainID]string{
 	ChainIDSonic:           "sonic",
 	ChainIDBerachain:       "berachain",
 	ChainIDRonin:           "ronin",
+	ChainIDUnichain:        "unichain",
 
 	ChainIDSolana: "solana",
 }
