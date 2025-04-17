@@ -218,6 +218,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if eth.IsEther(routeSummary.TokenIn) {
 		transactionValue = routeSummary.AmountIn
 	}
+
 	// parse message, we always send events to kafka although the route might not contain alpha fee
 	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
 	// just a temporarily check if rfqRouteMsg hasn't init yet, we will not send it to kafka
@@ -542,7 +543,10 @@ func (uc *BuildRouteUseCase) extractAlphaFee(extra any, tokens map[string]*entit
 		return
 	}
 
+	alphaFeeAsset = strings.ToLower(alphaFeeAsset)
+
 	alphaFeeInUSD := business.CalcAmountUSD(alphaFeeAmt, tokens[alphaFeeAsset].Decimals, prices[alphaFeeAsset])
+
 	alphaFeeInUSDFloat, _ := alphaFeeInUSD.Float64()
 	rfqRouteMsg.TotalAlphaFeeInUsd += alphaFeeInUSDFloat
 
