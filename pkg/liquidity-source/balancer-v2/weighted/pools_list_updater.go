@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,7 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -73,7 +72,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, vaults)
+	pools, err := u.initPools(subgraphPools, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -90,13 +89,13 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
 
-	req := u.ethrpcClient.R()
+	req := u.ethrpcClient.R().SetContext(ctx)
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -113,11 +112,12 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	return vaults, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool, vaults []string) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool,
+	vaults []string) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
 	for idx := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
+		pool, err := u.initPool(subgraphPools[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -128,14 +128,14 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
+func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
 	var (
 		poolTokens        = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves          = make([]string, len(subgraphPool.Tokens))
 		scalingFactors    = make([]*uint256.Int, len(subgraphPool.Tokens))
 		normalizedWeights = make([]*uint256.Int, len(subgraphPool.Tokens))
-
-		err error
+		basePools         = make(map[string][]string, len(subgraphPool.Tokens))
+		err               error
 	)
 
 	for j, token := range subgraphPool.Tokens {
@@ -145,20 +145,19 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		}
 		weight, _ := new(big.Float).Mul(w, bignumber.BoneFloat).Uint64()
 		normalizedWeights[j] = uint256.NewInt(weight)
-		if err != nil {
-			return entity.Pool{}, err
-		}
 
 		poolTokens[j] = &entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
 			Swappable: true,
 		}
-
 		reserves[j] = "0"
-
-		scalingFactors[j] = number.TenPow(18 - uint8(token.Decimals))
+		scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
 		if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
-			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], number.Number_1e18)
+			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
+		}
+
+		if token.Token.Pool.Address != "" {
+			basePools[token.Address] = []string{}
 		}
 	}
 
@@ -169,6 +168,8 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		ScalingFactors:    scalingFactors,
 		NormalizedWeights: normalizedWeights,
 		Vault:             vault,
+		BasePools:         basePools,
+		BatchSwapEnabled:  u.config.BatchSwapEnabled,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

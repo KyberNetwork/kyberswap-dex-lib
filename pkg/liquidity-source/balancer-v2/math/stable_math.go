@@ -867,3 +867,29 @@ func (l *stableMath) CalcTokenOutGivenExactBptIn(
 
 	return u, nil
 }
+
+func (l *stableMath) CalcDueTokenProtocolSwapFeeAmount(
+	amplificationParameter *uint256.Int,
+	balances []*uint256.Int,
+	lastInvariant *uint256.Int,
+	tokenIndex int,
+	protocolSwapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	finalBalanceFeeToken, err := l.GetTokenBalanceGivenInvariantAndAllOtherBalances(
+		amplificationParameter,
+		balances,
+		lastInvariant,
+		tokenIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if balances[tokenIndex].Cmp(finalBalanceFeeToken) <= 0 {
+		return number.Zero, nil
+	}
+
+	accumulatedTokenSwapFees := new(uint256.Int).Sub(balances[tokenIndex], finalBalanceFeeToken)
+
+	return FixedPoint.MulDown(accumulatedTokenSwapFees, protocolSwapFeePercentage)
+}

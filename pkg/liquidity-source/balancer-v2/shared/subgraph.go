@@ -16,6 +16,11 @@ type SubgraphPool struct {
 		Address  string `json:"address"`
 		Decimals int    `json:"decimals"`
 		Weight   string `json:"weight"`
+		Token    struct {
+			Pool struct {
+				Address string `json:"address"`
+			} `json:"pool"`
+		} `json:"token"`
 	} `json:"tokens"`
 }
 
@@ -42,9 +47,14 @@ func BuildSubgraphPoolsQuery(
 			poolTypeVersion
 			createTime
 			tokens {
-			  address
-			  decimals
-			  weight
+				address
+				decimals
+				weight
+				token {
+					pool {
+						address
+					}
+				}
 			}
 		}
 	}`

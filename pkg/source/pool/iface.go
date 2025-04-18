@@ -35,7 +35,8 @@ type GetNewPoolStateWithOverridesParams struct {
 }
 
 type IPoolTrackerWithOverrides interface {
-	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool, params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
+	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
+		params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
 }
 
 type IPoolTracker interface {
@@ -73,6 +74,12 @@ type IPoolExactOutSimulator interface {
 	// the required params is TokenAmountOut and TokenIn.
 	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
+}
+
+type IMetaPoolSimulator interface {
+	IPoolSimulator
+	GetBasePools() []IPoolSimulator      // get base pools
+	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 
 type IPoolRFQ interface {
