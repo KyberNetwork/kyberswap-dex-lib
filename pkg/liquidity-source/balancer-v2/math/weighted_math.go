@@ -351,10 +351,10 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	nonTaxableAmount := new(uint256.Int)
 	taxableAmount := new(uint256.Int)
 	amountInWithoutFee := new(uint256.Int)
 	balanceRatio := new(uint256.Int)
+	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
 		amountInWithoutFee.SetUint64(0)

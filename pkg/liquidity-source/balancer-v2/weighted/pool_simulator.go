@@ -210,7 +210,10 @@ func (s *PoolSimulator) OnExit(tokenOut string, bptAmountIn *uint256.Int) (*uint
 	}
 
 	if !s.paused {
-		chargeDueProtocolFee(s.poolTypeVer, scaledBalances, s.normalizedWeights, s.lastInvariant, s.protocolSwapFeePercentage)
+		err = chargeDueProtocolFee(s.poolTypeVer, scaledBalances, s.normalizedWeights, s.lastInvariant, s.protocolSwapFeePercentage)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	amountOut, err := calcTokenOutGivenExactBptIn(s.poolTypeVer, bptAmountIn, scaledBalances[indexOut],
