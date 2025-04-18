@@ -52,7 +52,7 @@ func BuildSubgraphPoolsQuery(
 				weight
 				token {
 					pool {
-						id
+						address
 					}
 				}
 			}
