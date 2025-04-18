@@ -803,6 +803,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoney:                      {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
+	ExchangeUcsFinance:                 {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
 	ExchangeUniswapV4Kem:               {},
