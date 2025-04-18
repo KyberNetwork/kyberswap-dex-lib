@@ -325,7 +325,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensIn(
 	balanceRatiosWithFee := make([]*uint256.Int, len(balances))
 
 	invariantRatioWithFees := uint256.NewInt(0)
-	tmp := new(uint256.Int)
+	var tmp *uint256.Int
 
 	var err error
 	for i := range balances {
@@ -429,7 +429,7 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 	balanceRatiosWithFee := make([]*uint256.Int, len(balances))
 
 	invariantRatioWithFees := uint256.NewInt(0)
-	tmp := new(uint256.Int)
+	var tmp *uint256.Int
 
 	var err error
 	for i := range balances {
@@ -455,10 +455,10 @@ func (l *weightedMath) CalcBptOutGivenExactTokensInV1(
 	}
 
 	invariantRatio := new(uint256.Int).Set(FixedPoint.ONE)
-	nonTaxableAmount := new(uint256.Int)
 	taxableAmount := new(uint256.Int)
 	amountInWithoutFee := new(uint256.Int)
 	balanceRatio := new(uint256.Int)
+	var nonTaxableAmount *uint256.Int
 
 	for i := range balances {
 		amountInWithoutFee.SetUint64(0)
