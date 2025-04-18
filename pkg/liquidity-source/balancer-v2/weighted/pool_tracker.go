@@ -176,7 +176,7 @@ func (t *PoolTracker) queryRPC(
 	var (
 		poolTokens                PoolTokens
 		swapFeePercentage         *big.Int
-		protocolSwapFeePercentage *big.Int
+		protocolSwapFeePercentage = poolpkg.ZeroBI
 		pausedState               PausedState
 		lastInvariant             *big.Int
 		totalSupply               *big.Int
@@ -225,11 +225,13 @@ func (t *PoolTracker) queryRPC(
 		Method: poolMethodTotalSupply,
 	}, []any{&totalSupply})
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    shared.ProtocolFeesCollectorABI,
-		Target: t.config.ProtocolFeesCollector,
-		Method: protocolMethodGetSwapFeePercentage,
-	}, []any{&protocolSwapFeePercentage})
+	if t.config.ProtocolFeesCollector != "" {
+		req.AddCall(&ethrpc.Call{
+			ABI:    shared.ProtocolFeesCollectorABI,
+			Target: t.config.ProtocolFeesCollector,
+			Method: protocolMethodGetSwapFeePercentage,
+		}, []any{&protocolSwapFeePercentage})
+	}
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
