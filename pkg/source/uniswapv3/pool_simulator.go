@@ -189,7 +189,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				},
 				Gas: totalGas,
 				SwapInfo: SwapInfo{
-					nextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
+					NextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
 					nextStateLiquidity:    new(uint256.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
 				},
@@ -257,7 +257,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				},
 				Gas: totalGas,
 				SwapInfo: SwapInfo{
-					nextStateSqrtRatioX96: new(uint256.Int).Set(amountOutResult.SqrtRatioX96),
+					NextStateSqrtRatioX96: new(uint256.Int).Set(amountOutResult.SqrtRatioX96),
 					nextStateLiquidity:    new(uint256.Int).Set(amountOutResult.Liquidity),
 					nextStateTickCurrent:  amountOutResult.CurrentTick,
 				},
@@ -286,7 +286,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return
 	}
-	p.V3Pool.SqrtRatioX96 = si.nextStateSqrtRatioX96
+	p.V3Pool.SqrtRatioX96 = si.NextStateSqrtRatioX96
 	p.V3Pool.Liquidity = si.nextStateLiquidity
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
