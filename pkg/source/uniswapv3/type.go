@@ -18,7 +18,7 @@ type Gas struct {
 }
 
 type SwapInfo struct {
-	nextStateSqrtRatioX96 *v3Utils.Uint160
+	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
 	nextStateLiquidity    *v3Utils.Uint128
 	nextStateTickCurrent  int
 }
