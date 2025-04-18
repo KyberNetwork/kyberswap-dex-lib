@@ -1,0 +1,485 @@
+env: &env "production"
+pprof: false
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /unichain
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainId: &chainId 130
+  chainName: &chainName unichain
+  rpc: "https://unichain.drpc.org"
+  rpcTimeout: 100ms
+  multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
+  executorAddress: &executorAddress "0x0F4A1D7FdF4890bE35e71f3E0Bbc4a0EC377eca3"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x4200000000000000000000000000000000000006: true # WETH
+    0x078D782b760474a361dDA0AF3839290b0EF57AD6: true # USDC
+    0x20CAb320A855b39F724131C69424240519573f81: true # DAI
+    0x9151434b16b9763660705744891fA906F660EcC5: true # USDT0
+    0x588CE4F028D8e7B53B687865d6A67b3A54C75518: true # USDT
+    0x927B51f251480a681271180DA4de28D44EC4AfB8: true # WBTC
+    0xc02fE7317D4eb8753a02c35fe019786854A92001: true # wstETH
+    0x7DCC39B4d1C53CB31e1aBc0e358b43987FEF80f7: true # weETH
+    0x2416092f143378750bb29b79eD961ab195CcEea5: true # ezETH
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "uniswap"
+    - "dyor-swap"
+    - "ucs-finance"
+    - "velodrome-v2"
+    - "uniswap-v4"
+    - "uniswapv3"
+    - "velodrome-cl-2"
+  excludedSourcesByClient: &excludedSourcesByClient
+  featureFlags:
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: *maxThresholdAmountInUSD
+  useAEVM: &useAEVM false
+  alphaFeeConfig: &alphaFeeConfig
+    reductionConfig:
+      reductionFactorInBps:
+        kyber-pmm: 5000
+        uniswap-v4-kem: 5000
+      maxThresholdPercentageInBps: 8000
+      minDifferentThresholdUSD: 0.005
+      minDifferentThresholdBps: 20
+      defaultAlphaFeePercentageBps: 100
+    ttl: 600s
+  aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
+  liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
+  liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+redis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+pregenRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolEventRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+kafka:
+  enable: false
+  addresses: "localhost:9092"
+  useAuthentication: false
+  username:
+  password:
+  prefix: *chainName
+  separator: "."
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: *chainId
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+encoder:
+  chainId: *chainId
+  routerAddress: *routerAddress
+  executorAddress: *executorAddress
+  executorV2Address: 0x36C3253C0F1f76F0831a2B187CEA2679F95BC7BE
+  opPrivateKey:
+  isPositiveSlippageEnabled: true
+  minimumPSThreshold: 1000000
+  executorAddressByClientID:
+  partnerPositiveSlippageInfo:
+    tritium-research:
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      randomReturnAmountInflation: 0.00006
+    llamaswap:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    kyberswap:
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
+    kyberswap-earn:
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
+    bitgetswap:
+      receiver: 0x0000000000000000000000000000000000000003
+      feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
+      feeReferralAddress:
+    app_safe_global:
+      receiver:
+      feeSharingAddress: 0x55602F3057be52BFB6F98fFE799CFDec58Af5130
+useCase:
+  getRoute:
+    chainId: *chainId
+    routerAddress: *routerAddress
+    availableSources: *availableSources
+    excludedSourcesByClient: *excludedSourcesByClient
+    defaultPoolsIndex: nativeTvl
+    salt: &salt
+    aggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
+      getBestPoolsOptions: *getBestPoolsOptions
+      finderOptions:
+        maxHops: 3
+        distributionPercent: 5
+        maxPathsInRoute: 20
+        maxPathsInFallbackRoute: 5
+        maxPathsToGenerate: 5
+        maxPathsToReturn: 200
+        minPartUSD: 500
+        minThresholdAmountInUSD: 0
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
+        isHillClimbEnabled: false
+        hillClimbDistributionPercent: 1
+        hillClimbIteration: 2
+        hillClimbMinPartUSD: 500
+        isPathGeneratorEnabled: false
+        useAEVMRemoteFinder: false
+        remoteUseAEVMPool: false
+        localUseAEVMPool: false
+    cache:
+      defaultTtl: 15s
+      ttlByAmount:
+        - amount: 1
+          ttl: 30s
+        - amount: 2
+          ttl: 10s
+        - amount: 5
+          ttl: 10s
+        - amount: 10
+          ttl: 10s
+        - amount: 11
+          ttl: 30s
+        - amount: 15
+          ttl: 10s
+        - amount: 20
+          ttl: 10s
+        - amount: 22
+          ttl: 30s
+        - amount: 25
+          ttl: 10s
+        - amount: 30
+          ttl: 10s
+        - amount: 33
+          ttl: 30s
+        - amount: 35
+          ttl: 10s
+        - amount: 40
+          ttl: 10s
+        - amount: 44
+          ttl: 30s
+        - amount: 45
+          ttl: 10s
+        - amount: 50
+          ttl: 10s
+        - amount: 55
+          ttl: 30s
+        - amount: 60
+          ttl: 10s
+        - amount: 66
+          ttl: 30s
+        - amount: 70
+          ttl: 10s
+        - amount: 77
+          ttl: 30s
+        - amount: 80
+          ttl: 10s
+        - amount: 88
+          ttl: 30s
+        - amount: 90
+          ttl: 10s
+        - amount: 99
+          ttl: 30s
+        - amount: 100
+          ttl: 10s
+        - amount: 500
+          ttl: 10s
+        - amount: 1000
+          ttl: 10s
+        - amount: 10000
+          ttl: 10s
+        - amount: 100000
+          ttl: 10s
+      ttlByAmountUsdRange:
+        - amountUSDLowerBound: 0
+          ttl: 10s
+        - amountUSDLowerBound: 101
+          ttl: 10s
+        - amountUSDLowerBound: 500
+          ttl: 10s
+        - amountUSDLowerBound: 1001
+          ttl: 10s
+        - amountUSDLowerBound: 2000
+          ttl: 10s
+        - amountUSDLowerBound: 5000
+          ttl: 10s
+        - amountUSDLowerBound: 10000
+          ttl: 10s
+      ttlByAmountRange:
+        - amountLowerBound: "0"
+          ttl: 10s
+      priceImpactThreshold: 0.005
+      shrinkFuncName: "round"
+      shrinkDecimalBase: 10
+      shrinkFuncPowExp: 0.7
+      shrinkFuncLogPercent: 1.01
+      enableNewCacheKeyGenerator: false
+      shrinkAmountInConfigs:
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.1
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.3
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.5
+      shrinkAmountInThreshold: 100000
+      minAmountInUSD: 0.9
+    safetyQuoteConfig:
+      excludeOneSwapEnable: true
+      factor:
+        Default: 0
+        Converter: 0
+        StrictlyStable: 0
+        Stable: 0.5
+        Correlated: 1.5
+        LowSlippage: 3
+        NormalSlippage: 10
+        HighSlippage: 50
+      whitelistedClient:
+    alphaFeeConfig: *alphaFeeConfig
+  getCustomRoute:
+    aggregator:
+      finderOptions:
+        maxHops: 5
+  buildRoute:
+    chainId: *chainId
+    forceSourceByIp:
+      '47_130_37_231': tritium-research
+      '52_74_71_138': tritium-research
+    validateChecksumBySource:
+      'tritium-research': true
+    salt: *salt
+    rfq:
+      kyberswap-limit-order-v2:
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+    faultyPools:
+      minSlippageThreshold: 1000
+      whitelistedTokenSet: *whitelistedTokenSet
+    rfqAcceptableSlippageFraction: 1000
+    publisher:
+      aggregatorTransactionTopic: *aggregatorTransactionTopic
+    alphaFeeConfig: *alphaFeeConfig
+    clientRefCode:
+      bitgetswap: bitget
+
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    availableSources: *availableSources
+    blacklistedPoolSet: *blacklistedPoolSet
+    blackListRenewalInterval: 30s
+    faultyPoolsRenewalInterval: 5s
+    capacity: 1000000
+    poolRenewalInterval: 3s
+    faultyPoolsExpireThreshold: 3s
+  indexPools:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 3000
+    maxGoroutines: 0
+    enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
+  trackExecutor:
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-unichain/version/latest
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    blacklistedPoolSet: *blacklistedPoolSet
+    chunkSize: 200
+    useAEVM: *useAEVM
+    dexUseAEVM:
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
+job:
+  indexPools:
+    forceScanAllEveryNth: 10
+    interval: 2s
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_events"
+        group: "router_indexPools"
+        key: "message"
+        block: 300ms
+        count: 100
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
+  updateSuggestedGasPrice:
+    interval: 15s
+  trackExecutorBalance:
+    interval: 1h
+  liquidityScoreIndexPools:
+    env: *env
+    batchSize: 200
+    interval: 1h
+    successedFileName: *liquidityTradesDataFileName
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreInputFileName: *liquidityScoreInputFileName
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    targetFactorEntropy: 0.995
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_events"
+        group: "router_liqIndexPools"
+        key: "message"
+        block: 300ms
+        count: 200
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
+repository:
+  gas:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      suggestedGasPrice:
+        cost: 1
+        ttl: 2m
+  pool:
+    redis:
+      prefix: *chainName
+      maxFaultyPoolSize: 500
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      faultyPools:
+        cost: 1
+        ttl: 5s
+      faultyIndexPools:
+        cost: 1
+        ttl: 30m
+  onchainprice:
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      price:
+        cost: 1
+        ttl: 1m
+  poolService:
+    baseUrl: "0.0.0.0:10443"
+    insecure: true
+    timeout: 100ms
+    chainId: *chainId
+  token:
+    redis:
+      prefix: *chainName
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: *chainName
+  route:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      prefix: *chainName
+      route:
+        cost: 1
+        ttl: 10s
+  blackjack:
+    grpcClient:
+      baseURL: blackjack.core-cluster.gke.production.internal:80
+      insecure: true
+      timeout: 100ms
+  erc20balanceslot:
+    redis:
+      prefix: *chainName
+  alphaFee:
+    redis:
+      prefix: *chainName
+      separator: ":"
+      ttl: 600s
+validator:
+  slippageValidatorConfig:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
+  buildRouteParams:
+    blacklistedRecipientSet:
+  getRouteEncodeParams:
+    blacklistedRecipientSet:
+bundledRouteEnabled: false
