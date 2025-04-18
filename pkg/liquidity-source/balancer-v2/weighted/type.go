@@ -23,6 +23,7 @@ type StaticExtra struct {
 	NormalizedWeights     []*uint256.Int      `json:"normalizedWeights"`
 	Vault                 string              `json:"vault"`
 	BasePoolScanned       bool                `json:"basePoolScanned"`
+	BatchSwapEnabled      bool                `json:"batchSwapEnabled"`
 	ProtocolFeesCollector string              `json:"protocolFeesCollector"`
 	BasePools             map[string][]string `json:"basePools,omitempty"`
 }

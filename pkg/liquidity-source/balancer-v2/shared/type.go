@@ -30,21 +30,13 @@ type Hop struct {
 	JoinExitIndex *big.Int `json:"joinExitIndex,omitempty"`
 }
 
-type JoinExitKind int64
-
-const (
-	PoolExit JoinExitKind = 0
-	PoolJoin JoinExitKind = 1
-)
-
 // indexes of the pools to exit or join in ascending order,
 // each value is a packed uint256 with the following structure [kind(uint24) 0 for exiting pool 1 for joining pool, pool index(uint232)]
-func PackJoinExitIndex(kind JoinExitKind, tokenIndex int) *big.Int {
+func PackJoinExitIndex(kind JoinExitKind, poolIndex int) *big.Int {
 	kindBig := big.NewInt(int64(kind))
 
 	kindBig.Lsh(kindBig, 232) // shift kind to the top 24 bits
 
-	tokenIndexBig := big.NewInt(int64(tokenIndex))
+	tokenIndexBig := big.NewInt(int64(poolIndex))
 	return new(big.Int).Or(kindBig, tokenIndexBig)
-
 }

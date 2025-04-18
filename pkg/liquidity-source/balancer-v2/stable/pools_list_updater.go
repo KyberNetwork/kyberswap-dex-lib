@@ -162,6 +162,7 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 		PoolSpecialization: poolSpec,
 		Vault:              vault,
 		BasePools:          basePools,
+		BatchSwapEnabled:   u.config.BatchSwapEnabled,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

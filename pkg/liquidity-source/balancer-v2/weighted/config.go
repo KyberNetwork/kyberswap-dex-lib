@@ -8,4 +8,5 @@ type Config struct {
 	SubgraphAPI           string      `json:"subgraphAPI"`
 	SubgraphHeaders       http.Header `json:"subgraphHeaders"`
 	NewPoolLimit          int         `json:"newPoolLimit"`
+	BatchSwapEnabled      bool        `json:"batchSwapEnabled"`
 }

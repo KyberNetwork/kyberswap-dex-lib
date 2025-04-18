@@ -23,7 +23,7 @@ var (
 	ErrPoolPaused                 = errors.New("pool is paused")
 	ErrInvalidAmp                 = errors.New("invalid amp")
 	ErrNotTwoTokens               = errors.New("not two tokens")
-	ErrOverflow                   = errors.New("overflow")
+	ErrBatchSwapDisabled          = errors.New("batch swap is disabled")
 )
 
 type PoolSimulator struct {
@@ -45,6 +45,8 @@ type PoolSimulator struct {
 
 	poolType    string
 	poolTypeVer int
+
+	batchSwapEnabled bool
 }
 
 var _ shared.IBasePool = (*PoolSimulator)(nil)
@@ -104,6 +106,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		poolSpec:          staticExtra.PoolSpecialization,
 		poolType:          staticExtra.PoolType,
 		poolTypeVer:       staticExtra.PoolTypeVer,
+		batchSwapEnabled:  staticExtra.BatchSwapEnabled,
 	}, nil
 }
 
@@ -290,6 +293,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 
+	if (indexIn < 0 || indexOut < 0) && !s.batchSwapEnabled {
+		return nil, ErrBatchSwapDisabled
+	}
+
 	if indexIn >= 0 && indexOut >= 0 {
 		return s.swapDirect(tokenAmountIn.Token, tokenOut, amountIn)
 	}
@@ -334,7 +341,7 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 		bptAmount, err = basePool.OnSwap(tokenIn, bptToken, amountIn)
 	default:
 		bptAmount, err = basePool.OnJoin(tokenIn, amountIn)
-		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, basePool.GetTokenIndex(tokenIn))
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, 0)
 	}
 	if err != nil {
 		return nil, err
@@ -401,7 +408,7 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 		amountOut, err = basePool.OnSwap(bptToken, tokenOut, bptAmount)
 	default:
 		amountOut, err = basePool.OnExit(tokenOut, bptAmount)
-		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, basePool.GetTokenIndex(tokenOut))
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, 1)
 	}
 	if err != nil {
 		return nil, err
@@ -450,7 +457,7 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		bptAmountIn, err = basePoolIn.OnSwap(tokenIn, bptTokenIn, amountIn)
 	default:
 		bptAmountIn, err = basePoolIn.OnJoin(tokenIn, amountIn)
-		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, basePoolIn.GetTokenIndex(tokenIn))
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, 0)
 	}
 	if err != nil {
 		return nil, err
@@ -490,7 +497,7 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		amountOut, err = basePoolOut.OnSwap(bptTokenOut, tokenOut, bptAmountOut)
 	default:
 		amountOut, err = basePoolOut.OnExit(tokenOut, bptAmountOut)
-		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, basePoolOut.GetTokenIndex(tokenOut))
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, 2)
 	}
 	if err != nil {
 		return nil, err
@@ -510,17 +517,29 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 }
 
 func (s *PoolSimulator) buildSwapResult(tokenOut string, amountOut *uint256.Int, hops []shared.Hop) *pool.CalcAmountOutResult {
-	var swapInfo shared.SwapInfo
+	var (
+		swapInfo     shared.SwapInfo
+		estimatedGas = defaultGas.Swap
+	)
+
 	if hops != nil {
 		swapInfo = shared.SwapInfo{
 			Hops: hops,
+		}
+
+		for _, hop := range hops {
+			if hop.JoinExitIndex != nil {
+				estimatedGas += shared.JoinExitGasUsage
+			} else {
+				estimatedGas += defaultGas.Swap
+			}
 		}
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: tokenOut, Amount: bignumber.ZeroBI},
-		Gas:            defaultGas.Swap,
+		Gas:            estimatedGas,
 		SwapInfo:       swapInfo,
 	}
 }
