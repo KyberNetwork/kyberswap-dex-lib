@@ -11,6 +11,7 @@ import (
 	finderFinalizer "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finalizer"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -30,6 +31,7 @@ func MergeSwap(
 	entityRoute *finderEntity.Route,
 	amountReductionEachSwap [][]*big.Int,
 	customFuncs finderEntity.ICustomFuncs,
+	alphaFee *entity.AlphaFee,
 ) (*finderEntity.Route, error) {
 	if !canMergeSwap(ctx, constructRoute) {
 		return entityRoute, nil
@@ -40,7 +42,27 @@ func MergeSwap(
 		return nil, err
 	}
 
-	return mergeSwap(ctx, params, constructRoute, entityRoute, tokenTopoOrder, amountReductionEachSwap, customFuncs)
+	mergedRoute, err := mergeSwap(ctx, params, constructRoute, entityRoute, tokenTopoOrder, amountReductionEachSwap, customFuncs)
+	if err != nil || alphaFee == nil {
+		return mergedRoute, err
+	}
+
+	// update executedId in alpha fee
+	executedId := int32(0)
+	for _, path := range mergedRoute.Route {
+		for _, swap := range path {
+			if swap.Pool == alphaFee.Pool &&
+				swap.TokenIn == alphaFee.TokenIn &&
+				swap.TokenOut == alphaFee.AlphaFeeToken {
+				alphaFee.ExecutedId = executedId
+				break
+			}
+			executedId++
+		}
+	}
+
+	return mergedRoute, err
+
 }
 
 func mergeSwap(

@@ -74,7 +74,7 @@ func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 	// checksum validation always return true, and we don't need to retrieve checksum from Redis.
 	if rs.AlphaFee != nil {
 		h.WriteString(rs.AlphaFee.Pool)
-		h.WriteString(rs.AlphaFee.Token)
+		h.WriteString(rs.AlphaFee.AlphaFeeToken)
 		h.Write(rs.AlphaFee.Amount.Bytes())
 	}
 

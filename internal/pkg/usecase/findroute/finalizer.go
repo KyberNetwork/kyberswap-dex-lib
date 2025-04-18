@@ -102,7 +102,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	// Step 2: finalize route
 	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
 	amountReductionEachSwap := make([][]*big.Int, 0, len(constructRoute.Paths))
-	for pathId, path := range constructRoute.Paths {
+	totalSwap := 0
+	for _, path := range constructRoute.Paths {
 		// Step 2.1: finalize path
 		finalizedPath := make([]finderEntity.Swap, 0, len(path.PoolsOrder))
 		amountReductionInPath := make([]*big.Int, 0, len(path.PoolsOrder))
@@ -167,7 +168,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 			// Step 2.1.6: apply alpha fee reduction
 			reducedNextAmountIn := res.TokenAmountOut.Amount
-			if alphaFee != nil && alphaFee.PathId == pathId && alphaFee.SwapId == i {
+			if alphaFee != nil && alphaFee.ExecutedId == int32(totalSwap+i) {
 				reducedNextAmountIn = new(big.Int).Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
 			}
 
@@ -216,6 +217,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		}
 		finalizedRoute = append(finalizedRoute, finalizedPath)
 		amountReductionEachSwap = append(amountReductionEachSwap, amountReductionInPath)
+		totalSwap += len(path.PoolsOrder)
 	}
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
@@ -223,18 +225,19 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	// Extra data used for bundled route and alpha fee calculation
 	extra := types.FinalizeExtraData{}
 	extra.UpdatedBalancePools, extra.UpdatedSwapLimits = simulatorBucket.GetUpdatedState()
-	if alphaFee != nil && params.Prices[alphaFee.Token] > 0 {
-		alphaFee.AmountUsd = finderUtil.CalcAmountPrice(alphaFee.Amount, params.Tokens[alphaFee.Token].Decimals,
-			params.Prices[alphaFee.Token])
+	if alphaFee != nil && params.Prices[alphaFee.AlphaFeeToken] > 0 {
+		alphaFee.AmountUsd = finderUtil.CalcAmountPrice(alphaFee.Amount, params.Tokens[alphaFee.AlphaFeeToken].Decimals,
+			params.Prices[alphaFee.AlphaFeeToken])
 	}
 	extra.AlphaFee = alphaFee
 
 	if alphaFee != nil {
 		logger.WithFields(logger.Fields{
 			"routeId":           routeId,
-			"alphaFeeToken":     alphaFee.Token,
+			"alphaFeeToken":     alphaFee.AlphaFeeToken,
 			"alphaFeeAmount":    alphaFee.Amount.Text(10),
 			"alphaFeeAmountUsd": alphaFee.AmountUsd,
+			"executedId":        alphaFee.ExecutedId,
 		}).Info("route has alpha fee")
 	}
 
@@ -263,7 +266,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	}
 
 	mergeSwapRoute, err := mergeswap.MergeSwap(ctx, params, constructRoute, route, amountReductionEachSwap,
-		f.CustomFuncs())
+		f.CustomFuncs(), alphaFee)
+
 	if err != nil {
 		return route, nil
 	}

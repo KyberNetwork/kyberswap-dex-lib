@@ -170,7 +170,7 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 	var alphaFee *params.AlphaFee
 	if routeSummary.AlphaFee != nil {
 		alphaFee = &params.AlphaFee{
-			Token:     routeSummary.AlphaFee.Token,
+			Token:     routeSummary.AlphaFee.AlphaFeeToken,
 			Amount:    routeSummary.AlphaFee.Amount.String(),
 			AmountUsd: routeSummary.AlphaFee.AmountUsd,
 		}

@@ -283,6 +283,7 @@ func (uc *BuildRouteUseCase) rfq(
 	executorAddress := uc.encoder.GetExecutorAddress(source)
 
 	rfqParamsByPoolType := make(map[string][]valueobject.IndexedRFQParams)
+	totalSwap := 0
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
 			_, found := uc.rfqHandlerByPoolType[swap.PoolType]
@@ -307,7 +308,7 @@ func (uc *BuildRouteUseCase) rfq(
 
 			var alphaFee *big.Int
 			if routeSummary.AlphaFee != nil &&
-				routeSummary.AlphaFee.PathId == pathIdx && routeSummary.AlphaFee.SwapId == swapIdx {
+				routeSummary.AlphaFee.ExecutedId == int32(totalSwap+swapIdx) {
 				alphaFee = routeSummary.AlphaFee.Amount
 			}
 
@@ -330,10 +331,12 @@ func (uc *BuildRouteUseCase) rfq(
 						SwapInfo:     swap.Extra,
 						FeeInfo:      alphaFee,
 					},
-					PathIdx: pathIdx,
-					SwapIdx: swapIdx,
+					PathIdx:    pathIdx,
+					SwapIdx:    swapIdx,
+					ExecutedId: int32(totalSwap + swapIdx),
 				})
 		}
+		totalSwap += len(path)
 	}
 
 	if len(rfqParamsByPoolType) == 0 {
@@ -524,14 +527,14 @@ func (uc *BuildRouteUseCase) processRFQs(
 			routeSummary.Route[pathIdx][swapIdx].AmountOut = results[i].NewAmountOut
 		}
 
-		uc.extractAlphaFee(results[i].Extra, tokens, prices, routeSummary, pathIdx, swapIdx, rfqRouteMsg)
+		uc.extractAlphaFee(results[i].Extra, tokens, prices, routeSummary, params.ExecutedId, pathIdx, swapIdx, rfqRouteMsg)
 	}
 
 	return err
 }
 
 func (uc *BuildRouteUseCase) extractAlphaFee(extra any, tokens map[string]*entity.Token,
-	prices map[string]float64, routeSummary valueobject.RouteSummary, pathIdx, swapIdx int,
+	prices map[string]float64, routeSummary valueobject.RouteSummary, executedId int32, pathIdx, swapIdx int,
 	rfqRouteMsg *v1.RouteSummary) {
 	extraWithAlphaFee, ok := extra.(WithAlphaFee)
 	if !ok {
@@ -552,14 +555,15 @@ func (uc *BuildRouteUseCase) extractAlphaFee(extra any, tokens map[string]*entit
 
 	// we must update alpha fee because alpha fee can be changed, and it might be equal to ps
 	if routeSummary.AlphaFee != nil &&
-		routeSummary.AlphaFee.PathId == pathIdx &&
-		routeSummary.AlphaFee.SwapId == swapIdx {
+		routeSummary.AlphaFee.ExecutedId == executedId {
 		routeSummary.AlphaFee = &routerEntity.AlphaFee{
-			Token:     alphaFeeAsset,
-			Amount:    alphaFeeAmt,
-			AmountUsd: alphaFeeInUSDFloat,
-			Pool:      routeSummary.Route[pathIdx][swapIdx].Pool,
-			AMMAmount: routeSummary.AlphaFee.AMMAmount,
+			AlphaFeeToken: alphaFeeAsset,
+			Amount:        alphaFeeAmt,
+			AmountUsd:     alphaFeeInUSDFloat,
+			Pool:          routeSummary.Route[pathIdx][swapIdx].Pool,
+			AMMAmount:     routeSummary.AlphaFee.AMMAmount,
+			ExecutedId:    executedId,
+			TokenIn:       routeSummary.AlphaFee.TokenIn,
 		}
 	}
 
@@ -576,14 +580,16 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 	rfqRouteMsg.BuyToken = routeSummary.TokenOut
 	rfqRouteMsg.RequestedAmount = routeSummary.AmountIn.Text(10)
 	rfqRouteMsg.VolumeInUsd = routeSummary.AmountInUSD
+	rfqRouteMsg.AmountOut = routeSummary.AmountOut.Text(10)
 
 	// info related to alpha fee, incase we don't have alpha fee, we don't need to track these fields
 	// because we only care about positive slippage
 	if routeSummary.AlphaFee != nil {
 		rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.Text(10)
 		rfqRouteMsg.AlphaFee = routeSummary.AlphaFee.Amount.Text(10)
-		rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.Token
+		rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.AlphaFeeToken
 		rfqRouteMsg.AlphaFeeInUsd = routeSummary.AlphaFee.AmountUsd
+		rfqRouteMsg.ExecutedId = routeSummary.AlphaFee.ExecutedId
 	}
 
 	switch rfq {

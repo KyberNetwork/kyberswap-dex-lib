@@ -181,9 +181,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "O",
-				Amount: big.NewInt(5),
-				Pool:   "pool-W5-O-W5-O",
+				AlphaFeeToken: "O",
+				Amount:        big.NewInt(5),
+				Pool:          "pool-W5-O-W5-O",
 			},
 		},
 		{
@@ -223,9 +223,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "W5",
-				Amount: big.NewInt(6),
-				Pool:   "pool-W3-W5-W3-W5",
+				AlphaFeeToken: "W5",
+				Amount:        big.NewInt(6),
+				Pool:          "pool-W3-W5-W3-W5",
 			},
 		},
 		{
@@ -303,9 +303,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "NonPrice",
-				Amount: big.NewInt(20),
-				Pool:   "pool-W5-NonPrice-W5-NonPrice",
+				AlphaFeeToken: "NonPrice",
+				Amount:        big.NewInt(20),
+				Pool:          "pool-W5-NonPrice-W5-NonPrice",
 			},
 		},
 		{
@@ -383,9 +383,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "NonPrice",
-				Amount: big.NewInt(20),
-				Pool:   "pool-W5-NonPrice-W5-NonPrice",
+				AlphaFeeToken: "NonPrice",
+				Amount:        big.NewInt(20),
+				Pool:          "pool-W5-NonPrice-W5-NonPrice",
 			},
 		},
 		{
@@ -425,9 +425,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				},
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "W5",
-				Amount: big.NewInt(24),
-				Pool:   "pool-W3-W5-W3-W5",
+				AlphaFeeToken: "W5",
+				Amount:        big.NewInt(24),
+				Pool:          "pool-W3-W5-W3-W5",
 			},
 		},
 		{
@@ -468,9 +468,9 @@ func TestAlphaFee_Calculation(t *testing.T) {
 				MaxThresholdPercentageInBps: int64(8000),
 			},
 			expectedAlphaFee: &routerEntity.AlphaFee{
-				Token:  "W5",
-				Amount: big.NewInt(24),
-				Pool:   "pool-W3-W5-W3-W5",
+				AlphaFeeToken: "W5",
+				Amount:        big.NewInt(24),
+				Pool:          "pool-W3-W5-W3-W5",
 			},
 		},
 	}
@@ -544,7 +544,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 			if tc.err != nil {
 				assert.ErrorIs(t, err, tc.err)
 			} else {
-				assert.Equal(t, tc.expectedAlphaFee.Token, res.Token)
+				assert.Equal(t, tc.expectedAlphaFee.AlphaFeeToken, res.AlphaFeeToken)
 				assert.True(t, res.Amount.Cmp(tc.expectedAlphaFee.Amount) == 0)
 			}
 

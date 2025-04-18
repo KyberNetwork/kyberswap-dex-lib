@@ -35,8 +35,9 @@ var (
 )
 
 type SwapIndex struct {
-	PathId int
-	SwapId int
+	PathId     int
+	SwapId     int
+	ExecutedId int32
 }
 
 type AlphaFeeParams struct {
@@ -86,7 +87,7 @@ func NewAlphaFeeCalculation(
 func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParams) (*routerEntity.AlphaFee, error) {
 	swapIndex := c.findValidAlphaFeeSwap(c.convertToPathInfo(param.BestRoute, param.PoolSimulatorBucket))
 	// swap doesn't contains valid alpha fee swap
-	if swapIndex.PathId == -1 || swapIndex.SwapId == -1 {
+	if swapIndex.ExecutedId == -1 {
 		return nil, ErrRouteNotHaveAlphaFeeDex
 	}
 
@@ -176,12 +177,12 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 	}
 
 	return &routerEntity.AlphaFee{
-		Token:     alphaFee.Token,
-		Amount:    alphaFee.Amount,
-		Pool:      currentPath.PoolsOrder[swapIndex.SwapId],
-		AMMAmount: ammBestRouteAmountOut,
-		PathId:    swapIndex.PathId,
-		SwapId:    swapIndex.SwapId,
+		AlphaFeeToken: alphaFee.Token,
+		Amount:        alphaFee.Amount,
+		Pool:          currentPath.PoolsOrder[swapIndex.SwapId],
+		AMMAmount:     ammBestRouteAmountOut,
+		ExecutedId:    swapIndex.ExecutedId,
+		TokenIn:       currentPath.TokensOrder[swapIndex.SwapId],
 	}, nil
 }
 
@@ -203,10 +204,13 @@ func (c *AlphaFeeCalculation) convertToPathInfo(
 	return result
 }
 
+// This method returns executedId which is the order when sc execute the swap
 func (c *AlphaFeeCalculation) findValidAlphaFeeSwap(paths []PathInfo) SwapIndex {
 	minDistance := math.MaxInt
 	minLen := math.MaxInt
 	pathId := -1
+	executedId := -1
+	totalCount := 0
 
 	for i, path := range paths {
 		pathLen := len(path.SwapInfo)
@@ -219,25 +223,32 @@ func (c *AlphaFeeCalculation) findValidAlphaFeeSwap(paths []PathInfo) SwapIndex 
 		}
 		// pmm swap not found
 		if j == -1 {
+			totalCount += pathLen
 			continue
 		}
+
 		distance := pathLen - 1 - j
 		if distance < minDistance || (distance == minDistance && pathLen < minLen) {
 			minDistance = distance
 			minLen = pathLen
 			pathId = i
+			executedId = totalCount + j
 		}
+		totalCount += pathLen
 	}
-	if pathId == -1 {
+
+	if executedId == -1 {
 		return SwapIndex{
-			PathId: -1,
-			SwapId: -1,
+			PathId:     -1,
+			SwapId:     -1,
+			ExecutedId: -1,
 		}
 	}
 
 	return SwapIndex{
-		PathId: pathId,
-		SwapId: len(paths[pathId].SwapInfo) - 1 - minDistance,
+		PathId:     pathId,
+		SwapId:     len(paths[pathId].SwapInfo) - 1 - minDistance,
+		ExecutedId: int32(executedId),
 	}
 }
 
@@ -354,11 +365,10 @@ func (c *AlphaFeeCalculation) CalculateDefaultAlphaFee(_ context.Context,
 	feeAmount, _ := big.NewFloat(feeAmountF).Int(nil)
 
 	return &routerEntity.AlphaFee{
-		Pool:   currentSwap.Pool,
-		Token:  currentSwap.TokenOut,
-		Amount: feeAmount,
-		PathId: swapIndex.PathId,
-		SwapId: swapIndex.SwapId,
+		Pool:          currentSwap.Pool,
+		AlphaFeeToken: currentSwap.TokenOut,
+		Amount:        feeAmount,
+		ExecutedId:    swapIndex.ExecutedId,
 	}, nil
 }
 
