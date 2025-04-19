@@ -7,21 +7,18 @@ import (
 )
 
 var (
-	TwoPow31  = new(big.Int).Lsh(bignum.One, 31)
 	TwoPow32  = new(big.Int).Lsh(bignum.One, 32)
 	TwoPow64  = new(big.Int).Lsh(bignum.One, 64)
 	TwoPow96  = new(big.Int).Lsh(bignum.One, 96)
 	TwoPow127 = new(big.Int).Lsh(bignum.One, 127)
 	TwoPow128 = new(big.Int).Lsh(bignum.One, 128)
-	TwoPow160 = new(big.Int).Lsh(bignum.One, 160)
-	TwoPow256 = new(big.Int).Lsh(bignum.One, 256)
 
 	U32Max  = new(big.Int).Sub(TwoPow32, bignum.One)
 	U96Max  = new(big.Int).Sub(TwoPow96, bignum.One)
 	U128Max = bignum.MAX_UINT_128
 	U256Max = bignum.MAX_UINT_256
 
-	tickMasks = [27]*big.Int{
+	tickMasks = [...]*big.Int{
 		bignum.NewBig("340282196779882608775400081051345954875"),
 		bignum.NewBig("340282026638911824551550055881712329744"),
 		bignum.NewBig("340281686357225467326082729798982530761"),

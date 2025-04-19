@@ -1,36 +1,43 @@
 package ekubo
 
 import (
+	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type (
-	PoolData struct {
-		CoreAddress string `json:"core_address"`
-		Token0      string `json:"token0"`
-		Token1      string `json:"token1"`
-		Fee         string `json:"fee"`
-		TickSpacing uint32 `json:"tick_spacing"`
-		Extension   string `json:"extension"`
-	}
+	PoolState = any
 
-	GetAllPoolsResult = []PoolData
-)
-
-type (
-	Extra struct {
-		quoting.PoolState
-	}
+	Extra = PoolState
 
 	StaticExtra struct {
-		Core          string             `json:"core"`
-		ExtensionType pool.ExtensionType `json:"extensionType"`
-		PoolKey       *quoting.PoolKey   `json:"poolKey"`
+		Core          common.Address `json:"core"`
+		ExtensionType ExtensionType  `json:"extensionType"`
+		PoolKey       *pools.PoolKey `json:"poolKey"`
 	}
 
 	Meta struct {
-		Core    string             `json:"core"`
-		PoolKey quoting.AbiPoolKey `json:"poolKey"`
+		Core    common.Address   `json:"core"`
+		PoolKey pools.AbiPoolKey `json:"poolKey"`
+	}
+
+	Pool interface {
+		GetKey() *pools.PoolKey
+		GetState() PoolState
+
+		SetSwapState(quoting.SwapState)
+		ApplyEvent(event pools.Event, data []byte) error
+		NewBlock()
+
+		Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
+		CalcBalances() ([]big.Int, error)
+	}
+
+	PoolWithBlockNumber struct {
+		Pool
+		blockNumber uint64
 	}
 )

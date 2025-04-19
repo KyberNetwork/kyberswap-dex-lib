@@ -4,23 +4,21 @@ import (
 	"math/big"
 )
 
-type StateAfter struct {
-	SqrtRatio       *big.Int
-	Liquidity       *big.Int
-	ActiveTickIndex int
-}
+type (
+	SwapState = any
 
-type SwapInfo struct {
-	SkipAhead           uint32     `json:"skipAhead"`
-	IsToken1            bool       `json:"isToken1"`
-	StateAfter          StateAfter `json:"-"`
-	TickSpacingsCrossed uint32     `json:"-"`
-}
+	SwapInfo struct {
+		SkipAhead           uint32    `json:"skipAhead"`
+		IsToken1            bool      `json:"isToken1"`
+		SwapStateAfter      SwapState `json:"-"`
+		TickSpacingsCrossed uint32    `json:"-"`
+	}
 
-type Quote struct {
-	ConsumedAmount   *big.Int
-	CalculatedAmount *big.Int
-	FeesPaid         *big.Int
-	Gas              int64
-	SwapInfo         SwapInfo
-}
+	Quote struct {
+		ConsumedAmount   *big.Int
+		CalculatedAmount *big.Int
+		FeesPaid         *big.Int
+		Gas              int64
+		SwapInfo         SwapInfo
+	}
+)

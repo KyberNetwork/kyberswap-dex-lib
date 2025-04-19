@@ -26,7 +26,7 @@ func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
 		return nil, err
 	}
 
-	if result.Cmp(U128Max) > 0 {
+	if result.BitLen() > 128 {
 		return nil, ErrOverflow
 	}
 
@@ -34,7 +34,7 @@ func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
 }
 
 func computeFee(amount *big.Int, fee uint64) *big.Int {
-	result, _ := mulDivOverflow(
+	result, _ := MulDivOverflow(
 		amount,
 		new(big.Int).SetUint64(fee),
 		TwoPow64,
@@ -166,7 +166,7 @@ func ComputeStep(
 			return nil, fmt.Errorf("amount before fee: %w", err)
 		}
 
-		if specifiedAmountDelta.Cmp(TwoPow127) != -1 || beforeFee.Cmp(TwoPow127) != -1 {
+		if specifiedAmountDelta.BitLen() > 127 || beforeFee.BitLen() > 128 {
 			return nil, ErrOverflow
 		}
 
@@ -182,7 +182,7 @@ func ComputeStep(
 			return nil, fmt.Errorf("amount before fee: %w", err)
 		}
 
-		if beforeFee.Cmp(TwoPow127) != -1 || calculatedAmountDelta.Cmp(TwoPow127) != -1 {
+		if beforeFee.BitLen() > 127 || calculatedAmountDelta.BitLen() > 128 {
 			return nil, ErrOverflow
 		}
 

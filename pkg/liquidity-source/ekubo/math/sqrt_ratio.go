@@ -42,7 +42,7 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *big.Int) (*big.Int,
 		amount0Abs := new(big.Int).Abs(amount0)
 
 		product := amount0Abs.Mul(amount0Abs, sqrtRatio)
-		if product.Cmp(TwoPow256) != -1 {
+		if product.BitLen() > 256 {
 			return nil, ErrOverflow
 		}
 
@@ -51,16 +51,16 @@ func nextSqrtRatioFromAmount0(sqrtRatio, liquidity, amount0 *big.Int) (*big.Int,
 			return nil, ErrUnderflow
 		}
 
-		res, err = mulDivOverflow(numerator1, sqrtRatio, denominator, true)
+		res, err = MulDivOverflow(numerator1, sqrtRatio, denominator, true)
 	} else {
 		denomP1 := new(big.Int).Div(numerator1, sqrtRatio)
 
 		denom := denomP1.Add(denomP1, amount0)
-		if denom.Cmp(TwoPow256) != -1 {
+		if denom.BitLen() > 256 {
 			return nil, ErrOverflow
 		}
 
-		res, err = mulDivOverflow(numerator1, bignum.One, denom, true)
+		res, err = MulDivOverflow(numerator1, bignum.One, denom, true)
 	}
 
 	if err != nil {
@@ -82,7 +82,7 @@ func nextSqrtRatioFromAmount1(sqrtRatio, liquidity, amount1 *big.Int) (*big.Int,
 	amount1Abs := new(big.Int).Abs(amount1)
 	roundUp := amount1.Sign() == -1
 
-	quotient, err := mulDivOverflow(amount1Abs, TwoPow128, liquidity, roundUp)
+	quotient, err := MulDivOverflow(amount1Abs, TwoPow128, liquidity, roundUp)
 	if err != nil {
 		return nil, fmt.Errorf("muldiv error: %w", err)
 	}
@@ -95,7 +95,7 @@ func nextSqrtRatioFromAmount1(sqrtRatio, liquidity, amount1 *big.Int) (*big.Int,
 		}
 	} else {
 		res = quotient.Add(sqrtRatio, quotient)
-		if res.Cmp(TwoPow256) != -1 {
+		if res.BitLen() > 256 {
 			return nil, ErrOverflow
 		}
 	}

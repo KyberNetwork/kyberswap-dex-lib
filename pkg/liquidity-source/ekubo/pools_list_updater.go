@@ -14,19 +14,19 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolListUpdater struct {
 	config       *Config
 	httpClient   *resty.Client
 	ethrpcClient *ethrpc.Client
+	dataFetchers *dataFetchers
 
-	registeredPools map[string]bool
+	registeredPools     map[string]bool
+	supportedExtensions map[common.Address]ExtensionType
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
@@ -44,12 +44,29 @@ func NewPoolListUpdater(
 		config:       cfg,
 		httpClient:   httpClient,
 		ethrpcClient: ethrpcClient,
+		dataFetchers: NewDataFetchers(ethrpcClient, cfg),
 
-		registeredPools: make(map[string]bool),
+		registeredPools:     make(map[string]bool),
+		supportedExtensions: cfg.SupportedExtensions(),
 	}
 }
 
-func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*quoting.PoolKey, error) {
+const getPoolKeysEndpoint = "/v1/poolKeys"
+
+type (
+	PoolData struct {
+		CoreAddress common.Address `json:"core_address"`
+		Token0      common.Address `json:"token0"`
+		Token1      common.Address `json:"token1"`
+		Fee         string         `json:"fee"`
+		TickSpacing uint32         `json:"tick_spacing"`
+		Extension   common.Address `json:"extension"`
+	}
+
+	GetAllPoolsResult = []PoolData
+)
+
+func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey, error) {
 	var allPools GetAllPoolsResult
 	resp, err := u.httpClient.R().SetContext(ctx).SetResult(&allPools).Get(getPoolKeysEndpoint)
 	if err != nil {
@@ -60,9 +77,13 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*quoting.PoolKe
 			resp.StatusCode(), util.MaxBytesToString(resp.Body(), 256))
 	}
 
-	newPoolKeys := make([]*quoting.PoolKey, 0)
+	newPoolKeys := make([]*pools.PoolKey, 0)
 	for _, p := range allPools {
-		if !strings.EqualFold(p.CoreAddress, u.config.Core) {
+		if p.CoreAddress.Cmp(u.config.Core) != 0 {
+			continue
+		}
+
+		if _, ok := u.supportedExtensions[p.Extension]; !ok {
 			continue
 		}
 
@@ -71,13 +92,13 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*quoting.PoolKe
 			return nil, fmt.Errorf("parsing fee: %w", err)
 		}
 
-		poolKey := quoting.NewPoolKey(
-			common.HexToAddress(p.Token0),
-			common.HexToAddress(p.Token1),
-			quoting.Config{
+		poolKey := pools.NewPoolKey(
+			p.Token0,
+			p.Token1,
+			pools.PoolConfig{
 				Fee:         fee,
 				TickSpacing: p.TickSpacing,
-				Extension:   common.HexToAddress(p.Extension),
+				Extension:   p.Extension,
 			})
 
 		if u.registeredPools[poolKey.StringId()] {
@@ -101,20 +122,15 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		return nil, nil, err
 	}
 
-	poolStates, err := fetchPoolStates(ctx, u.ethrpcClient, u.config.DataFetcher, newPoolKeys)
+	newEkuboPools, err := u.dataFetchers.fetchPools(ctx, newPoolKeys)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	newPools := make([]entity.Pool, 0, len(newPoolKeys))
 	for i, poolKey := range newPoolKeys {
-		extension := poolKey.Config.Extension
-		var extensionType pool.ExtensionType
-		if eth.IsZeroAddress(extension) {
-			extensionType = pool.Base
-		} else if ext, ok := u.config.Extensions[strings.ToLower(extension.String())]; ok {
-			extensionType = ext
-		} else {
+		extensionType, ok := u.supportedExtensions[poolKey.Config.Extension]
+		if !ok {
 			logger.WithFields(logger.Fields{
 				"poolKey": poolKey,
 			}).Warn("skipping pool key with unknown extension")
@@ -130,7 +146,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			return nil, nil, err
 		}
 
-		extraBytes, err := json.Marshal(Extra{poolStates[i]})
+		extraBytes, err := json.Marshal(Extra(newEkuboPools[i]))
 		if err != nil {
 			return nil, nil, err
 		}
