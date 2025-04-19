@@ -191,6 +191,7 @@ func TestUpdateBalance(t *testing.T) {
 		out        string
 		outOrError interface{}
 	}{
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0x18084fba666a33d37592fa2633fd49a74dd93a88", ErrTweakPrice},
 		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "50000000000000000", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "777940997580"},
 		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000000000001", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "7779409029619"},
 		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "5000000000000000012", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "77793995822360"},
@@ -233,20 +234,22 @@ func TestUpdateBalance(t *testing.T) {
 				})
 			})
 			if expErr, ok := tc.outOrError.(error); ok {
-				require.Equal(t, expErr, err)
+				assert.ErrorIs(t, err, expErr)
 				return
 			}
 
-			require.Nil(t, err)
+			assert.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.outOrError.(string)), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
-			p.UpdateBalance(pool.UpdateBalanceParams{
-				TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
-				TokenAmountOut: *out.TokenAmountOut,
-				Fee:            *out.Fee,
-				SwapInfo:       out.SwapInfo,
-				SwapLimit:      nil,
+			assert.NotPanics(t, func() {
+				p.UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+					TokenAmountOut: *out.TokenAmountOut,
+					Fee:            *out.Fee,
+					SwapInfo:       out.SwapInfo,
+					SwapLimit:      nil,
+				})
 			})
 			fmt.Println("balances", p.Reserves[0].Dec(), p.Reserves[1].Dec(), p.Reserves[2].Dec())
 			fmt.Println("PriceOracle", p.Extra.PriceOracle[0].Dec(), p.Extra.PriceOracle[1].Dec())

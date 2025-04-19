@@ -166,7 +166,8 @@ func (t *PoolSimulator) _getDxFee(
 }
 
 // https://github.com/curvefi/twocrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTwocryptoOptimized.vy#L964
-func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int) error {
+func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int,
+	lastPrices, priceScale []uint256.Int, xcp_profit, d, virtualPrice *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
 		            price_scale. This is called whenever there is an unbalanced
@@ -213,7 +214,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 		return err
 	}
 	for k := 0; k < NumTokens-1; k += 1 {
-		t.Extra.LastPrices[k].Div(number.SafeMul(&t.Extra.LastPrices[k], &t.Extra.PriceScale[k]), U_1e18)
+		lastPrices[k].Div(number.SafeMul(&t.Extra.LastPrices[k], &t.Extra.PriceScale[k]), U_1e18)
 	}
 
 	// # ---------- Update profit numbers without price adjustment first --------
@@ -228,7 +229,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 	// # ------------------------- Update xcp_profit ----------------------------
 
-	var xcp_profit = U_1e18
+	xcp_profit.Set(U_1e18)
 	var virtual_price = U_1e18
 
 	if !old_virtual_price.IsZero() {
@@ -236,7 +237,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 		virtual_price = number.Div(number.SafeMul(U_1e18, xcp), total_supply)
 
-		xcp_profit = number.Div(number.SafeMul(old_xcp_profit, virtual_price), old_virtual_price)
+		xcp_profit.Div(number.SafeMul(old_xcp_profit, virtual_price), old_virtual_price)
 
 		// #       If A and gamma are not undergoing ramps (t < block.timestamp),
 		// #         ensure new virtual_price is not less than old virtual_price,
@@ -248,8 +249,6 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			}
 		}
 	}
-
-	t.Extra.XcpProfit = xcp_profit
 
 	// # ------------ Rebalance liquidity if there's enough profits to adjust it:
 	if number.SafeSub(number.SafeMul(virtual_price, number.Number_2), U_1e18).Cmp(
@@ -322,17 +321,18 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			// # ---------------------------- Proceed if we've got enough profit.
 			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price), U_1e18).Cmp(xcp_profit) > 0 {
 				for k := 0; k < NumTokens-1; k += 1 {
-					t.Extra.PriceScale[k].Set(&p_new[k])
+					priceScale[k].Set(&p_new[k])
 				}
-				t.Extra.D.Set(D)
-				t.Extra.VirtualPrice.Set(old_virtual_price)
+				d.Set(D)
+				virtualPrice.Set(old_virtual_price)
 				return nil
 			}
 		}
 	}
 
 	// # --------- price_scale was not adjusted. Update the profit counter and D.
-	t.Extra.D.Set(D_unadjusted)
-	t.Extra.VirtualPrice.Set(virtual_price)
+	copy(priceScale, t.Extra.PriceScale)
+	d.Set(D_unadjusted)
+	virtualPrice.Set(virtual_price)
 	return nil
 }

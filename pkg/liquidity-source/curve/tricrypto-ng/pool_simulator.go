@@ -3,12 +3,14 @@ package tricryptong
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -96,13 +98,13 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
+		return nil, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
 			tokenIndexFrom, tokenIndexTo)
 	}
 
 	var amountOut, fee, amount uint256.Int
 	amount.SetFromBig(tokenAmountIn.Amount)
-	swapInfo := SwapInfo{}
+	var swapInfo SwapInfo
 	err := t.GetDy(
 		tokenIndexFrom,
 		tokenIndexTo,
@@ -110,11 +112,17 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		&amountOut, &fee, &swapInfo.K0, swapInfo.Xp[:],
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
+	} else if amountOut.IsZero() {
+		return nil, ErrZero
 	}
-	if amountOut.IsZero() {
-		return &pool.CalcAmountOutResult{}, ErrZero
+	A, gamma := t._A_gamma()
+	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
+		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
+		&swapInfo.VirtualPrice); err != nil {
+		return nil, errors.WithMessagef(ErrTweakPrice, "%v", err)
 	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -136,14 +144,14 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
 	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
-		return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
+		return nil, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
 			tokenIndexFrom, tokenIndexTo)
 	}
 
 	var amountIn, feeDy, amountOut uint256.Int
 	amountOut.SetFromBig(tokenAmountOut.Amount)
 
-	swapInfo := SwapInfo{}
+	var swapInfo SwapInfo
 	err := t.GetDx(
 		tokenIndexFrom,
 		tokenIndexTo,
@@ -154,11 +162,15 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		swapInfo.Xp[:],
 	)
 	if err != nil {
-		return &pool.CalcAmountInResult{}, err
+		return nil, err
+	} else if amountIn.IsZero() {
+		return nil, ErrZero
 	}
-
-	if amountIn.IsZero() {
-		return &pool.CalcAmountInResult{}, ErrZero
+	A, gamma := t._A_gamma()
+	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
+		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
+		&swapInfo.VirtualPrice); err != nil {
+		return nil, errors.WithMessagef(ErrTweakPrice, "%v", err)
 	}
 
 	return &pool.CalcAmountInResult{
@@ -175,30 +187,39 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
+func (t *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *t
+	cloned.Info.Reserves = slices.Clone(t.Info.Reserves)
+	cloned.Reserves = slices.Clone(t.Reserves)
+	cloned.Extra.XcpProfit = t.Extra.XcpProfit
+	cloned.Extra.D = t.Extra.D
+	cloned.Extra.VirtualPrice = t.Extra.VirtualPrice
+	return &cloned
+}
+
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for curve-tricrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address,
-			t.Info.Exchange)
+		logger.Warnf("failed to UpdateBalance for curve-tricrypto-ng %v %v pool, wrong swapInfo type",
+			t.Info.Address, t.Info.Exchange)
 		return
 	}
 
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var outputAmount = output.Amount
-	var inputIndex = t.GetTokenIndex(input.Token)
-	var outputIndex = t.GetTokenIndex(output.Token)
+	inputAmount, outputAmount := input.Amount, output.Amount
+	inputIndex, outputIndex := t.GetTokenIndex(input.Token), t.GetTokenIndex(output.Token)
 
 	t.Info.Reserves[inputIndex] = new(big.Int).Add(t.Info.Reserves[inputIndex], inputAmount)
-	t.Reserves[inputIndex].Add(&t.Reserves[inputIndex], number.SetFromBig(inputAmount))
+	t.Reserves[inputIndex] = *new(uint256.Int).Add(&t.Reserves[inputIndex], number.SetFromBig(inputAmount))
 
 	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
-	t.Reserves[outputIndex].Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
+	t.Reserves[outputIndex] = *new(uint256.Int).Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
-	A, gamma := t._A_gamma()
-	if err := t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0); err != nil {
-		panic(fmt.Sprintf("failed to tweak price for curve-tricrypto-ng %v pool: %v", t.Info.Address, err))
-	}
+	t.Extra.LastPrices = swapInfo.LastPrices[:]
+	t.Extra.PriceScale = swapInfo.PriceScale[:]
+	t.Extra.XcpProfit = &swapInfo.XcpProfit
+	t.Extra.D = &swapInfo.D
+	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
