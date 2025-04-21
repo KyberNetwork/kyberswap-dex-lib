@@ -116,6 +116,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) maxDeposit() *uint256.Int {
+	if s.MaxDeposit == nil {
+		return number.MaxU256
+	}
+
 	return s.MaxDeposit
 }
 
@@ -154,6 +158,10 @@ func (s *PoolSimulator) previewRedeem(shares *uint256.Int) (*uint256.Int, error)
 }
 
 func (s *PoolSimulator) maxRedeem() *uint256.Int {
+	if s.MaxRedeem == nil {
+		return number.MaxU256
+	}
+
 	return s.MaxRedeem
 }
 
@@ -206,4 +214,56 @@ func (s *PoolSimulator) getSwapType(tokenIn string, tokenOut string) (SwapType, 
 	}
 
 	return swapType, nil
+}
+
+func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn, tokenOut := params.TokenIn, params.TokenAmountOut.Token
+
+	swapType, err := s.getSwapType(tokenIn, tokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	amountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
+	amountOut.Add(amountOut, number.Number_1) // Add one to avoid rounding down
+
+	isDeposit := swapType == Deposit
+
+	var amountIn *uint256.Int
+	var postTotalShares, postTotalAssets *uint256.Int
+
+	if isDeposit {
+		amountIn, err = s.redeem(amountOut)
+		if err != nil {
+			return nil, err
+		}
+
+		postTotalShares = new(uint256.Int).Add(s.TotalSupply, amountOut)
+		postTotalAssets = new(uint256.Int).Add(s.TotalAssets, amountIn)
+
+	} else {
+		amountIn, err = s.deposit(amountOut)
+		if err != nil {
+			return nil, err
+		}
+
+		postTotalShares = new(uint256.Int).Sub(s.TotalSupply, amountIn)
+		postTotalAssets = new(uint256.Int).Sub(s.TotalAssets, amountOut)
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: integer.Zero(),
+		},
+		SwapInfo: PostSwapState{
+			totalSupply: postTotalShares,
+			totalAssets: postTotalAssets,
+		},
+		Gas: int64(lo.Ternary(isDeposit, s.gas.Deposit, s.gas.Redeem)),
+	}, nil
 }

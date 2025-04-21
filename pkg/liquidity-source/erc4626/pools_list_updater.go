@@ -59,6 +59,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
+	shareToken, assetToken, err := fetchTokens(ctx, u.ethrpcClient, u.cfg)
+	if err != nil {
+		u.logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to fetch tokens")
+
+		return nil, nil, err
+	}
+
 	u.initialized = true
 
 	return []entity.Pool{{
@@ -67,12 +76,30 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Type:     DexType,
 		Reserves: entity.PoolReserves{state.TotalSupply.String(), state.TotalAssets.String()},
 		Tokens: []*entity.PoolToken{
-			{Address: strings.ToLower(u.cfg.ShareToken), Swappable: true},
-			{Address: strings.ToLower(u.cfg.AssetToken), Swappable: true},
+			{Address: strings.ToLower(shareToken), Swappable: true},
+			{Address: strings.ToLower(assetToken), Swappable: true},
 		},
 		Timestamp:   time.Now().Unix(),
 		BlockNumber: state.blockNumber,
 	}}, metadataBytes, nil
+}
+
+func fetchTokens(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config) (string, string, error) {
+	var assetToken common.Address
+	req := ethrpcClient.NewRequest().
+		SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: cfg.Vault,
+			Method: erc4626MethodAsset,
+		}, []any{&assetToken})
+
+	_, err := req.Call()
+	if err != nil {
+		return "", "", err
+	}
+
+	return cfg.Vault, assetToken.Hex(), nil
 }
 
 func fetchState(

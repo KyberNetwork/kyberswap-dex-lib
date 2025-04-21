@@ -7,6 +7,7 @@ import (
 const (
 	DexType = "erc4626"
 
+	erc4626MethodAsset       = "asset"
 	erc4626MethodTotalSupply = "totalSupply"
 	erc4626MethodTotalAssets = "totalAssets"
 	erc4626MethodMaxDeposit  = "maxDeposit"
