@@ -175,6 +175,55 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 	})
 }
 
+func (ts *PoolListTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
+	ts.run([]*testcase{
+		{
+			name:   "Execute virtual orders & create order",
+			txHash: "0xbd9e24145c6e3c936c7617d2a7756a0a7d1b3cf491e145d21f201a06899b1f01",
+			poolKey: &pools.PoolKey{
+				Token0: common.Address{},
+				Token1: common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+				Config: pools.PoolConfig{
+					Fee:         9223372036854775,
+					TickSpacing: 0,
+					Extension:   MainnetConfig.Twamm,
+				},
+			},
+			extensionType: ExtensionTypeTwamm,
+			stateBefore: &pools.TwammPoolState{
+				FullRangePoolState: &pools.FullRangePoolState{
+					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
+						SqrtRatio: bignum.NewBig("14505089304818766342758077000843264"),
+					},
+					Liquidity: big.NewInt(42626626336982),
+				},
+				Token0SaleRate:     new(big.Int),
+				Token1SaleRate:     new(big.Int),
+				VirtualOrderDeltas: []pools.TwammSaleRateDelta{},
+				LastExecutionTime:  1743799559,
+			},
+			expectedStateAfter: &pools.TwammPoolState{
+				FullRangePoolState: &pools.FullRangePoolState{
+					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
+						SqrtRatio: bignum.NewBig("14505089304818766342758077000843264"),
+					},
+					Liquidity: big.NewInt(42626626336982),
+				},
+				Token0SaleRate: bignum.NewBig("90639807871689353170834"),
+				Token1SaleRate: new(big.Int),
+				VirtualOrderDeltas: []pools.TwammSaleRateDelta{
+					{
+						Time:           1743847424,
+						SaleRateDelta0: bignum.NewBig("-90639807871689353170834"),
+						SaleRateDelta1: new(big.Int),
+					},
+				},
+				LastExecutionTime: 1743847424,
+			},
+		},
+	})
+}
+
 func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) []types.Log {
 	receipt, err := ts.tracker.ethrpcClient.
 		GetETHClient().

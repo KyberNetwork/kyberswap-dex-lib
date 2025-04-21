@@ -165,7 +165,7 @@ func (p *FullRangePool) ApplyEvent(event Event, data []byte) error {
 }
 
 func (p *TwammPool) findOrderIndex(searchTime uint64, startIdx int) int {
-	l, r := startIdx, len(p.virtualOrderDeltas)
+	l, r := startIdx, len(p.virtualOrderDeltas)-1
 
 	for l <= r {
 		mid := (l + r) / 2
