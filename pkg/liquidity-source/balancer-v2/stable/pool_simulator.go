@@ -341,7 +341,7 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 		bptAmount, err = basePool.OnSwap(tokenIn, bptToken, amountIn)
 	default:
 		bptAmount, err = basePool.OnJoin(tokenIn, amountIn)
-		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, 0)
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, len(hops))
 	}
 	if err != nil {
 		return nil, err
@@ -357,7 +357,7 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 		JoinExitIndex: joinIndex,
 	})
 
-	amountOut, err := s.OnSwap(tokenOut, bptToken, bptAmount)
+	amountOut, err := s.OnSwap(bptToken, tokenOut, bptAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +408,7 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 		amountOut, err = basePool.OnSwap(bptToken, tokenOut, bptAmount)
 	default:
 		amountOut, err = basePool.OnExit(tokenOut, bptAmount)
-		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, 1)
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, len(hops))
 	}
 	if err != nil {
 		return nil, err
@@ -457,7 +457,7 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		bptAmountIn, err = basePoolIn.OnSwap(tokenIn, bptTokenIn, amountIn)
 	default:
 		bptAmountIn, err = basePoolIn.OnJoin(tokenIn, amountIn)
-		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, 0)
+		joinIndex = shared.PackJoinExitIndex(shared.PoolJoin, len(hops))
 	}
 	if err != nil {
 		return nil, err
@@ -497,7 +497,7 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		amountOut, err = basePoolOut.OnSwap(bptTokenOut, tokenOut, bptAmountOut)
 	default:
 		amountOut, err = basePoolOut.OnExit(tokenOut, bptAmountOut)
-		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, 2)
+		exitIndex = shared.PackJoinExitIndex(shared.PoolExit, len(hops))
 	}
 	if err != nil {
 		return nil, err
