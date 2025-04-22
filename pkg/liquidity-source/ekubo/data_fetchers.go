@@ -144,7 +144,7 @@ func (f *dataFetchers) fetchPools(
 		endIdx := min(startIdx+maxBatchSize, len(twammPoolKeys))
 
 		req := f.ethrpcClient.R().SetContext(ctx)
-		batchQuoteData := make([]TwammQuoteData, endIdx-startIdx)
+		batchQuoteData := make([]struct{ TwammQuoteData }, endIdx-startIdx)
 		for i, poolKey := range twammPoolKeys[startIdx:endIdx] {
 			req.AddCall(&ethrpc.Call{
 				ABI:    abis.TwammDataFetcherABI,
@@ -153,7 +153,7 @@ func (f *dataFetchers) fetchPools(
 				Params: []any{
 					poolKey.ToAbi(),
 				},
-			}, []any{&batchQuoteData[i]}) // FIXME Somehow tries to unmarshal into a *big.Int
+			}, []any{&batchQuoteData[i]})
 		}
 		resp, err := req.Aggregate()
 
@@ -169,7 +169,7 @@ func (f *dataFetchers) fetchPools(
 
 		for i, data := range batchQuoteData {
 			poolStates = append(poolStates, &PoolWithBlockNumber{
-				pools.NewTwammPool(twammPoolKeys[startIdx+i], NewTwammPoolState(&data)),
+				pools.NewTwammPool(twammPoolKeys[startIdx+i], NewTwammPoolState(&data.TwammQuoteData)),
 				blockNumber,
 			})
 		}
