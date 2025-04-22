@@ -101,7 +101,7 @@ func (d *PoolTracker) GetNewPoolState(
 func (d *PoolTracker) applyLogs(logs []types.Log, pool *PoolWithBlockNumber) error {
 	for _, log := range logs {
 		if log.Removed {
-			continue
+			return ErrReorg
 		}
 
 		pool.blockNumber = log.BlockNumber
