@@ -56,6 +56,7 @@ common:
     - "memebox"
     - "shadow-legacy"
     - "overnight-usdp"
+    - "beefy-sonic"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
