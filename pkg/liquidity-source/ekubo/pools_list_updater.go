@@ -170,6 +170,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			StaticExtra: string(staticExtraBytes),
 			Extra:       string(extraBytes),
 		})
+
+		u.registeredPools[poolKey.StringId()] = true
 	}
 
 	return newPools, nil, nil
