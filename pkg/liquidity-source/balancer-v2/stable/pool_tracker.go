@@ -320,7 +320,7 @@ func (t *PoolTracker) scanBasePool(ctx context.Context, poolAddress string, toke
 	for i := range res.Result {
 		basePoolId := basePoolIds[i].Hex()
 
-		if res.Result[i] && basePoolId != shared.ZeroAddress {
+		if res.Result[i] && basePoolId != shared.ZeroPoolID {
 			basePools = append(basePools, tokens[i].Address)
 			validPoolIds = append(validPoolIds, basePoolId)
 		}
