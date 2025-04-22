@@ -50,6 +50,7 @@ import (
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -297,6 +298,7 @@ type Types struct {
 	Ekubo                      string
 	OneBit                     string
 	ERC4626                    string
+	HyETH                      string
 }
 
 var (
@@ -454,5 +456,6 @@ var (
 		Ekubo:                      ekubo.DexType,
 		OneBit:                     string(valueobject.ExchangeOneBit),
 		ERC4626:                    erc4626.DexType,
+		HyETH:                      hyeth.DexType,
 	}
 )

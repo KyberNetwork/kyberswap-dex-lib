@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0xcb1eea349f25288627f008c5e2a69b684bdddf49",
+    "name": "hyeth",
+    "type": "hyeth",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xc4506022fb8090774e8a628d5084eed61d9b99ee",
+        "name": "hyeth",
+        "symbol": "hyeth",
+        "decimals": 18
+      },
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "WETH",
+        "symbol": "WETH",
+        "decimals": 18
+      }
+    ]
+  }
+]
