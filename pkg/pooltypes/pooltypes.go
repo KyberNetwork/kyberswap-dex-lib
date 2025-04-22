@@ -32,6 +32,7 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
@@ -295,6 +296,7 @@ type Types struct {
 	EulerSwap                  string
 	Ekubo                      string
 	OneBit                     string
+	ERC4626                    string
 }
 
 var (
@@ -451,5 +453,6 @@ var (
 		EulerSwap:                  eulerswap.DexType,
 		Ekubo:                      ekubo.DexType,
 		OneBit:                     string(valueobject.ExchangeOneBit),
+		ERC4626:                    erc4626.DexType,
 	}
 )
