@@ -11,4 +11,5 @@ type Config struct {
 	NewPoolLimit          int         `json:"newPoolLimit"`
 	BatchSwapEnabled      bool        `json:"batchSwapEnabled"`
 	ProtocolFeesCollector string      `json:"protocolFeesCollector"`
+	UseSubgraphV1         bool        `json:"useSubgraphV1"`
 }

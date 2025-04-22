@@ -35,7 +35,11 @@ func NewPoolsListUpdater(
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	config.SubgraphPoolTypes = []string{poolTypeWeighted}
+	if config.UseSubgraphV1 {
+		config.SubgraphPoolTypes = []string{poolTypeLegacyWeighted}
+	} else {
+		config.SubgraphPoolTypes = []string{poolTypeWeighted}
+	}
 
 	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 

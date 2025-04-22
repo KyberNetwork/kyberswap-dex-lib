@@ -3,6 +3,9 @@ package stable
 const (
 	DexType = "balancer-v2-stable"
 
+	poolTypeLegacyStable     = "Stable"
+	poolTypeLegacyMetaStable = "MetaStable"
+
 	poolTypeStable     = "STABLE"
 	poolTypeMetaStable = "META_STABLE"
 

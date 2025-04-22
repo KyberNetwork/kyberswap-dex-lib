@@ -3,7 +3,8 @@ package weighted
 const (
 	DexType = "balancer-v2-weighted"
 
-	poolTypeWeighted = "WEIGHTED"
+	poolTypeLegacyWeighted = "Weighted"
+	poolTypeWeighted       = "WEIGHTED"
 )
 
 const (

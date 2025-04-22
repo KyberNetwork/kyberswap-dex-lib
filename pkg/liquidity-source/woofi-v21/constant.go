@@ -1,6 +1,7 @@
 package woofiv21
 
 import (
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -31,4 +32,5 @@ const (
 var (
 	DefaultGas  = Gas{Swap: 300000}
 	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	Number_1e5  = number.TenPow(5)
 )
