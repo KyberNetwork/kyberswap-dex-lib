@@ -2,6 +2,7 @@ package pools
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -164,25 +165,6 @@ func (p *FullRangePool) ApplyEvent(event Event, data []byte) error {
 	return nil
 }
 
-func (p *TwammPool) findOrderIndex(searchTime uint64, startIdx int) int {
-	l, r := startIdx, len(p.virtualOrderDeltas)-1
-
-	for l <= r {
-		mid := (l + r) / 2
-		midOrderTime := p.virtualOrderDeltas[mid].Time
-
-		if midOrderTime == searchTime {
-			return mid
-		} else if midOrderTime < searchTime {
-			l = mid + 1
-		} else {
-			r = mid - 1
-		}
-	}
-
-	return ^l // Bitwise NOT of the insertion point
-}
-
 func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
 	switch event {
 	case EventVirtualOrdersExecuted:
@@ -263,10 +245,13 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
 			time := orderBoundary.time.Uint64()
 
 			if time > p.lastExecutionTime {
-				idx := p.findOrderIndex(time, startIdx)
+				idx, found := slices.BinarySearchFunc(p.virtualOrderDeltas[startIdx:], time, func(srd TwammSaleRateDelta, time uint64) int {
+					return cmp.Compare(srd.Time, time)
+				})
 
-				if idx < 0 {
-					idx = ^idx
+				idx += startIdx
+
+				if !found {
 					p.virtualOrderDeltas = slices.Insert(
 						p.virtualOrderDeltas,
 						idx,
@@ -278,12 +263,12 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
 					)
 				}
 
-				srd := &p.virtualOrderDeltas[idx]
+				orderDelta := &p.virtualOrderDeltas[idx]
 				var affectedSaleRateDelta *big.Int
 				if sellsToken1 {
-					affectedSaleRateDelta = srd.SaleRateDelta1
+					affectedSaleRateDelta = orderDelta.SaleRateDelta1
 				} else {
-					affectedSaleRateDelta = srd.SaleRateDelta0
+					affectedSaleRateDelta = orderDelta.SaleRateDelta0
 				}
 				affectedSaleRateDelta.Add(affectedSaleRateDelta, orderBoundary.saleRateDelta)
 
