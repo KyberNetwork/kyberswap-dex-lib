@@ -9,7 +9,7 @@ var (
 )
 
 const (
-	poolTypeComposableStable = "ComposableStable"
+	poolTypeComposableStable = "COMPOSABLE_STABLE"
 
 	poolTypeVer1 = 1
 	poolTypeVer5 = 5

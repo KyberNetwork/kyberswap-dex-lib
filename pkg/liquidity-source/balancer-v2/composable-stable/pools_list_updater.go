@@ -20,24 +20,20 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config        *Config
+	config        *shared.Config
 	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
 
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
 
-func NewPoolsListUpdater(config *Config,
+func NewPoolsListUpdater(config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
-		DexID:           config.DexID,
-		SubgraphAPI:     config.SubgraphAPI,
-		SubgraphHeaders: config.SubgraphHeaders,
-		NewPoolLimit:    config.NewPoolLimit,
-		PoolTypes:       []string{poolTypeComposableStable},
-	}, graphqlClient)
+	config.SubgraphPoolTypes = []string{poolTypeComposableStable}
+
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        config,
@@ -156,16 +152,15 @@ func (u *PoolsListUpdater) initPool(
 	vault string,
 ) (entity.Pool, error) {
 	var (
-		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves       = make([]string, len(subgraphPool.Tokens))
-		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
-		err            error
+		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
+		reserves       = make([]string, len(subgraphPool.PoolTokens))
+		scalingFactors = make([]*uint256.Int, len(subgraphPool.PoolTokens))
 	)
 
-	for j, token := range subgraphPool.Tokens {
+	for j, token := range subgraphPool.PoolTokens {
 		poolTokens[j] = &entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
-			Swappable: true,
+			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"
 		scalingFactors[j] = new(uint256.Int).Mul(
@@ -176,8 +171,8 @@ func (u *PoolsListUpdater) initPool(
 
 	staticExtra := StaticExtra{
 		PoolID:         subgraphPool.ID,
-		PoolType:       subgraphPool.PoolType,
-		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolType:       subgraphPool.Type,
+		PoolTypeVer:    subgraphPool.Version,
 		BptIndex:       int(bptIndex.Int64()),
 		ScalingFactors: scalingFactors,
 		Vault:          vault,

@@ -23,7 +23,7 @@ import (
 var ErrInvalidWeight = errors.New("invalid weight")
 
 type PoolsListUpdater struct {
-	config        Config
+	config        shared.Config
 	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
@@ -31,17 +31,13 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
-		DexID:           config.DexID,
-		SubgraphAPI:     config.SubgraphAPI,
-		SubgraphHeaders: config.SubgraphHeaders,
-		NewPoolLimit:    config.NewPoolLimit,
-		PoolTypes:       []string{poolTypeWeighted},
-	}, graphqlClient)
+	config.SubgraphPoolTypes = []string{poolTypeWeighted}
+
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        *config,
@@ -130,15 +126,15 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool,
 
 func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
 	var (
-		poolTokens        = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves          = make([]string, len(subgraphPool.Tokens))
-		scalingFactors    = make([]*uint256.Int, len(subgraphPool.Tokens))
-		normalizedWeights = make([]*uint256.Int, len(subgraphPool.Tokens))
-		basePools         = make(map[string][]string, len(subgraphPool.Tokens))
+		poolTokens        = make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
+		reserves          = make([]string, len(subgraphPool.PoolTokens))
+		scalingFactors    = make([]*uint256.Int, len(subgraphPool.PoolTokens))
+		normalizedWeights = make([]*uint256.Int, len(subgraphPool.PoolTokens))
+		basePools         = make(map[string][]string)
 		err               error
 	)
 
-	for j, token := range subgraphPool.Tokens {
+	for j, token := range subgraphPool.PoolTokens {
 		w, ok := new(big.Float).SetString(token.Weight)
 		if !ok {
 			return entity.Pool{}, ErrInvalidWeight
@@ -148,23 +144,28 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 
 		poolTokens[j] = &entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
-			Swappable: true,
+			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"
 		scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
-		if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
+		if subgraphPool.Version > poolTypeVer1 {
 			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
 		}
 
-		if token.Token.Pool.Address != "" {
-			basePools[token.Address] = []string{}
+		if token.NestedPool.Address != "" {
+			var underlyingTokens = make([]string, 0, len(token.NestedPool.Tokens))
+
+			for _, baseToken := range token.NestedPool.Tokens {
+				underlyingTokens = append(underlyingTokens, baseToken.Address)
+			}
+			basePools[token.NestedPool.Address] = underlyingTokens
 		}
 	}
 
 	staticExtra := StaticExtra{
 		PoolID:            subgraphPool.ID,
-		PoolType:          subgraphPool.PoolType,
-		PoolTypeVer:       int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolType:          subgraphPool.Type,
+		PoolTypeVer:       subgraphPool.Version,
 		ScalingFactors:    scalingFactors,
 		NormalizedWeights: normalizedWeights,
 		Vault:             vault,

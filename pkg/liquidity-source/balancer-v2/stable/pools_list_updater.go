@@ -20,7 +20,7 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config        *Config
+	config        *shared.Config
 	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
@@ -28,17 +28,12 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
-		DexID:           config.DexID,
-		SubgraphAPI:     config.SubgraphAPI,
-		SubgraphHeaders: config.SubgraphHeaders,
-		NewPoolLimit:    config.NewPoolLimit,
-		PoolTypes:       []string{poolTypeStable, poolTypeMetaStable},
-	}, graphqlClient)
+	config.SubgraphPoolTypes = []string{poolTypeStable, poolTypeMetaStable}
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        config,
@@ -127,17 +122,17 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool,
 func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault string) (entity.Pool,
 	error) {
 	var (
-		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves       = make([]string, len(subgraphPool.Tokens))
-		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
-		basePools      = make(map[string][]string, len(subgraphPool.Tokens))
+		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
+		reserves       = make([]string, len(subgraphPool.PoolTokens))
+		scalingFactors = make([]*uint256.Int, len(subgraphPool.PoolTokens))
+		basePools      = make(map[string][]string)
 	)
 
-	for j, token := range subgraphPool.Tokens {
+	for j, token := range subgraphPool.PoolTokens {
 		poolTokens[j] = &entity.PoolToken{
 			Address:   token.Address,
 			Weight:    defaultWeight,
-			Swappable: true,
+			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"
 		scalingFactors[j] = new(uint256.Int).Mul(
@@ -145,8 +140,13 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 			bignumber.BONE,
 		)
 
-		if token.Token.Pool.Address != "" {
-			basePools[token.Address] = []string{}
+		if token.NestedPool.Address != "" {
+			var underlyingTokens = make([]string, 0, len(token.NestedPool.Tokens))
+
+			for _, baseToken := range token.NestedPool.Tokens {
+				underlyingTokens = append(underlyingTokens, baseToken.Address)
+			}
+			basePools[token.NestedPool.Address] = underlyingTokens
 		}
 	}
 
@@ -157,8 +157,8 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 
 	staticExtra := StaticExtra{
 		PoolID:             subgraphPool.ID,
-		PoolType:           subgraphPool.PoolType,
-		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolType:           subgraphPool.Type,
+		PoolTypeVer:        subgraphPool.Version,
 		PoolSpecialization: poolSpec,
 		Vault:              vault,
 		BasePools:          basePools,

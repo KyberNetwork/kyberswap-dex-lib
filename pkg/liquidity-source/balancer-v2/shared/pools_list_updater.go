@@ -2,11 +2,11 @@ package shared
 
 import (
 	"context"
-	"math/big"
-	"net/http"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/goccy/go-json"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -16,23 +16,13 @@ type (
 		graphqlClient *graphqlpkg.Client
 	}
 
-	Config struct {
-		DexID           string
-		SubgraphAPI     string
-		SubgraphHeaders http.Header
-		NewPoolLimit    int
-		PoolTypes       []string
-	}
-
 	Metadata struct {
-		LastCreateTime *big.Int `json:"lastCreateTime"`
+		LastBlockTimestamp int64 `json:"lastBlockTimestamp"`
+		Skip               int   `json:"skip"`
 	}
 )
 
-func NewPoolsListUpdater(
-	config *Config,
-	graphqlClient *graphqlpkg.Client,
-) *PoolsListUpdater {
+func NewPoolsListUpdater(config *Config, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:        config,
 		graphqlClient: graphqlClient,
@@ -40,55 +30,61 @@ func NewPoolsListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]*SubgraphPool, []byte, error) {
+	l := klog.WithFields(ctx, klog.Fields{
+		"dexID": u.config.DexID,
+	})
+	l.Infof("Start updating pools list ...")
+	var pools []entity.Pool
+	defer func() {
+		l.WithFields(klog.Fields{
+			"count": len(pools),
+		}).Infof("Finish updating pools list.")
+	}()
+
 	var metadata Metadata
 	if len(metadataBytes) > 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
 	}
-	if metadata.LastCreateTime == nil {
-		metadata.LastCreateTime = big.NewInt(0)
-	}
 
-	pools, lastCreateTime, err := u.querySubgraph(ctx, metadata.LastCreateTime)
+	subgraphPools, metadata, err := u.querySubgraph(ctx, metadata)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if len(pools) == 0 {
+	} else if len(subgraphPools) == 0 {
 		return nil, metadataBytes, nil
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
-		LastCreateTime: lastCreateTime,
-	})
+	newMetadataBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return pools, newMetadataBytes, nil
+	return subgraphPools, newMetadataBytes, err
 }
 
-func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *big.Int) ([]*SubgraphPool, *big.Int, error) {
+func (u *PoolsListUpdater) querySubgraph(ctx context.Context, metadata Metadata) ([]*SubgraphPool, Metadata, error) {
 	var response struct {
-		Pools []*SubgraphPool `json:"pools"`
+		Pools []*SubgraphPool `json:"poolGetPools"`
 	}
 
-	query := BuildSubgraphPoolsQuery(
-		u.config.PoolTypes,
-		lastCreateTime,
-		u.config.NewPoolLimit,
-		0,
-	)
-	req := graphqlpkg.NewRequest(query)
+	req := graphqlpkg.NewRequest(SubgraphPoolsQuery)
+	req.Var(VarChain, u.config.SubgraphChain)
+	req.Var(VarPoolType, u.config.SubgraphPoolTypes)
+	req.Var(VarCreateTimeGt, metadata.LastBlockTimestamp)
+	req.Var(VarFirst, u.config.NewPoolLimit)
+	req.Var(VarSkip, metadata.Skip)
 
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
-		return nil, nil, err
+		return nil, metadata, err
 	}
 
-	if len(response.Pools) != 0 {
-		lastCreateTime = response.Pools[len(response.Pools)-1].CreateTime
+	if poolCnt := len(response.Pools); poolCnt >= u.config.NewPoolLimit {
+		metadata.Skip += u.config.NewPoolLimit
+	} else if poolCnt > 0 {
+		metadata.LastBlockTimestamp = response.Pools[len(response.Pools)-1].CreateTime
+		metadata.Skip = 0
 	}
 
-	return response.Pools, lastCreateTime, nil
+	return response.Pools, metadata, nil
 }

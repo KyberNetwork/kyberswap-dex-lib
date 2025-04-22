@@ -25,7 +25,6 @@ type StaticExtra struct {
 	PoolSpecialization uint8               `json:"poolSpecialization"`
 	Vault              string              `json:"vault"`
 	BatchSwapEnabled   bool                `json:"batchSwapEnabled"`
-	BasePoolScanned    bool                `json:"basePoolScanned"`
 	BasePools          map[string][]string `json:"basePools,omitempty"`
 }
 
