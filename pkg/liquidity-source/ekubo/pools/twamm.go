@@ -71,9 +71,8 @@ func (p *TwammPool) SetSwapState(state any) {
 	p.lastExecutionTime = twammState.LastExecutionTime
 }
 
-func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, currentTimestampFn func() uint64) (*quoting.Quote, error) {
-	// TODO Is the current timestamp a good approximation?
-	currentTime := max(currentTimestampFn(), p.lastExecutionTime)
+func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimateTimestampFn func() uint64) (*quoting.Quote, error) {
+	currentTime := max(estimateTimestampFn(), p.lastExecutionTime)
 
 	nextSqrtRatio := p.SqrtRatio
 	token0SaleRate, token1SaleRate := new(big.Int).Set(p.token0SaleRate), new(big.Int).Set(p.token1SaleRate)
@@ -207,8 +206,10 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, current
 	}, nil
 }
 
+const slotDuration = 12
+
 func (p *TwammPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
 	return p.quoteWithTimestampFn(amount, isToken1, func() uint64 {
-		return uint64(time.Now().Unix())
+		return uint64(time.Now().Unix()) + slotDuration
 	})
 }
