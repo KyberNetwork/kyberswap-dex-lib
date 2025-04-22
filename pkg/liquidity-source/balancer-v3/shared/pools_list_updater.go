@@ -99,10 +99,11 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*SubgraphPool) ([]entity.Po
 		poolTokens := make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
 		reserves := make([]string, len(subgraphPool.PoolTokens))
 		for j, token := range subgraphPool.PoolTokens {
-			isBuffer := token.IsErc4626 && !lo.ContainsBy(subgraphPool.PoolTokens, func(t SubgraphToken) bool {
-				// don't use as buffer token if the underlying token is already contained in the pool as a main token
-				return token.UnderlyingToken.Address == t.Address
-			})
+			isBuffer := token.CanUseBufferForSwaps &&
+				!lo.ContainsBy(subgraphPool.PoolTokens, func(t SubgraphToken) bool {
+					// don't use as buffer token if the underlying token is already contained in the pool as a main token
+					return token.UnderlyingToken.Address == t.Address
+				})
 			bufferTokens[j] = lo.Ternary(isBuffer, token.Address, "")
 			poolTokens[j] = &entity.PoolToken{
 				Address:   lo.Ternary(isBuffer, token.UnderlyingToken.Address, token.Address),

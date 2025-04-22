@@ -446,6 +446,7 @@ var (
 	ExchangeSkyPSM        Exchange = "sky-psm"
 	ExchangeEulerSwap     Exchange = "euler-swap"
 	ExchangeEkubo         Exchange = "ekubo"
+	ExchangeBeefySonic    Exchange = "beefy-sonic"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -803,6 +804,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoney:                      {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
+	ExchangeUcsFinance:                 {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
 	ExchangeUniswapV4Kem:               {},
@@ -812,6 +814,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSkyPSM:                     {},
 	ExchangeEulerSwap:                  {},
 	ExchangeEkubo:                      {},
+	ExchangeBeefySonic:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
