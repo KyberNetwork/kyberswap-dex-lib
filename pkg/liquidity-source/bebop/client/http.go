@@ -64,12 +64,13 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
 	req := c.client.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsSellTokens, common.HexToAddress(params.SellTokens).Hex()).
+		SetQueryParam(bebop.ParamsSellTokens, toChecksumHex(params.SellTokens)).
 		// the BuyTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsBuyTokens, common.HexToAddress(params.BuyTokens).Hex()).
+		SetQueryParam(bebop.ParamsBuyTokens, toChecksumHex(params.BuyTokens)).
 		SetQueryParam(bebop.ParamsSellAmounts, params.SellAmounts).
-		SetQueryParam(bebop.ParamsTakerAddress, common.HexToAddress(params.TakerAddress).Hex()).
-		SetQueryParam(bebop.ParamsReceiverAddress, common.HexToAddress(params.ReceiverAddress).Hex()).
+		SetQueryParam(bebop.ParamsTakerAddress, toChecksumHex(params.TakerAddress)).
+		SetQueryParam(bebop.ParamsReceiverAddress, toChecksumHex(params.ReceiverAddress)).
+		SetQueryParam(bebop.ParamsOriginAddress, toChecksumHex(params.OriginAddress)).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
 		SetQueryParam(bebop.ParamsGasLess, "false"). // self-execution
@@ -97,6 +98,13 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
 	}
 
 	return result.QuoteSingleOrderResult, nil
+}
+
+func toChecksumHex(hex string) string {
+	if hex == "" {
+		return hex
+	}
+	return common.HexToAddress(hex).Hex()
 }
 
 func parseRFQError(errorCode int) error {

@@ -47,6 +47,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		SellAmounts:     swapInfo.BaseTokenAmount,
 		TakerAddress:    params.RFQSender,
 		ReceiverAddress: params.RFQRecipient,
+		OriginAddress:   params.Sender,
 		Source:          params.Source,
 	}
 	result, err := h.client.QuoteSingleOrderResult(ctx, p)
