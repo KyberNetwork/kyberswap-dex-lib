@@ -332,8 +332,7 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 	var (
 		hops = make([]shared.Hop, 0, 2)
 
-		bptAmount *uint256.Int
-		joinIndex *big.Int
+		joinIndex, bptAmount *uint256.Int
 	)
 
 	switch basePool.GetType() {
@@ -352,8 +351,8 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 		Pool:          basePool.GetAddress(),
 		TokenIn:       tokenIn,
 		TokenOut:      bptToken,
-		AmountIn:      amountIn.ToBig(),
-		AmountOut:     bptAmount.ToBig(),
+		AmountIn:      amountIn,
+		AmountOut:     bptAmount,
 		JoinExitIndex: joinIndex,
 	})
 
@@ -367,8 +366,8 @@ func (s *PoolSimulator) swapFromBase2Main(tokenIn, tokenOut string, amountIn *ui
 		Pool:      s.GetAddress(),
 		TokenIn:   bptToken,
 		TokenOut:  tokenOut,
-		AmountIn:  bptAmount.ToBig(),
-		AmountOut: amountOut.ToBig(),
+		AmountIn:  bptAmount,
+		AmountOut: amountOut,
 	})
 
 	return s.buildSwapResult(tokenOut, amountOut, hops), nil
@@ -394,13 +393,12 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 		Pool:      s.GetAddress(),
 		TokenIn:   tokenIn,
 		TokenOut:  bptToken,
-		AmountIn:  amountIn.ToBig(),
-		AmountOut: bptAmount.ToBig(),
+		AmountIn:  amountIn,
+		AmountOut: bptAmount,
 	})
 
 	var (
-		amountOut *uint256.Int
-		exitIndex *big.Int
+		exitIndex, amountOut *uint256.Int
 	)
 
 	switch basePool.GetType() {
@@ -419,8 +417,8 @@ func (s *PoolSimulator) swapFromMain2Base(tokenIn, tokenOut string, amountIn *ui
 		Pool:          basePool.GetAddress(),
 		TokenIn:       bptToken,
 		TokenOut:      tokenOut,
-		AmountIn:      bptAmount.ToBig(),
-		AmountOut:     amountOut.ToBig(),
+		AmountIn:      bptAmount,
+		AmountOut:     amountOut,
 		JoinExitIndex: exitIndex,
 	})
 
@@ -448,8 +446,7 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 	var (
 		hops = make([]shared.Hop, 0, 3)
 
-		bptAmountIn *uint256.Int
-		joinIndex   *big.Int
+		joinIndex, bptAmountIn *uint256.Int
 	)
 
 	switch basePoolIn.GetType() {
@@ -468,8 +465,8 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		Pool:          basePoolIn.GetAddress(),
 		TokenIn:       tokenIn,
 		TokenOut:      bptTokenIn,
-		AmountIn:      amountIn.ToBig(),
-		AmountOut:     bptAmountIn.ToBig(),
+		AmountIn:      amountIn,
+		AmountOut:     bptAmountIn,
 		JoinExitIndex: joinIndex,
 	})
 
@@ -483,13 +480,12 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		Pool:      s.GetAddress(),
 		TokenIn:   bptTokenIn,
 		TokenOut:  bptTokenOut,
-		AmountIn:  bptAmountIn.ToBig(),
-		AmountOut: bptAmountOut.ToBig(),
+		AmountIn:  bptAmountIn,
+		AmountOut: bptAmountOut,
 	})
 
 	var (
-		amountOut *uint256.Int
-		exitIndex *big.Int
+		exitIndex, amountOut *uint256.Int
 	)
 
 	switch basePoolOut.GetType() {
@@ -508,8 +504,8 @@ func (s *PoolSimulator) swapBetweenBasePools(tokenIn, tokenOut string, amountIn 
 		Pool:          basePoolOut.GetAddress(),
 		TokenIn:       bptTokenOut,
 		TokenOut:      tokenOut,
-		AmountIn:      bptAmountOut.ToBig(),
-		AmountOut:     amountOut.ToBig(),
+		AmountIn:      bptAmountOut,
+		AmountOut:     amountOut,
 		JoinExitIndex: exitIndex,
 	})
 
@@ -644,19 +640,22 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	if swapInfo, ok := params.SwapInfo.(shared.SwapInfo); ok {
 		for _, hop := range swapInfo.Hops {
+			amountIn := hop.AmountIn.ToBig()
+			amountOut := hop.AmountOut.ToBig()
+
 			if basePool, ok := s.basePools[hop.Pool]; ok {
 				basePool.UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  hop.TokenIn,
-						Amount: hop.AmountIn,
+						Amount: amountIn,
 					},
 					TokenAmountOut: pool.TokenAmount{
 						Token:  hop.TokenOut,
-						Amount: hop.AmountOut,
+						Amount: amountOut,
 					},
 				})
 			} else {
-				s.updateBalance(hop.TokenIn, hop.TokenOut, hop.AmountIn, hop.AmountOut)
+				s.updateBalance(hop.TokenIn, hop.TokenOut, amountIn, amountOut)
 			}
 		}
 	}
