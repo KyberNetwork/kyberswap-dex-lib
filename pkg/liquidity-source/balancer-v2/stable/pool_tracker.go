@@ -23,14 +23,14 @@ import (
 var ErrReserveNotFound = errors.New("reserve not found")
 
 type PoolTracker struct {
-	config       *Config
+	config       *shared.Config
 	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -140,7 +140,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, poolTokens)
+	reserves, err := t.initReserves(p, poolTokens)
 	if err != nil {
 		return p, err
 	}
@@ -154,7 +154,6 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 func (t *PoolTracker) initReserves(
-	ctx context.Context,
 	p entity.Pool,
 	poolTokens PoolTokens,
 ) ([]string, error) {
@@ -210,33 +209,33 @@ func (t *PoolTracker) queryRPC(
 		ABI:    shared.VaultABI,
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{common.HexToHash(poolID)},
-	}, []interface{}{&poolTokens})
+		Params: []any{common.HexToHash(poolID)},
+	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetAmplificationParameter,
-	}, []interface{}{&ampParams})
+	}, []any{&ampParams})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
+	}, []any{&swapFeePercentage})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+	}, []any{&pausedState})
 
 	if poolType == poolTypeMetaStable {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodGetScalingFactors,
-		}, []interface{}{&scalingFactors})
+		}, []any{&scalingFactors})
 	}
 
 	res, err := req.TryBlockAndAggregate()

@@ -19,11 +19,13 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolID             string `json:"poolId"`
-	PoolType           string `json:"poolType"`
-	PoolTypeVer        int    `json:"poolTypeVersion"`
-	PoolSpecialization uint8  `json:"poolSpecialization"`
-	Vault              string `json:"vault"`
+	PoolID             string              `json:"poolId"`
+	PoolType           string              `json:"poolType"`
+	PoolTypeVer        int                 `json:"poolTypeVersion"`
+	PoolSpecialization uint8               `json:"poolSpecialization"`
+	Vault              string              `json:"vault"`
+	BatchSwapEnabled   bool                `json:"batchSwapEnabled"`
+	BasePools          map[string][]string `json:"basePools,omitempty"`
 }
 
 type PoolTokens struct {

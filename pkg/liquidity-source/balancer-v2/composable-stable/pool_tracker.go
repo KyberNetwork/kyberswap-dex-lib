@@ -22,14 +22,14 @@ import (
 )
 
 type PoolTracker struct {
-	config       *Config
+	config       *shared.Config
 	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -118,7 +118,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	extra, err := t.initExtra(ctx, rpcRes, staticExtra)
+	extra, err := t.initExtra(rpcRes, staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -197,56 +197,58 @@ func (t *PoolTracker) queryRPC(
 		ABI:    shared.VaultABI,
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{poolID},
-	}, []interface{}{&poolTokens})
+		Params: []any{poolID},
+	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodTotalSupply,
-	}, []interface{}{&bptTotalSupply})
+	}, []any{&bptTotalSupply})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetAmplificationParameter,
-	}, []interface{}{&ampParams})
+	}, []any{&ampParams})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetLastJoinExitData,
-	}, []interface{}{&lastJoinExit})
+	}, []any{&lastJoinExit})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetRateProviders,
-	}, []interface{}{&rateProviders})
+	}, []any{&rateProviders})
 
 	for i, token := range tokens {
-		tokenAddr := common.HexToAddress(token.Address)
+		if token.Swappable {
+			tokenAddr := common.HexToAddress(token.Address)
 
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: poolMethodGetTokenRateCache,
-			Params: []interface{}{tokenAddr},
-		}, []interface{}{&tokenRateCaches[i]})
+			req.AddCall(&ethrpc.Call{
+				ABI:    poolABI,
+				Target: poolAddress,
+				Method: poolMethodGetTokenRateCache,
+				Params: []any{tokenAddr},
+			}, []any{&tokenRateCaches[i]})
 
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress,
-			Method: poolMethodIsTokenExemptFromYieldProtocolFee,
-			Params: []interface{}{tokenAddr},
-		}, []interface{}{&isTokenExemptFromYieldProtocolFee[i]})
+			req.AddCall(&ethrpc.Call{
+				ABI:    poolABI,
+				Target: poolAddress,
+				Method: poolMethodIsTokenExemptFromYieldProtocolFee,
+				Params: []any{tokenAddr},
+			}, []any{&isTokenExemptFromYieldProtocolFee[i]})
+		}
 	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
+	}, []any{&swapFeePercentage})
 
 	for _, feeType := range feeTypes {
 		value := big.NewInt(0)
@@ -256,8 +258,8 @@ func (t *PoolTracker) queryRPC(
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{big.NewInt(int64(feeType))},
-		}, []interface{}{&value})
+			Params: []any{big.NewInt(int64(feeType))},
+		}, []any{&value})
 	}
 
 	if poolTypeVer >= poolTypeVer5 {
@@ -265,20 +267,20 @@ func (t *PoolTracker) queryRPC(
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodIsExemptFromYieldProtocolFee,
-		}, []interface{}{&isExemptFromYieldProtocolFee})
+		}, []any{&isExemptFromYieldProtocolFee})
 	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodInRecoveryMode,
-	}, []interface{}{&inRecoveryMode})
+	}, []any{&inRecoveryMode})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+	}, []any{&pausedState})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -297,11 +299,11 @@ func (t *PoolTracker) queryRPC(
 		req.SetOverrides(overrides)
 	}
 
-	rateUpdatedTokenIndexes := []int{}
+	rateUpdatedTokenIndexes := make([]int, 0, len(tokens))
 	updatedRate := make([]*big.Int, tokenNbr)
 	for i, token := range tokens {
-		if token.Address == poolAddress ||
-			rateProviders[i].Hex() == zeroAddress ||
+		if !token.Swappable || token.Address == poolAddress ||
+			rateProviders[i].Hex() == zeroAddress || tokenRateCaches[i].Expires == nil ||
 			time.Now().Unix() < tokenRateCaches[i].Expires.Int64() {
 			continue
 		}
@@ -312,8 +314,9 @@ func (t *PoolTracker) queryRPC(
 			ABI:    poolABI,
 			Target: rateProviders[i].Hex(),
 			Method: poolMethodGetRate,
-		}, []interface{}{&updatedRate[i]})
+		}, []any{&updatedRate[i]})
 	}
+
 	if len(rateUpdatedTokenIndexes) > 0 {
 		if _, err := req.Aggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -326,7 +329,7 @@ func (t *PoolTracker) queryRPC(
 		}
 
 		for _, i := range rateUpdatedTokenIndexes {
-			if updatedRate[i] == nil {
+			if updatedRate[i] == nil || tokenRateCaches[i].Duration == nil {
 				continue
 			}
 			tokenRateCaches[i].Rate = updatedRate[i]
@@ -353,7 +356,6 @@ func (t *PoolTracker) queryRPC(
 }
 
 func (t *PoolTracker) initExtra(
-	ctx context.Context,
 	rpcRes *rpcRes,
 	staticExtra StaticExtra,
 ) (*Extra, error) {
@@ -363,13 +365,19 @@ func (t *PoolTracker) initExtra(
 		if i == staticExtra.BptIndex || rpcRes.RateProviders[i].Hex() == zeroAddress {
 			rate = number.Number_1e18
 		} else {
-			rate, _ = uint256.FromBig(rpcRes.TokenRateCaches[i].Rate)
+			if rpcRes.TokenRateCaches[i].Rate != nil {
+				rate, _ = uint256.FromBig(rpcRes.TokenRateCaches[i].Rate)
+			}
 		}
 
-		var err error
-		scalingFactors[i], err = math.FixedPoint.MulDown(scalingFactor, rate)
-		if err != nil {
-			return nil, err
+		scalingFactors[i] = scalingFactor
+
+		if rate != nil {
+			var err error
+			scalingFactors[i], err = math.FixedPoint.MulDown(scalingFactor, rate)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
