@@ -41,7 +41,7 @@ type IPoolFactory interface {
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
 	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
-	CloneCurveMetaForBasePools(
+	CloneMetaPoolsWithBasePools(
 		ctx context.Context,
 		allPools map[string]poolpkg.IPoolSimulator,
 		basePools map[string]poolpkg.IPoolSimulator,

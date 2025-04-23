@@ -126,7 +126,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		}
 
 		// if caller want to override a curve base pool, then we need to find its meta pool in `state` and update basepool there
-		newMetaPools := a.poolFactory.CloneCurveMetaForBasePools(ctx, state.Pools, poolSims)
+		newMetaPools := a.poolFactory.CloneMetaPoolsWithBasePools(ctx, state.Pools, poolSims)
 		for _, newMetaPool := range newMetaPools {
 			addr := newMetaPool.GetAddress()
 			if _, ok := state.Pools[addr]; ok {

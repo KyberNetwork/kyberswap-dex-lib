@@ -104,6 +104,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 	getChunkPoolCommand := dto.NewGetChunkPoolCommand(
 		u.config.ChunkSize, command.UsePoolAddresses, command.PoolAddresses,
 	)
+
 	for {
 		if getChunkPoolCommand.IsLastCommand {
 			break
@@ -205,9 +206,12 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 		return nil
 	}
 
-	var tvlNative, amplifiedTvlNative float64
-	var err error
+	var (
+		tvlNative, amplifiedTvlNative float64
+	)
+
 	if nativePriceByToken != nil {
+		var err error
 		tvlNative, err = business.CalculatePoolTVL(ctx, pool, nativePriceByToken)
 		if err != nil {
 			// just reset score here without returning error
@@ -225,82 +229,183 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 	}
 
 	var result error
-	poolTokens := pool.Tokens
-	for i := 0; i < len(poolTokens); i++ {
-		tokenI := poolTokens[i]
+
+	// Index tokens in the main pool
+	if err := u.processMainPoolIndexes(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil {
+		result = err
+	}
+
+	// Index tokens in nested/base pools depending on the pool type
+	switch pool.Type {
+	case pooltypes.PoolTypes.CurveAave:
+		if err := u.processCurveAave(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil && result == nil {
+			result = err
+		}
+	case pooltypes.PoolTypes.CurveMeta, pooltypes.PoolTypes.CurveStableMetaNg:
+		if err := u.processCurveMeta(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil && result == nil {
+			result = err
+		}
+	case pooltypes.PoolTypes.BalancerV2Stable, pooltypes.PoolTypes.BalancerV2Weighted:
+		if err := u.processBalancerV2(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil && result == nil {
+			result = err
+		}
+	}
+
+	return result
+}
+
+func (u *IndexPoolsUseCase) processMainPoolIndexes(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
+	var result error
+	for i, tokenI := range pool.Tokens {
 		if !tokenI.Swappable || len(pool.Reserves)-1 < i {
 			continue
 		}
-		for j := i + 1; j < len(poolTokens); j++ {
-			tokenJ := poolTokens[j]
+		for j := i + 1; j < len(pool.Tokens); j++ {
+			tokenJ := pool.Tokens[j]
 			if !tokenJ.Swappable || len(pool.Reserves)-1 < j {
 				continue
 			}
 
 			if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
-				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvlNative, amplifiedTvlNative)); err != nil {
+				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
 					result = err
 				}
 			}
 		}
 	}
-	// curve aave underlying
-	if pool.Type == pooltypes.PoolTypes.CurveAave {
-		var extra struct {
-			UnderlyingTokens []string `json:"underlyingTokens"`
-		}
-		var err = json.Unmarshal([]byte(pool.StaticExtra), &extra)
-		if err == nil {
-			for i := 0; i < len(extra.UnderlyingTokens); i++ {
-				for j := i + 1; j < len(extra.UnderlyingTokens); j++ {
-					if len(pool.Reserves)-1 < j {
-						continue
-					}
-					tokenI := extra.UnderlyingTokens[i]
-					tokenJ := extra.UnderlyingTokens[j]
 
-					if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
-						if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvlNative, amplifiedTvlNative)); err != nil {
-							result = err
-						}
-					}
+	return result
+}
+
+func (u *IndexPoolsUseCase) processCurveAave(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
+	var extra struct {
+		UnderlyingTokens []string `json:"underlyingTokens"`
+	}
+
+	if err := json.Unmarshal([]byte(pool.StaticExtra), &extra); err != nil {
+		return nil
+	}
+
+	var result error
+	for i := 0; i < len(extra.UnderlyingTokens); i++ {
+		for j := i + 1; j < len(extra.UnderlyingTokens); j++ {
+			if len(pool.Reserves)-1 < j {
+				continue
+			}
+			tokenI := extra.UnderlyingTokens[i]
+			tokenJ := extra.UnderlyingTokens[j]
+			if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
+				if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
+					result = err
 				}
 			}
 		}
 	}
 
-	if pool.Type == pooltypes.PoolTypes.CurveMeta || pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
-		// `underlyingTokens` here are metaCoin[0:numMetaCoin-1] ++ baseCoin[0:numBaseCoin]
-		// we'll index for each pair of metaCoin and baseCoin
-		// note that technically we can use this pool to swap between base coins, but we shouldn't, because:
-		// - it cost less gas to swap base coins directly at base pool instead
-		// - router might return incorrect output, because:
-		//		- router find 2 paths, one through base pool and one through meta pool
-		//		- router consume the 1st path and update balance for base pool accordingly
-		//		- but that won't affect meta pool, because we're storing them separatedly in pool bucket
-		//		- so router will incorrectly think that the 2nd path is still usable, while it's not
-		// 	so rejecting base coin swap here will help us avoid that (note that we might still get another edge case:
-		//		path1: basecoin1 -> basepool -> basecoin2
-		// 		path2: basecoin1 -> metapool -> metacoin1 -> anotherpool -> basecoin2
-		//		after consuming path1, router still assuming that path2 is usable while it's not
-		//		to fix this we'll need to change the way we update balance for base & meta pool, which is much more complicated
-		// 	)
-		numUsableMetaCoin := len(poolTokens) - 1
-		var extra struct {
-			UnderlyingTokens []string `json:"underlyingTokens"`
+	return result
+}
+
+func (u *IndexPoolsUseCase) processCurveMeta(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
+	// `underlyingTokens` here are metaCoin[0:numMetaCoin-1] ++ baseCoin[0:numBaseCoin]
+	// we'll index for each pair of metaCoin and baseCoin
+	// note that technically we can use this pool to swap between base coins, but we shouldn't, because:
+	// - it cost less gas to swap base coins directly at base pool instead
+	// - router might return incorrect output, because:
+	//		- router find 2 paths, one through base pool and one through meta pool
+	//		- router consume the 1st path and update balance for base pool accordingly
+	//		- but that won't affect meta pool, because we're storing them separatedly in pool bucket
+	//		- so router will incorrectly think that the 2nd path is still usable, while it's not
+	// 	so rejecting base coin swap here will help us avoid that (note that we might still get another edge case:
+	//		path1: basecoin1 -> basepool -> basecoin2
+	// 		path2: basecoin1 -> metapool -> metacoin1 -> anotherpool -> basecoin2
+	//		after consuming path1, router still assuming that path2 is usable while it's not
+	//		to fix this we'll need to change the way we update balance for base & meta pool, which is much more complicated
+	// 	)
+
+	var extra struct {
+		UnderlyingTokens []string `json:"underlyingTokens"`
+	}
+
+	if err := json.Unmarshal([]byte(pool.StaticExtra), &extra); err != nil {
+		return nil
+	}
+
+	var result error
+
+	numUsableMetaCoin := len(pool.Tokens) - 1
+	numUnderlyingCoins := len(extra.UnderlyingTokens)
+	if numUnderlyingCoins <= numUsableMetaCoin {
+		return nil
+	}
+
+	for i := 0; i < numUsableMetaCoin; i++ {
+		if !pool.HasReserve(pool.Reserves[i]) {
+			continue
 		}
-		var err = json.Unmarshal([]byte(pool.StaticExtra), &extra)
-		numUnderlyingCoins := len(extra.UnderlyingTokens)
-		if err == nil && numUnderlyingCoins > numUsableMetaCoin {
-			for i := 0; i < numUsableMetaCoin; i++ {
-				if !pool.HasReserve(pool.Reserves[i]) {
+		tokenI := pool.Tokens[i].Address
+		for j := numUsableMetaCoin; j < numUnderlyingCoins; j++ {
+			tokenJ := extra.UnderlyingTokens[j]
+			if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
+				result = err
+			}
+		}
+	}
+
+	return result
+}
+
+func (u *IndexPoolsUseCase) processBalancerV2(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
+	var extra struct {
+		BasePools map[string][]string `json:"basePools"`
+	}
+
+	if err := json.Unmarshal([]byte(pool.StaticExtra), &extra); err != nil {
+		return nil
+	}
+
+	var result error
+
+	basePoolTokens := map[string]struct{}{}
+
+	// step 1: Collect all tokens from base pools, excluding the base pool's own address
+	for basePoolAddr, tokens := range extra.BasePools {
+		for _, token := range tokens {
+			if token != basePoolAddr {
+				basePoolTokens[token] = struct{}{}
+			}
+		}
+	}
+
+	// step 2: Create indexes from the main pool tokens to all base pool tokens
+	for i := range pool.Tokens {
+		if !pool.HasReserve(pool.Reserves[i]) {
+			continue
+		}
+		tokenI := pool.Tokens[i].Address
+		for tokenJ := range basePoolTokens {
+			if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
+				result = err
+			}
+		}
+	}
+
+	// step 3: Create indexes between base pool tokens
+	basePoolAddresses := lo.Keys(extra.BasePools)
+	for i := 0; i < len(basePoolAddresses); i++ {
+		for j := i + 1; j < len(basePoolAddresses); j++ {
+			basePoolA := basePoolAddresses[i]
+			basePoolB := basePoolAddresses[j]
+			for _, tokenA := range extra.BasePools[basePoolA] {
+				if tokenA == basePoolA {
 					continue
 				}
+				for _, tokenB := range extra.BasePools[basePoolB] {
+					// ensure we don't create an index directly between base pool addresses
+					if tokenB == basePoolB || tokenA == basePoolB || tokenB == basePoolA {
+						continue
+					}
 
-				tokenI := poolTokens[i].Address
-				for j := numUsableMetaCoin; j < numUnderlyingCoins; j++ {
-					tokenJ := extra.UnderlyingTokens[j]
-					if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvlNative, amplifiedTvlNative)); err != nil {
+					if err := handler(ctx, NewPoolIndex(pool, tokenA, tokenB, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
 						result = err
 					}
 				}
