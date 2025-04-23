@@ -66,6 +66,7 @@ var useApproveMaxFunctionSet = map[string]struct{}{
 	l1executor.FunctionSelectorHoney.RawName:             {},
 	l1executor.FunctionSelectorCurveLlamma.RawName:       {},
 	l1executor.FunctionSelectorBeefySonic.RawName:        {},
+	l1executor.FunctionSelectorHyeth.RawName:             {},
 
 	l2executor.FunctionSelectorLimitOrderDS.RawName:      {},
 	l2executor.FunctionSelectorStableSwap.RawName:        {},
