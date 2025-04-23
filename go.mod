@@ -38,7 +38,6 @@ require (
 )
 
 require (
-	github.com/KyberNetwork/aggregator-encoding v0.47.5 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/aws/smithy-go v1.15.0 // indirect
 	github.com/bits-and-blooms/bitset v1.14.3 // indirect
