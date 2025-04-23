@@ -155,6 +155,7 @@ common:
     - "euler-swap"
     - "ekubo"
     - "onebit"
+    - "hyeth"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

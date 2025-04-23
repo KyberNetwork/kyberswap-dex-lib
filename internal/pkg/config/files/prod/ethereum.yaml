@@ -166,6 +166,7 @@ common:
     - "euler-swap"
     - "ekubo"
     - "onebit"
+    - "hyeth"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
