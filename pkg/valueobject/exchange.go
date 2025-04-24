@@ -2,7 +2,7 @@ package valueobject
 
 type Exchange string
 
-var (
+const (
 	ExchangeSushiSwap       Exchange = "sushiswap"
 	ExchangeTrisolaris      Exchange = "trisolaris"
 	ExchangeWannaSwap       Exchange = "wannaswap"
@@ -683,7 +683,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwellRSWETH:                {},
 	ExchangeBedrockUniETH:              {},
 	ExchangePufferPufETH:               {},
-	ExchangeRingSwap:                   {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
 	ExchangeDyorSwap:                   {},
