@@ -14,7 +14,7 @@ import (
 )
 
 type Config struct {
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
+	HTTP HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {
