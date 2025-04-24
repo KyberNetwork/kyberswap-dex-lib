@@ -5,7 +5,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -18,7 +17,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -31,7 +29,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -44,7 +41,6 @@
     "outputs": [
       {
         "internalType": "uint8",
-        "name": "",
         "type": "uint8"
       }
     ],
@@ -100,7 +96,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -126,7 +121,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -213,12 +207,10 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -226,7 +218,6 @@
     "outputs": [
       {
         "internalType": "bytes4",
-        "name": "",
         "type": "bytes4"
       }
     ],
@@ -239,7 +230,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -258,7 +248,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -271,7 +260,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -284,7 +272,6 @@
     "outputs": [
       {
         "internalType": "uint32",
-        "name": "",
         "type": "uint32"
       }
     ],
@@ -297,7 +284,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -310,7 +296,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -323,7 +308,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -354,7 +338,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -367,7 +350,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -378,7 +360,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],

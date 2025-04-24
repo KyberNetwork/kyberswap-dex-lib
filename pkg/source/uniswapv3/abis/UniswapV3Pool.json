@@ -5,7 +5,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -18,7 +17,6 @@
     "outputs": [
       {
         "internalType": "uint24",
-        "name": "",
         "type": "uint24"
       }
     ],
@@ -31,7 +29,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -44,7 +41,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -57,7 +53,6 @@
     "outputs": [
       {
         "internalType": "uint128",
-        "name": "",
         "type": "uint128"
       }
     ],
@@ -70,7 +65,6 @@
     "outputs": [
       {
         "internalType": "uint128",
-        "name": "",
         "type": "uint128"
       }
     ],
@@ -81,7 +75,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -139,7 +132,6 @@
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -248,7 +240,6 @@
     "inputs": [
       {
         "internalType": "int16",
-        "name": "",
         "type": "int16"
       }
     ],
@@ -256,7 +247,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -269,7 +259,6 @@
     "outputs": [
       {
         "internalType": "int24",
-        "name": "",
         "type": "int24"
       }
     ],
@@ -280,7 +269,6 @@
     "inputs": [
       {
         "internalType": "int24",
-        "name": "",
         "type": "int24"
       }
     ],
@@ -336,7 +324,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -349,7 +336,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
