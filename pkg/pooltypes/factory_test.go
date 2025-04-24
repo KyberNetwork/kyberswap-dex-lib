@@ -18,7 +18,8 @@ func TestPoolFactory(t *testing.T) {
 		"ambient",     // private
 		"maverick-v2", // private
 		"kyber-pmm",   // private
-		"onebit",      // private
+		"pmm-1",       // private
+		"pmm-2",       // private
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
@@ -28,6 +29,22 @@ func TestPoolFactory(t *testing.T) {
 		t.Run(poolType, func(t *testing.T) {
 			got := pool.Factory(poolType)
 			assert.NotNil(t, got, key)
+		})
+	}
+}
+
+func TestCanCalcAmountIn(t *testing.T) {
+	dexes := []string{"algebra-integral", "algebra-v1", "balancer-v2-composable-stable", "balancer-v2-stable",
+		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
+		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
+		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "dystopia",
+		"ekubo", "euler-swap", "fluid-dex-t1", "hashflow-v3", "iziswap", "limit-order", "liquiditybook-v21",
+		"maverick-v1", "muteswitch", "pancake-v3", "pearl", "ramses", "ringswap", "sky-psm", "slipstream", "solidly-v2",
+		"solidly-v3", "swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable",
+		"uniswap-v1", "uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
+	for _, tt := range dexes {
+		t.Run(tt, func(t *testing.T) {
+			assert.Contains(t, pool.CanCalcAmountIn, tt)
 		})
 	}
 }
@@ -50,7 +67,8 @@ func TestPoolListerFactory(t *testing.T) {
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
-		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo", "erc4626", "hyeth"}
+		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
+		"erc4626", "hyeth"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -78,7 +96,8 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ether-vista", "maverick-v2", "lite-psm", "mkr-sky", "dai-usds", "fluid-vault-t1", "fluid-dex-t1", "usd0pp",
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
-		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo", "erc4626", "hyeth"}
+		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
+		"erc4626", "hyeth"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
