@@ -11,7 +11,6 @@ import (
 )
 
 type Config struct {
-	DexID string           `json:"dexId"`
 	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 

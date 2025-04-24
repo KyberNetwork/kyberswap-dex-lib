@@ -1,16 +1,5 @@
 [
   {
-    "type": "constructor",
-    "inputs": [
-      {
-        "name": "core",
-        "type": "address",
-        "internalType": "contract ICore"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "function",
     "name": "getInitializedTicksInRange",
     "inputs": [
@@ -152,10 +141,5 @@
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "error",
-    "name": "CoreOnly",
-    "inputs": []
   }
 ]

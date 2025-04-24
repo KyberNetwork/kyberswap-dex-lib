@@ -1,140 +1,10 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_vault",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_usdg",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_glp",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_shortsTracker",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_cooldownDuration",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "aumInUsdg",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "glpSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "usdgAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "mintAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "AddLiquidity",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "glpAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "aumInUsdg",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "glpSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "usdgAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amountOut",
-        "type": "uint256"
-      }
-    ],
-    "name": "RemoveLiquidity",
-    "type": "event"
-  },
-  {
     "inputs": [],
     "name": "BASIS_POINTS_DIVISOR",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -147,7 +17,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -160,7 +29,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -173,7 +41,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -186,89 +53,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minUsdg",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minGlp",
-        "type": "uint256"
-      }
-    ],
-    "name": "addLiquidity",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_fundingAccount",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_account",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minUsdg",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minGlp",
-        "type": "uint256"
-      }
-    ],
-    "name": "addLiquidityForAccount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -277,7 +65,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -290,7 +77,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -303,7 +89,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -322,7 +107,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -341,7 +125,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -354,7 +137,6 @@
     "outputs": [
       {
         "internalType": "uint256[]",
-        "name": "",
         "type": "uint256[]"
       }
     ],
@@ -373,7 +155,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -402,12 +183,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       },
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -426,7 +205,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -439,7 +217,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -452,7 +229,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -465,7 +241,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -476,7 +251,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -484,7 +258,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -495,7 +268,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -503,185 +275,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_tokenOut",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_glpAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minOut",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      }
-    ],
-    "name": "removeLiquidity",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_account",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_tokenOut",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_glpAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minOut",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      }
-    ],
-    "name": "removeLiquidityForAccount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_aumAddition",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_aumDeduction",
-        "type": "uint256"
-      }
-    ],
-    "name": "setAumAdjustment",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_cooldownDuration",
-        "type": "uint256"
-      }
-    ],
-    "name": "setCooldownDuration",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_gov",
-        "type": "address"
-      }
-    ],
-    "name": "setGov",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_handler",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isActive",
-        "type": "bool"
-      }
-    ],
-    "name": "setHandler",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_inPrivateMode",
-        "type": "bool"
-      }
-    ],
-    "name": "setInPrivateMode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract IShortsTracker",
-        "name": "_shortsTracker",
-        "type": "address"
-      }
-    ],
-    "name": "setShortsTracker",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_shortsTrackerAveragePriceWeight",
-        "type": "uint256"
-      }
-    ],
-    "name": "setShortsTrackerAveragePriceWeight",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -690,7 +287,6 @@
     "outputs": [
       {
         "internalType": "contract IShortsTracker",
-        "name": "",
         "type": "address"
       }
     ],
@@ -703,7 +299,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -716,7 +311,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -729,7 +323,6 @@
     "outputs": [
       {
         "internalType": "contract IVault",
-        "name": "",
         "type": "address"
       }
     ],
