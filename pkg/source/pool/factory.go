@@ -19,7 +19,8 @@ type (
 )
 
 var (
-	factoryMap = make(map[string]FactoryFn, 256) // map of pool types to factory functions
+	factoryMap      = make(map[string]FactoryFn, 256) // map of pool types to factory functions
+	CanCalcAmountIn = make(map[string]struct{}, 256)  // map of pool types that can calculate amount in. don't modify
 )
 
 // RegisterFactory registers a factory function for a pool type with factoryParams
@@ -32,13 +33,17 @@ func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryPara
 		return pool, errors.WithMessagef(err, "failed to init pool %s (%s/%s)",
 			factoryParams.EntityPool.Address, factoryParams.EntityPool.Exchange, poolType)
 	}
+	var p P
+	if _, ok := any(p).(IPoolExactOutSimulator); ok {
+		CanCalcAmountIn[poolType] = struct{}{}
+	}
 	return true
 }
 
 // RegisterFactory0 registers a factory function for a pool type with no factoryParams.
 // TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory0[P IPoolSimulator](poolType string, factory func(entity.Pool) (P, error)) bool {
-	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool)
 	})
 }
@@ -47,7 +52,7 @@ func RegisterFactory0[P IPoolSimulator](poolType string, factory func(entity.Poo
 // TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory1[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, valueobject.ChainID) (P, error)) bool {
-	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.ChainID)
 	})
 }
@@ -56,7 +61,7 @@ func RegisterFactory1[P IPoolSimulator](poolType string,
 // TODO: deprecate this in favor of RegisterFactory
 func RegisterFactory2[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, valueobject.ChainID, ethereum.ContractCaller) (P, error)) bool {
-	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.ChainID, factoryParams.EthClient)
 	})
 }
@@ -65,7 +70,7 @@ func RegisterFactory2[P IPoolSimulator](poolType string,
 // TODO: deprecate this in favor of RegisterFactory
 func RegisterFactoryMeta[P IPoolSimulator](poolType string,
 	factory func(entity.Pool, map[string]IPoolSimulator) (P, error)) bool {
-	return RegisterFactory(poolType, func(factoryParams FactoryParams) (IPoolSimulator, error) {
+	return RegisterFactory(poolType, func(factoryParams FactoryParams) (P, error) {
 		return factory(factoryParams.EntityPool, factoryParams.BasePoolMap)
 	})
 }
