@@ -238,7 +238,7 @@ func (s *PoolSimulator) OnSwap(tokenIn, tokenOut string, amountIn *uint256.Int) 
 func (s *PoolSimulator) getBasePool(token string) (shared.IBasePool, error) {
 	for _, basePool := range s.basePools {
 		index := basePool.GetTokenIndex(token)
-		if index > 0 {
+		if index >= 0 {
 			return basePool, nil
 		}
 	}
