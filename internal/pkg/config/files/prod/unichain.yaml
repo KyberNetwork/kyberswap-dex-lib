@@ -309,6 +309,13 @@ useCase:
       'tritium-research': true
     salt: *salt
     rfq:
+      uniswap-v4:
+        handler: uniswap-v4
+        properties:
+          kyberExclusiveAMM:
+            maxAmountInFactor: 1.2
+            expiry: 180000000000 # 3m
+            signerPrivateKey:
       kyberswap-limit-order-v2:
         handler: limit-order
         properties:
