@@ -19,6 +19,8 @@ const (
 	poolMethodGetScalingFactors         = "getScalingFactors"
 	poolMethodGetPoolId                 = "getPoolId"
 
+	protocolMethodGetSwapFeePercentage = "getSwapFeePercentage"
+
 	defaultWeight = 1
 
 	poolSpecializationGeneral = 0
