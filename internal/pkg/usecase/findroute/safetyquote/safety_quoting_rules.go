@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -78,13 +77,7 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 	}
 
 	// Check safety quoting rate by pool types
-	switch params.PoolType {
-	case pooltypes.PoolTypes.LimitOrder, pooltypes.PoolTypes.KyberPMM,
-		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,
-		pooltypes.PoolTypes.SwaapV2, pooltypes.PoolTypes.Dexalot,
-		pooltypes.PoolTypes.Bebop, pooltypes.PoolTypes.Clipper,
-		pooltypes.PoolTypes.LO1inch, pooltypes.PoolTypes.MxTrading,
-		pooltypes.PoolTypes.OneBit:
+	if dexValueObject.IsRFQSource(params.Exchange) {
 		return f.deductionFactorInBps[types.StrictlyStable]
 	}
 

@@ -386,14 +386,15 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoute,
 	)
 
-	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
+	rfqHandlerByExchange := make(map[valueobject.Exchange]poolpkg.IPoolRFQ)
 	for dexId, dex := range cfg.UseCase.BuildRoute.RFQ {
-		rfqHandler, err := bootstrap.NewRFQHandler(dexId, dex)
+		dex.Properties["dexID"] = dexId
+		rfqHandler, err := bootstrap.NewRFQHandler(dex)
 		if err != nil {
 			return fmt.Errorf("can not create RFQ handler: %v, err: %v", dex.Handler, err)
 		}
 
-		rfqHandlerByPoolType[dex.Handler] = rfqHandler
+		rfqHandlerByExchange[dexId] = rfqHandler
 	}
 
 	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,
@@ -409,7 +410,7 @@ func apiAction(c *cli.Context) (err error) {
 		publisherRepository,
 		gasEstimator,
 		l1FeeCalculator,
-		rfqHandlerByPoolType,
+		rfqHandlerByExchange,
 		clientDataEncoder,
 		encoder,
 		cfg.UseCase.BuildRoute,

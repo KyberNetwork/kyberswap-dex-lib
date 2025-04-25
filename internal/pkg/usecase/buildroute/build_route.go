@@ -16,7 +16,7 @@ import (
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kutils/klog"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
-	onebit "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/one-bit"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -69,7 +69,7 @@ type BuildRouteUseCase struct {
 	gasEstimator              IGasEstimator
 	l1FeeCalculator           IL1FeeCalculator
 
-	rfqHandlerByPoolType map[string]pool.IPoolRFQ
+	rfqHandlerByExchange map[valueobject.Exchange]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
 	encoder              encode.IEncoder
 
@@ -84,12 +84,12 @@ func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
-	onchainpriceRepository IOnchainPriceRepository,
+	onchainPriceRepository IOnchainPriceRepository,
 	alphaFeeRepository IAlphaFeeRepository,
 	publisherRepository IPublisherRepository,
 	gasEstimator IGasEstimator,
 	l1FeeCalculator IL1FeeCalculator,
-	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
+	rfqHandlerByExchange map[valueobject.Exchange]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	encoder encode.IEncoder,
 	config Config,
@@ -98,12 +98,12 @@ func NewBuildRouteUseCase(
 		tokenRepository:           tokenRepository,
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
-		onchainpriceRepository:    onchainpriceRepository,
+		onchainpriceRepository:    onchainPriceRepository,
 		alphaFeeRepository:        alphaFeeRepository,
 		publisherRepository:       publisherRepository,
 		gasEstimator:              gasEstimator,
 		l1FeeCalculator:           l1FeeCalculator,
-		rfqHandlerByPoolType:      rfqHandlerByPoolType,
+		rfqHandlerByExchange:      rfqHandlerByExchange,
 		clientDataEncoder:         clientDataEncoder,
 		encoder:                   encoder,
 		config:                    config,
@@ -282,15 +282,15 @@ func (uc *BuildRouteUseCase) rfq(
 
 	executorAddress := uc.encoder.GetExecutorAddress(source)
 
-	rfqParamsByPoolType := make(map[string][]valueobject.IndexedRFQParams)
+	rfqParamsByExchange := make(map[valueobject.Exchange][]valueobject.IndexedRFQParams)
 	totalSwap := 0
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
-			_, found := uc.rfqHandlerByPoolType[swap.PoolType]
+			_, found := uc.rfqHandlerByExchange[swap.Exchange]
 			if !found {
-				// This pool type does not have RFQ handler
+				// This exchange does not have RFQ handler
 				// It means that this swap does not need to be processed via RFQ
-				logger.Debugf(ctx, "no RFQ handler for pool type: %v", swap.PoolType)
+				logger.Debugf(ctx, "no RFQ handler for pool type: %v", swap.Exchange)
 				continue
 			}
 
@@ -312,7 +312,7 @@ func (uc *BuildRouteUseCase) rfq(
 				alphaFee = routeSummary.AlphaFee.Amount
 			}
 
-			rfqParamsByPoolType[swap.PoolType] = append(rfqParamsByPoolType[swap.PoolType],
+			rfqParamsByExchange[swap.Exchange] = append(rfqParamsByExchange[swap.Exchange],
 				valueobject.IndexedRFQParams{
 					RFQParams: pool.RFQParams{
 						NetworkID:    uc.config.ChainID,
@@ -339,7 +339,7 @@ func (uc *BuildRouteUseCase) rfq(
 		totalSwap += len(path)
 	}
 
-	if len(rfqParamsByPoolType) == 0 {
+	if len(rfqParamsByExchange) == 0 {
 		return routeSummary, nil
 	}
 
@@ -351,17 +351,17 @@ func (uc *BuildRouteUseCase) rfq(
 	// does not fulfill the sequential processing requirement for each path, and `newAmountOut`
 	// does not impact the subsequent swap.
 	g, ctx := errgroup.WithContext(ctx)
-	for poolType, paramsSlice := range rfqParamsByPoolType {
-		rfqHandler := uc.rfqHandlerByPoolType[poolType]
+	for exchange, paramsSlice := range rfqParamsByExchange {
+		rfqHandler := uc.rfqHandlerByExchange[exchange]
 		if rfqHandler.SupportBatch() {
 			g.Go(func() error {
-				return uc.processRFQs(ctx, poolType, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
+				return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
 					prices, paramsSlice...)
 			})
 		} else {
 			for _, params := range paramsSlice {
 				g.Go(func() error {
-					return uc.processRFQs(ctx, poolType, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
+					return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
 						prices, params)
 				})
 			}
@@ -467,7 +467,7 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 
 func (uc *BuildRouteUseCase) processRFQs(
 	ctx context.Context,
-	poolType string,
+	exchange valueobject.Exchange,
 	routeSummary valueobject.RouteSummary,
 	rfqRouteMsg *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
@@ -485,9 +485,9 @@ func (uc *BuildRouteUseCase) processRFQs(
 		}
 	}()
 
-	span.SetTag("poolType", poolType)
+	span.SetTag("exchange", string(exchange))
 
-	rfqHandler := uc.rfqHandlerByPoolType[poolType]
+	rfqHandler := uc.rfqHandlerByExchange[exchange]
 
 	var results []*pool.RFQResult
 
@@ -608,7 +608,7 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 		}
 		rfqRouteMsg.RouteType = string(RFQ)
 
-	case dexValueObject.ExchangeOneBit:
+	case dexValueObject.ExchangePmm2:
 		onebitExtra, ok := extra.(onebit.RFQExtra)
 		if ok {
 			rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(onebitExtra.QuoteTimestamp, 0))

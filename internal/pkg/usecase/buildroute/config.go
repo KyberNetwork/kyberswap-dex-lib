@@ -6,18 +6,18 @@ import (
 
 type (
 	Config struct {
-		ChainID                       valueobject.ChainID        `mapstructure:"chainId"`
-		ForceSourceByIp               map[string]string          `mapstructure:"forceSourceByIp"`
-		ValidateChecksumBySource      map[string]bool            `mapstructure:"validateChecksumBySource"`
-		RFQ                           map[string]RFQConfig       `mapstructure:"rfq"`
-		FeatureFlags                  valueobject.FeatureFlags   `mapstructure:"featureFlags"`
-		FaultyPoolsConfig             FaultyPoolsConfig          `mapstructure:"faultyPools"`
-		PublisherConfig               PublisherConfig            `mapstructure:"publisher"`
-		RFQAcceptableSlippageFraction int64                      `mapstructure:"rfqAcceptableSlippageFraction"` // bps
-		FaultyPoolDetectorDisabled    bool                       `mapstructure:"faultyPoolDetectorDisabled"`
-		AlphaFeeConfig                valueobject.AlphaFeeConfig `mapstructure:"alphaFeeConfig"`
-		Salt                          string                     `mapstructure:"salt"`
-		ClientRefCode                 map[string]string          `mapstructure:"clientRefCode"`
+		ChainID                       valueobject.ChainID                `mapstructure:"chainId"`
+		ForceSourceByIp               map[string]string                  `mapstructure:"forceSourceByIp"`
+		ValidateChecksumBySource      map[string]bool                    `mapstructure:"validateChecksumBySource"`
+		RFQ                           map[valueobject.Exchange]RFQConfig `mapstructure:"rfq"`
+		FeatureFlags                  valueobject.FeatureFlags           `mapstructure:"featureFlags"`
+		FaultyPoolsConfig             FaultyPoolsConfig                  `mapstructure:"faultyPools"`
+		PublisherConfig               PublisherConfig                    `mapstructure:"publisher"`
+		RFQAcceptableSlippageFraction int64                              `mapstructure:"rfqAcceptableSlippageFraction"` // bps
+		FaultyPoolDetectorDisabled    bool                               `mapstructure:"faultyPoolDetectorDisabled"`
+		AlphaFeeConfig                valueobject.AlphaFeeConfig         `mapstructure:"alphaFeeConfig"`
+		Salt                          string                             `mapstructure:"salt"`
+		ClientRefCode                 map[string]string                  `mapstructure:"clientRefCode"`
 	}
 
 	AlphaFeeConfig struct {

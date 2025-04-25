@@ -165,7 +165,7 @@ common:
     - "uniswap-v4-kem"
     - "euler-swap"
     - "ekubo"
-    - "onebit"
+    - "pmm-2"
     - "hyeth"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
@@ -194,7 +194,7 @@ common:
       reductionFactorInBps:
         kyber-pmm: 5000
         uniswap-v4-kem: 5000
-        onebit: 5000
+        pmm-2: 5000
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
       minDifferentThresholdBps: 20
@@ -529,7 +529,7 @@ useCase:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
-      mx-trading:
+      pmm-1:
         handler: mx-trading
         properties:
           router: 0x111111125421ca6dc452d289314280a0f8842a65
@@ -544,7 +544,7 @@ useCase:
             maxAmountInFactor: 1.2
             expiry: 180000000000 # 3m
             signerPrivateKey:
-      onebit:
+      pmm-2:
         handler: onebit
         properties:
           http:
