@@ -2,6 +2,682 @@
   {
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "aggregateSwapFeePercentage",
+        "type": "uint256"
+      }
+    ],
+    "name": "AggregateSwapFeePercentageChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "aggregateYieldFeePercentage",
+        "type": "uint256"
+      }
+    ],
+    "name": "AggregateYieldFeePercentageChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "spender",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "Approval",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IAuthorizer",
+        "name": "newAuthorizer",
+        "type": "address"
+      }
+    ],
+    "name": "AuthorizerChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "burnedShares",
+        "type": "uint256"
+      }
+    ],
+    "name": "BufferSharesBurned",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "issuedShares",
+        "type": "uint256"
+      }
+    ],
+    "name": "BufferSharesMinted",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "liquidityProvider",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "enum AddLiquidityKind",
+        "name": "kind",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "amountsAddedRaw",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "swapFeeAmountsRaw",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "LiquidityAdded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountUnderlying",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountWrapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "bufferBalances",
+        "type": "bytes32"
+      }
+    ],
+    "name": "LiquidityAddedToBuffer",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "liquidityProvider",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "enum RemoveLiquidityKind",
+        "name": "kind",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "amountsRemovedRaw",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "swapFeeAmountsRaw",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "LiquidityRemoved",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountUnderlying",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountWrapped",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "bufferBalances",
+        "type": "bytes32"
+      }
+    ],
+    "name": "LiquidityRemovedFromBuffer",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      }
+    ],
+    "name": "PoolInitialized",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "paused",
+        "type": "bool"
+      }
+    ],
+    "name": "PoolPausedStateChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "recoveryMode",
+        "type": "bool"
+      }
+    ],
+    "name": "PoolRecoveryModeStateChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "factory",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "contract IERC20",
+            "name": "token",
+            "type": "address"
+          },
+          {
+            "internalType": "enum TokenType",
+            "name": "tokenType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "contract IRateProvider",
+            "name": "rateProvider",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "paysYieldFees",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct TokenConfig[]",
+        "name": "tokenConfig",
+        "type": "tuple[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "swapFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "pauseWindowEndTime",
+        "type": "uint32"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "pauseManager",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "swapFeeManager",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "poolCreator",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct PoolRoleAccounts",
+        "name": "roleAccounts",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "enableHookAdjustedAmounts",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallBeforeInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallAfterInitialize",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallComputeDynamicSwapFee",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallBeforeSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallAfterSwap",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallBeforeAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallAfterAddLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallBeforeRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "shouldCallAfterRemoveLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "hooksContract",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct HooksConfig",
+        "name": "hooksConfig",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "bool",
+            "name": "disableUnbalancedLiquidity",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "enableAddLiquidityCustom",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "enableRemoveLiquidityCustom",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "enableDonation",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct LiquidityManagement",
+        "name": "liquidityManagement",
+        "type": "tuple"
+      }
+    ],
+    "name": "PoolRegistered",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IProtocolFeeController",
+        "name": "newProtocolFeeController",
+        "type": "address"
+      }
+    ],
+    "name": "ProtocolFeeControllerChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenIn",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenOut",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "swapFeePercentage",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "swapFeeAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Swap",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "swapFeePercentage",
+        "type": "uint256"
+      }
+    ],
+    "name": "SwapFeePercentageChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "Transfer",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "burnedShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "withdrawnUnderlying",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "bufferBalances",
+        "type": "bytes32"
+      }
+    ],
+    "name": "Unwrap",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "eventKey",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes",
+        "name": "eventData",
+        "type": "bytes"
+      }
+    ],
+    "name": "VaultAuxiliary",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "paused",
+        "type": "bool"
+      }
+    ],
+    "name": "VaultBuffersPausedStateChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bool",
+        "name": "paused",
+        "type": "bool"
+      }
+    ],
+    "name": "VaultPausedStateChanged",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "VaultQueriesDisabled",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "VaultQueriesEnabled",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "contract IERC4626",
+        "name": "wrappedToken",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "depositedUnderlying",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "mintedShares",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "bufferBalances",
+        "type": "bytes32"
+      }
+    ],
+    "name": "Wrap",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "pool",
         "type": "address"
