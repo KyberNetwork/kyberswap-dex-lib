@@ -157,7 +157,7 @@ common:
     - "ondo-usdy"
     - "ringswap"
     - "etherfi-vampire"
-    - "mx-trading"
+    - "pmm-1"
     - "lo1inch"
     - "etherfi-ebtc"
     - "uniswap-v4"
