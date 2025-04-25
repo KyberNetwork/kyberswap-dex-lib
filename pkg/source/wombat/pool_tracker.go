@@ -142,24 +142,26 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	for i, assetAddress := range assetAddresses {
-		assetCalls.AddCall(&ethrpc.Call{
-			ABI:    DynamicAssetABI,
-			Target: assetAddress.Hex(),
-			Method: assetMethodCash,
-			Params: nil,
-		}, []interface{}{&cashes[i]})
-		assetCalls.AddCall(&ethrpc.Call{
-			ABI:    DynamicAssetABI,
-			Target: assetAddress.Hex(),
-			Method: assetMethodLiability,
-			Params: nil,
-		}, []interface{}{&liabilities[i]})
-		assetCalls.AddCall(&ethrpc.Call{
-			ABI:    DynamicAssetABI,
-			Target: assetAddress.Hex(),
-			Method: assetMethodGetRelativePrice,
-			Params: nil,
-		}, []interface{}{&relativePrices[i]})
+		if assetAddress.Cmp(eth.AddressZero) != 0 {
+			assetCalls.AddCall(&ethrpc.Call{
+				ABI:    DynamicAssetABI,
+				Target: assetAddress.Hex(),
+				Method: assetMethodCash,
+				Params: nil,
+			}, []interface{}{&cashes[i]})
+			assetCalls.AddCall(&ethrpc.Call{
+				ABI:    DynamicAssetABI,
+				Target: assetAddress.Hex(),
+				Method: assetMethodLiability,
+				Params: nil,
+			}, []interface{}{&liabilities[i]})
+			assetCalls.AddCall(&ethrpc.Call{
+				ABI:    DynamicAssetABI,
+				Target: assetAddress.Hex(),
+				Method: assetMethodGetRelativePrice,
+				Params: nil,
+			}, []interface{}{&relativePrices[i]})
+		}
 	}
 	if _, err := assetCalls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
