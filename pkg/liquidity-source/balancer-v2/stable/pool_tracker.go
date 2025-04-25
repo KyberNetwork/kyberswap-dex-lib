@@ -105,11 +105,12 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		amp, _               = uint256.FromBig(rpcRes.Amp)
-		swapFeePercentage, _ = uint256.FromBig(rpcRes.SwapFeePercentage)
-		poolTokens           = rpcRes.PoolTokens
-		pausedState          = rpcRes.PausedState
-		blockNumber          = rpcRes.BlockNumber
+		amp, _                       = uint256.FromBig(rpcRes.Amp)
+		swapFeePercentage, _         = uint256.FromBig(rpcRes.SwapFeePercentage)
+		protocolSwapFeePercentage, _ = uint256.FromBig(rpcRes.ProtocolSwapFeePercentage)
+		poolTokens                   = rpcRes.PoolTokens
+		pausedState                  = rpcRes.PausedState
+		blockNumber                  = rpcRes.BlockNumber
 	)
 
 	if staticExtra.PoolType == poolTypeMetaStable {
@@ -124,10 +125,11 @@ func (t *PoolTracker) getNewPoolState(
 	// update pool
 
 	extra := Extra{
-		Amp:               amp,
-		SwapFeePercentage: swapFeePercentage,
-		ScalingFactors:    scalingFactors,
-		Paused:            !isNotPaused(pausedState),
+		Amp:                       amp,
+		SwapFeePercentage:         swapFeePercentage,
+		ProtocolSwapFeePercentage: protocolSwapFeePercentage,
+		ScalingFactors:            scalingFactors,
+		Paused:                    !isNotPaused(pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -191,11 +193,11 @@ func (t *PoolTracker) queryRPC(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*rpcRes, error) {
 	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-		ampParams         AmplificationParameter
-		scalingFactors    []*big.Int
+		poolTokens                                   PoolTokens
+		protocolSwapFeePercentage, swapFeePercentage *big.Int
+		pausedState                                  PausedState
+		ampParams                                    AmplificationParameter
+		scalingFactors                               []*big.Int
 	)
 
 	req := t.ethrpcClient.R().
@@ -238,6 +240,14 @@ func (t *PoolTracker) queryRPC(
 		}, []any{&scalingFactors})
 	}
 
+	if t.config.ProtocolFeesCollector != "" {
+		req.AddCall(&ethrpc.Call{
+			ABI:    shared.ProtocolFeesCollectorABI,
+			Target: t.config.ProtocolFeesCollector,
+			Method: protocolMethodGetSwapFeePercentage,
+		}, []any{&protocolSwapFeePercentage})
+	}
+
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -250,12 +260,13 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
-		Amp:               ampParams.Value,
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		ScalingFactors:    scalingFactors,
-		PausedState:       pausedState,
-		BlockNumber:       res.BlockNumber.Uint64(),
+		Amp:                       ampParams.Value,
+		PoolTokens:                poolTokens,
+		SwapFeePercentage:         swapFeePercentage,
+		ProtocolSwapFeePercentage: protocolSwapFeePercentage,
+		ScalingFactors:            scalingFactors,
+		PausedState:               pausedState,
+		BlockNumber:               res.BlockNumber.Uint64(),
 	}, nil
 }
 

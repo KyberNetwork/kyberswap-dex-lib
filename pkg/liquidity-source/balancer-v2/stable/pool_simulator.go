@@ -95,18 +95,19 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	}
 
 	return &PoolSimulator{
-		Pool:              pool.Pool{Info: poolInfo},
-		basePools:         basePools,
-		paused:            extra.Paused,
-		swapFeePercentage: extra.SwapFeePercentage,
-		amp:               extra.Amp,
-		scalingFactors:    extra.ScalingFactors,
-		vault:             staticExtra.Vault,
-		poolID:            staticExtra.PoolID,
-		poolSpec:          staticExtra.PoolSpecialization,
-		poolType:          staticExtra.PoolType,
-		poolTypeVer:       staticExtra.PoolTypeVer,
-		batchSwapEnabled:  staticExtra.BatchSwapEnabled,
+		Pool:                      pool.Pool{Info: poolInfo},
+		basePools:                 basePools,
+		paused:                    extra.Paused,
+		swapFeePercentage:         extra.SwapFeePercentage,
+		protocolSwapFeePercentage: extra.ProtocolSwapFeePercentage,
+		amp:                       extra.Amp,
+		scalingFactors:            extra.ScalingFactors,
+		vault:                     staticExtra.Vault,
+		poolID:                    staticExtra.PoolID,
+		poolSpec:                  staticExtra.PoolSpecialization,
+		poolType:                  staticExtra.PoolType,
+		poolTypeVer:               staticExtra.PoolTypeVer,
+		batchSwapEnabled:          staticExtra.BatchSwapEnabled,
 	}, nil
 }
 

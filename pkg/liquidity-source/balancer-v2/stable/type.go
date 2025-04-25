@@ -12,10 +12,11 @@ type Gas struct {
 }
 
 type Extra struct {
-	Amp               *uint256.Int   `json:"amp"`
-	SwapFeePercentage *uint256.Int   `json:"swapFeePercentage"`
-	ScalingFactors    []*uint256.Int `json:"scalingFactors"`
-	Paused            bool           `json:"paused"`
+	Amp                       *uint256.Int   `json:"amp"`
+	SwapFeePercentage         *uint256.Int   `json:"swapFeePercentage"`
+	ProtocolSwapFeePercentage *uint256.Int   `json:"protocolSwapFeePercentage"`
+	ScalingFactors            []*uint256.Int `json:"scalingFactors"`
+	Paused                    bool           `json:"paused"`
 }
 
 type StaticExtra struct {
@@ -54,10 +55,11 @@ type PoolMetaInfo struct {
 }
 
 type rpcRes struct {
-	Amp               *big.Int
-	PoolTokens        PoolTokens
-	SwapFeePercentage *big.Int
-	ScalingFactors    []*big.Int
-	PausedState       PausedState
-	BlockNumber       uint64
+	Amp                       *big.Int
+	PoolTokens                PoolTokens
+	SwapFeePercentage         *big.Int
+	ProtocolSwapFeePercentage *big.Int
+	ScalingFactors            []*big.Int
+	PausedState               PausedState
+	BlockNumber               uint64
 }
