@@ -92,7 +92,7 @@ func TestIsApproveMaxExchange(t *testing.T) {
 		valueobject.ExchangeDexalot,
 		valueobject.ExchangeSfrxETHConvertor,
 		valueobject.ExchangeEtherfiVampire,
-		valueobject.ExchangeMxTrading,
+		valueobject.ExchangePmm1,
 		valueobject.ExchangeLO1inch,
 		valueobject.ExchangeVirtualFun,
 		valueobject.ExchangeBeetsSS,
@@ -101,7 +101,7 @@ func TestIsApproveMaxExchange(t *testing.T) {
 		valueobject.ExchangeOvernightUsdp,
 		valueobject.ExchangePandaFun,
 		valueobject.ExchangeHoney,
-		valueobject.ExchangeOneBit,
+		valueobject.ExchangePmm2,
 		valueobject.ExchangeHyeth,
 	}
 	for _, exchange := range exchanges {

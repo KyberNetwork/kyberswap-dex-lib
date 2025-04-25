@@ -2754,7 +2754,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		command              func() dto.BuildRouteCommand
-		rfqHandlerByPoolType func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ
+		rfqHandlerByExchange func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ
 		countTotalPools      func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository
 		config               Config
 		err                  error
@@ -2805,14 +2805,14 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					EnableGasEstimation: true,
 				}
 			},
-			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
-				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+			rfqHandlerByExchange: func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ {
+				rfqHandlerByExchange := map[valueobject.Exchange]pool.IPoolRFQ{}
 				rfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
-				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = rfqHandler
+				rfqHandlerByExchange[kyberpmm.DexTypeKyberPMM] = rfqHandler
 				rfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, kyberpmmClient.ErrFirmQuoteFailed)
 				rfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
 
-				return rfqHandlerByPoolType
+				return rfqHandlerByExchange
 			},
 			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				wg.Add(1)
@@ -2895,21 +2895,21 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					EnableGasEstimation: true,
 				}
 			},
-			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
-				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+			rfqHandlerByExchange: func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ {
+				rfqHandlerByExchange := map[valueobject.Exchange]pool.IPoolRFQ{}
 				pmmRfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				pmmRfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
 				pmmRfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
-				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = pmmRfqHandler
+				rfqHandlerByExchange[kyberpmm.DexTypeKyberPMM] = pmmRfqHandler
 
 				nativev1RfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
-				rfqHandlerByPoolType[nativev1.DexType] = nativev1RfqHandler
+				rfqHandlerByExchange[nativev1.DexType] = nativev1RfqHandler
 				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, nativev1Client.ErrRFQAllPricerFailed)
 				nativev1RfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
 
-				return rfqHandlerByPoolType
+				return rfqHandlerByExchange
 			},
 			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				wg.Add(2)
@@ -3003,8 +3003,8 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					EnableGasEstimation: true,
 				}
 			},
-			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
-				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+			rfqHandlerByExchange: func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ {
+				rfqHandlerByExchange := map[valueobject.Exchange]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
 				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
@@ -3015,16 +3015,16 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).AnyTimes().Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
-				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+				rfqHandlerByExchange[hashflowv3.DexType] = hashflowHandler
 
 				nativev1RfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
-				rfqHandlerByPoolType[nativev1.DexType] = nativev1RfqHandler
+				rfqHandlerByExchange[nativev1.DexType] = nativev1RfqHandler
 				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
 				nativev1RfqHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
 
-				return rfqHandlerByPoolType
+				return rfqHandlerByExchange
 			},
 			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				wg.Add(2)
@@ -3125,7 +3125,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				publisherRepository,
 				nil,
 				&dummyL1FeeCalculator{},
-				tc.rfqHandlerByPoolType(ctrl),
+				tc.rfqHandlerByExchange(ctrl),
 				clientDataEncoder,
 				encoder,
 				tc.config,
@@ -3145,7 +3145,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		command              dto.BuildRouteCommand
-		rfqHandlerByPoolType func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ
+		rfqHandlerByExchange func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ
 		config               Config
 		err                  error
 	}{
@@ -3179,8 +3179,8 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				},
 				SlippageTolerance: 2000,
 			},
-			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
-				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+			rfqHandlerByExchange: func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ {
+				rfqHandlerByExchange := map[valueobject.Exchange]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
 				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
@@ -3191,9 +3191,9 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(4488767370609711071),
 				}, nil)
-				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+				rfqHandlerByExchange[hashflowv3.DexType] = hashflowHandler
 
-				return rfqHandlerByPoolType
+				return rfqHandlerByExchange
 			},
 			config: Config{
 				ChainID:                       valueobject.ChainIDEthereum,
@@ -3240,8 +3240,8 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				},
 				SlippageTolerance: 2000,
 			},
-			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
-				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+			rfqHandlerByExchange: func(ctrl *gomock.Controller) map[valueobject.Exchange]pool.IPoolRFQ {
+				rfqHandlerByExchange := map[valueobject.Exchange]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
 				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
@@ -3253,9 +3253,9 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).AnyTimes().Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(3815452265018254411),
 				}, nil)
-				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+				rfqHandlerByExchange[hashflowv3.DexType] = hashflowHandler
 
-				return rfqHandlerByPoolType
+				return rfqHandlerByExchange
 			},
 			config: Config{
 				ChainID:                       valueobject.ChainIDEthereum,
@@ -3334,7 +3334,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				publisherRepository,
 				nil,
 				&dummyL1FeeCalculator{},
-				tc.rfqHandlerByPoolType(ctrl),
+				tc.rfqHandlerByExchange(ctrl),
 				clientDataEncoder,
 				encoder,
 				tc.config,
