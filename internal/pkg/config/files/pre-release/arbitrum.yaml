@@ -485,7 +485,7 @@ useCase:
             base_url: "http://ec2-13-212-180-71.ap-southeast-1.compute.amazonaws.com:6061"
             timeout: 10s
             retry_count: 3
-      uniswap-v4:
+      uniswap-v4-kem:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:

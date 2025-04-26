@@ -409,7 +409,7 @@ useCase:
             base_url: "https://api.bebop.xyz/pmm/bsc"
             timeout: 10s
             retry_count: 3
-      uniswap-v4:
+      uniswap-v4-kem:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:

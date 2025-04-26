@@ -319,7 +319,7 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
-      uniswap-v4:
+      uniswap-v4-kem:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:
