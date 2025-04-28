@@ -82,6 +82,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 			// MarketMakers: []string{swapInfo.MarketMaker},
 
 			ExcludeMarketMakers: h.config.ExcludeMarketMakers,
+			Options:             &RFQOptions{DoNotRetryWithOtherMakers: true},
 		})
 	}
 
