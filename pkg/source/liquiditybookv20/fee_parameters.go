@@ -41,11 +41,7 @@ func (fp *feeParameters) updateVariableFeeParameters(blockTimestamp uint64, acti
 
 func (fp *feeParameters) updateVolatilityAccumulated(activeID uint32) {
 	absSub := math.Abs(float64(activeID) - float64(fp.IndexRef))
-	volatilityAccumulated := uint64(absSub)*basisPointMax + uint64(fp.VolatilityReference)
-
-	if volatilityAccumulated > uint64(fp.MaxVolatilityAccumulated) {
-		volatilityAccumulated = uint64(fp.MaxVolatilityAccumulated)
-	}
+	volatilityAccumulated := min(uint64(absSub)*basisPointMax+uint64(fp.VolatilityReference), uint64(fp.MaxVolatilityAccumulated))
 
 	fp.VolatilityAccumulated = uint32(volatilityAccumulated)
 }

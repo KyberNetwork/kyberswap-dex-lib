@@ -103,10 +103,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Info("scan SyncSwapPoolMaster")
 	}
 
-	nextOffset := currentOffset + batchSize
-	if nextOffset > totalNumberOfPools {
-		nextOffset = totalNumberOfPools
-	}
+	nextOffset := min(currentOffset+batchSize, totalNumberOfPools)
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
