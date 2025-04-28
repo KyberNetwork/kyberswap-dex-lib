@@ -37,7 +37,9 @@ const (
 )
 
 var (
-	HeaderXChainId = "X-Chain-Id"
+	HeaderXChainId      = "X-Chain-Id"
+	HeaderClientId      = "client_id"
+	HeaderRouterService = "router-service"
 )
 
 type ITokenRepository interface {
@@ -223,6 +225,7 @@ func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, e
 	// fetch price
 	ctxHeader := metadata.AppendToOutgoingContext(ctx,
 		HeaderXChainId, strconv.Itoa(int(r.chainId)),
+		HeaderClientId, HeaderRouterService,
 		common.HeaderXRequestId, requestid.GetRequestIDFromCtx(ctx),
 	)
 
