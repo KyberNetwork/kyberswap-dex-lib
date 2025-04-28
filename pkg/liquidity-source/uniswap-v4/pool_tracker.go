@@ -188,16 +188,18 @@ func (t *PoolTracker) GetNewPoolState(
 			p.Reserves = reserves
 		}
 	default:
-		// reserve0 = liquidity / sqrtPriceX96 * Q96
-		reserve0 := new(big.Int).Mul(rpcData.Liquidity, Q96)
-		reserve0.Div(reserve0, rpcData.Slot0.SqrtPriceX96)
+		var reserve0, reserve1 big.Int
+		if rpcData.Slot0.SqrtPriceX96.Sign() != 0 {
+			// reserve0 = liquidity / sqrtPriceX96 * Q96
+			reserve0.Mul(rpcData.Liquidity, Q96)
+			reserve0.Div(&reserve0, rpcData.Slot0.SqrtPriceX96)
+		}
 
 		// reserve1 = liquidity * sqrtPriceX96 / Q96
-		reserve1 := new(big.Int).Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
-		reserve1.Div(reserve1, Q96)
+		reserve1.Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
+		reserve1.Div(&reserve1, Q96)
 
 		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-
 	}
 
 	p.BlockNumber = blockNumber
