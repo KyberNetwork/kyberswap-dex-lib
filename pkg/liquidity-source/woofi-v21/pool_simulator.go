@@ -3,6 +3,7 @@ package woofiv21
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var (
@@ -23,6 +25,8 @@ var (
 	ErrGammaExceedsLimit           = errors.New("WooPPV2: !gamma")
 	ErrNotionalSwapExceedsLimit    = errors.New("WooPPV2: !maxNotionalValue")
 	ErrArithmeticOverflowUnderflow = errors.New("arithmetic overflow / underflow")
+	ErrCapExceeds                  = errors.New("WooPPV2: CAP_EXCEEDS")
+	ErrPoolIsPaused                = errors.New("pool is paused")
 )
 
 type PoolSimulator struct {
@@ -32,6 +36,7 @@ type PoolSimulator struct {
 	decimals   map[string]uint8
 	wooracle   Wooracle
 	cloracle   map[string]Cloracle
+	isPaused   bool
 
 	gas Gas
 }
@@ -67,12 +72,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		decimals:   decimals,
 		wooracle:   extra.Wooracle,
 		cloracle:   extra.Cloracle,
+		isPaused:   extra.IsPaused,
 
 		gas: DefaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if s.isPaused {
+		return nil, ErrPoolIsPaused
+	}
+
 	tokenAmountIn := params.TokenAmountIn
 	tokenOut := params.TokenOut
 	tokenInIndex := s.GetTokenIndex(tokenAmountIn.Token)
@@ -83,30 +93,37 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			tokenInIndex, tokenOutIndex)
 	}
 
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+
+	if tokenFrom, ok := s.tokenInfos[params.TokenAmountIn.Token]; ok {
+		if new(uint256.Int).Add(tokenFrom.Reserve, amountIn).Gt(tokenFrom.CapBal) {
+			return nil, ErrCapExceeds
+		}
+	}
+
 	var (
 		amountOut, swapFee *uint256.Int
 		swapInfo           *woofiV2SwapInfo
 		err                error
 	)
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountIn
-	}
 	if tokenAmountIn.Token == s.quoteToken {
 		amountOut, swapFee, swapInfo, err = s._sellQuote(tokenOut, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 	} else if tokenOut == s.quoteToken {
 		amountOut, swapFee, swapInfo, err = s._sellBase(tokenAmountIn.Token, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 	} else {
 		amountOut, swapFee, swapInfo, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 	}
 
@@ -140,7 +157,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+	return struct {
+		BlockNumber uint64
+	}{
+		BlockNumber: s.Info.BlockNumber,
+	}
+}
 
 // _sellQuote
 // https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L479
@@ -293,7 +316,7 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	tokenInfoBase := s.tokenInfos[baseToken]
 
 	maxNotionalSwap := tokenInfoBase.MaxNotionalSwap
-	if maxNotionalSwap == nil || quoteAmount.Cmp(maxNotionalSwap) > 0 {
+	if maxNotionalSwap == nil || quoteAmount.Gt(maxNotionalSwap) {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -305,7 +328,7 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	)
 
 	maxGamma := tokenInfoBase.MaxGamma
-	if maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
+	if maxGamma == nil || gamma.Gt(maxGamma) {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -352,7 +375,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	if !state.WoFeasible {
 		return nil, nil, ErrOracleIsNotFeasible
 	}
-	if state.Price.Cmp(uint256.NewInt(0)) <= 0 {
+	if state.Price.Sign() <= 0 {
 		return nil, nil, ErrOraclePriceNotPositive
 	}
 
@@ -369,7 +392,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	)
 
 	maxNotionalSwap := tokenInfoBase.MaxNotionalSwap
-	if maxNotionalSwap == nil || notionalSwap.Cmp(maxNotionalSwap) > 0 {
+	if maxNotionalSwap == nil || notionalSwap.Gt(maxNotionalSwap) {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -384,7 +407,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	)
 
 	maxGamma := tokenInfoBase.MaxGamma
-	if maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
+	if maxGamma == nil || gamma.Gt(maxGamma) {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -457,7 +480,10 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 
 	cloPrice, _ := s._wooracleCloPriceInQuote(base, s.quoteToken)
 
-	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
+	// Calculate the buffered stale time
+	staleTimeWithBuffer := s.wooracle.Timestamp + int64(float64(s.wooracle.StaleDuration)*staleBufferRatio)
+
+	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= staleTimeWithBuffer
 
 	bound := uint256.NewInt(s.wooracle.Bound)
 	priceLowerBound := new(uint256.Int)
@@ -493,7 +519,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 // WooracleV2._cloPriceInQuote
 // https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L391
 func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken string) (*uint256.Int, int64) {
-	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(zeroAddress) == 0 {
+	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(eth.AddressZero) == 0 {
 		return number.Zero, 0
 	}
 
@@ -541,12 +567,14 @@ func (s *PoolSimulator) updateBalanceSellQuote(params pool.UpdateBalanceParams) 
 		FeeRate:         tokenInfoIn.FeeRate,
 		MaxGamma:        tokenInfoIn.MaxGamma,
 		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
+		CapBal:          tokenInfoIn.CapBal,
 	}
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
 		Reserve:         newBaseReserves,
 		FeeRate:         tokenInfoOut.FeeRate,
 		MaxGamma:        swapInfo.newMaxGamma,
 		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
+		CapBal:          tokenInfoOut.CapBal,
 	}
 	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
@@ -581,12 +609,14 @@ func (s *PoolSimulator) updateBalanceSellBase(params pool.UpdateBalanceParams) {
 		FeeRate:         tokenInfoIn.FeeRate,
 		MaxGamma:        swapInfo.newMaxGamma,
 		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
+		CapBal:          tokenInfoIn.CapBal,
 	}
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
 		Reserve:         newQuoteReserve,
 		FeeRate:         tokenInfoOut.FeeRate,
 		MaxGamma:        tokenInfoOut.MaxGamma,
 		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
+		CapBal:          tokenInfoOut.CapBal,
 	}
 	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
@@ -614,18 +644,21 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 		FeeRate:         tokenInfoIn.FeeRate,
 		MaxGamma:        swapInfo.newMaxGamma,
 		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
+		CapBal:          tokenInfoIn.CapBal,
 	}
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
 		Reserve:         newBase2Reserves,
 		FeeRate:         tokenInfoOut.FeeRate,
 		MaxGamma:        swapInfo.base2.newMaxGamma,
 		MaxNotionalSwap: swapInfo.base2.newMaxNotionalSwap,
+		CapBal:          tokenInfoOut.CapBal,
 	}
 	s.tokenInfos[s.quoteToken] = TokenInfo{
 		Reserve:         newQuoteReserve,
 		FeeRate:         tokenInfoQuote.FeeRate,
 		MaxGamma:        tokenInfoQuote.MaxGamma,
 		MaxNotionalSwap: tokenInfoQuote.MaxNotionalSwap,
+		CapBal:          tokenInfoQuote.CapBal,
 	}
 	stateIn, stateOut := s.wooracle.States[params.TokenAmountIn.Token], s.wooracle.States[params.TokenAmountOut.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
@@ -640,4 +673,12 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 		Coeff:      stateOut.Coeff,
 		WoFeasible: stateOut.WoFeasible,
 	}
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.tokenInfos = maps.Clone(p.tokenInfos)
+	cloned.cloracle = maps.Clone(p.cloracle)
+
+	return &cloned
 }

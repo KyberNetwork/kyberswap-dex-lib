@@ -30,6 +30,7 @@ type (
 		TokenInfos map[string]TokenInfo `json:"tokenInfos"`
 		Wooracle   Wooracle             `json:"wooracle"`
 		Cloracle   map[string]Cloracle  `json:"cloracle"`
+		IsPaused   bool                 `json:"isPaused"`
 	}
 
 	Wooracle struct {
@@ -53,6 +54,7 @@ type (
 		FeeRate         uint16       `json:"feeRate"`
 		MaxGamma        *uint256.Int `json:"maxGamma"`
 		MaxNotionalSwap *uint256.Int `json:"maxNotionalSwap"`
+		CapBal          *uint256.Int `json:"capBal"`
 	}
 
 	State struct {
