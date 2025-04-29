@@ -10,8 +10,6 @@ const (
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
 	defaultTokenWeight   = 50
-	zeroString           = "0"
-	emptyString          = ""
 
 	maxSwapLoop = 1000000
 

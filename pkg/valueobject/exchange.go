@@ -429,6 +429,7 @@ const (
 	ExchangeMemeswap                 Exchange = "memeswap"
 	ExchangePandaFun                 Exchange = "panda-fun"
 	ExchangeHoney                    Exchange = "honey"
+	ExchangeWasabi                   Exchange = "wasabi"
 
 	ExchangeKatanaV2 Exchange = "katana-v2"
 	ExchangeKatanaV3 Exchange = "katana-v3"
@@ -802,6 +803,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeswap:                   {},
 	ExchangePandaFun:                   {},
 	ExchangeHoney:                      {},
+	ExchangeWasabi:                     {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
 	ExchangeUcsFinance:                 {},
