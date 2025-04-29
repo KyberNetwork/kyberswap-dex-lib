@@ -106,6 +106,7 @@ common:
     - "overnight-usdp"
     - "sky-psm"
     - "uniswap-v4-kem"
+    - "memebox"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

@@ -105,6 +105,7 @@ common:
     - "uniswap-v4"
     - "overnight-usdp"
     - "sky-psm"
+    - "memebox"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
