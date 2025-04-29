@@ -47,6 +47,7 @@ common:
     - "burrbear-stable"
     - "burrbear-composable-stable"
     - "bulla"
+    - "wasabi"
     - "honey"
     - "panda-fun"
   excludedSourcesByClient: &excludedSourcesByClient
