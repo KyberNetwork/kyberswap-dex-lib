@@ -1,42 +1,6 @@
 [
   {
     "inputs": [],
-    "name": "ADMIN_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "CREATOR_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "DEFAULT_ADMIN_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "allPairsLength",
     "outputs": [
       {
@@ -62,70 +26,6 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "tokenA",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "tokenB",
-        "type": "address"
-      }
-    ],
-    "name": "getPair",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      }
-    ],
-    "name": "getRoleAdmin",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "hasRole",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "type": "uint256"
       }
@@ -142,53 +42,11 @@
   },
   {
     "inputs": [],
-    "name": "router",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "sellTax",
     "outputs": [
       {
         "internalType": "uint256",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes4",
-        "name": "interfaceId",
-        "type": "bytes4"
-      }
-    ],
-    "name": "supportsInterface",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "taxVault",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
       }
     ],
     "stateMutability": "view",

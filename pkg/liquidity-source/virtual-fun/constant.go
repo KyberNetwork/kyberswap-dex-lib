@@ -3,7 +3,6 @@ package virtualfun
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -12,10 +11,7 @@ var (
 
 	bondingCurveApplicationGas int64 = 5_000_000
 
-	ZERO_ADDRESS = common.Address{}
-
 	U100 = uint256.NewInt(100)
-	ZERO = uint256.NewInt(0)
 )
 
 const (
@@ -30,9 +26,8 @@ const (
 
 	factoryAllPairsLengthMethod = "allPairsLength"
 	factoryGetPairMethod        = "pairs"
-
-	factorySellTaxMethod = "sellTax"
-	factoryBuyTaxMethod  = "buyTax"
+	factorySellTaxMethod        = "sellTax"
+	factoryBuyTaxMethod         = "buyTax"
 
 	bondingUnwrapTokenMethod   = "unwrapToken"
 	bondingGradThresholdMethod = "gradThreshold"

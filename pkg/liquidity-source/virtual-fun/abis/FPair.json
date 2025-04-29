@@ -1,30 +1,6 @@
 [
   {
     "inputs": [],
-    "name": "assetBalance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "balance",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "getReserves",
     "outputs": [
       {
@@ -46,42 +22,6 @@
       {
         "internalType": "uint256",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "priceALast",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "priceBLast",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "router",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
       }
     ],
     "stateMutability": "view",
