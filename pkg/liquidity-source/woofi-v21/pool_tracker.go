@@ -57,6 +57,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var (
+		isPaused                 bool
 		quoteToken, wooracle     common.Address
 		timestamp, staleDuration *big.Int
 		bound                    uint64
@@ -66,6 +67,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate         uint16   `json:"feeRate"`
 			MaxGamma        *big.Int `json:"maxGamma"`
 			MaxNotionalSwap *big.Int `json:"maxNotionalSwap"`
+			CapBal          *big.Int `json:"capBal"`
 		}, len(p.Tokens))
 		woState   = make([]struct{ WoStateContractType }, len(p.Tokens))
 		clOracles = make([]struct {
@@ -76,6 +78,12 @@ func (d *PoolTracker) GetNewPoolState(
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	calls.AddCall(&ethrpc.Call{
+		ABI:    WooPPV2ABI,
+		Target: p.Address,
+		Method: wooPPV2MethodPaused,
+		Params: nil,
+	}, []any{&isPaused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
@@ -103,7 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	blockNumber := callsResult.BlockNumber
@@ -152,7 +160,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	// Call ChainLink Oracle to get latestRoundData
@@ -178,7 +186,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call to chainlink oracle")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	poolCloracle := make(map[string]Cloracle, len(p.Tokens))
@@ -202,22 +210,27 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, token := range p.Tokens {
 		tokenInfoReserve, overflow := uint256.FromBig(tokenInfos[i].Reserve)
 		if overflow {
-			return entity.Pool{}, errors.New("reserve overflow")
+			return p, errors.New("reserve overflow")
 		}
 
 		tokenInfoMaxGamma, overflow := uint256.FromBig(tokenInfos[i].MaxGamma)
 		if overflow {
-			return entity.Pool{}, errors.New("maxGamma overflow")
+			return p, errors.New("maxGamma overflow")
 		}
 
 		tokenInfoMaxNotionalSwap, overflow := uint256.FromBig(tokenInfos[i].MaxNotionalSwap)
 		if overflow {
-			return entity.Pool{}, errors.New("maxNotionalSwap overflow")
+			return p, errors.New("maxNotionalSwap overflow")
+		}
+
+		tokenInfoCapBal, overflow := uint256.FromBig(tokenInfos[i].CapBal)
+		if overflow {
+			return p, errors.New("capBal overflow")
 		}
 
 		price, overflow := uint256.FromBig(woState[i].Price)
 		if overflow {
-			return entity.Pool{}, errors.New("price overflow")
+			return p, errors.New("price overflow")
 		}
 
 		extraTokenInfos[token.Address] = TokenInfo{
@@ -225,6 +238,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate:         tokenInfos[i].FeeRate,
 			MaxGamma:        tokenInfoMaxGamma,
 			MaxNotionalSwap: tokenInfoMaxNotionalSwap,
+			CapBal:          tokenInfoCapBal,
 		}
 		extraStates[token.Address] = State{
 			Price:      price,
@@ -248,6 +262,7 @@ func (d *PoolTracker) GetNewPoolState(
 			Bound:         bound,
 		},
 		Cloracle: poolCloracle,
+		IsPaused: isPaused,
 	})
 
 	if err != nil {
@@ -255,7 +270,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("failed to marshal extra data")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	p.Extra = string(extraBytes)
