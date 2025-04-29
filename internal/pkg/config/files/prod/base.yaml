@@ -451,7 +451,7 @@ useCase:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
-      uniswap-v4:
+      uniswap-v4-kem:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:

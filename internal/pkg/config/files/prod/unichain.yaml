@@ -309,7 +309,7 @@ useCase:
       'tritium-research': true
     salt: *salt
     rfq:
-      uniswap-v4:
+      uniswap-v4-kem:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:
