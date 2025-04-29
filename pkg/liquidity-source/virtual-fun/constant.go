@@ -15,7 +15,6 @@ var (
 	ZERO_ADDRESS = common.Address{}
 
 	U100 = uint256.NewInt(100)
-	ZERO = uint256.NewInt(0)
 )
 
 const (
