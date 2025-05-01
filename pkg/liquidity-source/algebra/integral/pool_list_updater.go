@@ -85,7 +85,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	// Track the last pool's CreatedAtTimestamp
-	lastPoolIds := []string{}
+	var lastPoolIds []string
 	lastCreatedAtTimestampStr := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp
 	lastCreatedAtTimestamp, ok := new(big.Int).SetString(lastCreatedAtTimestampStr, 10)
 	if !ok {
@@ -98,7 +98,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
 
-		if p.Token0.Address != emptyString {
+		if p.Token0.Address != "" {
 			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
 
 			if err != nil {
@@ -115,10 +115,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
-		if p.Token1.Address != emptyString {
+		if p.Token1.Address != "" {
 			token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
 
 			if err != nil {
@@ -135,7 +135,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 
 			tokens = append(tokens, &tokenModel)
-			reserves = append(reserves, zeroString)
+			reserves = append(reserves, "0")
 		}
 
 		staticExtra, err := json.Marshal(&StaticExtra{

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,11 +15,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
-	config        *Config
+	config        *shared.Config
 	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
@@ -28,17 +28,17 @@ type PoolsListUpdater struct {
 var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
-	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
-		DexID:           config.DexID,
-		SubgraphAPI:     config.SubgraphAPI,
-		SubgraphHeaders: config.SubgraphHeaders,
-		NewPoolLimit:    config.NewPoolLimit,
-		PoolTypes:       []string{poolTypeStable, poolTypeMetaStable},
-	}, graphqlClient)
+	if config.UseSubgraphV1 {
+		config.SubgraphPoolTypes = []string{poolTypeLegacyStable, poolTypeLegacyMetaStable}
+	} else {
+		config.SubgraphPoolTypes = []string{poolTypeStable, poolTypeMetaStable}
+	}
+
+	sharedUpdater := shared.NewPoolsListUpdater(config, graphqlClient)
 
 	return &PoolsListUpdater{
 		config:        config,
@@ -69,7 +69,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, vaults)
+	pools, err := u.initPools(subgraphPools, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -86,13 +86,13 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
 
-	req := u.ethrpcClient.R()
+	req := u.ethrpcClient.R().SetContext(ctx)
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -109,10 +109,11 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	return vaults, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool, vaults []string) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(subgraphPools []*shared.SubgraphPool,
+	vaults []string) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for idx := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
+		pool, err := u.initPool(subgraphPools[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -123,26 +124,35 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
+func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault string) (entity.Pool,
+	error) {
 	var (
-		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves       = make([]string, len(subgraphPool.Tokens))
-		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
+		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
+		reserves       = make([]string, len(subgraphPool.PoolTokens))
+		scalingFactors = make([]*uint256.Int, len(subgraphPool.PoolTokens))
+		basePools      = make(map[string][]string)
 	)
 
-	for j, token := range subgraphPool.Tokens {
+	for j, token := range subgraphPool.PoolTokens {
 		poolTokens[j] = &entity.PoolToken{
 			Address:   token.Address,
 			Weight:    defaultWeight,
-			Swappable: true,
+			Swappable: token.IsAllowed,
 		}
-
 		reserves[j] = "0"
-
 		scalingFactors[j] = new(uint256.Int).Mul(
-			number.TenPow(18-uint8(token.Decimals)),
-			number.Number_1e18,
+			bignumber.TenPowInt(18-uint8(token.Decimals)),
+			bignumber.BONE,
 		)
+
+		if token.NestedPool.Address != "" {
+			var underlyingTokens = make([]string, 0, len(token.NestedPool.Tokens))
+
+			for _, baseToken := range token.NestedPool.Tokens {
+				underlyingTokens = append(underlyingTokens, baseToken.Address)
+			}
+			basePools[token.NestedPool.Address] = underlyingTokens
+		}
 	}
 
 	poolSpec, err := _getPoolSpecialization(subgraphPool.ID)
@@ -152,10 +162,12 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 
 	staticExtra := StaticExtra{
 		PoolID:             subgraphPool.ID,
-		PoolType:           subgraphPool.PoolType,
-		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolType:           subgraphPool.Type,
+		PoolTypeVer:        subgraphPool.Version,
 		PoolSpecialization: poolSpec,
 		Vault:              vault,
+		BasePools:          basePools,
+		BatchSwapEnabled:   u.config.BatchSwapEnabled,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

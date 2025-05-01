@@ -1,73 +1,10 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_priceDuration",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_minBlockInterval",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_maxDeviationBasisPoints",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_fastPriceEvents",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_tokenManager",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_positionRouter",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "signer",
-        "type": "address"
-      }
-    ],
-    "name": "DisableFastPrice",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "signer",
-        "type": "address"
-      }
-    ],
-    "name": "EnableFastPrice",
-    "type": "event"
-  },
-  {
     "inputs": [],
     "name": "BASIS_POINTS_DIVISOR",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -80,7 +17,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -93,7 +29,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -106,7 +41,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -115,18 +49,10 @@
   },
   {
     "inputs": [],
-    "name": "disableFastPrice",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "disableFastPriceVoteCount",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -137,7 +63,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -145,7 +70,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -154,18 +78,10 @@
   },
   {
     "inputs": [],
-    "name": "enableFastPrice",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "fastPriceEvents",
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -178,7 +94,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -207,7 +122,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -220,34 +134,10 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_minAuthorizations",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address[]",
-        "name": "_signers",
-        "type": "address[]"
-      },
-      {
-        "internalType": "address[]",
-        "name": "_updaters",
-        "type": "address[]"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -256,7 +146,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -267,7 +156,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -275,7 +163,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -288,7 +175,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -299,7 +185,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -307,7 +192,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -320,7 +204,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -333,7 +216,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -346,7 +228,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -359,7 +240,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -372,7 +252,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -385,7 +264,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -398,7 +276,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -411,7 +288,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -422,7 +298,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -430,295 +305,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[]",
-        "name": "_priceBitArray",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "setCompactedPrices",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_fastPriceEvents",
-        "type": "address"
-      }
-    ],
-    "name": "setFastPriceEvents",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_gov",
-        "type": "address"
-      }
-    ],
-    "name": "setGov",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_isSpreadEnabled",
-        "type": "bool"
-      }
-    ],
-    "name": "setIsSpreadEnabled",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_lastUpdatedAt",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLastUpdatedAt",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_maxDeviationBasisPoints",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMaxDeviationBasisPoints",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_maxTimeDeviation",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMaxTimeDeviation",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_minAuthorizations",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMinAuthorizations",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_minBlockInterval",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMinBlockInterval",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_priceDuration",
-        "type": "uint256"
-      }
-    ],
-    "name": "setPriceDuration",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "_tokens",
-        "type": "address[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_prices",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "setPrices",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_priceBits",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_timestamp",
-        "type": "uint256"
-      }
-    ],
-    "name": "setPricesWithBits",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_priceBits",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_timestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_endIndexForIncreasePositions",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_endIndexForDecreasePositions",
-        "type": "uint256"
-      }
-    ],
-    "name": "setPricesWithBitsAndExecute",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_account",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isActive",
-        "type": "bool"
-      }
-    ],
-    "name": "setSigner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_tokenManager",
-        "type": "address"
-      }
-    ],
-    "name": "setTokenManager",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "_tokens",
-        "type": "address[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_tokenPrecisions",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "setTokens",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_account",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isActive",
-        "type": "bool"
-      }
-    ],
-    "name": "setUpdater",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_volBasisPoints",
-        "type": "uint256"
-      }
-    ],
-    "name": "setVolBasisPoints",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -727,7 +317,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -738,7 +327,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -746,7 +334,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -757,7 +344,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -765,7 +351,6 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -778,7 +363,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],

@@ -17,12 +17,13 @@ import (
 // ICurveBasePool is the interface for curve base pool inside a meta pool
 // this is slightly different to the one in SC (return fee)
 type ICurveBasePool interface {
+	pool.IPoolSimulator
 	GetInfo() pool.PoolInfo
-	GetTokenIndex(address string) int
 
 	GetVirtualPriceU256(vPrice *uint256.Int, D *uint256.Int) error
 
-	CalculateTokenAmountU256(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int, feeAmounts []uint256.Int) error
+	CalculateTokenAmountU256(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int,
+		feeAmounts []uint256.Int) error
 	CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i int, dy *uint256.Int, dyFee *uint256.Int) error
 
 	// ApplyRemoveLiquidityOneCoinU256 is similar to RemoveLiquidityOneCoinU256, but pass in result from CalculateWithdrawOneCoinU256
@@ -61,8 +62,15 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	return &PoolSimulator{*sim, basePool}, err
 }
 
-func (t *PoolSimulator) GetBasePool() ICurveBasePool         { return t.basePool }
-func (t *PoolSimulator) SetBasePool(basePool ICurveBasePool) { t.basePool = basePool }
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	return []pool.IPoolSimulator{t.basePool}
+}
+
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+	if curveBasePool, ok := basePool.(ICurveBasePool); ok {
+		t.basePool = curveBasePool
+	}
+}
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
@@ -138,7 +146,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}, nil
 		}
 	}
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct",
+		tokenIndexFrom, tokenIndexTo)
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -154,7 +163,8 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// meta <-> base swap
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for curve-stable-meta-ng %v %v pool, wrong swapInfo type", t.Info.Address, t.Info.Exchange)
+		logger.Warnf("failed to UpdateBalance for curve-stable-meta-ng %v %v pool, wrong swapInfo type", t.Info.Address,
+			t.Info.Exchange)
 		return
 	}
 
@@ -162,7 +172,8 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	addLiq := swapInfo.AddLiquidity
 	if addLiq != nil {
 		baseNTokens := len(t.basePool.GetInfo().Tokens)
-		_ = t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens], &addLiq.MintAmount)
+		_ = t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens],
+			&addLiq.MintAmount)
 	}
 
 	// update balance from the meta swap component
@@ -170,7 +181,8 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Reserves[metaInfo.TokenInIndex].Add(&t.Reserves[metaInfo.TokenInIndex], &metaInfo.AmountIn)
 	number.FillBig(&t.Reserves[metaInfo.TokenInIndex], t.Info.Reserves[metaInfo.TokenInIndex])
 
-	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex], number.Add(&metaInfo.AmountOut, &metaInfo.AdminFee))
+	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex],
+		number.Add(&metaInfo.AmountOut, &metaInfo.AdminFee))
 	number.FillBig(&t.Reserves[metaInfo.TokenOutIndex], t.Info.Reserves[metaInfo.TokenOutIndex])
 
 	// if output coin is from base pool

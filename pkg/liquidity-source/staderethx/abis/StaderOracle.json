@@ -1,902 +1,10 @@
 [
   {
     "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [],
-    "name": "CallerNotManager",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "CooldownNotComplete",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "DuplicateSubmissionFromNode",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ERChangeLimitCrossed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ERChangeLimitNotCrossed",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ERPermissibleChangeOutofBounds",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "FrequencyUnchanged",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InspectionModeActive",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InsufficientTrustedNodes",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidERDataSource",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidMAPDIndex",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidMerkleRootIndex",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidPubkeyLength",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidReportingBlock",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "InvalidUpdate",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NodeAlreadyTrusted",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NodeNotTrusted",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "NotATrustedNode",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "PageNumberAlreadyReported",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ReportingFutureBlockData",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ReportingPreviousCycleData",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "UpdateFrequencyNotSet",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ZeroAddress",
-    "type": "error"
-  },
-  {
-    "inputs": [],
-    "name": "ZeroFrequency",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isPORBasedERData",
-        "type": "bool"
-      }
-    ],
-    "name": "ERDataSourceToggled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "erInspectionMode",
-        "type": "bool"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ERInspectionModeActivated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalEth",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "ethxSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ExchangeRateSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "totalEth",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "ethxSupply",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ExchangeRateUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "version",
-        "type": "uint8"
-      }
-    ],
-    "name": "Initialized",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "node",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "reportingBlockNumber",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "pubkeys",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "MissedAttestationPenaltySubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "pubkeys",
-        "type": "bytes[]"
-      }
-    ],
-    "name": "MissedAttestationPenaltyUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Paused",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "previousAdminRole",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "newAdminRole",
-        "type": "bytes32"
-      }
-    ],
-    "name": "RoleAdminChanged",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "RoleGranted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "RoleRevoked",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "node",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sdPriceInETH",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "reportedBlock",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      }
-    ],
-    "name": "SDPriceSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sdPriceInETH",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "reportedBlock",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      }
-    ],
-    "name": "SDPriceUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [],
-    "name": "SafeModeDisabled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [],
-    "name": "SafeModeEnabled",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "node",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "merkleRoot",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      }
-    ],
-    "name": "SocializingRewardsMerkleRootSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes32",
-        "name": "merkleRoot",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      }
-    ],
-    "name": "SocializingRewardsMerkleRootUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "node",
-        "type": "address"
-      }
-    ],
-    "name": "TrustedNodeAdded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "trustedNodeChangeCoolingPeriod",
-        "type": "uint256"
-      }
-    ],
-    "name": "TrustedNodeChangeCoolingPeriodUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "node",
-        "type": "address"
-      }
-    ],
-    "name": "TrustedNodeRemoved",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Unpaused",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "UpdateFrequencyUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "erChangeLimit",
-        "type": "uint256"
-      }
-    ],
-    "name": "UpdatedERChangeLimit",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "staderConfig",
-        "type": "address"
-      }
-    ],
-    "name": "UpdatedStaderConfig",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "activeValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitedValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashedValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "activeValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitedValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashedValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ValidatorStatsSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "activeValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitedValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashedValidatorsBalance",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "activeValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "exitedValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashedValidatorsCount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ValidatorStatsUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedReadyToDepositPubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedFrontRunPubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedInvalidSignaturePubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ValidatorVerificationDetailSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedReadyToDepositPubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedFrontRunPubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "sortedInvalidSignaturePubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "ValidatorVerificationDetailUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "from",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "pubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawnValidatorsSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint8",
-        "name": "poolId",
-        "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "block",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bytes[]",
-        "name": "pubkeys",
-        "type": "bytes[]"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "time",
-        "type": "uint256"
-      }
-    ],
-    "name": "WithdrawnValidatorsUpdated",
-    "type": "event"
-  },
-  {
-    "inputs": [],
     "name": "DEFAULT_ADMIN_ROLE",
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -909,7 +17,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -922,7 +29,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -935,7 +41,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -948,7 +53,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -961,7 +65,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -974,7 +77,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -987,7 +89,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -1000,7 +101,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -1013,52 +113,10 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_nodeAddress",
-        "type": "address"
-      }
-    ],
-    "name": "addTrustedNode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "closeERInspectionMode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "disableERInspectionMode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "disableSafeMode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "enableSafeMode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1067,7 +125,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1080,7 +137,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -1093,7 +149,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1135,7 +190,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1148,7 +202,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1178,7 +231,6 @@
           }
         ],
         "internalType": "struct ExchangeRate",
-        "name": "",
         "type": "tuple"
       }
     ],
@@ -1197,7 +249,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1210,7 +261,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1229,7 +279,6 @@
     "outputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -1242,7 +291,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1255,7 +303,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1305,7 +352,6 @@
           }
         ],
         "internalType": "struct ValidatorStats",
-        "name": "",
         "type": "tuple"
       }
     ],
@@ -1318,7 +364,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1331,7 +376,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1344,29 +388,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "grantRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1386,29 +411,10 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_admin",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_staderConfig",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1440,7 +446,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -1451,7 +456,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
         "type": "address"
       }
     ],
@@ -1459,7 +463,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -1472,7 +475,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1501,7 +503,6 @@
     "inputs": [
       {
         "internalType": "uint8",
-        "name": "",
         "type": "uint8"
       }
     ],
@@ -1509,7 +510,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1520,7 +520,6 @@
     "inputs": [
       {
         "internalType": "uint8",
-        "name": "",
         "type": "uint8"
       }
     ],
@@ -1528,7 +527,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1541,7 +539,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -1552,7 +549,6 @@
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -1560,7 +556,6 @@
     "outputs": [
       {
         "internalType": "uint16",
-        "name": "",
         "type": "uint16"
       }
     ],
@@ -1569,71 +564,14 @@
   },
   {
     "inputs": [],
-    "name": "pause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "paused",
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_nodeAddress",
-        "type": "address"
-      }
-    ],
-    "name": "removeTrustedNode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "renounceRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "role",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "revokeRole",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1642,89 +580,10 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setERUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMissedAttestationPenaltyUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setSDPriceUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setValidatorStatsUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setValidatorVerificationDetailUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_updateFrequency",
-        "type": "uint256"
-      }
-    ],
-    "name": "setWithdrawnValidatorsUpdateFrequency",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -1733,271 +592,10 @@
     "outputs": [
       {
         "internalType": "contract IStaderConfig",
-        "name": "",
         "type": "address"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalETHBalance",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalETHXSupply",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct ExchangeRate",
-        "name": "_exchangeRate",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitExchangeRateData",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "index",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "sortedPubkeys",
-            "type": "bytes[]"
-          }
-        ],
-        "internalType": "struct MissedAttestationPenaltyData",
-        "name": "_mapd",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitMissedAttestationPenalties",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "sdPriceInETH",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct SDPriceData",
-        "name": "_sdPriceData",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitSDPrice",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "index",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "merkleRoot",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "uint8",
-            "name": "poolId",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "operatorETHRewards",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "userETHRewards",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "protocolETHRewards",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "operatorSDRewards",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct RewardsData",
-        "name": "_rewardsData",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitSocializingRewardsMerkleRoot",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint128",
-            "name": "exitingValidatorsBalance",
-            "type": "uint128"
-          },
-          {
-            "internalType": "uint128",
-            "name": "exitedValidatorsBalance",
-            "type": "uint128"
-          },
-          {
-            "internalType": "uint128",
-            "name": "slashedValidatorsBalance",
-            "type": "uint128"
-          },
-          {
-            "internalType": "uint32",
-            "name": "exitingValidatorsCount",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint32",
-            "name": "exitedValidatorsCount",
-            "type": "uint32"
-          },
-          {
-            "internalType": "uint32",
-            "name": "slashedValidatorsCount",
-            "type": "uint32"
-          }
-        ],
-        "internalType": "struct ValidatorStats",
-        "name": "_validatorStats",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitValidatorStats",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "poolId",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "sortedReadyToDepositPubkeys",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "sortedFrontRunPubkeys",
-            "type": "bytes[]"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "sortedInvalidSignaturePubkeys",
-            "type": "bytes[]"
-          }
-        ],
-        "internalType": "struct ValidatorVerificationDetail",
-        "name": "_validatorVerificationDetail",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitValidatorVerificationDetail",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "components": [
-          {
-            "internalType": "uint8",
-            "name": "poolId",
-            "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "reportingBlockNumber",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes[]",
-            "name": "sortedPubkeys",
-            "type": "bytes[]"
-          }
-        ],
-        "internalType": "struct WithdrawnValidators",
-        "name": "_withdrawnValidators",
-        "type": "tuple"
-      }
-    ],
-    "name": "submitWithdrawnValidators",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -2012,7 +610,6 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "",
         "type": "bool"
       }
     ],
@@ -2021,18 +618,10 @@
   },
   {
     "inputs": [],
-    "name": "togglePORFeedBasedERData",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "trustedNodeChangeCoolingPeriod",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -2045,7 +634,6 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
@@ -2053,37 +641,9 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "unpause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_erChangeLimit",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateERChangeLimit",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "updateERFromPORFeed",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "bytes32",
-        "name": "",
         "type": "bytes32"
       }
     ],
@@ -2091,37 +651,10 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
         "type": "uint256"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_staderConfig",
-        "type": "address"
-      }
-    ],
-    "name": "updateStaderConfig",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_trustedNodeChangeCoolingPeriod",
-        "type": "uint256"
-      }
-    ],
-    "name": "updateTrustedNodeChangeCoolingPeriod",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

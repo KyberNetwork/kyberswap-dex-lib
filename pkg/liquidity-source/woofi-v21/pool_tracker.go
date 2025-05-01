@@ -57,6 +57,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var (
+		isPaused                 bool
 		quoteToken, wooracle     common.Address
 		timestamp, staleDuration *big.Int
 		bound                    uint64
@@ -66,6 +67,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate         uint16   `json:"feeRate"`
 			MaxGamma        *big.Int `json:"maxGamma"`
 			MaxNotionalSwap *big.Int `json:"maxNotionalSwap"`
+			CapBal          *big.Int `json:"capBal"`
 		}, len(p.Tokens))
 		woState   = make([]struct{ WoStateContractType }, len(p.Tokens))
 		clOracles = make([]struct {
@@ -79,22 +81,28 @@ func (d *PoolTracker) GetNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
+		Method: wooPPV2MethodPaused,
+		Params: nil,
+	}, []any{&isPaused})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    WooPPV2ABI,
+		Target: p.Address,
 		Method: wooPPV2MethodQuoteToken,
 		Params: nil,
-	}, []interface{}{&quoteToken})
+	}, []any{&quoteToken})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
 		Method: wooPPV2MethodWooracle,
 		Params: nil,
-	}, []interface{}{&wooracle})
+	}, []any{&wooracle})
 	for i, token := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    WooPPV2ABI,
 			Target: p.Address,
 			Method: wooPPV2MethodTokenInfos,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&tokenInfos[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&tokenInfos[i]})
 	}
 
 	callsResult, err := calls.TryBlockAndAggregate()
@@ -103,7 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	blockNumber := callsResult.BlockNumber
@@ -114,45 +122,45 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: wooracle.Hex(),
 		Method: wooracleMethodTimestamp,
 		Params: nil,
-	}, []interface{}{&timestamp})
+	}, []any{&timestamp})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodStaleDuration,
 		Params: nil,
-	}, []interface{}{&staleDuration})
+	}, []any{&staleDuration})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodBound,
 		Params: nil,
-	}, []interface{}{&bound})
+	}, []any{&bound})
 	for i, token := range p.Tokens {
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodWoState,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&woState[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&woState[i]})
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodDecimals,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&priceTokenDecimals[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&priceTokenDecimals[i]})
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodClOracles,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&clOracles[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&clOracles[i]})
 	}
 	if _, err := oracleCalls.TryBlockAndAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	// Call ChainLink Oracle to get latestRoundData
@@ -171,14 +179,14 @@ func (d *PoolTracker) GetNewPoolState(
 			Target: clOracles[i].Oracle.Hex(),
 			Method: cloracleMethodLatestRoundData,
 			Params: nil,
-		}, []interface{}{&latestRoundData[i]})
+		}, []any{&latestRoundData[i]})
 	}
 	if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call to chainlink oracle")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	poolCloracle := make(map[string]Cloracle, len(p.Tokens))
@@ -202,22 +210,27 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, token := range p.Tokens {
 		tokenInfoReserve, overflow := uint256.FromBig(tokenInfos[i].Reserve)
 		if overflow {
-			return entity.Pool{}, errors.New("reserve overflow")
+			return p, errors.New("reserve overflow")
 		}
 
 		tokenInfoMaxGamma, overflow := uint256.FromBig(tokenInfos[i].MaxGamma)
 		if overflow {
-			return entity.Pool{}, errors.New("maxGamma overflow")
+			return p, errors.New("maxGamma overflow")
 		}
 
 		tokenInfoMaxNotionalSwap, overflow := uint256.FromBig(tokenInfos[i].MaxNotionalSwap)
 		if overflow {
-			return entity.Pool{}, errors.New("maxNotionalSwap overflow")
+			return p, errors.New("maxNotionalSwap overflow")
+		}
+
+		tokenInfoCapBal, overflow := uint256.FromBig(tokenInfos[i].CapBal)
+		if overflow {
+			return p, errors.New("capBal overflow")
 		}
 
 		price, overflow := uint256.FromBig(woState[i].Price)
 		if overflow {
-			return entity.Pool{}, errors.New("price overflow")
+			return p, errors.New("price overflow")
 		}
 
 		extraTokenInfos[token.Address] = TokenInfo{
@@ -225,6 +238,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate:         tokenInfos[i].FeeRate,
 			MaxGamma:        tokenInfoMaxGamma,
 			MaxNotionalSwap: tokenInfoMaxNotionalSwap,
+			CapBal:          tokenInfoCapBal,
 		}
 		extraStates[token.Address] = State{
 			Price:      price,
@@ -248,6 +262,7 @@ func (d *PoolTracker) GetNewPoolState(
 			Bound:         bound,
 		},
 		Cloracle: poolCloracle,
+		IsPaused: isPaused,
 	})
 
 	if err != nil {
@@ -255,7 +270,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"poolAddress": p.Address,
 			"err":         err,
 		}).Errorf("failed to marshal extra data")
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	p.Extra = string(extraBytes)

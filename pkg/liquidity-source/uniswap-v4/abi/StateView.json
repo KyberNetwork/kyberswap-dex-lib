@@ -344,7 +344,6 @@
     "outputs": [
       {
         "internalType": "contract IPoolManager",
-        "name": "",
         "type": "address"
       }
     ],

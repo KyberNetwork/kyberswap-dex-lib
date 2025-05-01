@@ -1,7 +1,7 @@
 package woofiv21
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 )
 
 const (
@@ -12,6 +12,7 @@ const (
 	wooPPV2MethodQuoteToken = "quoteToken"
 	wooPPV2MethodTokenInfos = "tokenInfos"
 	wooPPV2MethodWooracle   = "wooracle"
+	wooPPV2MethodPaused     = "paused"
 
 	wooracleMethodWoState       = "woState"
 	wooracleMethodDecimals      = "decimals"
@@ -24,11 +25,11 @@ const (
 
 	erc20MethodDecimals = "decimals"
 
-	defaultWeight = 1
-	zeroString    = "0"
+	defaultWeight    = 1
+	staleBufferRatio = 0.5
 )
 
 var (
-	DefaultGas  = Gas{Swap: 300000}
-	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
+	DefaultGas = Gas{Swap: 300000}
+	Number_1e5 = number.TenPow(5)
 )

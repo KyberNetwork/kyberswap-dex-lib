@@ -100,7 +100,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			Weight:    defaultWeight,
 			Swappable: true,
 		}
-		reserves[i] = zeroString
+		reserves[i] = "0"
 	}
 
 	var newPool = entity.Pool{

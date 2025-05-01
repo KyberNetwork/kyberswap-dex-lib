@@ -9,7 +9,8 @@ var (
 )
 
 const (
-	poolTypeComposableStable = "ComposableStable"
+	poolTypeLegacyComposableStable = "ComposableStable"
+	poolTypeComposableStable       = "COMPOSABLE_STABLE"
 
 	poolTypeVer1 = 1
 	poolTypeVer5 = 5
@@ -28,8 +29,6 @@ const (
 	poolMethodIsExemptFromYieldProtocolFee      = "isExemptFromYieldProtocolFee"
 	poolMethodGetRate                           = "getRate"
 	poolMethodGetVault                          = "getVault"
-
-	unknownInt = -1
 
 	feeTypeSwap  = 0
 	feeTypeYield = 2

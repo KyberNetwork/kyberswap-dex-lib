@@ -23,14 +23,14 @@ import (
 var ErrReserveNotFound = errors.New("reserve not found")
 
 type PoolTracker struct {
-	config       *Config
+	config       *shared.Config
 	ethrpcClient *ethrpc.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
-	config *Config,
+	config *shared.Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
@@ -105,11 +105,12 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		amp, _               = uint256.FromBig(rpcRes.Amp)
-		swapFeePercentage, _ = uint256.FromBig(rpcRes.SwapFeePercentage)
-		poolTokens           = rpcRes.PoolTokens
-		pausedState          = rpcRes.PausedState
-		blockNumber          = rpcRes.BlockNumber
+		amp, _                       = uint256.FromBig(rpcRes.Amp)
+		swapFeePercentage, _         = uint256.FromBig(rpcRes.SwapFeePercentage)
+		protocolSwapFeePercentage, _ = uint256.FromBig(rpcRes.ProtocolSwapFeePercentage)
+		poolTokens                   = rpcRes.PoolTokens
+		pausedState                  = rpcRes.PausedState
+		blockNumber                  = rpcRes.BlockNumber
 	)
 
 	if staticExtra.PoolType == poolTypeMetaStable {
@@ -124,10 +125,11 @@ func (t *PoolTracker) getNewPoolState(
 	// update pool
 
 	extra := Extra{
-		Amp:               amp,
-		SwapFeePercentage: swapFeePercentage,
-		ScalingFactors:    scalingFactors,
-		Paused:            !isNotPaused(pausedState),
+		Amp:                       amp,
+		SwapFeePercentage:         swapFeePercentage,
+		ProtocolSwapFeePercentage: protocolSwapFeePercentage,
+		ScalingFactors:            scalingFactors,
+		Paused:                    !isNotPaused(pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -140,7 +142,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserves, err := t.initReserves(ctx, p, poolTokens)
+	reserves, err := t.initReserves(p, poolTokens)
 	if err != nil {
 		return p, err
 	}
@@ -154,7 +156,6 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 func (t *PoolTracker) initReserves(
-	ctx context.Context,
 	p entity.Pool,
 	poolTokens PoolTokens,
 ) ([]string, error) {
@@ -192,11 +193,11 @@ func (t *PoolTracker) queryRPC(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*rpcRes, error) {
 	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-		ampParams         AmplificationParameter
-		scalingFactors    []*big.Int
+		poolTokens                                   PoolTokens
+		protocolSwapFeePercentage, swapFeePercentage *big.Int
+		pausedState                                  PausedState
+		ampParams                                    AmplificationParameter
+		scalingFactors                               []*big.Int
 	)
 
 	req := t.ethrpcClient.R().
@@ -210,33 +211,41 @@ func (t *PoolTracker) queryRPC(
 		ABI:    shared.VaultABI,
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{common.HexToHash(poolID)},
-	}, []interface{}{&poolTokens})
+		Params: []any{common.HexToHash(poolID)},
+	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetAmplificationParameter,
-	}, []interface{}{&ampParams})
+	}, []any{&ampParams})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
+	}, []any{&swapFeePercentage})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+	}, []any{&pausedState})
 
 	if poolType == poolTypeMetaStable {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodGetScalingFactors,
-		}, []interface{}{&scalingFactors})
+		}, []any{&scalingFactors})
+	}
+
+	if t.config.ProtocolFeesCollector != "" {
+		req.AddCall(&ethrpc.Call{
+			ABI:    shared.ProtocolFeesCollectorABI,
+			Target: t.config.ProtocolFeesCollector,
+			Method: protocolMethodGetSwapFeePercentage,
+		}, []any{&protocolSwapFeePercentage})
 	}
 
 	res, err := req.TryBlockAndAggregate()
@@ -251,12 +260,13 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
-		Amp:               ampParams.Value,
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		ScalingFactors:    scalingFactors,
-		PausedState:       pausedState,
-		BlockNumber:       res.BlockNumber.Uint64(),
+		Amp:                       ampParams.Value,
+		PoolTokens:                poolTokens,
+		SwapFeePercentage:         swapFeePercentage,
+		ProtocolSwapFeePercentage: protocolSwapFeePercentage,
+		ScalingFactors:            scalingFactors,
+		PausedState:               pausedState,
+		BlockNumber:               res.BlockNumber.Uint64(),
 	}, nil
 }
 
