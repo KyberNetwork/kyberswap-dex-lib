@@ -105,7 +105,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Amount: quote.CalculatedAmount,
 		},
 		Fee: &pool.TokenAmount{
-			Token:  params.TokenAmountOut.Token,
+			Token:  params.TokenIn,
 			Amount: quote.FeesPaid,
 		},
 		RemainingTokenAmountOut: &pool.TokenAmount{
