@@ -218,7 +218,7 @@ func (ts *PoolListTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 						SaleRateDelta1: new(big.Int),
 					},
 				},
-				LastExecutionTime: 1743847424,
+				LastExecutionTime: 1743799559,
 			},
 		},
 	})
