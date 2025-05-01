@@ -9,9 +9,10 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type Event int
@@ -38,31 +39,18 @@ type (
 
 func parseSwappedEventIfMatching(data []byte, poolKey *PoolKey) (*swappedEvent, error) {
 	poolId := data[20:52]
-
 	expectedPoolId, err := poolKey.NumId()
 	if err != nil {
 		return nil, fmt.Errorf("computing expected pool id: %w", err)
 	}
-	if slices.Compare(poolId, expectedPoolId) != 0 {
+	if !bytes.Equal(poolId, expectedPoolId) {
 		return nil, nil
 	}
 
-	var tickAfter int32
-	{
-		buf := bytes.NewReader(data[112:116])
-		if err := binary.Read(buf, binary.BigEndian, &tickAfter); err != nil {
-			return nil, fmt.Errorf("reading tick: %w", err)
-		}
-	}
-
-	temp := new(big.Int)
-	sqrtRatioAfter := math.FloatSqrtRatioToFixed(temp.SetBytes(data[100:112]))
-	liquidityAfter := temp.SetBytes(data[84:100])
-
 	return &swappedEvent{
-		tickAfter,
-		sqrtRatioAfter,
-		liquidityAfter,
+		tickAfter:      int32(binary.BigEndian.Uint32(data[112:116])),
+		sqrtRatioAfter: math.FloatSqrtRatioToFixed(new(big.Int).SetBytes(data[100:112])),
+		liquidityAfter: new(big.Int).SetBytes(data[84:100]),
 	}, nil
 }
 
@@ -82,7 +70,7 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey *PoolKey) (*positi
 		return nil, fmt.Errorf("computing expected pool id: %w", err)
 	}
 
-	if slices.Compare(expectedPoolId, poolId[:]) != 0 {
+	if !bytes.Equal(expectedPoolId, poolId[:]) {
 		return nil, nil
 	}
 

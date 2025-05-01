@@ -6,8 +6,16 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var CoreABI, TwammABI, BasicDataFetcherABI, TwammDataFetcherABI abi.ABI
-var PositionUpdatedEvent, OrderUpdatedEvent abi.Event
+var (
+	TwammABI            abi.ABI
+	BasicDataFetcherABI abi.ABI
+	TwammDataFetcherABI abi.ABI
+	CoreABI             abi.ABI
+)
+var (
+	OrderUpdatedEvent    abi.Event
+	PositionUpdatedEvent abi.Event
+)
 
 func init() {
 	builder := []struct {

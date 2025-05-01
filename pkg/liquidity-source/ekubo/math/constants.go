@@ -9,12 +9,9 @@ import (
 var (
 	TwoPow32  = new(big.Int).Lsh(bignum.One, 32)
 	TwoPow64  = new(big.Int).Lsh(bignum.One, 64)
-	TwoPow96  = new(big.Int).Lsh(bignum.One, 96)
 	TwoPow127 = new(big.Int).Lsh(bignum.One, 127)
 	TwoPow128 = new(big.Int).Lsh(bignum.One, 128)
 
-	U32Max  = new(big.Int).Sub(TwoPow32, bignum.One)
-	U96Max  = new(big.Int).Sub(TwoPow96, bignum.One)
 	U128Max = bignum.MAX_UINT_128
 	U256Max = bignum.MAX_UINT_256
 

@@ -9,7 +9,6 @@ import (
 
 func unmarshalExtra[T any](extraBytes []byte) (*T, error) {
 	var state T
-
 	err := json.Unmarshal(extraBytes, &state)
 
 	return &state, err

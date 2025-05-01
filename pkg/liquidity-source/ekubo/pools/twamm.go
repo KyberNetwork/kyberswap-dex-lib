@@ -8,7 +8,7 @@ import (
 	"slices"
 	"time"
 
-	ekubo_math "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math/twamm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
@@ -111,10 +111,10 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 
 		if amount0.Sign() == 1 && amount1.Sign() == 1 {
 			currentSqrtRatio := nextSqrtRatio
-			if currentSqrtRatio.Cmp(ekubo_math.MinSqrtRatio) == -1 {
-				currentSqrtRatio = ekubo_math.MinSqrtRatio
-			} else if currentSqrtRatio.Cmp(ekubo_math.MaxSqrtRatio) == 1 {
-				currentSqrtRatio = ekubo_math.MaxSqrtRatio
+			if currentSqrtRatio.Cmp(ekubomath.MinSqrtRatio) == -1 {
+				currentSqrtRatio = ekubomath.MinSqrtRatio
+			} else if currentSqrtRatio.Cmp(ekubomath.MaxSqrtRatio) == 1 {
+				currentSqrtRatio = ekubomath.MaxSqrtRatio
 			}
 
 			nextSqrtRatio = twamm.CalculateNextSqrtRatio(
@@ -136,9 +136,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				amount, isToken1 = amount0, false
 			}
 
-			quote, err := p.
-				FullRangePool.
-				quoteWithLimitAndOverride(amount, isToken1, nextSqrtRatio, fullRangePoolSwapStateOverride)
+			quote, err := p.FullRangePool.quoteWithLimitAndOverride(amount, isToken1, nextSqrtRatio, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
@@ -158,9 +156,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				amount, isToken1 = amount1, true
 			}
 
-			quote, err := p.
-				FullRangePool.
-				quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
+			quote, err := p.FullRangePool.quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
