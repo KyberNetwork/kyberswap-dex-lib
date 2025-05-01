@@ -85,7 +85,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	balances, err := ekuboPool.CalcBalances()
+	balances, err := poolWithBlockNumber.CalcBalances()
 	if err != nil {
 		return p, fmt.Errorf("calculating balances: %w", err)
 	}
