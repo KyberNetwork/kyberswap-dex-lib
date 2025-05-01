@@ -80,7 +80,7 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	extraBytes, err := json.Marshal(ekuboPool.GetState())
+	extraBytes, err := json.Marshal(poolWithBlockNumber.GetState())
 	if err != nil {
 		return p, err
 	}
