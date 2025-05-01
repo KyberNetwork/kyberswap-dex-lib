@@ -272,7 +272,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
 			IsToken1:  isToken1,
-			SwapStateAfter: BasePoolSwapState{
+			SwapStateAfter: &BasePoolSwapState{
 				sqrtRatio,
 				liquidity,
 				activeTickIndex,

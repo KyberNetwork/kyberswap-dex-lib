@@ -62,7 +62,7 @@ func (p *TwammPool) GetState() any {
 	}
 }
 
-func (p *TwammPool) SetSwapState(state any) {
+func (p *TwammPool) SetSwapState(state quoting.SwapState) {
 	twammState := state.(*TwammPoolSwapState)
 
 	p.FullRangePoolSwapState = twammState.FullRangePoolSwapState
@@ -141,10 +141,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
 
-			{
-				temp := quote.SwapInfo.SwapStateAfter.(FullRangePoolSwapState)
-				fullRangePoolSwapStateOverride = &temp
-			}
+			fullRangePoolSwapStateOverride = quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
 		} else if amount0.Sign() == 1 || amount1.Sign() == 1 {
 			var (
 				amount   *big.Int
@@ -161,10 +158,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
 
-			{
-				temp := quote.SwapInfo.SwapStateAfter.(FullRangePoolSwapState)
-				fullRangePoolSwapStateOverride = &temp
-			}
+			fullRangePoolSwapStateOverride = quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
 
 			nextSqrtRatio = fullRangePoolSwapStateOverride.SqrtRatio
 		}

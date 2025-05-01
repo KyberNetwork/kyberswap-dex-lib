@@ -25,7 +25,7 @@ func NewOraclePool(key *PoolKey, state *OraclePoolState) *OraclePool {
 	}
 }
 
-func (p *OraclePool) SetSwapState(state any) {
+func (p *OraclePool) SetSwapState(state quoting.SwapState) {
 	oracleState := state.(*OraclePoolSwapState)
 
 	p.FullRangePoolSwapState = oracleState.FullRangePoolSwapState
@@ -42,10 +42,10 @@ func (p *OraclePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, erro
 		quote.Gas += quoting.GasCostOfUpdatingOracleSnapshot
 	}
 
-	fullRangePoolSwapState := quote.SwapInfo.SwapStateAfter.(FullRangePoolSwapState)
+	fullRangePoolSwapState := quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
 
-	quote.SwapInfo.SwapStateAfter = OraclePoolSwapState{
-		FullRangePoolSwapState: &fullRangePoolSwapState,
+	quote.SwapInfo.SwapStateAfter = &OraclePoolSwapState{
+		FullRangePoolSwapState: fullRangePoolSwapState,
 		SwappedThisBlock:       true,
 	}
 

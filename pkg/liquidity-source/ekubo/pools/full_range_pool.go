@@ -37,7 +37,7 @@ func (p *FullRangePool) GetState() any {
 	return p.FullRangePoolState
 }
 
-func (p *FullRangePool) SetSwapState(state any) {
+func (p *FullRangePool) SetSwapState(state quoting.SwapState) {
 	p.FullRangePoolSwapState = state.(*FullRangePoolSwapState)
 }
 
@@ -87,7 +87,7 @@ func (p *FullRangePool) quoteWithLimitAndOverride(amount *big.Int, isToken1 bool
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: 0,
 			IsToken1:  isToken1,
-			SwapStateAfter: FullRangePoolSwapState{
+			SwapStateAfter: &FullRangePoolSwapState{
 				sqrtRatio,
 			},
 			TickSpacingsCrossed: 0,
