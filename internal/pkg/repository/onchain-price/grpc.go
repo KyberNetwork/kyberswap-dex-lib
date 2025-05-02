@@ -10,7 +10,6 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
-	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 	"github.com/KyberNetwork/service-framework/pkg/common"
 	"github.com/samber/lo"
@@ -43,7 +42,7 @@ var (
 )
 
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*dexlibEntity.Token, error)
+	FindDecimalByAddresses(ctx context.Context, addresses []string) (map[string]uint8, error)
 }
 
 var (
@@ -117,13 +116,9 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 	}
 
 	// get token info (decimal)
-	tokens, err := r.tokenRepository.FindByAddresses(ctx, addresses)
+	decimalsByToken, err := r.tokenRepository.FindDecimalByAddresses(ctx, addresses)
 	if err != nil {
-		return nil, fmt.Errorf("[findByAddressesSingleChunk] failed to get token info %s %v", addresses, err)
-	}
-	decimalsByToken := make(map[string]uint8, len(tokens))
-	for _, t := range tokens {
-		decimalsByToken[t.Address] = t.Decimals
+		return nil, fmt.Errorf("[findByAddressesSingleChunk] failed to get token decimal %s %v", addresses, err)
 	}
 	nativeDecimals := float.TenPow(18)
 

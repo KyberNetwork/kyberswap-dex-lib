@@ -6,26 +6,52 @@ import (
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/patrickmn/go-cache"
+	"github.com/dgraph-io/ristretto"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type goCacheRepository struct {
-	cache              *cache.Cache
+	cache              *ristretto.Cache
 	fallbackRepository IFallbackRepository
-	config             GoCacheRepositoryConfig
+	config             RistrettoConfig
+
+	// decimal cache which is not need to be expired
+	decimalCache *ristretto.Cache
 }
 
 func NewGoCacheRepository(
 	fallbackRepository IFallbackRepository,
-	config GoCacheRepositoryConfig,
-) *goCacheRepository {
+	config RistrettoConfig,
+) (*goCacheRepository, error) {
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: config.Token.NumCounters,
+		MaxCost:     config.Token.MaxCost,
+		BufferItems: config.Token.BufferItems,
+		Metrics:     true,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	decimalCache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: config.Decimal.NumCounters,
+		MaxCost:     config.Decimal.MaxCost,
+		BufferItems: config.Decimal.BufferItems,
+		Metrics:     true,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &goCacheRepository{
-		cache:              cache.New(config.Expiration, config.CleanupInterval),
+		cache:              cache,
 		fallbackRepository: fallbackRepository,
 		config:             config,
-	}
+		decimalCache:       decimalCache,
+	}, nil
 }
 
 // FindByAddresses looks for token in cache, if the token is not cached, find it from fallbackRepository and cache them
@@ -64,7 +90,7 @@ func (r *goCacheRepository) FindByAddresses(ctx context.Context, addresses []str
 	tokens = append(tokens, uncachedTokens...)
 
 	for _, token := range uncachedTokens {
-		r.cache.Set(token.Address, token, r.config.Expiration)
+		r.cache.Set(token.Address, token, r.config.Token.Cost)
 	}
 
 	return tokens, nil
@@ -109,8 +135,54 @@ func (r *goCacheRepository) FindTokenInfoByAddress(ctx context.Context, addresse
 	result = append(result, uncachedInfos...)
 
 	for _, info := range result {
-		r.cache.Set(r.tokenInfoKey(info.Address), info, r.config.Expiration)
+		r.cache.Set(r.tokenInfoKey(info.Address), info, r.config.Token.Cost)
 	}
 
 	return result, nil
+}
+
+func (r *goCacheRepository) FindDecimalByAddresses(ctx context.Context, addresses []string) (map[string]uint8, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[token] goCacheRepository.FindDecimalByAddresses")
+	defer span.End()
+
+	decimals := make(map[string]uint8)
+	uncachedAddresses := make([]string, 0, len(addresses))
+
+	for _, address := range addresses {
+		cachedDecimal, found := r.decimalCache.Get(address)
+		if !found {
+			uncachedAddresses = append(uncachedAddresses, address)
+			continue
+		}
+
+		decimal, ok := cachedDecimal.(uint8)
+		if !ok {
+			uncachedAddresses = append(uncachedAddresses, address)
+			continue
+		}
+
+		decimals[address] = decimal
+	}
+
+	if len(uncachedAddresses) == 0 {
+		return decimals, nil
+	}
+
+	uncachedTokens, err := r.fallbackRepository.FindByAddresses(ctx, uncachedAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, token := range uncachedTokens {
+		if token == nil {
+			continue
+		}
+		decimals[token.Address] = token.Decimals
+	}
+
+	for _, token := range uncachedTokens {
+		r.cache.Set(token.Address, token.Decimals, r.config.Decimal.Cost)
+	}
+
+	return decimals, nil
 }

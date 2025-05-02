@@ -1,10 +1,6 @@
 package token
 
-import (
-	"time"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-)
+import "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 const (
 	KeyTokens    = "tokens"
@@ -12,17 +8,29 @@ const (
 )
 
 type Config struct {
-	Redis   RedisRepositoryConfig   `mapstructure:"redis"`
-	GoCache GoCacheRepositoryConfig `mapstructure:"goCache"`
-	Http    HttpConfig              `mapstructure:"http"`
+	Redis   RedisRepositoryConfig `mapstructure:"redis"`
+	GoCache RistrettoConfig       `mapstructure:"ristretto"`
+	Http    HttpConfig            `mapstructure:"http"`
 }
 
 type RedisRepositoryConfig struct {
 	Prefix string `mapstructure:"prefix"`
 }
 
-type GoCacheRepositoryConfig struct {
-	Expiration      time.Duration       `mapstructure:"expiration"`
-	CleanupInterval time.Duration       `mapstructure:"cleanupInterval"`
-	ChainID         valueobject.ChainID `mapstruct:"chainId"`
+type RistrettoConfig struct {
+	ChainID valueobject.ChainID `mapstruct:"chainId"`
+
+	Token struct {
+		Cost        int64 `mapstructure:"cost"`
+		NumCounters int64 `mapstructure:"numCounters"`
+		MaxCost     int64 `mapstructure:"maxCost"`
+		BufferItems int64 `mapstructure:"bufferItems"`
+	} `mapstructure:"token"`
+
+	Decimal struct {
+		Cost        int64 `mapstructure:"cost"`
+		NumCounters int64 `mapstructure:"numCounters"`
+		MaxCost     int64 `mapstructure:"maxCost"`
+		BufferItems int64 `mapstructure:"bufferItems"`
+	} `mapstructure:"decimal"`
 }

@@ -485,7 +485,7 @@ useCase:
     useAEVMRemoteFinder: *useAEVMRemoteFinder
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
-    chunkSize: 3000
+    chunkSize: 6000
     maxGoroutines: 0
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
@@ -581,8 +581,8 @@ repository:
       insecure: true
       client_id: router-service
     ristretto:
-      numCounters: 20000
-      maxCost: 2000
+      numCounters: 30000
+      maxCost: 3000
       bufferItems: 64
       price:
         cost: 1
@@ -595,10 +595,18 @@ repository:
   token:
     redis:
       prefix: *chainName
-    goCache:
-      expiration: -1
-      cleanupInterval: -1
+    ristretto:
       chainId: *chainId
+      token:
+        numCounters: 20000
+        maxCost: 2000
+        bufferItems: 64
+        cost: 1
+      decimal:
+        numCounters: 40000
+        maxCost: 4000
+        bufferItems: 64
+        cost: 1
     http:
       timeout: 5s
       baseUrl: "http://token-catalog-api.core-cluster.gke.production.internal:80"

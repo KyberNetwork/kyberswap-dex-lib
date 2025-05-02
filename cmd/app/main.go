@@ -230,7 +230,7 @@ func apiAction(c *cli.Context) (err error) {
 		common.HexToAddress(cfg.Encoder.RouterAddress))
 	l1FeeEstimator := usecase.NewL1FeeEstimator(l1FeeParamsRepository, cfg.Common.ChainID)
 
-	tokenRepository := token.NewGoCacheRepository(
+	tokenRepository, err := token.NewGoCacheRepository(
 		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
@@ -583,7 +583,7 @@ func indexerAction(c *cli.Context) (err error) {
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
-	tokenRepository := token.NewGoCacheRepository(
+	tokenRepository, err := token.NewGoCacheRepository(
 		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
@@ -915,7 +915,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		poolServiceClient, cfg.Repository.Pool)
 	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
 
-	tokenRepository := token.NewGoCacheRepository(
+	tokenRepository, err := token.NewGoCacheRepository(
 		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
