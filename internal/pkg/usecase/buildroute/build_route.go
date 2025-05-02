@@ -751,6 +751,13 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 	}
 
 	result := map[string]float64{}
+	// use buy price for other token out because we only need to find token out price
+	for token, price := range priceByAddress {
+		if price != nil && price.USDPrice.Buy != nil {
+			result[token], _ = price.USDPrice.Buy.Float64()
+		}
+	}
+
 	// use sell price for token in
 	if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
 		result[tokenIn], _ = price.USDPrice.Sell.Float64()
@@ -759,13 +766,6 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 	// use buy price for token out and gas
 	if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
 		result[tokenOut], _ = price.USDPrice.Buy.Float64()
-	}
-
-	// use buy price for other token out because we only need to find token out price
-	for token, price := range priceByAddress {
-		if price != nil && price.USDPrice.Buy != nil {
-			result[token], _ = price.USDPrice.Buy.Float64()
-		}
 	}
 
 	return result, nil
