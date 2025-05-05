@@ -18,16 +18,11 @@ func TestTokenCacheRepository_FindByAddresses(t *testing.T) {
 		repo, _ := NewGoCacheRepository(nil, RistrettoConfig{
 
 			Token: struct {
-				Cost        int64         `mapstructure:"cost"`
-				NumCounters int64         `mapstructure:"numCounters"`
-				MaxCost     int64         `mapstructure:"maxCost"`
-				BufferItems int64         `mapstructure:"bufferItems"`
-				TTL         time.Duration `mapstructure:"ttl"`
+				Expiration      time.Duration `mapstructure:"expiration"`
+				CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
 			}{
-				Cost:        1,
-				NumCounters: 100,
-				MaxCost:     10,
-				BufferItems: 64,
+				Expiration:      10 * time.Second,
+				CleanupInterval: 20 * time.Second,
 			},
 
 			Decimal: struct {
@@ -73,16 +68,11 @@ func TestTokenCacheRepository_FindByAddresses(t *testing.T) {
 		repo, _ := NewGoCacheRepository(tokenDatastoreRepo, RistrettoConfig{
 
 			Token: struct {
-				Cost        int64         `mapstructure:"cost"`
-				NumCounters int64         `mapstructure:"numCounters"`
-				MaxCost     int64         `mapstructure:"maxCost"`
-				BufferItems int64         `mapstructure:"bufferItems"`
-				TTL         time.Duration `mapstructure:"ttl"`
+				Expiration      time.Duration `mapstructure:"expiration"`
+				CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
 			}{
-				Cost:        1,
-				NumCounters: 100,
-				MaxCost:     10,
-				BufferItems: 64,
+				Expiration:      10 * time.Second,
+				CleanupInterval: 20 * time.Second,
 			},
 
 			Decimal: struct {
@@ -175,16 +165,11 @@ func TestTokenCacheRepository_FindDecimalByAddresses(t *testing.T) {
 		repo, _ := NewGoCacheRepository(nil, RistrettoConfig{
 
 			Token: struct {
-				Cost        int64         `mapstructure:"cost"`
-				NumCounters int64         `mapstructure:"numCounters"`
-				MaxCost     int64         `mapstructure:"maxCost"`
-				BufferItems int64         `mapstructure:"bufferItems"`
-				TTL         time.Duration `mapstructure:"ttl"`
+				Expiration      time.Duration `mapstructure:"expiration"`
+				CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
 			}{
-				Cost:        1,
-				NumCounters: 100,
-				MaxCost:     10,
-				BufferItems: 64,
+				Expiration:      10 * time.Second,
+				CleanupInterval: 20 * time.Second,
 			},
 
 			Decimal: struct {
@@ -230,16 +215,11 @@ func TestTokenCacheRepository_FindDecimalByAddresses(t *testing.T) {
 		repo, _ := NewGoCacheRepository(tokenDatastoreRepo, RistrettoConfig{
 
 			Token: struct {
-				Cost        int64         `mapstructure:"cost"`
-				NumCounters int64         `mapstructure:"numCounters"`
-				MaxCost     int64         `mapstructure:"maxCost"`
-				BufferItems int64         `mapstructure:"bufferItems"`
-				TTL         time.Duration `mapstructure:"ttl"`
+				Expiration      time.Duration `mapstructure:"expiration"`
+				CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
 			}{
-				Cost:        1,
-				NumCounters: 100,
-				MaxCost:     10,
-				BufferItems: 64,
+				Expiration:      10 * time.Second,
+				CleanupInterval: 20 * time.Second,
 			},
 
 			Decimal: struct {

@@ -25,11 +25,8 @@ type RistrettoConfig struct {
 	ChainID valueobject.ChainID `mapstruct:"chainId"`
 
 	Token struct {
-		Cost        int64         `mapstructure:"cost"`
-		NumCounters int64         `mapstructure:"numCounters"`
-		MaxCost     int64         `mapstructure:"maxCost"`
-		BufferItems int64         `mapstructure:"bufferItems"`
-		TTL         time.Duration `mapstructure:"ttl"`
+		Expiration      time.Duration `mapstructure:"expiration"`
+		CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
 	} `mapstructure:"token"`
 
 	Decimal struct {

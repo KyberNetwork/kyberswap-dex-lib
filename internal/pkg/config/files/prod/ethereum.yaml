@@ -707,11 +707,8 @@ repository:
     ristretto:
       chainId: *chainId
       token:
-        numCounters: 20000
-        maxCost: 2000
-        bufferItems: 64
-        cost: 1
-        ttl: 300s
+        expiration: -1
+        cleanupInterval: -1
       decimal:
         numCounters: 20000
         maxCost: 2000

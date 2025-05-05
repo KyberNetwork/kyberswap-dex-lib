@@ -8,12 +8,13 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/dgraph-io/ristretto"
+	"github.com/patrickmn/go-cache"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type goCacheRepository struct {
-	cache              *ristretto.Cache
+	cache              *cache.Cache
 	fallbackRepository IFallbackRepository
 	config             RistrettoConfig
 
@@ -25,16 +26,6 @@ func NewGoCacheRepository(
 	fallbackRepository IFallbackRepository,
 	config RistrettoConfig,
 ) (*goCacheRepository, error) {
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: config.Token.NumCounters,
-		MaxCost:     config.Token.MaxCost,
-		BufferItems: config.Token.BufferItems,
-		Metrics:     true,
-	})
-
-	if err != nil {
-		return nil, err
-	}
 
 	decimalCache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: config.Decimal.NumCounters,
@@ -48,7 +39,7 @@ func NewGoCacheRepository(
 	}
 
 	return &goCacheRepository{
-		cache:              cache,
+		cache:              cache.New(config.Token.Expiration, config.Token.CleanupInterval),
 		fallbackRepository: fallbackRepository,
 		config:             config,
 		decimalCache:       decimalCache,
@@ -91,7 +82,7 @@ func (r *goCacheRepository) FindByAddresses(ctx context.Context, addresses []str
 	tokens = append(tokens, uncachedTokens...)
 
 	for _, token := range uncachedTokens {
-		r.cache.SetWithTTL(token.Address, token, r.config.Token.Cost, r.config.Token.TTL)
+		r.cache.Set(token.Address, token, r.config.Token.Expiration)
 	}
 
 	return tokens, nil
@@ -140,7 +131,7 @@ func (r *goCacheRepository) FindTokenInfoByAddress(ctx context.Context, addresse
 	result = append(result, uncachedInfos...)
 
 	for _, info := range result {
-		r.cache.Set(r.tokenInfoKey(info.Address), info, r.config.Token.Cost)
+		r.cache.Set(r.tokenInfoKey(info.Address), info, r.config.Token.Expiration)
 	}
 
 	return result, nil
@@ -190,7 +181,7 @@ func (r *goCacheRepository) FindDecimalByAddresses(ctx context.Context, addresse
 	}
 
 	for _, token := range uncachedTokens {
-		r.cache.Set(token.Address, token.Decimals, r.config.Decimal.Cost)
+		r.decimalCache.Set(token.Address, token.Decimals, r.config.Decimal.Cost)
 	}
 
 	return decimals, nil
