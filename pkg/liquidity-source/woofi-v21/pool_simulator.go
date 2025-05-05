@@ -680,5 +680,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.tokenInfos = maps.Clone(p.tokenInfos)
 	cloned.cloracle = maps.Clone(p.cloracle)
 
+	cloned.wooracle.States = maps.Clone(p.wooracle.States)
+
 	return &cloned
 }
