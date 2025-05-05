@@ -10,6 +10,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/backoff"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -80,10 +81,14 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 
 		prices[address] = price
 	}
+	if len(prices) != 0 {
+		metrics.CountPriceHitLocalCache(ctx, int64(len(prices)), true)
+	}
 
 	if len(uncachedAddresses) == 0 {
 		return prices, nil
 	}
+	metrics.CountPriceHitLocalCache(ctx, int64(len(uncachedAddresses)), false)
 
 	uncachedPrices, err := r.grpcRepository.FindByAddresses(ctx, uncachedAddresses)
 	if err != nil {

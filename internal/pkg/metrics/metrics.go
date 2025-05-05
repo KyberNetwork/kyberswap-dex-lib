@@ -19,12 +19,12 @@ var (
 
 	counterDexHitRate, _             = meter.Int64Counter("dex_hit_rate_count")
 	counterPoolTypeHitRate, _        = meter.Int64Counter("pool_hit_rate_count")
-	counterFindRouteCache, _         = meter.Int64Counter("find_route_cache_count")
 	counterRequestCount, _           = meter.Int64Counter("request_count")
 	counterInvalidSynthetixVolume, _ = meter.Int64Counter("invalid_synthetix_volume_count")
 	counterEstimateGasStatus, _      = meter.Int64Counter("estimate_gas_count")
 	counterIndexPoolsDelay, _        = meter.Int64Counter("index_pools_count")
 	counterClonePoolPanic, _         = meter.Int64Counter("clone_pool_panic_count")
+	counterResourceHit, _            = meter.Int64Counter("resource_hit_counter")
 
 	histogramEstimateGasSlippage, _ = meter.Float64Histogram("estimate_gas_slippage")
 	histogramIndexPoolsDelay, _     = meter.Int64Histogram("index_job_pools_delay",
@@ -54,7 +54,7 @@ func CountClonePoolPanic(ctx context.Context) {
 }
 
 func CountFindRouteCache(ctx context.Context, cacheHit bool, kvTags ...string) {
-	add(ctx, counterFindRouteCache, 1, append(kvTags, "hit", strconv.FormatBool(cacheHit))...)
+	countResourceHit(ctx, "route", "redis", 1, cacheHit, kvTags...)
 }
 
 func CountRequest(ctx context.Context, clientID, ja4 string, responseStatus int) {
@@ -95,6 +95,19 @@ func RecordAEVMMultipleCallDuration(ctx context.Context, duration time.Duration)
 
 func RecordClonePoolDuration(ctx context.Context, duration time.Duration, dex string) {
 	record(ctx, histogramClonePoolDuration, float64(duration.Nanoseconds())/1e6, "dex", dex)
+}
+
+func countResourceHit(ctx context.Context, resourceType, scope string, count int64, isHit bool, kvTags ...string) {
+	kvTags = append(kvTags, "hit", lo.Ternary(isHit, "true", "false"), "type", resourceType, "scope", scope)
+	add(ctx, counterResourceHit, count, kvTags...)
+}
+
+func CountTokenHitLocalCache(ctx context.Context, count int64, isHit bool) {
+	countResourceHit(ctx, "token", "localCache", count, isHit)
+}
+
+func CountPriceHitLocalCache(ctx context.Context, count int64, isHit bool) {
+	countResourceHit(ctx, "price", "localCache", count, isHit)
 }
 
 func Flush() {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/dgraph-io/ristretto"
@@ -122,10 +123,14 @@ func (r *goCacheRepository) FindTokenInfoByAddress(ctx context.Context, addresse
 
 		result = append(result, token)
 	}
+	if len(result) != 0 {
+		metrics.CountTokenHitLocalCache(ctx, int64(len(result)), true)
+	}
 
 	if len(uncachedAddresses) == 0 {
 		return result, nil
 	}
+	metrics.CountTokenHitLocalCache(ctx, int64(len(uncachedAddresses)), false)
 
 	uncachedInfos, err := r.fallbackRepository.FindTokenInfoByAddress(ctx, r.config.ChainID, uncachedAddresses)
 	if err != nil {
