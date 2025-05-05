@@ -7,7 +7,7 @@ type Config struct {
 	UniversalRouterAddress string `json:"universalRouterAddress"`
 	Permit2Address         string `json:"permit2Address"`
 	Multicall3Address      string `json:"multicall3Address"`
-	CLPoolManager          string `json:"clPoolManager"`
+	CLPoolManagerAddress   string `json:"clPoolManagerAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
 

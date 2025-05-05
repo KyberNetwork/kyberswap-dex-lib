@@ -19,6 +19,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
@@ -57,16 +58,16 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    clPoolManagerABI,
-		Target: t.config.CLPoolManager,
+		Target: t.config.CLPoolManagerAddress,
 		Method: clPoolManagerMethodGetLiquidity,
-		Params: []any{common.HexToAddress(p.Address)},
+		Params: []any{eth.StringToBytes32(p.Address)},
 	}, []any{&result.Liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    clPoolManagerABI,
-		Target: t.config.CLPoolManager,
+		Target: t.config.CLPoolManagerAddress,
 		Method: clPoolManagerMethodGetSlot0,
-		Params: []any{common.HexToAddress(p.Address)},
+		Params: []any{eth.StringToBytes32(p.Address)},
 	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()
@@ -281,7 +282,7 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 	for i, tickIdx := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    clPoolManagerABI,
-			Target: t.config.CLPoolManager,
+			Target: t.config.CLPoolManagerAddress,
 			Method: clPoolManagerMethodGetPoolTickInfo,
 			Params: []any{common.HexToAddress(p.Address), big.NewInt(tickIdx)},
 		}, []any{&rpcTicks[i]})
