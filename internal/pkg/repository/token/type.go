@@ -1,6 +1,10 @@
 package token
 
-import "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+import (
+	"time"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+)
 
 const (
 	KeyTokens    = "tokens"
@@ -21,10 +25,11 @@ type RistrettoConfig struct {
 	ChainID valueobject.ChainID `mapstruct:"chainId"`
 
 	Token struct {
-		Cost        int64 `mapstructure:"cost"`
-		NumCounters int64 `mapstructure:"numCounters"`
-		MaxCost     int64 `mapstructure:"maxCost"`
-		BufferItems int64 `mapstructure:"bufferItems"`
+		Cost        int64         `mapstructure:"cost"`
+		NumCounters int64         `mapstructure:"numCounters"`
+		MaxCost     int64         `mapstructure:"maxCost"`
+		BufferItems int64         `mapstructure:"bufferItems"`
+		TTL         time.Duration `mapstructure:"ttl"`
 	} `mapstructure:"token"`
 
 	Decimal struct {

@@ -485,7 +485,7 @@ useCase:
     useAEVMRemoteFinder: *useAEVMRemoteFinder
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
-    chunkSize: 6000
+    chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
@@ -602,6 +602,7 @@ repository:
         maxCost: 2000
         bufferItems: 64
         cost: 1
+        ttl: 300s
       decimal:
         numCounters: 40000
         maxCost: 4000

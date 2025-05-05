@@ -91,7 +91,7 @@ func (r *goCacheRepository) FindByAddresses(ctx context.Context, addresses []str
 	tokens = append(tokens, uncachedTokens...)
 
 	for _, token := range uncachedTokens {
-		r.cache.Set(token.Address, token, r.config.Token.Cost)
+		r.cache.SetWithTTL(token.Address, token, r.config.Token.Cost, r.config.Token.TTL)
 	}
 
 	return tokens, nil

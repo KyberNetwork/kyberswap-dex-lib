@@ -555,6 +555,7 @@ repository:
         maxCost: 1000
         bufferItems: 64
         cost: 1
+        ttl: 300s
       decimal:
         numCounters: 10000
         maxCost: 1000
