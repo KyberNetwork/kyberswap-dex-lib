@@ -106,6 +106,10 @@ func CountTokenHitLocalCache(ctx context.Context, count int64, isHit bool) {
 	countResourceHit(ctx, "token", "localCache", count, isHit)
 }
 
+func CountTokenDecimalHitLocalCache(ctx context.Context, count int64, isHit bool) {
+	countResourceHit(ctx, "decimal", "localCache", count, isHit)
+}
+
 func CountPriceHitLocalCache(ctx context.Context, count int64, isHit bool) {
 	countResourceHit(ctx, "price", "localCache", count, isHit)
 }

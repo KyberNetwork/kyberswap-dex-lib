@@ -168,10 +168,14 @@ func (r *goCacheRepository) FindDecimalByAddresses(ctx context.Context, addresse
 
 		decimals[address] = decimal
 	}
+	if len(decimals) != 0 {
+		metrics.CountTokenDecimalHitLocalCache(ctx, int64(len(decimals)), true)
+	}
 
 	if len(uncachedAddresses) == 0 {
 		return decimals, nil
 	}
+	metrics.CountTokenDecimalHitLocalCache(ctx, int64(len(uncachedAddresses)), false)
 
 	uncachedTokens, err := r.fallbackRepository.FindByAddresses(ctx, uncachedAddresses)
 	if err != nil {
