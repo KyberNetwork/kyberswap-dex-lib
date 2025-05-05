@@ -3,7 +3,6 @@ package woofiv21
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -676,9 +675,34 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	cloned := *p
-	cloned.tokenInfos = maps.Clone(p.tokenInfos)
-	cloned.cloracle = maps.Clone(p.cloracle)
+	var (
+		cloned = *p
+
+		tokenInfos = make(map[string]TokenInfo, len(p.tokenInfos))
+		cloracle   = make(map[string]Cloracle, len(p.cloracle))
+	)
+
+	for k, v := range p.tokenInfos {
+		tokenInfos[k] = TokenInfo{
+			Reserve:         new(uint256.Int).Set(v.Reserve),
+			FeeRate:         v.FeeRate,
+			MaxGamma:        new(uint256.Int).Set(v.MaxGamma),
+			MaxNotionalSwap: new(uint256.Int).Set(v.MaxNotionalSwap),
+			CapBal:          new(uint256.Int).Set(v.CapBal),
+		}
+	}
+
+	for k, v := range p.cloracle {
+		cloracle[k] = Cloracle{
+			OracleAddress: v.OracleAddress,
+			Answer:        new(uint256.Int).Set(v.Answer),
+			UpdatedAt:     new(uint256.Int).Set(v.UpdatedAt),
+			CloPreferred:  v.CloPreferred,
+		}
+	}
+
+	cloned.tokenInfos = tokenInfos
+	cloned.cloracle = cloracle
 
 	return &cloned
 }
