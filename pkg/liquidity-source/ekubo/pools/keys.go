@@ -10,6 +10,16 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+var (
+	addressType, _      = abi.NewType("address", "address", nil)
+	bytes32Type, _      = abi.NewType("bytes32", "bytes32", nil)
+	poolKeyABIArguments = abi.Arguments{
+		{Type: addressType},
+		{Type: addressType},
+		{Type: bytes32Type},
+	}
+)
+
 type PoolKey struct {
 	Token0 common.Address `json:"token0"`
 	Token1 common.Address `json:"token1"`
@@ -46,12 +56,7 @@ func (k *PoolKey) StringId() string {
 
 func (k *PoolKey) NumId() ([]byte, error) {
 	if k.numId == nil {
-		addressTy, _ := abi.NewType("address", "address", nil)
-		bytes32Ty, _ := abi.NewType("bytes32", "bytes32", nil)
-
-		enc, err := abi.Arguments{
-			{Type: addressTy}, {Type: addressTy}, {Type: bytes32Ty},
-		}.Pack(
+		enc, err := poolKeyABIArguments.Pack(
 			k.Token0,
 			k.Token1,
 			[32]byte(k.Config.Compressed()),
@@ -70,6 +75,15 @@ func (k *PoolKey) NumId() ([]byte, error) {
 	}
 
 	return k.numId, nil
+}
+
+func (k *PoolKey) ToPoolAddress() (string, error) {
+	numId, err := k.NumId()
+	if err != nil {
+		return "", err
+	}
+
+	return "0x" + common.Bytes2Hex(numId), nil
 }
 
 func (k *PoolKey) ToAbi() AbiPoolKey {

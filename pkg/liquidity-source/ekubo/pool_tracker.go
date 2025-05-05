@@ -103,7 +103,9 @@ func (d *PoolTracker) applyLogs(logs []types.Log, pool *PoolWithBlockNumber) err
 		if log.Removed {
 			return ErrReorg
 		}
+	}
 
+	for _, log := range logs {
 		pool.blockNumber = log.BlockNumber
 
 		var event pools.Event
@@ -138,9 +140,10 @@ func (d *PoolTracker) applyLogs(logs []types.Log, pool *PoolWithBlockNumber) err
 }
 
 func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *pools.PoolKey) (*PoolWithBlockNumber, error) {
+	poolAddress, _ := poolKey.ToPoolAddress()
 	logger.WithFields(logger.Fields{
 		"dexId":       d.config.DexId,
-		"poolAddress": poolKey.StringId(),
+		"poolAddress": poolAddress,
 	}).Info("update state from data fetcher")
 
 	pools, err := d.dataFetcher.fetchPools(

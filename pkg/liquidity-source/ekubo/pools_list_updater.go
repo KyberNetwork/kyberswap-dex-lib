@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -151,8 +150,13 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			return nil, nil, err
 		}
 
+		poolAddress, err := poolKey.ToPoolAddress()
+		if err != nil {
+			return nil, nil, err
+		}
+
 		newPools = append(newPools, entity.Pool{
-			Address:   strings.ToLower(poolKey.StringId()),
+			Address:   poolAddress,
 			Exchange:  u.config.DexId,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
@@ -169,6 +173,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 			},
 			StaticExtra: string(staticExtraBytes),
 			Extra:       string(extraBytes),
+			BlockNumber: newEkuboPools[i].blockNumber,
 		})
 
 		u.registeredPools[poolKey.StringId()] = true
