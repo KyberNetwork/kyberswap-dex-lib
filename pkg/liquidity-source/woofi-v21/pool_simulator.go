@@ -3,7 +3,6 @@ package woofiv21
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -673,12 +672,4 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params pool.UpdateBalancePar
 		Coeff:      stateOut.Coeff,
 		WoFeasible: stateOut.WoFeasible,
 	}
-}
-
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	cloned := *p
-	cloned.tokenInfos = maps.Clone(p.tokenInfos)
-	cloned.cloracle = maps.Clone(p.cloracle)
-
-	return &cloned
 }
