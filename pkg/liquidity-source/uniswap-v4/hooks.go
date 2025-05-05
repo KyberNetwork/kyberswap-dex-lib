@@ -65,7 +65,7 @@ type BaseHook struct{ Exchange valueobject.Exchange }
 
 func (h *BaseHook) GetExchange() string {
 	if h != nil {
-		return string(h.Exchange)
+		return string(valueobject.ExchangeUniswapV4)
 	}
 	return DexType
 }

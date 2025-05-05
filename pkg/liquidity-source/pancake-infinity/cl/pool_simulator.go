@@ -2,6 +2,7 @@ package cl
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -11,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 )
 
 var (
@@ -74,14 +76,20 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		tokenOutAddress = common.HexToAddress(tokenOut)
 	}
 
+	zeroForOne := strings.EqualFold(tokenIn, p.GetTokens()[0])
+	var priceLimit v3Utils.Uint160
+	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
+
 	return PoolMetaInfo{
-		Router:      p.staticExtra.UniversalRouterAddress,
+		Vault:       p.staticExtra.VaultAddress,
+		PoolManager: p.staticExtra.PoolManager,
 		Permit2Addr: p.staticExtra.Permit2Address,
 		TokenIn:     tokenInAddress,
 		TokenOut:    tokenOutAddress,
 		Fee:         p.staticExtra.Fee,
-		TickSpacing: p.staticExtra.TickSpacing,
+		Parameters:  p.staticExtra.Parameters,
 		HookAddress: p.staticExtra.HooksAddress,
 		HookData:    []byte{},
+		PriceLimit:  &priceLimit,
 	}
 }

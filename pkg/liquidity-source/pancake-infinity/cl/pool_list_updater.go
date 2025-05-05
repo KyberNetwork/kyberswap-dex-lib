@@ -2,6 +2,8 @@ package cl
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -88,23 +90,25 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
-		// tickSpacing, err := kutils.Atoi[int32](p.TickSpacing)
-		// if err != nil {
-		// 	return nil, metadataBytes, err
-		// }
+		tickSpacing, err := getTickSpacing(p.Parameters)
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
 		fee, err := kutils.Atou[uint32](p.Fee)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
 		staticExtra := StaticExtra{
-			IsNative: [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
-			Fee:      fee,
-			// TickSpacing:            tickSpacing,
-			HooksAddress:           common.HexToAddress(p.Hooks),
-			UniversalRouterAddress: common.HexToAddress(u.config.UniversalRouterAddress),
-			Permit2Address:         common.HexToAddress(u.config.Permit2Address),
-			Multicall3Address:      common.HexToAddress(u.config.Multicall3Address),
+			IsNative:       [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
+			Fee:            fee,
+			Parameters:     p.Parameters,
+			TickSpacing:    tickSpacing,
+			HooksAddress:   common.HexToAddress(p.Hooks),
+			Permit2Address: common.HexToAddress(u.config.Permit2Address),
+			VaultAddress:   common.HexToAddress(u.config.VaultAddress),
+			PoolManager:    common.HexToAddress(u.config.CLPoolManagerAddress),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
@@ -165,4 +169,23 @@ func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	}
 
 	return response.Pools, nil
+}
+
+func getTickSpacing(params string) (int32, error) {
+	bytes, err := hex.DecodeString(strings.TrimPrefix(params, "0x"))
+	if err != nil {
+		return 0, err
+	}
+
+	if len(bytes) < 5 {
+		return 0, errors.New("invalid parameters")
+	}
+
+	bytePos := len(bytes) - 5
+
+	tickSpacing := (uint32(bytes[bytePos]) << 16) |
+		(uint32(bytes[bytePos+1]) << 8) |
+		uint32(bytes[bytePos+2])
+
+	return int32(tickSpacing), nil
 }

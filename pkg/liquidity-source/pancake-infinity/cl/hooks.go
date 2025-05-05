@@ -5,7 +5,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -64,10 +63,10 @@ func GetHook(hookAddress common.Address) Hook {
 		return hook
 	}
 
-	return &BaseHook{}
+	return &BaseHook{
+		Exchange: valueobject.ExchangePancakeInfinityCL,
+	}
 }
-
-var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddress)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 

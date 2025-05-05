@@ -17,6 +17,8 @@ const (
 	clPoolManagerMethodGetLiquidity    = "getLiquidity"
 	clPoolManagerMethodGetSlot0        = "getSlot0"
 	clPoolManagerMethodGetPoolTickInfo = "getPoolTickInfo"
+
+	OFFSET_TICK_SPACING = 16
 )
 
 var (

@@ -130,9 +130,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 /**
- * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
+ * GetSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
-func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint160) error {
+func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint160) error {
 	tickLimit := lo.Ternary(zeroForOne, p.tickMin, p.tickMax)
 	if err := v3Utils.GetSqrtRatioAtTickV2(tickLimit, result); err != nil {
 		return err
@@ -164,7 +164,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 		amountOut := coreEntities.FromRawAmount(tokenOut, param.TokenAmountOut.Amount)
 		var priceLimit v3Utils.Uint160
-		err := p.getSqrtPriceLimit(zeroForOne, &priceLimit)
+		err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 		if err != nil {
 			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
 		}
@@ -221,7 +221,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			return nil, ErrOverflow
 		}
 		var priceLimit v3Utils.Uint160
-		err := p.getSqrtPriceLimit(zeroForOne, &priceLimit)
+		err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
@@ -294,7 +294,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	zeroForOne := strings.EqualFold(tokenIn, hexutil.Encode(p.V3Pool.Token0.Address[:]))
 	var priceLimit v3Utils.Uint160
-	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
+	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
 		SwapFee:    uint32(p.Pool.Info.SwapFee.Int64()),
 		PriceLimit: &priceLimit,

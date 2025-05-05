@@ -19,7 +19,6 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
@@ -60,14 +59,14 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 		ABI:    clPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
 		Method: clPoolManagerMethodGetLiquidity,
-		Params: []any{eth.StringToBytes32(p.Address)},
+		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    clPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
 		Method: clPoolManagerMethodGetSlot0,
-		Params: []any{eth.StringToBytes32(p.Address)},
+		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()

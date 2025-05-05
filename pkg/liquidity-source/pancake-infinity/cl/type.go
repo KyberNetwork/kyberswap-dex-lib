@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
@@ -24,14 +25,15 @@ type SubgraphPool struct {
 }
 
 type StaticExtra struct {
-	HasSwapPermissions     bool           `json:"hsp"`
-	IsNative               [2]bool        `json:"0x0"`
-	Fee                    uint32         `json:"fee"`
-	TickSpacing            int32          `json:"tS"`
-	HooksAddress           common.Address `json:"hooks"`
-	UniversalRouterAddress common.Address `json:"uR"`
-	Permit2Address         common.Address `json:"pm2"`
-	Multicall3Address      common.Address `json:"mc3"`
+	HasSwapPermissions bool           `json:"hsp"`
+	IsNative           [2]bool        `json:"0x0"`
+	Fee                uint32         `json:"fee"`
+	Parameters         string         `json:"params"`
+	TickSpacing        int32          `json:"tS"`
+	PoolManager        common.Address `json:"pm"`
+	HooksAddress       common.Address `json:"hooks"`
+	Permit2Address     common.Address `json:"pm2"`
+	VaultAddress       common.Address `json:"vault"`
 }
 
 type Extra = uniswapv3.Extra
@@ -53,12 +55,14 @@ type FetchRPCResult struct {
 type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {
-	Router      common.Address `json:"router"`
+	Vault       common.Address `json:"vault"`
+	PoolManager common.Address `json:"poolManager"`
 	Permit2Addr common.Address `json:"permit2Addr"`
 	TokenIn     common.Address `json:"tokenIn"`
 	TokenOut    common.Address `json:"tokenOut"`
 	Fee         uint32         `json:"fee"`
-	TickSpacing int32          `json:"tickSpacing"`
+	Parameters  string         `json:"parameters"`
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
+	PriceLimit  *uint256.Int   `json:"priceLimit"`
 }
