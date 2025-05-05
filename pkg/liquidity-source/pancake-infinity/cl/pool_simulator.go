@@ -82,7 +82,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 
 	return PoolMetaInfo{
 		Vault:       p.staticExtra.VaultAddress,
-		PoolManager: p.staticExtra.PoolManager,
+		PoolManager: p.staticExtra.PoolManagerAddress,
 		Permit2Addr: p.staticExtra.Permit2Address,
 		TokenIn:     tokenInAddress,
 		TokenOut:    tokenOutAddress,

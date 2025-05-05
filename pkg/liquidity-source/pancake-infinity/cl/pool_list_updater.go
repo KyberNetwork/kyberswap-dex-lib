@@ -101,14 +101,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		staticExtra := StaticExtra{
-			IsNative:       [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
-			Fee:            fee,
-			Parameters:     p.Parameters,
-			TickSpacing:    tickSpacing,
-			HooksAddress:   common.HexToAddress(p.Hooks),
-			Permit2Address: common.HexToAddress(u.config.Permit2Address),
-			VaultAddress:   common.HexToAddress(u.config.VaultAddress),
-			PoolManager:    common.HexToAddress(u.config.CLPoolManagerAddress),
+			IsNative:           [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
+			Fee:                fee,
+			Parameters:         p.Parameters,
+			TickSpacing:        tickSpacing,
+			HooksAddress:       common.HexToAddress(p.Hooks),
+			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
+			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
+			PoolManagerAddress: common.HexToAddress(u.config.CLPoolManagerAddress),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

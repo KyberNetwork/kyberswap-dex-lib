@@ -30,10 +30,11 @@ type StaticExtra struct {
 	Fee                uint32         `json:"fee"`
 	Parameters         string         `json:"params"`
 	TickSpacing        int32          `json:"tS"`
-	PoolManager        common.Address `json:"pm"`
+	PoolManagerAddress common.Address `json:"pm"`
 	HooksAddress       common.Address `json:"hooks"`
-	Permit2Address     common.Address `json:"pm2"`
+	Permit2Address     common.Address `json:"p2"`
 	VaultAddress       common.Address `json:"vault"`
+	Multicall3Address  common.Address `json:"m3"`
 }
 
 type Extra = uniswapv3.Extra
