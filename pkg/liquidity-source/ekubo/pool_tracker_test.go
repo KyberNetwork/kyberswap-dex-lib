@@ -29,6 +29,7 @@ type PoolListTrackerTestSuite struct {
 type testcase struct {
 	name               string
 	txHash             string
+	blockTimestamp     uint64
 	poolKey            *pools.PoolKey
 	extensionType      ExtensionType
 	stateBefore        any
@@ -59,10 +60,17 @@ func (ts *PoolListTrackerTestSuite) run(cases []*testcase) {
 				Extra:       string(extraJson),
 				StaticExtra: string(staticExtraJson),
 			}
+
+			blockNumber, logs := ts.getTxLogs(t, tc.txHash)
 			newPoolState, err := ts.tracker.GetNewPoolState(
 				context.Background(),
 				p,
-				pool.GetNewPoolStateParams{Logs: ts.getTxLogs(t, tc.txHash)},
+				pool.GetNewPoolStateParams{
+					Logs: logs,
+					BlockHeaders: map[uint64]entity.BlockHeader{
+						blockNumber: {Timestamp: tc.blockTimestamp},
+					},
+				},
 			)
 			require.NoError(t, err)
 
@@ -178,8 +186,9 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 func (ts *PoolListTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 	ts.run([]*testcase{
 		{
-			name:   "Execute virtual orders & create order",
-			txHash: "0xbd9e24145c6e3c936c7617d2a7756a0a7d1b3cf491e145d21f201a06899b1f01",
+			name:           "Execute virtual orders & create order",
+			txHash:         "0xbd9e24145c6e3c936c7617d2a7756a0a7d1b3cf491e145d21f201a06899b1f01",
+			blockTimestamp: 1743800039,
 			poolKey: &pools.PoolKey{
 				Token0: common.Address{},
 				Token1: common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
@@ -218,13 +227,13 @@ func (ts *PoolListTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 						SaleRateDelta1: new(big.Int),
 					},
 				},
-				LastExecutionTime: 1743799559,
+				LastExecutionTime: 1743800039,
 			},
 		},
 	})
 }
 
-func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) []types.Log {
+func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint64, []types.Log) {
 	receipt, err := ts.tracker.ethrpcClient.
 		GetETHClient().
 		TransactionReceipt(context.Background(), common.HexToHash(txHash))
@@ -235,7 +244,7 @@ func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) []typ
 		logs = append(logs, *log)
 	}
 
-	return logs
+	return receipt.BlockNumber.Uint64(), logs
 }
 
 func (ts *PoolListTrackerTestSuite) SetupSuite() {

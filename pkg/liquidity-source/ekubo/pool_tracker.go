@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -45,9 +46,7 @@ func (d *PoolTracker) GetNewPoolState(
 		"dexId":       d.config.DexId,
 		"poolAddress": p.Address,
 	})
-	defer func() {
-		lg.Info("Finish updating state.")
-	}()
+	lg.Infof("Start updating state, log count: %d", len(params.Logs))
 
 	var err error
 
@@ -62,13 +61,14 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	poolWithBlockNumber := &PoolWithBlockNumber{
-		Pool: ekuboPool,
+		Pool:        ekuboPool,
+		blockNumber: p.BlockNumber,
 	}
 
 	needRpcCall := len(params.Logs) == 0
 	if !needRpcCall {
-		if err := d.applyLogs(params.Logs, poolWithBlockNumber); err != nil {
-			lg.Errorf("log application failed, falling back to RPC, error: %v", err)
+		if err := d.applyLogs(params, poolWithBlockNumber); err != nil {
+			lg.Errorf("apply log failed, falling back to RPC, error: %v", err)
 			needRpcCall = true
 		}
 	}
@@ -95,18 +95,31 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.BlockNumber = poolWithBlockNumber.blockNumber
 
+	lg.Infof("Finish updating state at block %d", p.BlockNumber)
+
 	return p, nil
 }
 
-func (d *PoolTracker) applyLogs(logs []types.Log, pool *PoolWithBlockNumber) error {
+func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWithBlockNumber) error {
+	logs := params.Logs
+
 	for _, log := range logs {
 		if log.Removed {
 			return ErrReorg
 		}
 	}
 
+	slices.SortFunc(logs, func(l, r types.Log) int {
+		if l.BlockNumber == r.BlockNumber {
+			return int(l.Index - r.Index)
+		}
+		return int(l.BlockNumber - r.BlockNumber)
+	})
+
 	for _, log := range logs {
-		pool.blockNumber = log.BlockNumber
+		if log.BlockNumber < pool.blockNumber {
+			continue
+		}
 
 		var event pools.Event
 		if d.config.Core.Cmp(log.Address) == 0 {
@@ -129,10 +142,17 @@ func (d *PoolTracker) applyLogs(logs []types.Log, pool *PoolWithBlockNumber) err
 			continue
 		}
 
-		if err := pool.ApplyEvent(event, log.Data); err != nil {
+		blockTimestamp := uint64(0)
+		if blockHeader, ok := params.BlockHeaders[log.BlockNumber]; ok {
+			blockTimestamp = blockHeader.Timestamp
+		}
+
+		if err := pool.ApplyEvent(event, log.Data, blockTimestamp); err != nil {
 			return fmt.Errorf("applying %v event: %w", event, err)
 		}
 	}
+
+	pool.blockNumber = logs[len(logs)-1].BlockNumber
 
 	pool.NewBlock()
 

@@ -30,7 +30,7 @@ type (
 		GetState() PoolState
 
 		SetSwapState(quoting.SwapState)
-		ApplyEvent(event pools.Event, data []byte) error
+		ApplyEvent(event pools.Event, data []byte, blockTimestamp uint64) error
 		NewBlock()
 
 		Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)

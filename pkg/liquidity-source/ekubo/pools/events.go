@@ -97,7 +97,7 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey *PoolKey) (*positi
 	}, nil
 }
 
-func (p *BasePool) ApplyEvent(event Event, data []byte) error {
+func (p *BasePool) ApplyEvent(event Event, data []byte, _ uint64) error {
 	switch event {
 	case EventSwapped:
 		event, err := parseSwappedEventIfMatching(data, p.GetKey())
@@ -131,7 +131,7 @@ func (p *BasePool) ApplyEvent(event Event, data []byte) error {
 	return nil
 }
 
-func (p *FullRangePool) ApplyEvent(event Event, data []byte) error {
+func (p *FullRangePool) ApplyEvent(event Event, data []byte, _ uint64) error {
 	switch event {
 	case EventSwapped:
 		event, err := parseSwappedEventIfMatching(data, p.GetKey())
@@ -153,9 +153,13 @@ func (p *FullRangePool) ApplyEvent(event Event, data []byte) error {
 	return nil
 }
 
-func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
+func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) error {
 	switch event {
 	case EventVirtualOrdersExecuted:
+		if blockTimestamp == 0 {
+			return fmt.Errorf("block timestamp is zero")
+		}
+
 		expectedPoolId, err := p.GetKey().NumId()
 		if err != nil {
 			return fmt.Errorf("computing expected pool id: %w", err)
@@ -165,8 +169,7 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
 			return nil
 		}
 
-		// TODO Need a timestamp here to update the last execution time
-
+		p.lastExecutionTime = blockTimestamp
 		p.token0SaleRate.SetBytes(data[32:46])
 		p.token1SaleRate.SetBytes(data[46:60])
 	case EventOrderUpdated:
@@ -266,7 +269,7 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte) error {
 			}
 		}
 	default:
-		return p.FullRangePool.ApplyEvent(event, data)
+		return p.FullRangePool.ApplyEvent(event, data, blockTimestamp)
 	}
 
 	return nil
