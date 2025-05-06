@@ -68,7 +68,8 @@ func NewTradeDataGenerator(poolRepo IPoolRepository,
 
 func (u *TradeDataGenerator) ApplyConfig(config TradeDataGeneratorConfig) {
 	u.mu.Lock()
-	u.config = config
+	u.config.AvailableSources = config.AvailableSources
+	u.config.DexUseAEVM = config.DexUseAEVM
 	u.mu.Unlock()
 }
 
@@ -579,12 +580,14 @@ func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Cont
 			AmountUsd: amountInUsd,
 		}, tokenOut, limit)
 
-		if gen.config.LogError && err != nil {
-			logger.WithFields(ctx,
-				logger.Fields{
-					"struct": "TradeDataGenerator",
-					"method": "generateExtraDataPointsTradeData",
-				}).Errorf("error when calculate amount out %v poolAddress %v amountInUsd %f", err, pool.GetAddress(), amountInUsd)
+		if err != nil {
+			if gen.config.LogError {
+				logger.WithFields(ctx,
+					logger.Fields{
+						"struct": "TradeDataGenerator",
+						"method": "generateExtraDataPointsTradeData",
+					}).Errorf("error when calculate amount out %v poolAddress %v amountInUsd %f", err, pool.GetAddress(), amountInUsd)
+			}
 			continue
 		}
 
