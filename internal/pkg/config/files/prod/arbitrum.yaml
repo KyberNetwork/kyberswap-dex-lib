@@ -117,7 +117,6 @@ common:
     - "dodo-dvm"
     - "chronos"
     - "degen-express"
-    - "native-v1"
     - "traderjoe-v22"
     - "woofi-v3"
     - "integral"
@@ -455,14 +454,6 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
-            retry_count: 3
-      native-v1:
-        handler: native-v1
-        properties:
-          http:
-            api_key:
-            base_url: "https://newapi.native.org"
-            timeout: 10s
             retry_count: 3
       bebop:
         handler: bebop

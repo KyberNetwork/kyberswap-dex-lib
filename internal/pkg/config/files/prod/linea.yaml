@@ -56,7 +56,6 @@ common:
     - "dodo-dpp"
     - "dodo-dsp"
     - "dodo-dvm"
-    - "native-v1"
     - "woofi-v3"
     - "horizon-integral"
     - "overnight-usdp"
@@ -345,14 +344,6 @@ useCase:
           http:
             api_key:
             base_url: "https://api.swaap.finance"
-            timeout: 10s
-            retry_count: 3
-      native-v1:
-        handler: native-v1
-        properties:
-          http:
-            api_key:
-            base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
     faultyPools:
