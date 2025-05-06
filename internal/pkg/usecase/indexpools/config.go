@@ -21,6 +21,7 @@ type TradeDataGeneratorConfig struct {
 	MinDataPointNumber  int             `mapstructure:"minDataPointNumber"`
 	MaxDataPointNumber  int             `mapstructure:"maxDataPointNumber"`
 	AvailableSources    []string        `mapstructure:"availableSources" json:"availableSources"`
+	LogError            bool            `mapstructure:"logError"`
 }
 
 type UpdateLiquidityScoreConfig struct {

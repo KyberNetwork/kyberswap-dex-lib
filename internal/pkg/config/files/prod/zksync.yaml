@@ -79,6 +79,7 @@ common:
   aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
+  logError: &logError false
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -370,6 +371,7 @@ useCase:
     minDataPointNumber: 6
     maxDataPointNumber: 12
     availableSources: *availableSources
+    logError: *logError
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
@@ -404,7 +406,7 @@ job:
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
     targetFactorEntropy: 0.995
-    logError: false
+    logError: *logError
     poolEvent:
       consumerConfig:
         prefix: *chainName

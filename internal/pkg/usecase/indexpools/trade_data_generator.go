@@ -579,7 +579,7 @@ func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Cont
 			AmountUsd: amountInUsd,
 		}, tokenOut, limit)
 
-		if err != nil {
+		if gen.config.LogError && err != nil {
 			logger.WithFields(ctx,
 				logger.Fields{
 					"struct": "TradeDataGenerator",
