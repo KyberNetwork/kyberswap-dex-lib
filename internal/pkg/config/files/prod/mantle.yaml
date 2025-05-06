@@ -411,6 +411,7 @@ job:
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
     targetFactorEntropy: 0.995
+    logError: false
     poolEvent:
       consumerConfig:
         prefix: *chainName

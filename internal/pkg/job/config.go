@@ -54,6 +54,7 @@ type (
 		Interval                    time.Duration `mapstructure:"interval"`
 		ExportFailedTrade           bool          `mapstructure:"exportFailedTrade"`
 		TargetFactorEntropy         float64       `mapstructure:"targetFactorEntropy"`
+		LogError                    bool          `mapstructure:"logError"`
 
 		PoolEvent struct {
 			ConsumerConfig consumer.Config `mapstructure:"consumerConfig"`

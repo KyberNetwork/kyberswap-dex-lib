@@ -305,7 +305,7 @@ func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, poolAddr
 				// push logs to grafana
 				if job.config.ExportFailedTrade {
 					failedBuffer.Write([]byte(fmt.Sprintf("%s:%s\n", p, jsonErr)))
-				} else {
+				} else if job.config.LogError {
 					logger.Errorf(ctx, "Generate trade data failed %s:%s", p, jsonErr)
 				}
 			}
