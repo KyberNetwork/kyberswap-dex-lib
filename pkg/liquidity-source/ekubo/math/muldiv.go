@@ -6,7 +6,7 @@ import (
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func mulDivOverflow(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
+func MulDivOverflow(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
 	if d.Sign() == 0 {
 		return nil, ErrDivZero
 	}
@@ -18,7 +18,7 @@ func mulDivOverflow(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
 		res.Add(res, bignum.One)
 	}
 
-	if res.Cmp(U256Max) > 0 {
+	if res.BitLen() > 256 {
 		return nil, ErrMulDivOverflow
 	}
 

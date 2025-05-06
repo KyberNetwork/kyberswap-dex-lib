@@ -2,10 +2,9 @@ package ekubo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -16,8 +15,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -25,6 +24,7 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	dataFetcher  *dataFetchers
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -33,6 +33,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
+		dataFetcher:  NewDataFetchers(ethrpcClient, config),
 	}
 }
 
@@ -45,9 +46,7 @@ func (d *PoolTracker) GetNewPoolState(
 		"dexId":       d.config.DexId,
 		"poolAddress": p.Address,
 	})
-	defer func() {
-		lg.Info("Finish updating state.")
-	}()
+	lg.Infof("Start updating state, log count: %d", len(params.Logs))
 
 	var err error
 
@@ -56,206 +55,123 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	var extra Extra
-	if err = json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return p, err
+	ekuboPool, err := unmarshalPool([]byte(p.Extra), &staticExtra)
+	if err != nil {
+		return p, fmt.Errorf("unmarshalling extra: %w", err)
+	}
+
+	poolWithBlockNumber := &PoolWithBlockNumber{
+		Pool:        ekuboPool,
+		blockNumber: p.BlockNumber,
 	}
 
 	needRpcCall := len(params.Logs) == 0
 	if !needRpcCall {
-		if err := d.applyLogs(params.Logs, staticExtra.PoolKey, &extra.PoolState); err != nil {
-			lg.Errorf("log application failed, falling back to RPC, error: %v", err)
+		if err := d.applyLogs(params, poolWithBlockNumber); err != nil {
+			lg.Errorf("apply log failed, falling back to RPC, error: %v", err)
 			needRpcCall = true
 		}
 	}
 
 	if needRpcCall {
-		extra.PoolState, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
+		poolWithBlockNumber, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
 		if err != nil {
 			return p, err
 		}
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(poolWithBlockNumber.GetState())
 	if err != nil {
 		return p, err
 	}
 
-	balances, err := d.calcBalances(&extra.PoolState)
+	balances, err := poolWithBlockNumber.CalcBalances()
 	if err != nil {
-		return p, err
+		return p, fmt.Errorf("calculating balances: %w", err)
 	}
 
 	p.Reserves = lo.Map(balances, func(v big.Int, _ int) string { return v.String() })
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.BlockNumber = extra.PoolState.GetBlockNumber()
+	p.BlockNumber = poolWithBlockNumber.blockNumber
+
+	lg.Infof("Finish updating state at block %d", p.BlockNumber)
 
 	return p, nil
 }
 
-func (d *PoolTracker) calcBalances(state *quoting.PoolState) ([]big.Int, error) {
-	stateSqrtRatio := new(big.Int).Set(state.SqrtRatio)
+func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWithBlockNumber) error {
+	logs := params.Logs
 
-	balances := make([]big.Int, 2)
-	liquidity := new(big.Int)
-	sqrtRatio := new(big.Int).Set(math.MinSqrtRatio)
-
-	for _, tick := range state.Ticks {
-		tickSqrtRatio := math.ToSqrtRatio(tick.Number)
-		var minAmount1SqrtRatio, maxAmount0SqrtRatio *big.Int
-		if stateSqrtRatio.Cmp(tickSqrtRatio) > 0 {
-			minAmount1SqrtRatio = new(big.Int).Set(tickSqrtRatio)
-		} else {
-			minAmount1SqrtRatio = new(big.Int).Set(stateSqrtRatio)
-		}
-
-		if stateSqrtRatio.Cmp(sqrtRatio) > 0 {
-			maxAmount0SqrtRatio = new(big.Int).Set(stateSqrtRatio)
-		} else {
-			maxAmount0SqrtRatio = new(big.Int).Set(sqrtRatio)
-		}
-
-		if sqrtRatio.Cmp(minAmount1SqrtRatio) < 0 {
-			amount1Delta, err := math.Amount1Delta(sqrtRatio, minAmount1SqrtRatio, liquidity, false)
-			if err != nil {
-				return nil, math.ErrAmount1DeltaOverflow
-			}
-			balances[1].Add(&balances[1], amount1Delta)
-		}
-		if maxAmount0SqrtRatio.Cmp(tickSqrtRatio) < 0 {
-			amount0Delta, err := math.Amount0Delta(maxAmount0SqrtRatio, tickSqrtRatio, liquidity, false)
-			if err != nil {
-				return nil, math.ErrAmount0DeltaOverflow
-			}
-			balances[0].Add(&balances[0], amount0Delta)
-		}
-
-		sqrtRatio.Set(tickSqrtRatio)
-		liquidity.Add(liquidity, tick.LiquidityDelta)
-	}
-
-	return balances, nil
-}
-
-func (d *PoolTracker) applyLogs(logs []types.Log, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
 	for _, log := range logs {
-		if !strings.EqualFold(d.config.Core, log.Address.String()) {
-			continue
-		}
-
 		if log.Removed {
+			return ErrReorg
+		}
+	}
+
+	slices.SortFunc(logs, func(l, r types.Log) int {
+		if l.BlockNumber == r.BlockNumber {
+			return int(l.Index - r.Index)
+		}
+		return int(l.BlockNumber - r.BlockNumber)
+	})
+
+	for _, log := range logs {
+		if log.BlockNumber < pool.blockNumber {
 			continue
 		}
 
-		if len(log.Topics) == 0 {
-			if err := handleSwappedEvent(log.Data, poolKey, poolState); err != nil {
-				return fmt.Errorf("handling swap event: %w", err)
+		var event pools.Event
+		if d.config.Core.Cmp(log.Address) == 0 {
+			if len(log.Topics) == 0 {
+				event = pools.EventSwapped
+			} else if log.Topics[0] == abis.PositionUpdatedEvent.ID {
+				event = pools.EventPositionUpdated
+			} else {
+				continue
 			}
-		} else if log.Topics[0] == positionUpdatedEvent.ID {
-			if err := handlePositionUpdatedEvent(log.Data, poolKey, poolState); err != nil {
-				return fmt.Errorf("handling position updated event: %w", err)
+		} else if d.config.Twamm.Cmp(log.Address) == 0 {
+			if len(log.Topics) == 0 {
+				event = pools.EventVirtualOrdersExecuted
+			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {
+				event = pools.EventOrderUpdated
+			} else {
+				continue
 			}
+		} else {
+			continue
 		}
 
-		poolState.SetBlockNumber(log.BlockNumber)
+		blockTimestamp := uint64(0)
+		if blockHeader, ok := params.BlockHeaders[log.BlockNumber]; ok {
+			blockTimestamp = blockHeader.Timestamp
+		}
+
+		if err := pool.ApplyEvent(event, log.Data, blockTimestamp); err != nil {
+			return fmt.Errorf("applying %v event: %w", event, err)
+		}
 	}
+
+	pool.blockNumber = logs[len(logs)-1].BlockNumber
+
+	pool.NewBlock()
 
 	return nil
 }
 
-func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *quoting.PoolKey) (quoting.PoolState, error) {
+func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *pools.PoolKey) (*PoolWithBlockNumber, error) {
+	poolAddress, _ := poolKey.ToPoolAddress()
 	logger.WithFields(logger.Fields{
 		"dexId":       d.config.DexId,
-		"poolAddress": poolKey.StringId(),
+		"poolAddress": poolAddress,
 	}).Info("update state from data fetcher")
 
-	poolStates, err := fetchPoolStates(
+	pools, err := d.dataFetcher.fetchPools(
 		ctx,
-		d.ethrpcClient,
-		d.config.DataFetcher,
-		[]*quoting.PoolKey{poolKey})
+		[]*pools.PoolKey{poolKey})
 	if err != nil {
-		return quoting.PoolState{}, fmt.Errorf("fetching pool state: %w", err)
+		return nil, fmt.Errorf("fetching pool state: %w", err)
 	}
 
-	return poolStates[0], nil
-}
-
-func handleSwappedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
-	n := new(big.Int).SetBytes(data)
-
-	poolId := new(big.Int).And(new(big.Int).Rsh(n, 512), math.U256Max)
-
-	expectedPoolId, err := poolKey.NumId()
-	if err != nil {
-		return fmt.Errorf("computing expected pool id: %w", err)
-	}
-	if expectedPoolId.Cmp(poolId) != 0 {
-		return nil
-	}
-
-	tickRaw := new(big.Int).And(n, math.U32Max)
-	if tickRaw.Cmp(math.TwoPow31) < 0 {
-		poolState.ActiveTick = int32(tickRaw.Uint64())
-	} else {
-		poolState.ActiveTick = int32(tickRaw.Sub(tickRaw, math.TwoPow32).Int64())
-	}
-	n.Rsh(n, 32)
-
-	sqrtRatioAfterCompact := new(big.Int).And(n, math.U96Max)
-	n.Rsh(n, 96)
-
-	poolState.SqrtRatio = math.FloatSqrtRatioToFixed(sqrtRatioAfterCompact)
-	poolState.Liquidity.And(n, math.U128Max)
-
-	return nil
-}
-
-func handlePositionUpdatedEvent(data []byte, poolKey *quoting.PoolKey, poolState *quoting.PoolState) error {
-	values, err := positionUpdatedEvent.Inputs.Unpack(data)
-	if err != nil {
-		return fmt.Errorf("unpacking event data: %w", err)
-	}
-
-	poolId, ok := values[1].([32]byte)
-	if !ok {
-		return errors.New(`failed to parse "poolId"`)
-	}
-
-	params, ok := values[2].(struct {
-		Salt   [32]uint8 `json:"salt"`
-		Bounds struct {
-			Lower int32 `json:"lower"`
-			Upper int32 `json:"upper"`
-		} `json:"bounds"`
-		LiquidityDelta *big.Int `json:"liquidityDelta"`
-	})
-	if !ok {
-		return errors.New(`failed to parse "params"`)
-	}
-
-	liquidityDelta, lowerBound, upperBound := params.LiquidityDelta, params.Bounds.Lower, params.Bounds.Upper
-
-	if liquidityDelta.Sign() == 0 {
-		return nil
-	}
-
-	expectedPoolId, err := poolKey.NumId()
-	if err != nil {
-		return fmt.Errorf("computing expected pool id: %w", err)
-	}
-
-	if expectedPoolId.Cmp(new(big.Int).SetBytes(poolId[:])) != 0 {
-		return nil
-	}
-
-	poolState.UpdateTick(lowerBound, liquidityDelta, false, false)
-	poolState.UpdateTick(upperBound, liquidityDelta, true, false)
-
-	if poolState.ActiveTick >= lowerBound && poolState.ActiveTick < upperBound {
-		poolState.Liquidity.Add(poolState.Liquidity, liquidityDelta)
-	}
-
-	return nil
+	return pools[0], nil
 }

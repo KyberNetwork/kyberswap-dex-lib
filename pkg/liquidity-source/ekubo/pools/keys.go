@@ -1,9 +1,8 @@
-package quoting
+package pools
 
 import (
 	"encoding/binary"
 	"fmt"
-	"math/big"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -11,13 +10,23 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+var (
+	addressType, _      = abi.NewType("address", "address", nil)
+	bytes32Type, _      = abi.NewType("bytes32", "bytes32", nil)
+	poolKeyABIArguments = abi.Arguments{
+		{Type: addressType},
+		{Type: addressType},
+		{Type: bytes32Type},
+	}
+)
+
 type PoolKey struct {
 	Token0 common.Address `json:"token0"`
 	Token1 common.Address `json:"token1"`
-	Config Config         `json:"config"`
+	Config PoolConfig     `json:"config"`
 
 	stringId string
-	numId    *big.Int
+	numId    []byte
 }
 
 type AbiPoolKey struct {
@@ -26,7 +35,7 @@ type AbiPoolKey struct {
 	Config [32]byte       `json:"config"`
 }
 
-func NewPoolKey(token0, token1 common.Address, config Config) *PoolKey {
+func NewPoolKey(token0, token1 common.Address, config PoolConfig) *PoolKey {
 	return &PoolKey{
 		Token0: token0,
 		Token1: token1,
@@ -45,14 +54,9 @@ func (k *PoolKey) StringId() string {
 	return k.stringId
 }
 
-func (k *PoolKey) NumId() (*big.Int, error) {
+func (k *PoolKey) NumId() ([]byte, error) {
 	if k.numId == nil {
-		addressTy, _ := abi.NewType("address", "address", nil)
-		bytes32Ty, _ := abi.NewType("bytes32", "bytes32", nil)
-
-		enc, err := abi.Arguments{
-			{Type: addressTy}, {Type: addressTy}, {Type: bytes32Ty},
-		}.Pack(
+		enc, err := poolKeyABIArguments.Pack(
 			k.Token0,
 			k.Token1,
 			[32]byte(k.Config.Compressed()),
@@ -67,10 +71,19 @@ func (k *PoolKey) NumId() (*big.Int, error) {
 			return nil, fmt.Errorf("computing digest: %w", err)
 		}
 
-		k.numId = new(big.Int).SetBytes(hash.Sum(nil))
+		k.numId = hash.Sum(nil)
 	}
 
 	return k.numId, nil
+}
+
+func (k *PoolKey) ToPoolAddress() (string, error) {
+	numId, err := k.NumId()
+	if err != nil {
+		return "", err
+	}
+
+	return "0x" + common.Bytes2Hex(numId), nil
 }
 
 func (k *PoolKey) ToAbi() AbiPoolKey {
@@ -81,7 +94,7 @@ func (k *PoolKey) ToAbi() AbiPoolKey {
 	}
 }
 
-type Config struct {
+type PoolConfig struct {
 	Fee         uint64         `json:"fee"`
 	TickSpacing uint32         `json:"tickSpacing"`
 	Extension   common.Address `json:"extension"`
@@ -89,7 +102,7 @@ type Config struct {
 	compressed []byte
 }
 
-func (c *Config) Compressed() []byte {
+func (c *PoolConfig) Compressed() []byte {
 	if c.compressed == nil {
 		c.compressed = append(c.compressed, c.Extension.Bytes()...)
 		c.compressed = binary.BigEndian.AppendUint64(c.compressed, c.Fee)

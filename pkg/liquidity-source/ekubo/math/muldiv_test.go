@@ -10,7 +10,7 @@ import (
 )
 
 func TestNoRounding(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
 		big.NewInt(2),
@@ -21,7 +21,7 @@ func TestNoRounding(t *testing.T) {
 }
 
 func TestWithRounding(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
 		big.NewInt(4),
@@ -32,7 +32,7 @@ func TestWithRounding(t *testing.T) {
 }
 
 func TestNoRoundingNeeded(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		big.NewInt(8),
 		big.NewInt(2),
 		big.NewInt(4),
@@ -43,7 +43,7 @@ func TestNoRoundingNeeded(t *testing.T) {
 }
 
 func TestDivideByZero(t *testing.T) {
-	_, err := mulDivOverflow(
+	_, err := MulDivOverflow(
 		big.NewInt(1),
 		big.NewInt(1),
 		new(big.Int),
@@ -53,7 +53,7 @@ func TestDivideByZero(t *testing.T) {
 }
 
 func TestOverflow(t *testing.T) {
-	_, err := mulDivOverflow(
+	_, err := MulDivOverflow(
 		U256Max,
 		big.NewInt(2),
 		bignum.One,
@@ -63,7 +63,7 @@ func TestOverflow(t *testing.T) {
 }
 
 func TestLargeNumbers(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		bignum.NewBig("123456789012345678901234567890"),
 		bignum.NewBig("987654321098765432109876543210"),
 		bignum.One,
@@ -76,19 +76,19 @@ func TestLargeNumbers(t *testing.T) {
 func TestRoundingBehavior(t *testing.T) {
 	x, y, d := big.NewInt(10), big.NewInt(10), big.NewInt(5)
 
-	res, err := mulDivOverflow(x, y, d, true)
+	res, err := MulDivOverflow(x, y, d, true)
 	require.NoError(t, err)
 	require.Zero(t, res.Cmp(big.NewInt(20)))
 
 	d = big.NewInt(6)
 
-	res, err = mulDivOverflow(x, y, d, true)
+	res, err = MulDivOverflow(x, y, d, true)
 	require.NoError(t, err)
 	require.Zero(t, res.Cmp(big.NewInt(17)))
 }
 
 func TestZeroNumerator(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		new(big.Int),
 		big.NewInt(100),
 		big.NewInt(10),
@@ -99,7 +99,7 @@ func TestZeroNumerator(t *testing.T) {
 }
 
 func TestOneDenominator(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		big.NewInt(123456789),
 		big.NewInt(987654321),
 		bignum.One,
@@ -110,7 +110,7 @@ func TestOneDenominator(t *testing.T) {
 }
 
 func TestMaxValuesNoRounding(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
 		bignum.One,
@@ -121,7 +121,7 @@ func TestMaxValuesNoRounding(t *testing.T) {
 }
 
 func TestMaxValuesWithRounding(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
 		bignum.One,
@@ -132,7 +132,7 @@ func TestMaxValuesWithRounding(t *testing.T) {
 }
 
 func TestRoundingUp(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
 		big.NewInt(2),
@@ -143,7 +143,7 @@ func TestRoundingUp(t *testing.T) {
 }
 
 func TestIntermediateOverflow(t *testing.T) {
-	_, err := mulDivOverflow(
+	_, err := MulDivOverflow(
 		U256Max,
 		U256Max,
 		bignum.One,
@@ -153,7 +153,7 @@ func TestIntermediateOverflow(t *testing.T) {
 }
 
 func TestMaxValuesRoundingUpOverflow(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		new(big.Int).Sub(U256Max, bignum.One),
 		U256Max,
 		new(big.Int).Sub(U256Max, bignum.One),
@@ -164,7 +164,7 @@ func TestMaxValuesRoundingUpOverflow(t *testing.T) {
 }
 
 func TestRoundingEdgeCase(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		big.NewInt(5),
 		big.NewInt(5),
 		big.NewInt(2),
@@ -175,7 +175,7 @@ func TestRoundingEdgeCase(t *testing.T) {
 }
 
 func TestLargeIntermediateResult(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		bignum.NewBig("123456789012345678901234567890"),
 		bignum.NewBig("98765432109876543210987654321"),
 		bignum.NewBig("1219326311370217952261850327336229233322374638011112635269"),
@@ -186,7 +186,7 @@ func TestLargeIntermediateResult(t *testing.T) {
 }
 
 func TestSmallDenominatorLargeNumerator(t *testing.T) {
-	res, err := mulDivOverflow(
+	res, err := MulDivOverflow(
 		bignum.NewBig("340282366920938463463374607431768211455"),
 		big.NewInt(2),
 		big.NewInt(3),
