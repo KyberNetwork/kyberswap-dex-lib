@@ -307,7 +307,7 @@ func getEncodingFlags(mode types.EncodingMode, extraFee valueobject.ExtraFee) []
 		flags = append(flags, types.EncodingFlagSimpleSwap)
 	}
 
-	if len(extraFee.FeeReceiver) > 0 && extraFee.FeeAmount != nil {
+	if len(extraFee.FeeReceiver) > 0 && len(extraFee.FeeAmount) > 0 {
 		if extraFee.IsInBps {
 			flags = append(flags, types.EncodingFlagFeeInBps)
 		}

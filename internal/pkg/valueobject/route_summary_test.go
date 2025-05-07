@@ -26,10 +26,10 @@ func BenchmarkRouteSummaryChecksum(b *testing.B) {
 		GasPrice:     big.NewFloat(1000000000),
 		GasUSD:       0.0919154281065625,
 		ExtraFee: ExtraFee{
-			FeeAmount:   big.NewInt(1000),
+			FeeAmount:   []*big.Int{big.NewInt(1000)},
 			ChargeFeeBy: "",
 			IsInBps:     true,
-			FeeReceiver: "",
+			FeeReceiver: []string{},
 		},
 		Route: [][]Swap{
 			{

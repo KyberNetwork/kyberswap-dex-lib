@@ -56,30 +56,6 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 			},
 			err: NewValidationError("amountIn", "invalid"),
 		},
-
-		{
-			name: "it should return correct error when feeReceiver is invalid",
-			params: params.GetRouteEncodeParams{
-				TokenIn:     "0xd1B47490209CcB7A806E8a45d9479490C040ABf4",
-				TokenOut:    "0xd1B47490209CcB7A806E8a45d9479490C040ABf2",
-				AmountIn:    "10",
-				FeeReceiver: "abc",
-			},
-			err: NewValidationError("feeReceiver", "invalid"),
-		},
-
-		{
-			name: "it should return correct error when feeAmount is invalid",
-			params: params.GetRouteEncodeParams{
-				TokenIn:     "0xd1B47490209CcB7A806E8a45d9479490C040ABf4",
-				TokenOut:    "0xd1B47490209CcB7A806E8a45d9479490C040ABf2",
-				AmountIn:    "10",
-				FeeReceiver: "0xd1B47490209CcB7A806E8a45d9479490C040ABf4",
-				FeeAmount:   "a",
-			},
-			err: NewValidationError("feeAmount", "invalid"),
-		},
-
 		{
 			name: "it should return correct error when ChargeFeeBy is invalid",
 			params: params.GetRouteEncodeParams{

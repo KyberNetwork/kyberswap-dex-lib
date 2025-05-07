@@ -2,23 +2,23 @@ package valueobject
 
 import (
 	"math/big"
+
+	"github.com/samber/lo"
 )
 
 var (
 	// BasisPoint is one hundredth of 1 percentage point
 	// https://en.wikipedia.org/wiki/Basis_point
 	BasisPoint   = big.NewInt(10000)
-	ZeroExtraFee = ExtraFee{
-		FeeAmount: big.NewInt(0),
-	}
+	ZeroExtraFee = ExtraFee{}
 )
 
 // ExtraFee is a fee customized by client
 type ExtraFee struct {
-	FeeAmount   *big.Int    `json:"feeAmount"`
+	FeeAmount   []*big.Int  `json:"feeAmount"`
 	ChargeFeeBy ChargeFeeBy `json:"chargeFeeBy"`
 	IsInBps     bool        `json:"isInBps"`
-	FeeReceiver string      `json:"feeReceiver"`
+	FeeReceiver []string    `json:"feeReceiver"`
 }
 
 func (f ExtraFee) IsChargeFeeByCurrencyIn() bool {
@@ -33,12 +33,15 @@ func (f ExtraFee) IsChargeFeeByCurrencyOut() bool {
 // - if IsInBps == true: actualFeeAmount = FeeAmount
 // - otherwise: actualFeeAmount = amount * FeeAmount / BasisPoint
 func (f ExtraFee) CalcActualFeeAmount(amount *big.Int) *big.Int {
-	if !f.IsInBps {
-		return f.FeeAmount
-	}
+	feeSum := lo.Reduce(f.FeeAmount, func(agg *big.Int, item *big.Int, i int) *big.Int {
+		return agg.Add(agg, item)
+	}, big.NewInt(0))
 
+	if !f.IsInBps {
+		return feeSum
+	}
 	return new(big.Int).Div(
-		new(big.Int).Mul(amount, f.FeeAmount),
+		new(big.Int).Mul(amount, feeSum),
 		BasisPoint,
 	)
 }

@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -15,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -86,20 +89,41 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 
 	extraFee := valueobject.ZeroExtraFee
 	if params.FeeAmount != "" {
-		feeAmount, ok := new(big.Int).SetString(params.FeeAmount, 10)
-		if !ok {
+		feeAmounts := utils.TransformSliceParams(params.FeeAmount)
+		feeReceivers := utils.TransformSliceParams(params.FeeReceiver)
+		if len(feeReceivers) != len(feeAmounts) {
 			return dto.GetRoutesQuery{}, errors.WithMessagef(
 				ErrInvalidValue,
-				"feeAmount: [%s]",
+				"feeReceivers: [%s], feeAmounts: [%s]",
+				params.FeeReceiver,
 				params.FeeAmount,
 			)
 		}
 
+		var err error
+		feeAmountsBigInt := lo.Map(feeAmounts, func(item string, index int) *big.Int {
+			feeAmount, ok := new(big.Int).SetString(item, 10)
+			if !ok {
+				err = validator.NewValidationError("feeAmount", "invalid")
+				return nil
+			}
+			return feeAmount
+		})
+		if err != nil {
+			return dto.GetRoutesQuery{}, err
+		}
+
+		for _, feeReceiver := range feeReceivers {
+			if !validator.IsEthereumAddress(feeReceiver) {
+				return dto.GetRoutesQuery{}, err
+			}
+		}
+
 		extraFee = valueobject.ExtraFee{
-			FeeAmount:   feeAmount,
+			FeeAmount:   feeAmountsBigInt,
 			ChargeFeeBy: valueobject.ChargeFeeBy(params.ChargeFeeBy),
 			IsInBps:     params.IsInBps,
-			FeeReceiver: params.FeeReceiver,
+			FeeReceiver: feeReceivers,
 		}
 
 		actualFeeAmount := extraFee.CalcActualFeeAmount(amountIn)
@@ -196,9 +220,11 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 
 func transformExtraFee(extraFee valueobject.ExtraFee) params.ExtraFee {
 	return params.ExtraFee{
-		FeeAmount:   extraFee.FeeAmount.String(),
+		FeeAmount: strings.Join(lo.Map(extraFee.FeeAmount, func(item *big.Int, index int) string {
+			return item.String()
+		}), ","),
 		ChargeFeeBy: string(extraFee.ChargeFeeBy),
-		FeeReceiver: extraFee.FeeReceiver,
+		FeeReceiver: strings.Join(extraFee.FeeReceiver, ","),
 		IsInBps:     extraFee.IsInBps,
 	}
 }

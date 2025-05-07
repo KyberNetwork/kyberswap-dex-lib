@@ -42,26 +42,6 @@ func TestGetRoutesParamsValidator_Validate(t *testing.T) {
 			err: NewValidationError("amountIn", "invalid"),
 		},
 		{
-			name: "it should return correct error when validateFeeReceiver failed",
-			params: params.GetRoutesParams{
-				TokenIn:     "0xc7198437980c041c805a1edcba50c1ce5db95118",
-				TokenOut:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-				AmountIn:    "1000000",
-				FeeReceiver: "abc",
-			},
-			err: NewValidationError("feeReceiver", "invalid"),
-		},
-		{
-			name: "it should return correct error when validateChargeFeeBy failed",
-			params: params.GetRoutesParams{
-				TokenIn:   "0xc7198437980c041c805a1edcba50c1ce5db95118",
-				TokenOut:  "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-				AmountIn:  "1000000",
-				FeeAmount: "a",
-			},
-			err: NewValidationError("feeAmount", "invalid"),
-		},
-		{
 			name: "it should return correct error when validateChargeFeeBy failed",
 			params: params.GetRoutesParams{
 				TokenIn:     "0xc7198437980c041c805a1edcba50c1ce5db95118",

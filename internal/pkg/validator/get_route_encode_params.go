@@ -59,14 +59,6 @@ func (v *getRouteEncodeParamsValidator) Validate(ctx context.Context, params par
 		return err
 	}
 
-	if err := v.validateFeeReceiver(params.FeeReceiver); err != nil {
-		return err
-	}
-
-	if err := v.validateFeeAmount(params.FeeAmount); err != nil {
-		return err
-	}
-
 	if err := v.validateChargeFeeBy(params.ChargeFeeBy, params.FeeAmount); err != nil {
 		return err
 	}
@@ -181,30 +173,6 @@ func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Conte
 
 	if blacklistedWallet[to] {
 		return NewValidationError("to", "blacklisted wallet")
-	}
-
-	return nil
-}
-
-func (v *getRouteEncodeParamsValidator) validateFeeReceiver(feeReceiver string) error {
-	if len(feeReceiver) == 0 {
-		return nil
-	}
-
-	if !IsEthereumAddress(feeReceiver) {
-		return NewValidationError("feeReceiver", "invalid")
-	}
-
-	return nil
-}
-
-func (v *getRouteEncodeParamsValidator) validateFeeAmount(feeAmount string) error {
-	if len(feeAmount) == 0 {
-		return nil
-	}
-
-	if _, ok := new(big.Int).SetString(feeAmount, 10); !ok {
-		return NewValidationError("feeAmount", "invalid")
 	}
 
 	return nil

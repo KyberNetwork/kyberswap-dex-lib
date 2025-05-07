@@ -9,10 +9,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -256,24 +258,33 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 // transformExtraFeeParams transforms params.ExtraFee to valueobject.ExtraFee
 func transformExtraFeeParams(params params.ExtraFee) (valueobject.ExtraFee, error) {
-	if params.FeeAmount == "0" {
+	if params.FeeAmount == "" || params.FeeAmount == "0" {
 		return valueobject.ZeroExtraFee, nil
 	}
 
-	feeAmount, ok := new(big.Int).SetString(params.FeeAmount, 10)
-	if !ok {
-		return valueobject.ExtraFee{}, errors.WithMessagef(
-			ErrInvalidRoute,
-			"invalid routeSummary.extraFee.feeAmount [%s]",
-			params.FeeAmount,
-		)
-	}
+	var feeErrors error
+	feeAmounts := utils.TransformSliceParams(params.FeeAmount)
+	feeAmount := lo.Map(feeAmounts, func(item string, index int) *big.Int {
+		feeAmount, ok := new(big.Int).SetString(item, 10)
+		if !ok {
+			feeErrors = errors.WithMessagef(
+				ErrInvalidRoute,
+				"invalid routeSummary.extraFee.feeAmount [%s]",
+				item,
+			)
+			return nil
+		}
+		return feeAmount
+	})
 
+	if feeErrors != nil {
+		return valueobject.ExtraFee{}, feeErrors
+	}
 	return valueobject.ExtraFee{
 		FeeAmount:   feeAmount,
 		ChargeFeeBy: valueobject.ChargeFeeBy(params.ChargeFeeBy),
 		IsInBps:     params.IsInBps,
-		FeeReceiver: params.FeeReceiver,
+		FeeReceiver: utils.TransformSliceParams(params.FeeReceiver),
 	}, nil
 }
 

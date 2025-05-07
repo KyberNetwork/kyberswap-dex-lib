@@ -9,9 +9,11 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -59,15 +61,7 @@ func (v *buildRouteParamsValidator) Validate(ctx context.Context, params params.
 		return err
 	}
 
-	if err := v.validateChargeFeeBy(params.RouteSummary.ExtraFee.ChargeFeeBy, params.RouteSummary.ExtraFee.FeeAmount); err != nil {
-		return err
-	}
-
-	if err := v.validateFeeReceiver(params.RouteSummary.ExtraFee.FeeReceiver); err != nil {
-		return err
-	}
-
-	if err := v.validateFeeAmount(params.RouteSummary.ExtraFee.FeeAmount); err != nil {
+	if err := v.validateExtraFee(params.RouteSummary.ExtraFee); err != nil {
 		return err
 	}
 
@@ -169,6 +163,33 @@ func (v *buildRouteParamsValidator) validateFeeAmount(feeAmount string) error {
 
 	if _, ok := new(big.Int).SetString(feeAmount, 10); !ok {
 		return NewValidationError("feeAmount", "invalid")
+	}
+
+	return nil
+}
+
+func (v *buildRouteParamsValidator) validateExtraFee(extraFee params.ExtraFee) error {
+	feeAmounts := utils.TransformSliceParams(extraFee.FeeAmount)
+	feeReceivers := utils.TransformSliceParams(extraFee.FeeReceiver)
+	if len(feeAmounts) != len(feeReceivers) {
+		return NewValidationError("feeAmount-feeReceiver", "invalid")
+	}
+
+	for _, item := range feeAmounts {
+		_, ok := new(big.Int).SetString(item, 10)
+		if !ok {
+			return NewValidationError("feeAmount", "invalid")
+		}
+	}
+
+	if len(feeAmounts) > 0 && lo.IndexOf(valueobject.ChargeFeeByValues, extraFee.ChargeFeeBy) == -1 {
+		return NewValidationError("chargeFeeBy", "invalid")
+	}
+
+	for _, feeReceiver := range feeReceivers {
+		if !account.IsValidAddress(feeReceiver) || account.IsZeroAddress(feeReceiver) {
+			return NewValidationError("feeReceiver", "invalid")
+		}
 	}
 
 	return nil

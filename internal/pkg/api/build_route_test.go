@@ -117,7 +117,7 @@ func TestBuildRoute(t *testing.T) {
 							"gasPrice": "1169251241",
 							"gasUsd": "0.5347892094804775",
 							"extraFee": {
-								"feeAmount": "0",
+								"feeAmount": "",
 								"chargeFeeBy": "",
 								"isInBps": false,
 								"feeReceiver": ""
@@ -198,7 +198,7 @@ func TestBuildRoute(t *testing.T) {
 					ReqMethod:      http.MethodPost,
 					ReqURL:         "/api/v1/route/build",
 					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
-					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}`),
+					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}}}`),
 					RespHTTPStatus: http.StatusInternalServerError,
 					RespBody:       errResponse,
 				}
@@ -243,7 +243,7 @@ func TestBuildRoute(t *testing.T) {
 							"gasPrice": "1169251241",
 							"gasUsd": "0.5347892094804775",
 							"extraFee": {
-								"feeAmount": "0",
+								"feeAmount": "",
 								"chargeFeeBy": "",
 								"isInBps": false,
 								"feeReceiver": ""
@@ -342,7 +342,7 @@ func TestBuildRoute(t *testing.T) {
 					ReqMethod:      http.MethodPost,
 					ReqURL:         "/api/v1/route/build",
 					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
-					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}`),
+					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}}}`),
 					RespHTTPStatus: http.StatusOK,
 					RespBody:       resp,
 				}
@@ -370,17 +370,17 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 	}{
 		{
 			name:                    "it should return 200 with estimation param is true when there is no error",
-			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","enableGasEstimation":true,"deadline":1697469122}`,
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}},"recipient":"mockRecipient","enableGasEstimation":true,"deadline":1697469122}`,
 			expectedEstimationParam: true,
 		},
 		{
 			name:                    "it should return 200 with estimation param is false and estimate gas when there is no error",
-			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","enableGasEstimation":false,"deadline":1697469122}`,
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}},"recipient":"mockRecipient","enableGasEstimation":false,"deadline":1697469122}`,
 			expectedEstimationParam: false,
 		},
 		{
 			name:                    "it should return 200 with estimation param is false by default and estimate gas when there is no error",
-			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","deadline":1697469122}`,
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}},"recipient":"mockRecipient","deadline":1697469122}`,
 			expectedEstimationParam: false,
 		},
 	}
@@ -612,10 +612,10 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					GasUSD:       2000,
 					GasPrice:     func() *big.Float { gasPrice, _ := new(big.Float).SetString("20"); return gasPrice }(),
 					ExtraFee: valueobject.ExtraFee{
-						FeeAmount:   big.NewInt(1),
+						FeeAmount:   []*big.Int{big.NewInt(1)},
 						ChargeFeeBy: valueobject.ChargeFeeByCurrencyIn,
 						IsInBps:     true,
-						FeeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+						FeeReceiver: []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"},
 					},
 					Route: [][]valueobject.Swap{
 						{
@@ -697,10 +697,10 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					GasUSD:       2000,
 					GasPrice:     func() *big.Float { gasPrice, _ := new(big.Float).SetString("20"); return gasPrice }(),
 					ExtraFee: valueobject.ExtraFee{
-						FeeAmount:   big.NewInt(1),
+						FeeAmount:   []*big.Int{big.NewInt(1)},
 						ChargeFeeBy: valueobject.ChargeFeeByCurrencyIn,
 						IsInBps:     true,
-						FeeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+						FeeReceiver: []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"},
 					},
 					Route: [][]valueobject.Swap{
 						{
@@ -782,10 +782,10 @@ func Test_transformBuildRouteParams(t *testing.T) {
 					GasUSD:       2000,
 					GasPrice:     func() *big.Float { gasPrice, _ := new(big.Float).SetString("20"); return gasPrice }(),
 					ExtraFee: valueobject.ExtraFee{
-						FeeAmount:   big.NewInt(1),
+						FeeAmount:   []*big.Int{big.NewInt(1)},
 						ChargeFeeBy: valueobject.ChargeFeeByCurrencyIn,
 						IsInBps:     true,
-						FeeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+						FeeReceiver: []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"},
 					},
 					Route: [][]valueobject.Swap{
 						{
@@ -849,7 +849,7 @@ func TestBuildRoute_transactionValue(t *testing.T) {
 						"gasPrice": "5773716359",
 						"gasUsd": "0",
 						"extraFee": {
-							"feeAmount": "0",
+							"feeAmount": "",
 							"chargeFeeBy": "",
 							"isInBps": false,
 							"feeReceiver": ""
@@ -929,7 +929,7 @@ func TestBuildRoute_transactionValue(t *testing.T) {
 						"gasPrice": "5641539780",
 						"gasUsd": "0",
 						"extraFee": {
-							"feeAmount": "0",
+							"feeAmount": "",
 							"chargeFeeBy": "",
 							"isInBps": false,
 							"feeReceiver": ""

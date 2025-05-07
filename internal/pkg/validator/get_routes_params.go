@@ -58,14 +58,6 @@ func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error
 		return err
 	}
 
-	if err := v.validateFeeReceiver(params.FeeReceiver); err != nil {
-		return err
-	}
-
-	if err := v.validateFeeAmount(params.FeeAmount); err != nil {
-		return err
-	}
-
 	if err := v.validateChargeFeeBy(params.ChargeFeeBy, params.FeeAmount); err != nil {
 		return err
 	}

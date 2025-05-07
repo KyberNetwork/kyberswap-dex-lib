@@ -125,6 +125,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 					ExtraFee: params.ExtraFee{
 						ChargeFeeBy: "ds",
 						FeeAmount:   "1000",
+						FeeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
 					},
 				},
 
@@ -175,6 +176,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 					ExtraFee: params.ExtraFee{
 						ChargeFeeBy: "currency_out",
 						FeeAmount:   "a",
+						FeeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
 					},
 				},
 				SlippageTolerance: 1500,
