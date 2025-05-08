@@ -27,20 +27,20 @@ func formatKey(seperator string, args ...string) string {
 	return strings.Join(args, seperator)
 }
 
-func (r *redisRepository) Save(ctx context.Context, routeId string, alphaFee *entity.AlphaFee) error {
+func (r *redisRepository) Save(ctx context.Context, routeId string, alphaFee *entity.AlphaFeeV2) error {
 	data, err := encodeAlphaFee(alphaFee)
 	if err != nil {
 		logger.WithFields(ctx, logger.Fields{"error": err}).Errorf("Encode alphaFee error")
 		return err
 	}
 
-	return r.redisClient.Set(ctx, formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId),
+	return r.redisClient.Set(ctx, formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFeeV2, routeId),
 		data, r.config.Redis.TTL).Err()
 }
 
-func (r *redisRepository) GetByRouteId(ctx context.Context, routeId string) (*entity.AlphaFee, error) {
+func (r *redisRepository) GetByRouteId(ctx context.Context, routeId string) (*entity.AlphaFeeV2, error) {
 	data, err := r.redisClient.Get(ctx,
-		formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFee, routeId)).Result()
+		formatKey(r.config.Redis.Separator, r.config.Redis.Prefix, KeyAlphaFeeV2, routeId)).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (r *redisRepository) GetByRouteId(ctx context.Context, routeId string) (*en
 	return decodeAlphaFee(data)
 }
 
-func encodeAlphaFee(alphaFee *entity.AlphaFee) (string, error) {
+func encodeAlphaFee(alphaFee *entity.AlphaFeeV2) (string, error) {
 	bytes, err := json.Marshal(alphaFee)
 	if err != nil {
 		return "", err
@@ -57,8 +57,8 @@ func encodeAlphaFee(alphaFee *entity.AlphaFee) (string, error) {
 	return string(bytes), nil
 }
 
-func decodeAlphaFee(data string) (*entity.AlphaFee, error) {
-	var alphaFee entity.AlphaFee
+func decodeAlphaFee(data string) (*entity.AlphaFeeV2, error) {
+	var alphaFee entity.AlphaFeeV2
 	if err := json.Unmarshal([]byte(data), &alphaFee); err != nil {
 		return nil, err
 	}

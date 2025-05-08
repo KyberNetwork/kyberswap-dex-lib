@@ -17,3 +17,19 @@ type AlphaFee struct {
 	ExecutedId int32
 	TokenIn    string
 }
+
+type AlphaFeeV2 struct {
+	AMMAmount      *big.Int
+	SwapReductions []AlphaFeeV2SwapReduction
+}
+
+type AlphaFeeV2SwapReduction struct {
+	// Index of the alpha fee swap in the route summary,
+	// count from left-to-right, up-to-down in the route's path.
+	ExecutedId      int
+	PoolAddress     string
+	TokenIn         string
+	TokenOut        string
+	ReduceAmount    *big.Int
+	ReduceAmountUsd float64
+}

@@ -99,5 +99,5 @@ type IPoolsPublisher interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/alpha_fee_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IAlphaFeeRepository
 type IAlphaFeeRepository interface {
-	Save(ctx context.Context, routeId string, alphaFee *routerEntity.AlphaFee) error
+	Save(ctx context.Context, routeId string, alphaFee *routerEntity.AlphaFeeV2) error
 }

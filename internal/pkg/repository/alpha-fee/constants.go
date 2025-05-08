@@ -1,5 +1,5 @@
 package route
 
 const (
-	KeyAlphaFee = "alphaFee"
+	KeyAlphaFeeV2 = "alphaFeeV2"
 )

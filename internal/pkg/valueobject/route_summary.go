@@ -45,7 +45,7 @@ type RouteSummary struct {
 	ExtraFee ExtraFee `json:"extraFee"`
 
 	// Alpha fee
-	AlphaFee *entity.AlphaFee `json:"-"`
+	AlphaFee *entity.AlphaFeeV2 `json:"-"`
 
 	// Route
 	Route [][]Swap `json:"route"`
@@ -73,9 +73,10 @@ func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 	// incase routeSummary doesn't have alpha fee and the routeSummary hasn't been modified
 	// checksum validation always return true, and we don't need to retrieve checksum from Redis.
 	if rs.AlphaFee != nil {
-		h.WriteString(rs.AlphaFee.Pool)
-		h.WriteString(rs.AlphaFee.AlphaFeeToken)
-		h.Write(rs.AlphaFee.Amount.Bytes())
+		for _, swapReduction := range rs.AlphaFee.SwapReductions {
+			h.Write(binary.LittleEndian.AppendUint64(nil, uint64(swapReduction.ExecutedId)))
+			h.Write(swapReduction.ReduceAmount.Bytes())
+		}
 	}
 
 	for _, path := range rs.Route {

@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -191,12 +192,21 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 	if routeSummary == nil {
 		return nil
 	}
-	var alphaFee *params.AlphaFee
+	var alphaFee *params.AlphaFeeV2
 	if routeSummary.AlphaFee != nil {
-		alphaFee = &params.AlphaFee{
-			Token:     routeSummary.AlphaFee.AlphaFeeToken,
-			Amount:    routeSummary.AlphaFee.Amount.String(),
-			AmountUsd: routeSummary.AlphaFee.AmountUsd,
+		alphaFee = &params.AlphaFeeV2{
+			AMMAmount: routeSummary.AlphaFee.AMMAmount.String(),
+			SwapReductions: lo.Map(routeSummary.AlphaFee.SwapReductions, func(
+				swapReduction entity.AlphaFeeV2SwapReduction,
+				_ int,
+			) params.AlphaFeeV2SwapReduction {
+				return params.AlphaFeeV2SwapReduction{
+					ExecutedId:      swapReduction.ExecutedId,
+					Token:           swapReduction.TokenOut,
+					ReduceAmount:    swapReduction.ReduceAmount.String(),
+					ReduceAmountUsd: swapReduction.ReduceAmountUsd,
+				}
+			}),
 		}
 	}
 	return &params.RouteSummary{

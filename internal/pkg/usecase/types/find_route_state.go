@@ -216,7 +216,7 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 
 type FinalizeExtraData struct {
 	StateAfterSwap
-	AlphaFee             *entity.AlphaFee
+	AlphaFee             *entity.AlphaFeeV2
 	RouteBeforeMergeSwap *finderEntity.Route
 }
 

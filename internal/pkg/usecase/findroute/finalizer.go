@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"runtime/debug"
 
+	"github.com/KyberNetwork/kutils/klog"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
@@ -27,7 +28,7 @@ import (
 
 type FeeReductionRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
-	alphaFeeCalculation  *alphafee.AlphaFeeCalculation
+	alphaFeeCalculation  *alphafee.AlphaFeeV2Calculation
 
 	finderEntity.ICustomFuncsHolder
 }
@@ -38,7 +39,7 @@ type FeeReductionFinalizerExtraData struct {
 
 func NewFeeReductionRouteFinalizer(
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
-	alphaFeeCalculation *alphafee.AlphaFeeCalculation,
+	alphaFeeCalculation *alphafee.AlphaFeeV2Calculation,
 	customFuncs finderEntity.ICustomFuncs,
 ) *FeeReductionRouteFinalizer {
 	return &FeeReductionRouteFinalizer{
@@ -82,9 +83,11 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	)
 
 	// Step 1.1: Prepare alpha fee if needed
-	var alphaFee *routerEntity.AlphaFee
+	var alphaFee *routerEntity.AlphaFeeV2
 	if params.ReturnAMMBestPath {
 		feeReductionFinalizerExtraData, _ := extraData.(FeeReductionFinalizerExtraData)
+		// Pass a new simulator bucket to avoid modifying the original one
+		simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits, f.CustomFuncs())
 		alphaFee, err = f.alphaFeeCalculation.Calculate(
 			ctx, alphafee.AlphaFeeParams{
 				BestRoute:           constructRoute,
@@ -102,7 +105,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	// Step 2: finalize route
 	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
 	amountReductionEachSwap := make([][]*big.Int, 0, len(constructRoute.Paths))
-	totalSwap := 0
+	executedId := 0
+	alphaFeeReductionPointer := 0 // to track the alphaFee.SwapReductions
 	for _, path := range constructRoute.Paths {
 		// Step 2.1: finalize path
 		finalizedPath := make([]finderEntity.Swap, 0, len(path.PoolsOrder))
@@ -167,9 +171,28 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			}
 
 			// Step 2.1.6: apply alpha fee reduction
+			// Assuming alphaFee.SwapReductions are sorted by ExecutedId.
 			reducedNextAmountIn := res.TokenAmountOut.Amount
-			if alphaFee != nil && alphaFee.ExecutedId == int32(totalSwap+i) {
-				reducedNextAmountIn = new(big.Int).Sub(res.TokenAmountOut.Amount, alphaFee.Amount)
+			if alphaFee != nil &&
+				alphaFeeReductionPointer < len(alphaFee.SwapReductions) &&
+				alphaFee.SwapReductions[alphaFeeReductionPointer].ExecutedId == executedId {
+				reducedNextAmountIn = new(big.Int).Sub(
+					res.TokenAmountOut.Amount,
+					alphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount,
+				)
+				if reducedNextAmountIn.Sign() < 0 {
+					klog.WithFields(ctx, logger.Fields{
+						"pool":            pool.GetAddress(),
+						"amountOut":       res.TokenAmountOut.Amount,
+						"reductionAmount": alphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount,
+						"routeAmountIn":   params.AmountIn,
+						"routeTokenIn":    params.TokenIn,
+						"routeTokenOut":   params.TokenOut,
+					}).Warn("reduction amount is greater than output amount")
+					reducedNextAmountIn.SetInt64(1)
+				}
+
+				alphaFeeReductionPointer++
 			}
 
 			// Step 2.1.7: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
@@ -204,6 +227,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 			// Step 2.1.10: update input of the next swap is output of current swap
 			currentAmountIn = reducedNextAmountIn
+			executedId++
 
 			metrics.CountDexHit(ctx, string(swap.Exchange))
 			metrics.CountPoolTypeHit(ctx, swap.PoolType)
@@ -217,7 +241,6 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		}
 		finalizedRoute = append(finalizedRoute, finalizedPath)
 		amountReductionEachSwap = append(amountReductionEachSwap, amountReductionInPath)
-		totalSwap += len(path.PoolsOrder)
 	}
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
@@ -225,20 +248,10 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	// Extra data used for bundled route and alpha fee calculation
 	extra := types.FinalizeExtraData{}
 	extra.UpdatedBalancePools, extra.UpdatedSwapLimits = simulatorBucket.GetUpdatedState()
-	if alphaFee != nil && params.Prices[alphaFee.AlphaFeeToken] > 0 {
-		alphaFee.AmountUsd = finderUtil.CalcAmountPrice(alphaFee.Amount, params.Tokens[alphaFee.AlphaFeeToken].Decimals,
-			params.Prices[alphaFee.AlphaFeeToken])
-	}
 	extra.AlphaFee = alphaFee
 
 	if alphaFee != nil {
-		logger.WithFields(logger.Fields{
-			"routeId":           routeId,
-			"alphaFeeToken":     alphaFee.AlphaFeeToken,
-			"alphaFeeAmount":    alphaFee.Amount.Text(10),
-			"alphaFeeAmountUsd": alphaFee.AmountUsd,
-			"executedId":        alphaFee.ExecutedId,
-		}).Info("route has alpha fee")
+		alphafee.LogAlphaFeeV2Info(alphaFee, routeId, "route has alpha fee")
 	}
 
 	route = &finderEntity.Route{

@@ -65,12 +65,13 @@ type IOnchainPriceRepository interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/alpha_fee_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IAlphaFeeRepository
 type IAlphaFeeRepository interface {
-	GetByRouteId(ctx context.Context, routeID string) (*routerEntity.AlphaFee, error)
+	GetByRouteId(ctx context.Context, routeID string) (*routerEntity.AlphaFeeV2, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/publisher_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPublisherRepository
 type IPublisherRepository interface {
 	Publish(ctx context.Context, topic string, data []byte) error
+	PublishMultiple(ctx context.Context, topic string, data [][]byte) error
 }
 
 type WithAlphaFee interface {

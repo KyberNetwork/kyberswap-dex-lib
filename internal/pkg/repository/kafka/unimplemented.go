@@ -12,3 +12,7 @@ func NewUnimplementedPublisher() *UnimplementedPublisher {
 func (k *UnimplementedPublisher) Publish(ctx context.Context, topic string, data []byte) error {
 	return nil
 }
+
+func (k *UnimplementedPublisher) PublishMultiple(ctx context.Context, topic string, data [][]byte) error {
+	return nil
+}

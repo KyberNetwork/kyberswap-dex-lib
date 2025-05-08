@@ -22,6 +22,7 @@ type (
 		CacheConfig             CacheConfig         `json:"cache"`
 		BlacklistedRecipients   []string            `json:"blacklistedRecipients"`
 		ScaleHelperClients      []string            `json:"scaleHelperClients"`
+		WhitelistedPrices       []string            `json:"whitelistedPrices"`
 
 		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`
@@ -57,6 +58,7 @@ type (
 		IsKyberPrivateLimitOrdersEnabled  bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
 		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAFEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
+		ReturnAlphaFee                    bool `mapstructure:"returnAlphaFee" json:"returnAF"`
 	}
 
 	Log struct {
@@ -154,6 +156,7 @@ type (
 	AlphaFeeConfig struct {
 		ReductionConfig AlphaFeeReductionConfig `mapstructure:"reductionConfig" json:"calculationConfig"`
 		TTL             string                  `mapstructure:"ttl" json:"ttl"`
+		WhitelistPrices map[string]bool         `mapstructure:"whitelistPrices" json:"whitelistPrices"`
 	}
 
 	AlphaFeeReductionConfig struct {

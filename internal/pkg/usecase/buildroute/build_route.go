@@ -22,6 +22,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -73,7 +74,7 @@ type BuildRouteUseCase struct {
 	clientDataEncoder    IClientDataEncoder
 	encoder              encode.IEncoder
 
-	alphaFeeCalculation *alphafee.AlphaFeeCalculation
+	alphaFeeCalculation *alphafee.AlphaFeeV2Calculation
 
 	config Config
 
@@ -108,7 +109,7 @@ func NewBuildRouteUseCase(
 		encoder:                   encoder,
 		config:                    config,
 
-		alphaFeeCalculation: alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig,
+		alphaFeeCalculation: alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig,
 			routerpoolpkg.NewCustomFuncs(nil)),
 	}
 }
@@ -128,6 +129,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 				ctx, alphafee.DefaultAlphaFeeParams{
 					RouteSummary: command.RouteSummary,
 				})
+			if command.RouteSummary.AlphaFee != nil {
+				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID, "apply default alpha fee")
+			}
 		}
 	}
 
@@ -148,6 +152,13 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
+	// Add a unique identifier to distinguish between multiple build routes
+	// with the same input.
+	requestID := requestid.GetRequestIDFromCtx(ctx)
+	if requestID == "" {
+		requestID = uuid.New().String()
+	}
+	routeSummary.RouteID = routeSummary.RouteID + ":" + requestID
 	command.RouteSummary = routeSummary
 
 	// Prepare tokens and prices data
@@ -178,10 +189,15 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	// Initialize a message to track route that contain an `alpha fee`
-	var rfqRouteMsg = new(v1.RouteSummary)
+	// Initialize messages to track route that contain `alpha fees`
+	var rfqRouteMsgCh = make(chan *v1.RouteSummary)
+	// This `uc.consumeRouteMsgDatas` function **MUST** be called before `uc.rfq` function.
+	// Otherwise, it will cause a deadlock.
+	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
+	go uc.consumeRouteMsgDatas(ctx, rfqRouteMsgCh)
+
 	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary,
-		rfqRouteMsg, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
+		rfqRouteMsgCh, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
 
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
@@ -217,22 +233,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	transactionValue := constant.Zero
 	if eth.IsEther(routeSummary.TokenIn) {
 		transactionValue = routeSummary.AmountIn
-	}
-
-	// parse message, we always send events to kafka although the route might not contain alpha fee
-	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
-	// just a temporarily check if rfqRouteMsg hasn't init yet, we will not send it to kafka
-	if rfqRouteMsg.RouteId != "" {
-		data, err := proto.Marshal(rfqRouteMsg)
-		if err != nil {
-			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
-		} else {
-			err = uc.publisherRepository.Publish(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, data)
-			if err != nil {
-				// ignore error
-				logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
-			}
-		}
 	}
 
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
@@ -271,7 +271,7 @@ func (uc *BuildRouteUseCase) rfq(
 	recipient string,
 	source string,
 	routeSummary valueobject.RouteSummary,
-	rfqRouteMsg *v1.RouteSummary,
+	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	slippageTolerance float64,
 	tokens map[string]*entity.Token,
@@ -279,11 +279,14 @@ func (uc *BuildRouteUseCase) rfq(
 ) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
 	defer span.End()
+	defer close(rfqRouteMsgs)
 
 	executorAddress := uc.encoder.GetExecutorAddress(source)
 
 	rfqParamsByExchange := make(map[valueobject.Exchange][]valueobject.IndexedRFQParams)
+
 	totalSwap := 0
+	alphaFeeReductionPointer := 0
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
 			_, found := uc.rfqHandlerByExchange[swap.Exchange]
@@ -307,9 +310,12 @@ func (uc *BuildRouteUseCase) rfq(
 			}
 
 			var alphaFee *big.Int
+			executedId := totalSwap + swapIdx
 			if routeSummary.AlphaFee != nil &&
-				routeSummary.AlphaFee.ExecutedId == int32(totalSwap+swapIdx) {
-				alphaFee = routeSummary.AlphaFee.Amount
+				alphaFeeReductionPointer < len(routeSummary.AlphaFee.SwapReductions) &&
+				routeSummary.AlphaFee.SwapReductions[alphaFeeReductionPointer].ExecutedId == executedId {
+				alphaFee = routeSummary.AlphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount
+				alphaFeeReductionPointer++
 			}
 
 			rfqParamsByExchange[swap.Exchange] = append(rfqParamsByExchange[swap.Exchange],
@@ -333,9 +339,10 @@ func (uc *BuildRouteUseCase) rfq(
 					},
 					PathIdx:    pathIdx,
 					SwapIdx:    swapIdx,
-					ExecutedId: int32(totalSwap + swapIdx),
+					ExecutedId: executedId,
 				})
 		}
+
 		totalSwap += len(path)
 	}
 
@@ -355,13 +362,13 @@ func (uc *BuildRouteUseCase) rfq(
 		rfqHandler := uc.rfqHandlerByExchange[exchange]
 		if rfqHandler.SupportBatch() {
 			g.Go(func() error {
-				return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
+				return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsgs, isFaultyPoolTrackEnable, tokens,
 					prices, paramsSlice...)
 			})
 		} else {
 			for _, params := range paramsSlice {
 				g.Go(func() error {
-					return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsg, isFaultyPoolTrackEnable, tokens,
+					return uc.processRFQs(ctx, exchange, routeSummary, rfqRouteMsgs, isFaultyPoolTrackEnable, tokens,
 						prices, params)
 				})
 			}
@@ -469,7 +476,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	ctx context.Context,
 	exchange valueobject.Exchange,
 	routeSummary valueobject.RouteSummary,
-	rfqRouteMsg *v1.RouteSummary,
+	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	tokens map[string]*entity.Token,
 	prices map[string]float64,
@@ -517,7 +524,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	}
 
 	for i, params := range indexedRFQParamsSlice {
-		pathIdx, swapIdx := params.PathIdx, params.SwapIdx
+		pathIdx, swapIdx, executedId := params.PathIdx, params.SwapIdx, params.ExecutedId
 
 		// Enrich the swap extra with the RFQ extra
 		routeSummary.Route[pathIdx][swapIdx].Extra = results[i].Extra
@@ -527,15 +534,15 @@ func (uc *BuildRouteUseCase) processRFQs(
 			routeSummary.Route[pathIdx][swapIdx].AmountOut = results[i].NewAmountOut
 		}
 
-		uc.extractAlphaFee(results[i].Extra, tokens, prices, routeSummary, params.ExecutedId, pathIdx, swapIdx, rfqRouteMsg)
+		uc.extractAlphaFee(ctx, results[i].Extra, tokens, prices, routeSummary, pathIdx, swapIdx, executedId, rfqRouteMsgs)
 	}
 
 	return err
 }
 
-func (uc *BuildRouteUseCase) extractAlphaFee(extra any, tokens map[string]*entity.Token,
-	prices map[string]float64, routeSummary valueobject.RouteSummary, executedId int32, pathIdx, swapIdx int,
-	rfqRouteMsg *v1.RouteSummary) {
+func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tokens map[string]*entity.Token,
+	prices map[string]float64, routeSummary valueobject.RouteSummary, pathIdx, swapIdx, executedId int,
+	rfqRouteMsgs chan *v1.RouteSummary) {
 	extraWithAlphaFee, ok := extra.(WithAlphaFee)
 	if !ok {
 		return
@@ -546,36 +553,58 @@ func (uc *BuildRouteUseCase) extractAlphaFee(extra any, tokens map[string]*entit
 		return
 	}
 
-	alphaFeeAsset = strings.ToLower(alphaFeeAsset)
+	swap := routeSummary.Route[pathIdx][swapIdx]
 
-	alphaFeeInUSD := business.CalcAmountUSD(alphaFeeAmt, tokens[alphaFeeAsset].Decimals, prices[alphaFeeAsset])
-
-	alphaFeeInUSDFloat, _ := alphaFeeInUSD.Float64()
-	rfqRouteMsg.TotalAlphaFeeInUsd += alphaFeeInUSDFloat
+	alphaFeeInUsd := uc.alphaFeeCalculation.GetFairPrice(ctx,
+		swap.TokenIn, swap.TokenOut,
+		prices[swap.TokenIn], prices[swap.TokenOut],
+		tokens[swap.TokenIn].Decimals, tokens[swap.TokenOut].Decimals,
+		swap.SwapAmount, swap.AmountOut, alphaFeeAmt,
+	)
 
 	// we must update alpha fee because alpha fee can be changed, and it might be equal to ps
-	if routeSummary.AlphaFee != nil &&
-		routeSummary.AlphaFee.ExecutedId == executedId {
-		routeSummary.AlphaFee = &routerEntity.AlphaFee{
-			AlphaFeeToken: alphaFeeAsset,
-			Amount:        alphaFeeAmt,
-			AmountUsd:     alphaFeeInUSDFloat,
-			Pool:          routeSummary.Route[pathIdx][swapIdx].Pool,
-			AMMAmount:     routeSummary.AlphaFee.AMMAmount,
-			ExecutedId:    executedId,
-			TokenIn:       routeSummary.AlphaFee.TokenIn,
+	var alphaFeeReduction *routerEntity.AlphaFeeV2SwapReduction
+	if routeSummary.AlphaFee != nil {
+		for i, swapReduction := range routeSummary.AlphaFee.SwapReductions {
+			if swapReduction.ExecutedId == executedId {
+				routeSummary.AlphaFee.SwapReductions[i].ReduceAmount = alphaFeeAmt
+				routeSummary.AlphaFee.SwapReductions[i].TokenOut = alphaFeeAsset
+				routeSummary.AlphaFee.SwapReductions[i].ReduceAmountUsd = alphaFeeInUsd
+
+				alphaFeeReduction = &routeSummary.AlphaFee.SwapReductions[i]
+
+				break
+			}
 		}
 	}
 
-	uc.convertToRouterSwappedEvent(routeSummary, routeSummary.Route[pathIdx][swapIdx].Exchange, extra, rfqRouteMsg)
+	if routeSummary.AlphaFee != nil && alphaFeeReduction == nil {
+		logger.WithFields(ctx, logger.Fields{
+			"routeId":        routeSummary.RouteID,
+			"executedId":     executedId,
+			"swapReductions": routeSummary.AlphaFee.SwapReductions,
+		}).Error("fail to find corresponding alphaFeeReduction")
+	}
+
+	rfqRouteMsg := &v1.RouteSummary{ExecutedId: -1}
+
+	uc.convertToRouterSwappedEvent(
+		routeSummary,
+		routeSummary.Route[pathIdx][swapIdx],
+		alphaFeeReduction,
+		extra, rfqRouteMsg,
+	)
+
+	rfqRouteMsgs <- rfqRouteMsg
 }
 
 // TODO refactor later for other rfqs
 func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobject.RouteSummary,
-	rfq dexValueObject.Exchange, extra any, rfqRouteMsg *v1.RouteSummary) {
+	swap valueobject.Swap, alphaFeeReduction *routerEntity.AlphaFeeV2SwapReduction,
+	extra any, rfqRouteMsg *v1.RouteSummary) {
 	// General information
 	rfqRouteMsg.RouteId = routeSummary.RouteID
-	rfqRouteMsg.RfqSource = string(rfq)
+	rfqRouteMsg.RfqSource = string(swap.Exchange)
 	rfqRouteMsg.SellToken = routeSummary.TokenIn
 	rfqRouteMsg.BuyToken = routeSummary.TokenOut
 	rfqRouteMsg.RequestedAmount = routeSummary.AmountIn.Text(10)
@@ -584,15 +613,15 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 
 	// info related to alpha fee, incase we don't have alpha fee, we don't need to track these fields
 	// because we only care about positive slippage
-	if routeSummary.AlphaFee != nil {
-		rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.Text(10)
-		rfqRouteMsg.AlphaFee = routeSummary.AlphaFee.Amount.Text(10)
-		rfqRouteMsg.AlphaFeeToken = routeSummary.AlphaFee.AlphaFeeToken
-		rfqRouteMsg.AlphaFeeInUsd = routeSummary.AlphaFee.AmountUsd
-		rfqRouteMsg.ExecutedId = routeSummary.AlphaFee.ExecutedId
+	if routeSummary.AlphaFee != nil && alphaFeeReduction != nil {
+		rfqRouteMsg.AmmAmount = routeSummary.AlphaFee.AMMAmount.String()
+		rfqRouteMsg.AlphaFee = alphaFeeReduction.ReduceAmount.String()
+		rfqRouteMsg.AlphaFeeToken = alphaFeeReduction.TokenOut
+		rfqRouteMsg.AlphaFeeInUsd = alphaFeeReduction.ReduceAmountUsd
+		rfqRouteMsg.ExecutedId = int32(alphaFeeReduction.ExecutedId)
 	}
 
-	switch rfq {
+	switch swap.Exchange {
 	case dexValueObject.ExchangeKyberPMM:
 		kyberpmmExtra, ok := extra.(kyberpmm.RFQExtra)
 		if ok {
@@ -709,6 +738,7 @@ func (uc *BuildRouteUseCase) getRouteAndAlphaTokens(_ context.Context,
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
 			if privo.IsAlphaFeeSource(swap.PoolType) {
+				addresses.Add(swap.TokenIn) // With the fair price logic, we also need tokenIn data.
 				addresses.Add(swap.TokenOut)
 			}
 		}
@@ -909,4 +939,23 @@ func (uc *BuildRouteUseCase) checkToKeepDustTokenOut(
 		}
 	}
 	return routeSummary, nil
+}
+
+func (uc *BuildRouteUseCase) consumeRouteMsgDatas(ctx context.Context, rfqRouteMsgCh chan *v1.RouteSummary) {
+	rfqRouteMsgDatas := make([][]byte, 0)
+	for rfqRouteMsg := range rfqRouteMsgCh {
+		data, err := proto.Marshal(rfqRouteMsg)
+		if err != nil {
+			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
+		} else {
+			rfqRouteMsgDatas = append(rfqRouteMsgDatas, data)
+		}
+	}
+
+	if len(rfqRouteMsgDatas) > 0 {
+		err := uc.publisherRepository.PublishMultiple(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, rfqRouteMsgDatas)
+		if err != nil {
+			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
+		}
+	}
 }

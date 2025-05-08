@@ -140,7 +140,9 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	routeSummary.RouteID = routeID
 
 	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
-	routeSummary.AlphaFee = nil
+	if !u.config.FeatureFlags.ReturnAlphaFee {
+		routeSummary.AlphaFee = nil
+	}
 
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,

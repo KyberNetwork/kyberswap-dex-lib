@@ -31,7 +31,7 @@ func MergeSwap(
 	entityRoute *finderEntity.Route,
 	amountReductionEachSwap [][]*big.Int,
 	customFuncs finderEntity.ICustomFuncs,
-	alphaFee *entity.AlphaFee,
+	alphaFee *entity.AlphaFeeV2,
 ) (*finderEntity.Route, error) {
 	if !canMergeSwap(ctx, constructRoute) {
 		return entityRoute, nil
@@ -47,19 +47,7 @@ func MergeSwap(
 		return mergedRoute, err
 	}
 
-	// update executedId in alpha fee
-	executedId := int32(0)
-	for _, path := range mergedRoute.Route {
-		for _, swap := range path {
-			if swap.Pool == alphaFee.Pool &&
-				swap.TokenIn == alphaFee.TokenIn &&
-				swap.TokenOut == alphaFee.AlphaFeeToken {
-				alphaFee.ExecutedId = executedId
-				break
-			}
-			executedId++
-		}
-	}
+	updateMergeSwapAlphaFee(ctx, mergedRoute, alphaFee)
 
 	return mergedRoute, err
 

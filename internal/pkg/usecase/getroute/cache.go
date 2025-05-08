@@ -332,6 +332,7 @@ func (c *cache) getRFQMakerTokenAddresses(route *valueobject.SimpleRoute) mapset
 
 	for _, path := range route.Paths {
 		for _, swap := range path {
+			addresses.Add(swap.TokenInAddress)
 			addresses.Add(swap.TokenOutAddress)
 		}
 	}

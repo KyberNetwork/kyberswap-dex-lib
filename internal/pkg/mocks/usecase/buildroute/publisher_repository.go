@@ -53,3 +53,17 @@ func (mr *MockIPublisherRepositoryMockRecorder) Publish(ctx, topic, data any) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Publish", reflect.TypeOf((*MockIPublisherRepository)(nil).Publish), ctx, topic, data)
 }
+
+// PublishMultiple mocks base method.
+func (m *MockIPublisherRepository) PublishMultiple(ctx context.Context, topic string, data [][]byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublishMultiple", ctx, topic, data)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PublishMultiple indicates an expected call of PublishMultiple.
+func (mr *MockIPublisherRepositoryMockRecorder) PublishMultiple(ctx, topic, data any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishMultiple", reflect.TypeOf((*MockIPublisherRepository)(nil).PublishMultiple), ctx, topic, data)
+}

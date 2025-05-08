@@ -42,7 +42,7 @@ func (m *MockIAlphaFeeRepository) EXPECT() *MockIAlphaFeeRepositoryMockRecorder 
 }
 
 // Save mocks base method.
-func (m *MockIAlphaFeeRepository) Save(ctx context.Context, routeId string, alphaFee *entity.AlphaFee) error {
+func (m *MockIAlphaFeeRepository) Save(ctx context.Context, routeId string, alphaFee *entity.AlphaFeeV2) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Save", ctx, routeId, alphaFee)
 	ret0, _ := ret[0].(error)

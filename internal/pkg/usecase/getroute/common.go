@@ -225,7 +225,7 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 		paths = append(paths, swaps)
 	}
 
-	var alphaFee *routerEntity.AlphaFee
+	var alphaFee *routerEntity.AlphaFeeV2
 	extra, ok := route.ExtraFinalizerData.(types.FinalizeExtraData)
 	if ok {
 		alphaFee = extra.AlphaFee
@@ -307,7 +307,7 @@ func InitializeFinderEngine(
 
 	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
-		alphafee.NewAlphaFeeCalculation(config.AlphaFeeConfig, customFuncs),
+		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, customFuncs),
 		customFuncs,
 	)
 

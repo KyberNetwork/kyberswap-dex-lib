@@ -58,6 +58,23 @@ func (k *Publisher) Publish(ctx context.Context, topic string, data []byte) erro
 	return nil
 }
 
+func (k *Publisher) PublishMultiple(ctx context.Context, topic string, data [][]byte) error {
+	formattedTopic := strings.Join([]string{k.config.Prefix, topic}, k.config.Separator)
+	messages := make([]*sarama.ProducerMessage, len(data))
+	for i, d := range data {
+		messages[i] = &sarama.ProducerMessage{
+			Topic: formattedTopic,
+			Value: sarama.ByteEncoder(d),
+		}
+	}
+
+	if err := k.producer.SendMessages(messages); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ValidateTopicName returns error if the string is invalid as Kafka topic name.
 // NOTE: Due to limitations in metric names, topics with a period ('.') or underscore
 // ('_') could collide. To avoid issues it is best to use either, but not both.

@@ -26,7 +26,7 @@ import (
 var (
 	ErrInvalidSwap                         = errors.New("invalid swap")
 	ErrCalcAmountOutEmpty                  = errors.New("calc amount out empty")
-	ErrAlphaFeeNotExists                   = errors.New("alpha fee doesn't exit")
+	ErrAlphaFeeNotExists                   = errors.New("alpha fee doesn't exists")
 	ErrRouteNotHaveAlphaFeeDex             = errors.New("route doesn't have alpha-able swaps")
 	ErrAlphaSwapNotEnoughToCoverAlphaFee   = errors.New("alpha swap doesn't have enough amount out to cover alpha fee")
 	ErrApplyAlphaFeeYieldLessAmountThanAMM = errors.New("applying alpha fee yields less amount out than amm route")

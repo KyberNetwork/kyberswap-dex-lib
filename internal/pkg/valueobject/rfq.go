@@ -6,5 +6,5 @@ type IndexedRFQParams struct {
 	pool.RFQParams
 	PathIdx    int
 	SwapIdx    int
-	ExecutedId int32
+	ExecutedId int
 }

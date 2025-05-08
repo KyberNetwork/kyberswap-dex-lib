@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -42,10 +42,10 @@ func (m *MockIAlphaFeeRepository) EXPECT() *MockIAlphaFeeRepositoryMockRecorder 
 }
 
 // GetByRouteId mocks base method.
-func (m *MockIAlphaFeeRepository) GetByRouteId(ctx context.Context, routeID string) (*entity.AlphaFee, error) {
+func (m *MockIAlphaFeeRepository) GetByRouteId(ctx context.Context, routeID string) (*entity.AlphaFeeV2, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByRouteId", ctx, routeID)
-	ret0, _ := ret[0].(*entity.AlphaFee)
+	ret0, _ := ret[0].(*entity.AlphaFeeV2)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

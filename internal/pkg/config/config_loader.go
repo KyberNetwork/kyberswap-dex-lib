@@ -15,6 +15,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -191,6 +192,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setDexalotUpscalePercent(remoteCfg.DexalotUpscalePercent)
 		cl.setAlphaFeeConfig(remoteCfg.AlphaFeeConfig)
 		cl.setScaleHelperClients(remoteCfg.ScaleHelperClients)
+		cl.setWhitelistedPrices(remoteCfg.WhitelistedPrices)
 		cl.mu.Unlock()
 	}
 
@@ -297,6 +299,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && cl.config.AEVMEnabled
 	cl.config.Common.FeatureFlags = featureFlags
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
+	cl.config.UseCase.GetRoute.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
@@ -373,4 +376,14 @@ func (cl *ConfigLoader) setDexalotUpscalePercent(dexalotUpscalePercent int) {
 
 func (cl *ConfigLoader) setScaleHelperClients(scaleHelperClients []string) {
 	cl.config.UseCase.GetRoute.ScaleHelperClients = scaleHelperClients
+}
+
+func (cl *ConfigLoader) setWhitelistedPrices(whitelistedPrices []string) {
+	whitelistedPricesMap := lo.SliceToMap(whitelistedPrices, func(price string) (string, bool) {
+		price = strings.ToLower(price)
+		return price, true
+	})
+
+	cl.config.UseCase.GetRoute.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
+	cl.config.UseCase.GetRoute.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
 }
