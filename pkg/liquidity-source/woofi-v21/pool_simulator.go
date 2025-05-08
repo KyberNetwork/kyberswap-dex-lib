@@ -480,10 +480,10 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 
 	cloPrice, _ := s._wooracleCloPriceInQuote(base, s.quoteToken)
 
-	// Calculate the buffered stale time
-	staleTimeWithBuffer := s.wooracle.Timestamp + int64(float64(s.wooracle.StaleDuration)*staleBufferRatio)
+	// Calculate the stale time
+	staleTime := s.wooracle.Timestamp + s.wooracle.StaleDuration
 
-	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= staleTimeWithBuffer
+	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= staleTime
 
 	bound := uint256.NewInt(s.wooracle.Bound)
 	priceLowerBound := new(uint256.Int)
