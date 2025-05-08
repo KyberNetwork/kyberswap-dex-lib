@@ -169,6 +169,10 @@ func (v *buildRouteParamsValidator) validateFeeAmount(feeAmount string) error {
 }
 
 func (v *buildRouteParamsValidator) validateExtraFee(extraFee params.ExtraFee) error {
+	if extraFee.FeeAmount == "" || extraFee.FeeAmount == "0" {
+		return nil
+	}
+
 	feeAmounts := utils.TransformSliceParams(extraFee.FeeAmount)
 	feeReceivers := utils.TransformSliceParams(extraFee.FeeReceiver)
 	if len(feeAmounts) != len(feeReceivers) {
