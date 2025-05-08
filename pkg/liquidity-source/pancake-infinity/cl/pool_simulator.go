@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -34,7 +35,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	if staticExtra.HasSwapPermissions {
-		return nil, ErrUnsupportedHook
+		return nil, shared.ErrUnsupportedHook
 	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
@@ -65,8 +66,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return &cloned
 }
 
-// GetMetaInfo
-// adapt from https://github.com/KyberNetwork/kyberswap-dex-lib-private/blob/c1877a8c19759faeb7d82b6902ed335f0657ce3e/pkg/liquidity-source/uniswap-v4/pool_simulator.go#L201
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	tokenInAddress, tokenOutAddress := eth.AddressZero, eth.AddressZero
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {

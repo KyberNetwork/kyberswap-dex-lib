@@ -29,7 +29,7 @@ type StaticExtra struct {
 	IsNative           [2]bool        `json:"0x0"`
 	Fee                uint32         `json:"fee"`
 	Parameters         string         `json:"params"`
-	TickSpacing        int32          `json:"tS"`
+	TickSpacing        uint64         `json:"tS"`
 	PoolManagerAddress common.Address `json:"pm"`
 	HooksAddress       common.Address `json:"hooks"`
 	Permit2Address     common.Address `json:"p2"`
@@ -50,7 +50,7 @@ type Slot0Data struct {
 type FetchRPCResult struct {
 	Liquidity   *big.Int  `json:"liquidity"`
 	Slot0       Slot0Data `json:"slot0"`
-	TickSpacing int32     `json:"tickSpacing"`
+	TickSpacing uint64    `json:"tickSpacing"`
 }
 
 type Tick = uniswapv3.Tick

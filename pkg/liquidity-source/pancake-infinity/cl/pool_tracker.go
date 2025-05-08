@@ -208,7 +208,6 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 		}
 
 		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
-			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
 				if resp.Ticks == nil {
 					l.WithFields(logger.Fields{

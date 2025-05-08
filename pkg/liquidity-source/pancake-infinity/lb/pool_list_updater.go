@@ -1,4 +1,4 @@
-package cl
+package lb
 
 import (
 	"context"
@@ -73,17 +73,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	chainID := valueobject.ChainID(u.config.ChainID)
 	for _, p := range subgraphPools {
-		token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
+		token0Decimals, err := kutils.Atou[uint8](p.TokenX.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
-		token1Decimals, err := kutils.Atou[uint8](p.Token1.Decimals)
+		token1Decimals, err := kutils.Atou[uint8](p.TokenY.Decimals)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 		tokens := []*entity.PoolToken{
-			{Address: p.Token0.ID, Decimals: token0Decimals, Swappable: true},
-			{Address: p.Token1.ID, Decimals: token1Decimals, Swappable: true},
+			{Address: p.TokenX.ID, Decimals: token0Decimals, Swappable: true},
+			{Address: p.TokenY.ID, Decimals: token1Decimals, Swappable: true},
 		}
 		for idx, token := range tokens {
 			if token.Address == valueobject.ZeroAddress {
@@ -93,24 +93,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		params, err := hex.DecodeString(strings.TrimPrefix(p.Parameters, "0x"))
 		if err != nil {
-			return nil, metadataBytes, err
-		}
-
-		fee, err := kutils.Atou[uint32](p.Fee)
-		if err != nil {
-			return nil, metadataBytes, err
+			return nil, metadataBytes, shared.ErrInvalidParameters
 		}
 
 		staticExtra := StaticExtra{
-			IsNative:           [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
-			Fee:                fee,
+			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
 			Parameters:         p.Parameters,
-			TickSpacing:        GetTickSpacing(params),
+			BinStep:            GetBinStep(params),
 			HasSwapPermissions: shared.HasSwapPermissions(params),
 			HooksAddress:       common.HexToAddress(p.Hooks),
 			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
-			PoolManagerAddress: common.HexToAddress(u.config.CLPoolManagerAddress),
+			PoolManagerAddress: common.HexToAddress(u.config.BinPoolManagerAddress),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)
@@ -120,7 +114,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		pool := entity.Pool{
 			Address:     p.ID,
-			SwapFee:     float64(fee),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
@@ -133,7 +126,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	// Update metadata
 	if len(subgraphPools) > 0 {
-		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].CreatedAtTimestamp)
+		lastCreatedAtTimestamp, err := strconv.Atoi(subgraphPools[len(subgraphPools)-1].Timestamp)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -159,7 +152,7 @@ func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	req := graphqlpkg.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, first))
 
 	var response struct {
-		Pools []SubgraphPool `json:"pools"`
+		Pools []SubgraphPool `json:"lbpairs"`
 	}
 
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
@@ -173,10 +166,10 @@ func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	return response.Pools, nil
 }
 
-func GetTickSpacing(params []byte) uint64 {
+func GetBinStep(params []byte) uint16 {
 	res := new(uint256.Int).SetBytes32(params)
-	res.Rsh(res, _OFFSET_TICK_SPACING)
-	res.And(res, _MASK24)
+	res.Rsh(res, _OFFSET_BIN_STEP)
+	res.And(res, _MASK16)
 
-	return res.Uint64()
+	return uint16(res.Uint64())
 }

@@ -1,4 +1,4 @@
-package cl
+package lb
 
 import (
 	"context"
@@ -29,7 +29,7 @@ func GetHook(hookAddress common.Address) Hook {
 	}
 
 	return &BaseHook{
-		Exchange: valueobject.ExchangePancakeInfinityCL,
+		Exchange: valueobject.ExchangePancakeInfinityLB,
 	}
 }
 
