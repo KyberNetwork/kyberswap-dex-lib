@@ -8,14 +8,15 @@ import (
 
 func TestQuoteParams_ToMap(t *testing.T) {
 	tests := []struct {
-		name   string
-		fields QuoteParams
-		want   map[string]string
+		name string
+		args QuoteParams
+		want map[string]string
 	}{
 		{
 			"happy",
 			QuoteParams{
-				Chain:              "1",
+				SrcChain:           "1",
+				DstChain:           "1",
 				TokenIn:            "0xdac17f958d2ee523a2206206994597c13d831ec7",
 				TokenOut:           "0x6b175474e89094c44da98b954eedeac495271d0f",
 				AmountWei:          "1000000000000000000",
@@ -26,7 +27,8 @@ func TestQuoteParams_ToMap(t *testing.T) {
 				Slippage:           "0.1",
 			},
 			map[string]string{
-				"chain":               "1",
+				"src_chain":           "1",
+				"dst_chain":           "1",
 				"token_in":            "0xdac17f958d2ee523a2206206994597c13d831ec7",
 				"token_out":           "0x6b175474e89094c44da98b954eedeac495271d0f",
 				"amount_wei":          "1000000000000000000",
@@ -40,18 +42,7 @@ func TestQuoteParams_ToMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &QuoteParams{
-				Chain:              tt.fields.Chain,
-				TokenIn:            tt.fields.TokenIn,
-				TokenOut:           tt.fields.TokenOut,
-				AmountWei:          tt.fields.AmountWei,
-				FromAddress:        tt.fields.FromAddress,
-				BeneficiaryAddress: tt.fields.BeneficiaryAddress,
-				ToAddress:          tt.fields.ToAddress,
-				ExpiryTime:         tt.fields.ExpiryTime,
-				Slippage:           tt.fields.Slippage,
-			}
-			assert.Equalf(t, tt.want, p.ToMap(), "ToMap()")
+			assert.Equalf(t, tt.want, tt.args.ToMap(), "ToMap()")
 		})
 	}
 }
