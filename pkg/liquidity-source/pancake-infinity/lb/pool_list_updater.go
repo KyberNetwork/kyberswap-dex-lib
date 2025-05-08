@@ -100,7 +100,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
 			Parameters:         p.Parameters,
 			BinStep:            GetBinStep(params),
-			HasSwapPermissions: shared.HasSwapPermissions(params),
 			HooksAddress:       common.HexToAddress(p.Hooks),
 			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),

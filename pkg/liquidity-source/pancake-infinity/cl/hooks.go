@@ -28,9 +28,7 @@ func GetHook(hookAddress common.Address) Hook {
 		return hook
 	}
 
-	return &BaseHook{
-		Exchange: valueobject.ExchangePancakeInfinityCL,
-	}
+	return (*BaseHook)(nil)
 }
 
 type BaseHook struct{ Exchange valueobject.Exchange }
