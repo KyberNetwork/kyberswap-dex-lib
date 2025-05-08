@@ -2,12 +2,12 @@ package client
 
 import (
 	"context"
+	"strings"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 )
 
@@ -17,10 +17,13 @@ const (
 
 	pathFirmQuote = "v1/firm-quote"
 
-	errMsgThrottled           = "ThrottlerException: Too Many Requests"
-	errMsgInternalServerError = "Internal server error"
-	errMsgBadRequest          = "Bad Request"
-	errMsgAllPricerFailed     = "All pricer failed"
+	errMsgExceedsMaxBalance = "quantity exceeds max balance"
+	errMsgInvalidParameter  = "invalid parameter"
+
+	errMsgThrottled           = "throttlerexception: too many requests"
+	errMsgInternalServerError = "internal server error"
+	errMsgBadRequest          = "bad request"
+	errMsgAllPricerFailed     = "all pricer failed"
 )
 
 var (
@@ -61,9 +64,9 @@ func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (na
 		return nativev1.QuoteResult{}, err
 	}
 
-	if !resp.IsSuccess() {
+	if !resp.IsSuccess() || !result.IsSuccess() {
 		klog.WithFields(ctx, klog.Fields{
-			"client":        clipper.DexType,
+			"client":        nativev1.DexType,
 			"response":      result,
 			headerRequestId: resp.Header().Get(headerRequestId),
 		}).Error("quote failed")
@@ -74,14 +77,14 @@ func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (na
 }
 
 func parseRFQError(errorMessage string) error {
-	switch errorMessage {
+	switch strings.ToLower(errorMessage) {
 	case errMsgThrottled:
 		return ErrRFQRateLimit
 	case errMsgInternalServerError:
 		return ErrRFQInternalServerError
-	case errMsgBadRequest:
+	case errMsgBadRequest, errMsgInvalidParameter:
 		return ErrRFQBadRequest
-	case errMsgAllPricerFailed:
+	case errMsgAllPricerFailed, errMsgExceedsMaxBalance:
 		return ErrRFQAllPricerFailed
 	default:
 		return ErrRFQFailed

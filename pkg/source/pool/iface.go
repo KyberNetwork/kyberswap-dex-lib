@@ -26,7 +26,8 @@ type IPoolsListUpdaterWithDependencies interface {
 }
 
 type GetNewPoolStateParams struct {
-	Logs []types.Log
+	Logs         []types.Log
+	BlockHeaders map[uint64]entity.BlockHeader
 }
 
 type GetNewPoolStateWithOverridesParams struct {
@@ -94,5 +95,5 @@ type ITicksBasedPoolTracker interface {
 
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
-	GetKey(ctx context.Context) (poolAddress string, err error)
+	GetKeys(ctx context.Context) ([]string, error)
 }
