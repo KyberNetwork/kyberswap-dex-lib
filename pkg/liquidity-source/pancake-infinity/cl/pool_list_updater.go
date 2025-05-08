@@ -2,7 +2,6 @@ package cl
 
 import (
 	"context"
-	"encoding/hex"
 	"strconv"
 	"strings"
 	"time"
@@ -91,22 +90,19 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
-		params, err := hex.DecodeString(strings.TrimPrefix(p.Parameters, "0x"))
-		if err != nil {
-			return nil, metadataBytes, err
-		}
-
 		fee, err := kutils.Atou[uint32](p.Fee)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
 
+		params := common.FromHex(p.Parameters)
+
 		staticExtra := StaticExtra{
+			HasSwapPermissions: shared.HasSwapPermissions(params),
 			IsNative:           [2]bool{p.Token0.ID == valueobject.ZeroAddress, p.Token1.ID == valueobject.ZeroAddress},
 			Fee:                fee,
 			Parameters:         p.Parameters,
 			TickSpacing:        GetTickSpacing(params),
-			HasSwapPermissions: shared.HasSwapPermissions(params),
 			HooksAddress:       common.HexToAddress(p.Hooks),
 			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),

@@ -2,7 +2,6 @@ package bin
 
 import (
 	"context"
-	"encoding/hex"
 	"strconv"
 	"strings"
 	"time"
@@ -91,12 +90,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}
 		}
 
-		params, err := hex.DecodeString(strings.TrimPrefix(p.Parameters, "0x"))
-		if err != nil {
-			return nil, metadataBytes, shared.ErrInvalidParameters
-		}
+		params := common.FromHex(p.Parameters)
 
 		staticExtra := StaticExtra{
+			HasSwapPermissions: shared.HasSwapPermissions(params),
 			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
 			Parameters:         p.Parameters,
 			BinStep:            GetBinStep(params),
