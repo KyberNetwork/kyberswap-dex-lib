@@ -9,3 +9,8 @@ type Token struct {
 	Type        string `json:"type"`
 	PoolAddress string `json:"poolAddress"`
 }
+
+type SimplifiedToken struct {
+	Address  string `json:"address"`
+	Decimals uint8  `json:"decimals"`
+}
