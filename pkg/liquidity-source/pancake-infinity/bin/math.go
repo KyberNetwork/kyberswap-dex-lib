@@ -1,4 +1,4 @@
-package lb
+package bin
 
 import (
 	"github.com/holiman/uint256"
@@ -188,7 +188,7 @@ func getMulProds(x, y *uint256.Int, prod0, prod1 *uint256.Int) (*uint256.Int, *u
 	return prod0, prod1
 }
 
-// Functions with custom logic from pancake-infinity-lb
+// Functions with custom logic from pancake-infinity-bin
 
 func getFeeAmount(amount, feeBips *uint256.Int) *uint256.Int {
 	totalFee := new(uint256.Int).Mul(feeBips, _ONE_E12)

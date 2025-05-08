@@ -15,12 +15,12 @@ const (
 	ExchangeJetSwap    Exchange = "jetswap"
 	ExchangeMDex       Exchange = "mdex"
 
-	ExchangePancake           Exchange = "pancake"
-	ExchangePancakeStable     Exchange = "pancake-stable"
-	ExchangePancakeLegacy     Exchange = "pancake-legacy"
-	ExchangePancakeV3         Exchange = "pancake-v3"
-	ExchangePancakeInfinityCL Exchange = "pancake-infinity-cl"
-	ExchangePancakeInfinityLB Exchange = "pancake-infinity-lb"
+	ExchangePancake            Exchange = "pancake"
+	ExchangePancakeStable      Exchange = "pancake-stable"
+	ExchangePancakeLegacy      Exchange = "pancake-legacy"
+	ExchangePancakeV3          Exchange = "pancake-v3"
+	ExchangePancakeInfinityCL  Exchange = "pancake-infinity-cl"
+	ExchangePancakeInfinityBin Exchange = "pancake-infinity-bin"
 
 	ExchangeWault           Exchange = "wault"
 	ExchangeBiSwap          Exchange = "biswap"
@@ -472,7 +472,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePancakeStable:              {},
 	ExchangePancakeV3:                  {},
 	ExchangePancakeInfinityCL:          {},
-	ExchangePancakeInfinityLB:          {},
+	ExchangePancakeInfinityBin:         {},
 	ExchangeWault:                      {},
 	ExchangeBiSwap:                     {},
 	ExchangePantherSwap:                {},

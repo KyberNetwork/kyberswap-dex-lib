@@ -1,4 +1,4 @@
-package lb
+package bin
 
 import _ "embed"
 

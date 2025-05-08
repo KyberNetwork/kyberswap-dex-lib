@@ -1,4 +1,4 @@
-package lb
+package bin
 
 type Config struct {
 	ChainID                int    `json:"chainID"`

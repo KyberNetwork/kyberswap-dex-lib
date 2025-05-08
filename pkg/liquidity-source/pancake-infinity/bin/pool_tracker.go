@@ -1,4 +1,4 @@
-package lb
+package bin
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNu
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    binPoolManagerABI,
 		Target: t.config.BinPoolManagerAddress,
-		Method: lbPoolManagerMethodGetSlot0,
+		Method: binPoolManagerMethodGetSlot0,
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
@@ -71,7 +71,7 @@ func (t *PoolTracker) GetNewPoolState(
 		"dexID":       t.config.DexID,
 	})
 
-	l.Info("Start getting new state of pancake-infinity-lb pool")
+	l.Info("Start getting new state of pancake-infinity-bin pool")
 
 	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
 	if err != nil {

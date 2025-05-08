@@ -1,4 +1,4 @@
-package lb
+package bin
 
 import (
 	"errors"
@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	DexType = "pancake-infinity-lb"
+	DexType = "pancake-infinity-bin"
 
 	graphFirstLimit = 1000
 
-	lbPoolManagerMethodGetSlot0 = "getSlot0"
-	lbPoolManagerMethodGetBin   = "getBin"
+	binPoolManagerMethodGetSlot0 = "getSlot0"
+	binPoolManagerMethodGetBin   = "getBin"
 
 	_OFFSET_BIN_STEP     = 16
 	_SCALE_OFFSET        = 128

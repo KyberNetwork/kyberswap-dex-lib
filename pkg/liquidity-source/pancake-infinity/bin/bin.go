@@ -1,4 +1,4 @@
-package lb
+package bin
 
 import (
 	"github.com/holiman/uint256"
