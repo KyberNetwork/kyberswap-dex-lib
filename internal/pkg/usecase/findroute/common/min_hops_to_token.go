@@ -11,7 +11,7 @@ import (
 // MinHopsToTokenOut perform BFS from tokenOut
 func MinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	tokenOut string,
 ) (map[string]uint32, error) {
@@ -57,7 +57,7 @@ func MinHopsToTokenOut(
 // only considering `tokenIn` and "hop tokens" that are in the whitelist.
 func MinHopsToTokenOutWithWhitelist(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	whitelistedHopTokens map[string]bool,
 	tokenIn string,

@@ -282,6 +282,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.TradeDataGenerator.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.Repository.Token.GoCache.WhitelistedTokenSet = whitelistedTokenSet
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {

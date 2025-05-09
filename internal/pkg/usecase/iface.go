@@ -28,9 +28,13 @@ type IPoolRepository interface {
 	FindAllAddresses(ctx context.Context) ([]string, error)
 }
 
-// ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
+// ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.SimplifiedToken
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
+}
+
+type ITokenFullInfoRepository[T entity.Token] interface {
+	FindByAddresses(ctx context.Context, addresses []string) ([]*T, error)
 }
 
 type IOnchainPriceRepository interface {

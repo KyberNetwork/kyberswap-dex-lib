@@ -24,7 +24,7 @@ import (
 type nodeInfo struct {
 	tokenAmount         valueobject.TokenAmount
 	poolAddressesOnPath []string
-	tokensOnPath        []*entity.Token
+	tokensOnPath        []*entity.SimplifiedToken
 	totalGasAmount      int64
 }
 
@@ -77,7 +77,7 @@ func GenKthBestPaths(
 		{
 			tokenAmount:    tokenAmountIn,
 			totalGasAmount: 0,
-			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
+			tokensOnPath:   []*entity.SimplifiedToken{data.TokenByAddress[input.TokenInAddress]},
 		},
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
@@ -166,7 +166,7 @@ func getNextLayerFromToken(
 	type IntermediateParam struct {
 		pool           poolpkg.IPoolSimulator
 		toTokenAddress string
-		toTokenInfo    *entity.Token
+		toTokenInfo    *entity.SimplifiedToken
 	}
 	type IntermediateResult struct {
 		toTokenAmount    *valueobject.TokenAmount
@@ -190,7 +190,7 @@ func getNextLayerFromToken(
 
 	var (
 		nextNodeInfos []*nodeInfo
-		toTokenInfo   *entity.Token
+		toTokenInfo   *entity.SimplifiedToken
 		pool          poolpkg.IPoolSimulator
 
 		remainingHopToTokenOut uint32
@@ -267,7 +267,7 @@ func getNextLayerFromToken(
 			tokenAmount:         *toTokenAmount,
 			totalGasAmount:      toTotalGasAmount,
 			poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), pool.GetAddress()),
-			tokensOnPath:        append(append([]*entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+			tokensOnPath:        append(append([]*entity.SimplifiedToken{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
 		})
 	}
 
@@ -419,7 +419,7 @@ func CalcNewTokenAmountAndGas(
 	ctx context.Context,
 	pool poolpkg.IPoolSimulator,
 	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
-	tokenOut *entity.Token,
+	tokenOut *entity.SimplifiedToken,
 	data findroute.FinderData,
 	input findroute.Input,
 	dexUseAEVM map[string]bool,

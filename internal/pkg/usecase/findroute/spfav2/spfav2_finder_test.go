@@ -50,7 +50,7 @@ type testcase struct {
 }
 
 var (
-	tokenByAddress = map[string]*entity.Token{
+	tokenByAddress = map[string]*entity.SimplifiedToken{
 		"a":   {Address: "a"},
 		"b":   {Address: "b"},
 		"c":   {Address: "c"},
@@ -151,7 +151,7 @@ func TestFindRoute(t *testing.T) {
 		}
 	})
 
-	tokenAddressList := lo.MapToSlice(tokenByAddress, func(adr string, _ *entity.Token) string { return adr })
+	tokenAddressList := lo.MapToSlice(tokenByAddress, func(adr string, _ *entity.SimplifiedToken) string { return adr })
 	poolByAddress := lo.SliceToMap(poolEntities, func(poolEntity entity.Pool) (string, poolpkg.IPoolSimulator) {
 		pool, _ := uni.NewPoolSimulator(poolEntity)
 		if strings.Contains(poolEntity.Address, "-highgas") {
@@ -327,7 +327,7 @@ var (
 	poolAddressByName map[string]string
 )
 
-var balancerTokenByAddress = map[string]*entity.Token{
+var balancerTokenByAddress = map[string]*entity.SimplifiedToken{
 	"w1":  {Address: "w1"},
 	"w2":  {Address: "w2"},
 	"w3":  {Address: "w3"},
@@ -341,7 +341,7 @@ var balancerTokenByAddress = map[string]*entity.Token{
 	"gas": {Address: "gas"},
 }
 
-var priceUSDByAddress = lo.MapValues(balancerTokenByAddress, func(v *entity.Token, key string) float64 { return 1 })
+var priceUSDByAddress = lo.MapValues(balancerTokenByAddress, func(v *entity.SimplifiedToken, key string) float64 { return 1 })
 
 func initBalancerPools() findroute.FinderData {
 	/**  pool format: balancer-tokens-bptIndex, pbtIndex means only swap token with index < pbtIndex or index - 1
@@ -774,7 +774,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 
 					// should compare tokens because a pool contains many tokens
 					actualTokens := tp.B.Tokens
-					lo.ForEach(lo.Zip2(expectedTokens, actualTokens), func(tp lo.Tuple2[string, *entity.Token], _ int) {
+					lo.ForEach(lo.Zip2(expectedTokens, actualTokens), func(tp lo.Tuple2[string, *entity.SimplifiedToken], _ int) {
 						assert.Equal(t, tp.A, tp.B.Address)
 					})
 				})

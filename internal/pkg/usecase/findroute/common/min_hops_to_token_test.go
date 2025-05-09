@@ -16,7 +16,7 @@ import (
 
 func TestMinHopToTokenOut(t *testing.T) {
 	t.Run("test correctness of minHopToTokenOut", func(t *testing.T) {
-		tokenByAddress := map[string]*entity.Token{
+		tokenByAddress := map[string]*entity.SimplifiedToken{
 			"a": {Address: "a"},
 			"b": {Address: "b"},
 			"c": {Address: "c"},

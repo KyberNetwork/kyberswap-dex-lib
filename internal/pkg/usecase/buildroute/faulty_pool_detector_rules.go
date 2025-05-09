@@ -13,7 +13,7 @@ import (
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
 
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -40,7 +40,7 @@ func isTokenWhiteList(token string, config FaultyPoolsConfig, chainID valueobjec
 }
 
 // requests to be tracked should only involve tokens that have been indentified as non-fot token or non-honeypot
-func isInvalid(tokenInfo *routerEntity.TokenInfo) bool {
+func isInvalid(tokenInfo *entity.TokenInfo) bool {
 	return tokenInfo.IsFOT || tokenInfo.IsHoneypot
 }
 

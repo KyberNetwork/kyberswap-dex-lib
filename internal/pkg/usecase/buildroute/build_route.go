@@ -274,7 +274,7 @@ func (uc *BuildRouteUseCase) rfq(
 	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	slippageTolerance float64,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]float64,
 ) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
@@ -478,7 +478,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	routeSummary valueobject.RouteSummary,
 	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]float64,
 	indexedRFQParamsSlice ...valueobject.IndexedRFQParams,
 ) (err error) {
@@ -540,7 +540,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	return err
 }
 
-func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tokens map[string]*entity.Token,
+func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tokens map[string]*entity.SimplifiedToken,
 	prices map[string]float64, routeSummary valueobject.RouteSummary, pathIdx, swapIdx, executedId int,
 	rfqRouteMsgs chan *v1.RouteSummary) {
 	extraWithAlphaFee, ok := extra.(WithAlphaFee)
@@ -668,7 +668,7 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 func (uc *BuildRouteUseCase) updateRouteSummary(
 	routeSummary valueobject.RouteSummary,
 	tokenIn, tokenOut string,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]float64) (valueobject.RouteSummary, error) {
 
 	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokens[tokenIn].Decimals, prices[tokenIn])
@@ -750,7 +750,7 @@ func (uc *BuildRouteUseCase) getRouteAndAlphaTokens(_ context.Context,
 // getTokens returns tokenIn and tokenOut data
 func (uc *BuildRouteUseCase) getTokens(
 	ctx context.Context,
-	addresses []string) (map[string]*entity.Token, error) {
+	addresses []string) (map[string]*entity.SimplifiedToken, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getTokens")
 	defer span.End()
 
@@ -759,7 +759,7 @@ func (uc *BuildRouteUseCase) getTokens(
 		return nil, err
 	}
 
-	result := map[string]*entity.Token{}
+	result := map[string]*entity.SimplifiedToken{}
 	for _, token := range tokens {
 		result[token.Address] = token
 	}

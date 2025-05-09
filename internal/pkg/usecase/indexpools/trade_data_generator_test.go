@@ -15,7 +15,7 @@ import (
 )
 
 func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
-	tokens := map[string]*entity.Token{
+	tokens := map[string]*entity.SimplifiedToken{
 		"token1": {
 			Address: "token1",
 		},

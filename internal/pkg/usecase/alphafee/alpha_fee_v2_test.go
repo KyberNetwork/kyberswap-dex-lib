@@ -277,12 +277,11 @@ func TestAlphaFeeV2Calculation(t *testing.T) {
 			)
 
 			prices := map[string]float64{}
-			tokens := map[string]dexlibEntity.Token{}
+			tokens := map[string]dexlibEntity.SimplifiedToken{}
 
 			for _, tokenID := range tokenIDs {
-				tokens[tokenID] = dexlibEntity.Token{
+				tokens[tokenID] = dexlibEntity.SimplifiedToken{
 					Address:  tokenID,
-					Symbol:   tokenID,
 					Decimals: 6,
 				}
 				prices[tokenID] = 1.0
@@ -336,15 +335,13 @@ func TestAlphaFeeV2_GetFairPrice(t *testing.T) {
 			"tokenIn":  1.0,
 			"tokenOut": 100.0,
 		},
-		Tokens: map[string]dexlibEntity.Token{
+		Tokens: map[string]dexlibEntity.SimplifiedToken{
 			"tokenIn": {
 				Address:  "tokenIn",
-				Symbol:   "tokenIn",
 				Decimals: 0,
 			},
 			"tokenOut": {
 				Address:  "tokenOut",
-				Symbol:   "tokenOut",
 				Decimals: 1,
 			},
 		},

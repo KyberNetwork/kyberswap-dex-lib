@@ -97,9 +97,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 
 func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock up tokens
-	tokenWETH := &entity.Token{
-		Name:     "Wrapped Ether",
-		Symbol:   "WETH",
+	tokenWETH := &entity.SimplifiedToken{
 		Address:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 		Decimals: 18,
 	}
@@ -109,9 +107,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 			Sell: big.NewFloat(1576.07366),
 		},
 	}
-	tokenUSDT := &entity.Token{
-		Name:     "Tether USD",
-		Symbol:   "USDT",
+	tokenUSDT := &entity.SimplifiedToken{
 		Address:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 		Decimals: 6,
 	}
@@ -149,7 +145,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 	tokenRepository.EXPECT().
 		FindByAddresses(gomock.Any(), gomock.Any()).
-		Return([]*entity.Token{tokenWETH, tokenUSDT}, nil).
+		Return([]*entity.SimplifiedToken{tokenWETH, tokenUSDT}, nil).
 		AnyTimes()
 
 	onchainpriceRepo := getroute.NewMockIOnchainPriceRepository(ctrl)

@@ -31,7 +31,7 @@ func TestAlphaFee_Calculation(t *testing.T) {
 		"O1": 1.0,
 		"O2": 3.0,
 	}
-	tokens := map[string]dexlibEntity.Token{
+	tokens := map[string]dexlibEntity.SimplifiedToken{
 		"I": {
 			Address:  "I",
 			Decimals: 6,

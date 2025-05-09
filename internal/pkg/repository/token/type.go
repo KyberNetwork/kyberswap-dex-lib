@@ -13,7 +13,7 @@ const (
 
 type Config struct {
 	Redis   RedisRepositoryConfig `mapstructure:"redis"`
-	GoCache RistrettoConfig       `mapstructure:"ristretto"`
+	GoCache *RistrettoConfig      `mapstructure:"ristretto"`
 	Http    HttpConfig            `mapstructure:"http"`
 }
 
@@ -22,17 +22,21 @@ type RedisRepositoryConfig struct {
 }
 
 type RistrettoConfig struct {
-	ChainID valueobject.ChainID `mapstruct:"chainId"`
+	ChainID             valueobject.ChainID `mapstruct:"chainId"`
+	WhitelistedTokenSet map[string]bool     `mapstructure:"whitelistedTokenSet"`
 
 	Token struct {
-		Expiration      time.Duration `mapstructure:"expiration"`
-		CleanupInterval time.Duration `mapstructure:"cleanupInterval"`
+		Cost        int64         `mapstructure:"cost"`
+		NumCounters int64         `mapstructure:"numCounters"`
+		MaxCost     int64         `mapstructure:"maxCost"`
+		BufferItems int64         `mapstructure:"bufferItems"`
+		TTL         time.Duration `mapstructure:"ttl"`
 	} `mapstructure:"token"`
 
-	Decimal struct {
+	TokenInfo struct {
 		Cost        int64 `mapstructure:"cost"`
 		NumCounters int64 `mapstructure:"numCounters"`
 		MaxCost     int64 `mapstructure:"maxCost"`
 		BufferItems int64 `mapstructure:"bufferItems"`
-	} `mapstructure:"decimal"`
+	} `mapstructure:"tokenInfo"`
 }

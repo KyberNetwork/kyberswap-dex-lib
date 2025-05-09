@@ -72,7 +72,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -180,7 +180,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -312,7 +312,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -444,7 +444,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -577,7 +577,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -728,7 +728,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -953,7 +953,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 							{Address: "0x6b175474e89094c44da98b954eedeac495271d0f", Decimals: 18},
@@ -1035,7 +1035,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -1131,7 +1131,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -1202,7 +1202,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -1282,7 +1282,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0x6b175474e89094c44da98b954eedeac495271d0f", Decimals: 18},
 						},
@@ -1379,7 +1379,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0x6b175474e89094c44da98b954eedeac495271d0f", Decimals: 18},
 						},
@@ -1469,7 +1469,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				tokenRepo.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Token{
+						[]*entity.SimplifiedToken{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0x6b175474e89094c44da98b954eedeac495271d0f", Decimals: 18},
 						},
@@ -1685,7 +1685,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 					},
@@ -1814,7 +1814,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
@@ -1911,7 +1911,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 					},
@@ -2032,7 +2032,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -2154,7 +2154,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -2260,7 +2260,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					Do(func(arg0, arg1 interface{}) {
 						defer wg.Done()
 					}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -2402,7 +2402,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "correlatedToken1", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -2535,7 +2535,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "correlatedTokenHoneypot1", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -2649,7 +2649,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					FindByAddresses(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
 				}).Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						{Address: "wlToken1", Decimals: 6},
@@ -3087,7 +3087,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 
 			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
-			tokenRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Token{
+			tokenRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.SimplifiedToken{
 				{
 					Address:  command.RouteSummary.TokenIn,
 					Decimals: 1,
@@ -3297,7 +3297,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			tokenRepository.EXPECT().
 				FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
-					[]*entity.Token{
+					[]*entity.SimplifiedToken{
 						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 					},

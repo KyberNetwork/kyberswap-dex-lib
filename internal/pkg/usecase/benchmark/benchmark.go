@@ -200,11 +200,11 @@ package benchmark
 //	return uc.poolRepository.FindByAddresses(ctx, poolAddresses)
 //}
 //
-//// getTokenByAddress fetches token data and returns a map from token address to entity.Token
+//// getTokenByAddress fetches token data and returns a map from token address to entity.SimplifiedToken
 //func (uc *benchmarkUseCase) getTokenByAddress(
 //	ctx context.Context,
 //	tokenAddresses []string,
-//) (map[string]entity.Token, error) {
+//) (map[string]entity.SimplifiedToken, error) {
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.getTokenByAddress")
 //	defer span.End()
 //
@@ -213,7 +213,7 @@ package benchmark
 //		return nil, err
 //	}
 //
-//	tokenByAddress := make(map[string]entity.Token, len(tokens))
+//	tokenByAddress := make(map[string]entity.SimplifiedToken, len(tokens))
 //	for _, token := range tokens {
 //		tokenByAddress[token.Address] = token
 //	}

@@ -192,7 +192,7 @@ func (a *bundledAggregator) getStateByBundledAddress(
 func (a *bundledAggregator) findBestBundledRoute(
 	ctx context.Context,
 	params *types.AggregateBundledParams,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) ([]*valueobject.RouteSummary, error) {

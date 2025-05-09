@@ -48,7 +48,7 @@ type testcase struct {
 }
 
 var (
-	tokenByAddress = map[string]*entity.Token{
+	tokenByAddress = map[string]*entity.SimplifiedToken{
 		"a":   {Address: "a"},
 		"b":   {Address: "b"},
 		"c":   {Address: "c"},
@@ -145,7 +145,7 @@ func TestFindRoute(t *testing.T) {
 		}
 	})
 
-	tokenAddressList := lo.MapToSlice(tokenByAddress, func(adr string, _ *entity.Token) string { return adr })
+	tokenAddressList := lo.MapToSlice(tokenByAddress, func(adr string, _ *entity.SimplifiedToken) string { return adr })
 	poolByAddress := lo.SliceToMap(poolEntities, func(poolEntity entity.Pool) (string, poolpkg.IPoolSimulator) {
 		pool, _ := uni.NewPoolSimulator(poolEntity)
 		if strings.Contains(poolEntity.Address, "-threshold-") {

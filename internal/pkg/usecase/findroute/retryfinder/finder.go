@@ -153,7 +153,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 	return nil
 }
 
-func findNewBestPoolWithAmount(ctx context.Context, input findroute.Input, data findroute.FinderData, inp, currentOutPut *valueobject.TokenAmount, typeSet sets.Set[string], poolsUsed sets.Set[string], currentGas int64, tokenOut *entity.Token) (string, *valueobject.TokenAmount, int64) {
+func findNewBestPoolWithAmount(ctx context.Context, input findroute.Input, data findroute.FinderData, inp, currentOutPut *valueobject.TokenAmount, typeSet sets.Set[string], poolsUsed sets.Set[string], currentGas int64, tokenOut *entity.SimplifiedToken) (string, *valueobject.TokenAmount, int64) {
 	var (
 		bestNewPool       = ""
 		newGas      int64 = 0

@@ -73,13 +73,13 @@ func CollectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses 
 func ConvertToPathfinderParams(
 	whitelistedTokenSet map[string]bool,
 	params *types.AggregateParams,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) finderEntity.FinderParams {
 	gasPriceBI, _ := params.GasPrice.Int(nil)
 
-	tokens := lo.MapEntries(tokenByAddress, func(k string, v *entity.Token) (string, entity.Token) {
+	tokens := lo.MapEntries(tokenByAddress, func(k string, v *entity.SimplifiedToken) (string, entity.SimplifiedToken) {
 		return k, *v
 	})
 
@@ -128,7 +128,7 @@ func ConvertToPathfinderParams(
 func CollectTokenPrices(
 	params *types.AggregateParams,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 ) map[string]float64 {
 	prices := map[string]float64{}
 

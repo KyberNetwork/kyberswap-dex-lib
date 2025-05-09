@@ -106,7 +106,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 func (a *aggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*valueobject.RouteSummaries, error) {
@@ -190,14 +190,14 @@ func (a *aggregator) getStateByAddress(
 	)
 }
 
-// getTokenByAddress receives a list of address and returns a map of address to entity.Token
-func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.Token, error) {
+// getTokenByAddress receives a list of address and returns a map of address to entity.SimplifiedToken
+func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]*entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.SimplifiedToken, len(tokens))
 	for _, token := range tokens {
 		tokenByAddress[token.Address] = token
 	}

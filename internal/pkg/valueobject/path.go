@@ -58,7 +58,7 @@ type Path struct {
 	PoolAddresses []string `json:"poolAddresses"`
 
 	// Tokens list tokens that path swap through
-	Tokens []*entity.Token `json:"tokens"`
+	Tokens []*entity.SimplifiedToken `json:"tokens"`
 }
 
 func (p *Path) Clone() *Path {
@@ -98,7 +98,7 @@ func NewPath(
 	ctx context.Context,
 	poolBucket *PoolBucket,
 	poolAddresses []string,
-	tokens []*entity.Token,
+	tokens []*entity.SimplifiedToken,
 	tokenAmountIn TokenAmount,
 	tokenOut string,
 	tokenOutPriceUSD float64,

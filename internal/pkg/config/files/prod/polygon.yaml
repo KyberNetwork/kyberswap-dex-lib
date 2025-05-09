@@ -562,14 +562,19 @@ repository:
       prefix: *chainName
     ristretto:
       chainId: *chainId
+      whitelistedTokenSet: *whitelistedTokenSet
       token:
-        expiration: -1
-        cleanupInterval: -1
-      decimal:
+        numCounters: 20000
+        maxCost: 2000
+        bufferItems: 64
+        cost: 1
+        ttl: 1800s
+      tokenInfo:
         numCounters: 10000
         maxCost: 1000
         bufferItems: 64
         cost: 1
+        ttl: 1800s
     http:
       timeout: 5s
       baseUrl: "http://token-catalog-api.core-cluster.gke.production.internal:80"

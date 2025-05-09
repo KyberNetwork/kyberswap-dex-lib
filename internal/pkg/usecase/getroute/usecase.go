@@ -256,13 +256,13 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	}, nil
 }
 
-func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (map[string]entity.Token, error) {
+func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (map[string]entity.SimplifiedToken, error) {
 	tokens, err := u.tokenRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]entity.Token, len(tokens))
+	tokenByAddress := make(map[string]entity.SimplifiedToken, len(tokens))
 	for _, token := range tokens {
 		tokenByAddress[token.Address] = *token
 	}

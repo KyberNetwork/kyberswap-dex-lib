@@ -30,11 +30,11 @@ type IBlacklistIndexPoolRepository interface {
 	GetBlacklistIndexPools(ctx context.Context) mapset.Set[string]
 }
 
-// ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
+// ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.SimplifiedToken
 //
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/token_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools ITokenRepository
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/onchain_price_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IOnchainPriceRepository
