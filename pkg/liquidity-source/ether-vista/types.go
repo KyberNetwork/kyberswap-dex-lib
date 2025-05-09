@@ -21,8 +21,9 @@ type Extra struct {
 }
 
 type PoolMeta struct {
-	RouterAddress string `json:"routerAddress"`
-	BlockNumber   uint64 `json:"blockNumber"`
+	RouterAddress   string `json:"routerAddress"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type Gas struct {

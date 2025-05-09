@@ -38,6 +38,10 @@ func (t *Pool) CalculateLimit() map[string]*big.Int {
 	return nil
 }
 
+func (t *Pool) GetApprovalAddress(tokenIn, tokenOut string) string {
+	return ""
+}
+
 // CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
 // Pools with custom logic should override this method
 func (t *Pool) CanSwapTo(address string) []string {
@@ -56,7 +60,7 @@ func (t *Pool) CanSwapTo(address string) []string {
 	return result
 }
 
-// by default pool is bi-directional so just call CanSwapTo here
+// By default pool is bi-directional so just call CanSwapTo here
 // Pools with custom logic should override this method
 func (t *Pool) CanSwapFrom(address string) []string {
 	return t.CanSwapTo(address)
@@ -101,7 +105,7 @@ type UpdateBalanceParams struct {
 	Fee            TokenAmount
 	SwapInfo       interface{}
 
-	//Inventory is a reference to a per-request inventory balances.
+	// Inventory is a reference to a per-request inventory balances.
 	// key is tokenAddress, balance is big.Float
 	// Must use reference (not copy)
 	SwapLimit SwapLimit

@@ -65,7 +65,7 @@ type IPoolSimulator interface {
 	GetAddress() string
 	GetExchange() string
 	GetType() string
-	GetMetaInfo(tokenIn string, tokenOut string) interface{}
+	GetMetaInfo(tokenIn, tokenOut string) any
 	GetTokenIndex(address string) int
 	CalculateLimit() map[string]*big.Int
 }
@@ -96,4 +96,9 @@ type ITicksBasedPoolTracker interface {
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
 	GetKeys(ctx context.Context) ([]string, error)
+}
+
+type IPoolApprover interface {
+	// GetApprovalAddress returns the address that should be approved to spend tokenIn
+	GetApprovalAddress(tokenIn, tokenOut string) string
 }

@@ -49,6 +49,9 @@ type QuoteResult struct {
 	Calldata string `json:"calldata"`
 	// Router Swaap router address
 	Router string `json:"router"`
+
+	// ApprovalAddress is Router
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type OrderType int

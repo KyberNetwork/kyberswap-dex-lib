@@ -120,6 +120,11 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	isDeposit := tokenIn == s.Info.Tokens[0] && tokenOut == s.Info.Tokens[1]
+	return lo.Ternary(!isDeposit, tokenOut, "")
+}
+
 // deposit ETH and mint rETH
 func (s *PoolSimulator) deposit(amount *big.Int) (*pool.CalcAmountOutResult, error) {
 	if !s.depositEnabled {
