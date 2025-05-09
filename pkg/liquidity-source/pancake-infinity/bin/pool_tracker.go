@@ -2,6 +2,7 @@ package bin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -39,6 +40,20 @@ func NewPoolTracker(
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
 	}, nil
+}
+
+func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
+	rpcData, err := t.fetchRpcState(ctx, &p, blockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcDataBytes, err := json.Marshal(rpcData)
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcDataBytes, nil
 }
 
 func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
@@ -82,9 +97,9 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	var (
-		rpcData     *FetchRPCResult
-		newReserves Reserve
-		bins        []Bin
+		rpcData         *FetchRPCResult
+		newPoolReserves entity.PoolReserves
+		bins            []Bin
 	)
 
 	g := pool.New().WithContext(ctx)
@@ -104,7 +119,7 @@ func (t *PoolTracker) GetNewPoolState(
 	g.Go(func(context.Context) error {
 		var err error
 
-		bins, newReserves, err = t.getBinsFromSubgraph(ctx, p.Address)
+		bins, newPoolReserves, err = t.getBinsFromSubgraph(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -134,7 +149,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{newReserves.ReserveX.String(), newReserves.ReserveY.String()}
+	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 
@@ -143,7 +158,7 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress string) ([]Bin, Reserve, error) {
+func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress string) ([]Bin, entity.PoolReserves, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
 		"dexID":       t.config.DexID,
@@ -152,12 +167,11 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 	var (
 		allowSubgraphError = t.config.IsAllowSubgraphError()
 
-		lastBinId    int32 = -1
-		unitX, unitY *big.Float
-		bins         []Bin
-
-		newReserveX, newReserveY = big.NewInt(0), big.NewInt(0)
-		// ok                       bool
+		lastBinId       int32 = -1
+		unitX, unitY    *big.Float
+		bins            []Bin
+		newPoolReserves = entity.PoolReserves{"0", "0"}
+		err             error
 	)
 
 	for {
@@ -175,7 +189,7 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 						"allowSubgraphError": allowSubgraphError,
 					}).Error("failed to query subgraph")
 
-					return nil, Reserve{}, err
+					return nil, entity.PoolReserves{}, err
 				}
 			} else {
 				l.WithFields(logger.Fields{
@@ -183,7 +197,7 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 					"allowSubgraphError": allowSubgraphError,
 				}).Error("failed to query subgraph")
 
-				return nil, Reserve{}, err
+				return nil, entity.PoolReserves{}, err
 			}
 		}
 
@@ -191,42 +205,39 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 			break
 		}
 
-		// if newReserveX.String() != resp.Pair.ReserveX {
-		// 	_, ok = newReserveX.SetString(resp.Pair.ReserveX, 10)
-		// 	if !ok {
-		// 		return nil, Reserve{}, shared.ErrInvalidReserve
-		// 	}
-
-		// }
-
-		// if newReserveY.String() != resp.Pair.ReserveY {
-		// 	_, ok = newReserveY.SetString(resp.Pair.ReserveY, 10)
-		// 	if !ok {
-		// 		return nil, Reserve{}, shared.ErrInvalidReserve
-		// 	}
-		// }
-
 		if unitX == nil {
-			decimalX, err := strconv.ParseInt(resp.Pair.TokenX.Decimals, 10, 64)
+			unitX, err = parseTokenDecimal(resp.Pair.TokenX.Decimals)
 			if err != nil {
-				return nil, Reserve{}, err
+				return nil, entity.PoolReserves{}, err
 			}
-			unitX = bignumber.TenPowDecimals(uint8(decimalX))
 		}
 
 		if unitY == nil {
-			decimalY, err := strconv.ParseInt(resp.Pair.TokenY.Decimals, 10, 64)
+			unitY, err = parseTokenDecimal(resp.Pair.TokenY.Decimals)
 			if err != nil {
-				return nil, Reserve{}, err
+				return nil, entity.PoolReserves{}, err
 			}
-			unitY = bignumber.TenPowDecimals(uint8(decimalY))
+		}
+
+		if newPoolReserves[0] != resp.Pair.ReserveX {
+			newPoolReserves[0], err = parsePoolReserve(resp.Pair.ReserveX, unitX)
+			if err != nil {
+				return nil, entity.PoolReserves{}, err
+			}
+		}
+
+		if newPoolReserves[1] != resp.Pair.ReserveY {
+			newPoolReserves[1], err = parsePoolReserve(resp.Pair.ReserveY, unitY)
+			if err != nil {
+				return nil, entity.PoolReserves{}, err
+			}
 		}
 
 		subgraphBins := resp.Pair.Bins
 		for _, subgraphBin := range subgraphBins {
 			bin, err := transformSubgraphBin(subgraphBin, unitX, unitY)
 			if err != nil {
-				return nil, Reserve{}, err
+				return nil, entity.PoolReserves{}, err
 			}
 
 			bins = append(bins, bin)
@@ -243,24 +254,27 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 		return bins[i].ID < bins[j].ID
 	})
 
-	return bins, Reserve{
-		ReserveX: newReserveX,
-		ReserveY: newReserveY,
-	}, nil
+	return bins, newPoolReserves, nil
 }
 
-func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := t.fetchRpcState(ctx, &p, blockNumber)
+func parseTokenDecimal(decimals string) (*big.Float, error) {
+	decimalX, err := strconv.ParseInt(decimals, 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse token decimals: %w", err)
 	}
 
-	rpcDataBytes, err := json.Marshal(rpcData)
-	if err != nil {
-		return nil, err
+	return bignumber.TenPowDecimals(uint8(decimalX)), nil
+}
+
+func parsePoolReserve(reserve string, unit *big.Float) (string, error) {
+	reserveF, ok := new(big.Float).SetString(reserve)
+	if !ok {
+		return "", errors.New("can not convert pool's reserve from string to big.Float")
 	}
 
-	return rpcDataBytes, nil
+	reserveInt, _ := new(big.Float).Mul(reserveF, unit).Int(nil)
+
+	return reserveInt.String(), nil
 }
 
 func transformSubgraphBin(
@@ -270,13 +284,13 @@ func transformSubgraphBin(
 ) (Bin, error) {
 	reserveX, ok := new(big.Float).SetString(bin.ReserveX)
 	if !ok {
-		return Bin{}, fmt.Errorf("[bin: %v] can not convert reserveX from string to uint256", bin.BinID)
+		return Bin{}, fmt.Errorf("[bin: %v] can not convert bin's reserveX from string to big.Float", bin.BinID)
 	}
 	reserveXInt, _ := new(big.Float).Mul(reserveX, unitX).Int(nil)
 
 	reserveY, ok := new(big.Float).SetString(bin.ReserveY)
 	if !ok {
-		return Bin{}, fmt.Errorf("[bin: %v] can not convert reserveY from string to uint256", bin.BinID)
+		return Bin{}, fmt.Errorf("[bin: %v] can not convert bin's reserveY from string to big.Float", bin.BinID)
 	}
 	reserveYInt, _ := new(big.Float).Mul(reserveY, unitY).Int(nil)
 
