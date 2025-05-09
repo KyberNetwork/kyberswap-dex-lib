@@ -120,11 +120,11 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 
 		if !bin.IsEmpty(!swapForY) {
 			if exactIn {
-				amountsInWithFees, amountsOutOfBin, totalFee, err = bin.GetAmountsOut(swapFee, p.binStep, swapForY, p.activeId, amountsLeft)
+				amountsInWithFees, amountsOutOfBin, totalFee, err = bin.GetAmountsOut(swapFee, p.binStep, swapForY, amountsLeft)
 				amountsLeft.Sub(amountsLeft, amountsInWithFees)
 				amountsUnspecified.Add(&amountsUnspecified, amountsOutOfBin)
 			} else {
-				amountsInWithFees, amountsOutOfBin, totalFee, err = bin.GetAmountsIn(swapFee, p.binStep, swapForY, p.activeId, amountsLeft)
+				amountsInWithFees, amountsOutOfBin, totalFee, err = bin.GetAmountsIn(swapFee, p.binStep, swapForY, amountsLeft)
 				amountsLeft.Sub(amountsLeft, amountsOutOfBin)
 				amountsUnspecified.Add(&amountsUnspecified, amountsInWithFees)
 			}
@@ -149,7 +149,7 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 				newBin.ReserveY.Sub(newBin.ReserveY, amountsInWithFees)
 			}
 
-			price, err := getPriceFromID(p.activeId, p.binStep)
+			price, err := getPriceFromID(id, p.binStep)
 			if err != nil {
 				return nil, err
 			}

@@ -6,6 +6,7 @@ type Config struct {
 	SubgraphAPI            string `json:"subgraphAPI"`
 	UniversalRouterAddress string `json:"universalRouterAddress"`
 	Permit2Address         string `json:"permit2Address"`
+	Multicall3Address      string `json:"multicall3Address"`
 	VaultAddress           string `json:"vaultAddress"`
 	CLPoolManagerAddress   string `json:"clPoolManagerAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`

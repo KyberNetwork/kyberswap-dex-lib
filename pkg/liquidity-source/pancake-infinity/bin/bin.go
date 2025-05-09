@@ -103,10 +103,9 @@ func (b *Bin) GetAmountsOut(
 	fee *uint256.Int,
 	binStep uint16,
 	swapForY bool,
-	activeID uint32,
 	amountsInLeft *uint256.Int,
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	price, err := getPriceFromID(activeID, binStep)
+	price, err := getPriceFromID(b.ID, binStep)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -164,10 +163,9 @@ func (b *Bin) GetAmountsIn(
 	fee *uint256.Int,
 	binStep uint16,
 	swapForY bool,
-	activeID uint32,
 	amountsOutLeft *uint256.Int,
 ) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	price, err := getPriceFromID(activeID, binStep)
+	price, err := getPriceFromID(b.ID, binStep)
 	if err != nil {
 		return nil, nil, nil, err
 	}

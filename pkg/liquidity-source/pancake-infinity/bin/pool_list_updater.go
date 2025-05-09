@@ -101,6 +101,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
 			PoolManagerAddress: common.HexToAddress(u.config.BinPoolManagerAddress),
+			Multicall3Address:  common.HexToAddress(u.config.Multicall3Address),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

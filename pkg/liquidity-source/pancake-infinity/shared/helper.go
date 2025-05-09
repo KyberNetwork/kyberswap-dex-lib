@@ -1,5 +1,7 @@
 package shared
 
+import "github.com/holiman/uint256"
+
 const (
 	HOOKS_BEFORE_INITIALIZE_OFFSET = iota
 	HOOKS_AFTER_INITIALIZE_OFFSET
@@ -17,12 +19,15 @@ const (
 	HOOKS_AFTER_BURN_RETURNS_DELTA_OFFSET
 )
 
-func hasOffsetEnabled(data []byte, bitOffset int) bool {
-	offset := bitOffset / 8
-	bitInByte := uint(bitOffset % 8)
+var (
+	_MASK1 = uint256.NewInt(0x1)
+)
 
-	bit := (data[offset] >> bitInByte) & 0x01
-	return bit == 1
+func hasOffsetEnabled(data []byte, offset int) bool {
+	res := new(uint256.Int).SetBytes32(data)
+	res.Rsh(res, uint(offset))
+
+	return res.And(res, _MASK1).Sign() != 0
 }
 
 func HasSwapPermissions(parameters []byte) bool {
