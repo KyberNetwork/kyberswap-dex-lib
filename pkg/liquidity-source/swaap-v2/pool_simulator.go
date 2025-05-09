@@ -16,10 +16,9 @@ import (
 )
 
 var (
-	ErrEmptyPriceLevels      = errors.New("empty price levels")
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
-	ErrPoolSwapped           = errors.New("pool swapped")
-	ErrOutOfLiquidity        = errors.New("out of liquidity")
+	ErrEmptyPriceLevels = errors.New("empty price levels")
+	ErrPoolSwapped      = errors.New("pool swapped")
+	ErrOutOfLiquidity   = errors.New("out of liquidity")
 )
 
 type (
@@ -33,11 +32,13 @@ type (
 		quoteToBasePriceLevels []PriceLevel
 		timestamp              int64
 		priceTolerance         float64
+		router                 string
 		gas                    Gas
 	}
 
 	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
+		Timestamp       int64  `json:"timestamp"`
+		ApprovalAddress string `json:"approvalAddress"`
 	}
 
 	PriceLevel struct {
@@ -53,6 +54,7 @@ type (
 		BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
 		QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
 		PriceTolerance         uint         `json:"priceTolerance"`
+		Router                 string       `json:"router,omitempty"`
 	}
 
 	SwapInfo struct {
@@ -89,6 +91,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
 		timestamp:              entityPool.Timestamp,
 		priceTolerance:         float64(extra.PriceTolerance),
+		router:                 strings.ToLower(extra.Router),
 		gas:                    DefaultGas,
 	}, nil
 }
@@ -120,7 +123,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return MetaInfo{
-		Timestamp: p.timestamp,
+		Timestamp:       p.timestamp,
+		ApprovalAddress: p.router,
 	}
 }
 

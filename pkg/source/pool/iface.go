@@ -65,9 +65,10 @@ type IPoolSimulator interface {
 	GetAddress() string
 	GetExchange() string
 	GetType() string
-	GetMetaInfo(tokenIn string, tokenOut string) interface{}
+	GetMetaInfo(tokenIn, tokenOut string) any
 	GetTokenIndex(address string) int
 	CalculateLimit() map[string]*big.Int
+	GetApprovalAddress(tokenIn, tokenOut string) string
 }
 
 type IPoolExactOutSimulator interface {

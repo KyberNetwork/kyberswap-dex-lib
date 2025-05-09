@@ -78,36 +78,36 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn, amountIn := params.TokenAmountIn.Token, uint256.MustFromBig(params.TokenAmountIn.Amount)
 
-	asset, err := p.beforeDeposit(tokenIn)
+	asset, err := s.beforeDeposit(tokenIn)
 	if err != nil {
 		return nil, err
 	}
 
-	shares, err := p.erc20Deposit(tokenIn, amountIn, utils.ZeroBI, asset)
+	shares, err := s.erc20Deposit(tokenIn, amountIn, utils.ZeroBI, asset)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = p.afterPublicDeposit(); err != nil {
+	if err = s.afterPublicDeposit(); err != nil {
 		return nil, err
 	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: shares.ToBig()},
 		Fee:            &poolpkg.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
-		Gas:            p.gas.Deposit,
+		Gas:            s.gas.Deposit,
 	}, nil
 }
 
-func (p *PoolSimulator) beforeDeposit(tokenIn string) (*Asset, error) {
-	if p.isTellerPaused {
+func (s *PoolSimulator) beforeDeposit(tokenIn string) (*Asset, error) {
+	if s.isTellerPaused {
 		return nil, ErrTellerPaused
 	}
 
-	asset, ok := p.assets[tokenIn]
+	asset, ok := s.assets[tokenIn]
 	if !ok || !asset.AllowDeposits {
 		return nil, ErrTellerAssetNotSupported
 	}
@@ -115,7 +115,7 @@ func (p *PoolSimulator) beforeDeposit(tokenIn string) (*Asset, error) {
 	return &asset, nil
 }
 
-func (p *PoolSimulator) erc20Deposit(
+func (s *PoolSimulator) erc20Deposit(
 	depositAsset string,
 	depositAmount, minimumMint *uint256.Int,
 	asset *Asset,
@@ -124,7 +124,7 @@ func (p *PoolSimulator) erc20Deposit(
 		return nil, ErrTellerZeroAssets
 	}
 
-	rateInQuote, err := p.getRateInQuoteSafe(depositAsset)
+	rateInQuote, err := s.getRateInQuoteSafe(depositAsset)
 	if err != nil {
 		return nil, err
 	}
@@ -149,17 +149,17 @@ func (p *PoolSimulator) erc20Deposit(
 	return shares, nil
 }
 
-func (p *PoolSimulator) getRateInQuoteSafe(quote string) (rateInQuote *uint256.Int, err error) {
-	if p.accountantState.IsPaused {
+func (s *PoolSimulator) getRateInQuoteSafe(quote string) (rateInQuote *uint256.Int, err error) {
+	if s.accountantState.IsPaused {
 		return nil, ErrAccountantPaused
 	}
 
-	if strings.EqualFold(quote, p.base) {
-		return uint256.MustFromBig(p.accountantState.ExchangeRate), nil
+	if strings.EqualFold(quote, s.base) {
+		return uint256.MustFromBig(s.accountantState.ExchangeRate), nil
 	} else {
-		data := p.rateProviders[quote]
-		quoteDecimals := p.tokenDecimals[quote]
-		exchangeRateInQuoteDecimals := p.changeDecimals(uint256.MustFromBig(p.accountantState.ExchangeRate), p.decimals, quoteDecimals)
+		data := s.rateProviders[quote]
+		quoteDecimals := s.tokenDecimals[quote]
+		exchangeRateInQuoteDecimals := s.changeDecimals(uint256.MustFromBig(s.accountantState.ExchangeRate), s.decimals, quoteDecimals)
 		if !data.IsPeggedToBase {
 			logger.WithFields(logger.Fields{
 				"quote":         quote,
@@ -172,7 +172,7 @@ func (p *PoolSimulator) getRateInQuoteSafe(quote string) (rateInQuote *uint256.I
 	return rateInQuote, nil
 }
 
-func (p *PoolSimulator) changeDecimals(amount *uint256.Int, fromDecimals, toDecimals uint8) *uint256.Int {
+func (s *PoolSimulator) changeDecimals(amount *uint256.Int, fromDecimals, toDecimals uint8) *uint256.Int {
 	if fromDecimals == toDecimals {
 		return amount
 	} else if fromDecimals < toDecimals {
@@ -182,19 +182,20 @@ func (p *PoolSimulator) changeDecimals(amount *uint256.Int, fromDecimals, toDeci
 	}
 }
 
-func (p *PoolSimulator) afterPublicDeposit() error {
+func (s *PoolSimulator) afterPublicDeposit() error {
 	// If the share lock period is greater than 0, then users will not be able to mint and transfer in the same tx
-	if p.shareLockPeriod > 0 {
+	if s.shareLockPeriod > 0 {
 		return ErrTellerSharesAreLocked
 	}
 	return nil
 }
 
-func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
+func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: p.Pool.Info.BlockNumber,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: strings.ToLower(tokenOut), // tokenOut is vault
 	}
 }
 

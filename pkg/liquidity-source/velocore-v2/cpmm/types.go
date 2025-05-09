@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 	"strings"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Gas struct {
@@ -30,14 +32,16 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Fee1e9        uint32   `json:"fee1e9"`
-	FeeMultiplier *big.Int `json:"feeMultiplier"`
+	ChainID       valueobject.ChainID `json:"chainId"`
+	Fee1e9        uint32              `json:"fee1e9"`
+	FeeMultiplier *big.Int            `json:"feeMultiplier"`
 }
 
 type Meta struct {
 	Vault            string `json:"vault"`
 	NativeTokenIndex int    `json:"nativeTokenIndex"`
 	BlockNumber      uint64 `json:"blockNumber"`
+	ApprovalAddress  string `json:"approvalAddress"`
 }
 
 type SwapInfo struct {

@@ -62,4 +62,5 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+	ApprovalAddress string         `json:"approvalAddress"`
 }

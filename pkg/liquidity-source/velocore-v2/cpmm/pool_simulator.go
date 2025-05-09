@@ -9,25 +9,27 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math/sd59x18"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	ErrInvalidToken         = errors.New("invalid token")
 	ErrInvalidTokenGrowth   = errors.New("invalid token growth")
 	ErrInvalidR             = errors.New("invalid r")
-	ErrNotFoundR            = errors.New("r not found")
 	ErrNonPositiveAmountOut = errors.New("non positive amount out")
 )
 
 type PoolSimulator struct {
 	pool.Pool
 
+	chainID         valueobject.ChainID
 	poolTokenNumber uint
 	weights         []*big.Int
 	sumWeight       *big.Int
@@ -77,6 +79,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool:                         pool.Pool{Info: info},
+		chainID:                      extra.ChainID,
 		poolTokenNumber:              staticExtra.PoolTokenNumber,
 		weights:                      staticExtra.Weights,
 		sumWeight:                    staticExtra.Weights[0],
@@ -144,12 +147,17 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return Meta{
 		Vault:            p.vault,
 		NativeTokenIndex: p.nativeTokenIndex,
 		BlockNumber:      p.Info.BlockNumber,
+		ApprovalAddress:  p.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsWrappedNative(tokenIn, p.chainID), "", p.vault)
 }
 
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/constant-product/ConstantProductPool.sol#L164

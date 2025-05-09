@@ -24,6 +24,7 @@ type PoolSimulator struct {
 	OneToZeroPriceLevels []PriceLevel
 	MinIn0, MinIn1       float64
 
+	router         string
 	timestamp      int64
 	priceTolerance uint
 	expirySecs     uint
@@ -58,6 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		MinIn0:               extra.MinIn0,
 		MinIn1:               extra.MinIn1,
 
+		router:         strings.ToLower(extra.Router),
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
 		expirySecs:     extra.ExpirySecs,
@@ -105,7 +107,10 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return MetaInfo{Timestamp: p.timestamp}
+	return MetaInfo{
+		Timestamp:       p.timestamp,
+		ApprovalAddress: p.router, // Router address should be obtained from the quote result.
+	}
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, minBase float64,
