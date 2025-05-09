@@ -83,6 +83,7 @@ type (
 		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
 		MinIn0               float64      `json:"min0"`
 		MinIn1               float64      `json:"min1"`
+		Router               string       `json:"router"`
 		PriceTolerance       uint         `json:"tlrnce,omitempty"`
 		ExpirySecs           uint         `json:"exp,omitempty"`
 	}
@@ -105,6 +106,7 @@ type (
 	}
 
 	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
+		Timestamp       int64  `json:"timestamp"`
+		ApprovalAddress string `json:"approvalAddress"`
 	}
 )

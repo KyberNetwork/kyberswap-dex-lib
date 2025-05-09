@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -108,11 +109,11 @@ func (s *PoolSimulator) GetPoolId() string {
 	return s.poolID
 }
 
-func (s *PoolSimulator) OnJoin(tokenIn string, amountIn *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) OnJoin(_ string, _ *uint256.Int) (*uint256.Int, error) {
 	return number.Zero, nil
 }
 
-func (s *PoolSimulator) OnExit(tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) OnExit(_ string, _ *uint256.Int) (*uint256.Int, error) {
 	return number.Zero, nil
 }
 
@@ -269,12 +270,13 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
-		TokenOutIndex: s.GetTokenIndex(tokenOut),
-		BlockNumber:   s.Info.BlockNumber,
+		Vault:           s.vault,
+		PoolID:          s.poolID,
+		TokenOutIndex:   s.GetTokenIndex(tokenOut),
+		BlockNumber:     s.Info.BlockNumber,
+		ApprovalAddress: s.vault,
 	}
 }
 

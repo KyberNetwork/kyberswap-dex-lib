@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -78,13 +79,18 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 
 	return PoolMetaInfo{
-		Router:      p.staticExtra.UniversalRouterAddress,
-		Permit2Addr: p.staticExtra.Permit2Address,
-		TokenIn:     tokenInAddress,
-		TokenOut:    tokenOutAddress,
-		Fee:         p.staticExtra.Fee,
-		TickSpacing: p.staticExtra.TickSpacing,
-		HookAddress: p.staticExtra.HooksAddress,
-		HookData:    []byte{},
+		Router:          p.staticExtra.UniversalRouterAddress,
+		Permit2Addr:     p.staticExtra.Permit2Address,
+		TokenIn:         tokenInAddress,
+		TokenOut:        tokenOutAddress,
+		Fee:             p.staticExtra.Fee,
+		TickSpacing:     p.staticExtra.TickSpacing,
+		HookAddress:     p.staticExtra.HooksAddress,
+		HookData:        []byte{},
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	return strings.ToLower(p.staticExtra.Permit2Address.String())
 }

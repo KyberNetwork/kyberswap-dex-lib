@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
@@ -19,9 +20,7 @@ import (
 
 var (
 	ErrSameBasePoolSwapNotAllowed = errors.New("swapping between tokens in the same base pool is not allowed")
-	ErrInvalidSwapFeePercentage   = errors.New("invalid swap fee percentage")
 	ErrPoolPaused                 = errors.New("pool is paused")
-	ErrInvalidAmp                 = errors.New("invalid amp")
 	ErrNotTwoTokens               = errors.New("not two tokens")
 	ErrBatchSwapDisabled          = errors.New("batch swap is disabled")
 )
@@ -306,7 +305,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return s.swapFromBase2Main(tokenAmountIn.Token, tokenOut, amountIn)
 	}
 
-	if indexIn >= 0 && indexOut < 0 {
+	if indexIn >= 0 {
 		return s.swapFromMain2Base(tokenAmountIn.Token, tokenOut, amountIn)
 	}
 
@@ -622,12 +621,13 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, tokenOut string) any {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
-		TokenOutIndex: s.GetTokenIndex(tokenOut),
-		BlockNumber:   s.Info.BlockNumber,
+		Vault:           s.vault,
+		PoolID:          s.poolID,
+		TokenOutIndex:   s.GetTokenIndex(tokenOut),
+		BlockNumber:     s.Info.BlockNumber,
+		ApprovalAddress: s.vault,
 	}
 }
 
@@ -739,32 +739,32 @@ func _downscaleUp(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int
 	return math.FixedPoint.DivUp(amount, scalingFactor)
 }
 
-func (t *PoolSimulator) GetTokens() []string {
+func (s *PoolSimulator) GetTokens() []string {
 	tokenSet := make(map[string]struct{})
 
-	for _, basePool := range t.basePools {
+	for _, basePool := range s.basePools {
 		for _, token := range basePool.GetTokens() {
 			tokenSet[token] = struct{}{}
 		}
 	}
 
-	for _, token := range t.GetInfo().Tokens {
+	for _, token := range s.GetInfo().Tokens {
 		tokenSet[token] = struct{}{}
 	}
 
 	return lo.Keys(tokenSet)
 }
 
-func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+func (s *PoolSimulator) CanSwapFrom(address string) []string { return s.CanSwapTo(address) }
 
-func (t *PoolSimulator) CanSwapTo(address string) []string {
+func (s *PoolSimulator) CanSwapTo(address string) []string {
 	result := make(map[string]struct{})
-	var tokenIndex = t.GetTokenIndex(address)
+	var tokenIndex = s.GetTokenIndex(address)
 
 	if tokenIndex < 0 {
 		found := false // Flag to check if any base pool contains the token
 
-		for _, basePool := range t.basePools {
+		for _, basePool := range s.basePools {
 			if basePool.GetTokenIndex(address) >= 0 {
 				found = true
 
@@ -785,18 +785,18 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 		}
 
 		// Add tokens from main pool
-		for _, poolToken := range t.Info.Tokens {
+		for _, poolToken := range s.Info.Tokens {
 			result[poolToken] = struct{}{}
 		}
 	} else {
 		// Add tokens from main pool except itself
-		for _, poolToken := range t.Info.Tokens {
+		for _, poolToken := range s.Info.Tokens {
 			if poolToken != address {
 				result[poolToken] = struct{}{}
 			}
 		}
 
-		for _, basePool := range t.basePools {
+		for _, basePool := range s.basePools {
 			for _, underlyingToken := range basePool.GetTokens() {
 				if underlyingToken != address {
 					result[underlyingToken] = struct{}{}
@@ -808,17 +808,17 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	return lo.Keys(result)
 }
 
-func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	var result = make([]pool.IPoolSimulator, 0, len(t.basePools))
-	for _, basePool := range t.basePools {
+func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	var result = make([]pool.IPoolSimulator, 0, len(s.basePools))
+	for _, basePool := range s.basePools {
 		result = append(result, basePool)
 	}
 
 	return result
 }
 
-func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+func (s *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
 	if basePool, ok := basePool.(shared.IBasePool); ok {
-		t.basePools[basePool.GetAddress()] = basePool
+		s.basePools[basePool.GetAddress()] = basePool
 	}
 }
