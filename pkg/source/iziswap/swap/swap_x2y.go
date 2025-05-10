@@ -138,10 +138,7 @@ func SwapX2Y(amount *uint256.Int, lowPt int, pool PoolInfoU256) (SwapResult, err
 			break
 		}
 
-		nextPt := orderData.MoveX2Y(searchStart, pointDelta)
-		if nextPt < lowPt {
-			nextPt = lowPt
-		}
+		nextPt := max(orderData.MoveX2Y(searchStart, pointDelta), lowPt)
 
 		if liquidity.Sign() == 0 {
 			// no liquidity in the range [nextPt, st.currentPoint]
@@ -297,10 +294,7 @@ func SwapX2YDesireY(desireY *uint256.Int, lowPt int, pool PoolInfoU256) (SwapRes
 			break
 		}
 
-		nextPt := orderData.MoveX2Y(searchStart, pointDelta)
-		if nextPt < lowPt {
-			nextPt = lowPt
-		}
+		nextPt := max(orderData.MoveX2Y(searchStart, pointDelta), lowPt)
 
 		// in [nextPt, st.currentPoint)
 		if liquidity.Sign() == 0 {

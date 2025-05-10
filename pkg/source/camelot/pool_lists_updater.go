@@ -171,10 +171,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 
 func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, pairCount uint64) ([]common.Address, error) {
 	start := offset
-	end := offset + uint64(d.cfg.NewPoolLimit)
-	if end > pairCount {
-		end = pairCount
-	}
+	end := min(offset+uint64(d.cfg.NewPoolLimit), pairCount)
 
 	if start >= end {
 		return []common.Address{}, nil

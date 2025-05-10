@@ -21,10 +21,7 @@ func FetchTickSpacings(
 	tickSpacings := make(map[string]uint64, len(poolAddresses))
 
 	for i := 0; i < len(poolAddresses); i += rpcChunkSize {
-		endIndex := i + rpcChunkSize
-		if endIndex > len(poolAddresses) {
-			endIndex = len(poolAddresses)
-		}
+		endIndex := min(i+rpcChunkSize, len(poolAddresses))
 
 		chunk := poolAddresses[i:endIndex]
 
