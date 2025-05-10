@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
@@ -60,4 +61,5 @@ type PoolMetaInfo struct {
 	TickSpacing int32          `json:"tickSpacing"`
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
+	PriceLimit  *uint256.Int   `json:"priceLimit"`
 }
