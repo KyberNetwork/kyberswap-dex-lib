@@ -191,6 +191,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if p.activeId == 0 {
 		return nil, shared.ErrUninitializedPool
 	}
+
 	res, err := p.swap(true, indexIn == 0, tokenIn.Amount)
 	if err != nil {
 		return nil, err
@@ -222,6 +223,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, shared.ErrInvalidToken
+	}
+
+	if p.activeId == 0 {
+		return nil, shared.ErrUninitializedPool
 	}
 
 	res, err := p.swap(false, indexIn == 0, tokenOut.Amount)
