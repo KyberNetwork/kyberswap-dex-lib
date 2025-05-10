@@ -121,4 +121,5 @@ var (
 	ErrUnsafeXi            = errors.New("unsafe values x[i]")
 	ErrCoinIndexOutOfRange = errors.New("coin index out of range")
 	ErrExchange0Coins      = errors.New("do not exchange 0 coins")
+	ErrTweakPrice          = errors.New("tweak price")
 )
