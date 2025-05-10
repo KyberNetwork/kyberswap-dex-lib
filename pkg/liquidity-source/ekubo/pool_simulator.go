@@ -6,46 +6,34 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
-	ekubopool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type EkuboPool = quoting.Pool
+type EkuboPool = Pool
 
 type PoolSimulator struct {
 	pool.Pool
 	EkuboPool
-	Core string
+	Core common.Address
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
-		return nil, err
-	}
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshalling static extra: %w", err)
 	}
 
-	var ekuboPool EkuboPool
-	switch staticExtra.ExtensionType {
-	case ekubopool.Base:
-		p := ekubopool.NewBasePool(staticExtra.PoolKey, extra.PoolState)
-		ekuboPool = &p
-	case ekubopool.Oracle:
-		p := ekubopool.NewOraclePool(staticExtra.PoolKey, extra.PoolState)
-		ekuboPool = &p
-	default:
-		return nil, fmt.Errorf("unknown pool extension %v, %v",
-			staticExtra.ExtensionType, staticExtra.PoolKey.Config.Extension)
+	ekuboPool, err := unmarshalPool([]byte(entityPool.Extra), &staticExtra)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling extra: %w", err)
 	}
 
 	tokens := lo.Map(entityPool.Tokens, func(item *entity.PoolToken, _ int) string {
@@ -73,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenIn := params.TokenAmountIn.Token
 
-	quote, err := p.Quote(
+	quote, err := p.quoteWithZeroChecksAndBaseGasCost(
 		params.TokenAmountIn.Amount,
 		strings.EqualFold(tokenIn, p.GetTokens()[1]),
 	)
@@ -103,7 +91,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	tokenOut := params.TokenAmountOut.Token
 	input := new(big.Int).Neg(params.TokenAmountOut.Amount)
 
-	quote, err := p.Quote(
+	quote, err := p.quoteWithZeroChecksAndBaseGasCost(
 		input,
 		strings.EqualFold(tokenOut, p.GetTokens()[1]),
 	)
@@ -117,7 +105,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Amount: quote.CalculatedAmount,
 		},
 		Fee: &pool.TokenAmount{
-			Token:  params.TokenAmountOut.Token,
+			Token:  params.TokenIn,
 			Amount: quote.FeesPaid,
 		},
 		RemainingTokenAmountOut: &pool.TokenAmount{
@@ -129,8 +117,27 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
+func (p *PoolSimulator) quoteWithZeroChecksAndBaseGasCost(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+	if amount.Sign() == 0 {
+		return nil, ErrZeroAmount
+	}
+
+	quote, err := p.Quote(amount, isToken1)
+	if err != nil {
+		return nil, err
+	}
+
+	if quote.CalculatedAmount.Sign() == 0 {
+		return nil, ErrZeroAmount
+	}
+
+	quote.Gas += quoting.BaseGasCost
+
+	return quote, nil
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	p.SetState(params.SwapInfo.(quoting.SwapInfo).StateAfter)
+	p.SetSwapState(params.SwapInfo.(quoting.SwapInfo).SwapStateAfter)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {

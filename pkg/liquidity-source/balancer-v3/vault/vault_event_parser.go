@@ -4,11 +4,12 @@ import (
 	"context"
 	"strings"
 
-	pooldecoder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
+	pooldecoder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
 )
 
 type Config struct {
@@ -28,10 +29,11 @@ func NewEventParser(config *Config) *EventParser {
 }
 
 func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string][]types.Log, error) {
-	vaultAddress, err := p.GetKey(ctx)
+	keys, err := p.GetKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
+	vaultAddress := keys[0]
 	addressLogs := make(map[string][]types.Log)
 	for _, log := range logs {
 		if log.Address != common.HexToAddress(vaultAddress) {
@@ -62,9 +64,9 @@ func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string]
 	return addressLogs, nil
 }
 
-func (p *EventParser) GetKey(ctx context.Context) (poolAddress string, err error) {
+func (p *EventParser) GetKeys(_ context.Context) ([]string, error) {
 	if p.config.Vault == "" {
-		return "", errors.New("vault address is not set")
+		return nil, errors.New("vault address is not set")
 	}
-	return strings.ToLower(p.config.Vault), nil
+	return []string{strings.ToLower(p.config.Vault)}, nil
 }

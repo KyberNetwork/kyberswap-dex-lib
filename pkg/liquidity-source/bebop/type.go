@@ -11,6 +11,7 @@ const (
 	ParamsBuyAmounts       QueryParams = "buy_amounts"
 	ParamsTakerAddress     QueryParams = "taker_address"
 	ParamsReceiverAddress  QueryParams = "receiver_address"
+	ParamsOriginAddress    QueryParams = "origin_address"
 	ParamsSource           QueryParams = "source"
 	ParamsApproveType      QueryParams = "approval_type"
 	ParamsSkipValidation   QueryParams = "skip_validation"
@@ -40,6 +41,8 @@ type QuoteParams struct {
 	TakerAddress string
 	// Address which will receive the taker tokens. (Defaults to taker_address if not specified)
 	ReceiverAddress string
+	// Address which is the original user of the quote
+	OriginAddress string
 	// Referral partner that will be associated with the quote
 	Source string
 	// Type of Approval: Standard/Permit/Permit2

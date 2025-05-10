@@ -26,7 +26,8 @@ type IPoolsListUpdaterWithDependencies interface {
 }
 
 type GetNewPoolStateParams struct {
-	Logs []types.Log
+	Logs         []types.Log
+	BlockHeaders map[uint64]entity.BlockHeader
 }
 
 type GetNewPoolStateWithOverridesParams struct {
@@ -35,7 +36,8 @@ type GetNewPoolStateWithOverridesParams struct {
 }
 
 type IPoolTrackerWithOverrides interface {
-	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool, params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
+	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool,
+		params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
 }
 
 type IPoolTracker interface {
@@ -75,6 +77,12 @@ type IPoolExactOutSimulator interface {
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 
+type IMetaPoolSimulator interface {
+	IPoolSimulator
+	GetBasePools() []IPoolSimulator      // get base pools
+	SetBasePool(basePool IPoolSimulator) // set base pool
+}
+
 type IPoolRFQ interface {
 	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
 	BatchRFQ(ctx context.Context, paramsSlice []RFQParams) ([]*RFQResult, error)
@@ -87,5 +95,5 @@ type ITicksBasedPoolTracker interface {
 
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
-	GetKey(ctx context.Context) (poolAddress string, err error)
+	GetKeys(ctx context.Context) ([]string, error)
 }

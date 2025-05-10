@@ -22,8 +22,9 @@ import (
 // 4. or even meta pool
 // At the moment, our code can only support base/plain pool and plain oracle pool
 type ICurveBasePool interface {
+	pool.IPoolSimulator
 	GetInfo() pool.PoolInfo
-	GetTokenIndex(address string) int
+
 	// GetVirtualPrice returns both vPrice and D
 	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
 	// GetDy recalculates `dCached` if it is nil
@@ -36,7 +37,7 @@ type ICurveBasePool interface {
 
 type PoolSimulator struct {
 	pool.Pool
-	BasePool       ICurveBasePool
+	basePool       ICurveBasePool
 	RateMultiplier *big.Int
 	InitialA       *big.Int
 	FutureA        *big.Int
@@ -97,7 +98,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 				Checked:    false,
 			},
 		},
-		BasePool:       basePool,
+		basePool:       basePool,
 		RateMultiplier: utils.NewBig10(staticExtra.RateMultiplier),
 		InitialA:       utils.NewBig10(extraStr.InitialA),
 		FutureA:        utils.NewBig10(extraStr.FutureA),
@@ -109,6 +110,16 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		APrecision:     aPrecision,
 		gas:            DefaultGas,
 	}, nil
+}
+
+func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	return []pool.IPoolSimulator{t.basePool}
+}
+
+func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
+	if curveBasePool, ok := basePool.(ICurveBasePool); ok {
+		t.basePool = curveBasePool
+	}
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -146,8 +157,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 	}
 	// check exchange_underlying
-	var baseInputIndex = t.BasePool.GetTokenIndex(tokenAmountIn.Token)
-	var baseOutputIndex = t.BasePool.GetTokenIndex(tokenOut)
+	var baseInputIndex = t.basePool.GetTokenIndex(tokenAmountIn.Token)
+	var baseOutputIndex = t.basePool.GetTokenIndex(tokenOut)
 	var maxCoin = len(t.Info.Tokens) - 1
 	if tokenIndexFrom < 0 && baseInputIndex >= 0 {
 		tokenIndexFrom = maxCoin + baseInputIndex
@@ -195,8 +206,8 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	// check exchange_underlying
-	var baseInputIndex = t.BasePool.GetTokenIndex(input.Token)
-	var baseOutputIndex = t.BasePool.GetTokenIndex(output.Token)
+	var baseInputIndex = t.basePool.GetTokenIndex(input.Token)
+	var baseOutputIndex = t.basePool.GetTokenIndex(output.Token)
 	var maxCoin = len(t.Info.Tokens) - 1
 	if inputIndex < 0 && baseInputIndex >= 0 {
 		inputIndex = maxCoin + baseInputIndex
@@ -217,7 +228,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	var tokenIndex = t.GetTokenIndex(address)
 	if tokenIndex < 0 {
 		// check from underlying
-		tokenIndex = t.BasePool.GetTokenIndex(address)
+		tokenIndex = t.basePool.GetTokenIndex(address)
 		if tokenIndex >= 0 {
 			// base token can be swapped to anything other than the last meta token
 			for i := 0; i < len(t.Info.Tokens)-1; i += 1 {
@@ -238,14 +249,13 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	// exchange_underlying
 	// last meta token can't be swapped with underlying tokens
 	if tokenIndex != len(t.Info.Tokens)-1 {
-		ret = append(ret, t.BasePool.GetInfo().Tokens...)
+		ret = append(ret, t.basePool.GetInfo().Tokens...)
 	}
 	return ret
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	var fromId = t.GetTokenIndex(tokenIn)
-	var toId = t.GetTokenIndex(tokenOut)
+	fromId, toId := t.GetTokenIndex(tokenIn), t.GetTokenIndex(tokenOut)
 	if fromId >= 0 && toId >= 0 {
 		return curve.Meta{
 			TokenInIndex:  fromId,
@@ -253,8 +263,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 			Underlying:    false,
 		}
 	}
-	var baseFromId = t.getUnderlyingIndex(tokenIn)
-	var baseToId = t.getUnderlyingIndex(tokenOut)
+	baseFromId, baseToId := t.getUnderlyingIndex(tokenIn), t.getUnderlyingIndex(tokenOut)
 	return curve.Meta{
 		TokenInIndex:  baseFromId,
 		TokenOutIndex: baseToId,
@@ -265,18 +274,18 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 func (t *PoolSimulator) GetTokens() []string {
 	var result []string
 	result = append(result, t.GetInfo().Tokens...)
-	result = append(result, t.BasePool.GetInfo().Tokens...)
+	result = append(result, t.basePool.GetInfo().Tokens...)
 	return result
 }
 
 func (t *PoolSimulator) getUnderlyingIndex(token string) int {
-	var tokenIndex = t.GetTokenIndex(token)
+	tokenIndex := t.GetTokenIndex(token)
 	if tokenIndex >= 0 {
 		return tokenIndex
 	}
-	var baseIndex = t.BasePool.GetTokenIndex(token)
-	var maxCoin = len(t.Info.Tokens) - 1
-	if tokenIndex < 0 && baseIndex >= 0 {
+	baseIndex := t.basePool.GetTokenIndex(token)
+	maxCoin := len(t.Info.Tokens) - 1
+	if baseIndex >= 0 {
 		tokenIndex = maxCoin + baseIndex
 	}
 	return tokenIndex

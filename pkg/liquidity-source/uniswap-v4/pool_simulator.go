@@ -3,6 +3,7 @@ package uniswapv4
 import (
 	"fmt"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
@@ -76,6 +77,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOut)] {
 		tokenOutAddress = common.HexToAddress(tokenOut)
 	}
+	var priceLimit v3Utils.Uint160
+	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
 		Router:      p.staticExtra.UniversalRouterAddress,
@@ -86,5 +89,6 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		TickSpacing: p.staticExtra.TickSpacing,
 		HookAddress: p.staticExtra.HooksAddress,
 		HookData:    []byte{},
+		PriceLimit:  &priceLimit,
 	}
 }

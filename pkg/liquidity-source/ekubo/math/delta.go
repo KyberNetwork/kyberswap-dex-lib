@@ -18,7 +18,7 @@ func Amount0Delta(sqrtRatioA, sqrtRatioB, liquidity *big.Int, roundUp bool) (*bi
 
 	lower, upper := sortRatios(sqrtRatioA, sqrtRatioB)
 
-	result0, err := mulDivOverflow(
+	result0, err := MulDivOverflow(
 		new(big.Int).Sub(upper, lower),
 		new(big.Int).Lsh(liquidity, 128),
 		upper,
@@ -33,7 +33,7 @@ func Amount0Delta(sqrtRatioA, sqrtRatioB, liquidity *big.Int, roundUp bool) (*bi
 		return nil, err
 	}
 
-	if result.Cmp(U128Max) > 0 {
+	if result.BitLen() > 128 {
 		return nil, ErrAmount0DeltaOverflow
 	}
 
@@ -47,7 +47,7 @@ func Amount1Delta(sqrtRatioA, sqrtRatioB, liquidity *big.Int, roundUp bool) (*bi
 
 	lower, upper := sortRatios(sqrtRatioA, sqrtRatioB)
 
-	result, err := mulDivOverflow(
+	result, err := MulDivOverflow(
 		liquidity,
 		new(big.Int).Sub(upper, lower),
 		TwoPow128,
@@ -57,7 +57,7 @@ func Amount1Delta(sqrtRatioA, sqrtRatioB, liquidity *big.Int, roundUp bool) (*bi
 		return nil, err
 	}
 
-	if result.Cmp(U128Max) > 0 {
+	if result.BitLen() > 128 {
 		return nil, ErrAmount1DeltaOverflow
 	}
 

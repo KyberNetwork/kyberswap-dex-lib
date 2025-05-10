@@ -29,15 +29,20 @@ type Chain struct {
 }
 
 type RFQ struct {
-	BaseToken           string   `json:"baseToken"`
-	QuoteToken          string   `json:"quoteToken"`
-	BaseTokenAmount     string   `json:"baseTokenAmount"`
-	Trader              string   `json:"trader"`
-	EffectiveTrader     string   `json:"effectiveTrader"`
-	RewardTrader        string   `json:"rewardTrader"`
-	MarketMakers        []string `json:"marketMakers"`
-	ExcludeMarketMakers []string `json:"excludeMarketMakers"`
-	FeesBps             uint     `json:"feesBps"`
+	BaseToken           string      `json:"baseToken"`
+	QuoteToken          string      `json:"quoteToken"`
+	BaseTokenAmount     string      `json:"baseTokenAmount"`
+	Trader              string      `json:"trader"`
+	EffectiveTrader     string      `json:"effectiveTrader"`
+	RewardTrader        string      `json:"rewardTrader"`
+	MarketMakers        []string    `json:"marketMakers"`
+	ExcludeMarketMakers []string    `json:"excludeMarketMakers"`
+	Options             *RFQOptions `json:"options,omitempty"`
+	FeesBps             uint        `json:"feesBps"`
+}
+
+type RFQOptions struct {
+	DoNotRetryWithOtherMakers bool `json:"doNotRetryWithOtherMakers,omitempty"`
 }
 
 type QuoteResult struct {

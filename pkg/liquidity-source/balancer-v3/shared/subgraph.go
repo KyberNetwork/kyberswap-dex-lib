@@ -11,9 +11,9 @@ type SubgraphPool struct {
 }
 
 type SubgraphToken struct {
-	Address         string `json:"address"`
-	IsErc4626       bool   `json:"isErc4626"`
-	UnderlyingToken struct {
+	Address              string `json:"address"`
+	CanUseBufferForSwaps bool  `json:"canUseBufferForSwaps"`
+	UnderlyingToken      struct {
 		Address string `json:"address"`
 	} `json:"underlyingToken"`
 }
@@ -51,7 +51,7 @@ const SubgraphPoolsQuery = `query(
 		}
 		poolTokens {
 			address
-			isErc4626
+			canUseBufferForSwaps
 			underlyingToken {
 				address
 			}

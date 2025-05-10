@@ -2,7 +2,7 @@ package valueobject
 
 type Exchange string
 
-var (
+const (
 	ExchangeSushiSwap       Exchange = "sushiswap"
 	ExchangeTrisolaris      Exchange = "trisolaris"
 	ExchangeWannaSwap       Exchange = "wannaswap"
@@ -246,7 +246,8 @@ var (
 	ExchangeNativeV2   Exchange = "native-v2"
 	ExchangeBebop      Exchange = "bebop"
 	ExchangeDexalot    Exchange = "dexalot"
-	ExchangeOneBit     Exchange = "onebit"
+	ExchangePmm1       Exchange = "pmm-1"
+	ExchangePmm2       Exchange = "pmm-2"
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
@@ -401,7 +402,6 @@ var (
 	ExchangeSilverSwap       Exchange = "silverswap"
 	ExchangeScribe           Exchange = "scribe"
 	ExchangeHorizonIntegral  Exchange = "horizon-integral"
-	ExchangeMxTrading        Exchange = "mx-trading"
 	ExchangeLO1inch          Exchange = "lo1inch"
 	ExchangeVirtualFun       Exchange = "virtual-fun"
 	ExchangeMetropolis       Exchange = "metropolis"
@@ -429,21 +429,26 @@ var (
 	ExchangeMemeswap                 Exchange = "memeswap"
 	ExchangePandaFun                 Exchange = "panda-fun"
 	ExchangeHoney                    Exchange = "honey"
+	ExchangeWasabi                   Exchange = "wasabi"
 
 	ExchangeKatanaV2 Exchange = "katana-v2"
 	ExchangeKatanaV3 Exchange = "katana-v3"
+
+	ExchangeUcsFinance Exchange = "ucs-finance"
 
 	ExchangeUniswapV4        Exchange = "uniswap-v4"
 	ExchangeUniswapV4BunniV2 Exchange = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Kem     Exchange = "uniswap-v4-kem"
 
+	ExchangeFakePool      Exchange = "fake-pool"
 	ExchangeEtherFieBTC   Exchange = "etherfi-ebtc"
 	ExchangeOvernightUsdp Exchange = "overnight-usdp"
 	ExchangeSavingsUSDS   Exchange = "savings-usds"
 	ExchangeSkyPSM        Exchange = "sky-psm"
-
-	ExchangeFakePool Exchange = "fake-pool"
-	ExchangeEkubo    Exchange = "ekubo"
+	ExchangeEulerSwap     Exchange = "euler-swap"
+	ExchangeEkubo         Exchange = "ekubo"
+	ExchangeBeefySonic    Exchange = "beefy-sonic"
+	ExchangeHyeth         Exchange = "hyeth"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -679,7 +684,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwellRSWETH:                {},
 	ExchangeBedrockUniETH:              {},
 	ExchangePufferPufETH:               {},
-	ExchangeRingSwap:                   {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
 	ExchangeDyorSwap:                   {},
@@ -799,8 +803,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeswap:                   {},
 	ExchangePandaFun:                   {},
 	ExchangeHoney:                      {},
+	ExchangeWasabi:                     {},
 	ExchangeKatanaV2:                   {},
 	ExchangeKatanaV3:                   {},
+	ExchangeUcsFinance:                 {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
 	ExchangeUniswapV4Kem:               {},
@@ -808,7 +814,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:              {},
 	ExchangeSavingsUSDS:                {},
 	ExchangeSkyPSM:                     {},
+	ExchangeEulerSwap:                  {},
 	ExchangeEkubo:                      {},
+	ExchangeBeefySonic:                 {},
+	ExchangeHyeth:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -829,9 +838,9 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
-	ExchangeMxTrading:  {},
 	ExchangeLO1inch:    {},
-	ExchangeOneBit:     {},
+	ExchangePmm1:       {},
+	ExchangePmm2:       {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

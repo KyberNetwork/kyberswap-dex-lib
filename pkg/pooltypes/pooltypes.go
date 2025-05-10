@@ -32,12 +32,14 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	etherfiebtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/ebtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
@@ -48,6 +50,7 @@ import (
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -57,7 +60,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -197,7 +199,6 @@ type Types struct {
 	PancakeV3                  string
 	MaverickV1                 string
 	AlgebraV1                  string
-	KyberPMM                   string
 	IZiSwap                    string
 	WooFiV2                    string
 	WooFiV21                   string
@@ -280,7 +281,6 @@ type Types struct {
 	SfrxETHConvertor           string
 	EtherfiVampire             string
 	AlgebraIntegral            string
-	MxTrading                  string
 	LO1inch                    string
 	VirtualFun                 string
 	BeetsSS                    string
@@ -291,8 +291,14 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
+	EulerSwap                  string
 	Ekubo                      string
-	OneBit                     string
+	ERC4626                    string
+	HyETH                      string
+
+	KyberPMM string
+	Pmm1     string
+	Pmm2     string
 }
 
 var (
@@ -351,7 +357,6 @@ var (
 		PancakeV3:                  pancakev3.DexTypePancakeV3,
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
-		KyberPMM:                   string(valueobject.ExchangeKyberPMM),
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
 		WooFiV2:                    woofiv2.DexTypeWooFiV2,
 		WooFiV21:                   woofiv21.DexTypeWooFiV21,
@@ -435,7 +440,6 @@ var (
 		SfrxETHConvertor:           sfrxethconvertor.DexType,
 		EtherfiVampire:             etherfivampire.DexType,
 		AlgebraIntegral:            algebraintegral.DexType,
-		MxTrading:                  mxtrading.DexType,
 		LO1inch:                    lo1inch.DexType,
 		VirtualFun:                 virtualfun.DexType,
 		BeetsSS:                    beetsss.DexType,
@@ -446,7 +450,13 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
+		EulerSwap:                  eulerswap.DexType,
 		Ekubo:                      ekubo.DexType,
-		OneBit:                     string(valueobject.ExchangeOneBit),
+		ERC4626:                    erc4626.DexType,
+		HyETH:                      hyeth.DexType,
+
+		KyberPMM: string(valueobject.ExchangeKyberPMM),
+		Pmm1:     string(valueobject.ExchangePmm1),
+		Pmm2:     string(valueobject.ExchangePmm2),
 	}
 )

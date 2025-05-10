@@ -12,8 +12,7 @@ import (
 )
 
 type Config struct {
-	DexID string                  `json:"dexId"`
-	HTTP  client.HTTPClientConfig `mapstructure:"http" json:"http"`
+	HTTP client.HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {

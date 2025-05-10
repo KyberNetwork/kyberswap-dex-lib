@@ -13,7 +13,6 @@ import (
 const rfqDefaultChainType = "evm"
 
 type Config struct {
-	DexID               string           `json:"dexId"`
 	ExcludeMarketMakers []string         `mapstructure:"excludeMarketMakers" json:"excludeMarketMakers"`
 	HTTP                HTTPClientConfig `mapstructure:"http" json:"http"`
 	Router              string           `mapstructure:"router" json:"router"`
@@ -83,6 +82,7 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 			// MarketMakers: []string{swapInfo.MarketMaker},
 
 			ExcludeMarketMakers: h.config.ExcludeMarketMakers,
+			Options:             &RFQOptions{DoNotRetryWithOtherMakers: true},
 		})
 	}
 

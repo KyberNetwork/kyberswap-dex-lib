@@ -6,15 +6,13 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/logger"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type Config struct {
-	DexID string           `json:"dexId"`
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
+	HTTP HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {
@@ -35,21 +33,23 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	var swapInfo SwapInfo
-	if err := mapstructure.WeakDecode(params.SwapInfo, &swapInfo); err != nil {
+	swapInfo, err := util.AnyToStruct[SwapInfo](params.SwapInfo)
+	if err != nil {
 		return nil, err
 	}
 	logger.Debugf("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
+	chainName := ChainById(params.NetworkID)
 	result, err := h.client.Quote(ctx, QuoteParams{
-		Chain:              ChainById(valueobject.ChainID(params.NetworkID)),
+		SrcChain:           chainName,
+		DstChain:           chainName,
 		TokenIn:            swapInfo.BaseToken,
 		TokenOut:           swapInfo.QuoteToken,
 		AmountWei:          swapInfo.BaseTokenAmount,
 		FromAddress:        params.RFQSender,
 		BeneficiaryAddress: params.Sender,
 		ToAddress:          params.RFQRecipient,
-		ExpiryTime:         strconv.Itoa(int(swapInfo.ExpirySecs)),
+		ExpiryTime:         swapInfo.ExpirySecs,
 		Slippage:           strconv.FormatFloat(float64(params.Slippage)/100, 'f', 2, 64),
 	})
 	if err != nil {

@@ -3,8 +3,11 @@ package stable
 const (
 	DexType = "balancer-v2-stable"
 
-	poolTypeStable     = "Stable"
-	poolTypeMetaStable = "MetaStable"
+	poolTypeLegacyStable     = "Stable"
+	poolTypeLegacyMetaStable = "MetaStable"
+
+	poolTypeStable     = "STABLE"
+	poolTypeMetaStable = "META_STABLE"
 
 	poolTypeVer1 = 1
 	poolTypeVer2 = 2
@@ -14,6 +17,9 @@ const (
 	poolMethodGetAmplificationParameter = "getAmplificationParameter"
 	poolMethodGetVault                  = "getVault"
 	poolMethodGetScalingFactors         = "getScalingFactors"
+	poolMethodGetPoolId                 = "getPoolId"
+
+	protocolMethodGetSwapFeePercentage = "getSwapFeePercentage"
 
 	defaultWeight = 1
 

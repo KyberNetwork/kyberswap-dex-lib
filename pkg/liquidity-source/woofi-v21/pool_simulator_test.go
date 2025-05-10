@@ -86,6 +86,10 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 	pool.wooracle.Timestamp = time.Now().Unix()
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
+	for token, tokenInfo := range pool.tokenInfos {
+		tokenInfo.CapBal = number.MaxU256
+		pool.tokenInfos[token] = tokenInfo
+	}
 
 	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return pool.CalcAmountOut(params)
@@ -162,6 +166,10 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 	assert.Nil(t, err)
 
 	pool.wooracle.Timestamp = time.Now().Unix()
+	for token, tokenInfo := range pool.tokenInfos {
+		tokenInfo.CapBal = number.MaxU256
+		pool.tokenInfos[token] = tokenInfo
+	}
 
 	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return pool.CalcAmountOut(params)
@@ -170,81 +178,6 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "420800752", result.TokenAmountOut.Amount.String())
 }
-
-// func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) {
-// 	entityPool := entity.Pool{
-// 		Address:  "0xd1778f9df3eee5473a9640f13682e3846f61febc",
-// 		Exchange: string(valueobject.ExchangeWooFiV3),
-// 		Type:     DexTypeWooFiV21,
-// 		Reserves: []string{
-// 			"301370617381821852207",
-// 			"785512143",
-// 			"177053835630",
-// 			"97558688283555321324212",
-// 			"167081703216",
-// 			"152515901952",
-// 		},
-// 		Tokens: []*entity.PoolToken{
-// 			{
-// 				Address:   "0x4200000000000000000000000000000000000006",
-// 				Weight:    1,
-// 				Decimals:  18,
-// 				Swappable: true,
-// 			},
-// 			{
-// 				Address:   "0x68f180fcce6836688e9084f035309e29bf0a2095",
-// 				Weight:    1,
-// 				Decimals:  8,
-// 				Swappable: true,
-// 			},
-// 			{
-// 				Address:   "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-// 				Weight:    1,
-// 				Decimals:  6,
-// 				Swappable: true,
-// 			},
-// 			{
-// 				Address:   "0x4200000000000000000000000000000000000042",
-// 				Weight:    1,
-// 				Decimals:  18,
-// 				Swappable: true,
-// 			},
-// 			{
-// 				Address:   "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-// 				Weight:    1,
-// 				Decimals:  6,
-// 				Swappable: true,
-// 			},
-// 			{
-// 				Address:   "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-// 				Weight:    1,
-// 				Decimals:  6,
-// 				Swappable: true,
-// 			},
-// 		},
-// 		Extra: "{\"quoteToken\":\"0x7f5c764cbc14f9669b88837ca1490cca17c31607\",\"tokenInfos\":{\"0x0b2c639c533813f4aa9d7837caf62653d097ff85\":{\"reserve\":\"0x29393b216e\",\"feeRate\":5},\"0x4200000000000000000000000000000000000006\":{\"reserve\":\"0x10565b83c75fa7aa2f\",\"feeRate\":25},\"0x4200000000000000000000000000000000000042\":{\"reserve\":\"0x14a8aac659cf6a43a2b4\",\"feeRate\":25},\"0x68f180fcce6836688e9084f035309e29bf0a2095\":{\"reserve\":\"0x2ed1f6cf\",\"feeRate\":25},\"0x7f5c764cbc14f9669b88837ca1490cca17c31607\":{\"reserve\":\"0x2382a7fa00\",\"feeRate\":0},\"0x94b008aa00579c1307b0ef2c499ad98a8ce58e58\":{\"reserve\":\"0x26e6d87730\",\"feeRate\":5}},\"wooracle\":{\"address\":\"0xd589484d3A27B7Ce5C2C7F829EB2e1D163f95817\",\"states\":{\"0x0b2c639c533813f4aa9d7837caf62653d097ff85\":{\"price\":\"0x5f5640d\",\"spread\":50000000000000,\"coeff\":3940000000,\"woFeasible\":true},\"0x4200000000000000000000000000000000000006\":{\"price\":\"0x34d8869cc0\",\"spread\":366000000000000,\"coeff\":2260000000,\"woFeasible\":true},\"0x4200000000000000000000000000000000000042\":{\"price\":\"0xf3671b0\",\"spread\":1570000000000000,\"coeff\":3570000000,\"woFeasible\":true},\"0x68f180fcce6836688e9084f035309e29bf0a2095\":{\"price\":\"0x4030c6ec900\",\"spread\":427000000000000,\"coeff\":3950000000,\"woFeasible\":true},\"0x7f5c764cbc14f9669b88837ca1490cca17c31607\":{\"price\":\"0x5f5e100\",\"spread\":0,\"coeff\":0,\"woFeasible\":true},\"0x94b008aa00579c1307b0ef2c499ad98a8ce58e58\":{\"price\":\"0x5f5b671\",\"spread\":101000000000000,\"coeff\":3960000000,\"woFeasible\":true}},\"decimals\":{\"0x0b2c639c533813f4aa9d7837caf62653d097ff85\":8,\"0x4200000000000000000000000000000000000006\":8,\"0x4200000000000000000000000000000000000042\":8,\"0x68f180fcce6836688e9084f035309e29bf0a2095\":8,\"0x7f5c764cbc14f9669b88837ca1490cca17c31607\":8,\"0x94b008aa00579c1307b0ef2c499ad98a8ce58e58\":8}}}",
-// 	}
-// 	params := poolpkg.CalcAmountOutParams{
-// 		TokenAmountIn: poolpkg.TokenAmount{
-// 			Token:  "0x4200000000000000000000000000000000000006",
-// 			Amount: bignumber.NewBig10("1000000000000000000000"),
-// 		},
-// 		TokenOut: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-// 	}
-
-// 	pool, err := NewPoolSimulator(entityPool)
-// 	assert.Nil(t, err)
-
-// 	pool.wooracle.Timestamp = time.Now().Unix()
-// 	pool.wooracle.StaleDuration = 300
-// 	pool.wooracle.Bound = 10000000000000000
-
-// 	_, err = testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-// 		return pool.CalcAmountOut(params)
-// 	})
-
-// 	assert.Equal(t, ErrArithmeticOverflowUnderflow, err)
-// }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	testCases := []struct {
@@ -266,12 +199,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("403770676421"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -335,12 +270,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("403206543738"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -404,18 +341,21 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("422309249032"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": {
 					Reserve:         number.NewUint256("1761585197"),
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -483,6 +423,76 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "exceeds cap error",
+			quoteToken: "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			tokenInfos: map[string]TokenInfo{
+				"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": {
+					Reserve:         number.NewUint256("307599458320800914127"),
+					FeeRate:         25,
+					MaxNotionalSwap: number.NewUint256("1000000000000"),
+					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
+				},
+				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
+					Reserve:         number.NewUint256("422309249032"),
+					FeeRate:         0,
+					MaxNotionalSwap: number.NewUint256("1000000000000"),
+					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
+				},
+				"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": {
+					Reserve:         number.NewUint256("1761585197"),
+					FeeRate:         25,
+					MaxNotionalSwap: number.NewUint256("1000000000000"),
+					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          uint256.NewInt(1761585197 + 195921323 - 1), // reserve(1761585197) + amountIn(195921323) > capBal => must be error
+				},
+			},
+			decimals: map[string]uint8{
+				"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 18,
+				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 6,
+				"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
+			},
+			wooracle: Wooracle{
+				States: map[string]State{
+					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": {
+						Price:      number.NewUint256("159801975726"),
+						Spread:     479000000000000,
+						Coeff:      1550000000,
+						WoFeasible: true,
+					},
+					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
+						Price:      number.NewUint256("100000000"),
+						Spread:     0,
+						Coeff:      0,
+						WoFeasible: true,
+					},
+					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": {
+						Price:      number.NewUint256("2662094951911"),
+						Spread:     250000000000000,
+						Coeff:      4920000000,
+						WoFeasible: true,
+					},
+				},
+				Decimals: map[string]uint8{
+					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
+					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
+					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
+				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
+			},
+			params: poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
+					Amount: bignumber.NewBig("195921323"),
+				},
+				TokenOut: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+			},
+			expectedErr: ErrCapExceeds,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -534,12 +544,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("403770676421"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -591,12 +603,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("403206543738"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -648,18 +662,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": {
 					Reserve:         number.NewUint256("422309249032"),
 					FeeRate:         0,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 				"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": {
 					Reserve:         number.NewUint256("1761585197"),
 					FeeRate:         25,
 					MaxNotionalSwap: number.NewUint256("1000000000000"),
 					MaxGamma:        number.NewUint256("3000000000000000"),
+					CapBal:          number.MaxU256,
 				},
 			},
 			decimals: map[string]uint8{
@@ -763,6 +780,11 @@ func Test_MergeSwaps(t *testing.T) {
 
 	poolSim, err := NewPoolSimulator(pool)
 	assert.NoError(t, err)
+
+	for token, tokenInfo := range poolSim.tokenInfos {
+		tokenInfo.CapBal = number.MaxU256
+		poolSim.tokenInfos[token] = tokenInfo
+	}
 
 	_, err = poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 		TokenAmountIn: poolpkg.TokenAmount{

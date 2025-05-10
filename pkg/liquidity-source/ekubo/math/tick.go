@@ -36,11 +36,12 @@ func ToSqrtRatio(tick int32) *big.Int {
 		ratio.Div(U256Max, ratio)
 	}
 
-	if ratio.Cmp(TwoPow160) != -1 {
+	bitLen := ratio.BitLen()
+	if bitLen > 160 {
 		ratio.Rsh(ratio, 98).Lsh(ratio, 98)
-	} else if ratio.Cmp(TwoPow128) != -1 {
+	} else if bitLen > 128 {
 		ratio.Rsh(ratio, 66).Lsh(ratio, 66)
-	} else if ratio.Cmp(TwoPow96) != -1 {
+	} else if bitLen > 96 {
 		ratio.Rsh(ratio, 34).Lsh(ratio, 34)
 	} else {
 		ratio.Rsh(ratio, 2).Lsh(ratio, 2)

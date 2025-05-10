@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
@@ -63,34 +64,47 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
 	req := c.client.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsSellTokens, common.HexToAddress(params.SellTokens).Hex()).
+		SetQueryParam(bebop.ParamsSellTokens, toChecksumHex(params.SellTokens)).
 		// the BuyTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsBuyTokens, common.HexToAddress(params.BuyTokens).Hex()).
+		SetQueryParam(bebop.ParamsBuyTokens, toChecksumHex(params.BuyTokens)).
 		SetQueryParam(bebop.ParamsSellAmounts, params.SellAmounts).
-		SetQueryParam(bebop.ParamsTakerAddress, common.HexToAddress(params.TakerAddress).Hex()).
-		SetQueryParam(bebop.ParamsReceiverAddress, common.HexToAddress(params.ReceiverAddress).Hex()).
+		SetQueryParam(bebop.ParamsTakerAddress, toChecksumHex(params.TakerAddress)).
+		SetQueryParam(bebop.ParamsReceiverAddress, toChecksumHex(params.ReceiverAddress)).
+		SetQueryParam(bebop.ParamsOriginAddress, toChecksumHex(params.OriginAddress)).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
-		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution
+		SetQueryParam(bebop.ParamsGasLess, "false"). // self-execution
 		SetQueryParam(querySourceKey, c.config.Name)
 
-	var result bebop.QuoteSingleOrderResult
-	var fail bebop.QuoteFail
-	resp, err := req.SetResult(&result).SetError(&fail).Get(pathQuote)
+	var result struct {
+		bebop.QuoteSingleOrderResult
+		bebop.QuoteFail
+	}
+	resp, err := req.SetResult(&result).SetError(&result).Get(pathQuote)
 	if err != nil {
 		return bebop.QuoteSingleOrderResult{}, err
 	}
 
-	if !resp.IsSuccess() || fail.Failed() {
+	if !resp.IsSuccess() || result.Failed() {
 		klog.WithFields(ctx, klog.Fields{
-			"rfq.client": bebop.DexType,
-			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
-			"rfq.status": resp.StatusCode(),
+			"rfq.client":        bebop.DexType,
+			"rfq.resp":          util.MaxBytesToString(resp.Body(), 256),
+			"rfq.status":        resp.StatusCode(),
+			"rfq.error.code":    result.Error.ErrorCode,
+			"rfq.error.message": result.Error.Message,
 		}).Error("quote failed")
-		return bebop.QuoteSingleOrderResult{}, parseRFQError(fail.Error.ErrorCode)
+		err = parseRFQError(result.Error.ErrorCode)
+		return bebop.QuoteSingleOrderResult{}, fmt.Errorf("%w: %s", err, result.Error.Message)
 	}
 
-	return result, nil
+	return result.QuoteSingleOrderResult, nil
+}
+
+func toChecksumHex(hex string) string {
+	if hex == "" {
+		return hex
+	}
+	return common.HexToAddress(hex).Hex()
 }
 
 func parseRFQError(errorCode int) error {

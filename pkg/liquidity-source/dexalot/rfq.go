@@ -13,7 +13,6 @@ import (
 )
 
 type Config struct {
-	DexID          string           `json:"dexId"`
 	HTTP           HTTPClientConfig `mapstructure:"http" json:"http"`
 	UpscalePercent int              `mapstructure:"upscale_percent" json:"upscale_percent"`
 }

@@ -228,7 +228,7 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	return poolTypes, nil
 }
 
-// isBasePool PlainOraclePool should
+// isPlainOraclePool PlainOraclePool should
 // be a BasePool but having method "oracle" in its contract
 func (d *PoolsListUpdater) isPlainOraclePool(oracleAddress common.Address) bool {
 	return !strings.EqualFold(oracleAddress.String(), addressZero)

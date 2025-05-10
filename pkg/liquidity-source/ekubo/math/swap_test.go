@@ -1,4 +1,4 @@
-package math_test
+package math
 
 import (
 	"math/big"
@@ -6,17 +6,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestZeroAmountToken0(t *testing.T) {
-	sqrtRatio := math.TwoPow128
+	sqrtRatio := TwoPow128
 
-	res, err := math.ComputeStep(
+	res, err := ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math.MinSqrtRatio,
+		MinSqrtRatio,
 		new(big.Int),
 		false,
 		0,
@@ -30,12 +29,12 @@ func TestZeroAmountToken0(t *testing.T) {
 }
 
 func TestZeroAmountToken1(t *testing.T) {
-	sqrtRatio := math.TwoPow128
+	sqrtRatio := TwoPow128
 
-	res, err := math.ComputeStep(
+	res, err := ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math.MinSqrtRatio,
+		MinSqrtRatio,
 		new(big.Int),
 		true,
 		0,
@@ -49,9 +48,9 @@ func TestZeroAmountToken1(t *testing.T) {
 }
 
 func TestSwapRatioEqualLimitToken1(t *testing.T) {
-	sqrtRatio := math.TwoPow128
+	sqrtRatio := TwoPow128
 
-	res, err := math.ComputeStep(
+	res, err := ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
 		sqrtRatio,
@@ -68,12 +67,12 @@ func TestSwapRatioEqualLimitToken1(t *testing.T) {
 }
 
 func TestMaxLimitToken0Input(t *testing.T) {
-	sqrtRatio := math.TwoPow128
+	sqrtRatio := TwoPow128
 
-	res, err := math.ComputeStep(
+	res, err := ComputeStep(
 		sqrtRatio,
 		big.NewInt(100_000),
-		math.MinSqrtRatio,
+		MinSqrtRatio,
 		big.NewInt(10_000),
 		false,
 		1<<63,
@@ -87,10 +86,10 @@ func TestMaxLimitToken0Input(t *testing.T) {
 }
 
 func TestMaxLimitToken1Input(t *testing.T) {
-	res, err := math.ComputeStep(
-		math.TwoPow128,
+	res, err := ComputeStep(
+		TwoPow128,
 		big.NewInt(100_000),
-		math.MaxSqrtRatio,
+		MaxSqrtRatio,
 		big.NewInt(10_000),
 		true,
 		1<<63,
@@ -104,10 +103,10 @@ func TestMaxLimitToken1Input(t *testing.T) {
 }
 
 func TestMaxLimitToken0Output(t *testing.T) {
-	res, err := math.ComputeStep(
-		math.TwoPow128,
+	res, err := ComputeStep(
+		TwoPow128,
 		big.NewInt(100_000),
-		math.MaxSqrtRatio,
+		MaxSqrtRatio,
 		big.NewInt(-10_000),
 		false,
 		1<<63,
@@ -121,10 +120,10 @@ func TestMaxLimitToken0Output(t *testing.T) {
 }
 
 func TestMaxLimitToken1Output(t *testing.T) {
-	res, err := math.ComputeStep(
-		math.TwoPow128,
+	res, err := ComputeStep(
+		TwoPow128,
 		big.NewInt(100_000),
-		math.MinSqrtRatio,
+		MinSqrtRatio,
 		big.NewInt(-10_000),
 		true,
 		1<<63,
@@ -140,8 +139,8 @@ func TestMaxLimitToken1Output(t *testing.T) {
 func TestLimitedToken0Output(t *testing.T) {
 	sqrtRatioLimit := bignum.NewBig("359186942860990600322450974511310889870")
 
-	res, err := math.ComputeStep(
-		math.TwoPow128,
+	res, err := ComputeStep(
+		TwoPow128,
 		big.NewInt(100_000),
 		sqrtRatioLimit,
 		big.NewInt(-10_000),
@@ -159,8 +158,8 @@ func TestLimitedToken0Output(t *testing.T) {
 func TestLimitedToken1Output(t *testing.T) {
 	sqrtRatioLimit := bignum.NewBig("323268248574891540290205877060179800883")
 
-	res, err := math.ComputeStep(
-		math.TwoPow128,
+	res, err := ComputeStep(
+		TwoPow128,
 		big.NewInt(100_000),
 		sqrtRatioLimit,
 		big.NewInt(-10_000),
