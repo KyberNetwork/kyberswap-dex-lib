@@ -70,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		permit2:        staticExtra.Permit2Address,
 		hookAddress:    staticExtra.HooksAddress,
 		parameters:     staticExtra.Parameters,
-		lpFee:          extra.LpFee,
+		lpFee:          uint256.NewInt(uint64(entityPool.SwapFee)),
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
 		hook:           GetHook(staticExtra.HooksAddress),

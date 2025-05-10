@@ -45,7 +45,6 @@ type FetchRPCResult struct {
 
 type Extra struct {
 	ProtocolFee *uint256.Int `json:"protocolFee"`
-	LpFee       *uint256.Int `json:"lpFee"`
 	ActiveBinID uint32       `json:"activeBinId"`
 	Bins        []Bin        `json:"bins"`
 }

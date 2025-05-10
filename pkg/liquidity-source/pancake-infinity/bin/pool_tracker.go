@@ -138,7 +138,6 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		ProtocolFee: uint256.MustFromBig(rpcData.Slot0.ProtocolFee),
-		LpFee:       uint256.MustFromBig(rpcData.Slot0.LpFee),
 		ActiveBinID: uint32(rpcData.Slot0.ActiveId.Int64()),
 		Bins:        bins,
 	})
@@ -149,6 +148,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	p.SwapFee, _ = rpcData.Slot0.LpFee.Float64()
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
