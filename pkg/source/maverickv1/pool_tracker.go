@@ -139,10 +139,7 @@ func (d *PoolTracker) getNewPoolState(
 	g := pool.New().WithContext(ctx)
 	for i := 0; i <= binLength; i += chunk {
 		startBin := i
-		endBin := startBin + chunk - 1
-		if endBin > binLength {
-			endBin = binLength
-		}
+		endBin := min(startBin+chunk-1, binLength)
 		g.Go(func(context.Context) error {
 			return func(startBin, endBin int) error {
 				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)

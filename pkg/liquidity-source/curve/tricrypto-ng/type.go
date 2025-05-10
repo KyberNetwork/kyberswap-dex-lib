@@ -35,7 +35,12 @@ type (
 	}
 
 	SwapInfo struct {
-		K0 uint256.Int
-		Xp [NumTokens]uint256.Int
+		K0           uint256.Int
+		Xp           [NumTokens]uint256.Int
+		LastPrices   [NumTokens - 1]uint256.Int
+		PriceScale   [NumTokens - 1]uint256.Int
+		XcpProfit    uint256.Int
+		D            uint256.Int
+		VirtualPrice uint256.Int
 	}
 )

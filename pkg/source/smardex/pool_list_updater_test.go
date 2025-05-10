@@ -64,10 +64,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	for _, p := range pools {
 		assert.NotNil(ts.Suite.T(), p.Address)
 	}
-	compare := length.Int64()
-	if compare > length.Int64()-int64(metadata.Offset) {
-		compare = length.Int64() - int64(metadata.Offset)
-	}
+	compare := min(length.Int64(), length.Int64()-int64(metadata.Offset))
 	assert.Equal(ts.T(), compare, int64(len(pools)))
 	var savedMetadataRes PoolListUpdaterMetadata
 	err = json.Unmarshal(metadataRes, &savedMetadataRes)

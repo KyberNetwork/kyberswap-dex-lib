@@ -25,8 +25,7 @@ const (
 
 	erc20MethodDecimals = "decimals"
 
-	defaultWeight    = 1
-	staleBufferRatio = 0.5
+	defaultWeight = 1
 )
 
 var (
