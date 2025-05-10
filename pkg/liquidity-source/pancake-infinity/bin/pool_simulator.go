@@ -100,16 +100,11 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 		return nil, shared.ErrInvalidAmountIn
 	}
 
+	id := p.activeId
 	var (
-		id = p.activeId
-
-		amountsUnspecified uint256.Int
-
-		amountsInWithFees  *uint256.Int
-		amountsOutOfBin    *uint256.Int
-		totalFee           *uint256.Int
-		pFee               *uint256.Int
-		binsReserveChanges []binReserveChanges
+		amountsUnspecified                                 uint256.Int
+		amountsInWithFees, amountsOutOfBin, totalFee, pFee *uint256.Int
+		binsReserveChanges                                 []binReserveChanges
 	)
 
 	for !amountsLeft.IsZero() {
@@ -134,7 +129,7 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 			}
 
 			if amountsInWithFees.Sign() > 0 {
-				pFee := getProtocolFeeAmt(totalFee, protocolFee, swapFee)
+				pFee = getProtocolFeeAmt(totalFee, protocolFee, swapFee)
 				if !pFee.IsZero() {
 					amountsInWithFees.Sub(amountsInWithFees, pFee)
 				}
@@ -163,10 +158,9 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 				return nil, ErrMaxLiquidityPerBin
 			}
 
-			newBinReserveChanges := newBinReserveChanges(
+			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges(
 				id, !swapForY, amountsInWithFees, amountsOutOfBin,
-			)
-			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+			))
 		}
 
 		id, err = GetNextNonEmptyBin(swapForY, p.bins, id)
@@ -179,22 +173,16 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 		return nil, ErrInsufficientAmountUnSpecified
 	}
 
-	ret := &swapResult{
+	return &swapResult{
 		Amount:             &amountsUnspecified,
 		Fee:                pFee,
 		NewActiveID:        id,
 		BinsReserveChanges: binsReserveChanges,
-	}
-
-	return ret, nil
+	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	var (
-		tokenIn  = params.TokenAmountIn
-		tokenOut = params.TokenOut
-	)
-
+	tokenIn, tokenOut := params.TokenAmountIn, params.TokenOut
 	indexIn, indexOut := p.GetTokenIndex(tokenIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, shared.ErrInvalidToken
@@ -203,11 +191,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if p.activeId == 0 {
 		return nil, shared.ErrUninitializedPool
 	}
-
-	exactIn := true
-	swapForY := indexIn == 0
-
-	res, err := p.swap(exactIn, swapForY, tokenIn.Amount)
+	res, err := p.swap(true, indexIn == 0, tokenIn.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -234,20 +218,13 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	var (
-		tokenIn  = params.TokenIn
-		tokenOut = params.TokenAmountOut
-	)
-
+	tokenIn, tokenOut := params.TokenIn, params.TokenAmountOut
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, shared.ErrInvalidToken
 	}
 
-	exactIn := false
-	swapForY := indexIn == 0
-
-	res, err := p.swap(exactIn, swapForY, tokenOut.Amount)
+	res, err := p.swap(false, indexIn == 0, tokenOut.Amount)
 	if err != nil {
 		return nil, err
 	}
@@ -279,6 +256,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.WithFields(logger.Fields{
 			"address": p.Info.Address,
 		}).Warn("invalid swap info")
+		return
 	}
 
 	// active bin ID
@@ -291,7 +269,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if !ok {
 			totalBinReserveChanges[b.BinID] = [2]*uint256.Int{
 				new(uint256.Int).Sub(b.AmountXIn, b.AmountXOut),
-				new(uint256.Int).Sub(b.AmountYIn, b.AmountYOut)}
+				new(uint256.Int).Sub(b.AmountYIn, b.AmountYOut),
+			}
 			continue
 		}
 
