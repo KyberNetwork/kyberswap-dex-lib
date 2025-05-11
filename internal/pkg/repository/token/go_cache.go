@@ -144,7 +144,7 @@ func (r *goCacheRepository) FindTokenInfoByAddress(ctx context.Context, addresse
 
 	for _, info := range result {
 		// We do not retrive token info for whitelist token, so do not need to modify TTL with whitelist token set
-		r.tokenInfoCache.SetWithTTL(addresses, info, r.config.Token.Cost, r.config.Token.TTL)
+		r.tokenInfoCache.SetWithTTL(info.Address, info, r.config.Token.Cost, r.config.Token.TTL)
 	}
 
 	return result, nil
