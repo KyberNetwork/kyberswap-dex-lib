@@ -441,7 +441,7 @@ func Test_useCase_getSources(t *testing.T) {
 			u := &useCase{
 				config: tt.fields.config,
 			}
-			got := u.getSources("", tt.args.includedSources, tt.args.excludedSources, tt.args.onlyScalableSources)
+			got := u.getSources("", 100, tt.args.includedSources, tt.args.excludedSources, tt.args.onlyScalableSources)
 			assert.ElementsMatch(t, got, tt.want)
 		})
 	}

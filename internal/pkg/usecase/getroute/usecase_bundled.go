@@ -128,7 +128,8 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 		}
 	}
 
-	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
+	sources := u.getSources(query.ClientId, query.BotScore, query.IncludedSources, query.ExcludedSources,
+		query.OnlyScalableSources)
 
 	var overridePools []*entity.Pool
 	err = json.Unmarshal(query.OverridePools, &overridePools)

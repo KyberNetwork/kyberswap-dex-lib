@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -42,7 +43,7 @@ func GetBundledRoutes(
 			return
 		}
 
-		query, err := transformGetBundledRoutesParams(queryParams)
+		query, err := transformGetBundledRoutesParams(ginCtx, queryParams)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -60,7 +61,7 @@ func GetBundledRoutes(
 	}
 }
 
-func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.GetBundledRoutesQuery, error) {
+func transformGetBundledRoutesParams(ginCtx *gin.Context, params params.GetBundledRoutesParams) (dto.GetBundledRoutesQuery, error) {
 	pairs := make([]*dto.GetBundledRoutesQueryPair, 0, len(params.TokensIn))
 	for i, tokenIn := range params.TokensIn {
 		amountIn, ok := new(big.Int).SetString(params.AmountsIn[i], 10)
@@ -107,9 +108,10 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 		GasInclude:             params.GasInclude,
 		GasPrice:               gasPrice,
 		ExcludedPools:          mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
-		ClientId:               params.ClientId,
 		OverridePools:          params.OverridePools,
 		ExtraWhitelistedTokens: utils.TransformSliceParams(params.ExtraWhitelistedTokens),
+		ClientId:               params.ClientId,
+		BotScore:               requestid.ExtractBotScore(ginCtx),
 		Index:                  params.Index,
 	}, nil
 }

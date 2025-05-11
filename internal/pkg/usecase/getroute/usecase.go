@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	dexlibValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
@@ -214,7 +215,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		}
 	}
 
-	sources := u.getSources(query.ClientId, query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
+	sources := u.getSources(query.ClientId, query.BotScore, query.IncludedSources, query.ExcludedSources,
+		query.OnlyScalableSources)
 
 	index := valueobject.NativeTvl
 	if u.config.Aggregator.FeatureFlags.IsLiquidityScoreIndexEnable {
@@ -309,7 +311,7 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
-func (u *useCase) getSources(clientId string, includedSources []string, excludedSources []string,
+func (u *useCase) getSources(clientId string, botScore int, includedSources, excludedSources []string,
 	onlyScalableSources bool) []string {
 	var sources mapset.Set[string]
 	if len(includedSources) > 0 {
@@ -319,6 +321,12 @@ func (u *useCase) getSources(clientId string, includedSources []string, excluded
 	}
 
 	sources.RemoveAll(excludedSources...)
+
+	if botScore < 3 && sources.Cardinality() < 9 { // toxic bots arbitraging RFQ sources
+		for rfqSource := range dexlibValueObject.RFQSourceSet {
+			sources.Remove(string(rfqSource))
+		}
+	}
 
 	if excludedSourcesByClient, ok := u.config.ExcludedSourcesByClient[clientId]; ok {
 		sources.RemoveAll(excludedSourcesByClient...)

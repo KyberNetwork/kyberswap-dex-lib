@@ -29,7 +29,7 @@ func GetCustomRoutes(
 			return
 		}
 
-		query, err := transformGetCustomRoutesParams(queryParams)
+		query, err := transformGetCustomRoutesParams(ginCtx, queryParams)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -47,8 +47,9 @@ func GetCustomRoutes(
 	}
 }
 
-func transformGetCustomRoutesParams(params params.GetCustomRoutesParams) (dto.GetCustomRoutesQuery, error) {
-	query, err := transformGetRoutesParams(params.GetRoutesParams)
+func transformGetCustomRoutesParams(ginCtx *gin.Context, params params.GetCustomRoutesParams) (dto.GetCustomRoutesQuery,
+	error) {
+	query, err := transformGetRoutesParams(ginCtx, params.GetRoutesParams)
 	if err != nil {
 		return dto.GetCustomRoutesQuery{}, err
 	}

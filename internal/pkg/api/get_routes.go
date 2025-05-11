@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -48,7 +49,7 @@ func GetRoutes(
 			return
 		}
 
-		query, err := transformGetRoutesParams(queryParams)
+		query, err := transformGetRoutesParams(ginCtx, queryParams)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -66,7 +67,7 @@ func GetRoutes(
 	}
 }
 
-func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery, error) {
+func transformGetRoutesParams(ginCtx *gin.Context, params params.GetRoutesParams) (dto.GetRoutesQuery, error) {
 	amountIn, ok := new(big.Int).SetString(params.AmountIn, 10)
 	if !ok {
 		return dto.GetRoutesQuery{}, errors.WithMessagef(
@@ -168,6 +169,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		ExtraFee:            extraFee,
 		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:            params.ClientId,
+		BotScore:            requestid.ExtractBotScore(ginCtx),
 		Index:               params.Index,
 	}, nil
 }

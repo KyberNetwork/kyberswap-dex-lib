@@ -25,9 +25,10 @@ type GetRoutesQuery struct {
 	ExtraFee valueobject.ExtraFee
 
 	ExcludedPools mapset.Set[string]
-	ClientId      string
 
-	Index string
+	ClientId string
+	BotScore int
+	Index    string
 }
 
 type GetBundledRoutesQueryPair struct {
@@ -47,10 +48,11 @@ type GetBundledRoutesQuery struct {
 	GasPrice   *big.Float
 
 	ExcludedPools mapset.Set[string]
-	ClientId      string
 
 	OverridePools          json.RawMessage
 	ExtraWhitelistedTokens []string
 
-	Index string
+	ClientId string
+	BotScore int
+	Index    string
 }
