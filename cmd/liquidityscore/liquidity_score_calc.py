@@ -71,8 +71,16 @@ def pool_score(pools) -> list:
     for _, pool in enumerate(pools):
         tmp_trade_data=[]
         for i in range(len(pool.data)):
-          tmp_score = find_best_m(pool.data[i])
-          tmp_trade_data.append((tmp_score, pool.data[i][0][2], pool.data[i][0][3]))
+          # add try catch execption here to make sure if find_best_m failed for 1 pool, others still get success
+          try:
+            tmp_score = find_best_m(pool.data[i])
+            tmp_trade_data.append((tmp_score, pool.data[i][0][2], pool.data[i][0][3]))
+          except Exception as e:
+            print(f'Exception while find_best_m {e} pool {pool.name} tradedata {pool.data[0]}')
+        
+        if len(tmp_trade_data) == 0:
+            print('Error while calculate liquidity score, scores is empty!')
+            return []
         
         # clean up trade data which has tokenIn with 0 price impact
         price_impact_zero_tokens = set()
