@@ -744,15 +744,9 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 
-	// init usecase
-	var trackExecutorAddresses []string
+	// init use case
+	trackExecutorAddresses := []string{cfg.Encoder.ExecutorAddress}
 
-	// Only track either L1 or L2 address
-	if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
-		trackExecutorAddresses = []string{cfg.Encoder.L2ExecutorAddress}
-	} else {
-		trackExecutorAddresses = []string{cfg.Encoder.ExecutorAddress}
-	}
 	trackExecutorBalanceUseCase := trackexecutor.NewUseCase(
 		ethClient,
 		poolFactory,

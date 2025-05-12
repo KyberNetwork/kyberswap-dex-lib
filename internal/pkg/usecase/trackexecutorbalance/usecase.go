@@ -39,7 +39,10 @@ func NewUseCase(
 	executorBalanceRepository IExecutorBalanceRepository,
 	config Config,
 ) *useCase {
-	graphQLClient := graphqlPkg.NewWithTimeout(config.SubgraphURL, graphQLRequestTimeout)
+	graphQLClient := graphqlPkg.New(graphqlPkg.Config{
+		Url:     config.SubgraphURL,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &useCase{
 		ethClient:                 ethClient,
