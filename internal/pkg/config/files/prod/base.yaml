@@ -12,7 +12,7 @@ common:
   rpc: "https://1rpc.io/base"
   rpcTimeout: 100ms
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0xC7D3AB410d49b664D03Fe5B1038852ac852b1B29"
+  executorAddress: &executorAddress "0x6E4141d33021b52C91c28608403db4A0FFB50Ec6"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   whitelistedTokenSet: &whitelistedTokenSet
     0x4200000000000000000000000000000000000006: true # WETH
@@ -208,15 +208,10 @@ encoder:
   executorAddress: *executorAddress
   executorV2Address: 0x36C3253C0F1f76F0831a2B187CEA2679F95BC7BE
   opPrivateKey:
-  l2ExecutorAddress: &l2ExecutorAddress 0xC7D3AB410d49b664D03Fe5B1038852ac852b1B29
   psWallet: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    unibot-tg: *l2ExecutorAddress
-    llamaswap: *l2ExecutorAddress
-    kyberswap: *l2ExecutorAddress
-    kyberswap-earn: *l2ExecutorAddress
   partnerPositiveSlippageInfo:
     tritium-research:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
