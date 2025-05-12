@@ -59,7 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		MinIn0:               extra.MinIn0,
 		MinIn1:               extra.MinIn1,
 
-		router:         strings.ToLower(extra.Router),
+		router:         extra.Router,
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
 		expirySecs:     extra.ExpirySecs,

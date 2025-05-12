@@ -125,7 +125,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 }
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	if valueobject.IsWrappedNative(tokenIn, s.chainID) {
+	if valueobject.IsNative(tokenIn) {
 		return ""
 	}
 

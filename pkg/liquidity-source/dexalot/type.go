@@ -5,6 +5,8 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/mitchellh/mapstructure"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type QueryParams = string
@@ -102,13 +104,16 @@ type (
 	}
 
 	Extra struct {
-		ZeroToOnePriceLevels []PriceLevelRaw `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevelRaw `json:"1to0"`
-		Token0Address        string          `json:"token0"`
-		Token1Address        string          `json:"token1"`
+		ZeroToOnePriceLevels []PriceLevelRaw     `json:"0to1"`
+		OneToZeroPriceLevels []PriceLevelRaw     `json:"1to0"`
+		Token0Address        string              `json:"token0"`
+		Token1Address        string              `json:"token1"`
+		TargetAddress        string              `json:"target"`
+		ChainID              valueobject.ChainID `json:"chainId"`
 	}
 
 	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
+		Timestamp       int64  `json:"timestamp"`
+		ApprovalAddress string `json:"approvalAddress"`
 	}
 )

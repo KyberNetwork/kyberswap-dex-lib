@@ -3,6 +3,7 @@ package weeth
 import (
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -71,10 +72,15 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(strings.EqualFold(tokenIn, s.Info.Tokens[0]), "", s.Info.Address)
 }
 
 func (s *PoolSimulator) shareForAmount(eETHAmount *big.Int) *big.Int {

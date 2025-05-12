@@ -53,14 +53,14 @@ type FetchRPCResult struct {
 type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {
-	Router      common.Address `json:"router"`
-	Permit2Addr common.Address `json:"permit2Addr"`
-	TokenIn     common.Address `json:"tokenIn"`
-	TokenOut    common.Address `json:"tokenOut"`
-	Fee         uint32         `json:"fee"`
-	TickSpacing int32          `json:"tickSpacing"`
-	HookAddress common.Address `json:"hookAddress"`
-	HookData    []byte         `json:"hookData"`
-	PriceLimit  *uint256.Int   `json:"priceLimit"`
+	Router          common.Address `json:"router"`
+	Permit2Addr     common.Address `json:"permit2Addr"`
+	TokenIn         common.Address `json:"tokenIn"`
+	TokenOut        common.Address `json:"tokenOut"`
+	Fee             uint32         `json:"fee"`
+	TickSpacing     int32          `json:"tickSpacing"`
+	HookAddress     common.Address `json:"hookAddress"`
+	HookData        []byte         `json:"hookData"`
+	PriceLimit      *uint256.Int   `json:"priceLimit"`
 	ApprovalAddress string         `json:"approvalAddress"`
 }

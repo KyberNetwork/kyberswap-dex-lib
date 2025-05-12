@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -25,6 +26,9 @@ type PoolSimulator struct {
 	gas                  Gas
 	Token0Original       string
 	Token1Original       string
+	TargetAddress        string
+	ChainID              valueobject.ChainID
+	Timestamp            int64
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -67,6 +71,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Token1Original:       extra.Token1Address,
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
+		TargetAddress:        extra.TargetAddress,
+		ChainID:              extra.ChainID,
+		Timestamp:            entityPool.Timestamp,
 		gas:                  defaultGas,
 	}, nil
 }
@@ -103,8 +110,15 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	return MetaInfo{
+		Timestamp:       p.Timestamp,
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsWrappedNative(tokenIn, p.ChainID), "", p.TargetAddress)
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
