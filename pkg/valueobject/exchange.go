@@ -3,20 +3,26 @@ package valueobject
 type Exchange string
 
 const (
-	ExchangeSushiSwap       Exchange = "sushiswap"
-	ExchangeTrisolaris      Exchange = "trisolaris"
-	ExchangeWannaSwap       Exchange = "wannaswap"
-	ExchangeNearPad         Exchange = "nearpad"
-	ExchangePangolin        Exchange = "pangolin"
-	ExchangeTraderJoe       Exchange = "traderjoe"
-	ExchangeLydia           Exchange = "lydia"
-	ExchangeYetiSwap        Exchange = "yetiswap"
-	ExchangeApeSwap         Exchange = "apeswap"
-	ExchangeJetSwap         Exchange = "jetswap"
-	ExchangeMDex            Exchange = "mdex"
-	ExchangePancake         Exchange = "pancake"
+	ExchangeSushiSwap  Exchange = "sushiswap"
+	ExchangeTrisolaris Exchange = "trisolaris"
+	ExchangeWannaSwap  Exchange = "wannaswap"
+	ExchangeNearPad    Exchange = "nearpad"
+	ExchangePangolin   Exchange = "pangolin"
+	ExchangeTraderJoe  Exchange = "traderjoe"
+	ExchangeLydia      Exchange = "lydia"
+	ExchangeYetiSwap   Exchange = "yetiswap"
+	ExchangeApeSwap    Exchange = "apeswap"
+	ExchangeJetSwap    Exchange = "jetswap"
+	ExchangeMDex       Exchange = "mdex"
+
+	ExchangePancake            Exchange = "pancake"
+	ExchangePancakeStable      Exchange = "pancake-stable"
+	ExchangePancakeLegacy      Exchange = "pancake-legacy"
+	ExchangePancakeV3          Exchange = "pancake-v3"
+	ExchangePancakeInfinityCL  Exchange = "pancake-infinity-cl"
+	ExchangePancakeInfinityBin Exchange = "pancake-infinity-bin"
+
 	ExchangeWault           Exchange = "wault"
-	ExchangePancakeLegacy   Exchange = "pancake-legacy"
 	ExchangeBiSwap          Exchange = "biswap"
 	ExchangePantherSwap     Exchange = "pantherswap"
 	ExchangeVVS             Exchange = "vvs"
@@ -69,10 +75,9 @@ const (
 	ExchangeSaddle     Exchange = "saddle"
 	ExchangeAxial      Exchange = "axial"
 
-	ExchangeCurve         Exchange = "curve"
-	ExchangeEllipsis      Exchange = "ellipsis"
-	ExchangePancakeStable Exchange = "pancake-stable"
-	ExchangeZkSwapStable  Exchange = "zkswap-stable"
+	ExchangeCurve        Exchange = "curve"
+	ExchangeEllipsis     Exchange = "ellipsis"
+	ExchangeZkSwapStable Exchange = "zkswap-stable"
 
 	ExchangeCurveStablePlain  Exchange = "curve-stable-plain"
 	ExchangeCurveStableNg     Exchange = "curve-stable-ng"
@@ -122,7 +127,6 @@ const (
 
 	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
 
-	ExchangePancakeV3     Exchange = "pancake-v3"
 	ExchangeEchoDexV3     Exchange = "echo-dex-v3"
 	ExchangeCrowdswapV2   Exchange = "crowdswap-v2"
 	ExchangeQuickSwapV3   Exchange = "quickswap-v3"
@@ -464,8 +468,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeJetSwap:                    {},
 	ExchangeMDex:                       {},
 	ExchangePancake:                    {},
-	ExchangeWault:                      {},
 	ExchangePancakeLegacy:              {},
+	ExchangePancakeStable:              {},
+	ExchangePancakeV3:                  {},
+	ExchangePancakeInfinityCL:          {},
+	ExchangePancakeInfinityBin:         {},
+	ExchangeWault:                      {},
 	ExchangeBiSwap:                     {},
 	ExchangePantherSwap:                {},
 	ExchangeVVS:                        {},
@@ -518,7 +526,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveLlamma:                {},
 	ExchangeCurveLending:               {},
 	ExchangeEllipsis:                   {},
-	ExchangePancakeStable:              {},
 	ExchangeZkSwapStable:               {},
 	ExchangeUniSwapV3:                  {},
 	ExchangeKyberswapElastic:           {},
@@ -546,7 +553,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVelocore:                   {},
 	ExchangePlatypus:                   {},
 	ExchangeKyberSwapLimitOrder:        {},
-	ExchangePancakeV3:                  {},
 	ExchangeEchoDexV3:                  {},
 	ExchangeCrowdswapV2:                {},
 	ExchangeQuickSwapV3:                {},
