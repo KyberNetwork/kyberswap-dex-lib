@@ -41,8 +41,6 @@ func (q *quoter) QuoteExactInputSingle(ctx context.Context, params QuoteExactSin
 		Params: []any{params},
 	}, []any{&result})
 
-	// log.Fatalf("%+v\n", params)
-
 	_, err := req.Call()
 	if err != nil {
 		return QuoteResult{}, err
