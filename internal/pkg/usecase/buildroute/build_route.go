@@ -16,6 +16,7 @@ import (
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kutils/klog"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -130,7 +131,8 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 					RouteSummary: command.RouteSummary,
 				})
 			if command.RouteSummary.AlphaFee != nil {
-				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID, "apply default alpha fee")
+				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID,
+					"apply default alpha fee")
 			}
 		}
 	}
@@ -534,7 +536,8 @@ func (uc *BuildRouteUseCase) processRFQs(
 			routeSummary.Route[pathIdx][swapIdx].AmountOut = results[i].NewAmountOut
 		}
 
-		uc.extractAlphaFee(ctx, results[i].Extra, tokens, prices, routeSummary, pathIdx, swapIdx, executedId, rfqRouteMsgs)
+		uc.extractAlphaFee(ctx, results[i].Extra, tokens, prices, routeSummary, pathIdx, swapIdx, executedId,
+			rfqRouteMsgs)
 	}
 
 	return err
@@ -623,38 +626,55 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 
 	switch swap.Exchange {
 	case dexValueObject.ExchangeKyberPMM:
-		kyberpmmExtra, ok := extra.(kyberpmm.RFQExtra)
-		if ok {
-			rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(kyberpmmExtra.QuoteTimestamp, 0))
-			takerAmount, _ := new(big.Int).SetString(kyberpmmExtra.TakerAmount, 10)
-			makerAmount, _ := new(big.Int).SetString(kyberpmmExtra.MakerAmount, 10)
-
-			rfqRouteMsg.TakerAmount = takerAmount.Text(10)
-			rfqRouteMsg.MakerAmount = makerAmount.Text(10)
-			rfqRouteMsg.TakerAsset = kyberpmmExtra.TakerAsset
-			rfqRouteMsg.MakerAsset = kyberpmmExtra.MakerAsset
-			rfqRouteMsg.PartnerName = kyberpmmExtra.Partner
-		}
 		rfqRouteMsg.RouteType = string(RFQ)
+		kyberPmmExtra, ok := extra.(kyberpmm.RFQExtra)
+		if !ok {
+			break
+		}
+		rfqRouteMsg.PartnerName = kyberPmmExtra.Partner
+		rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(kyberPmmExtra.QuoteTimestamp, 0))
+		rfqRouteMsg.TakerAmount = kyberPmmExtra.TakerAmount
+		rfqRouteMsg.MakerAmount = kyberPmmExtra.MakerAmount
+		rfqRouteMsg.TakerAsset = kyberPmmExtra.TakerAsset
+		rfqRouteMsg.MakerAsset = kyberPmmExtra.MakerAsset
+
+	case dexValueObject.ExchangePmm1:
+		rfqRouteMsg.RouteType = string(RFQ)
+		mxTradingExtra, ok := extra.(mxtrading.RFQExtra)
+		if !ok {
+			break
+		}
+		rfqRouteMsg.PartnerName = mxTradingExtra.Partner
+		rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(mxTradingExtra.QuoteTimestamp, 0))
+		order := mxTradingExtra.Order
+		if order == nil {
+			break
+		}
+		rfqRouteMsg.TakerAmount = order.TakingAmount
+		rfqRouteMsg.MakerAmount = order.MakingAmount
+		rfqRouteMsg.TakerAsset = order.TakerAsset
+		rfqRouteMsg.MakerAsset = order.MakerAsset
 
 	case dexValueObject.ExchangePmm2:
-		onebitExtra, ok := extra.(onebit.RFQExtra)
-		if ok {
-			rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(onebitExtra.QuoteTimestamp, 0))
-			takerAmount, _ := new(big.Int).SetString(onebitExtra.TakerAmount, 10)
-			makerAmount, _ := new(big.Int).SetString(onebitExtra.MakerAmount, 10)
-
-			rfqRouteMsg.TakerAmount = takerAmount.Text(10)
-			rfqRouteMsg.MakerAmount = makerAmount.Text(10)
-			rfqRouteMsg.TakerAsset = onebitExtra.TakerAsset
-			rfqRouteMsg.MakerAsset = onebitExtra.MakerAsset
-			rfqRouteMsg.PartnerName = onebitExtra.Partner
-		}
 		rfqRouteMsg.RouteType = string(RFQ)
+		onebitExtra, ok := extra.(onebit.RFQExtra)
+		if !ok {
+			break
+		}
+		rfqRouteMsg.PartnerName = onebitExtra.Partner
+		rfqRouteMsg.QuoteTimestamp = timestamppb.New(time.Unix(onebitExtra.QuoteTimestamp, 0))
+		rfqRouteMsg.TakerAmount = onebitExtra.TakerAmount
+		rfqRouteMsg.MakerAmount = onebitExtra.MakerAmount
+		rfqRouteMsg.TakerAsset = onebitExtra.TakerAsset
+		rfqRouteMsg.MakerAsset = onebitExtra.MakerAsset
 
 	case dexValueObject.ExchangeUniswapV4Kem:
-		// TODO implement me
 		rfqRouteMsg.RouteType = string(RFQ)
+		rfqRouteMsg.QuoteTimestamp = timestamppb.Now()
+		rfqRouteMsg.TakerAmount = swap.SwapAmount.String()
+		rfqRouteMsg.MakerAmount = swap.AmountOut.String()
+		rfqRouteMsg.TakerAsset = swap.TokenIn
+		rfqRouteMsg.MakerAsset = swap.TokenOut
 
 	default:
 		rfqRouteMsg.RouteType = string(AMM)
@@ -953,7 +973,8 @@ func (uc *BuildRouteUseCase) consumeRouteMsgDatas(ctx context.Context, rfqRouteM
 	}
 
 	if len(rfqRouteMsgDatas) > 0 {
-		err := uc.publisherRepository.PublishMultiple(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic, rfqRouteMsgDatas)
+		err := uc.publisherRepository.PublishMultiple(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic,
+			rfqRouteMsgDatas)
 		if err != nil {
 			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
 		}
