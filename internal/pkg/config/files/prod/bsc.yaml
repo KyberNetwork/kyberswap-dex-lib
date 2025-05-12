@@ -82,6 +82,8 @@ common:
     - "overnight-usdp"
     - "owlswap-v3"
     - "uniswap-v4-kem"
+    - "pancake-infinity-cl"
+    - "pancake-infinity-bin"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
