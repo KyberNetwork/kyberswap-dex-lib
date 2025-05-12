@@ -107,7 +107,7 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 		binsReserveChanges                                 []binReserveChanges
 	)
 
-	for !amountsLeft.IsZero() {
+	for {
 		bin, err := GetBinById(p.bins, id)
 		if err != nil {
 			return nil, err
@@ -161,6 +161,10 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges(
 				id, !swapForY, amountsInWithFees, amountsOutOfBin,
 			))
+		}
+
+		if amountsLeft.IsZero() {
+			break
 		}
 
 		id, err = GetNextNonEmptyBin(swapForY, p.bins, id)
