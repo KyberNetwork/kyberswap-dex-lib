@@ -10,9 +10,9 @@ import (
 )
 
 type AggregateParams struct {
-	TokenIn  entity.Token
-	TokenOut entity.Token
-	GasToken entity.Token
+	TokenIn  entity.SimplifiedToken
+	TokenOut entity.SimplifiedToken
+	GasToken entity.SimplifiedToken
 
 	TokenInPriceUSD  float64
 	TokenOutPriceUSD float64

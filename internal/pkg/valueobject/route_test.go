@@ -49,7 +49,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 		middleToken = tokenByAddress[tokenAddressList[1]]
 		tokenOut    = tokenByAddress[tokenAddressList[2]]
 
-		//tokensOnPaths = []*entity.Token{tokenIn, tokenOut}
+		//tokensOnPaths = []*entity.SimplifiedToken{tokenIn, tokenOut}
 		tokenAmountIn = TokenAmount{
 			Token:     tokenIn.Address,
 			Amount:    big.NewInt(100_000),
@@ -107,7 +107,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 		},
 		TotalGas:      0,
 		PoolAddresses: []string{poolToAdd.GetAddress(), poolToFail.GetAddress()},
-		Tokens:        []*entity.Token{tokenIn, middleToken, tokenOut},
+		Tokens:        []*entity.SimplifiedToken{tokenIn, middleToken, tokenOut},
 	}
 	require.NoError(t, err)
 	tests := []struct {

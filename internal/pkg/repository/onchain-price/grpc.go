@@ -10,13 +10,14 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 	"github.com/KyberNetwork/service-framework/pkg/common"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -42,7 +43,7 @@ var (
 )
 
 type ITokenRepository interface {
-	FindDecimalByAddresses(ctx context.Context, addresses []string) (map[string]uint8, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
 }
 
 var (
@@ -72,11 +73,11 @@ func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID,
 }
 
 type priceAndError struct {
-	prices map[string]*entity.OnchainPrice
+	prices map[string]*routerEntity.OnchainPrice
 	err    error
 }
 
-func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
+func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] grpcRepository.FindByAddresses")
 	defer span.End()
 
@@ -85,7 +86,7 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	}
 
 	// if there are too many tokens then break to several chunks
-	prices := make(map[string]*entity.OnchainPrice, len(addresses))
+	prices := make(map[string]*routerEntity.OnchainPrice, len(addresses))
 	chunks := lo.Chunk(addresses, MaxTokensPerCall)
 
 	chunkResults := iter.Map(chunks, func(chunk *[]string) priceAndError {
@@ -110,16 +111,19 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	return prices, nil
 }
 
-func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
+func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	if len(addresses) == 0 {
 		return nil, nil
 	}
 
 	// get token info (decimal)
-	decimalsByToken, err := r.tokenRepository.FindDecimalByAddresses(ctx, addresses)
+	tokens, err := r.tokenRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
-		return nil, fmt.Errorf("[findByAddressesSingleChunk] failed to get token decimal %s %v", addresses, err)
+		return nil, fmt.Errorf("[findByAddressesSingleChunk] failed to get token info %s %v", addresses, err)
 	}
+	decimalsByToken := lo.SliceToMap(tokens, func(item *entity.SimplifiedToken) (string, uint8) {
+		return item.Address, item.Decimals
+	})
 	nativeDecimals := float.TenPow(18)
 
 	// fetch price
@@ -137,7 +141,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 		return nil, err
 	}
 
-	prices := make(map[string]*entity.OnchainPrice, len(addresses))
+	prices := make(map[string]*routerEntity.OnchainPrice, len(addresses))
 	for _, p := range res.Result.Prices {
 		decimals, ok := decimalsByToken[p.Address]
 		if !ok {
@@ -152,7 +156,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 		}
 
 		if _, ok := prices[p.Address]; !ok {
-			prices[p.Address] = &entity.OnchainPrice{Decimals: decimals}
+			prices[p.Address] = &routerEntity.OnchainPrice{Decimals: decimals}
 		}
 
 		for _, detail := range p.Buy {
@@ -194,13 +198,13 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 				continue
 			}
 
-			prices[addr] = &entity.OnchainPrice{
+			prices[addr] = &routerEntity.OnchainPrice{
 				Decimals: decimals,
-				NativePrice: entity.Price{
+				NativePrice: routerEntity.Price{
 					Buy:  big.NewFloat(0),
 					Sell: big.NewFloat(0),
 				},
-				NativePriceRaw: entity.Price{
+				NativePriceRaw: routerEntity.Price{
 					Buy:  big.NewFloat(0),
 					Sell: big.NewFloat(0),
 				},

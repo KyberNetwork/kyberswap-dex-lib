@@ -29,11 +29,11 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 		{
 			name: "It should return correct result with exact amount",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Address:  "x",
 					Decimals: 18,
 				},
-				TokenOut: entity.Token{
+				TokenOut: entity.SimplifiedToken{
 					Address:  "y",
 					Decimals: 18,
 				},
@@ -128,11 +128,11 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 		{
 			name: "It should return correct result with relativity amount",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Address:  "x",
 					Decimals: 18,
 				},
-				TokenOut: entity.Token{
+				TokenOut: entity.SimplifiedToken{
 					Address:  "y",
 					Decimals: 18,
 				},

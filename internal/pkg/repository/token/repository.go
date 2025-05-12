@@ -12,15 +12,28 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type repository struct {
+type IToken interface {
+	GetAddress() string
+}
+
+type repository[T IToken] struct {
 	redisClient redis.UniversalClient
 	httpClient  ITokenAPI
 	config      RedisRepositoryConfig
 	keyTokens   string
 }
 
-func NewRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig, tokenAPI ITokenAPI) *repository {
-	return &repository{
+func NewSimplifiedTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig, tokenAPI ITokenAPI) *repository[entity.SimplifiedToken] {
+	return &repository[entity.SimplifiedToken]{
+		redisClient: redisClient,
+		config:      config,
+		keyTokens:   utils.Join(config.Prefix, KeyTokens),
+		httpClient:  tokenAPI,
+	}
+}
+
+func NewFullTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig, tokenAPI ITokenAPI) *repository[entity.Token] {
+	return &repository[entity.Token]{
 		redisClient: redisClient,
 		config:      config,
 		keyTokens:   utils.Join(config.Prefix, KeyTokens),
@@ -29,7 +42,7 @@ func NewRepository(redisClient redis.UniversalClient, config RedisRepositoryConf
 }
 
 // FindByAddresses returns tokens by their addresses
-func (r *repository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error) {
+func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string) ([]*T, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "token.repository.FindByAddresses")
 	defer span.End()
 
@@ -42,7 +55,7 @@ func (r *repository) FindByAddresses(ctx context.Context, addresses []string) ([
 		return nil, err
 	}
 
-	tokens := make([]*entity.Token, 0, len(tokenDataList))
+	tokens := make([]*T, 0, len(tokenDataList))
 	for i, tokenData := range tokenDataList {
 		if tokenData == nil {
 			continue
@@ -56,21 +69,20 @@ func (r *repository) FindByAddresses(ctx context.Context, addresses []string) ([
 			continue
 		}
 
-		token, err := decodeToken(addresses[i], tokenDataStr)
+		token, err := decodeToken[T](ctx, tokenDataStr, addresses[i])
 		if err != nil {
 			logger.
 				WithFields(ctx, logger.Fields{"error": err, "key": addresses[i]}).
 				Warn("decode token data failed")
 			continue
 		}
-
 		tokens = append(tokens, token)
 	}
 
 	return tokens, nil
 }
 
-func (r *repository) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID, addresses []string) ([]*routerEntity.TokenInfo, error) {
+func (r *repository[T]) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID, addresses []string) ([]*routerEntity.TokenInfo, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "token.repository.FindTokenInfoByAddress")
 	defer span.End()
 

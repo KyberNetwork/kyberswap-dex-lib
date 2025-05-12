@@ -102,8 +102,8 @@ func (gen *TradeDataGenerator) getPrices(ctx context.Context, addresses []string
 	return result, nil
 }
 
-func (gen *TradeDataGenerator) getTokens(ctx context.Context, addresses []string) (map[string]*entity.Token, error) {
-	result := make(map[string]*entity.Token, len(addresses))
+func (gen *TradeDataGenerator) getTokens(ctx context.Context, addresses []string) (map[string]*entity.SimplifiedToken, error) {
+	result := make(map[string]*entity.SimplifiedToken, len(addresses))
 	tokens, err := gen.tokenRepo.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return result, err
@@ -245,7 +245,7 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 	rfqDexes []string,
 	output chan<- TradesGenerationOutput,
 	prices map[string]*price,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	poolFilter getpools.PoolFilter,
 	poolAddressFilter getpools.PoolAddressFilter) mapset.Set[string] {
 	alreadyProceed := mapset.NewSet[string]()
@@ -301,7 +301,7 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 func (u *TradeDataGenerator) handlePools(ctx context.Context,
 	output chan<- TradesGenerationOutput,
 	prices map[string]*price,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	poolFilter getpools.PoolFilter,
 	poolAddressFilter getpools.PoolAddressFilter,
 	addresses []string) mapset.Set[string] {
@@ -335,7 +335,7 @@ func (u *TradeDataGenerator) handlePools(ctx context.Context,
 func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 	chunk []string,
 	prices map[string]*price,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	poolFiler getpools.PoolFilter,
 	calculateSwapLimit CalculateSwapLimit,
 ) (TradesGenerationOutput, error) {
@@ -409,7 +409,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 					wg.Add(1)
 					go func(ctx context.Context,
 						tokenIn, tokenOut string,
-						tokens map[string]*entity.Token,
+						tokens map[string]*entity.SimplifiedToken,
 						prices map[string]*price,
 						pool poolpkg.IPoolSimulator) {
 						defer wg.Done()
@@ -476,7 +476,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 // at 10$ amountOut = X, at 100$ error, but at 1000$ we still have valid amountOut, what should we set data point for 100$ amount in?
 func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	tokenIn, tokenOut string,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]*price,
 	pool poolpkg.IPoolSimulator,
 	limit poolpkg.SwapLimit) []TradeData {
@@ -560,7 +560,7 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 
 func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Context,
 	tokenIn, tokenOut string,
-	tokens map[string]*entity.Token,
+	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]*price,
 	pool poolpkg.IPoolSimulator,
 	limit poolpkg.SwapLimit,

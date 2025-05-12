@@ -79,7 +79,7 @@ type FinderData struct {
 	PoolBucket *valueobject.PoolBucket
 
 	// TokenByAddress mapping from token address to token info (decimals, symbol, ...)
-	TokenByAddress map[string]*entity.Token
+	TokenByAddress map[string]*entity.SimplifiedToken
 
 	//TokenToPoolAddress store the adjacent list on our bfs traversal
 	TokenToPoolAddress *types.TokenToPoolAddressMap
@@ -104,7 +104,7 @@ type FinderData struct {
 	UseAEVMPool bool
 }
 
-func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {
+func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.SimplifiedToken, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {
 	tokenToPoolAddress := types.MakeTokenToPoolAddressMapFromPools(state.Pools)
 
 	return FinderData{

@@ -45,7 +45,7 @@ func Test_BestRoute(t *testing.T) {
 	}
 
 	data := findroute.FinderData{
-		TokenByAddress: map[string]*entity.Token{
+		TokenByAddress: map[string]*entity.SimplifiedToken{
 			"0x69b2cd28b205b47c8ba427e111dd486f9c461b57": {
 				Decimals: 0,
 			},

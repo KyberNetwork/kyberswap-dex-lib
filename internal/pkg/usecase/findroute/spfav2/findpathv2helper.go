@@ -129,7 +129,7 @@ func newPath(
 	input findroute.Input,
 	data findroute.FinderData,
 	poolAddresses []string,
-	tokens []*entity.Token,
+	tokens []*entity.SimplifiedToken,
 	tokenAmountIn valueobject.TokenAmount,
 	disregardGasFee bool,
 ) *valueobject.Path {

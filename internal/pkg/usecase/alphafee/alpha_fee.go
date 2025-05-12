@@ -45,7 +45,7 @@ type AlphaFeeParams struct {
 	BestAmmRoute *finderCommon.ConstructRoute
 
 	Prices              map[string]float64
-	Tokens              map[string]dexlibEntity.Token
+	Tokens              map[string]dexlibEntity.SimplifiedToken
 	PoolSimulatorBucket *finderCommon.SimulatorBucket
 }
 
@@ -294,7 +294,7 @@ func (c *AlphaFeeCalculation) calculatePmmAlphaFeeExactly(
 	pmmSwapTokenOut *dexlibPool.TokenAmount,
 	alphaFee *dexlibPool.TokenAmount,
 	prices map[string]float64, // usd prices
-	tokens map[string]dexlibEntity.Token,
+	tokens map[string]dexlibEntity.SimplifiedToken,
 ) *dexlibPool.TokenAmount {
 	alphaFeeUsd := finderUtil.CalcAmountPrice(alphaFee.Amount, tokens[alphaFee.Token].Decimals, prices[alphaFee.Token])
 	pmmSwapTokenOutAlphaFee := finderUtil.CalcAmountFromPrice(alphaFeeUsd, tokens[pmmSwapTokenOut.Token].Decimals,

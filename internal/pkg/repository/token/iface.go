@@ -8,8 +8,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-type IFallbackRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+type IFallbackRepository[T entity.SimplifiedToken] interface {
+	FindByAddresses(ctx context.Context, addresses []string) ([]*T, error)
 	FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID, addresses []string) ([]*routerEntity.TokenInfo, error)
 }
 

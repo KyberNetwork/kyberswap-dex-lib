@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 
@@ -14,12 +13,12 @@ import (
 )
 
 type getTokensUseCase struct {
-	tokenRepo              ITokenRepository
+	tokenRepo              ITokenFullInfoRepository[entity.Token]
 	onchainpriceRepository IOnchainPriceRepository
 }
 
 func NewGetTokens(
-	tokenRepo ITokenRepository,
+	tokenRepo ITokenFullInfoRepository[entity.Token],
 	onchainpriceRepository IOnchainPriceRepository,
 ) *getTokensUseCase {
 	return &getTokensUseCase{

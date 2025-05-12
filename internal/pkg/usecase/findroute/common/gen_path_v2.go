@@ -45,7 +45,7 @@ func GenKthBestPathsV2(
 		{
 			tokenAmount:    tokenAmountIn,
 			totalGasAmount: 0,
-			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
+			tokensOnPath:   []*entity.SimplifiedToken{data.TokenByAddress[input.TokenInAddress]},
 		},
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
@@ -126,7 +126,7 @@ func getNextLayerFromTokenV2(
 	type IntermediateParam struct {
 		poolAddress    string
 		toTokenAddress string
-		toTokenInfo    *entity.Token
+		toTokenInfo    *entity.SimplifiedToken
 	}
 	type IntermediateResult struct {
 		toTokenAmount    *valueobject.TokenAmount
@@ -151,7 +151,7 @@ func getNextLayerFromTokenV2(
 
 	var (
 		nextNodeInfos []*nodeInfo
-		toTokenInfo   *entity.Token
+		toTokenInfo   *entity.SimplifiedToken
 		pool          poolpkg.IPoolSimulator
 
 		ok bool
@@ -222,7 +222,7 @@ func getNextLayerFromTokenV2(
 			tokenAmount:         *toTokenAmount,
 			totalGasAmount:      toTotalGasAmount,
 			poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), poolAddress),
-			tokensOnPath:        append(append([]*entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+			tokensOnPath:        append(append([]*entity.SimplifiedToken{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
 		})
 	}
 

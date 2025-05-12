@@ -230,15 +230,15 @@ func apiAction(c *cli.Context) (err error) {
 		common.HexToAddress(cfg.Encoder.RouterAddress))
 	l1FeeEstimator := usecase.NewL1FeeEstimator(l1FeeParamsRepository, cfg.Common.ChainID)
 
-	tokenRepository, err := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+	cachedTokenRepository, err := token.NewGoCacheRepository(
+		token.NewSimplifiedTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
 
 	var onchainpriceRepository getroute.IOnchainPriceRepository
 	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
-		tokenRepository)
+		cachedTokenRepository)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,6 @@ func apiAction(c *cli.Context) (err error) {
 	// init validators
 	slippageValidator := validator.NewSlippageValidator(cfg.Validator.SlippageValidatorConfig)
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
-	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator(cfg.Common.ChainID)
 	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc,
 		cfg.Validator.GetRouteEncodeParams, blackjackRepo, slippageValidator)
@@ -301,7 +300,8 @@ func apiAction(c *cli.Context) (err error) {
 
 	getPoolsUseCase := getpools.NewGetPoolsUseCase(poolRepository)
 	GetPoolsIncludingBasePools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
-	getTokensUseCase := usecase.NewGetTokens(tokenRepository, onchainpriceRepository)
+	getTokensUseCase := usecase.NewGetTokens(token.NewFullTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+		token.NewHTTPClient(cfg.Repository.Token.Http)), onchainpriceRepository)
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache
@@ -363,7 +363,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
-		tokenRepository,
+		cachedTokenRepository,
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
@@ -375,7 +375,7 @@ func apiAction(c *cli.Context) (err error) {
 	)
 	getBundledRouteUseCase := getroute.NewBundledUseCase(
 		poolRankRepository,
-		tokenRepository,
+		cachedTokenRepository,
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
@@ -402,7 +402,7 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.Common.RouterAddress)
 
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
-		tokenRepository,
+		cachedTokenRepository,
 		poolRepository,
 		executorBalanceRepository,
 		onchainpriceRepository,
@@ -418,7 +418,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		poolFactory,
-		tokenRepository,
+		cachedTokenRepository,
 		onchainpriceRepository,
 		gasRepository,
 		alphaFeeRepository,
@@ -468,7 +468,6 @@ func apiAction(c *cli.Context) (err error) {
 	v1Debug.DELETE("/pool-index", api.RemovePoolsFromIndex(removePoolIndex))
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
-	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
 	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteUseCase))
 	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase,
 		cfg.UseCase.BuildRoute, timeutil.NowFunc))
@@ -584,7 +583,7 @@ func indexerAction(c *cli.Context) (err error) {
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	tokenRepository, err := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+		token.NewSimplifiedTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)
@@ -916,7 +915,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
 
 	tokenRepository, err := token.NewGoCacheRepository(
-		token.NewRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
+		token.NewSimplifiedTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
 			token.NewHTTPClient(cfg.Repository.Token.Http)),
 		cfg.Repository.Token.GoCache,
 	)

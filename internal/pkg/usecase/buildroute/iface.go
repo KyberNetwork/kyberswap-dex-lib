@@ -16,7 +16,7 @@ import (
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/token_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute ITokenRepository
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
 	FindTokenInfoByAddress(ctx context.Context, addresses []string) ([]*routerEntity.TokenInfo, error)
 }
 

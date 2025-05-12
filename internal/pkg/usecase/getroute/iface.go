@@ -82,7 +82,7 @@ type IRouteCacheRepository interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/token_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute ITokenRepository
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/onchain_price_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IOnchainPriceRepository

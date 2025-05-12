@@ -25,7 +25,7 @@ func TestNewPath(t *testing.T) {
 	type args struct {
 		poolBucket       *PoolBucket
 		poolAddresses    []string
-		tokens           []*entity.Token
+		tokens           []*entity.SimplifiedToken
 		tokenAmountIn    TokenAmount
 		tokenOut         string
 		tokenOutPrice    float64
@@ -42,7 +42,7 @@ func TestNewPath(t *testing.T) {
 	assert.NoError(t, err, "must be able to generate random pool")
 	poolBucket := NewPoolBucket(poolByAddress)
 	poolAddressOnPaths := make([]string, nPoolOnPaths)
-	tokensOnPaths := make([]*entity.Token, nPoolOnPaths+1)
+	tokensOnPaths := make([]*entity.SimplifiedToken, nPoolOnPaths+1)
 	index := 0
 
 	for address, pool := range poolByAddress {

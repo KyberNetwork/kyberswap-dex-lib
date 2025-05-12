@@ -23,26 +23,20 @@ import (
 
 func TestRetryFinder_retryDynamicPools(t *testing.T) {
 	var (
-		tokenIn = &entity.Token{
+		tokenIn = &entity.SimplifiedToken{
 			Address:  "a",
-			Symbol:   "a",
-			Name:     "a",
 			Decimals: 18,
 		}
-		midToken = &entity.Token{
+		midToken = &entity.SimplifiedToken{
 			Address:  "b",
-			Symbol:   "b",
-			Name:     "b",
 			Decimals: 18,
 		}
-		tokenOut = &entity.Token{
+		tokenOut = &entity.SimplifiedToken{
 			Address:  "c",
-			Symbol:   "c",
-			Name:     "c",
 			Decimals: 18,
 		}
 
-		tokenByAddress = map[string]*entity.Token{
+		tokenByAddress = map[string]*entity.SimplifiedToken{
 			"a": tokenIn,
 			"b": midToken,
 			"c": tokenOut,
@@ -128,7 +122,7 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 				},
 				TotalGas:      1000,
 				PoolAddresses: []string{"pool_0", "pool_1"},
-				Tokens:        []*entity.Token{tokenIn, midToken, tokenOut},
+				Tokens:        []*entity.SimplifiedToken{tokenIn, midToken, tokenOut},
 			},
 		},
 		TotalGas: 0,

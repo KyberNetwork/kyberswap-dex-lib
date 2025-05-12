@@ -230,13 +230,13 @@ func (c *correlatedPairs) getStateByAddress(
 	)
 }
 
-func (a *correlatedPairs) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.Token, error) {
+func (a *correlatedPairs) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]*entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.SimplifiedToken, len(tokens))
 	for _, token := range tokens {
 		tokenByAddress[token.Address] = token
 	}

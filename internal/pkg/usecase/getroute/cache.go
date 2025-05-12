@@ -299,7 +299,7 @@ func (c *cache) summarizeSimpleRoute(
 	ctx context.Context,
 	simpleRoute *valueobject.SimpleRoute,
 	params *types.AggregateParams,
-	tokenByAddress map[string]*entity.Token,
+	tokenByAddress map[string]*entity.SimplifiedToken,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*finderCommon.ConstructRoute, error) {
@@ -341,8 +341,8 @@ func (c *cache) getRFQMakerTokenAddresses(route *valueobject.SimpleRoute) mapset
 }
 
 func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams,
-	addresses []string) (map[string]*entity.Token, error) {
-	tokenByAddress := map[string]*entity.Token{
+	addresses []string) (map[string]*entity.SimplifiedToken, error) {
+	tokenByAddress := map[string]*entity.SimplifiedToken{
 		params.TokenIn.Address:  &params.TokenIn,
 		params.TokenOut.Address: &params.TokenOut,
 		params.GasToken.Address: &params.GasToken,
@@ -405,7 +405,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	simpleRoute *valueobject.SimpleRouteWithExtraData,
 	params *types.AggregateParams,
 	stateRoot aevmcommon.Hash,
-	tokenMap map[string]*entity.Token,
+	tokenMap map[string]*entity.SimplifiedToken,
 	priceMap map[string]*routerEntity.OnchainPrice,
 ) (*valueobject.RouteSummaries, error) {
 	var err error

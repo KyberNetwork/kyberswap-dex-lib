@@ -69,7 +69,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn: big.NewInt(1e18),
@@ -79,7 +79,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 17,
 				},
 				AmountIn: big.NewInt(1e18),
@@ -89,7 +89,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 16,
 				},
 				AmountIn: big.NewInt(2.2e17),
@@ -99,7 +99,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 17,
 				},
 				AmountIn: big.NewInt(2.2e18),
@@ -148,7 +148,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 1,
 				},
 				AmountIn:        big.NewInt(100),
@@ -159,7 +159,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 1,
 				},
 				AmountIn:        big.NewInt(20010),
@@ -170,7 +170,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 		{
 			name: "Gen key should return correct key with duration for exact point input",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 1,
 				},
 				AmountIn:        big.NewInt(10500),
@@ -359,7 +359,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should return correct key by cache point TTL",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn: utils.NewBig10("100000000000100000000"),
@@ -394,7 +394,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("100000000900000000000"),
@@ -430,7 +430,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 return no key because token in has no price",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("103000000000000000000"),
@@ -467,7 +467,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round 3.36 to 3",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("3360000000000000000"),
@@ -503,7 +503,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round decimal 35.9 to 40",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("35900000000000000000"),
@@ -539,7 +539,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round decimal 136 to 100",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("136000000000000000000"),
@@ -575,7 +575,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, round 1350.6 to 1000",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("1030600000000000000000"),
@@ -611,7 +611,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 		{
 			name: "Gen key v1 should return cache key with amount in by usd (1,59) is above threshold (1)",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("1060000000000000000"),
@@ -678,7 +678,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 		{
 			name: "Gen key v2 should return cache key by amount usd, round 1350.6 to 1000",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        utils.NewBig10("1030600000000000000000"),
@@ -715,7 +715,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 		{
 			name: "Gen key v2 should return cache key by amount, when token in has no price, apply logarithm shrinking function with base 1.1 1.3 1.5",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn: bigIntFromScientificNotation("2e21"),
@@ -750,7 +750,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 		{
 			name: "Gen key v2 should return cached keys which are below threshold",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        bigIntFromScientificNotation("2e21"),
@@ -784,7 +784,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 		{
 			name: "Gen key v2 should return errors when all shrunk values are above threshold",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        bigIntFromScientificNotation("2e21"),
@@ -818,7 +818,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 		{
 			name: "Gen key v2 should return result token in usd below threshold",
 			param: &types.AggregateParams{
-				TokenIn: entity.Token{
+				TokenIn: entity.SimplifiedToken{
 					Decimals: 18,
 				},
 				AmountIn:        bigIntFromScientificNotation("2e19"),

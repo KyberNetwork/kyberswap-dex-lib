@@ -1,26 +1,21 @@
 package token
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"context"
+
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/goccy/go-json"
 )
 
-func encodeToken(token entity.Token) (string, error) {
-	bytes, err := json.Marshal(token)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
-}
-
-func decodeToken(address string, data string) (*entity.Token, error) {
-	var token entity.Token
+// Do not support endcode for SimplifiedToken because it is not backward compatible with json encoding in Redis token set.
+func decodeToken[T IToken](ctx context.Context, data string, addr string) (*T, error) {
+	var token T
 	if err := json.Unmarshal([]byte(data), &token); err != nil {
 		return nil, err
 	}
-
-	token.Address = address
+	if (token).GetAddress() != addr {
+		logger.Errorf(ctx, "token address differs from hash key %s token %v", addr, token)
+	}
 
 	return &token, nil
 }

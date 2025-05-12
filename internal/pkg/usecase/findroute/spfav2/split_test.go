@@ -35,7 +35,7 @@ func TestSplit(t *testing.T) {
 	input := findroute.Input{TokenInAddress: token, GasTokenPriceUSD: nativePriceInUSD}
 	data := findroute.FinderData{
 		PriceUSDByAddress: map[string]float64{token: tokenPriceUSD},
-		TokenByAddress: map[string]*entity.Token{
+		TokenByAddress: map[string]*entity.SimplifiedToken{
 			token: {Decimals: tokenDecimal},
 		},
 	}
@@ -47,7 +47,7 @@ func TestSplit(t *testing.T) {
 				NativePriceRaw: routerEntity.Price{Sell: tokenPriceNativeRaw},
 			},
 		},
-		TokenByAddress: map[string]*entity.Token{
+		TokenByAddress: map[string]*entity.SimplifiedToken{
 			token: {Decimals: tokenDecimal},
 		},
 	}

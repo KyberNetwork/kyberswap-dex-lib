@@ -14,16 +14,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 )
 
-func GenerateRandomTokenByAddress(nTokens int) map[string]*entity.Token {
+func GenerateRandomTokenByAddress(nTokens int) map[string]*entity.SimplifiedToken {
 	var (
-		tokens       = make(map[string]*entity.Token)
+		tokens       = make(map[string]*entity.SimplifiedToken)
 		tokenAddress string
 		tokenDecimal uint8
 	)
 	for i := 0; i < nTokens; i++ {
 		tokenAddress = "token" + strconv.Itoa(i)
 		tokenDecimal = uint8(RandInt(6, 10))
-		tokens[tokenAddress] = &entity.Token{
+		tokens[tokenAddress] = &entity.SimplifiedToken{
 			Address:  tokenAddress,
 			Decimals: tokenDecimal,
 		}
@@ -141,7 +141,7 @@ func RandFloat(min float64, max float64) float64 {
 	return min + rand.Float64()*(max-min)
 }
 
-func GenPMMPool(token1, token2 *entity.Token) (*kyberpmm.PoolSimulator, error) {
+func GenPMMPool(token1, token2 *entity.SimplifiedToken) (*kyberpmm.PoolSimulator, error) {
 	var entityPool = entity.Pool{
 		Type:      pooltypes.PoolTypes.KyberPMM,
 		Exchange:  kyberpmm.DexTypeKyberPMM,
@@ -150,16 +150,12 @@ func GenPMMPool(token1, token2 *entity.Token) (*kyberpmm.PoolSimulator, error) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   token1.Address,
-				Name:      token1.Name,
-				Symbol:    token1.Symbol,
 				Decimals:  token1.Decimals,
 				Weight:    0,
 				Swappable: true,
 			},
 			{
 				Address:   token2.Address,
-				Name:      token2.Name,
-				Symbol:    token2.Symbol,
 				Decimals:  token2.Decimals,
 				Weight:    0,
 				Swappable: true,
