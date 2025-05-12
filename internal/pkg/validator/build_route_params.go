@@ -99,6 +99,12 @@ func (v *buildRouteParamsValidator) validateRoute(route params.RouteSummary) err
 		return NewValidationError("route.route", "empty route")
 	}
 
+	for _, path := range route.Route {
+		if len(path) == 0 {
+			return NewValidationError("route.path", "empty path")
+		}
+	}
+
 	return nil
 }
 

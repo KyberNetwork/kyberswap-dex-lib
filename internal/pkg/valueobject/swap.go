@@ -33,3 +33,5 @@ type Swap struct {
 	// Extra metadata of swap
 	Extra any `json:"extra"`
 }
+
+const RouteIDInExtra = "ri"

@@ -21,6 +21,7 @@ import (
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -118,6 +119,18 @@ func NewBuildRouteUseCase(
 func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
+
+	// Some clients may omit the routeID in the request.
+	// As a fallback, we attach the routeID during the first swap
+	// and retrieve it from there.
+	if command.RouteSummary.RouteID == "" &&
+		len(command.RouteSummary.Route) > 0 &&
+		len(command.RouteSummary.Route[0]) > 0 {
+		firstSwapExtra, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
+		if err == nil && (*firstSwapExtra) != nil {
+			command.RouteSummary.RouteID = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
+		}
+	}
 
 	isValidChecksum := uc.IsValidChecksum(command.RouteSummary, command.Checksum)
 	if uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
