@@ -7,6 +7,7 @@ import (
 
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -54,22 +55,22 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 		{
 			name:        "it should return error when swap lower than min level", // Lowest level ~1.5 USDT
 			amountIn:    floatToWei(t, 1.0, tokenUSDT.Decimals),
-			expectedErr: ErrAmountInIsLessThanLowestPriceLevel,
+			expectedErr: ErrAmtInLessThanMinAllowed,
 		},
 		{
 			name:        "it should return error when swap higher than total level", // Total level ~151.5 USDT
 			amountIn:    floatToWei(t, 200.0, tokenUSDT.Decimals),
-			expectedErr: ErrAmountInIsGreaterThanHighestPriceLevel,
+			expectedErr: ErrInsufficientLiquidity,
 		},
 		{
 			name:              "it should return correct amountOut when swap in levels",
 			amountIn:          floatToWei(t, 3.0, tokenUSDT.Decimals),
-			expectedAmountOut: bigIntFromString("4244627899174255799"),
+			expectedAmountOut: bigIntFromString("4244627899174255616"),
 		},
 		{
 			name:              "it should return correct amountOut when swap in all levels",
 			amountIn:          floatToWei(t, 152.0, tokenUSDT.Decimals),
-			expectedAmountOut: bigIntFromString("215061146891495627168"),
+			expectedAmountOut: bigIntFromString("215061146891495636992"),
 		},
 	}
 
@@ -87,11 +88,11 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			sim := poolSimulator.CloneState()
 			cloned := sim.CloneState()
 			result, err := sim.CalcAmountOut(params)
-			assert.Equal(t, tc.expectedErr, err)
+			require.Equal(t, tc.expectedErr, err)
 			if tc.expectedErr != nil {
 				return
 			}
-			assert.Equal(t, 0, result.TokenAmountOut.Amount.Cmp(tc.expectedAmountOut))
+			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
 
 			sim.UpdateBalance(pool.UpdateBalanceParams{
 				TokenAmountIn:  params.TokenAmountIn,
@@ -100,7 +101,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			})
 
 			clonedRes, err := cloned.CalcAmountOut(params)
-			assert.Equal(t, tc.expectedErr, err)
+			require.Equal(t, tc.expectedErr, err)
 			assert.Equal(t, result, clonedRes)
 		})
 	}
@@ -119,17 +120,17 @@ func TestPoolSimulator_GetAmountIn(t *testing.T) {
 		{
 			name:        "it should return error when swap lower than min level", // Lowest level ~2.1 OMG
 			amountOut:   floatToWei(t, 2.0, tokenOMG.Decimals),
-			expectedErr: ErrAmountOutIsLessThanLowestPriceLevel,
+			expectedErr: ErrAmtOutLessThanMinAllowed,
 		},
 		{
 			name:        "it should return error when swap higher than total level", // Total level ~214.8 OMG
 			amountOut:   floatToWei(t, 220.0, tokenOMG.Decimals),
-			expectedErr: ErrAmountOutIsGreaterThanHighestPriceLevel,
+			expectedErr: ErrInsufficientLiquidity,
 		},
 		{
 			name:             "it should return correct amountIn when swap in levels",
 			amountOut:        bigIntFromString("4244627899174255799"),
-			expectedAmountIn: bigIntFromString("2999999"),
+			expectedAmountIn: bigIntFromString("3000000"),
 		},
 		{
 			name:             "it should return correct amountIn when swap in all levels",
