@@ -1,8 +1,6 @@
 package hashflowv3
 
 import (
-	"math/big"
-
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -78,8 +76,8 @@ type Quote struct {
 
 type (
 	PriceLevel struct {
-		Quote *big.Float
-		Price *big.Float
+		Quote float64
+		Price float64
 	}
 
 	StaticExtra struct {
