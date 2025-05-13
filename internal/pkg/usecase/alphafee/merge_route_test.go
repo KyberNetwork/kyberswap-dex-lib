@@ -2,12 +2,13 @@ package alphafee
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 const routeSummaryStr = `

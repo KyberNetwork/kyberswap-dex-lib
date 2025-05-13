@@ -342,8 +342,6 @@ func apiAction(c *cli.Context) (err error) {
 	cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.ExecutorAddress
 	if cfg.Encoder.ExecutorAddressByClientID[clientid.KyberSwap] != "" {
 		cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.ExecutorAddressByClientID[clientid.KyberSwap]
-	} else if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
-		cfg.UseCase.GetRoute.KyberExecutorAddress = cfg.Encoder.L2ExecutorAddress
 	}
 
 	var publisherRepository buildroute.IPublisherRepository
