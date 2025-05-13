@@ -27,6 +27,19 @@ def geometric_mean(nums):
         product *= x
     return product ** (1/len(nums))
 
+def geometric_mean_safe(nums):
+    if not nums:
+        return 0.0
+    log_sum = 0.0
+    for x in nums:
+        if x < 0:
+            raise ValueError('input data must contain non-negative numbers.')
+        if x == 0:
+            return 0.0
+        log_sum += math.log(x)
+
+    return math.exp(log_sum / len(nums))
+
 # 3. Arithmetic Mean
 def arithmetic_mean(nums):
     return sum(nums) / len(nums)
@@ -101,15 +114,22 @@ def pool_score(pools) -> list:
             })
         else:
             try:
+                harmonic = harmonic_mean(valid_scores)
+                geometric = geometric_mean(valid_scores)
+                if math.isinf(geometric):
+                    geometric = geometric_mean_safe(valid_scores)
+                    print(f'Geometric mean is inf with pool {pool.name} scores {valid_scores} approximate geometric mean {geometric}')  
+                    
+                arithmetic = arithmetic_mean(valid_scores)
                 result.append({
                     'pool': pool.name,
-                    'harmonic': float(harmonic_mean(valid_scores)),
-                    'geometric': float(geometric_mean(valid_scores)),
-                    'arithmetic': float(arithmetic_mean(valid_scores)),
+                    'harmonic': float(harmonic),
+                    'geometric': float(geometric),
+                    'arithmetic': float(arithmetic),
                     'level': pool.level
                 })
             except Exception as e:
-                print(f'Exception while calculate mean values {e}')
+                print(f'Exception while calculate mean values {e} pool {pool.name} scores {valid_scores}')
     
     return result
 
