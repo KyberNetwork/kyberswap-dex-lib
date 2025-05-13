@@ -108,3 +108,9 @@ type SwapInfo struct {
 	SwapSide     SwapSide      `json:"swapSide"`
 	FilledOrders []*DutchOrder `json:"filledOrders"`
 }
+
+type StaticExtra struct {
+	Token0         string `json:"token0"`
+	Token1         string `json:"token1"`
+	ReactorAddress string `json:"reactorAddress"`
+}
