@@ -128,7 +128,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		len(command.RouteSummary.Route[0]) > 0 {
 		firstSwapExtra, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
 		if err == nil && (*firstSwapExtra) != nil {
-			command.RouteSummary.RouteID = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
+			command.RouteSummary.RouteID, _ = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
 		}
 	}
 
