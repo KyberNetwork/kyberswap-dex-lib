@@ -18,6 +18,8 @@ type OrderType string
 
 type SortKey string
 
+type SwapSide int
+
 const (
 	OpenOrderStatus OrderStatus = "open"
 
@@ -45,11 +47,11 @@ func (d *DutchOrderQuery) AddSortByCreatedAtGreaterThan(time int64) {
 }
 
 type DutchOrdersResponse struct {
-	Orders []DutchOrderResponse `json:"orders"`
-	Cursor string               `json:"cursor"`
+	Orders []DutchOrder `json:"orders"`
+	Cursor string       `json:"cursor"`
 }
 
-type DutchOrderResponse struct {
+type DutchOrder struct {
 	Type           string          `json:"type"`
 	OrderStatus    OrderStatus     `json:"orderStatus"`
 	EncodedOrder   hexutil.Bytes   `json:"encodedOrder"`
@@ -99,4 +101,10 @@ type CosignerData struct {
 	ExclusiveFiller string         `json:"exclusiveFiller"`
 	InputOverride   *uint256.Int   `json:"inputOverride"`
 	OutputOverrides []*uint256.Int `json:"outputOverrides"`
+}
+
+type SwapInfo struct {
+	AmountIn     string        `json:"amountIn"`
+	SwapSide     SwapSide      `json:"swapSide"`
+	FilledOrders []*DutchOrder `json:"filledOrders"`
 }
