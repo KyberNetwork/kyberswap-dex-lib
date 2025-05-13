@@ -1,18 +1,19 @@
 package hyeth
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 )
 
 type (

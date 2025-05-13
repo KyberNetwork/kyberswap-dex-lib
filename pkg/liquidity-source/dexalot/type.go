@@ -75,16 +75,16 @@ type Transaction struct {
 
 type (
 	SwapInfo struct {
-		BaseToken          string `json:"b" mapstructure:"b"`
-		BaseTokenAmount    string `json:"bAmt" mapstructure:"bAmt"`
-		QuoteToken         string `json:"q" mapstructure:"q"`
-		QuoteTokenAmount   string `json:"qAmt" mapstructure:"qAmt"`
-		MarketMaker        string `json:"mm,omitempty" mapstructure:"mm"`
-		ExpirySecs         uint   `json:"exp,omitempty" mapstructure:"exp"`
-		BaseTokenOriginal  string `json:"bo,omitempty" mapstructure:"bo"`
-		QuoteTokenOriginal string `json:"qo,omitempty" mapstructure:"qo"`
-		BaseTokenReserve   string `json:"br,omitempty" mapstructure:"br"`
-		QuoteTokenReserve  string `json:"qr,omitempty" mapstructure:"qr"`
+		BaseToken          string `json:"b"`
+		BaseTokenAmount    string `json:"bAmt"`
+		QuoteToken         string `json:"q"`
+		QuoteTokenAmount   string `json:"qAmt"`
+		MarketMaker        string `json:"mm,omitempty"`
+		ExpirySecs         uint   `json:"exp,omitempty"`
+		BaseTokenOriginal  string `json:"bo,omitempty"`
+		QuoteTokenOriginal string `json:"qo,omitempty"`
+		BaseTokenReserve   string `json:"br,omitempty"`
+		QuoteTokenReserve  string `json:"qr,omitempty"`
 	}
 
 	Gas struct {

@@ -7,10 +7,10 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type Config struct {
@@ -18,7 +18,7 @@ type Config struct {
 }
 
 type IClient interface {
-	QuoteSingleOrderResult(ctx context.Context, params QuoteParams) (QuoteSingleOrderResult, error)
+	Quote(ctx context.Context, params QuoteParams) (QuoteResult, error)
 }
 
 type RFQHandler struct {
@@ -35,11 +35,12 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	var swapInfo SwapInfo
-	if err := mapstructure.WeakDecode(params.SwapInfo, &swapInfo); err != nil {
+	swapInfo, err := util.AnyToStruct[SwapInfo](params.SwapInfo)
+	if err != nil {
 		return nil, err
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
+
 	p := QuoteParams{
 		SellTokens:      swapInfo.BaseToken,
 		BuyTokens:       swapInfo.QuoteToken,
@@ -49,7 +50,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		OriginAddress:   params.Sender,
 		Source:          params.Source,
 	}
-	result, err := h.client.QuoteSingleOrderResult(ctx, p)
+	result, err := h.client.Quote(ctx, p)
 	if err != nil {
 		return nil, errors.WithMessage(err, "quote failed")
 	}

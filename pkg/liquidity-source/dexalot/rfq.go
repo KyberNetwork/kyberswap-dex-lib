@@ -6,9 +6,9 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -35,8 +35,8 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	var swapInfo SwapInfo
-	if err := mapstructure.WeakDecode(params.SwapInfo, &swapInfo); err != nil {
+	swapInfo, err := util.AnyToStruct[SwapInfo](params.SwapInfo)
+	if err != nil {
 		return nil, err
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)

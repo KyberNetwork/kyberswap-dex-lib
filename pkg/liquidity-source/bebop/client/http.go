@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	querySourceKey      = "source"
-	headerSourceAuthKey = "source-auth"
-
 	pathQuote = "v3/quote"
 
 	errCodeBadRequest             = 101
@@ -50,7 +47,7 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
-		SetHeader(headerSourceAuthKey, config.Authorization)
+		SetHeader(bebop.ParamsSourceAuth, config.Authorization)
 
 	return &HTTPClient{
 		config: config,
@@ -58,31 +55,28 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 	}
 }
 
-func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
-	params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
-	// token address case-sensitive
+func (c *HTTPClient) Quote(ctx context.Context,
+	params bebop.QuoteParams) (bebop.QuoteResult, error) {
 	req := c.client.R().
 		SetContext(ctx).
-		// the SellTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsSellTokens, toChecksumHex(params.SellTokens)).
-		// the BuyTokens address must follow the HEX format
-		SetQueryParam(bebop.ParamsBuyTokens, toChecksumHex(params.BuyTokens)).
+		SetQueryParam(bebop.ParamsSellTokens, toChecksumHex(params.SellTokens)). // must be checksum-ed
+		SetQueryParam(bebop.ParamsBuyTokens, toChecksumHex(params.BuyTokens)).   // must be checksum-ed
 		SetQueryParam(bebop.ParamsSellAmounts, params.SellAmounts).
 		SetQueryParam(bebop.ParamsTakerAddress, toChecksumHex(params.TakerAddress)).
 		SetQueryParam(bebop.ParamsReceiverAddress, toChecksumHex(params.ReceiverAddress)).
 		SetQueryParam(bebop.ParamsOriginAddress, toChecksumHex(params.OriginAddress)).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
-		SetQueryParam(bebop.ParamsGasLess, "false"). // self-execution
-		SetQueryParam(querySourceKey, c.config.Name)
+		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution
+		SetQueryParam(bebop.ParamsSource, c.config.Name)
 
 	var result struct {
-		bebop.QuoteSingleOrderResult
+		bebop.QuoteResult
 		bebop.QuoteFail
 	}
 	resp, err := req.SetResult(&result).SetError(&result).Get(pathQuote)
 	if err != nil {
-		return bebop.QuoteSingleOrderResult{}, err
+		return bebop.QuoteResult{}, err
 	}
 
 	if !resp.IsSuccess() || result.Failed() {
@@ -94,10 +88,10 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context,
 			"rfq.error.message": result.Error.Message,
 		}).Error("quote failed")
 		err = parseRFQError(result.Error.ErrorCode)
-		return bebop.QuoteSingleOrderResult{}, fmt.Errorf("%w: %s", err, result.Error.Message)
+		return bebop.QuoteResult{}, fmt.Errorf("%w: %s", err, result.Error.Message)
 	}
 
-	return result.QuoteSingleOrderResult, nil
+	return result.QuoteResult, nil
 }
 
 func toChecksumHex(hex string) string {
