@@ -100,14 +100,16 @@ def pool_score(pools) -> list:
                 'level': pool.level
             })
         else:
-            result.append(
-                {
-                'pool': pool.name,
-                'harmonic': float(harmonic_mean(valid_scores)),
-                'geometric': float(geometric_mean(valid_scores)),
-                'arithmetic': float(arithmetic_mean(valid_scores)),
-                'level': pool.level
-            })
+            try:
+                result.append({
+                    'pool': pool.name,
+                    'harmonic': float(harmonic_mean(valid_scores)),
+                    'geometric': float(geometric_mean(valid_scores)),
+                    'arithmetic': float(arithmetic_mean(valid_scores)),
+                    'level': pool.level
+                })
+            except Exception as e:
+                print(f'Exception while calculate mean values {e}')
     
     return result
 

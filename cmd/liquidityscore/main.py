@@ -48,10 +48,15 @@ def main():
         return
 
     # run filter score by calculating entropy
-    min_score = entropy.get_top_pools(pool_scores, mean_type, float(target_factor_entropy))
-    final_scores = filter_scores(pool_scores, mean_type, min_score, int(min_filtered_pools_len))
-    print(f'Length of final scores after filtering: {len(final_scores)}')
-    save_scores(filter_score_filename, final_scores)
+    try:
+        min_score = entropy.get_top_pools(pool_scores, mean_type, float(target_factor_entropy))
+        final_scores = filter_scores(pool_scores, mean_type, min_score, int(min_filtered_pools_len))
+        print(f'Length of final scores after filtering: {len(final_scores)}')
+        save_scores(filter_score_filename, final_scores)
+    except Exception as e:
+        print(f'exception while calculate entropy values {e}, back to save all scores {pool_scores}')
+        # when exception occurs here, we don't need to filter score
+        save_scores(filter_score_filename, pool_scores)     
 
 
 def filter_scores(pool_scores, mean_type, min_score, min_len) -> list:
@@ -75,6 +80,7 @@ def save_scores(filename: str, scores: list):
             writer.writerow(value)
 
     csvfile.close()
+    print(f'Save scores successfully with filename {filename}')
 
 
 def read_trade_data(filename, min_threshold_amount_out_percentage) -> list:
