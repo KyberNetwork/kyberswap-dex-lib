@@ -967,7 +967,7 @@ func (uc *BuildRouteUseCase) checkToKeepDustTokenOut(
 
 	if !hasTokens[0] {
 		routeSummary.AmountOut.Sub(routeSummary.AmountOut, big.NewInt(1))
-		if routeSummary.AmountOut.Cmp(big.NewInt(0)) <= 0 {
+		if routeSummary.AmountOut.Sign() <= 0 {
 			return routeSummary, ErrCannotKeepDustTokenOut
 		}
 	}

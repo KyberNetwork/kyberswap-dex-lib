@@ -92,7 +92,7 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token c
 		return nil, fmt.Errorf("could not balanceOf(source): %w", err)
 	}
 	sourceBalance := new(big.Int).SetBytes(common.HexToHash(*balanceOfSourceResut).Bytes())
-	if sourceBalance.Cmp(big.NewInt(0)) <= 0 {
+	if sourceBalance.Sign() <= 0 {
 		return nil, fmt.Errorf("source balance must > 0")
 	}
 
@@ -117,7 +117,7 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token c
 		}
 	}
 
-	if balance.Cmp(big.NewInt(0)) <= 0 {
+	if balance.Sign() <= 0 {
 		return nil, fmt.Errorf("could not double balance")
 	}
 
