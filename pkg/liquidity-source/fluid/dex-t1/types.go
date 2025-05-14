@@ -7,7 +7,8 @@ import (
 )
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type PoolExtra struct {

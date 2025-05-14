@@ -233,12 +233,22 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, swapInfo.WTokenIn, deltaOut, deltaIn)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return uniswapv2.PoolMeta{
-		Fee:          s.fee.Uint64(),
-		FeePrecision: s.feePrecision.Uint64(),
-		BlockNumber:  s.Pool.Info.BlockNumber,
+		Fee:             s.fee.Uint64(),
+		FeePrecision:    s.feePrecision.Uint64(),
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	// If wrap in
+	if s.GetTokenIndex(tokenIn) < 2 {
+		return s.GetAddress()
+	}
+
+	return ""
 }
 
 func (s *PoolSimulator) getReserves(indexIn, indexOut int) (*uint256.Int, *uint256.Int, error) {
@@ -307,14 +317,14 @@ func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.In
 	return uniswapv2.SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	tokens := p.GetTokens()
+func (s *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	tokens := s.GetTokens()
 
 	limits := make(map[string]*big.Int, len(tokens))
 
 	if len(tokens) == 4 {
-		limits[tokens[2]] = p.originalReserves.Reserve0
-		limits[tokens[3]] = p.originalReserves.Reserve1
+		limits[tokens[2]] = s.originalReserves.Reserve0
+		limits[tokens[3]] = s.originalReserves.Reserve1
 	}
 
 	return limits

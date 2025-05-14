@@ -59,6 +59,9 @@ type QuoteResult struct {
 	// The offset position (in bytes) of the param amountOutMinimum. You can modify this value to protect yourself from
 	// slippage accordingly. Will be undefined if the target liquidity pool is not a native pool (non-PMM pool).
 	AmountOutMinimumOffset int `json:"amountOutMinimumOffset"`
+
+	// ApprovalAddress is TxRequest.Target
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 func (r *QuoteResult) IsSuccess() bool {

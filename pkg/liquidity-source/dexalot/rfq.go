@@ -71,6 +71,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, fmt.Errorf("quote single order result: %w", err)
 	}
 
+	result.ApprovalAddress = result.Tx.To
+
 	newAmountOut, _ := new(big.Int).SetString(result.Order.MakerAmount, 10)
 
 	return &pool.RFQResult{

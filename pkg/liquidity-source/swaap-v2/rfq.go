@@ -58,6 +58,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
+	result.ApprovalAddress = result.Router
+
 	amount, _ := new(big.Int).SetString(result.Amount, 10)
 
 	return &pool.RFQResult{

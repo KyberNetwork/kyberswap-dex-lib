@@ -29,7 +29,8 @@ type (
 	}
 
 	PoolMetaInfo struct {
-		BlockNumber uint64 `json:"blockNumber"`
+		BlockNumber     uint64 `json:"blockNumber"`
+		ApprovalAddress string `json:"approvalAddress"`
 	}
 
 	Gas struct {
@@ -126,10 +127,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.rho = s.now
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		BlockNumber: s.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(tokenIn == s.Info.Tokens[0], s.Info.Tokens[1], "")
 }
 
 func (s *PoolSimulator) deposit(assets, chi *uint256.Int) *uint256.Int {

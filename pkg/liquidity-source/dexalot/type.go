@@ -44,6 +44,9 @@ type FirmQuoteResult struct {
 	Order     Order       `json:"order"`
 	Signature string      `json:"signature"`
 	Tx        Transaction `json:"tx"`
+
+	// ApprovalAddress is Tx.To
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type FirmQuoteFail struct {

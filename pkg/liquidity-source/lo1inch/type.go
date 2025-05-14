@@ -86,6 +86,10 @@ type FilledOrderInfo struct {
 	IsBackup bool `json:"isBackup"`
 }
 
+type MetaInfo struct {
+	ApprovalAddress string `json:"approvalAddress"`
+}
+
 func (o *Order) GetMakerAsset() string {
 	return o.MakerAsset
 }

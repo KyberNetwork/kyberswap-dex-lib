@@ -99,6 +99,9 @@ type QuoteResult struct { // commented out unnecessary fields
 	// ToSign            json.RawMessage `json:"toSign"`
 	// OnchainOrderType  string          `json:"onchainOrderType"`
 	PartialFillOffset uint64 `json:"partialFillOffset"`
+
+	// ApprovalAddress is Tx.To
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type (

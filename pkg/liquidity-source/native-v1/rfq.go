@@ -58,6 +58,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 
 	newAmountOut, _ := new(big.Int).SetString(result.AmountOut, 10)
 
+	result.ApprovalAddress = result.TxRequest.Target
+
 	return &pool.RFQResult{
 		NewAmountOut: newAmountOut,
 		Extra:        result,
