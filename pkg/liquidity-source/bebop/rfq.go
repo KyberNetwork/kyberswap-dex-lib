@@ -65,6 +65,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, fmt.Errorf("invalid buy token amount: %s", buyToken.Amount)
 	}
 
+	result.ApprovalAddress = result.Tx.To
+
 	return &pool.RFQResult{
 		NewAmountOut: newAmountOut,
 		Extra:        result,

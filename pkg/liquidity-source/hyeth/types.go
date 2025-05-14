@@ -1,9 +1,10 @@
 package hyeth
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type Extra struct {
@@ -32,4 +33,8 @@ type SwapInfo struct {
 	Fee         *uint256.Int `json:"fee"`
 	TotalSupply *uint256.Int `json:"totalSupply"`
 	TotalAssets *uint256.Int `json:"totalAssets"`
+}
+
+type MetaInfo struct {
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }

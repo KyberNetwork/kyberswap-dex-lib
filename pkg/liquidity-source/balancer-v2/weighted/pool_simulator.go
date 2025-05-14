@@ -834,14 +834,18 @@ func (s *PoolSimulator) updateBalance(tokenIn, tokenOut string, amountIn, amount
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,
 		TokenOutIndex:   s.GetTokenIndex(tokenOut),
 		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.vault,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	return s.vault
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {

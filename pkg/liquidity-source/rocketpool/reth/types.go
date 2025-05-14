@@ -3,7 +3,8 @@ package reth
 import "math/big"
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type PoolExtra struct {
