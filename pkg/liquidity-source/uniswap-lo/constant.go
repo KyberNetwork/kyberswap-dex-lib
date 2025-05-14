@@ -54,8 +54,8 @@ func (d *DutchOrderQuery) AddSortByCreatedAtGreaterThan(time int64) {
 }
 
 type DutchOrdersResponse struct {
-	Orders []DutchOrder `json:"orders"`
-	Cursor string       `json:"cursor"`
+	Orders []*DutchOrder `json:"orders"`
+	Cursor string        `json:"cursor"`
 }
 
 type DutchOrder struct {
@@ -113,9 +113,9 @@ type CosignerData struct {
 }
 
 type SwapInfo struct {
-	AmountIn     string       `json:"amountIn"`
-	SwapSide     SwapSide     `json:"swapSide"`
-	FilledOrders []DutchOrder `json:"filledOrders"`
+	AmountIn     string        `json:"amountIn"`
+	SwapSide     SwapSide      `json:"swapSide"`
+	FilledOrders []*DutchOrder `json:"filledOrders"`
 }
 
 type StaticExtra struct {
@@ -125,8 +125,8 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	TakeToken0Orders []DutchOrder `json:"takeToken0Orders"`
-	TakeToken1Orders []DutchOrder `json:"takeToken1Orders"`
+	TakeToken0Orders []*DutchOrder `json:"takeToken0Orders"`
+	TakeToken1Orders []*DutchOrder `json:"takeToken1Orders"`
 }
 
 func (o *DutchOrder) GetMakerAsset() string {
