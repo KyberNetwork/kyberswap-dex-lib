@@ -2,6 +2,7 @@ package uniswaplo
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -79,6 +80,8 @@ type DutchOrder struct {
 	Cosignature    string          `json:"cosignature"`
 	CosignerData   CosignerData    `json:"cosignerData"`
 	CreatedAt      uint64          `json:"createdAt"`
+	RateWithGasFee float64         `json:"-"`
+	Rate           float64         `json:"-"`
 }
 
 type Input struct {
@@ -124,4 +127,60 @@ type StaticExtra struct {
 type Extra struct {
 	TakeToken0Orders []DutchOrder `json:"takeToken0Orders"`
 	TakeToken1Orders []DutchOrder `json:"takeToken1Orders"`
+}
+
+func (o *DutchOrder) GetMakerAsset() string {
+	return o.Input.Token.String()
+}
+
+func (o *DutchOrder) GetTakerAsset() string {
+	if len(o.Outputs) == 0 {
+		return ""
+	}
+
+	return o.Outputs[0].Token.String()
+}
+
+func (o *DutchOrder) GetMakingAmount() *big.Int {
+	return o.Input.StartAmount.ToBig()
+}
+
+func (o *DutchOrder) GetTakingAmount() *big.Int {
+	return o.Outputs[0].StartAmount.ToBig()
+}
+
+func (o *DutchOrder) GetAvailableMakingAmount() *big.Int {
+	return o.Input.StartAmount.ToBig()
+}
+
+func (o *DutchOrder) SetAvailableMakingAmount(amount *big.Int) {
+	// unix lo can't change amount and don't support partial fill
+}
+
+func (o *DutchOrder) GetRemainingTakingAmount() *big.Int {
+	return o.Outputs[0].StartAmount.ToBig()
+}
+
+func (o *DutchOrder) SetRemainingTakingAmount(amount *big.Int) {
+	// unix lo can't change amount and don't support partial fill
+}
+
+func (o *DutchOrder) GetFilledMakingAmount() *big.Int {
+	return big.NewInt(0)
+}
+
+func (o *DutchOrder) GetRateWithGasFee() float64 {
+	return o.RateWithGasFee
+}
+
+func (o *DutchOrder) SetRateWithGasFee(r float64) {
+	o.RateWithGasFee = r
+}
+
+func (o *DutchOrder) GetRate() float64 {
+	return o.Rate
+}
+
+func (o *DutchOrder) SetRate(r float64) {
+	o.Rate = r
 }
