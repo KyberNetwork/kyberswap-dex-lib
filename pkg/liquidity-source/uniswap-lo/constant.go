@@ -21,6 +21,12 @@ type SortKey string
 type SwapSide int
 
 const (
+	SwapSideTakeToken0 SwapSide = iota
+	SwapSideTakeToken1
+	SwapSideUnknown
+)
+
+const (
 	OpenOrderStatus OrderStatus = "open"
 
 	DutchV2OrderType OrderType = "Dutch_V2"
@@ -104,13 +110,18 @@ type CosignerData struct {
 }
 
 type SwapInfo struct {
-	AmountIn     string        `json:"amountIn"`
-	SwapSide     SwapSide      `json:"swapSide"`
-	FilledOrders []*DutchOrder `json:"filledOrders"`
+	AmountIn     string       `json:"amountIn"`
+	SwapSide     SwapSide     `json:"swapSide"`
+	FilledOrders []DutchOrder `json:"filledOrders"`
 }
 
 type StaticExtra struct {
 	Token0         string `json:"token0"`
 	Token1         string `json:"token1"`
 	ReactorAddress string `json:"reactorAddress"`
+}
+
+type Extra struct {
+	TakeToken0Orders []DutchOrder `json:"takeToken0Orders"`
+	TakeToken1Orders []DutchOrder `json:"takeToken1Orders"`
 }
