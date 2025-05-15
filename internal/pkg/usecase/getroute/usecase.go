@@ -332,8 +332,8 @@ func (u *useCase) getSources(clientId string, botScore int, includedSources, exc
 
 	sources.RemoveAll(excludedSources...)
 
-	if botScore < 3 && sources.Cardinality() < 9 { // toxic bots arbitraging RFQ sources
-		for rfqSource := range dexlibValueObject.RFQSourceSet {
+	if botScore < 3 && sources.Cardinality() < len(u.config.AvailableSources) / 2 {
+		for rfqSource := range dexlibValueObject.RFQSourceSet { // toxic bots arbitraging RFQ sources
 			sources.Remove(string(rfqSource))
 		}
 	}
