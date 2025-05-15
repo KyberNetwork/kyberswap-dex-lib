@@ -24,7 +24,6 @@ func TestPoolSimulatorDeepUpdateBalance(t *testing.T) {
 				Type:     "wombat-main",
 				Tokens:   []string{"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7", "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be"},
 				Reserves: []*big.Int{bignumber.NewBig10("547370669405545596073"), bignumber.NewBig10("301255868324403411564")},
-				Checked:  false,
 			},
 		},
 		paused:        false,

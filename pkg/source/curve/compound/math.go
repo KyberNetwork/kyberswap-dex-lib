@@ -30,7 +30,7 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	for i := 0; i < numTokens; i++ {
 		s = new(big.Int).Add(s, xp[i])
 	}
-	if s.Cmp(big.NewInt(0)) == 0 {
+	if s.Sign() == 0 {
 		return s, nil
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))

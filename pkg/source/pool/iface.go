@@ -73,7 +73,7 @@ type IPoolSimulator interface {
 type IPoolExactOutSimulator interface {
 	// CalcAmountIn returns amountIn, fee, gas
 	// the required params is TokenAmountOut and TokenIn.
-	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
+	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 

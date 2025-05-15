@@ -136,7 +136,6 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		Type:        entityPool.Type,
 		Tokens:      tokens,
 		Reserves:    reserves,
-		Checked:     true,
 		BlockNumber: uint64(entityPool.BlockNumber),
 	}
 

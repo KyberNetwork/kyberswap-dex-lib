@@ -50,14 +50,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	swapFee := number.Add(extra.LpFeeRate, extra.MtFeeRate).ToBig()
 
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     staticExtra.Tokens,
-		Reserves:   []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   staticExtra.Tokens,
+		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
 	}
 
 	poolState := libv2.PMMState{

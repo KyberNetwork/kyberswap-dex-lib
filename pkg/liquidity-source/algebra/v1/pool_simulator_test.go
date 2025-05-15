@@ -53,19 +53,6 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-
-			threshold := big.NewInt(tc.calcInThreshold)
-			approx, err := pool.ApproxAmountIn(p, pool.ApproxAmountInParams{
-				ExpectedTokenOut: *out.TokenAmountOut,
-				TokenIn:          tc.in,
-				MaxLoop:          3,
-				Threshold:        threshold,
-			})
-			require.Nil(t, err)
-			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
-			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v",
-				approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
-			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
 }
@@ -193,19 +180,6 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
-
-			threshold := big.NewInt(tc.calcInThreshold)
-			approx, err := pool.ApproxAmountIn(p, pool.ApproxAmountInParams{
-				ExpectedTokenOut: *out.TokenAmountOut,
-				TokenIn:          tc.in,
-				MaxLoop:          3,
-				Threshold:        threshold,
-			})
-			require.Nil(t, err)
-			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
-			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v",
-				approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
-			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
 }
