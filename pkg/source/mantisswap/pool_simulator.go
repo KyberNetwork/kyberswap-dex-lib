@@ -36,7 +36,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Exchange: entityPool.Type,
 				Type:     entityPool.Exchange,
 				Tokens:   tokens,
-				Checked:  false,
 			},
 		},
 		state: &PoolState{

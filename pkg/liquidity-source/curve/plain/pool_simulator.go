@@ -130,14 +130,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	sim.Pool = pool.Pool{
 		Info: pool.PoolInfo{
-			Address:    strings.ToLower(entityPool.Address),
-			ReserveUsd: entityPool.ReserveUsd,
-			SwapFee:    sim.extra.SwapFee.ToBig(),
-			Exchange:   entityPool.Exchange,
-			Type:       entityPool.Type,
-			Tokens:     tokens,
-			Reserves:   reservesBI,
-			Checked:    false,
+			Address:  strings.ToLower(entityPool.Address),
+			SwapFee:  sim.extra.SwapFee.ToBig(),
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens:   tokens,
+			Reserves: reservesBI,
 		},
 	}
 
