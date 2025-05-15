@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
 type makerAndAsset = string
@@ -117,18 +118,108 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		FilledOrders: []*DutchOrder{},
 	}
 
+	// Filling logic, note that this LO only supports full fill
+	// Using greedy algo for simple way approach first,
+	// but we also could use dynamic programming like knapsack algo
+	for _, order := range orders {
+		// skip zero order
+		if order.Input.StartAmount.Cmp(number.Zero) == 0 {
+			continue
+		}
+
+		orderTakingAmount := order.Outputs[0].StartAmount
+		// Case 1: This order can not be enough to fill
+		// orderAmount > remainingAmountIn, continue
+		if orderTakingAmount.Cmp(remainingAmountIn) > 0 {
+			continue
+		}
+
+		// Case 2: Fullfill this order
+		// orderAmount == remainingAmountIn
+		// add user making amount to totalAmountOut
+		if orderTakingAmount.Cmp(remainingAmountIn) == 0 {
+			totalAmountOut.Add(totalAmountOut, order.Input.StartAmount)
+			swapInfo.FilledOrders = append(swapInfo.FilledOrders, order)
+			remainingAmountIn.Sub(remainingAmountIn, orderTakingAmount)
+
+			swapInfo.IsAmountInFulfilled = true
+			continue
+		}
+
+		// Case 3: order amount < remainingAmountIn
+		// add the order to totalAmountOut
+		// and update remainingAmountIn
+		// remainingAmountIn = remainingAmountIn - orderTakingAmount
+		// totalAmountOut = totalAmountOut + orderMakingAmount
+		if orderTakingAmount.Cmp(remainingAmountIn) < 0 {
+			remainingAmountIn.Sub(remainingAmountIn, orderTakingAmount)
+
+			totalAmountOut.Add(totalAmountOut, order.Input.StartAmount)
+			swapInfo.FilledOrders = append(swapInfo.FilledOrders, order)
+			continue
+		}
+	}
+
+	if len(swapInfo.FilledOrders) == 0 {
+		return nil, ErrCannotFulfillAmountIn
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: totalAmountOut.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: integer.Zero(),
+		},
+		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
+		SwapInfo: swapInfo,
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: remainingAmountIn.ToBig(),
+		},
+	}, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.Warn("failed to UpdateBalance for LO1inch pool, wrong swapInfo type")
+		return
+	}
 
+	if swapInfo.SwapSide == SwapSideUnknown {
+		return
+	}
+
+	for _, filledOrderInfo := range swapInfo.FilledOrders {
+		var order *DutchOrder
+
+		if swapInfo.SwapSide == SwapSideTakeToken0 {
+			orderIndex, ok := p.takeToken0OrdersMapping[filledOrderInfo.OrderHash]
+			if !ok {
+				continue
+			}
+
+			order = p.takeToken0Orders[orderIndex]
+		} else {
+			orderIndex, ok := p.takeToken1OrdersMapping[filledOrderInfo.OrderHash]
+			if !ok {
+				continue
+			}
+
+			order = p.takeToken1Orders[orderIndex]
+		}
+
+		// update filled order
+		order.Input.StartAmount = number.Zero
+		order.Outputs[0].StartAmount = number.Zero
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return p.reactorAddress
-}
-
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-
 }
 
 func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
@@ -143,7 +234,7 @@ func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
 	return SwapSideUnknown
 }
 
-func (p *PoolSimulator) getOrdersBySwapSide(swapSide SwapSide) []*Order {
+func (p *PoolSimulator) getOrdersBySwapSide(swapSide SwapSide) []*DutchOrder {
 	if swapSide == SwapSideTakeToken0 {
 		return p.takeToken0Orders
 	}
