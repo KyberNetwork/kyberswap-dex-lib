@@ -113,9 +113,10 @@ type CosignerData struct {
 }
 
 type SwapInfo struct {
-	AmountIn     string        `json:"amountIn"`
-	SwapSide     SwapSide      `json:"swapSide"`
-	FilledOrders []*DutchOrder `json:"filledOrders"`
+	AmountIn            string        `json:"amountIn"`
+	SwapSide            SwapSide      `json:"swapSide"`
+	FilledOrders        []*DutchOrder `json:"filledOrders"`
+	IsAmountInFulfilled bool          `json:"isAmountInFulfilled"`
 }
 
 type StaticExtra struct {
