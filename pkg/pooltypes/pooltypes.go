@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -299,10 +300,10 @@ type Types struct {
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string
-
-	KyberPMM string
-	Pmm1     string
-	Pmm2     string
+	Brownfi                    string
+	KyberPMM                   string
+	Pmm1                       string
+	Pmm2                       string
 }
 
 var (
@@ -460,6 +461,7 @@ var (
 		Ekubo:                      ekubo.DexType,
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
+		Brownfi:                    brownfi.DexType,
 
 		KyberPMM: string(valueobject.ExchangeKyberPMM),
 		Pmm1:     string(valueobject.ExchangePmm1),
