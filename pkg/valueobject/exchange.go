@@ -23,6 +23,7 @@ const (
 	ExchangeAreraDexV2                 Exchange = "areradex-v2"
 	ExchangeAstroSwap                  Exchange = "astroswap"
 	ExchangeAxial                      Exchange = "axial"
+	ExchangeBabySwap                   Exchange = "babyswap"
 	ExchangeBakerySwap                 Exchange = "bakeryswap"
 	ExchangeBMX                        Exchange = "bmx"
 	ExchangeBMXGLP                     Exchange = "bmx-glp"
@@ -98,6 +99,7 @@ const (
 	ExchangeDeltaSwapV1                Exchange = "deltaswap-v1"
 	ExchangeDexalot                    Exchange = "dexalot"
 	ExchangeDinoSwap                   Exchange = "dinoswap"
+	ExchangeDinosaurEggs               Exchange = "dinosaureggs"
 	ExchangeDodo                       Exchange = "dodo"
 	ExchangeDodoClassical              Exchange = "dodo-classical"
 	ExchangeDodoPrivatePool            Exchange = "dodo-dpp"
@@ -415,6 +417,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},
 	ExchangeBabyDogeSwap:               {},
+	ExchangeBabySwap:                   {},
 	ExchangeBakerySwap:                 {},
 	ExchangeBalDex:                     {},
 	ExchangeBalancer:                   {},
@@ -484,6 +487,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDegenExpress:               {},
 	ExchangeDeltaSwapV1:                {},
 	ExchangeDinoSwap:                   {},
+	ExchangeDinosaurEggs:               {},
 	ExchangeDodo:                       {},
 	ExchangeDodoClassical:              {},
 	ExchangeDodoPrivatePool:            {},
