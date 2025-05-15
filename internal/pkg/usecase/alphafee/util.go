@@ -13,6 +13,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+const basisPointFloat = 10000.0
+
 func convertConstructRouteToRouteInfoV2(ctx context.Context, route *common.ConstructRoute, simulatorBucket *common.SimulatorBucket) [][]swapInfoV2 {
 	routeInfoV2 := make([][]swapInfoV2, len(route.Paths))
 	for pathIdx, path := range route.Paths {

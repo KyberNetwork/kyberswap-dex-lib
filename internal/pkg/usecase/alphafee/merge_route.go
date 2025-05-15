@@ -48,11 +48,14 @@ func (c *AlphaFeeV2Calculation) getDefaultReductionPerSwap(
 	for idx, path := range param.RouteSummary.Route {
 		pathInfo := routeInfo[idx]
 		pathContainsAlphaFeeSources := isPathContainsAlphaFeeSources(pathInfo)
-		var reductionPercent float64
+		var reductionPercentWithAllFee float64
+		var numOfAlphaFeeSources int
 		if pathContainsAlphaFeeSources {
 			// Calculate the percentage of amount out reduction of
 			// each alpha fee source in the path
-			numOfAlphaFeeSources := countAlphaFeeSourcesInPath(pathInfo)
+			if numOfAlphaFeeSources == 0 {
+				numOfAlphaFeeSources = countAlphaFeeSourcesInPath(pathInfo)
+			}
 			pathReduction := pathReductions[pointer].ReduceAmount
 			pointer++
 
@@ -60,7 +63,7 @@ func (c *AlphaFeeV2Calculation) getDefaultReductionPerSwap(
 			pathAmountOutF, _ := path[len(path)-1].AmountOut.Float64()
 			alphaFeePercent := pathReductionF / pathAmountOutF
 
-			reductionPercent = math.Pow(1-alphaFeePercent, 1/float64(numOfAlphaFeeSources))
+			reductionPercentWithAllFee = math.Pow(1-alphaFeePercent, 1/float64(numOfAlphaFeeSources))
 		}
 
 		var currentAmountIn big.Int
@@ -76,7 +79,17 @@ func (c *AlphaFeeV2Calculation) getDefaultReductionPerSwap(
 
 			if privo.IsAlphaFeeSource(swap.Exchange) {
 				currentAmountOutF, _ := currentAmountOut.Float64()
-				currentAmountOutF = currentAmountOutF * reductionPercent
+
+				sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[string(swap.Exchange)]
+				if !ok {
+					sourceReductionFactorF, _ = c.reductionFactorInBps.Float64()
+				}
+
+				reductionPercentWithSourceFactor := 1 - math.Pow(reductionPercentWithAllFee, float64(numOfAlphaFeeSources))
+				reductionPercentWithSourceFactor = reductionPercentWithSourceFactor * sourceReductionFactorF / basisPointFloat
+				reductionPercentWithSourceFactor = math.Pow(1-reductionPercentWithSourceFactor, 1/float64(numOfAlphaFeeSources))
+
+				currentAmountOutF = currentAmountOutF * reductionPercentWithSourceFactor
 
 				new(big.Float).SetFloat64(currentAmountOutF).Int(&currentAmountOut)
 

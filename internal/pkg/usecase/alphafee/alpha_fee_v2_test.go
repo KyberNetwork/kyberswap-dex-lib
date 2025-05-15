@@ -369,3 +369,129 @@ func TestAlphaFeeV2_GetFairPrice(t *testing.T) {
 	// -> alphaFeeAmountUsd = 20 * 0.5 = 10
 	assert.Equal(t, float64(10), price)
 }
+
+func TestAlphaFeeV25Calculation(t *testing.T) {
+	tokenIDs := []string{"a", "b", "c"}
+
+	alphaFeeSource1 := dexlibValueObject.ExchangeKyberPMM
+	alphaFeeSource2 := dexlibValueObject.ExchangeUniswapV4Kem
+
+	defaultAlphaFeeConfig := valueobject.AlphaFeeConfig{
+		ReductionConfig: valueobject.AlphaFeeReductionConfig{
+			ReductionFactorInBps: map[string]float64{
+				string(alphaFeeSource1): 5000,
+				string(alphaFeeSource2): 9000,
+			},
+			MaxThresholdPercentageInBps: 8000,
+			MinDifferentThresholdBps:    0,
+			MinDifferentThresholdUSD:    0.001,
+		},
+	}
+
+	pools := map[string]dexlibPool.IPoolSimulator{
+		"tshared_rate_1-1_a_b": test.NewFixRatePoolWithID("tshared_rate_1-1_a_b", "a", "b", 1.0, alphaFeeSource1),
+
+		"t1_rate0.9_a_b": test.NewFixRatePoolWithID("t1_rate0.9_a_b", "a", "b", 0.9, alphaFeeSource1),
+		"t1_rate0.9_b_c": test.NewFixRatePoolWithID("t1_rate0.9_b_c", "b", "c", 0.9, alphaFeeSource2),
+	}
+
+	tests := []struct {
+		name             string
+		bestRoute        *finderCommon.ConstructRoute
+		bestAmmRoute     *finderCommon.ConstructRoute
+		config           valueobject.AlphaFeeConfig
+		expectedAlphaFee *routerEntity.AlphaFeeV2
+		expectedError    error
+	}{
+		{
+			name: "[t1] swap $1000 through 2 pools, rate 0.9 per pool, taking $30 alpha fee",
+			bestRoute: &finderCommon.ConstructRoute{
+				AmountOut:      big.NewInt(810_000_000),
+				AmountOutPrice: 810,
+				Paths: []*finderCommon.ConstructPath{
+					{
+						AmountIn:    big.NewInt(1000_000_000),
+						AmountOut:   big.NewInt(810_000_000),
+						PoolsOrder:  []string{"t1_rate0.9_a_b", "t1_rate0.9_b_c"},
+						TokensOrder: []string{"a", "b", "c"},
+					},
+				},
+			},
+			bestAmmRoute: &finderCommon.ConstructRoute{
+				AmountOut:      big.NewInt(780_000_000),
+				AmountOutPrice: 780,
+			},
+			config: defaultAlphaFeeConfig,
+			expectedAlphaFee: &routerEntity.AlphaFeeV2{
+				AMMAmount: big.NewInt(780_000_000),
+				SwapReductions: []routerEntity.AlphaFeeV2SwapReduction{
+					{
+						ExecutedId:   0,
+						PoolAddress:  "t1_rate0.9_a_b",
+						TokenIn:      "a",
+						TokenOut:     "b",
+						ReduceAmount: big.NewInt(8372275),
+					},
+					{
+						ExecutedId:   1,
+						PoolAddress:  "t1_rate0.9_b_c",
+						TokenIn:      "b",
+						TokenOut:     "c",
+						ReduceAmount: big.NewInt(13487767),
+					},
+				},
+			},
+			expectedError: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log("Running test:", tt.name)
+
+			alphaFeeV2Calculation := NewAlphaFeeV2Calculation(
+				tt.config,
+				finderCommon.DefaultCustomFuncs,
+			)
+
+			prices := map[string]float64{}
+			tokens := map[string]dexlibEntity.SimplifiedToken{}
+
+			for _, tokenID := range tokenIDs {
+				tokens[tokenID] = dexlibEntity.SimplifiedToken{
+					Address:  tokenID,
+					Decimals: 6,
+				}
+				prices[tokenID] = 1.0
+			}
+
+			simulatorBucket := finderCommon.NewSimulatorBucket(pools, nil, finderCommon.DefaultCustomFuncs)
+
+			params := AlphaFeeParams{
+				BestRoute:           tt.bestRoute,
+				BestAmmRoute:        tt.bestAmmRoute,
+				Prices:              prices,
+				Tokens:              tokens,
+				PoolSimulatorBucket: simulatorBucket,
+			}
+
+			res, err := alphaFeeV2Calculation.Calculate(context.Background(), params)
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.True(t, errors.Is(err, tt.expectedError))
+			} else {
+				assert.NotNil(t, res)
+				assert.Equal(t, tt.expectedAlphaFee.AMMAmount, res.AMMAmount)
+				assert.Equal(t, len(tt.expectedAlphaFee.SwapReductions), len(res.SwapReductions))
+				for i, expectedSwapReduction := range tt.expectedAlphaFee.SwapReductions {
+					fmt.Println(res.SwapReductions[i])
+					assert.Equal(t, expectedSwapReduction.ExecutedId, res.SwapReductions[i].ExecutedId)
+					assert.Equal(t, expectedSwapReduction.PoolAddress, res.SwapReductions[i].PoolAddress)
+					assert.Equal(t, expectedSwapReduction.TokenIn, res.SwapReductions[i].TokenIn)
+					assert.Equal(t, expectedSwapReduction.TokenOut, res.SwapReductions[i].TokenOut)
+					assert.Equal(t, expectedSwapReduction.ReduceAmount, res.SwapReductions[i].ReduceAmount)
+				}
+			}
+		})
+	}
+}

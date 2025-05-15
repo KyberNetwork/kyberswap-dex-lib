@@ -72,15 +72,10 @@ func (c *AlphaFeeV2Calculation) Calculate(ctx context.Context, param AlphaFeePar
 		)
 	}
 
-	// We only takes `c.reductionFactorInBps` amount of the different
-	// between the BestRoute & AMMBestRoute.
-	var alphaFee big.Int
-	alphaFee.Div(
-		alphaFee.Mul(&reductionDelta, c.reductionFactorInBps),
-		valueobject.BasisPoint,
-	)
-
-	pathReductions := c.getReductionPerPath(ctx, routeInfo, &alphaFee)
+	// With phase 2.5, we use full diff between best route and AMM route,
+	// instead of just reductionDelta * c.reductionFactorInBps.
+	// We will apply the custom factor for each alpha fee source later.
+	pathReductions := c.getReductionPerPath(ctx, routeInfo, &reductionDelta)
 
 	swapReductions, err := c.getReductionPerSwap(ctx, param, pathReductions, routeInfo)
 	if err != nil {
@@ -238,11 +233,14 @@ func (c *AlphaFeeV2Calculation) getReductionPerSwap(
 	for idx, path := range param.BestRoute.Paths {
 		pathInfo := routeInfo[idx]
 		pathContainsAlphaFeeSources := isPathContainsAlphaFeeSources(pathInfo)
-		var reductionPercent float64
+		var reductionPercentWithAllFee float64
+		var numOfAlphaFeeSources int
 		if pathContainsAlphaFeeSources {
 			// Calculate the percentage of amount out reduction of
 			// each alpha fee source in the path
-			numOfAlphaFeeSources := countAlphaFeeSourcesInPath(pathInfo)
+			if numOfAlphaFeeSources == 0 {
+				numOfAlphaFeeSources = countAlphaFeeSourcesInPath(pathInfo)
+			}
 			pathReduction := pathReductions[pointer].ReduceAmount
 			pointer++
 
@@ -260,7 +258,7 @@ func (c *AlphaFeeV2Calculation) getReductionPerSwap(
 			// => pathAmountOut * (1 - reductionRate ** k) = pathReduction
 			// => reductionPercent ** k = 1 - pathReduction / pathAmountOut = 1 - alphaFeePercent
 			// => reductionPercent = (1 - alphaFeePercent) ** (1 / k)
-			reductionPercent = math.Pow(1-alphaFeePercent, 1/float64(numOfAlphaFeeSources))
+			reductionPercentWithAllFee = math.Pow(1-alphaFeePercent, 1/float64(numOfAlphaFeeSources))
 		}
 
 		// Update the path amount out and the path reduction.
@@ -290,7 +288,18 @@ func (c *AlphaFeeV2Calculation) getReductionPerSwap(
 
 			if privo.IsAlphaFeeSource(pool.GetExchange()) {
 				currentAmountOutF, _ := currentAmountOut.Float64()
-				currentAmountOutF = currentAmountOutF * reductionPercent
+
+				// reductionPercentWithSourceFactor = (1 - (1 - reductionPercentWithAllFee ** numOfSources) * reductionFactorInBps) ** (1/numOfSources)
+				sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]
+				if !ok {
+					sourceReductionFactorF, _ = c.reductionFactorInBps.Float64()
+				}
+
+				reductionPercentWithSourceFactor := 1 - math.Pow(reductionPercentWithAllFee, float64(numOfAlphaFeeSources))
+				reductionPercentWithSourceFactor = reductionPercentWithSourceFactor * sourceReductionFactorF / basisPointFloat
+				reductionPercentWithSourceFactor = math.Pow(1-reductionPercentWithSourceFactor, 1/float64(numOfAlphaFeeSources))
+
+				currentAmountOutF = currentAmountOutF * reductionPercentWithSourceFactor
 
 				new(big.Float).SetFloat64(currentAmountOutF).Int(&currentAmountOut)
 
