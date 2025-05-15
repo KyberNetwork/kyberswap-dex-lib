@@ -8,8 +8,8 @@ github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af h1:b5pUR8ej8UG
 github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af/go.mod h1:avzajAHp6oWudHTOxkIBj9hIoDt0hDXsOdkKND48rIc=
 github.com/KyberNetwork/aggregation-stats v0.2.0 h1:VQJO9j+cah1vZoLm5Dp0fFY1mcEifxSGWrYnWDSLEmA=
 github.com/KyberNetwork/aggregation-stats v0.2.0/go.mod h1:zrjBiwXyJKT4JF9DxPhWEd5O7NAuZAcPPcxq0wMDTtU=
-github.com/KyberNetwork/aggregator-encoding v0.50.0 h1:vpa0R/NZ/IbHbYHwQU2Yku8RohfDbn96cr7a39iGxS0=
-github.com/KyberNetwork/aggregator-encoding v0.50.0/go.mod h1:PH8oKogD0J9nV/HPIceqUrGR5gMjwpY1juQWNX5YYgs=
+github.com/KyberNetwork/aggregator-encoding v0.50.1 h1:0NXo2/n8GRasT8CRF+G1A++cVhzcICFj4pzIWmg9xYk=
+github.com/KyberNetwork/aggregator-encoding v0.50.1/go.mod h1:xnaYObnPOdAMjHZdXKb+TIhPKjPou5PuMc1RPpdrrzg=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
 github.com/KyberNetwork/blackjack v0.3.0/go.mod h1:UmBTVq/Ia1AJzozJv0pinQTF8DTm+RcZJwvqHeY1JvM=
 github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4 h1:GkA8Z6jTUxAdQfPgQkAN80mqgYk8scUK3Iqbe6UPmv4=
@@ -26,8 +26,8 @@ github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXA
 github.com/KyberNetwork/kutils v0.3.8/go.mod h1:n8qRo+TkBkqspGRKu52h/UP5GvIxoSxWueTpgvHMuvo=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.103.1 h1:4r3T25L5Q4roSp3fn0bQ30qR+GUk1GAUwZ5F0RtScEU=
-github.com/KyberNetwork/kyberswap-dex-lib v0.103.1/go.mod h1:0yJ39TH88kIN6AeStYOy+oL8C4KKWWd4bjJROKiaSrM=
+github.com/KyberNetwork/kyberswap-dex-lib v0.103.2 h1:E4Fzr4jauXYUKIBXulXFKJ664qfDAdmieiSZXwzka60=
+github.com/KyberNetwork/kyberswap-dex-lib v0.103.2/go.mod h1:0yJ39TH88kIN6AeStYOy+oL8C4KKWWd4bjJROKiaSrM=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.11.3 h1:zbiSK/xWi9M7kTLO0xXvb6vLc6rbF5r2JjaOH+Ljg0c=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.11.3/go.mod h1:ensdg/2nOJhJ9pkeACo1QCsfUpDq0HaoyAWy20pGBRU=
 github.com/KyberNetwork/logger v1.0.3 h1:q3O6+rbJWDw9xqF4zWbc48uNooDXF++2XBaj3NL1P5s=
