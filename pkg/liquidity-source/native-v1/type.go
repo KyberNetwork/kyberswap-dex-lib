@@ -100,10 +100,6 @@ type (
 		ExpirySecs       uint   `json:"exp,omitempty" mapstructure:"exp"`
 	}
 
-	Gas struct {
-		Quote int64
-	}
-
 	MetaInfo struct {
 		Timestamp int64 `json:"timestamp"`
 	}
