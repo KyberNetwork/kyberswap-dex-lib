@@ -11,7 +11,7 @@ import (
 const UniSwapXBaseURL = "https://api.uniswap.org/v2"
 
 func TestFetchDutchOrders(t *testing.T) {
-	// t.Skip("Skip for CI")
+	t.Skip("Skip for CI")
 	client := NewUniSwapXClient(UniSwapXBaseURL)
 	q := DutchOrderQuery{
 		Limit:       2000,
