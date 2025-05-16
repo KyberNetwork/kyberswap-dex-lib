@@ -176,6 +176,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setAvailableSources(remoteCfg.AvailableSources)
 		cl.setUnscalableSources(remoteCfg.UnscalableSources)
 		cl.setExcludedSourcesByClient(remoteCfg.ExcludedSourcesByClient)
+		cl.setValidateChecksumBySource(remoteCfg.ValidateChecksumBySource)
 		cl.setDexUseAEVM(remoteCfg.DexUseAEVM)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
@@ -251,6 +252,12 @@ func (cl *ConfigLoader) setExcludedSourcesByClient(sourcesByClient map[string][]
 	cl.config.Common.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetCustomRoute.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetRoute.ExcludedSourcesByClient = newSourcesByClient
+}
+
+func (cl *ConfigLoader) setValidateChecksumBySource(validateChecksumBySource map[string]bool) {
+	for source, validateChecksum := range validateChecksumBySource {
+		cl.config.UseCase.BuildRoute.ValidateChecksumBySource[source] = validateChecksum
+	}
 }
 
 func (cl *ConfigLoader) setDexUseAEVM(dexUseAEVM map[string]bool) {

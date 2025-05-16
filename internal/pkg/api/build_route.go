@@ -93,7 +93,6 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 	return dto.BuildRouteCommand{
 		RouteSummary:        routeSummary,
 		Checksum:            num,
-		ValidateChecksum:    cfg.ValidateChecksumBySource[source],
 		Sender:              params.Sender,
 		Recipient:           params.Recipient,
 		Permit:              permit,
