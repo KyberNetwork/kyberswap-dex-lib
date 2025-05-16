@@ -49,6 +49,7 @@ func getPoolInfoDetailX2Y() PoolInfoU256 {
 }
 
 func TestSwapDetailX2Y1(t *testing.T) {
+	t.Parallel()
 	// x2y start partial y-liquidity,
 	// end partial y-liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -82,6 +83,7 @@ func TestSwapDetailX2Y1(t *testing.T) {
 }
 
 func TestSwapDetailX2Y2(t *testing.T) {
+	t.Parallel()
 	// gocalc x2y start partial liquidity
 	// end full liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -115,6 +117,7 @@ func TestSwapDetailX2Y2(t *testing.T) {
 }
 
 func TestSwapDetailX2Y3(t *testing.T) {
+	t.Parallel()
 	// x2y start with full-x-liquidity
 	// end full liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -148,6 +151,7 @@ func TestSwapDetailX2Y3(t *testing.T) {
 }
 
 func TestSwapDetailX2Y4(t *testing.T) {
+	t.Parallel()
 	// x2y start with full-y-liquidity
 	// end full liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -181,6 +185,7 @@ func TestSwapDetailX2Y4(t *testing.T) {
 }
 
 func TestSwapDetailX2Y5(t *testing.T) {
+	t.Parallel()
 	// x2y start with limitorder-y
 	// full-x-liquidity, end partial liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -214,6 +219,7 @@ func TestSwapDetailX2Y5(t *testing.T) {
 }
 
 func TestSwapDetailX2Y6(t *testing.T) {
+	t.Parallel()
 	// x2y start with limitorder-x
 	// full-y-liquidity, end partial liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -252,6 +258,7 @@ func TestSwapDetailX2Y6(t *testing.T) {
 }
 
 func TestSwapDetailX2Y7(t *testing.T) {
+	t.Parallel()
 	// x2y start with limitorder-y, partial-liquidity,
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailX2Y()
@@ -285,6 +292,7 @@ func TestSwapDetailX2Y7(t *testing.T) {
 }
 
 func TestSwapDetailX2Y8(t *testing.T) {
+	t.Parallel()
 	// x2y start with limitorder-y, partial-liquidity
 	// end full-x-liquidityand partial or full limit order
 	poolInfo := getPoolInfoDetailX2Y()
@@ -318,6 +326,7 @@ func TestSwapDetailX2Y8(t *testing.T) {
 }
 
 func TestSwapDetailX2Y9(t *testing.T) {
+	t.Parallel()
 	// gocalc x2y start with limitorder-y, partial-liquidity
 	// end partial-x-liquidity
 	poolInfo := getPoolInfoDetailX2Y()

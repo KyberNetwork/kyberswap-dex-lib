@@ -49,6 +49,7 @@ var poolEncoded = `{
 }`
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		tokenIn     string

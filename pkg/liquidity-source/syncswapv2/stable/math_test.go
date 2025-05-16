@@ -3,12 +3,14 @@ package syncswapv2stable
 import (
 	"testing"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+
+	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestUint256Refactor(t *testing.T) {
+	t.Parallel()
 	func(A, s, dp, d *uint256.Int) {
 		num := new(uint256.Int)
 		den := new(uint256.Int)

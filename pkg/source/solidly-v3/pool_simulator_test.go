@@ -16,6 +16,7 @@ import (
 )
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		poolEncoded string
@@ -85,6 +86,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		poolEncoded string

@@ -9,6 +9,7 @@ import (
 )
 
 func Test_parseSignature(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name               string
 		signature          string
@@ -55,6 +56,7 @@ func Test_parseSignature(t *testing.T) {
 }
 
 func Test_getNormalizedV(t *testing.T) {
+	t.Parallel()
 
 	tests := []struct {
 		name    string

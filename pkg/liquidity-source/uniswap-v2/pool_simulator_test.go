@@ -25,6 +25,7 @@ var (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     PoolSimulator
@@ -97,6 +98,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
@@ -169,6 +171,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
@@ -227,6 +230,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 }
 
 func TestPoolSimulator_getAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     PoolSimulator
@@ -255,6 +259,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_getAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator

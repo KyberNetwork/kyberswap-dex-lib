@@ -15,6 +15,7 @@ import (
 )
 
 func TestPoolListUpdater(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 
 	if os.Getenv("CI") != "" {

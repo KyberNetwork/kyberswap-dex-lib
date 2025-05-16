@@ -24,7 +24,7 @@ type PoolSimulator struct {
 	precisionMultipliers []uint256.Int
 	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
 
-	NotAdjusted bool
+	tweakedPrice bool
 
 	Extra       Extra
 	StaticExtra StaticExtra
@@ -118,7 +118,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
 		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
 		&swapInfo.VirtualPrice); err != nil {
-		return nil, errors.WithMessagef(ErrTweakPrice, "%v", err)
+		return nil, errors.WithMessage(err, "tweak price")
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -164,12 +164,13 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	} else if amountIn.IsZero() {
 		return nil, ErrZero
 	}
-	A, gamma := t._A_gamma()
-	if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
-		swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
-		&swapInfo.VirtualPrice); err != nil {
-		return nil, errors.WithMessagef(ErrTweakPrice, "%v", err)
-	}
+	// tweak_price only prevents small swaps. commented out as needed updates were not implemented in GetDx
+	// A, gamma := t._A_gamma()
+	// if err = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0,
+	// 	swapInfo.LastPrices[:], swapInfo.PriceScale[:], &swapInfo.XcpProfit, &swapInfo.D,
+	// 	&swapInfo.VirtualPrice); err != nil {
+	// 	return nil, errors.WithMessage(err, "tweak price")
+	// }
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
@@ -213,11 +214,14 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
 	t.Reserves[outputIndex] = *new(uint256.Int).Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
-	t.Extra.LastPrices = swapInfo.LastPrices[:]
-	t.Extra.PriceScale = swapInfo.PriceScale[:]
-	t.Extra.XcpProfit = &swapInfo.XcpProfit
-	t.Extra.D = &swapInfo.D
-	t.Extra.VirtualPrice = &swapInfo.VirtualPrice
+	if !t.tweakedPrice {
+		t.tweakedPrice = true
+		t.Extra.LastPrices = swapInfo.LastPrices[:]
+		t.Extra.PriceScale = swapInfo.PriceScale[:]
+		t.Extra.XcpProfit = &swapInfo.XcpProfit
+		t.Extra.D = &swapInfo.D
+		t.Extra.VirtualPrice = &swapInfo.VirtualPrice
+	}
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

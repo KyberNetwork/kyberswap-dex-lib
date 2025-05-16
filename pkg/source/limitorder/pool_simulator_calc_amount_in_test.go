@@ -20,6 +20,7 @@ const (
 )
 
 func TestPool_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenIn        string
 		tokenAmountOut pool.TokenAmount
@@ -269,6 +270,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 }
 
 func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenIn   string
 		amountIn  *big.Int

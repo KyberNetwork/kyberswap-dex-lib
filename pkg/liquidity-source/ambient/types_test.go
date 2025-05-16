@@ -11,6 +11,7 @@ import (
 )
 
 func TestNTokenPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	wethAddr := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	encodedPairs := `[
 		"0x0000000000000000000000000000000000000000:0x0f2d719407fdbeff09d87557abb7232601fd9f29",
@@ -71,6 +72,7 @@ func TestNTokenPool_CanSwapTo(t *testing.T) {
 }
 
 func TestNTokenPool_GetPair(t *testing.T) {
+	t.Parallel()
 	wethAddr := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	encodedPairs := `[
 		"0x0000000000000000000000000000000000000000:0x0f2d719407fdbeff09d87557abb7232601fd9f29",

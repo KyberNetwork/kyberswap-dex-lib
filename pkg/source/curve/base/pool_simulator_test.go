@@ -17,6 +17,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x1005f7406f32a61bd760cfa14accd2737913d546#readContract
 	// 	call balances, totalSupply to get pool params
 	// 	call get_dy to get amount out
@@ -69,6 +70,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
+	t.Parallel()
 	// if A is getting ramped up then it should interpolate A correctly
 	// 100k at zero to 200k at now*2, so now should be 150k, so the same as the contract above -> get expected output from contract get_dy
 	now := time.Now().Unix()
@@ -129,6 +131,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 }
 
 func TestGetDyVirtualPrice(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x1005f7406f32a61bd760cfa14accd2737913d546#readContract
 	testcases := []struct {
 		i      int

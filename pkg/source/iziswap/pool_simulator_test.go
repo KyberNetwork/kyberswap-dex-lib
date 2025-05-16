@@ -30,6 +30,7 @@ var (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testcases := []struct {
 		in                string
 		inAmount          string
@@ -117,6 +118,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// Pool data at block https://lineascan.build/block/4315530
 

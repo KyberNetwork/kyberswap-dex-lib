@@ -14,6 +14,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return OK", func(t *testing.T) {
 		// input
 		// ethereum, block 19281309
@@ -486,6 +487,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	amountOutTest1, _ := new(big.Int).SetString("1000000000000000000", 10)
 	expectedAmountInTest1, _ := new(big.Int).SetString("5860089", 10)
 

@@ -38,11 +38,15 @@ func (p *Pool) CalculateLimit() map[string]*big.Int {
 // CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
 // Pools with custom logic should override this method
 func (p *Pool) CanSwapTo(address string) []string {
+	if p.GetTokenIndex(address) == -1 {
+		return nil
+	}
 	result := make([]string, len(p.Info.Tokens)-1)
 	i := 0
 	for _, token := range p.Info.Tokens {
 		if token != address {
 			result[i] = token
+			i++
 		}
 	}
 

@@ -18,6 +18,7 @@ import (
 )
 
 func TestPoolTracker_GetNewPoolState(t *testing.T) {
+	t.Parallel()
 	// t.Skip()
 
 	d := &PoolTracker{

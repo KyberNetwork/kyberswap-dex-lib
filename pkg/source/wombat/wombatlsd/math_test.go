@@ -1,14 +1,17 @@
 package wombatlsd_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestQuotePotentialSwap(t *testing.T) {
+	t.Parallel()
 	// https://etherscan.io/address/0x647cc8816c2d60a5ff4d1ffef27a5b3637d5ac81#readProxyContract
 	fromToken := "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b"
 	toToken := "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"

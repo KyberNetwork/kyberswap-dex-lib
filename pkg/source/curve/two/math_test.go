@@ -4,12 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-
 	"github.com/stretchr/testify/assert"
+
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestNewtonY(t *testing.T) {
+	t.Parallel()
 	var precisions = []*big.Int{
 		utils.NewBig10("1000000000000"),
 		utils.NewBig10("10000000000"),

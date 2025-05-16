@@ -47,6 +47,7 @@ var poolEncoded = `{
 }`
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		tokenIn     string
@@ -88,6 +89,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 }
 
 func TestCloneState(t *testing.T) {
+	t.Parallel()
 	poolEntity := new(entity.Pool)
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)

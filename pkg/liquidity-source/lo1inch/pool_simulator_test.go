@@ -5,19 +5,20 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
 
 func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
+	t.Parallel()
 	// prepare data for test case 2
 	takingAmount := uint256.NewInt(100000000 - 101)
 	orderMakingAmount := uint256.NewInt(100000000000)
@@ -339,6 +340,7 @@ func marshalPoolExtra(extra *Extra) string {
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		hash                 string
 		makingAmount         string
@@ -448,6 +450,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		hash                 string
 		makingAmount         string
@@ -564,6 +567,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 }
 
 func TestPoolSimulator_Inventory(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		hash                 string
 		maker                string

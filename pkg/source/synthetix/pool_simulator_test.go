@@ -225,6 +225,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 }
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
 		entityPool := entity.Pool{
 			Address:  "0x08f30ecf2c15a783083ab9d5b9211c22388d0564",
@@ -521,6 +522,7 @@ func TestPool_GetMetaInfo(t *testing.T) {
 }
 
 func TestPool_GetAtomicVolume(t *testing.T) {
+	t.Parallel()
 	expectedAtomicVolumeEthereum, _ := new(big.Int).SetString("1348222480000000000000", 10)
 
 	testCases := []struct {

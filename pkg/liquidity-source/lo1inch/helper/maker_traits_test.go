@@ -16,6 +16,7 @@ var (
 )
 
 func TestMakerTraits_NewWithHexValue(t *testing.T) {
+	t.Parallel()
 	hexValue := "0x4000000000000000000000000000000000006777c0f900000000000000000000"
 	traits := NewMakerTraits(hexValue)
 
@@ -41,6 +42,7 @@ func TestMakerTraits_NewWithHexValue(t *testing.T) {
 }
 
 func TestMakerTraits_AllowedSender(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 
 	// Create an address with value 1337
@@ -54,6 +56,7 @@ func TestMakerTraits_AllowedSender(t *testing.T) {
 }
 
 func TestMakerTraits_Nonce(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 
 	// Test normal nonce (1 << 10)
@@ -70,6 +73,7 @@ func TestMakerTraits_Nonce(t *testing.T) {
 }
 
 func TestMakerTraits_Expiration(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	expiration := big.NewInt(1000000)
 
@@ -78,6 +82,7 @@ func TestMakerTraits_Expiration(t *testing.T) {
 }
 
 func TestMakerTraits_Epoch(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	series := big.NewInt(100)
 	epoch := big.NewInt(1)
@@ -89,6 +94,7 @@ func TestMakerTraits_Epoch(t *testing.T) {
 }
 
 func TestMakerTraits_Extension(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.HasExtension())
 
@@ -97,6 +103,7 @@ func TestMakerTraits_Extension(t *testing.T) {
 }
 
 func TestMakerTraits_PartialFills(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.True(t, traits.IsPartialFillAllowed())
 
@@ -108,6 +115,7 @@ func TestMakerTraits_PartialFills(t *testing.T) {
 }
 
 func TestMakerTraits_MultipleFills(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.IsMultipleFillsAllowed())
 
@@ -119,6 +127,7 @@ func TestMakerTraits_MultipleFills(t *testing.T) {
 }
 
 func TestMakerTraits_PreInteraction(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.HasPreInteraction())
 
@@ -130,6 +139,7 @@ func TestMakerTraits_PreInteraction(t *testing.T) {
 }
 
 func TestMakerTraits_PostInteraction(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.HasPostInteraction())
 
@@ -141,6 +151,7 @@ func TestMakerTraits_PostInteraction(t *testing.T) {
 }
 
 func TestMakerTraits_Permit2(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.IsPermit2())
 
@@ -152,6 +163,7 @@ func TestMakerTraits_Permit2(t *testing.T) {
 }
 
 func TestMakerTraits_NativeUnwrap(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 	assert.False(t, traits.IsNativeUnwrapEnabled())
 
@@ -163,6 +175,7 @@ func TestMakerTraits_NativeUnwrap(t *testing.T) {
 }
 
 func TestMakerTraits_IsExpired(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits()
 
 	// Test with no expiration set
@@ -186,6 +199,7 @@ func TestMakerTraits_IsExpired(t *testing.T) {
 }
 
 func TestMakerTraits_All(t *testing.T) {
+	t.Parallel()
 	traits := DefaultMakerTraits().
 		WithAllowedSender(common.BigToAddress(UINT_160_MAX)).
 		AllowPartialFills().

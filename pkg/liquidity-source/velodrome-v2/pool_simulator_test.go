@@ -30,6 +30,7 @@ var (
 // [stable][1to0]: https://optimistic.etherscan.io/address/0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0
 // [stable][0to1]: https://optimistic.etherscan.io/address/0x1ad06ca54de04dbe9e2817f4c13ecb406dcbeaf0
 func TestPoolSimulator_getAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     poolpkg.IPoolSimulator
@@ -152,6 +153,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_getAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
@@ -225,6 +227,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
@@ -341,5 +344,6 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
 }

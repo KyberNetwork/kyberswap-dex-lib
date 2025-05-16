@@ -11,6 +11,7 @@ import (
 )
 
 func TestExp2(t *testing.T) {
+	t.Parallel()
 	require.Equal(t, math.TwoPow64, exp2(new(big.Int)))
 	require.Equal(t, new(big.Int).Mul(big.NewInt(2), math.TwoPow64), exp2(math.TwoPow64))
 	require.Equal(t,
