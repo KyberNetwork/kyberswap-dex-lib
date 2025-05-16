@@ -391,6 +391,7 @@ const (
 	ExchangeZkSwapStable               Exchange = "zkswap-stable"
 	ExchangeZkSwapV3                   Exchange = "zkswap-v3"
 	ExchangeZyberSwapV3                Exchange = "zyberswap-v3"
+	ExchangeUniswapLO                  Exchange = "uniswap-lo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -790,6 +791,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeNativeV2:   {},
 	ExchangePmm1:       {},
 	ExchangePmm2:       {},
+	ExchangeUniswapLO:  {},
 	ExchangeSwaapV2:    {},
 }
 
