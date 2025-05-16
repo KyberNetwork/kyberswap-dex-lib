@@ -8,6 +8,7 @@ import (
 )
 
 func TestTenPowDecimals(t *testing.T) {
+	t.Parallel()
 	expected1, _ := new(big.Float).SetString("1000000000000000000")
 	expected2, _ := new(big.Float).SetString("1")
 	expected3, _ := new(big.Float).SetString("10000000000")

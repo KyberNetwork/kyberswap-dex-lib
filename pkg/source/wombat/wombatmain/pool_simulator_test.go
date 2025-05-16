@@ -16,6 +16,7 @@ import (
 )
 
 func TestPoolSimulatorDeepUpdateBalance(t *testing.T) {
+	t.Parallel()
 	p := &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -95,6 +96,7 @@ func TestPoolSimulatorDeepUpdateBalance(t *testing.T) {
 }
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		poolEncoded string

@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 )
 
 func TestHTTPClient(t *testing.T) {
+	t.Parallel()
 	t.Skip("has rate-limit for non-authorization requests")
 
 	c := NewHTTPClient(

@@ -8,6 +8,7 @@ import (
 )
 
 func TestSolveQuadraticFunctionForTarget(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		V1    *uint256.Int
 		delta *uint256.Int
@@ -49,6 +50,7 @@ func TestSolveQuadraticFunctionForTarget(t *testing.T) {
 }
 
 func TestSolveQuadraticFunctionForTrade(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		V0    *uint256.Int
 		V1    *uint256.Int

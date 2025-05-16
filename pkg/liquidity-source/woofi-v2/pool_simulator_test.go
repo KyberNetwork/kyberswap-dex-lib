@@ -5,15 +5,17 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPoolSimulator_NewPool(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0x3b3e4b4741e91af52d0e9ad8660573e951c88524",
 		Exchange: "woofi-v2",
@@ -67,6 +69,7 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0xeff23b4be1091b53205e35f3afcd9c7182bf3062",
 		Exchange: "woofi-v2",
@@ -148,6 +151,7 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0xd1778f9df3eee5473a9640f13682e3846f61febc",
 		Exchange: "woofi-v2",
@@ -223,6 +227,7 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name           string
 		quoteToken     string
@@ -465,6 +470,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		quoteToken       string

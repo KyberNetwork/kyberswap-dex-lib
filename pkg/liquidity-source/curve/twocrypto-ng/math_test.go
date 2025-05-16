@@ -10,6 +10,7 @@ import (
 )
 
 func TestCbrt(t *testing.T) {
+	t.Parallel()
 	assert.Equal(t, uint256.MustFromDecimal("2080083823051904114"), cbrt(uint256.MustFromDecimal("9000000000000000000")))
 	assert.Equal(t, uint256.MustFromDecimal("2000000000000000000"), cbrt(uint256.MustFromDecimal("8000000000000000000")))
 	assert.Equal(t, uint256.MustFromDecimal("1000000000000000000"), cbrt(uint256.MustFromDecimal("1000000000000000000")))
@@ -92,6 +93,7 @@ func TestCbrt(t *testing.T) {
 }
 
 func TestExp(t *testing.T) {
+	t.Parallel()
 	_, err := wad_exp(i256.MustFromDecimal("135305999368893231589"))
 	require.NotNil(t, err)
 	_, err = wad_exp(i256.MustFromDecimal("135305999368893231590"))
@@ -119,6 +121,7 @@ func TestExp(t *testing.T) {
 }
 
 func TestGetP(t *testing.T) {
+	t.Parallel()
 
 	testcases := []struct {
 		xp0   string

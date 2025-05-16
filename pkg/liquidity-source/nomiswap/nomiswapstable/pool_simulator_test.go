@@ -3,14 +3,16 @@ package nomiswapstable
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		entityPool        entity.Pool

@@ -19,6 +19,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1#readContract
 	testcases := []struct {
 		in                string
@@ -89,6 +90,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountOut_Underflow(t *testing.T) {
+	t.Parallel()
 	// test data from 0xf07d553b195080f84f582e88ecdd54baa122b279
 	testcases := []struct {
 		in       string
@@ -133,6 +135,7 @@ func TestCalcAmountOut_Underflow(t *testing.T) {
 }
 
 func TestSwappable(t *testing.T) {
+	t.Parallel()
 
 	basePool, err := base.NewPoolSimulator(entity.Pool{
 		Exchange: "",
@@ -207,6 +210,7 @@ func TestSwappable(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1#readContract
 	testcases := []struct {
 		in               string

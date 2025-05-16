@@ -11,6 +11,7 @@ import (
 )
 
 func TestCalculateNextSqrtRatio(t *testing.T) {
+	t.Parallel()
 	oneE18 := bignum.NewBig("1_000_000_000_000_000_000") // 10^18
 	shift32 := math.TwoPow32                             // 2^32 = 4294967296
 	tokenSaleRate := new(big.Int).Mul(oneE18, shift32)   // 10^18 * 2^32

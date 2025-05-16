@@ -16,6 +16,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xdebf20617708857ebe4f679508e7b7863a8a8eee#readContract
 	// 	call get_dy_underlying to get amount out
 	//  (need to be quick because `balances` change rapidly)
@@ -69,6 +70,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestAddLiquidity(t *testing.T) {
+	t.Parallel()
 	// https://polygonscan.com/address/0x445FE580eF8d70FF569aB36e80c647af338db351#readContract
 	testcases := []struct {
 		amounts    []string
@@ -103,6 +105,7 @@ func TestAddLiquidity(t *testing.T) {
 }
 
 func TestGetDyVirtualPrice(t *testing.T) {
+	t.Parallel()
 	// https://polygonscan.com/address/0x445FE580eF8d70FF569aB36e80c647af338db351#readContract
 	// block 44510081
 	testcases := []struct {

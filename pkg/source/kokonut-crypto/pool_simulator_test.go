@@ -13,6 +13,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	kokonutPool, err := kokonutcrypto.NewPoolSimulator(entity.Pool{
 		Address:  "0x73c3a78e5ff0d216a50b11d51b262ca839fcfe17",
 		Exchange: "kokonut-crypto",
@@ -51,6 +52,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestSwap(t *testing.T) {
+	t.Parallel()
 	kokonutPool, err := kokonutcrypto.NewPoolSimulator(entity.Pool{
 		Address:  "0x73c3a78e5ff0d216a50b11d51b262ca839fcfe17",
 		Exchange: "kokonut-crypto",

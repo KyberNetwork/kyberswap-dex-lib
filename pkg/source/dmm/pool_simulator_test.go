@@ -12,6 +12,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		entityPool entity.Pool
 	}

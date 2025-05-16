@@ -19,6 +19,7 @@ import (
 )
 
 func TestPoolTracker_GetNewPoolState(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}
@@ -37,6 +38,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 }
 
 func TestPoolTracker_GetTickFromStateView(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}

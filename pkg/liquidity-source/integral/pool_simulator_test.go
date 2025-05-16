@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var (
@@ -41,6 +42,7 @@ var (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	extraBytes, err := json.Marshal(IntegralPair{
 		IsEnabled:      true,
 		X_Decimals:     _xDecimals,
@@ -177,6 +179,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	extraBytes, err := json.Marshal(IntegralPair{
 		IsEnabled:      true,
 		X_Decimals:     _xDecimals,

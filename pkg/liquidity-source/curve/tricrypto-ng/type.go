@@ -18,10 +18,9 @@ type (
 
 		D *uint256.Int
 
-		PriceScale          []uint256.Int
-		PriceOracle         []uint256.Int
-		LastPrices          []uint256.Int
-		LastPricesTimestamp int64
+		PriceScale  []uint256.Int
+		PriceOracle []uint256.Int
+		LastPrices  []uint256.Int
 
 		FeeGamma *uint256.Int
 		MidFee   *uint256.Int

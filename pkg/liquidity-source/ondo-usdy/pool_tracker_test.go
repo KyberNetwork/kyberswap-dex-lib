@@ -61,6 +61,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {
+	t.Parallel()
 	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListTrackerTestSuite))
 }

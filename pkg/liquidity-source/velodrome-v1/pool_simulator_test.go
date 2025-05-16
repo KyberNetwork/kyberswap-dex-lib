@@ -15,6 +15,7 @@ import (
 )
 
 func TestNewPoolSimulator(t *testing.T) {
+	t.Parallel()
 	t.Run("it should init pool simulator correctly", func(t *testing.T) {
 		entityPool := entity.Pool{
 			Address:   "0xaa7a44d696ca5033e6f7a2d3fbcf8d0913f018b7",
@@ -48,6 +49,7 @@ func TestNewPoolSimulator(t *testing.T) {
 // [stable][1to0]: https://optimistic.etherscan.io/tx/0x6d1ebd5f31077408f5b33718156403e0aef83d4a8614e7162a3d38bf9653cd7c
 // [stable][0to1]: https://optimistic.etherscan.io/tx/0x5c92ec5d38d51e33952777e4468d8499cc1b9f0ce40e698caedde3f23b3d37e7
 func TestPoolSimulator_getAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     PoolSimulator
@@ -165,6 +167,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_getAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator
@@ -238,6 +241,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    PoolSimulator

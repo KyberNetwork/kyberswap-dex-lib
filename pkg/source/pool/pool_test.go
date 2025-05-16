@@ -7,6 +7,7 @@ import (
 )
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Info PoolInfo
 	}

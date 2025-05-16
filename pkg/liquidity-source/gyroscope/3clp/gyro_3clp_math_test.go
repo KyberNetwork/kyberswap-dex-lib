@@ -10,6 +10,7 @@ import (
 )
 
 func TestGyro3CLPMath_calculateInvariant(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		balances := []*uint256.Int{
 			uint256.MustFromDecimal("2140189504379402815"),

@@ -18,6 +18,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0xd372b5067fe9cbac932af47406fdb9c64666295b#readContract
 	testcases := []struct {
 		in                string
@@ -58,6 +59,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 	// test data from https://polygonscan.com/address/0xd372b5067fe9cbac932af47406fdb9c64666295b#readContract
 	testcases := []struct {
@@ -109,6 +111,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_SPL(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 	// test data from https://polygonscan.com/address/0x63aefd3aefeedce0860a5ef21c1af548641620dd#readContract
 	testcases := []struct {
@@ -146,6 +149,7 @@ func TestPoolSimulator_CalcAmountOut_SPL(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
+	t.Parallel()
 	// test data from https://bscscan.com/address/0x0137a5ba1dfa5d6d9a5896251f3d06b2e6669c3a#readContract
 	testcases := []struct {
 		in                string
@@ -185,6 +189,7 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
+	t.Parallel()
 	// test data from https://ftmscan.com/address/0x2fbb6b6c054ef35f20c91fd29d6579cb3c642195#code
 	// tickSpacing=5
 	testcases := []struct {
@@ -223,6 +228,7 @@ func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_DirFee(t *testing.T) {
+	t.Parallel()
 	// test data from https://arbiscan.io/address/0x2f0bcb4a8bd714953eefd5339326ee0ff62c5b62#readContract
 	// different fee for 2 directions
 	testcases := []struct {
@@ -263,6 +269,7 @@ func TestPoolSimulator_CalcAmountOut_DirFee(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance_DirFee(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 	// test data from https://arbiscan.io/address/0x2f0bcb4a8bd714953eefd5339326ee0ff62c5b62#readContract
 	// different fee for 2 directions
@@ -331,6 +338,7 @@ func RandNumberString(maxLen int) string {
 }
 
 func TestMultiUse(t *testing.T) {
+	t.Parallel()
 	poolEntity := new(entity.Pool)
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)

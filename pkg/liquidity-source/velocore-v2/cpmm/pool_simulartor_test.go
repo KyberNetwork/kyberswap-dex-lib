@@ -14,6 +14,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, lp not involved"
 		t.Log(desc)
@@ -148,6 +149,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestVelocoreExecute(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 		t.Log(desc)
@@ -224,6 +226,7 @@ func TestVelocoreExecute(t *testing.T) {
 }
 
 func TestVelocoreExecuteFallback(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 		t.Log(desc)

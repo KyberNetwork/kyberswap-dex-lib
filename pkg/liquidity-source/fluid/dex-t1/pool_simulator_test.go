@@ -171,6 +171,7 @@ func getApproxCenterPriceOut(amountOut *big.Int, swap0To1 bool, colReserves Coll
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     *PoolSimulator
@@ -206,7 +207,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -253,7 +254,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -299,7 +300,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    new(big.Int).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -346,7 +347,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -390,6 +391,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		poolSimulator    *PoolSimulator
@@ -425,7 +427,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -469,7 +471,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -513,7 +515,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    new(big.Int).Mul(big.NewInt(1.2e18), big.NewInt(1e9)),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -557,7 +559,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
 					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
 				},
-				DexLimits:      limitsWide,
+				DexLimits:      limitsWide(),
 				CenterPrice:    big.NewInt(1),
 				SyncTimestamp:  time.Now().Unix() - 10,
 				Token0Decimals: 18,
@@ -618,27 +620,30 @@ var limitsTight = DexLimits{
 }
 
 var limitWide, _ = new(big.Int).SetString("34242332879776515083099999", 10)
-var limitsWide = DexLimits{
-	WithdrawableToken0: TokenLimit{
-		Available:      new(big.Int).Set(limitWide),
-		ExpandsTo:      new(big.Int).Set(limitWide),
-		ExpandDuration: bignumber.ZeroBI,
-	},
-	WithdrawableToken1: TokenLimit{
-		Available:      new(big.Int).Set(limitWide),
-		ExpandsTo:      new(big.Int).Set(limitWide),
-		ExpandDuration: big.NewInt(22),
-	},
-	BorrowableToken0: TokenLimit{
-		Available:      new(big.Int).Set(limitWide),
-		ExpandsTo:      new(big.Int).Set(limitWide),
-		ExpandDuration: bignumber.ZeroBI,
-	},
-	BorrowableToken1: TokenLimit{
-		Available:      new(big.Int).Set(limitWide),
-		ExpandsTo:      new(big.Int).Set(limitWide),
-		ExpandDuration: big.NewInt(308),
-	},
+
+func limitsWide() DexLimits {
+	return DexLimits{
+		WithdrawableToken0: TokenLimit{
+			Available:      new(big.Int).Set(limitWide),
+			ExpandsTo:      new(big.Int).Set(limitWide),
+			ExpandDuration: bignumber.ZeroBI,
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      new(big.Int).Set(limitWide),
+			ExpandsTo:      new(big.Int).Set(limitWide),
+			ExpandDuration: big.NewInt(22),
+		},
+		BorrowableToken0: TokenLimit{
+			Available:      new(big.Int).Set(limitWide),
+			ExpandsTo:      new(big.Int).Set(limitWide),
+			ExpandDuration: bignumber.ZeroBI,
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      new(big.Int).Set(limitWide),
+			ExpandsTo:      new(big.Int).Set(limitWide),
+			ExpandDuration: big.NewInt(308),
+		},
+	}
 }
 
 func NewColReservesOne() CollateralReserves {
@@ -694,17 +699,19 @@ func assertSwapOutResult(t *testing.T, swap0To1 bool, amountOut *big.Int, colRes
 }
 
 func TestPoolSimulator_SwapIn(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapIn", func(t *testing.T) {
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532", 18, limitsWide(), time.Now().Unix()-10)
 	})
 }
 
 func TestPoolSimulator_SwapInLimits(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInLimits", func(t *testing.T) {
 		// when limits hit
 		price, _ := getApproxCenterPriceIn(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
@@ -719,19 +726,20 @@ func TestPoolSimulator_SwapInLimits(t *testing.T) {
 
 		// when price diff hit
 		price, _ = getApproxCenterPriceIn(big.NewInt(3e16), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err = swapInAdjusted(true, big.NewInt(3e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide, price, time.Now().Unix()-10)
+		outAmt, err = swapInAdjusted(true, big.NewInt(3e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientMaxPrice.Error())
 
 		// when reserves limt is hit
 		price, _ = getApproxCenterPriceIn(big.NewInt(5e16), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err = swapInAdjusted(true, big.NewInt(5e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide, price, time.Now().Unix()-10)
+		outAmt, err = swapInAdjusted(true, big.NewInt(5e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientReserve.Error())
 	})
 }
 
 func TestPoolSimulator_swapInAdjusted(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInCompareEstimateIn", func(t *testing.T) {
 		expectedAmountOut := "1180035404724000000"
 
@@ -752,24 +760,26 @@ func TestPoolSimulator_swapInAdjusted(t *testing.T) {
 
 		amountIn := big.NewInt(1e12)
 		price, _ := getApproxCenterPriceIn(amountIn, true, colReserves, debtReserves)
-		outAmt, _ := swapInAdjusted(true, amountIn, colReserves, debtReserves, 18, limitsWide, price, time.Now().Unix()-10)
+		outAmt, _ := swapInAdjusted(true, amountIn, colReserves, debtReserves, 18, limitsWide(), price, time.Now().Unix()-10)
 
 		require.Equal(t, expectedAmountOut, new(big.Int).Mul(outAmt, big.NewInt(1e6)).String())
 	})
 }
 
 func TestPoolSimulator_SwapOut(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapOut", func(t *testing.T) {
-		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1001743360284199", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1005438674786548", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1002572435818386", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1001743359733488", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1005438674233767", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
-		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1002572435266527", "1000000000000000", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1001743360284199", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1005438674786548", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1002572435818386", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1001743359733488", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1005438674233767", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1002572435266527", "1000000000000000", 18, limitsWide(), time.Now().Unix()-10)
 	})
 }
 
 func TestPoolSimulator_SwapOutLimits(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInLimits", func(t *testing.T) {
 		// when limits hit
 		price, _ := getApproxCenterPriceOut(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
@@ -784,52 +794,55 @@ func TestPoolSimulator_SwapOutLimits(t *testing.T) {
 
 		// when price diff hit
 		price, _ = getApproxCenterPriceOut(big.NewInt(2e16), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err = swapOutAdjusted(true, big.NewInt(2e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide, price, time.Now().Unix()-10)
+		outAmt, err = swapOutAdjusted(true, big.NewInt(2e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientMaxPrice.Error())
 
 		// when reserves limt is hit
 		price, _ = getApproxCenterPriceOut(big.NewInt(3e16), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err = swapOutAdjusted(true, big.NewInt(3e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide, price, time.Now().Unix()-10)
+		outAmt, err = swapOutAdjusted(true, big.NewInt(3e16), NewColReservesOne(), NewDebtReservesOne(), 18, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientReserve.Error())
 	})
 }
 
 func TestPoolSimulator_SwapInOut(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInOut", func(t *testing.T) {
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, true, big.NewInt(998262697204710), NewColReservesOne(), NewDebtReservesOne(), "999999999999998", "998262697204710", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(998262697204710), NewColReservesOne(), NewDebtReservesOne(), "999999999999998", "998262697204710", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, false, big.NewInt(998262697752553), NewColReservesOne(), NewDebtReservesOne(), "999999999999998", "998262697752553", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(998262697752553), NewColReservesOne(), NewDebtReservesOne(), "999999999999998", "998262697752553", 18, limitsWide(), time.Now().Unix()-10)
 	})
 }
 
 func TestPoolSimulator_SwapInOutDebtEmpty(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInOutDebtEmpty", func(t *testing.T) {
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, true, big.NewInt(994619847016724), NewColReservesEmpty(), NewDebtReservesOne(), "999999999999999", "994619847016724", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(994619847016724), NewColReservesEmpty(), NewDebtReservesOne(), "999999999999999", "994619847016724", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, false, big.NewInt(994619847560607), NewColReservesEmpty(), NewDebtReservesOne(), "999999999999999", "994619847560607", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(994619847560607), NewColReservesEmpty(), NewDebtReservesOne(), "999999999999999", "994619847560607", 18, limitsWide(), time.Now().Unix()-10)
 	})
 
 }
 
 func TestPoolSimulator_SwapInOutColEmpty(t *testing.T) {
+	t.Parallel()
 	t.Run("TestPoolSimulator_SwapInOutColEmpty", func(t *testing.T) {
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, true, big.NewInt(997440731289905), NewColReservesOne(), NewDebtReservesEmpty(), "999999999999999", "997440731289905", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, true, big.NewInt(997440731289905), NewColReservesOne(), NewDebtReservesEmpty(), "999999999999999", "997440731289905", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532", 18, limitsWide(), time.Now().Unix()-10)
 
-		assertSwapOutResult(t, false, big.NewInt(997440731837532), NewColReservesOne(), NewDebtReservesEmpty(), "999999999999999", "997440731837532", 18, limitsWide, time.Now().Unix()-10)
+		assertSwapOutResult(t, false, big.NewInt(997440731837532), NewColReservesOne(), NewDebtReservesEmpty(), "999999999999999", "997440731837532", 18, limitsWide(), time.Now().Unix()-10)
 	})
 }
 
@@ -850,6 +863,7 @@ func NewVerifyRatioDebtReserves() DebtReserves {
 	}
 }
 func TestSwapInVerifyReservesInRange(t *testing.T) {
+	t.Parallel()
 	t.Run("TestSwapInVerifyReservesInRange", func(t *testing.T) {
 		decimals := int64(6)
 
@@ -883,10 +897,10 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		// Test for swap amount 14_905, revert should hit
 		swapAmount := big.NewInt(14_905 * 1e6 * 1e6)
 		price, _ = getApproxCenterPriceIn(swapAmount, true, colReserves, NewDebtReservesEmpty())
-		result, _ := swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ := swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_905)
 		price, _ = getApproxCenterPriceIn(swapAmount, true, NewColReservesEmpty(), debtReserves)
-		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_905)
 
 		// refresh reserves
@@ -913,11 +927,11 @@ func TestSwapInVerifyReservesInRange(t *testing.T) {
 		swapAmount = big.NewInt(14_895 * 1e6 * 1e6)
 		err := error(nil)
 		price, _ = getApproxCenterPriceIn(swapAmount, true, colReserves, NewDebtReservesEmpty())
-		result, err = swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
+		result, err = swapInAdjusted(true, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.NoError(t, err, "Error during swapInAdjusted for col reserves")
 		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_895)
 		price, _ = getApproxCenterPriceIn(swapAmount, true, NewColReservesEmpty(), debtReserves)
-		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ = swapInAdjusted(true, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_895)
 	})
 }
@@ -940,6 +954,7 @@ func NewVerifyRatioDebtReservesSwapOut() DebtReserves {
 }
 
 func TestSwapOutVerifyReservesInRange(t *testing.T) {
+	t.Parallel()
 	t.Run("TestSwapOutVerifyReservesInRange", func(t *testing.T) {
 		decimals := int64(6)
 
@@ -973,10 +988,10 @@ func TestSwapOutVerifyReservesInRange(t *testing.T) {
 		// Test for swap amount 14_766, revert should hit
 		swapAmount := big.NewInt(14_766 * 1e6 * 1e6)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, colReserves, NewDebtReservesEmpty())
-		result, _ := swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ := swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for col reserves when swap amount %d", 14_766)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, NewColReservesEmpty(), debtReserves)
-		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.Nil(t, result, "FAIL: reserves ratio verification revert NOT hit for debt reserves when swap amount %d", 14_766)
 
 		// refresh reserves
@@ -1003,11 +1018,11 @@ func TestSwapOutVerifyReservesInRange(t *testing.T) {
 		swapAmount = big.NewInt(14_762 * 1e6 * 1e6)
 		err := error(nil)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, colReserves, NewDebtReservesEmpty())
-		result, err = swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide, price, time.Now().Unix()-10)
+		result, err = swapOutAdjusted(false, swapAmount, colReserves, NewDebtReservesEmpty(), decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.NoError(t, err, "Error during swapOutAdjusted for col reserves")
 		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for col reserves when swap amount %d", 14_762)
 		price, _ = getApproxCenterPriceOut(swapAmount, false, NewColReservesEmpty(), debtReserves)
-		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide, price, time.Now().Unix()-10)
+		result, _ = swapOutAdjusted(false, swapAmount, NewColReservesEmpty(), debtReserves, decimals, limitsWide(), price, time.Now().Unix()-10)
 		require.NotNil(t, result, "FAIL: reserves ratio verification revert hit for debt reserves when swap amount %d", 14_762)
 	})
 }

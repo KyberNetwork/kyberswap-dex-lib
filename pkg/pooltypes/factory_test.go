@@ -14,6 +14,7 @@ import (
 )
 
 func TestPoolFactory(t *testing.T) {
+	t.Parallel()
 	excludedPoolTypes := []string{
 		"ambient",     // private
 		"maverick-v2", // private
@@ -34,6 +35,7 @@ func TestPoolFactory(t *testing.T) {
 }
 
 func TestCanCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	dexes := []string{"algebra-integral", "algebra-v1", "balancer-v2-composable-stable", "balancer-v2-stable",
 		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
 		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
@@ -50,6 +52,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 }
 
 func TestPoolListerFactory(t *testing.T) {
+	t.Parallel()
 	poolListers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses", "ramses-v2", "solidly-v2", "solidly-v3", "platypus", "biswap", "maker-psm", "curve",
 		"curve-stable-plain", "curve-stable-ng", "curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng",
@@ -79,6 +82,7 @@ func TestPoolListerFactory(t *testing.T) {
 }
 
 func TestPoolTrackerFactory(t *testing.T) {
+	t.Parallel()
 	poolTrackers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
 		"muteswitch", "ramses", "ramses-v2", "solidly-v2", "solidly-v3", "dodo-classical", "dodo-dpp", "dodo-dsp",
 		"dodo-dvm", "biswap", "platypus", "maker-psm", "curve", "curve-stable-plain", "curve-stable-ng",

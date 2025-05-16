@@ -8,6 +8,7 @@ import (
 )
 
 func TestWeightedMath_ComputeOutGivenExactIn(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		balanceIn      *uint256.Int
@@ -82,6 +83,7 @@ func TestWeightedMath_ComputeOutGivenExactIn(t *testing.T) {
 }
 
 func TestWeightedMath_ComputeInGivenExactOut(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		balanceIn      *uint256.Int

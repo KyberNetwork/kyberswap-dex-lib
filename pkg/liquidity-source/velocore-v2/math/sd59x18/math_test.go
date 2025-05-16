@@ -8,6 +8,7 @@ import (
 )
 
 func TestLog2(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "10275233743784123062"
 
@@ -46,6 +47,7 @@ func TestLog2(t *testing.T) {
 }
 
 func TestExp2(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "991501979360783687"
 
@@ -84,6 +86,7 @@ func TestExp2(t *testing.T) {
 }
 
 func TestPow(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "1000000007819231118"
 
@@ -130,6 +133,7 @@ func TestPow(t *testing.T) {
 }
 
 func TestMul(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "0"
 
@@ -176,6 +180,7 @@ func TestMul(t *testing.T) {
 }
 
 func TestDiv(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct value", func(t *testing.T) {
 		expected := "29044803764687059979539950758763"
 

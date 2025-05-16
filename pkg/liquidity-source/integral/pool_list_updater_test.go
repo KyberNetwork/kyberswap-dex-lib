@@ -9,7 +9,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/suite"
 )
 
@@ -92,6 +91,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
+	t.Parallel()
 	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }

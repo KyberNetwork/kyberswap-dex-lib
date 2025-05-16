@@ -30,6 +30,7 @@ func newPool(t *testing.T, eth *big.Int, tIn *big.Int, tOut *big.Int) *PoolSimul
 }
 
 func TestGetAmountOut_sellGemNoFee(t *testing.T) {
+	t.Parallel()
 	// https://github.com/makerdao/dss-psm/blob/master/src/tests/psm.t.sol#L166
 	pool100 := newPool(t, big.NewInt(100), big.NewInt(0), big.NewInt(0))
 	inAmount := pool.TokenAmount{Token: "USDX", Amount: new(big.Int).Mul(big.NewInt(100), USDX_WAD)}
@@ -56,6 +57,7 @@ func TestGetAmountOut_sellGemNoFee(t *testing.T) {
 }
 
 func TestGetAmountOut_sellGemWithFee(t *testing.T) {
+	t.Parallel()
 	// https://github.com/makerdao/dss-psm/blob/master/src/tests/psm.t.sol#L189
 	pool100 := newPool(t, big.NewInt(100), TOLL_ONE_PCT, big.NewInt(0))
 	inAmount := pool.TokenAmount{Token: "USDX", Amount: new(big.Int).Mul(big.NewInt(100), USDX_WAD)}
@@ -71,6 +73,7 @@ func TestGetAmountOut_sellGemWithFee(t *testing.T) {
 }
 
 func TestGetAmountOut_swapBothNoFee(t *testing.T) {
+	t.Parallel()
 	// https://github.com/makerdao/dss-psm/blob/master/src/tests/psm.t.sol#L208
 	// sell 100 USDX
 	pool100 := newPool(t, big.NewInt(100), big.NewInt(0), big.NewInt(0))
@@ -102,6 +105,7 @@ func TestGetAmountOut_swapBothNoFee(t *testing.T) {
 }
 
 func TestGetAmountOut_swapBothWithFee(t *testing.T) {
+	t.Parallel()
 	// https://github.com/makerdao/dss-psm/blob/master/src/tests/psm.t.sol#L224
 	// sell 100 USDX -> 95 eth
 	pool100 := newPool(t, big.NewInt(100), new(big.Int).Mul(big.NewInt(5), TOLL_ONE_PCT), new(big.Int).Mul(big.NewInt(10), TOLL_ONE_PCT))

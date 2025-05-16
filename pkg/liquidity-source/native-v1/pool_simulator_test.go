@@ -29,6 +29,7 @@ var entityPool = entity.Pool{
 }
 
 func TestPoolSimulator_NewPool(t *testing.T) {
+	t.Parallel()
 	poolSimulator, err := NewPoolSimulator(entityPool)
 	assert.NoError(t, err)
 	assert.Equal(t, "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", poolSimulator.Token0.Address)
@@ -46,6 +47,7 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 }
 
 func TestPoolSimulator_GetAmountOut(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                 string
 		amountIn0, amountIn1 *big.Int
@@ -118,6 +120,7 @@ func bigIntFromString(s string) *big.Int {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                         string
 		amountIn0, amountIn1         *big.Int

@@ -7,6 +7,7 @@ import (
 )
 
 func TestQuoteParams_ToMap(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		args QuoteParams
