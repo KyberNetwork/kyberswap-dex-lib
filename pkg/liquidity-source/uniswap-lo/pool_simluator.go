@@ -14,12 +14,6 @@ import (
 	"github.com/KyberNetwork/logger"
 )
 
-type makerAndAsset = string
-
-func newMakerAndAsset(maker, makerAsset string) makerAndAsset {
-	return fmt.Sprintf("%v:%v", maker, makerAsset)
-}
-
 type PoolSimulator struct {
 	pool.Pool
 
@@ -173,7 +167,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: integer.Zero(),
 		},
-		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
+		// TODO: calc gas fee
+		Gas:      0,
 		SwapInfo: swapInfo,
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
