@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"
@@ -457,10 +458,11 @@ func apiAction(c *cli.Context) (err error) {
 	v1Health.GET("/ready", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
 
 	v1Debug := v1.Group("/debug")
-	v1Debug.GET("/config", func(c *gin.Context) {
+	v1Debug.GET("/config", api.GetConfig(func() map[string]any {
 		currentConfig, _ := configLoader.Get()
-		c.JSON(http.StatusOK, currentConfig)
-	})
+		configMap, _ := util.AnyToStruct[map[string]any](currentConfig)
+		return *configMap
+	}))
 	v1Debug.GET("/custom-routes", api.GetCustomRoutes(getRoutesParamsValidator, getCustomRoutesUseCase))
 	v1Debug.POST("/decode", api.DecodeSwapData(l1Decoder, l2Decoder))
 	v1Debug.DELETE("/pool-index", api.RemovePoolsFromIndex(removePoolIndex))
