@@ -272,14 +272,18 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,
 		TokenOutIndex:   s.GetTokenIndex(tokenOut),
 		BlockNumber:     s.Info.BlockNumber,
-		ApprovalAddress: s.vault,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	return s.vault
 }
 
 func _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {

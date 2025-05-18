@@ -30,7 +30,7 @@ type (
 
 	PoolMetaInfo struct {
 		BlockNumber     uint64 `json:"blockNumber"`
-		ApprovalAddress string `json:"approvalAddress"`
+		ApprovalAddress string `json:"approvalAddress,omitempty"`
 	}
 
 	Gas struct {

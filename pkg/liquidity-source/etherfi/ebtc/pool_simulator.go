@@ -191,11 +191,15 @@ func (p *PoolSimulator) afterPublicDeposit() error {
 
 func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (p *PoolSimulator) GetMetaInfo(_ string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
 		BlockNumber:     p.Pool.Info.BlockNumber,
-		ApprovalAddress: strings.ToLower(tokenOut), // tokenOut is vault
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(_, tokenOut string) string {
+	return tokenOut // tokenOut is vault
 }
 
 func (p *PoolSimulator) CanSwapTo(token string) []string {

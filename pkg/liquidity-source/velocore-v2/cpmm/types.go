@@ -41,7 +41,7 @@ type Meta struct {
 	Vault            string `json:"vault"`
 	NativeTokenIndex int    `json:"nativeTokenIndex"`
 	BlockNumber      uint64 `json:"blockNumber"`
-	ApprovalAddress  string `json:"approvalAddress"`
+	ApprovalAddress  string `json:"approvalAddress,omitempty"`
 }
 
 type SwapInfo struct {
