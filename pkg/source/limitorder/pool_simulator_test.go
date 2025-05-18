@@ -18,6 +18,7 @@ import (
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
@@ -875,6 +876,7 @@ func marshalPoolExtra(extra *Extra) string {
 }
 
 func TestPool_CalcAmountOut_v2(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		makingAmount     string
@@ -986,6 +988,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 }
 
 func TestPool_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		makingAmount     string
@@ -1116,6 +1119,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 }
 
 func TestPool_Inventory(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		maker            string
@@ -1266,6 +1270,7 @@ func TestPool_Inventory(t *testing.T) {
 }
 
 func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id              int64
 		makingAmount    string
@@ -1377,6 +1382,7 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 }
 
 func TestPool_FilterAllowedSenders(t *testing.T) {
+	t.Parallel()
 	extra := Extra{
 		BuyOrders: []*order{
 			{

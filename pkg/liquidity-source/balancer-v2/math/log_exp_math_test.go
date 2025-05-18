@@ -11,6 +11,7 @@ import (
 )
 
 func TestLogExpMath_Pow(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct result", func(t *testing.T) {
 		result, err := LogExpMath.Pow(number.NewUint256("999955774281269788"), number.NewUint256("4000000000000000000"))
 
@@ -31,6 +32,7 @@ func TestLogExpMath_Pow(t *testing.T) {
 }
 
 func TestLogExpMath_Exp(t *testing.T) {
+	t.Parallel()
 	t.Run("should be return correct result", func(t *testing.T) {
 		result, err := LogExpMath.Exp(bignumber.NewBig10("-176906786864581"))
 
@@ -40,6 +42,7 @@ func TestLogExpMath_Exp(t *testing.T) {
 }
 
 func TestLogExpMath_ln_36(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct result", func(t *testing.T) {
 		result := LogExpMath._ln_36(bignumber.NewBig10("999955774281269788"))
 

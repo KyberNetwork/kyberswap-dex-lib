@@ -6,13 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func Test_calcEMA(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		last      *uint256.Int
 		emaLast   *uint256.Int
@@ -88,6 +90,7 @@ func Test_calcEMA(t *testing.T) {
 }
 
 func Test_calcSingleSideLiquidity(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		amount   *uint256.Int
 		reserve0 *uint256.Int
@@ -172,6 +175,7 @@ func Test_calcSingleSideLiquidity(t *testing.T) {
 }
 
 func TestPoolSimulator(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Pool                     pool.Pool
 		feePrecision             *uint256.Int
@@ -510,6 +514,7 @@ func TestPoolSimulator(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Pool                     pool.Pool
 		feePrecision             *uint256.Int

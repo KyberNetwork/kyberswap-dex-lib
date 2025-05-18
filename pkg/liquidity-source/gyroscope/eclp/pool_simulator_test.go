@@ -12,6 +12,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		// ethereum
 		p := `{

@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     *PoolSimulator

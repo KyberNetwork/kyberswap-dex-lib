@@ -47,14 +47,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	swapFee := number.Add(extra.LpFeeRate, extra.MtFeeRate).ToBig()
 
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     staticExtra.Tokens,
-		Reserves:   []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   staticExtra.Tokens,
+		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
 	}
 
 	poolState := Storage{
@@ -103,7 +101,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 
 	for i := range p.Info.Tokens {
-		if p.Info.Reserves[i].Cmp(big.NewInt(0)) <= 0 {
+		if p.Info.Reserves[i].Sign() <= 0 {
 			return &pool.CalcAmountOutResult{}, ErrReserveDepleted
 		}
 	}
@@ -184,7 +182,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	tokenAmountOut := param.TokenAmountOut
 
 	for i := range p.Info.Tokens {
-		if p.Info.Reserves[i].Cmp(big.NewInt(0)) <= 0 {
+		if p.Info.Reserves[i].Sign() <= 0 {
 			return &pool.CalcAmountInResult{}, ErrReserveDepleted
 		}
 	}

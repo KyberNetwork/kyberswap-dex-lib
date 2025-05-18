@@ -521,6 +521,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 }
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
 		poolSim := PoolSimulator{
 			vault: &Vault{
@@ -554,6 +555,7 @@ func TestPool_CanSwapTo(t *testing.T) {
 }
 
 func TestPool_GetMetaInfo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return nil", func(t *testing.T) {
 		poolSim := PoolSimulator{}
 

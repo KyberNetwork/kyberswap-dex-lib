@@ -59,6 +59,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}

@@ -14,6 +14,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://optimistic.etherscan.io/address/0x79c912fef520be002c2b6e57ec4324e260f38e50#readContract
 	testcases := []struct {
 		in                string

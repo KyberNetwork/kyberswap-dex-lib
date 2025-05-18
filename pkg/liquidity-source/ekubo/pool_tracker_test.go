@@ -256,6 +256,7 @@ func (ts *PoolListTrackerTestSuite) SetupSuite() {
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}

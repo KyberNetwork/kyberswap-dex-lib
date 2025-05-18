@@ -10,6 +10,7 @@ import (
 )
 
 func TestAmount0(t *testing.T) {
+	t.Parallel()
 	t.Run("priceDown", func(t *testing.T) {
 		result, err := Amount0Delta(
 			bignum.NewBig("339942424496442021441932674757011200255"),
@@ -56,6 +57,7 @@ func TestAmount0(t *testing.T) {
 }
 
 func TestAmount1(t *testing.T) {
+	t.Parallel()
 	t.Run("priceDown", func(t *testing.T) {
 		result, err := Amount1Delta(
 			bignum.NewBig("339942424496442021441932674757011200255"),

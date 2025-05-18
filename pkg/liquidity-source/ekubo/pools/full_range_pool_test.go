@@ -12,6 +12,7 @@ import (
 )
 
 func TestFullRangePoolQuote(t *testing.T) {
+	t.Parallel()
 	poolKey := func(fee uint64) *PoolKey {
 		return NewPoolKey(
 			common.HexToAddress("0x0000000000000000000000000000000000000000"),

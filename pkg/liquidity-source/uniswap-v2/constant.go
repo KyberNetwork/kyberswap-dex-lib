@@ -24,6 +24,7 @@ const (
 	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
 	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
 	memeswapPairMethodGetSwapFee               = "getFee"
+	babyDogeSwapPairMethodTransactionFee       = "transactionFee"
 )
 
 const (
@@ -33,4 +34,5 @@ const (
 	FeeTrackerIDDefiswap    = "defiswap"
 	FeeTrackerZKSwapFinance = "zkswap-finance"
 	FeeTrackerMemeswap      = "memeswap"
+	FeeTrackerBabyDogeSwap  = "babydogeswap"
 )

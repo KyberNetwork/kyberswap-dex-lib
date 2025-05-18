@@ -31,6 +31,7 @@ func (d mockPoolDataStore) Get(ctx context.Context, address string) (entity.Pool
 }
 
 func TestPoolListUpdater(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}

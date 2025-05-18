@@ -7,6 +7,7 @@ import (
 )
 
 func TestPool_GetLpToken(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool
@@ -94,6 +95,7 @@ func TestPool_GetLpToken(t *testing.T) {
 }
 
 func TestPool_HasReserves(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool
@@ -251,6 +253,7 @@ func TestPool_HasReserves(t *testing.T) {
 }
 
 func TestPool_HasAmplifiedTvl(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		pool           Pool

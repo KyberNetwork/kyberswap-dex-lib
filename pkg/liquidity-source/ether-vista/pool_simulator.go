@@ -31,10 +31,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:    entityPool.Address,
-			ReserveUsd: entityPool.ReserveUsd,
-			Exchange:   entityPool.Exchange,
-			Type:       entityPool.Type,
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
 			Tokens: lo.Map(entityPool.Tokens,
 				func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves: lo.Map(entityPool.Reserves,

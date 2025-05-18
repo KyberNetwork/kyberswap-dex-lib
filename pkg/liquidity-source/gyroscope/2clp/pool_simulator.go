@@ -72,7 +72,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Type:        entityPool.Type,
 		Tokens:      tokens,
 		Reserves:    reserves,
-		Checked:     true,
 		BlockNumber: entityPool.BlockNumber,
 	}
 

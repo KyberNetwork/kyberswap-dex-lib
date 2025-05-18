@@ -15,6 +15,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut_Base(t *testing.T) {
+	t.Parallel()
 	// test data from https://snowtrace.io/address/0xbe52548488992cc76ffa1b42f3a58f646864df45#readProxyContract
 	testcases := []struct {
 		in                string
@@ -55,6 +56,7 @@ func TestPoolSimulator_CalcAmountOut_Base(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut_SAvax(t *testing.T) {
+	t.Parallel()
 	// test data from https://snowtrace.io/address/0x4658ea7e9960d6158a261104aaa160cc953bb6ba#readProxyContract
 	testcases := []struct {
 		in                string
@@ -94,6 +96,7 @@ func TestPoolSimulator_CalcAmountOut_SAvax(t *testing.T) {
 }
 
 func TestPoolSimulator_DiffAggAccount(t *testing.T) {
+	t.Parallel()
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
 		Type:     "",

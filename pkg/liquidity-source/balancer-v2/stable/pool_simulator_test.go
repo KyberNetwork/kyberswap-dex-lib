@@ -17,6 +17,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return error balance didnt converge", func(t *testing.T) {
 		reserves := make([]*big.Int, 3)
 		reserves[0], _ = new(big.Int).SetString("9999991000000000000", 10)
@@ -216,6 +217,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		poolStr string
 	}
@@ -354,6 +356,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 }
 
 func TestCanSwapTo(t *testing.T) {
+	t.Parallel()
 	// Setup base pools
 	basePool1 := &PoolSimulator{
 		Pool: pool.Pool{

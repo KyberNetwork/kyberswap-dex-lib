@@ -6,16 +6,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-const DexType = "native-v1"
+const (
+	DexType = "native-v1"
 
-var (
-	defaultGas         = Gas{Quote: 300000}
-	bps        float64 = 10000
-
-	chainById = map[valueobject.ChainID]string{}
+	defaultGas = 177000
+	bps        = 10000
 )
 
 var (
+	chainById = map[valueobject.ChainID]string{}
+
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")

@@ -17,6 +17,7 @@ import (
 )
 
 func TestPoolTracker(t *testing.T) {
+	t.Parallel()
 	// @dev test is guaranteed to work on block (because liquidation is available).
 	// just add the following line in pool_tracker.go getPoolSwapData() and comment out t.Skip here:
 	// req.SetBlockNumber(big.NewInt(20812089))

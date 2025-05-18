@@ -17,6 +17,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// Pool data at block https://arbiscan.io/block/214416932
 
@@ -264,6 +265,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// Pool data at block https://arbiscan.io/block/214416932
 

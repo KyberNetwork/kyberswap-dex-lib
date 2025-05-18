@@ -14,6 +14,7 @@ import (
 )
 
 func TestNewPoolSimulator(t *testing.T) {
+	t.Parallel()
 	t.Run("it should construct pool simulator successfully", func(t *testing.T) {
 		entityPool := entity.Pool{
 			Address:  "0xbc7f67fa9c72f9fccf917cbcee2a50deb031462a",
@@ -46,6 +47,7 @@ func TestNewPoolSimulator(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct amount out", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
 			a:      utils.NewBig("1000000000000000"),
@@ -285,6 +287,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	t.Run("it should update pool state correctly", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
 			a:      utils.NewBig("1000000000000000"),
@@ -345,6 +348,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 }
 
 func TestPoolSimulator_GetMetaInfo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct meta", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
 			a:      utils.NewBig("1000000000000000"),

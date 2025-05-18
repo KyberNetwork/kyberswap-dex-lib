@@ -16,6 +16,7 @@ import (
 )
 
 func TestPoolListUpdater(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 
 	if os.Getenv("CI") != "" {
@@ -28,7 +29,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			DexReservesResolver: "0xb387f9C2092cF7c4943F97842887eBff7AE96EB3",
+			DexReservesResolver: "0xC93876C0EEd99645DD53937b25433e311881A27C",
 		}
 	)
 

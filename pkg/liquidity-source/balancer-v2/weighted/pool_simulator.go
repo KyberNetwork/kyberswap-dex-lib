@@ -136,7 +136,6 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		Type:        entityPool.Type,
 		Tokens:      tokens,
 		Reserves:    reserves,
-		Checked:     true,
 		BlockNumber: entityPool.BlockNumber,
 	}
 
@@ -834,7 +833,7 @@ func (s *PoolSimulator) updateBalance(tokenIn, tokenOut string, amountIn, amount
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,

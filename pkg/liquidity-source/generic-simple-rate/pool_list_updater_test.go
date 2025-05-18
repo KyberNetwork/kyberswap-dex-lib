@@ -15,6 +15,7 @@ import (
 )
 
 func Test_getNewPool(t *testing.T) {
+	t.Parallel()
 	rateDefault := big.NewInt(100)
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")

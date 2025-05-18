@@ -37,6 +37,7 @@ var entityPoolData = entity.Pool{
 }
 
 func TestNewPoolSimulator(t *testing.T) {
+	t.Parallel()
 	entityPoolDataBytes, err := json.Marshal(entityPoolData)
 	assert.NoError(t, err)
 	assert.Equal(t, entityPoolStrData, string(entityPoolDataBytes))
@@ -64,6 +65,7 @@ func TestNewPoolSimulator(t *testing.T) {
 }
 
 func TestPoolSimulator_GetAmountOut(t *testing.T) {
+	t.Parallel()
 	WETH := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	eBTC := "0x657e8c867d8b37dcc18fa4caead9c45eb088c642"
 	LBTC := "0x8236a87084f8b84306f72007f36f2618a5634494"

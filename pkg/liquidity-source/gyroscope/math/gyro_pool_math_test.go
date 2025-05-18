@@ -8,6 +8,7 @@ import (
 )
 
 func TestGyroPoolMathSqrt(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		input := uint256.MustFromDecimal("4018432103219473921753291479214")
 		tolerance := uint256.MustFromDecimal("52142917528391749214")

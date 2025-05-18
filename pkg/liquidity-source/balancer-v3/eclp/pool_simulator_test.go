@@ -22,6 +22,7 @@ func pool1() *PoolSimulator {
 }
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testcases := []struct {
 		name              string
 		pool              *PoolSimulator
@@ -82,6 +83,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testcases := []struct {
 		name             string
 		pool             *PoolSimulator

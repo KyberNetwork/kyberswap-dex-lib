@@ -19,6 +19,7 @@ var (
 )
 
 func TestPoolSimulator(t *testing.T) {
+	t.Parallel()
 	var (
 		chainID = 1
 		poolEnt entity.Pool

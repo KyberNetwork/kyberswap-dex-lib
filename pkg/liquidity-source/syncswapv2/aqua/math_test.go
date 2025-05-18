@@ -3,12 +3,14 @@ package syncswapv2aqua
 import (
 	"testing"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+
+	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestUint256Refactor(t *testing.T) {
+	t.Parallel()
 	func(D, gamma, _g1k0, ANN, AMultiplier *uint256.Int) {
 		var mul1 = new(uint256.Int)
 		assert.Equal(t, new(uint256.Int).Div(

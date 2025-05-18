@@ -14,6 +14,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type expected struct {
 		out         pool.CalcAmountOutResult
 		totalShares *uint256.Int
@@ -141,6 +142,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		totalAssets       *uint256.Int
 		totalShares       *uint256.Int

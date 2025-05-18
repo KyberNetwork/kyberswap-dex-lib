@@ -50,6 +50,7 @@ func getPoolInfoDetailY2X() PoolInfoU256 {
 }
 
 func TestSwapDetailY2X1(t *testing.T) {
+	t.Parallel()
 	// y2x start partial x-liquidity,
 	// end partial x-liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -82,6 +83,7 @@ func TestSwapDetailY2X1(t *testing.T) {
 }
 
 func TestSwapDetailY2X2(t *testing.T) {
+	t.Parallel()
 	// y2x start partial liquidity,
 	// end full liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -114,6 +116,7 @@ func TestSwapDetailY2X2(t *testing.T) {
 }
 
 func TestSwapDetailY2X3(t *testing.T) {
+	t.Parallel()
 	// y2x start with full-y-liquidity
 	// end full liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -146,6 +149,7 @@ func TestSwapDetailY2X3(t *testing.T) {
 }
 
 func TestSwapDetailY2X4(t *testing.T) {
+	t.Parallel()
 	// y2x start with full-x-liquidity
 	// end full liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -177,6 +181,7 @@ func TestSwapDetailY2X4(t *testing.T) {
 	}
 }
 func TestSwapDetailY2X5(t *testing.T) {
+	t.Parallel()
 	// y2x start with limitorder-x, full-x-liquidity
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -209,6 +214,7 @@ func TestSwapDetailY2X5(t *testing.T) {
 }
 
 func TestSwapDetailY2X6(t *testing.T) {
+	t.Parallel()
 	// y2x start with limitorder-y, full-x-liquidity
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -245,6 +251,7 @@ func TestSwapDetailY2X6(t *testing.T) {
 }
 
 func TestSwapDetailY2X7(t *testing.T) {
+	t.Parallel()
 	// y2x start with limitorder-y, full-x-liquidity
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -278,6 +285,7 @@ func TestSwapDetailY2X7(t *testing.T) {
 }
 
 func TestSwapDetailY2X8(t *testing.T) {
+	t.Parallel()
 	// y2x start with limitorder-y, full-x-liquidity
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailY2X()
@@ -311,6 +319,7 @@ func TestSwapDetailY2X8(t *testing.T) {
 }
 
 func TestSwapDetailY2X9(t *testing.T) {
+	t.Parallel()
 	// y2x start with limitorder-y, full-x-liquidity
 	// end partial liquidity
 	poolInfo := getPoolInfoDetailY2X()
