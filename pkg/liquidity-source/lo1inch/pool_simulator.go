@@ -441,8 +441,8 @@ func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
 	return SwapSideUnknown
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return p.routerAddress
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return MetaInfo{ApprovalAddress: p.routerAddress}
 }
 
 // Inventory Limit

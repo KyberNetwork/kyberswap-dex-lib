@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 const rfqDefaultChainType = "evm"
@@ -101,6 +102,11 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 		if quote.TargetContract == "" {
 			quote.TargetContract = h.config.Router
 		}
+
+		if quote.QuoteData.BaseToken != eth.AddressZero.String() {
+			quote.ApprovalAddress = quote.TargetContract
+		}
+
 		results = append(results, &pool.RFQResult{
 			NewAmountOut: newAmountOut,
 			Extra:        quote,

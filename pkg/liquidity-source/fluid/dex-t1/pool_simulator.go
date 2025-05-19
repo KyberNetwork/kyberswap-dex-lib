@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -186,33 +187,38 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	inputAmount, outputAmount := input.Amount, output.Amount
 
-	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+	for i := range s.Info.Tokens {
+		if s.Info.Tokens[i] == input.Token {
+			s.Info.Reserves[i] = new(big.Int).Add(s.Info.Reserves[i], inputAmount)
 		}
-		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+		if s.Info.Tokens[i] == output.Token {
+			s.Info.Reserves[i] = new(big.Int).Sub(s.Info.Reserves[i], outputAmount)
 		}
 	}
 
 	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
-		t.CollateralReserves = swapInfo.NewCollateralReserves
-		t.DebtReserves = swapInfo.NewDebtReserves
+		s.CollateralReserves = swapInfo.NewCollateralReserves
+		s.DebtReserves = swapInfo.NewDebtReserves
 		// Note: limits are updated, but are likely off for the input token until newly fetched.
 		// Erring on the cautious side with too tight limits to avoid potential reverts.
 		// See Comment Ref #4327563287
-		t.DexLimits = swapInfo.NewDexLimits
+		s.DexLimits = swapInfo.NewDexLimits
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
 }
 
 // ------------------------------------------------------------------------------------------------

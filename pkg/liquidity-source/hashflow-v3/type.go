@@ -72,6 +72,8 @@ type Quote struct {
 	} `json:"quoteData"`
 	Signature      string `json:"signature"`
 	TargetContract string `json:"targetContract"`
+
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type (

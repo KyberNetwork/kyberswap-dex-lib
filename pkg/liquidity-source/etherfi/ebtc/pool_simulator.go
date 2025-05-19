@@ -191,28 +191,33 @@ func (p *PoolSimulator) afterPublicDeposit() error {
 
 func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: p.Pool.Info.BlockNumber,
+		BlockNumber:     p.Pool.Info.BlockNumber,
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }
 
-func (s *PoolSimulator) CanSwapTo(token string) []string {
-	if token != s.Pool.Info.Tokens[0] {
+func (p *PoolSimulator) GetApprovalAddress(_, tokenOut string) string {
+	return tokenOut // tokenOut is vault
+}
+
+func (p *PoolSimulator) CanSwapTo(token string) []string {
+	if token != p.Pool.Info.Tokens[0] {
 		return []string{}
 	}
-	tokens := make([]string, 0, len(s.Pool.Info.Tokens)-1)
-	for _, t := range s.Pool.Info.Tokens {
-		if !strings.EqualFold(t, token) && s.assets[t].AllowDeposits {
+	tokens := make([]string, 0, len(p.Pool.Info.Tokens)-1)
+	for _, t := range p.Pool.Info.Tokens {
+		if !strings.EqualFold(t, token) && p.assets[t].AllowDeposits {
 			tokens = append(tokens, t)
 		}
 	}
 	return tokens
 }
 
-func (s *PoolSimulator) CanSwapFrom(token string) []string {
-	if asset, ok := s.assets[token]; ok && asset.AllowDeposits {
-		return []string{s.Pool.Info.Tokens[0]}
+func (p *PoolSimulator) CanSwapFrom(token string) []string {
+	if asset, ok := p.assets[token]; ok && asset.AllowDeposits {
+		return []string{p.Pool.Info.Tokens[0]}
 	}
 	return []string{}
 }

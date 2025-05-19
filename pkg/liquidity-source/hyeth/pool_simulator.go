@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -143,8 +144,16 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+	return MetaInfo{ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut)}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	if valueobject.IsNative(tokenIn) || valueobject.IsWrappedNative(tokenIn, valueobject.ChainIDEthereum) {
+		return ""
+	}
+
+	return s.GetAddress()
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

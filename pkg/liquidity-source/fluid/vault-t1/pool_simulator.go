@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -78,25 +79,30 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount
 
-	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+	for i := range s.Info.Tokens {
+		if s.Info.Tokens[i] == input.Token {
+			s.Info.Reserves[i] = new(big.Int).Add(s.Info.Reserves[i], inputAmount)
 		}
-		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+		if s.Info.Tokens[i] == output.Token {
+			s.Info.Reserves[i] = new(big.Int).Sub(s.Info.Reserves[i], outputAmount)
 		}
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {

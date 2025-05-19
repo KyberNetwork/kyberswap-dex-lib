@@ -115,11 +115,20 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
-		RouterAddress: s.extra.RouterAddress,
-		BlockNumber:   s.Pool.Info.BlockNumber,
+		RouterAddress:   s.extra.RouterAddress,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	if valueobject.IsNative(tokenIn) {
+		return ""
+	}
+
+	return s.extra.RouterAddress
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {
