@@ -8,8 +8,8 @@ github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af h1:b5pUR8ej8UG
 github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af/go.mod h1:avzajAHp6oWudHTOxkIBj9hIoDt0hDXsOdkKND48rIc=
 github.com/KyberNetwork/aggregation-stats v0.2.0 h1:VQJO9j+cah1vZoLm5Dp0fFY1mcEifxSGWrYnWDSLEmA=
 github.com/KyberNetwork/aggregation-stats v0.2.0/go.mod h1:zrjBiwXyJKT4JF9DxPhWEd5O7NAuZAcPPcxq0wMDTtU=
-github.com/KyberNetwork/aggregator-encoding v0.50.2-0.20250519082425-34d68b0c2753 h1:ERstFn1OOTNQMDIzMIu3fjc4jfu5oM3a+K25aL+KrYs=
-github.com/KyberNetwork/aggregator-encoding v0.50.2-0.20250519082425-34d68b0c2753/go.mod h1:Ac6tUNWnT3ORfcn9YMmc7fRE6gTV0t3XeuQUiRqvA9o=
+github.com/KyberNetwork/aggregator-encoding v0.50.2 h1:EG72DsY1YlE8ogjK0JR/vo4ZwF6PhWmTISeLtXp7Fms=
+github.com/KyberNetwork/aggregator-encoding v0.50.2/go.mod h1:9q3S/KqwVRbyMpKbBJuGf1K0FgkCwiwHnLuvNHyfUPU=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
 github.com/KyberNetwork/blackjack v0.3.0/go.mod h1:UmBTVq/Ia1AJzozJv0pinQTF8DTm+RcZJwvqHeY1JvM=
 github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4 h1:GkA8Z6jTUxAdQfPgQkAN80mqgYk8scUK3Iqbe6UPmv4=
