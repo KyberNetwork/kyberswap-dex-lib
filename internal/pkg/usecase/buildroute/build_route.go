@@ -583,8 +583,20 @@ func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tok
 	if routeSummary.AlphaFee != nil {
 		for i, swapReduction := range routeSummary.AlphaFee.SwapReductions {
 			if swapReduction.ExecutedId == executedId {
+				if alphaFeeAsset != swapReduction.TokenOut {
+					logger.WithFields(ctx, logger.Fields{
+						"routeId":               routeSummary.RouteID,
+						"exchange":              swap.Exchange,
+						"partnerAlphaFeeAsset":  alphaFeeAsset,
+						"partnerAlphaFeeAmount": alphaFeeAmt,
+						"alphaFeeTokenOut":      swapReduction.TokenOut,
+						"alphaFeeAmount":        swapReduction.ReduceAmount,
+					}).Warn("partner alpha fee asset is different from alpha fee token out")
+				}
+
 				routeSummary.AlphaFee.SwapReductions[i].ReduceAmount = alphaFeeAmt
-				routeSummary.AlphaFee.SwapReductions[i].TokenOut = alphaFeeAsset
+				// We don't trust the alphaFeeAsset from partner's response for now.
+				// routeSummary.AlphaFee.SwapReductions[i].TokenOut = alphaFeeAsset
 				routeSummary.AlphaFee.SwapReductions[i].ReduceAmountUsd = alphaFeeInUsd
 
 				alphaFeeReduction = &routeSummary.AlphaFee.SwapReductions[i]
