@@ -99,7 +99,8 @@ common:
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
-        uniswap-v4-kem: 5000
+        uniswap-v4-kem: 9000
+        uniswap-v4-fairflow: 9000
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
       minDifferentThresholdBps: 20
@@ -405,6 +406,13 @@ useCase:
             timeout: 10s
             retry_count: 3
       uniswap-v4-kem:
+        handler: uniswap-v4
+        properties:
+          kyberExclusiveAMM:
+            maxAmountInFactor: 1.2
+            expiry: 180000000000 # 3m
+            signerPrivateKey:
+      uniswap-v4-fairflow:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:

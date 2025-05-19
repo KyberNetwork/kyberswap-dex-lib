@@ -36,6 +36,7 @@ func (*testPoolSimulator) GetType() string                           { panic("un
 func (*testPoolSimulator) GetMetaInfo(string, string) interface{}    { panic("unimplemented") }
 func (*testPoolSimulator) GetTokenIndex(string) int                  { panic("unimplemented") }
 func (*testPoolSimulator) CalculateLimit() map[string]*big.Int       { panic("unimplemented") }
+func (*testPoolSimulator) GetApprovalAddress(string, string) string  { panic("unimplemented") }
 
 func TestTokenToPoolAddressMap(t *testing.T) {
 	t.Run("pool or token not in map", func(t *testing.T) {
@@ -83,7 +84,8 @@ func TestTokenToPoolAddressMap(t *testing.T) {
 		for tokenAddress := range tokenByAddress {
 			tokenAddressList = append(tokenAddressList, tokenAddress)
 		}
-		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
+		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList,
+			pooltypes.PoolTypes.UniswapV2)
 		require.NoError(t, err)
 		tokenToPoolAddress := MakeTokenToPoolAddressMapFromPools(poolByAddress)
 		defer tokenToPoolAddress.ReleaseResources()
@@ -133,7 +135,8 @@ func TestTokenToPoolAddressMapConcurrent(t *testing.T) {
 			for tokenAddress := range tokenByAddress {
 				tokenAddressList = append(tokenAddressList, tokenAddress)
 			}
-			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
+			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList,
+				pooltypes.PoolTypes.UniswapV2)
 			require.NoError(t, err)
 			tokenToPoolAddress := MakeTokenToPoolAddressMapFromPools(poolByAddress)
 			defer tokenToPoolAddress.ReleaseResources()

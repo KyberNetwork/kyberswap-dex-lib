@@ -1,16 +1,16 @@
 package getpools
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/fixtures"
-
 	"context"
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+
+	mockusecase "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/fixtures"
 )
 
 func TestGetPools_Handle(t *testing.T) {
@@ -30,7 +30,7 @@ func TestGetPools_Handle(t *testing.T) {
 		{
 			name: "it should return correct result when repository returns no error",
 			prepare: func(ctrl *gomock.Controller) *GetPoolsUseCase {
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mockusecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
 					Return(fixtures.Pools, nil)
@@ -110,7 +110,7 @@ func TestGetPools_Handle(t *testing.T) {
 			name: "it should return correct error when repository returns error",
 			prepare: func(ctrl *gomock.Controller) *GetPoolsUseCase {
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mockusecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
 					Return(nil, theError)

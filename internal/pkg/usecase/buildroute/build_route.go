@@ -693,7 +693,7 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 		rfqRouteMsg.TakerAsset = onebitExtra.TakerAsset
 		rfqRouteMsg.MakerAsset = onebitExtra.MakerAsset
 
-	case dexValueObject.ExchangeUniswapV4Kem:
+	case dexValueObject.ExchangeUniswapV4Kem, dexValueObject.ExchangeUniswapV4FairFlow:
 		rfqRouteMsg.RouteType = string(RFQ)
 		rfqRouteMsg.QuoteTimestamp = timestamppb.Now()
 		rfqRouteMsg.TakerAmount = swap.SwapAmount.String()
