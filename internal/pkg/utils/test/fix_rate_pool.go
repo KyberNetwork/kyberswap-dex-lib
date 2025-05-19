@@ -73,10 +73,10 @@ func (p *FixRatePool) UpdateBalance(params dexlibPool.UpdateBalanceParams) {}
 
 func (p *FixRatePool) CalculateLimit() map[string]*big.Int   { return nil }
 func (p *FixRatePool) CloneState() dexlibPool.IPoolSimulator { return p }
-
-func (p *FixRatePool) GetAddress() string  { return p.ID }
-func (p *FixRatePool) GetExchange() string { return string(p.Exchange) }
-func (p *FixRatePool) GetType() string     { return "fix-rate" }
+func (p *FixRatePool) GetApprovalAddress(_, _ string) string { return "" }
+func (p *FixRatePool) GetAddress() string                    { return p.ID }
+func (p *FixRatePool) GetExchange() string                   { return string(p.Exchange) }
+func (p *FixRatePool) GetType() string                       { return "fix-rate" }
 
 func (p *FixRatePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} { return nil }
 func (p *FixRatePool) GetReserves() []*big.Int                                 { return nil }

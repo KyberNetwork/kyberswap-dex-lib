@@ -350,6 +350,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-unichain/version/latest
+    startBlock: 15857030
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

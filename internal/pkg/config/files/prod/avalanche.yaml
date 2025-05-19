@@ -430,6 +430,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-avalanche/version/latest
+    startBlock: 61593039
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

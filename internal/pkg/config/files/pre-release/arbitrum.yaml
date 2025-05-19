@@ -518,6 +518,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-arbitrum/version/latest
+    startBlock: 334152409
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

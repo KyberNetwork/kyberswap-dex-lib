@@ -7,9 +7,11 @@ import (
 
 	encodeValueObject "github.com/KyberNetwork/aggregator-encoding/pkg/constant/valueobject"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
@@ -23,6 +25,7 @@ type IExecutorBalanceRepository interface {
 
 type EncodingDataBuilder struct {
 	ctx                       context.Context
+	chainID                   valueobject.ChainID
 	data                      types.EncodingData
 	executorBalanceRepository IExecutorBalanceRepository
 	featureFlags              valueobject.FeatureFlags
@@ -30,11 +33,13 @@ type EncodingDataBuilder struct {
 
 func NewEncodingDataBuilder(
 	ctx context.Context,
+	chainID valueobject.ChainID,
 	executorBalanceRepository IExecutorBalanceRepository,
 	featureFlags valueobject.FeatureFlags,
 ) *EncodingDataBuilder {
 	return &EncodingDataBuilder{
 		ctx:                       ctx,
+		chainID:                   chainID,
 		data:                      types.EncodingData{},
 		executorBalanceRepository: executorBalanceRepository,
 		featureFlags:              featureFlags,
@@ -211,6 +216,10 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 		flags[pathIdx] = make([][]types.EncodingSwapFlag, len(path))
 	}
 
+	if valueobject.IsL2EncoderSupportedChains(b.chainID) {
+		return flags
+	}
+
 	// If not use optimization, unset ShouldNotKeepDustTokenOut & set ShouldApproveMax
 	if !b.featureFlags.IsOptimizeExecutorFlagsEnabled {
 		for pathIdx, path := range route {
@@ -249,16 +258,18 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 
 	for pathIdx, path := range route {
 		for swapIdx, swap := range path {
-			if !valueobject.IsApproveMaxExchange(swap.Exchange) {
+			approveAddress, err := getAddressToApproveMax(b.chainID, swap)
+			if err != nil || len(approveAddress) == 0 {
 				continue
 			}
-			approveAddress, err := getAddressToApproveMax(swap)
-			if err != nil {
+
+			if !common.IsHexAddress(approveAddress) {
 				continue
 			}
+
 			query := dto.PoolApprovalQuery{
 				TokenIn:     swap.TokenIn,
-				PoolAddress: approveAddress,
+				PoolAddress: strings.ToLower(approveAddress),
 			}
 			hasPoolApprovalQueries = append(hasPoolApprovalQueries, query)
 			mapQueryIndex[len(hasPoolApprovalQueries)-1] = [2]int{pathIdx, swapIdx}
@@ -400,41 +411,36 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 	return true
 }
 
-func getAddressToApproveMax(swap types.EncodingSwap) (string, error) {
-	switch swap.Exchange {
-	case
-		dexValueObject.ExchangeBalancerV2Weighted,
-		dexValueObject.ExchangeBalancerV2Stable,
-		dexValueObject.ExchangeBalancerV2ComposableStable,
-		dexValueObject.ExchangeBalancerV3Weighted,
-		dexValueObject.ExchangeBalancerV3Stable,
-		dexValueObject.ExchangeBalancerV3ECLP,
-		dexValueObject.ExchangeBeethovenXWeighted,
-		dexValueObject.ExchangeBeethovenXStable,
-		dexValueObject.ExchangeBeethovenXComposableStable,
-		dexValueObject.ExchangeBeethovenXV3Weighted,
-		dexValueObject.ExchangeBeethovenXV3Stable,
-		dexValueObject.ExchangeVelocoreV2CPMM,
-		dexValueObject.ExchangeVelocoreV2WombatStable,
-		dexValueObject.ExchangeGyroscope2CLP,
-		dexValueObject.ExchangeGyroscope3CLP,
-		dexValueObject.ExchangeGyroscopeECLP:
-		{
-			poolExtraBytes, err := json.Marshal(swap.PoolExtra)
-			if err != nil {
-				return "", nil
-			}
+func getAddressToApproveMax(chainID valueobject.ChainID, swap types.EncodingSwap) (string, error) {
+	// If the swap is on L2 chains, or if the dex doesn't check the "SHOULD_APPROVE_MAX" flag
+	isApproveMaxExchange, usePoolAsApprovalAddress := valueobject.IsApproveMaxExchange(swap.Exchange)
+	if !isApproveMaxExchange {
+		return "", nil
+	}
 
-			var poolExtra struct {
-				Vault string `json:"vault"`
-			}
-			if err = json.Unmarshal(poolExtraBytes, &poolExtra); err != nil {
-				return "", nil
-			}
-
-			return poolExtra.Vault, nil
-		}
-	default:
+	if usePoolAsApprovalAddress {
 		return swap.Pool, nil
 	}
+
+	var approvalInfo *pool.ApprovalInfo
+	var err error
+
+	if dexValueObject.IsRFQSource(swap.Exchange) &&
+		swap.Exchange != dexValueObject.ExchangeLO1inch {
+		// For RFQ dexes, the approval address should be unmarshalled from extra
+		// so it can be updated from quote result.
+		// LO1inch is an exception, it is RFQ dex without RFQ handler.
+		approvalInfo, err = util.AnyToStruct[pool.ApprovalInfo](swap.Extra)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		// If the pool extra has a custom approval address
+		approvalInfo, err = util.AnyToStruct[pool.ApprovalInfo](swap.PoolExtra)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return approvalInfo.ApprovalAddress, nil
 }

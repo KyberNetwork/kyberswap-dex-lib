@@ -2,19 +2,20 @@ package trackexecutor
 
 import (
 	"context"
+	"fmt"
 	"math/big"
-	"strconv"
+	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
@@ -30,6 +31,7 @@ type useCase struct {
 	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
 	config                    Config
+	gasTokenAddress           string
 }
 
 func NewUseCase(
@@ -51,6 +53,7 @@ func NewUseCase(
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
 		config:                    config,
+		gasTokenAddress:           valueobject.WrapNativeLower(dexValueObject.NativeAddress, config.ChainID),
 	}
 }
 
@@ -79,39 +82,74 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		return err
 	}
 
+	lg := logger.WithFields(ctx, logger.Fields{
+		"executor": executorAddress,
+	})
+
 	for {
 		blockNumber, err := u.executorBalanceRepository.GetLatestProcessedBlockNumber(ctx, executorAddress)
 		if err != nil {
 			return err
 		}
 
-		events, err := fetchNewExecutorExchangeEvents(ctx, u.graphQLClient, executorAddress, blockNumber)
+		blockNumber = max(blockNumber, u.config.StartBlock)
+
+		lg.WithFields(logger.Fields{
+			"currentBlock": blockNumber,
+			"latestBlock":  blockNumberCheckpoint,
+		}).Info("Start fetch events.")
+
+		swappedEvents, err := fetchNewRouterSwappedEvents(ctx, u.graphQLClient, blockNumber)
 		if err != nil {
 			return err
 		}
-		logger.WithFields(ctx, logger.Fields{
-			"executor":         executorAddress,
-			"startBlockNumber": blockNumber,
-			"numEvents":        len(events),
-		}).Info("Fetch Exchange events from executor")
 
-		if len(events) == 0 {
+		if len(swappedEvents) == 0 {
 			return nil
 		}
 
-		if err := u.trackExecutorBalance(ctx, executorAddress, events); err != nil {
-			return err
-		}
-		if err := u.trackExecutorPoolApproval(ctx, executorAddress, events); err != nil {
-			return err
+		lg.WithFields(logger.Fields{
+			"currentBlock": blockNumber,
+			"latestBlock":  blockNumberCheckpoint,
+		}).Infof("Fetched %d Swapped events", len(swappedEvents))
+
+		lastBlockNumber, err := kutils.Atou[uint64](swappedEvents[len(swappedEvents)-1].BlockNumber)
+		if err != nil {
+			return fmt.Errorf("failed to convert block number to uint64: %v", err)
 		}
 
-		// Persist new block number into data store.
-		lastBlockNumberStr := events[len(events)-1].BlockNumber
-		lastBlockNumber, err := strconv.ParseUint(lastBlockNumberStr, 10, 64)
+		exchangeEvents, err := fetchNewExecutorExchangeEvents(ctx, u.graphQLClient, executorAddress, blockNumber, lastBlockNumber)
 		if err != nil {
 			return err
 		}
+
+		if len(exchangeEvents) == 0 {
+			err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
+			if err != nil {
+				return err
+			}
+
+			lg.WithFields(logger.Fields{
+				"currentBlock":          blockNumber,
+				"lastestProcessedBlock": lastBlockNumber,
+			}).Info("No new Exchange events, skip to the next interval")
+
+			return nil
+		}
+
+		lg.WithFields(logger.Fields{
+			"currentBlock": blockNumber,
+			"toBlock":      lastBlockNumber,
+		}).Infof("Fetched %d Exchange events", len(exchangeEvents))
+
+		if err := u.trackExecutorBalance(ctx, executorAddress, exchangeEvents); err != nil {
+			return err
+		}
+
+		if err := u.trackExecutorPoolApproval(ctx, executorAddress, swappedEvents, exchangeEvents); err != nil {
+			return err
+		}
+
 		err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
 		if err != nil {
 			return err
@@ -134,11 +172,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress string, events []ExchangeEvent) error {
 	tokenOutSet := mapset.NewThreadUnsafeSet[string]()
 	for _, event := range events {
-		if event.Token == EtherAddress {
-			tokenOutSet.Add(u.config.GasTokenAddress)
-			continue
-		}
-		tokenOutSet.Add(event.Token)
+		tokenOutSet.Add(u.formatToken(event.Token))
 	}
 	tokenOutSlice := tokenOutSet.ToSlice() // To persist the index of elements.
 
@@ -203,149 +237,112 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	return nil
 }
 
-func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress string, events []ExchangeEvent) error {
-	poolAddressSet := mapset.NewThreadUnsafeSet[string]()
-	for _, event := range events {
-		poolAddressSet.Add(event.Pair)
-	}
-	poolAddresses := poolAddressSet.ToSlice()
+func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress string,
+	swappedEvents []SwappedEvent, exchangeEvents []ExchangeEvent) error {
 
-	poolEntities, err := u.poolRepository.FindByAddresses(ctx, poolAddresses)
+	swappedEventByTxHash := lo.KeyBy(swappedEvents, func(event SwappedEvent) string { return event.Tx })
+	pairAddressSet := mapset.NewThreadUnsafeSet[string]()
+
+	for i, event := range exchangeEvents {
+		idParts := strings.Split(event.Id, "-")
+		if len(idParts) != 2 {
+			return fmt.Errorf("invalid event id: %s", event.Id)
+		}
+		logIndex, err := kutils.Atou[uint32](idParts[1])
+		if err != nil {
+			return fmt.Errorf("invalid log index: %s", idParts[1])
+		}
+		exchangeEvents[i].LogIndex = logIndex
+		pairAddressSet.Add(event.Pair)
+	}
+
+	poolEntities, err := u.poolRepository.FindByAddresses(ctx, pairAddressSet.ToSlice())
 	if err != nil {
 		return err
 	}
+	poolSimMap := u.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash{})
 
-	poolInfo := map[string]*PoolInfo{}
-	for _, poolEntity := range poolEntities {
-		if _, ok := poolInfo[poolEntity.Address]; !ok {
-			poolInfo[poolEntity.Address] = &PoolInfo{}
+	// Group Exchange events by tx hash and sort them by log index ascending.
+	exchangeEventsByTxHash := lo.MapValues(
+		lo.GroupBy(exchangeEvents, func(event ExchangeEvent) string { return event.Tx }),
+		func(events []ExchangeEvent, _ string) []ExchangeEvent {
+			slices.SortFunc(events, func(a, b ExchangeEvent) int { return int(a.LogIndex - b.LogIndex) })
+			return events
+		},
+	)
+
+	swapInfoSet := mapset.NewThreadUnsafeSet[SwapInfo]()
+	for txHash, events := range exchangeEventsByTxHash {
+		var (
+			swappedEvent = swappedEventByTxHash[txHash]
+			tokenIn      = u.formatToken(swappedEvent.TokenIn)
+			tokenOut     = u.formatToken(swappedEvent.TokenOut)
+
+			currentTokenIn = tokenIn
+		)
+
+		slices.SortFunc(events, func(a, b ExchangeEvent) int {
+			return int(a.LogIndex - b.LogIndex)
+		})
+
+		for _, event := range events {
+			token := u.formatToken(event.Token)
+
+			swapInfoSet.Add(SwapInfo{
+				Pair:     event.Pair,
+				TokenIn:  currentTokenIn,
+				TokenOut: token,
+			})
+
+			// Check if last swap in a path.
+			if strings.EqualFold(token, tokenOut) {
+				currentTokenIn = tokenIn
+			} else {
+				currentTokenIn = token
+			}
 		}
-		poolInfo[poolEntity.Address].entity = poolEntity
 	}
+	swapInfos := swapInfoSet.ToSlice()
 
-	poolSimulators := u.poolFactory.NewPools(ctx, poolEntities, common.Hash{})
-	logger.WithFields(ctx, logger.Fields{
-		"executor":          executorAddress,
-		"numPoolAddresses":  len(poolAddresses),
-		"numPoolEntities":   len(poolEntities),
-		"numPoolSimulators": len(poolSimulators),
-	}).Info("Fetch pool info")
-	for _, poolSimulator := range poolSimulators {
-		if _, ok := poolInfo[poolSimulator.GetAddress()]; !ok {
-			poolInfo[poolSimulator.GetAddress()] = &PoolInfo{}
-		}
-		poolInfo[poolSimulator.GetAddress()].simulator = poolSimulator
-	}
+	updatePoolApprovalSet := mapset.NewThreadUnsafeSet[dto.PoolApprovalQuery]()
+	for _, swapInfo := range swapInfos {
+		approvalAddress := swapInfo.Pair
+		if sim, ok := poolSimMap[swapInfo.Pair]; ok {
+			exchange := valueobject.Exchange(sim.GetExchange())
+			isApproveMaxExchange, usePoolAsApprovalAddress := valueobject.IsApproveMaxExchange(exchange)
 
-	poolApprovalSet := mapset.NewThreadUnsafeSet[dto.PoolApprovalQuery]()
-	for _, pool := range poolInfo {
-		if pool.entity == nil || pool.simulator == nil {
-			continue
-		}
-
-		if !valueobject.IsApproveMaxExchange(valueobject.Exchange(pool.entity.Exchange)) {
-			continue
-		}
-
-		for _, token := range pool.simulator.GetTokens() {
-			approveAddress, err := getAddressToApproveMax(pool)
-			if err != nil {
+			if !isApproveMaxExchange {
 				continue
 			}
 
-			poolApprovalSet.Add(dto.PoolApprovalQuery{
-				TokenIn:     token,
-				PoolAddress: approveAddress,
-			})
+			if !usePoolAsApprovalAddress {
+				approvalAddress = sim.GetApprovalAddress(swapInfo.TokenIn, swapInfo.TokenOut)
+			}
 		}
+
+		updatePoolApprovalSet.Add(dto.PoolApprovalQuery{
+			TokenIn:     swapInfo.TokenIn,
+			PoolAddress: strings.ToLower(approvalAddress),
+		})
 	}
-
-	poolApprovalQueries := poolApprovalSet.ToSlice()
-	existed, err := u.executorBalanceRepository.HasPoolApproval(ctx, executorAddress, poolApprovalQueries)
-	if err != nil {
-		return err
-	}
-
-	poolApprovalCandidates := lo.Filter(poolApprovalQueries, func(item dto.PoolApprovalQuery, index int) bool {
-		return !existed[index]
-	})
-
-	if len(poolApprovalCandidates) == 0 {
-		logger.Debug(ctx, "No new pool approvals to track, skip to the next interval")
-		return nil
-	}
-
-	rpcRequest := u.ethClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-
-	poolApprovals := make([]*big.Int, len(poolApprovalCandidates))
-	for i, query := range poolApprovalCandidates {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: query.TokenIn,
-			Method: erc20MethodGetAllowance,
-			Params: []interface{}{
-				common.HexToAddress(executorAddress),
-				common.HexToAddress(query.PoolAddress),
-			},
-		}, []interface{}{&poolApprovals[i]})
-	}
-	rpcResponse, err := rpcRequest.TryAggregate()
-	if err != nil {
-		return err
-	}
-
-	updatePoolApprovals := lo.Filter(poolApprovalCandidates, func(item dto.PoolApprovalQuery, idx int) bool {
-		return rpcResponse.Result[idx] && poolApprovals[idx] != nil && poolApprovals[idx].Cmp(constants.Zero) > 0
-	})
-
-	logger.WithFields(ctx, logger.Fields{
-		"executor":               executorAddress,
-		"numUpdatePoolApprovals": len(updatePoolApprovals),
-		"numMissPoolApprovals":   len(poolApprovalCandidates) - len(updatePoolApprovals),
-	}).Info("Add pool approvals for executor")
+	updatePoolApprovals := updatePoolApprovalSet.ToSlice()
 
 	if err := u.executorBalanceRepository.ApprovePool(ctx, executorAddress, updatePoolApprovals); err != nil {
 		return err
 	}
 
+	logger.WithFields(ctx, logger.Fields{
+		"executor":               executorAddress,
+		"numUpdatePoolApprovals": len(updatePoolApprovals),
+	}).Info("Add pool approvals for executor")
+
 	return nil
 }
 
-// For some dexes, instead of approving max for pool address,
-// executor approves max for other address (e.g: vault address).
-// `getAddressToApproveMax` receives the pool info, then return the address
-// which executor should approve max for. By default, it returns pool address.
-func getAddressToApproveMax(pool *PoolInfo) (string, error) {
-	switch valueobject.Exchange(pool.simulator.GetExchange()) {
-	case
-		dexValueObject.ExchangeBalancerV2Weighted,
-		dexValueObject.ExchangeBalancerV2Stable,
-		dexValueObject.ExchangeBalancerV2ComposableStable,
-		dexValueObject.ExchangeBalancerV3Weighted,
-		dexValueObject.ExchangeBalancerV3Stable,
-		dexValueObject.ExchangeBalancerV3ECLP,
-		dexValueObject.ExchangeBeethovenXWeighted,
-		dexValueObject.ExchangeBeethovenXStable,
-		dexValueObject.ExchangeBeethovenXComposableStable,
-		dexValueObject.ExchangeBeethovenXV3Weighted,
-		dexValueObject.ExchangeBeethovenXV3Stable,
-		dexValueObject.ExchangeVelocoreV2CPMM,
-		dexValueObject.ExchangeVelocoreV2WombatStable,
-		dexValueObject.ExchangeGyroscope2CLP,
-		dexValueObject.ExchangeGyroscope3CLP,
-		dexValueObject.ExchangeGyroscopeECLP:
-		{
-			var staticExtra struct {
-				Vault string `json:"vault"`
-			}
-			if err := json.Unmarshal([]byte(pool.entity.StaticExtra), &staticExtra); err != nil {
-				return "", err
-			}
-
-			return staticExtra.Vault, nil
-		}
-	default:
-		return pool.entity.Address, nil
+func (u *useCase) formatToken(token string) string {
+	if strings.EqualFold(token, valueobject.EtherAddress) ||
+		strings.EqualFold(token, valueobject.ZeroAddress) {
+		return u.gasTokenAddress
 	}
+	return token
 }

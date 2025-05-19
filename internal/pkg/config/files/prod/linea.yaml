@@ -375,6 +375,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://graph-query.linea.build/subgraphs/name/kybernetwork/kyberswap-aggregator-linea
+    startBlock: 18757333
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

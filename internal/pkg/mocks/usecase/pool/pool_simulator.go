@@ -215,3 +215,11 @@ func (mr *MockIPoolSimulatorMockRecorder) UpdateBalance(arg0 interface{}) *gomoc
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBalance", reflect.TypeOf((*MockIPoolSimulator)(nil).UpdateBalance), arg0)
 }
+
+// GetApprovalAddress mocks base method.
+func (m *MockIPoolSimulator) GetApprovalAddress(arg0, arg1 string) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApprovalAddress", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	return ret0
+}

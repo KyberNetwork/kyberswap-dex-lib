@@ -362,6 +362,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://zksync-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-zksync
+    startBlock: 60085382
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

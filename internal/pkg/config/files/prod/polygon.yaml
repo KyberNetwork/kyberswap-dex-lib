@@ -454,6 +454,7 @@ useCase:
     chainId: *chainId
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-polygon/version/latest
+    startBlock: 71216331
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

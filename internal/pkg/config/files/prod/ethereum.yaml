@@ -592,7 +592,8 @@ useCase:
     maintainingInterval: 360s
     chainId: *chainId
   trackExecutor:
-    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-ethereum/version/latest
+    subgraphURL: https://api.studio.thegraph.com/query/111315/executor/latest
+    startBlock: 22430822
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

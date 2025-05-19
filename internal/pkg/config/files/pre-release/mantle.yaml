@@ -361,6 +361,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://mantle-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-mantle
+    startBlock: 22467376
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

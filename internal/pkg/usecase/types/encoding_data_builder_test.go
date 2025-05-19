@@ -7,12 +7,13 @@ import (
 
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestEncodeCollectAmountUseExecutorBalance(t *testing.T) {
-	builder := NewEncodingDataBuilder(context.Background(), nil, valueobject.FeatureFlags{IsMergeDuplicateSwapEnabled: true})
+	builder := NewEncodingDataBuilder(context.Background(), valueobject.ChainIDEthereum, nil, valueobject.FeatureFlags{IsMergeDuplicateSwapEnabled: true})
 	builder.data.TokenIn = "in"
 
 	// Check normal case

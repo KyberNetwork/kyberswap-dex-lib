@@ -729,9 +729,7 @@ func (uc *BuildRouteUseCase) encode(
 	}
 
 	encodingData := types.NewEncodingDataBuilder(
-		ctx,
-		uc.executorBalanceRepository,
-		uc.config.FeatureFlags).
+		ctx, uc.config.ChainID, uc.executorBalanceRepository, uc.config.FeatureFlags).
 		SetRoute(&routeSummary, executorAddress, command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(command.SlippageTolerance).

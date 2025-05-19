@@ -336,6 +336,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-ronin/version/latest
+    startBlock: 44917947
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet

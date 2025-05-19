@@ -751,8 +751,9 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		poolRepository,
 		executorBalanceRepository,
 		trackexecutor.Config{
+			ChainID:           cfg.Common.ChainID,
 			SubgraphURL:       cfg.UseCase.TrackExecutor.SubgraphURL,
-			GasTokenAddress:   strings.ToLower(valueobject.WrappedNativeMap[cfg.Common.ChainID]),
+			StartBlock:        cfg.UseCase.TrackExecutor.StartBlock,
 			ExecutorAddresses: trackExecutorAddresses,
 		},
 	)

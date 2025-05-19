@@ -36,6 +36,7 @@ func (*testPoolSimulator) GetType() string                           { panic("un
 func (*testPoolSimulator) GetMetaInfo(string, string) interface{}    { panic("unimplemented") }
 func (*testPoolSimulator) GetTokenIndex(string) int                  { panic("unimplemented") }
 func (*testPoolSimulator) CalculateLimit() map[string]*big.Int       { panic("unimplemented") }
+func (*testPoolSimulator) GetApprovalAddress(_, _ string) string     { panic("unimplemented") }
 
 func TestTokenToPoolAddressMap(t *testing.T) {
 	t.Run("pool or token not in map", func(t *testing.T) {
