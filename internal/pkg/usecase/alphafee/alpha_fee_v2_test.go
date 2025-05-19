@@ -382,6 +382,9 @@ func TestAlphaFeeV25Calculation(t *testing.T) {
 				string(alphaFeeSource1): 5000,
 				string(alphaFeeSource2): 9000,
 			},
+			ReductionFactorByPool: map[string]float64{
+				"t1_rate0.9_a_b_2": 9000,
+			},
 			MaxThresholdPercentageInBps: 8000,
 			MinDifferentThresholdBps:    0,
 			MinDifferentThresholdUSD:    0.001,
@@ -391,8 +394,9 @@ func TestAlphaFeeV25Calculation(t *testing.T) {
 	pools := map[string]dexlibPool.IPoolSimulator{
 		"tshared_rate_1-1_a_b": test.NewFixRatePoolWithID("tshared_rate_1-1_a_b", "a", "b", 1.0, alphaFeeSource1),
 
-		"t1_rate0.9_a_b": test.NewFixRatePoolWithID("t1_rate0.9_a_b", "a", "b", 0.9, alphaFeeSource1),
-		"t1_rate0.9_b_c": test.NewFixRatePoolWithID("t1_rate0.9_b_c", "b", "c", 0.9, alphaFeeSource2),
+		"t1_rate0.9_a_b":   test.NewFixRatePoolWithID("t1_rate0.9_a_b", "a", "b", 0.9, alphaFeeSource1),
+		"t1_rate0.9_a_b_2": test.NewFixRatePoolWithID("t1_rate0.9_a_b_2", "a", "b", 0.9, alphaFeeSource1),
+		"t1_rate0.9_b_c":   test.NewFixRatePoolWithID("t1_rate0.9_b_c", "b", "c", 0.9, alphaFeeSource2),
 	}
 
 	tests := []struct {
@@ -438,6 +442,46 @@ func TestAlphaFeeV25Calculation(t *testing.T) {
 						TokenIn:      "b",
 						TokenOut:     "c",
 						ReduceAmount: big.NewInt(13487767),
+					},
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "[t2] swap $1000 through 2 pools, rate 0.9 per pool, taking $30 alpha fee, priority to pool AF factor",
+			bestRoute: &finderCommon.ConstructRoute{
+				AmountOut:      big.NewInt(810_000_000),
+				AmountOutPrice: 810,
+				Paths: []*finderCommon.ConstructPath{
+					{
+						AmountIn:    big.NewInt(1000_000_000),
+						AmountOut:   big.NewInt(810_000_000),
+						PoolsOrder:  []string{"t1_rate0.9_a_b_2", "t1_rate0.9_b_c"},
+						TokensOrder: []string{"a", "b", "c"},
+					},
+				},
+			},
+			bestAmmRoute: &finderCommon.ConstructRoute{
+				AmountOut:      big.NewInt(780_000_000),
+				AmountOutPrice: 780,
+			},
+			config: defaultAlphaFeeConfig,
+			expectedAlphaFee: &routerEntity.AlphaFeeV2{
+				AMMAmount: big.NewInt(780_000_000),
+				SwapReductions: []routerEntity.AlphaFeeV2SwapReduction{
+					{
+						ExecutedId:   0,
+						PoolAddress:  "t1_rate0.9_a_b_2",
+						TokenIn:      "a",
+						TokenOut:     "b",
+						ReduceAmount: big.NewInt(15127128),
+					},
+					{
+						ExecutedId:   1,
+						PoolAddress:  "t1_rate0.9_b_c",
+						TokenIn:      "b",
+						TokenOut:     "c",
+						ReduceAmount: big.NewInt(13385585),
 					},
 				},
 			},

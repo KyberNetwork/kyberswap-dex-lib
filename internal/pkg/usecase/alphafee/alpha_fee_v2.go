@@ -289,14 +289,10 @@ func (c *AlphaFeeV2Calculation) getReductionPerSwap(
 			if privo.IsAlphaFeeSource(pool.GetExchange()) {
 				currentAmountOutF, _ := currentAmountOut.Float64()
 
-				// reductionPercentWithSourceFactor = (1 - (1 - reductionPercentWithAllFee ** numOfSources) * reductionFactorInBps) ** (1/numOfSources)
-				sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]
-				if !ok {
-					sourceReductionFactorF, _ = c.reductionFactorInBps.Float64()
-				}
-
+				// reductionPercentWithSourceFactor = (1 - (1 - reductionPercentWithAllFee ** numOfSources) * reductionFactor) ** (1/numOfSources)
+				reductionFactorInBpsF := c.getReductionFactorBps(pool)
 				reductionPercentWithSourceFactor := 1 - math.Pow(reductionPercentWithAllFee, float64(numOfAlphaFeeSources))
-				reductionPercentWithSourceFactor = reductionPercentWithSourceFactor * sourceReductionFactorF / basisPointFloat
+				reductionPercentWithSourceFactor = reductionPercentWithSourceFactor * reductionFactorInBpsF / basisPointFloat
 				reductionPercentWithSourceFactor = math.Pow(1-reductionPercentWithSourceFactor, 1/float64(numOfAlphaFeeSources))
 
 				currentAmountOutF = currentAmountOutF * reductionPercentWithSourceFactor
@@ -371,4 +367,16 @@ func (c *AlphaFeeV2Calculation) GetFairPrice(
 		tokenOutDecimals,
 		tokenOutFairPrice,
 	)
+}
+
+func (c *AlphaFeeV2Calculation) getReductionFactorBps(pool dexlibPool.IPoolSimulator) float64 {
+	sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]
+	if !ok {
+		sourceReductionFactorF, ok = c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]
+		if !ok {
+			sourceReductionFactorF, _ = c.reductionFactorInBps.Float64()
+		}
+	}
+
+	return sourceReductionFactorF
 }
