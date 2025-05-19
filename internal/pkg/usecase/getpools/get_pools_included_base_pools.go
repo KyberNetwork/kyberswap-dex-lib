@@ -9,6 +9,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -78,7 +79,10 @@ func (u *GetPoolsIncludingBasePools) Handle(ctx context.Context, addresses []str
 
 				continue
 			}
-			curveMetaBasePoolAddresses.Add(strings.ToLower(staticExtra.BasePool))
+
+			if staticExtra.BasePool != valueobject.ZeroAddress {
+				curveMetaBasePoolAddresses.Add(strings.ToLower(staticExtra.BasePool))
+			}
 		}
 	}
 	// only fetch pools which are not fetched
