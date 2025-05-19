@@ -7,22 +7,23 @@ import (
 
 type (
 	RemoteConfig struct {
-		Hash                    string              `json:"hash"`
-		AvailableSources        []Source            `json:"availableSources"`
-		UnscalableSources       []Source            `json:"unscalableSources"`
-		ExcludedSourcesByClient map[string][]Source `json:"excludedSourcesByClient"`
-		DexUseAEVM              map[string]bool     `json:"dexUseAEVM"`
-		WhitelistedTokens       []WhitelistedToken  `json:"whitelistedTokens"`
-		FeatureFlags            FeatureFlags        `json:"featureFlags"`
-		BlacklistedPools        []string            `json:"blacklistedPools"`
-		Log                     Log                 `json:"log"`
-		GetBestPoolsOptions     GetBestPoolsOptions `json:"getBestPoolsOptions"`
-		FinderOptions           FinderOptions       `json:"finderOptions"`
-		PregenFinderOptions     FinderOptions       `json:"pregenFinderOptions"`
-		CacheConfig             CacheConfig         `json:"cache"`
-		BlacklistedRecipients   []string            `json:"blacklistedRecipients"`
-		ScaleHelperClients      []string            `json:"scaleHelperClients"`
-		WhitelistedPrices       []string            `json:"whitelistedPrices"`
+		Hash                     string              `json:"hash"`
+		AvailableSources         []Source            `json:"availableSources"`
+		UnscalableSources        []Source            `json:"unscalableSources"`
+		ExcludedSourcesByClient  map[string][]Source `json:"excludedSourcesByClient"`
+		ValidateChecksumBySource map[string]bool     `json:"validateChecksumBySource"`
+		DexUseAEVM               map[string]bool     `json:"dexUseAEVM"`
+		WhitelistedTokens        []WhitelistedToken  `json:"whitelistedTokens"`
+		FeatureFlags             FeatureFlags        `json:"featureFlags"`
+		BlacklistedPools         []string            `json:"blacklistedPools"`
+		Log                      Log                 `json:"log"`
+		GetBestPoolsOptions      GetBestPoolsOptions `json:"getBestPoolsOptions"`
+		FinderOptions            FinderOptions       `json:"finderOptions"`
+		PregenFinderOptions      FinderOptions       `json:"pregenFinderOptions"`
+		CacheConfig              CacheConfig         `json:"cache"`
+		BlacklistedRecipients    []string            `json:"blacklistedRecipients"`
+		ScaleHelperClients       []string            `json:"scaleHelperClients"`
+		WhitelistedPrices        []string            `json:"whitelistedPrices"`
 
 		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`

@@ -11,7 +11,7 @@ require (
 	github.com/IBM/sarama v1.45.1
 	github.com/KyberNetwork/aevm v1.2.3-0.20250210102653-d87100a543af
 	github.com/KyberNetwork/aggregation-stats v0.2.0
-	github.com/KyberNetwork/aggregator-encoding v0.50.2-0.20250518203234-5e8bfc45e8e7
+	github.com/KyberNetwork/aggregator-encoding v0.50.2-0.20250519082425-34d68b0c2753
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
@@ -19,8 +19,8 @@ require (
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.103.4-0.20250518165904-fa42c0ec1a9c
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.11.5-0.20250518202335-632399c3f639
+	github.com/KyberNetwork/kyberswap-dex-lib v0.104.0
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.11.6-0.20250519082756-23c905a669c6
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pathfinder-lib v0.1.18
