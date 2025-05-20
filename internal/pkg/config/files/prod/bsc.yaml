@@ -98,7 +98,11 @@ common:
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
     amountInThreshold: 10000
-  useAEVM: &useAEVM false
+  dexUseAEVM: &dexUseAEVM
+    uniswap-v4: true
+    pancake-infinity-bin: true
+    pancake-infinity-cl: true
+  useAEVM: &useAEVM true
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:
       reductionFactorInBps:
@@ -241,7 +245,7 @@ useCase:
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
         isPathGeneratorEnabled: false
-        useAEVMRemoteFinder: false
+        useAEVMRemoteFinder: &useAEVMRemoteFinder false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
     cache:
@@ -432,6 +436,8 @@ useCase:
 
   poolFactory:
     chainId: *chainId
+    useAEVM: *useAEVM
+    dexUseAEVM: *dexUseAEVM
   poolManager:
     availableSources: *availableSources
     blacklistedPoolSet: *blacklistedPoolSet
@@ -440,6 +446,8 @@ useCase:
     capacity: 1000000
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
+    useAEVM: *useAEVM
+    useAEVMRemoteFinder: *useAEVMRemoteFinder
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
@@ -454,7 +462,7 @@ useCase:
     blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 200
     useAEVM: *useAEVM
-    dexUseAEVM:
+    dexUseAEVM: *dexUseAEVM
     minDataPointNumber: 6
     maxDataPointNumber: 12
     availableSources: *availableSources
@@ -607,3 +615,27 @@ validator:
   getRouteEncodeParams:
     blacklistedRecipientSet:
 bundledRouteEnabled: false
+
+aevmEnabled: false
+aevm:
+  serverUrl: "localhost:8246"
+  publishingPoolsUrls:
+  retryOnTimeOutMs: 500
+  findRouteRetryOnTimeOutMs: 1000
+  maxRetry: 3
+  rpc: "http://localhost:8545"
+  simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30
+  predefinedBalanceSlots:
+

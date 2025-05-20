@@ -37,14 +37,16 @@ type PoolFactory struct {
 	lock sync.Mutex
 }
 
-func NewPoolFactory(config Config, ethClient bind.ContractBackend, client aevmclient.Client,
+func NewPoolFactory(config Config, ethClient bind.ContractBackend, aevmClient aevmclient.Client,
 	balanceSlotsUseCase erc20balanceslot.ICache) *PoolFactory {
+
 	return &PoolFactory{
 		config:              config,
 		ethClient:           ethClient,
-		client:              client,
+		client:              aevmClient,
 		balanceSlotsUseCase: balanceSlotsUseCase,
 	}
+
 }
 
 func (f *PoolFactory) ApplyConfig(config Config) {
@@ -121,26 +123,28 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 func (f *PoolFactory) newPool(entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
 	stateRoot common.Hash) (pool poolpkg.IPoolSimulator, err error) {
 	factoryParams.EntityPool = entityPool
-	err = ErrPoolTypeFactoryNotFound
 
-	poolFactory := poolpkg.Factory(entityPool.Type)
-	if poolFactory != nil {
-		pool, err = poolFactory(factoryParams)
-		if err == nil {
+	if poolFactory := poolpkg.Factory(entityPool.Type); poolFactory != nil {
+		if pool, err = poolFactory(factoryParams); err == nil {
 			return pool, nil
 		}
 	}
 
-	if f.config.UseAEVM && f.config.DexUseAEVM[entityPool.Type] && stateRoot != (common.Hash{}) {
-		aevmPoolFactory := aevmpool.Factory(entityPool.Type)
-		if aevmPoolFactory == nil {
-			return nil, errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s aevm(%s/%s)",
-				entityPool.Address, entityPool.Exchange, entityPool.Type)
+	// TODO: should extend DexUseAEVM config
+	// - Add support for specifying which DEXes can use AEVM without requiring UseAEVM=true
+	// - Consider adding a new field to configure AEVM behavior per DEX
+	shouldUseAEVM := f.config.DexUseAEVM[entityPool.Type] && (f.config.UseAEVM ||
+		entityPool.Type == pooltypes.PoolTypes.UniswapV4 ||
+		entityPool.Type == pooltypes.PoolTypes.PancakeInfinityBin ||
+		entityPool.Type == pooltypes.PoolTypes.PancakeInfinityCL)
+
+	if shouldUseAEVM {
+		if aevmPoolFactory := aevmpool.Factory(entityPool.Type); aevmPoolFactory != nil {
+			return f.newAEVMPoolWrapper(entityPool, aevmPoolFactory, stateRoot)
 		}
-		return f.newAEVMPoolWrapper(entityPool, aevmPoolFactory, stateRoot)
 	}
 
-	return nil, errors.WithMessagef(err, "%s (%s/%s)",
+	return nil, errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s (%s/%s)",
 		entityPool.Address, entityPool.Exchange, entityPool.Type)
 }
 
@@ -148,12 +152,17 @@ func (f *PoolFactory) newAEVMPoolWrapper(entityPool entity.Pool, poolFactory aev
 	stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
 	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
+	var balanceSlots = make(map[common.Address]*types.ERC20BalanceSlot)
+	if f.balanceSlotsUseCase != nil {
+		balanceSlots = f.getBalanceSlots(&entityPool)
+	}
 	aevmPool, err := poolFactory(aevmpool.FactoryParams{
 		EntityPool:   entityPool,
 		ChainID:      f.config.ChainID,
 		AEVMClient:   f.client,
+		EthClient:    f.ethClient,
 		StateRoot:    stateRoot,
-		BalanceSlots: f.getBalanceSlots(&entityPool),
+		BalanceSlots: balanceSlots,
 	})
 	if err != nil {
 		return nil, err
