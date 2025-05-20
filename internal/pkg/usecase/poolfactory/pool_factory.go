@@ -31,7 +31,7 @@ var (
 type PoolFactory struct {
 	config              Config
 	ethClient           bind.ContractBackend
-	client              aevmclient.Client
+	aevmClient          aevmclient.Client
 	balanceSlotsUseCase erc20balanceslot.ICache
 
 	lock sync.Mutex
@@ -43,7 +43,7 @@ func NewPoolFactory(config Config, ethClient bind.ContractBackend, aevmClient ae
 	return &PoolFactory{
 		config:              config,
 		ethClient:           ethClient,
-		client:              aevmClient,
+		aevmClient:          aevmClient,
 		balanceSlotsUseCase: balanceSlotsUseCase,
 	}
 
@@ -95,7 +95,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 				continue
 			}
 
-			poolSim, err := f.newPool(*pool, factoryParams, stateRoot)
+			poolSim, err := f.newPool(ctx, *pool, factoryParams, stateRoot)
 			if err != nil {
 				logger.Debugf(ctx, "%+v", err)
 				continue
@@ -108,7 +108,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 		poolSim, ok := basePoolMap[pool.Address]
 		if !ok {
 			var err error
-			poolSim, err = f.newPool(*pool, factoryParams, stateRoot)
+			poolSim, err = f.newPool(nil, *pool, factoryParams, stateRoot)
 			if err != nil {
 				logger.Debugf(ctx, "%+v", err)
 				continue
@@ -120,7 +120,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
-func (f *PoolFactory) newPool(entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
+func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
 	stateRoot common.Hash) (pool poolpkg.IPoolSimulator, err error) {
 	factoryParams.EntityPool = entityPool
 
@@ -130,17 +130,9 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, factoryParams poolpkg.Fact
 		}
 	}
 
-	// TODO: should extend DexUseAEVM config
-	// - Add support for specifying which DEXes can use AEVM without requiring UseAEVM=true
-	// - Consider adding a new field to configure AEVM behavior per DEX
-	shouldUseAEVM := f.config.DexUseAEVM[entityPool.Type] && (f.config.UseAEVM ||
-		entityPool.Type == pooltypes.PoolTypes.UniswapV4 ||
-		entityPool.Type == pooltypes.PoolTypes.PancakeInfinityBin ||
-		entityPool.Type == pooltypes.PoolTypes.PancakeInfinityCL)
-
-	if shouldUseAEVM {
+	if f.config.DexUseAEVM[entityPool.Type] {
 		if aevmPoolFactory := aevmpool.Factory(entityPool.Type); aevmPoolFactory != nil {
-			return f.newAEVMPoolWrapper(entityPool, aevmPoolFactory, stateRoot)
+			return f.newAEVMPoolWrapper(ctx, entityPool, aevmPoolFactory, stateRoot)
 		}
 	}
 
@@ -148,38 +140,38 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, factoryParams poolpkg.Fact
 		entityPool.Address, entityPool.Exchange, entityPool.Type)
 }
 
-func (f *PoolFactory) newAEVMPoolWrapper(entityPool entity.Pool, poolFactory aevmpool.FactoryFn,
+func (f *PoolFactory) newAEVMPoolWrapper(ctx context.Context, entityPool entity.Pool, poolFactory aevmpool.FactoryFn,
 	stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
 	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
-	var balanceSlots = make(map[common.Address]*types.ERC20BalanceSlot)
-	if f.balanceSlotsUseCase != nil {
-		balanceSlots = f.getBalanceSlots(&entityPool)
-	}
 	aevmPool, err := poolFactory(aevmpool.FactoryParams{
 		EntityPool:   entityPool,
 		ChainID:      f.config.ChainID,
-		AEVMClient:   f.client,
+		AEVMClient:   f.aevmClient,
 		EthClient:    f.ethClient,
 		StateRoot:    stateRoot,
-		BalanceSlots: balanceSlots,
+		BalanceSlots: f.getBalanceSlots(ctx, &entityPool),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.client), nil
+	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.aevmClient), nil
 }
 
-func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*types.ERC20BalanceSlot {
+func (f *PoolFactory) getBalanceSlots(ctx context.Context,
+	pool *entity.Pool) map[common.Address]*types.ERC20BalanceSlot {
+	if f.balanceSlotsUseCase == nil {
+		return nil
+	}
 	balanceSlots := make(map[common.Address]*types.ERC20BalanceSlot)
 	for _, token := range pool.Tokens {
 		tokenAddr := common.HexToAddress(token.Address)
-		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr, pool)
+		balanceSlot, err := f.balanceSlotsUseCase.Get(ctx, tokenAddr, pool)
 		if err != nil {
 			continue
 		}
-		balanceSlots[tokenAddr] = bl
+		balanceSlots[tokenAddr] = balanceSlot
 	}
 	return balanceSlots
 }

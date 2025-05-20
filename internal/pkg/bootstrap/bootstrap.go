@@ -9,7 +9,9 @@ import (
 	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	onebitclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit/client"
-	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4"
+	pcsfairflow "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/pancake-infinity/hooks/fairflow"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4/hooks/fairflow"
+	kem "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4/hooks/kyber-exclusive-amm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
@@ -120,13 +122,6 @@ func NewRFQHandler(rfqCfg buildroute.RFQConfig) (pool.IPoolRFQ, error) {
 		httpClient := mxtradingclient.NewHTTPClient(&cfg.HTTP)
 		return mxtrading.NewRFQHandler(cfg, httpClient), nil
 
-	case uniswapv4.DexType:
-		cfg, err := util.AnyToStruct[uniswapv4.RFQConfig](rfqCfg.Properties)
-		if err != nil {
-			return nil, err
-		}
-		return uniswapv4.NewRFQHandler(cfg), nil
-
 	case onebit.Handler:
 		cfg, err := util.AnyToStruct[onebit.Config](rfqCfg.Properties)
 		if err != nil {
@@ -134,6 +129,27 @@ func NewRFQHandler(rfqCfg buildroute.RFQConfig) (pool.IPoolRFQ, error) {
 		}
 		httpClient := onebitclient.NewHTTPClient(&cfg.HTTP)
 		return onebit.NewRFQHandler(cfg, httpClient), nil
+
+	case kem.Handler:
+		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
+		if err != nil {
+			return nil, err
+		}
+		return kem.NewRFQHandler(cfg), nil
+
+	case fairflow.Handler:
+		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
+		if err != nil {
+			return nil, err
+		}
+		return fairflow.NewRFQHandler(cfg), nil
+
+	case pcsfairflow.Handler:
+		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
+		if err != nil {
+			return nil, err
+		}
+		return pcsfairflow.NewRFQHandler(cfg), nil
 
 	default:
 		return NewNoopRFQHandler(), nil

@@ -11,21 +11,22 @@ import (
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexlibValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+	"github.com/stretchr/testify/assert"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/test"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestAlphaFeeV2Calculation(t *testing.T) {
 	tokenIDs := []string{"a", "b", "c"}
 
-	alphaFeeSource := dexlibValueObject.ExchangeKyberPMM
-	nonAlphaFeeSource := dexlibValueObject.ExchangeUniSwapV3
+	const alphaFeeSource = dexlibValueObject.ExchangeKyberPMM
+	const nonAlphaFeeSource = dexlibValueObject.ExchangeUniSwapV3
 
 	defaultAlphaFeeConfig := valueobject.AlphaFeeConfig{
 		ReductionConfig: valueobject.AlphaFeeReductionConfig{
-			ReductionFactorInBps:        map[string]float64{string(alphaFeeSource): 10000},
+			ReductionFactorInBps:        map[string]float64{alphaFeeSource: 10000},
 			MaxThresholdPercentageInBps: 8000,
 			MinDifferentThresholdBps:    0,
 			MinDifferentThresholdUSD:    0.001,
@@ -373,14 +374,14 @@ func TestAlphaFeeV2_GetFairPrice(t *testing.T) {
 func TestAlphaFeeV25Calculation(t *testing.T) {
 	tokenIDs := []string{"a", "b", "c"}
 
-	alphaFeeSource1 := dexlibValueObject.ExchangeKyberPMM
-	alphaFeeSource2 := dexlibValueObject.ExchangeUniswapV4Kem
+	const alphaFeeSource1 = dexlibValueObject.ExchangeKyberPMM
+	const alphaFeeSource2 = dexlibValueObject.ExchangeUniswapV4Kem
 
 	defaultAlphaFeeConfig := valueobject.AlphaFeeConfig{
 		ReductionConfig: valueobject.AlphaFeeReductionConfig{
 			ReductionFactorInBps: map[string]float64{
-				string(alphaFeeSource1): 5000,
-				string(alphaFeeSource2): 9000,
+				alphaFeeSource1: 5000,
+				alphaFeeSource2: 9000,
 			},
 			ReductionFactorByPool: map[string]float64{
 				"t1_rate0.9_a_b_2": 9000,

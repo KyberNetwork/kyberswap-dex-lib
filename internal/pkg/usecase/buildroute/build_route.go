@@ -25,6 +25,7 @@ import (
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
+	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -693,10 +694,18 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 		rfqRouteMsg.TakerAsset = onebitExtra.TakerAsset
 		rfqRouteMsg.MakerAsset = onebitExtra.MakerAsset
 
-	case dexValueObject.ExchangeUniswapV4Kem, dexValueObject.ExchangeUniswapV4FairFlow:
+	case dexValueObject.ExchangeUniswapV4Kem, dexValueObject.ExchangeUniswapV4FairFlow,
+		dexValueObject.ExchangePancakeInfinityBinFairflow, dexValueObject.ExchangePancakeInfinityCLFairflow:
+		swapInfo, _ := util.AnyToStruct[struct {
+			RemainingAmountIn *uint256.Int `json:"rAI"`
+		}](swap.Extra)
+		amountIn := swap.SwapAmount
+		if remainingAmountIn := swapInfo.RemainingAmountIn; remainingAmountIn != nil {
+			amountIn = new(big.Int).Sub(amountIn, remainingAmountIn.ToBig())
+		}
 		rfqRouteMsg.RouteType = string(RFQ)
 		rfqRouteMsg.QuoteTimestamp = timestamppb.Now()
-		rfqRouteMsg.TakerAmount = swap.SwapAmount.String()
+		rfqRouteMsg.TakerAmount = amountIn.String()
 		rfqRouteMsg.MakerAmount = swap.AmountOut.String()
 		rfqRouteMsg.TakerAsset = swap.TokenIn
 		rfqRouteMsg.MakerAsset = swap.TokenOut

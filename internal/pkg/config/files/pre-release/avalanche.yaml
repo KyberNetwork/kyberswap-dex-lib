@@ -400,19 +400,17 @@ useCase:
             timeout: 10s
             retry_count: 3
       uniswap-v4-kem:
-        handler: uniswap-v4
+        handler: uniswap-v4-kem
         properties:
-          kyberExclusiveAMM:
-            maxAmountInFactor: 1.2
-            expiry: 180000000000 # 3m
-            signerPrivateKey:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
       uniswap-v4-fairflow:
-        handler: uniswap-v4
+        handler: uniswap-v4-fairflow
         properties:
-          kyberExclusiveAMM:
-            maxAmountInFactor: 1.2
-            expiry: 180000000000 # 3m
-            signerPrivateKey:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet

@@ -357,7 +357,8 @@ var httpCodeMapping = map[int]int{
 }
 
 var ErrorResponseByWrappedError = func(err error) (ErrorResponse, bool) {
-	if wrappedErr, ok := err.(utils.WrappedError); ok {
+	var wrappedErr utils.WrappedError
+	if errors.As(err, &wrappedErr) {
 		return ErrorResponse{
 			HTTPStatus: httpCodeMapping[wrappedErr.Code()],
 			Code:       wrappedErr.Code(),

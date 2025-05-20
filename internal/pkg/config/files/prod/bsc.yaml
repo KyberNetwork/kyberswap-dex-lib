@@ -83,8 +83,10 @@ common:
     - "owlswap-v3"
     - "uniswap-v4-kem"
     - "uniswap-v4-fairflow"
-    - "pancake-infinity-cl"
     - "pancake-infinity-bin"
+    - "pancake-infinity-cl"
+    - "pancake-infinity-bin-fairflow"
+    - "pancake-infinity-cl-fairflow"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -410,19 +412,29 @@ useCase:
             timeout: 10s
             retry_count: 3
       uniswap-v4-kem:
-        handler: uniswap-v4
+        handler: uniswap-v4-kem
         properties:
-          kyberExclusiveAMM:
-            maxAmountInFactor: 1.2
-            expiry: 180000000000 # 3m
-            signerPrivateKey:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
       uniswap-v4-fairflow:
-        handler: uniswap-v4
+        handler: uniswap-v4-fairflow
         properties:
-          kyberExclusiveAMM:
-            maxAmountInFactor: 1.2
-            expiry: 180000000000 # 3m
-            signerPrivateKey:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
+      pancake-infinity-bin-fairflow:
+        handler: pancake-infinity-fairflow
+        properties:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
+      pancake-infinity-cl-fairflow:
+        handler: pancake-infinity-fairflow
+        properties:
+          maxAmountInFactor: 1.2
+          expiry: 180000000000 # 3m
+          signerPrivateKey:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
