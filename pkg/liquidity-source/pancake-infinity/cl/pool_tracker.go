@@ -156,7 +156,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  uint64(rpcData.TickSpacing),
+		TickSpacing:  rpcData.TickSpacing,
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
@@ -167,6 +167,10 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Error("failed to marshal extra data")
 		return entity.Pool{}, err
 	}
+
+	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
+	protocolFee, lpFee := rpcData.Slot0.ProtocolFee.Uint64()&0xfff, rpcData.Slot0.LpFee.Uint64()
+	p.SwapFee = float64(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
 
 	p.Extra = string(extraBytes)
 

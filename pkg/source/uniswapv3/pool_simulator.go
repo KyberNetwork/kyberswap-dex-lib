@@ -205,7 +205,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Amount: bignumber.ZeroBI,
 	}
 	if amountOutResult.RemainingAmountIn != nil {
-		remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+		if amountOutResult.RemainingAmountIn.Sign() == 0 {
+			amountOutResult.RemainingAmountIn = nil
+		} else {
+			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+		}
 	}
 	amountOut := amountOutResult.ReturnedAmount
 	if amountOut.Sign() <= 0 {
@@ -222,6 +226,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
+			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			nextStateLiquidity:    amountOutResult.Liquidity,
 			nextStateTickCurrent:  amountOutResult.CurrentTick,
