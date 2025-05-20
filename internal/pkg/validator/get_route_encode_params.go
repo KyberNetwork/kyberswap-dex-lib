@@ -11,7 +11,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -80,10 +79,6 @@ func (v *getRouteEncodeParamsValidator) Validate(ctx context.Context, params par
 	}
 
 	if err := v.validateTo(ctx, params.To); err != nil {
-		return err
-	}
-
-	if err := v.validateSources(params.Dexes); err != nil {
 		return err
 	}
 
@@ -231,15 +226,5 @@ func (v *getRouteEncodeParamsValidator) validateDeadline(deadline int64) error {
 		return NewValidationError("deadline", "in the past")
 	}
 
-	return nil
-}
-
-func (v *getRouteEncodeParamsValidator) validateSources(sources string) error {
-	dexes := utils.TransformSliceParams(sources)
-	for _, dex := range dexes {
-		if !valueobject.IsAnExchange(valueobject.Exchange(dex)) {
-			return NewValidationError("AvailableSources", "invalid")
-		}
-	}
 	return nil
 }
