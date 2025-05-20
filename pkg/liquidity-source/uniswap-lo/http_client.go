@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	dutchV2OrderLimit      = 10000
+	dutchV2OrderLimit      = 200
 	retrieveLimitOrderPath = "/limit-orders"
 	defaultTimeout         = 10 * time.Second
 )

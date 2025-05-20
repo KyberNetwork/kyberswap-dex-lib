@@ -348,6 +348,7 @@ const (
 	ExchangeUcsFinance                          = "ucs-finance"
 	ExchangeUnchainX                            = "unchainx"
 	ExchangeUniSwap                             = "uniswap"
+	ExchangeUniswapLO                  Exchange = "uniswap-lo"
 	ExchangeUniSwapV1                           = "uniswap-v1"
 	ExchangeUniSwapV2                           = "uniswap-v2"
 	ExchangeUniSwapV3                           = "uniswapv3"
@@ -394,7 +395,6 @@ const (
 	ExchangeZkSwapStable                        = "zkswap-stable"
 	ExchangeZkSwapV3                            = "zkswap-v3"
 	ExchangeZyberSwapV3                         = "zyberswap-v3"
-	ExchangeUniswapLO                  Exchange = "uniswap-lo"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{

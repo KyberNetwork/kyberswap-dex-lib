@@ -31,6 +31,10 @@ type PoolSimulator struct {
 	reactorAddress string
 }
 
+type PoolMetaInfo struct {
+	ReactorAddress string `json:"reactorAddress"`
+}
+
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -69,8 +73,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address: strings.ToLower(entityPool.Address),
-				// ReserveUsd: entityPool.ReserveUsd,
+				Address:  strings.ToLower(entityPool.Address),
 				SwapFee:  integer.Zero(),
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
@@ -214,7 +217,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return p.reactorAddress
+	return PoolMetaInfo{
+		ReactorAddress: p.reactorAddress,
+	}
 }
 
 func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
