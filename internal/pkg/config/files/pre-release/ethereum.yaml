@@ -151,6 +151,7 @@ common:
     - "uniswap-v4"
     - "savings-usds"
     - "uniswap-v4-kem"
+    - "uniswap-v4-fairflow"
     - "euler-swap"
     - "ekubo"
     - "pmm-2"
@@ -183,7 +184,8 @@ common:
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:
       reductionFactorInBps:
-        uniswap-v4-kem: 5000
+        uniswap-v4-kem: 9000
+        uniswap-v4-fairflow: 9000
         kyber-pmm: 5000
         pmm-1: 5000
         pmm-2: 5000
@@ -525,6 +527,13 @@ useCase:
             timeout: 10s
             retry_count: 3
       uniswap-v4-kem:
+        handler: uniswap-v4
+        properties:
+          kyberExclusiveAMM:
+            maxAmountInFactor: 1.2
+            expiry: 180000000000 # 3m
+            signerPrivateKey:
+      uniswap-v4-fairflow:
         handler: uniswap-v4
         properties:
           kyberExclusiveAMM:

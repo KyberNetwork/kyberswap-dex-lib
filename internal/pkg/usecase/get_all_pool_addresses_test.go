@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	mockusecase "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 )
 
 func TestGetAllPoolAddresses_Handle(t *testing.T) {
@@ -27,7 +27,7 @@ func TestGetAllPoolAddresses_Handle(t *testing.T) {
 		{
 			name: "it should return correct result when repository returns no error",
 			prepare: func(ctrl *gomock.Controller) *getAllPoolAddressesUseCase {
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mockusecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindAllAddresses(gomock.Any()).
 					Return([]string{"pooladdress1", "pooladdress2"}, nil)
@@ -41,7 +41,7 @@ func TestGetAllPoolAddresses_Handle(t *testing.T) {
 			name: "it should return correct error when repository returns error",
 			prepare: func(ctrl *gomock.Controller) *getAllPoolAddressesUseCase {
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mockusecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindAllAddresses(gomock.Any()).
 					Return(nil, theError)

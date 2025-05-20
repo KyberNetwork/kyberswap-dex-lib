@@ -55,15 +55,15 @@ func (mr *MockIBuildRouteParamsValidatorMockRecorder) ApplyConfig(config any) *g
 }
 
 // Validate mocks base method.
-func (m *MockIBuildRouteParamsValidator) Validate(ctx context.Context, params params.BuildRouteParams) error {
+func (m *MockIBuildRouteParamsValidator) Validate(ctx context.Context, arg1 params.BuildRouteParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, params)
+	ret := m.ctrl.Call(m, "Validate", ctx, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Validate indicates an expected call of Validate.
-func (mr *MockIBuildRouteParamsValidatorMockRecorder) Validate(ctx, params any) *gomock.Call {
+func (mr *MockIBuildRouteParamsValidatorMockRecorder) Validate(ctx, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockIBuildRouteParamsValidator)(nil).Validate), ctx, params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockIBuildRouteParamsValidator)(nil).Validate), ctx, arg1)
 }

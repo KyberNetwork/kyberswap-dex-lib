@@ -41,15 +41,15 @@ func (m *MockIGetTokensParamsValidator) EXPECT() *MockIGetTokensParamsValidatorM
 }
 
 // Validate mocks base method.
-func (m *MockIGetTokensParamsValidator) Validate(params params.GetTokensParams) error {
+func (m *MockIGetTokensParamsValidator) Validate(arg0 params.GetTokensParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", params)
+	ret := m.ctrl.Call(m, "Validate", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Validate indicates an expected call of Validate.
-func (mr *MockIGetTokensParamsValidatorMockRecorder) Validate(params any) *gomock.Call {
+func (mr *MockIGetTokensParamsValidatorMockRecorder) Validate(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockIGetTokensParamsValidator)(nil).Validate), params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockIGetTokensParamsValidator)(nil).Validate), arg0)
 }

@@ -79,7 +79,7 @@ func (*testPoolSimulator) GetType() string                           { panic("un
 func (*testPoolSimulator) GetMetaInfo(string, string) interface{}    { panic("unimplemented") }
 func (*testPoolSimulator) GetTokenIndex(string) int                  { panic("unimplemented") }
 func (*testPoolSimulator) CalculateLimit() map[string]*big.Int       { panic("unimplemented") }
-func (*testPoolSimulator) GetApprovalAddress(_, _ string) string     { panic("unimplemented") }
+func (*testPoolSimulator) GetApprovalAddress(string, string) string  { panic("unimplemented") }
 
 /*
 $ go test -benchmem -run=^$ -bench "^(BenchmarkTokenToPoolAddressWithMemPool|BenchmarkMakeTokenToPoolAddressMapFromPools)$" github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute -race -v -count 1

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	mockusecase "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -28,7 +28,7 @@ func TestReloadConfigUseCase_ShouldReload(t *testing.T) {
 		{
 			name: "it should return true when currentConfigHash is empty",
 			prepare: func(ctrl *gomock.Controller) *ReloadConfigUseCase {
-				mockConfigFetcherRepo := usecase.NewMockIConfigFetcherRepository(ctrl)
+				mockConfigFetcherRepo := mockusecase.NewMockIConfigFetcherRepository(ctrl)
 
 				return NewReloadConfigUseCase(mockConfigFetcherRepo)
 			},
@@ -37,7 +37,7 @@ func TestReloadConfigUseCase_ShouldReload(t *testing.T) {
 		{
 			name: "it should return false when currentConfigHash is not empty and no config changed",
 			prepare: func(ctrl *gomock.Controller) *ReloadConfigUseCase {
-				mockConfigFetcherRepo := usecase.NewMockIConfigFetcherRepository(ctrl)
+				mockConfigFetcherRepo := mockusecase.NewMockIConfigFetcherRepository(ctrl)
 				mockConfigFetcherRepo.
 					EXPECT().
 					GetConfigs(gomock.Any(), "aggregator", "xyz").
@@ -56,7 +56,7 @@ func TestReloadConfigUseCase_ShouldReload(t *testing.T) {
 		{
 			name: "it should return true when currentConfigHash is not empty and config is changed",
 			prepare: func(ctrl *gomock.Controller) *ReloadConfigUseCase {
-				mockConfigFetcherRepo := usecase.NewMockIConfigFetcherRepository(ctrl)
+				mockConfigFetcherRepo := mockusecase.NewMockIConfigFetcherRepository(ctrl)
 				mockConfigFetcherRepo.
 					EXPECT().
 					GetConfigs(gomock.Any(), "aggregator", "xyz").
@@ -75,7 +75,7 @@ func TestReloadConfigUseCase_ShouldReload(t *testing.T) {
 		{
 			name: "it should return false when there is an error when fetching config",
 			prepare: func(ctrl *gomock.Controller) *ReloadConfigUseCase {
-				mockConfigFetcherRepo := usecase.NewMockIConfigFetcherRepository(ctrl)
+				mockConfigFetcherRepo := mockusecase.NewMockIConfigFetcherRepository(ctrl)
 				mockConfigFetcherRepo.
 					EXPECT().
 					GetConfigs(gomock.Any(), "aggregator", "xyz").

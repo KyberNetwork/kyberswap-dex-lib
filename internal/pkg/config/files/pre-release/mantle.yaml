@@ -63,7 +63,8 @@ common:
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
-        uniswap-v4-kem: 5000
+        uniswap-v4-kem: 9000
+        uniswap-v4-fairflow: 9000
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
       minDifferentThresholdBps: 20
