@@ -48,7 +48,6 @@ func computeAddress(factoryAddress common.Address, key PoolKey) (common.Address,
 		return common.Address{}, ErrNotSortedKeys
 	}
 
-	var salt [32]byte
 	addressTy, _ := abi.NewType("address", "address", nil)
 	uint256Ty, _ := abi.NewType("uint256", "uint256", nil)
 
@@ -59,7 +58,6 @@ func computeAddress(factoryAddress common.Address, key PoolKey) (common.Address,
 		key.token1,
 		key.fee,
 	)
-	copy(salt[:], crypto.Keccak256(bytes))
 
-	return crypto.CreateAddress2(factoryAddress, salt, common.FromHex(PoolInitCodeHash)), nil
+	return crypto.CreateAddress2(factoryAddress, crypto.Keccak256Hash(bytes), common.FromHex(PoolInitCodeHash)), nil
 }

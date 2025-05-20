@@ -85,8 +85,12 @@ type IMetaPoolSimulator interface {
 	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 
-type IPoolRFQ interface {
+type IPoolSingleRFQ interface {
 	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
+}
+
+type IPoolRFQ interface {
+	IPoolSingleRFQ
 	BatchRFQ(ctx context.Context, paramsSlice []RFQParams) ([]*RFQResult, error)
 	SupportBatch() bool
 }
