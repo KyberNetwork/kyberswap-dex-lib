@@ -596,27 +596,29 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 }
 
 var limitExpandTight, _ = new(big.Int).SetString("711907234052361388866", 10)
-var limitsTight = DexLimits{
-	WithdrawableToken0: TokenLimit{
-		Available:      big.NewInt(456740438880263),
-		ExpandsTo:      new(big.Int).Set(limitExpandTight),
-		ExpandDuration: big.NewInt(600),
-	},
-	WithdrawableToken1: TokenLimit{
-		Available:      big.NewInt(825179383432029),
-		ExpandsTo:      new(big.Int).Set(limitExpandTight),
-		ExpandDuration: big.NewInt(600),
-	},
-	BorrowableToken0: TokenLimit{
-		Available:      big.NewInt(941825058374170),
-		ExpandsTo:      new(big.Int).Set(limitExpandTight),
-		ExpandDuration: big.NewInt(600),
-	},
-	BorrowableToken1: TokenLimit{
-		Available:      big.NewInt(941825058374170),
-		ExpandsTo:      new(big.Int).Set(limitExpandTight),
-		ExpandDuration: big.NewInt(600),
-	},
+func limitsTight() DexLimits {
+	return DexLimits{
+		WithdrawableToken0: TokenLimit{
+			Available:      big.NewInt(456740438880263),
+			ExpandsTo:      new(big.Int).Set(limitExpandTight),
+			ExpandDuration: big.NewInt(600),
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      big.NewInt(825179383432029),
+			ExpandsTo:      new(big.Int).Set(limitExpandTight),
+			ExpandDuration: big.NewInt(600),
+		},
+		BorrowableToken0: TokenLimit{
+			Available:      big.NewInt(941825058374170),
+			ExpandsTo:      new(big.Int).Set(limitExpandTight),
+			ExpandDuration: big.NewInt(600),
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      big.NewInt(941825058374170),
+			ExpandsTo:      new(big.Int).Set(limitExpandTight),
+			ExpandDuration: big.NewInt(600),
+		},
+	}
 }
 
 var limitWide, _ = new(big.Int).SetString("34242332879776515083099999", 10)
@@ -715,13 +717,13 @@ func TestPoolSimulator_SwapInLimits(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInLimits", func(t *testing.T) {
 		// when limits hit
 		price, _ := getApproxCenterPriceIn(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err := swapInAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight, price, time.Now().Unix()-10)
+		outAmt, err := swapInAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientBorrowable.Error())
 
 		// when expanded
 		price, _ = getApproxCenterPriceIn(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, _ = swapInAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight, price, time.Now().Unix()-6000)
+		outAmt, _ = swapInAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight(), price, time.Now().Unix()-6000)
 		require.Equal(t, "998262697204710", outAmt.String())
 
 		// when price diff hit
@@ -783,13 +785,13 @@ func TestPoolSimulator_SwapOutLimits(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInLimits", func(t *testing.T) {
 		// when limits hit
 		price, _ := getApproxCenterPriceOut(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, err := swapOutAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight, price, time.Now().Unix()-10)
+		outAmt, err := swapOutAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight(), price, time.Now().Unix()-10)
 		require.Nil(t, outAmt)
 		require.EqualError(t, err, ErrInsufficientBorrowable.Error())
 
 		// when expanded
 		price, _ = getApproxCenterPriceOut(big.NewInt(1e15), true, NewColReservesOne(), NewDebtReservesOne())
-		outAmt, _ = swapOutAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight, price, time.Now().Unix()-6000)
+		outAmt, _ = swapOutAdjusted(true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), 18, limitsTight(), price, time.Now().Unix()-6000)
 		require.Equal(t, "1001743360284199", outAmt.String())
 
 		// when price diff hit
