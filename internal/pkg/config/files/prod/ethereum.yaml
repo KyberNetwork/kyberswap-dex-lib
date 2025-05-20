@@ -115,6 +115,7 @@ common:
     - "native-v2"
     - "pancake"
     - "pancake-v3"
+    - "pancake-stable"
     - "pol-matic"
     - "puffer-pufeth"
     - "renzo-ezeth"
