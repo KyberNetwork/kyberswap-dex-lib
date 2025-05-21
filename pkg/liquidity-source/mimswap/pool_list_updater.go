@@ -103,5 +103,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		})
 	}
 
+	u.hasInitialized = true
+
 	return pools, nil, nil
 }
