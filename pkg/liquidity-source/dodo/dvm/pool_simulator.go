@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/libv2"
@@ -20,9 +21,8 @@ type PoolSimulator struct {
 	sync.RWMutex
 	pool.Pool
 	libv2.PMMState
-	Tokens entity.PoolTokens
-	Meta   shared.V2Meta
-	gas    shared.V2Gas
+	Meta shared.V2Meta
+	gas  shared.V2Gas
 }
 
 var _ = pool.RegisterFactory0(PoolType, NewPoolSimulator)
@@ -54,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		SwapFee:  swapFee,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
-		Tokens:   staticExtra.Tokens,
+		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, index int) string { return e.Address }),
 		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
 	}
 
@@ -81,7 +81,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: info,
 		},
 		PMMState: poolState,
-		Tokens:   entity.ClonePoolTokens(entityPool.Tokens),
 		Meta:     meta,
 		gas:      shared.V2DefaultGas,
 	}, nil
@@ -179,6 +178,6 @@ func (p *PoolSimulator) GetLpToken() string {
 	return p.Info.Address
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return p.Meta
 }
