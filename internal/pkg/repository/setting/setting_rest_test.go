@@ -19,7 +19,7 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 		Message: "Successfully",
 		Data: ConfigResponseData{
 			Hash: "xyz",
-			Config: ConfigResponseDataConfig{
+			Config: valueobject.RemoteConfig{
 				AvailableSources:  []valueobject.Source{"uniswap", "uniswapv3", "dmm"},
 				UnscalableSources: []valueobject.Source{"pmm"},
 				WhitelistedTokens: []valueobject.WhitelistedToken{

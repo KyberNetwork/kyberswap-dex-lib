@@ -7,30 +7,33 @@ import (
 
 type (
 	RemoteConfig struct {
-		Hash                     string              `json:"hash"`
+		Hash string `json:"hash"`
+
+		FeatureFlags FeatureFlags `json:"featureFlags"`
+		Log          Log          `json:"log"`
+
 		AvailableSources         []Source            `json:"availableSources"`
 		UnscalableSources        []Source            `json:"unscalableSources"`
 		ExcludedSourcesByClient  map[string][]Source `json:"excludedSourcesByClient"`
 		ValidateChecksumBySource map[string]bool     `json:"validateChecksumBySource"`
 		DexUseAEVM               map[string]bool     `json:"dexUseAEVM"`
-		WhitelistedTokens        []WhitelistedToken  `json:"whitelistedTokens"`
-		FeatureFlags             FeatureFlags        `json:"featureFlags"`
-		BlacklistedPools         []string            `json:"blacklistedPools"`
-		Log                      Log                 `json:"log"`
-		GetBestPoolsOptions      GetBestPoolsOptions `json:"getBestPoolsOptions"`
-		FinderOptions            FinderOptions       `json:"finderOptions"`
-		PregenFinderOptions      FinderOptions       `json:"pregenFinderOptions"`
-		CacheConfig              CacheConfig         `json:"cache"`
 		BlacklistedRecipients    []string            `json:"blacklistedRecipients"`
 		ScaleHelperClients       []string            `json:"scaleHelperClients"`
-		WhitelistedPrices        []string            `json:"whitelistedPrices"`
 
-		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
-		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`
-		FaultyPoolsConfig              FaultyPoolsConfig          `json:"faultyPoolsConfig"`
-		SafetyQuoteReduction           SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
-		DexalotUpscalePercent          int                        `json:"dexalotUpscalePercent"`
-		AlphaFeeConfig                 AlphaFeeConfig             `json:"alphaFeeConfig"`
+		WhitelistedTokens   []WhitelistedToken  `json:"whitelistedTokens"`
+		BlacklistedPools    []string            `json:"blacklistedPools"`
+		GetBestPoolsOptions GetBestPoolsOptions `json:"getBestPoolsOptions"`
+		FaultyPoolsConfig   FaultyPoolsConfig   `json:"faultyPoolsConfig"`
+		FinderOptions       FinderOptions       `json:"finderOptions"`
+		PregenFinderOptions FinderOptions       `json:"pregenFinderOptions"`
+		CacheConfig         CacheConfig         `json:"cache"`
+
+		RFQAcceptableSlippageFraction int64 `json:"rfqAcceptableSlippageFraction"`
+		DexalotUpscalePercent         int   `json:"dexalotUpscalePercent"`
+
+		SafetyQuoteReduction SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
+		AlphaFeeConfig       AlphaFeeConfig             `json:"afConfig"`
+		WhitelistedPrices    []string                   `json:"whitelistedPrices"`
 	}
 
 	Source string
