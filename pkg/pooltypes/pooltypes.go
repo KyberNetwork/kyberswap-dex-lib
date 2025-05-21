@@ -82,6 +82,7 @@ import (
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
+	uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-lo"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
@@ -302,9 +303,10 @@ type Types struct {
 	ERC4626                    string
 	HyETH                      string
 
-	KyberPMM string
-	Pmm1     string
-	Pmm2     string
+	KyberPMM  string
+	Pmm1      string
+	Pmm2      string
+	UniswapLO string
 }
 
 var (
@@ -464,8 +466,9 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
 
-		KyberPMM: string(valueobject.ExchangeKyberPMM),
-		Pmm1:     string(valueobject.ExchangePmm1),
-		Pmm2:     string(valueobject.ExchangePmm2),
+		KyberPMM:  string(valueobject.ExchangeKyberPMM),
+		Pmm1:      string(valueobject.ExchangePmm1),
+		Pmm2:      string(valueobject.ExchangePmm2),
+		UniswapLO: uniswaplo.DexType,
 	}
 )

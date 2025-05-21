@@ -82,6 +82,7 @@ import (
 	pkg_liquiditysource_syncswapv2_aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
 	pkg_liquiditysource_syncswapv2_classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	pkg_liquiditysource_syncswapv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
+	pkg_liquiditysource_uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-lo"
 	pkg_liquiditysource_uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	pkg_liquiditysource_uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
@@ -222,6 +223,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_aqua.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_classic.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_syncswapv2_stable.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswaplo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4.PoolSimulator{})
