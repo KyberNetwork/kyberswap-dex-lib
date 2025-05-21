@@ -35,11 +35,10 @@ type (
 	}
 
 	StaticExtra struct {
-		PoolId           string   `json:"poolId"`
-		LpToken          string   `json:"lpToken"`
-		Type             string   `json:"type"`
-		Tokens           []string `json:"tokens"`
-		DodoV1SellHelper string   `json:"dodoV1SellHelper"`
+		PoolId           string `json:"poolId,omitempty"`
+		LpToken          string `json:"lpToken,omitempty"`
+		Type             string `json:"type"`
+		DodoV1SellHelper string `json:"dodoV1SellHelper,omitempty"`
 	}
 )
 

@@ -8,7 +8,7 @@ import (
 
 var (
 	v1PoolABI abi.ABI
-	v2PoolABI abi.ABI
+	V2PoolABI abi.ABI
 )
 
 func init() {
@@ -20,7 +20,7 @@ func init() {
 			&v1PoolABI, v1PoolABIJson,
 		},
 		{
-			&v2PoolABI, v2PoolABIJson,
+			&V2PoolABI, v2PoolABIJson,
 		},
 	}
 
