@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -31,12 +32,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	hook := Hooks[staticExtra.HooksAddress]
-	if hook == nil {
-		hook = (*BaseHook)(nil)
-		if HasSwapPermissions(staticExtra.HooksAddress) {
-			return nil, ErrUnsupportedHook
-		}
+	hook, ok := GetHook(staticExtra.HooksAddress)
+	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
+		return nil, shared.ErrUnsupportedHook
 	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
