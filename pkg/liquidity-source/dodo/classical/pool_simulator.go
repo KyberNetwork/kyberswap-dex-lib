@@ -75,6 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		DodoV1SellHelper: staticExtra.DodoV1SellHelper,
 		BaseToken:        entityPool.Tokens[0].Address,
 		QuoteToken:       entityPool.Tokens[1].Address,
+		ApprovalAddress:  entityPool.Address,
 	}
 
 	return &PoolSimulator{
@@ -251,6 +252,6 @@ func (p *PoolSimulator) GetLpToken() string {
 	return p.Info.Address
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return p.Meta
 }
