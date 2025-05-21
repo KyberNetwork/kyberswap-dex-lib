@@ -206,6 +206,7 @@ const (
 	ExchangeMetavaultV3                = "metavault-v3"
 	ExchangeMetropolis                 = "metropolis"
 	ExchangeMetropolisLB               = "metropolis-lb"
+	ExchangeMimSwap                    = "mimswap"
 	ExchangeMkrSky                     = "mkr-sky"
 	ExchangeMonoswap                   = "monoswap"
 	ExchangeMonoswapV3                 = "monoswap-v3"
@@ -594,6 +595,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMetavaultV3:                {},
 	ExchangeMetropolis:                 {},
 	ExchangeMetropolisLB:               {},
+	ExchangeMimSwap:                    {},
 	ExchangeMkrSky:                     {},
 	ExchangeMonoswap:                   {},
 	ExchangeMonoswapV3:                 {},
