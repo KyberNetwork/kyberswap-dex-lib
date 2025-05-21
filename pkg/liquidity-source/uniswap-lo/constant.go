@@ -33,6 +33,15 @@ const (
 	DutchV2OrderType OrderType = "Dutch_V2"
 
 	CreatedAtSortKey SortKey = "createdAt"
+
+	// GasPerOrderExecutor: gas simulate result
+	// 1 orders: 183755, 168678, 233129
+	// 2 orders: 230824
+	// 3 orders: 278174
+	// 4 orders: 325802
+	// em nghĩ là lấy 250k/order và +50k cho mỗi order nữa là an toàn
+	GasPerOrderExecutor = 250000
+	BaseGas             = 50000
 )
 
 type DutchOrderQuery struct {

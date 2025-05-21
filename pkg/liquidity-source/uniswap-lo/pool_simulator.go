@@ -170,14 +170,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: integer.Zero(),
 		},
-		// TODO: calc gas fee
-		Gas:      0,
+		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
 		SwapInfo: swapInfo,
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: remainingAmountIn.ToBig(),
 		},
 	}, nil
+}
+
+func (p *PoolSimulator) estimateGas(numberOfFilledOrders int) int64 {
+	return p.estimateGasForExecutor(numberOfFilledOrders)
+}
+
+func (p *PoolSimulator) estimateGasForExecutor(numberOfFilledOrders int) int64 {
+	return int64(BaseGas) + int64(numberOfFilledOrders)*int64(GasPerOrderExecutor)
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
