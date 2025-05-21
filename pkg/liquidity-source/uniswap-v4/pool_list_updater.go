@@ -112,10 +112,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
+		hook, _ := GetHook(staticExtra.HooksAddress)
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
-			Exchange:    u.config.DexID,
+			Exchange:    hook.GetExchange(),
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    entity.PoolReserves{"0", "0"},

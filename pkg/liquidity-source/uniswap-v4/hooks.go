@@ -55,6 +55,14 @@ func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return true
 }
 
+func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
+	hook, ok = Hooks[hookAddress]
+	if hook == nil {
+		hook = (*BaseHook)(nil)
+	}
+	return hook, ok
+}
+
 var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddress)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
