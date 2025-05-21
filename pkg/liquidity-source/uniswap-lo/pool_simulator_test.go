@@ -124,7 +124,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 					Amount:    integer.Zero(),
 					AmountUsd: 0,
 				},
-				Gas: 0,
+				Gas: 300000,
 				SwapInfo: SwapInfo{
 					AmountIn: "101",
 					SwapSide: SwapSideTakeToken0,
@@ -243,7 +243,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 					Amount:    integer.Zero(),
 					AmountUsd: 0,
 				},
-				Gas: 0,
+				Gas: 300000,
 				SwapInfo: SwapInfo{
 					AmountIn: "101",
 					SwapSide: SwapSideTakeToken0,
@@ -473,10 +473,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{"fill 1st order and skip 2nd (too big)", "pool1", "2000", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7", "100", []string{"1001"}, "1000", false},
 		{"fill both orders", "pool1", "3000", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7", "200", []string{"1001", "1002"}, "0", true},
 		{"fill all orders", "pool2", "5000", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7", "300", []string{"1001", "1002", "1003"}, "0", true},
-		
+
 		// Test case where amountIn > order output and we get some remaining amount
 		{"partial fill with remaining", "pool3", "1500", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7", "100", []string{"3001"}, "500", false},
-		
+
 		// Test case where amount is exactly equal to the order limit
 		{"exact fill amount", "pool3", "1000", "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7", "100", []string{"3001"}, "0", true},
 	}
