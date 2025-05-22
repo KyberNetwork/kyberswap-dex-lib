@@ -11,3 +11,9 @@ const (
 	poolMethodTokenB   = "tokenB"
 	poolMethodGetState = "getState"
 )
+
+const (
+	GasSwap         = int64(125000)
+	GasCrossBin     = int64(20000)
+	MaxSwapCalcIter = 150
+)
