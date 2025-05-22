@@ -2,6 +2,7 @@ package hashflowv3
 
 import (
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/go-resty/resty/v2"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -12,6 +13,7 @@ type HTTPClientConfig struct {
 	APIKey     string                `mapstructure:"api_key" json:"api_key"`
 	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
 	RetryCount int                   `mapstructure:"retry_count" json:"retry_count"`
+	Client     *resty.Client
 }
 
 type QuoteParams struct {

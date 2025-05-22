@@ -23,18 +23,17 @@ type HTTPClient struct {
 }
 
 func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
-	return NewHTTPClientWithRestyClient(config, resty.New())
-}
-
-func NewHTTPClientWithRestyClient(config *HTTPClientConfig, client *resty.Client) *HTTPClient {
-	client.SetHeader(headerAPIKey, config.APIKey).
+	if config.Client == nil {
+		config.Client = resty.New()
+	}
+	config.Client.SetHeader(headerAPIKey, config.APIKey).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
 
 	return &HTTPClient{
 		config: config,
-		client: client,
+		client: config.Client,
 	}
 }
 

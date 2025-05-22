@@ -7,4 +7,5 @@ type HTTPClientConfig struct {
 	Timeout      durationjson.Duration `mapstructure:"timeout" json:"timeout"`
 	RetryCount   int                   `mapstructure:"retry_count" json:"retry_count"`
 	BasicAuthKey string                `mapstructure:"basic_auth_key" json:"basic_auth_key"`
+	Client       *testy.Client
 }
