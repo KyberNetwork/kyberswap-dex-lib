@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
@@ -39,6 +40,24 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	binMap := extra.BinMap
 	binPositions := extra.BinPositions
+	
+	// Parse accumValueD8 from string to uint256
+	var accumValueD8 *uint256.Int
+	if extra.AccumValueD8 != "" {
+		var ok bool
+		accumValueD8, ok = new(uint256.Int).SetString(extra.AccumValueD8, 10)
+		if !ok {
+			accumValueD8 = new(uint256.Int)
+		}
+	} else {
+		accumValueD8 = new(uint256.Int)
+	}
+	
+	// Default lookback to 10 minutes if not specified
+	lookbackSec := extra.LookbackSec
+	if lookbackSec == 0 {
+		lookbackSec = 600 // 10 minutes in seconds
+	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
@@ -60,6 +79,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BinMap:           binMap,
 			TickSpacing:      staticExtra.TickSpacing,
 			ActiveTick:       extra.ActiveTick,
+			LastTwaD8:        extra.LastTwaD8,
+			Timestamp:        extra.Timestamp,
+			AccumValueD8:     accumValueD8,
+			LookbackSec:      lookbackSec,
 		},
 	}, nil
 }
@@ -104,6 +127,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
+	// For fractionalPartD8, use default half-tick value
+	fractionalPartD8 := int64(BI_POWS[7].Uint64())
+	
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -114,8 +140,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Gas: GasSwap + GasCrossBin*int64(binCrossed),
 		SwapInfo: maverickSwapInfo{
-			activeTick: newState.ActiveTick,
-			bins:       newState.Bins,
+			activeTick:       newState.ActiveTick,
+			bins:             newState.Bins,
+			fractionalPartD8: fractionalPartD8,
+			timestamp:        getCurrentTimestamp(),
 		},
 	}, nil
 }
@@ -160,6 +188,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
+	// For fractionalPartD8, use default half-tick value
+	fractionalPartD8 := int64(BI_POWS[7].Uint64())
+	
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -170,8 +201,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		},
 		Gas: GasSwap + GasCrossBin*int64(binCrossed),
 		SwapInfo: maverickSwapInfo{
-			activeTick: newState.ActiveTick,
-			bins:       newState.Bins,
+			activeTick:       newState.ActiveTick,
+			bins:             newState.Bins,
+			fractionalPartD8: fractionalPartD8,
+			timestamp:        getCurrentTimestamp(),
 		},
 	}, nil
 }
@@ -189,8 +222,52 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
+	// Store old values for TWA and bin movements
+	startingTick := p.state.ActiveTick
+	lastTwaD8 := p.state.LastTwaD8
+	
+	// Update timestamp if provided, otherwise use current time
+	timestamp := newState.timestamp
+	if timestamp == 0 {
+		timestamp = getCurrentTimestamp()
+	}
+	p.state.Timestamp = timestamp
+	
+	// Update the primary state values
 	p.state.Bins = newState.bins
 	p.state.ActiveTick = newState.activeTick
+
+	// Update time-weighted average
+	fractionalPartD8 := newState.fractionalPartD8
+	if fractionalPartD8 == 0 {
+		// Default to half the tick if not provided
+		fractionalPartD8 = int64(BI_POWS[7].Uint64())
+	}
+	
+	// Calculate full tick position with fractional part
+	tickPositionD8 := int64(p.state.ActiveTick) * int64(BI_POWS[8].Uint64()) + fractionalPartD8
+	
+	// Update TWA
+	updateTwaValue(p.state, tickPositionD8, timestamp)
+	
+	// Move bins based on tick changes
+	threshold := new(uint256.Int).Mul(new(uint256.Int).SetUint64(5), BI_POWS[7])
+	moveBins(p.state, startingTick, p.state.ActiveTick, lastTwaD8, p.state.LastTwaD8, threshold)
+
+	// Update pool reserves
+	tokenAmountIn := params.TokenAmountIn
+	tokenAmountOut := params.TokenAmountOut
+	isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0])
+
+	// Update reserves in the Pool info (same as before)
+	p.Pool.Info.Reserves[getTokenIndex(isTokenAIn)] = new(big.Int).Add(
+		p.Pool.Info.Reserves[getTokenIndex(isTokenAIn)], 
+		tokenAmountIn.Amount,
+	)
+	p.Pool.Info.Reserves[getTokenIndex(!isTokenAIn)] = new(big.Int).Sub(
+		p.Pool.Info.Reserves[getTokenIndex(!isTokenAIn)], 
+		tokenAmountOut.Amount,
+	)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -198,8 +275,10 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 type maverickSwapInfo struct {
-	activeTick int32
-	bins       map[uint32]Bin
+	activeTick       int32
+	bins             map[uint32]Bin
+	fractionalPartD8 int64
+	timestamp        int64
 }
 
 // Helper functions for swap implementation
@@ -575,6 +654,16 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		Bins:             make(map[uint32]Bin, len(state.Bins)),
 		BinPositions:     make(map[int32][]uint32, len(state.BinPositions)),
 		BinMap:           make(map[int32]uint32, len(state.BinMap)),
+		LastTwaD8:        state.LastTwaD8,
+		Timestamp:        state.Timestamp,
+		LookbackSec:      state.LookbackSec,
+	}
+	
+	// Clone the accumulated value
+	if state.AccumValueD8 != nil {
+		cloned.AccumValueD8 = new(uint256.Int).Set(state.AccumValueD8)
+	} else {
+		cloned.AccumValueD8 = new(uint256.Int)
 	}
 
 	for k, v := range state.Bins {
@@ -609,6 +698,14 @@ func mulDiv(a, b, denominator *uint256.Int) *uint256.Int {
 	return new(uint256.Int).Div(product, denominator)
 }
 
+// Helper function to get token index (0 for tokenA, 1 for tokenB)
+func getTokenIndex(isTokenA bool) int {
+	if isTokenA {
+		return 0
+	}
+	return 1
+}
+
 func divRoundingUp(a, b *uint256.Int) *uint256.Int {
 	numerator := new(uint256.Int).Add(a, new(uint256.Int).Sub(b, new(uint256.Int).SetUint64(1)))
 	return new(uint256.Int).Div(numerator, b)
@@ -635,6 +732,10 @@ type MaverickPoolState struct {
 	BinMap           map[int32]uint32
 	TickSpacing      uint32
 	ActiveTick       int32
+	LastTwaD8        int64              // Time-weighted average tick data
+	Timestamp        int64              // Current timestamp
+	AccumValueD8     *uint256.Int       // Accumulated TWA value with 8 decimals
+	LookbackSec      int64              // Lookback period in seconds
 }
 
 type Extra struct {
@@ -645,6 +746,10 @@ type Extra struct {
 	BinPositions     map[int32][]uint32 `json:"binPositions"`
 	BinMap           map[int32]uint32   `json:"binMap"`
 	ActiveTick       int32              `json:"activeTick"`
+	LastTwaD8        int64              `json:"lastTwaD8"`
+	Timestamp        int64              `json:"timestamp"`
+	AccumValueD8     string             `json:"accumValueD8"`
+	LookbackSec      int64              `json:"lookbackSec"`
 }
 
 type StaticExtra struct {
@@ -669,6 +774,144 @@ type Delta struct {
 	Excess             *uint256.Int
 	TokenAIn           bool
 	ExactOutput        bool
+}
+
+// TWA and Bin movement related functions
+func updateTwaValue(state *MaverickPoolState, newValueD8 int64, timestamp int64) {
+	// Skip if no timestamp change
+	if state.Timestamp == timestamp {
+		return
+	}
+	
+	// Handle initial case
+	if state.LastTwaD8 == 0 {
+		state.LastTwaD8 = newValueD8
+		state.Timestamp = timestamp
+		return
+	}
+	
+	// Calculate time delta
+	timeDelta := timestamp - state.Timestamp
+	
+	// Ensure we don't have negative time
+	if timeDelta <= 0 {
+		return
+	}
+	
+	// Calculate weighted value to add to accumulator
+	weightedValue := new(uint256.Int).SetUint64(uint64(state.LastTwaD8 * timeDelta))
+	
+	// Add to accumulator
+	if state.AccumValueD8 == nil {
+		state.AccumValueD8 = new(uint256.Int)
+	}
+	state.AccumValueD8.Add(state.AccumValueD8, weightedValue)
+	
+	// Update state
+	state.LastTwaD8 = newValueD8
+	state.Timestamp = timestamp
+}
+
+func moveBins(state *MaverickPoolState, startingTick, endTick int32, oldTwaD8, newTwaD8 int64, threshold *uint256.Int) {
+	// Skip if no tick change
+	if startingTick == endTick {
+		return
+	}
+	
+	// Calculate absolute difference in TWA
+	twaDiff := absDiff(oldTwaD8, newTwaD8)
+	
+	// Skip if below threshold
+	if uint64(twaDiff) < threshold.Uint64() {
+		return
+	}
+	
+	// Get direction from starting to ending tick
+	direction := int32(1)
+	if startingTick > endTick {
+		direction = -1
+	}
+	
+	// Process ticks in between
+	for tick := startingTick; tick != endTick; tick += direction {
+		processTick(state, tick, direction)
+	}
+}
+
+// Helper for moveBins - processes a single tick
+func processTick(state *MaverickPoolState, tick int32, direction int32) {
+	// Skip if no bins at this tick
+	binIds, ok := state.BinPositions[tick]
+	if !ok || len(binIds) == 0 {
+		return
+	}
+	
+	// Process all bins at this tick
+	for _, binId := range binIds {
+		bin, ok := state.Bins[binId]
+		if !ok {
+			continue
+		}
+		
+		// Skip if no reserves
+		if bin.ReserveA.IsZero() && bin.ReserveB.IsZero() {
+			continue
+		}
+		
+		// Here we would implement the rebalancing logic based on direction
+		// This is a simplified version that just shifts bins
+		if direction > 0 {
+			// Moving up, increase A, decrease B (simplified)
+			shiftBin(&bin, true)
+		} else {
+			// Moving down, decrease A, increase B (simplified)
+			shiftBin(&bin, false)
+		}
+		
+		// Update bin
+		state.Bins[binId] = bin
+	}
+}
+
+// Helper to shift bin reserves when moving bins
+func shiftBin(bin *Bin, increaseA bool) {
+	// Skip if empty bin
+	if bin.ReserveA.IsZero() && bin.ReserveB.IsZero() {
+		return
+	}
+	
+	// This is a simplified bin shift - actual implementation would depend on 
+	// Maverick's specific bin rebalancing formulas
+	if increaseA {
+		// Increase A, decrease B by a small percentage
+		adjustment := mulDiv(bin.ReserveB, new(uint256.Int).SetUint64(1), new(uint256.Int).SetUint64(100))
+		bin.ReserveA.Add(bin.ReserveA, adjustment)
+		bin.ReserveB.Sub(bin.ReserveB, adjustment)
+		if bin.ReserveB.IsZero() {
+			bin.ReserveB = new(uint256.Int).SetUint64(1) // Ensure non-zero
+		}
+	} else {
+		// Decrease A, increase B by a small percentage
+		adjustment := mulDiv(bin.ReserveA, new(uint256.Int).SetUint64(1), new(uint256.Int).SetUint64(100))
+		bin.ReserveA.Sub(bin.ReserveA, adjustment)
+		bin.ReserveB.Add(bin.ReserveB, adjustment)
+		if bin.ReserveA.IsZero() {
+			bin.ReserveA = new(uint256.Int).SetUint64(1) // Ensure non-zero
+		}
+	}
+}
+
+// Helper to get absolute difference between two int64
+func absDiff(a, b int64) int64 {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}
+
+// Helper to get current unix timestamp in seconds
+func getCurrentTimestamp() int64 {
+	return time.Now().Unix()
 }
 
 // Errors
