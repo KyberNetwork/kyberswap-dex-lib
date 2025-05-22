@@ -11,7 +11,9 @@ type Extra struct {
 	IsBadCollateral        []bool         `json:"isBadCollateral"`
 	MintRates              []*uint256.Int `json:"mintRates"`
 	RedeemRates            []*uint256.Int `json:"redeemRates"`
+	Vaults                 []string       `json:"vaults"`
 	VaultsDecimals         []uint8        `json:"vaultsDecimals"`
+	VaultsMaxRedeems       []*uint256.Int `json:"vaultsMaxRedeems"`
 	AssetsDecimals         []uint8        `json:"assetsDecimals"`
 	PolFeeCollectorFeeRate *uint256.Int   `json:"polFeeCollectorFeeRate"`
 }
