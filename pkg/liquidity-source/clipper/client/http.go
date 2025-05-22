@@ -40,7 +40,7 @@ func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
 
 	return &httpClient{
-		client: client,
+		client: config.Client,
 		config: config,
 	}
 }
