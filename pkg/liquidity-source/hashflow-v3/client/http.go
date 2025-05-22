@@ -38,8 +38,11 @@ type httpClient struct {
 }
 
 func NewHTTPClient(config *hashflowv3.HTTPClientConfig) *httpClient {
-	client := resty.New().
-		SetBaseURL(config.BaseURL).
+	return NewHTTPClientWithRestyClient(config, resty.New())
+}
+
+func NewHTTPClientWithRestyClient(config *hashflowv3.HTTPClientConfig, client *resty.Client) *httpClient {
+	client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader(authorizationHeaderKey, config.APIKey)

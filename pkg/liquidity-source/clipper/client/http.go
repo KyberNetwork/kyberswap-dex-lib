@@ -31,8 +31,11 @@ type httpClient struct {
 }
 
 func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
-	client := resty.New().
-		SetBaseURL(config.BaseURL).
+	return NewHTTPClientWithRestyClient(config, resty.New())
+}
+
+func NewHTTPClientWithRestyClient(config clipper.HTTPClientConfig, client *resty.Client) *httpClient {
+	client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
