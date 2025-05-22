@@ -29,6 +29,7 @@ type (
 		polFeeCollectorFeeRate *uint256.Int
 		assetsDecimals         []uint8
 		vaultsDecimals         []uint8
+		vaultsMaxRedeems       []*uint256.Int
 	}
 
 	Gas struct {
@@ -43,6 +44,7 @@ var (
 	ErrInvalidToken                  = errors.New("invalid token")
 	ErrInvalidAmountIn               = errors.New("invalid amount in")
 	ErrInsufficientInputAmount       = errors.New("INSUFFICIENT_INPUT_AMOUNT")
+	ErrMaxRedeemAmountExceeded       = errors.New("MAX_REDEEM_AMOUNT_EXCEEDED")
 	ErrAssetFullyLiquidatedCantCheck = errors.New("asset fully liquidated, can't check")
 	ErrBasketMode                    = errors.New("basket mode")
 )
@@ -75,6 +77,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		forcedBasketMode:       extra.ForceBasketMode,
 		assetsDecimals:         extra.AssetsDecimals,
 		vaultsDecimals:         extra.VaultsDecimals,
+		vaultsMaxRedeems:       extra.VaultsMaxRedeems,
 	}, nil
 }
 
@@ -119,6 +122,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	if !isMint && !s.forcedBasketMode && !s.isBasketEnabledRedeem {
+		if assetIndex >= len(s.vaultsMaxRedeems) || s.vaultsMaxRedeems[assetIndex].Cmp(amountIn) <= 0 {
+			return nil, ErrMaxRedeemAmountExceeded
+		}
 		sharesForRedeem, feeReceiverFeeShares, _ := s.getSharesRedeemedFromHoney(amountIn, assetIndex)
 		redeemedAssets := s.convertToAssets(sharesForRedeem, assetIndex)
 		return &pool.CalcAmountOutResult{

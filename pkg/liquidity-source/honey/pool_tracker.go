@@ -141,7 +141,7 @@ func (t *PoolTracker) getNewPoolState(
 	assetsDecimals := extra.AssetsDecimals
 	assetsName := make([]string, noAssets)
 	assetsSymbol := make([]string, noAssets)
-	if hasNewAssets {
+	if hasNewAssets || true {
 		assetsDecimals = make([]uint8, noAssets)
 		for i := 0; i < int(noAssets); i++ {
 			calls.AddCall(&ethrpc.Call{
@@ -208,7 +208,8 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	vaultsDecimals := extra.VaultsDecimals
-	if hasNewAssets {
+	vaultsMaxRedeems := make([]*big.Int, noAssets)
+	if hasNewAssets || true {
 		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
 		vaultsDecimals = make([]uint8, noAssets)
 		for i := 0; i < int(noAssets); i++ {
@@ -218,6 +219,12 @@ func (t *PoolTracker) getNewPoolState(
 				Method: "decimals",
 				Params: []interface{}{},
 			}, []interface{}{&vaultsDecimals[i]})
+			calls.AddCall(&ethrpc.Call{
+				ABI:    assetVaultABI,
+				Target: vaults[i].Hex(),
+				Method: "maxRedeem",
+				Params: []interface{}{common.HexToAddress(p.Address)},
+			}, []interface{}{&vaultsMaxRedeems[i]})
 		}
 		_, err = calls.Aggregate()
 		if err != nil {
@@ -240,8 +247,14 @@ func (t *PoolTracker) getNewPoolState(
 		RedeemRates: lo.Map(redeemRates, func(item *big.Int, _ int) *uint256.Int {
 			return uint256.MustFromBig(item)
 		}),
+		Vaults: lo.Map(vaults, func(item common.Address, _ int) string {
+			return strings.ToLower(item.Hex())
+		}),
 		VaultsDecimals: vaultsDecimals,
 		AssetsDecimals: assetsDecimals,
+		VaultsMaxRedeems: lo.Map(vaultsMaxRedeems, func(item *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(item)
+		}),
 	})
 	if err != nil {
 		return p, err
