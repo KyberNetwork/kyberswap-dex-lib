@@ -671,11 +671,11 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 
 	for k, v := range state.Bins {
 		clonedBin := Bin{
-			ReserveA:        new(uint256.Int).Set(v.ReserveA),
-			ReserveB:        new(uint256.Int).Set(v.ReserveB),
-			MergeBinBalance: new(uint256.Int).Set(v.MergeBinBalance),
-			TotalSupply:     new(uint256.Int).Set(v.TotalSupply),
-			TickBalance:     new(uint256.Int).Set(v.TickBalance),
+			ReserveA:        safeCloneUint256(v.ReserveA),
+			ReserveB:        safeCloneUint256(v.ReserveB),
+			MergeBinBalance: safeCloneUint256(v.MergeBinBalance),
+			TotalSupply:     safeCloneUint256(v.TotalSupply),
+			TickBalance:     safeCloneUint256(v.TickBalance),
 			MergeId:         v.MergeId,
 			Kind:            v.Kind,
 			Tick:            v.Tick,
@@ -1426,6 +1426,14 @@ func absDiff(a, b int64) int64 {
 // Helper to get current unix timestamp in seconds
 func getCurrentTimestamp() int64 {
 	return time.Now().Unix()
+}
+
+// Helper to safely clone uint256.Int (handles nil values)
+func safeCloneUint256(value *uint256.Int) *uint256.Int {
+	if value == nil {
+		return new(uint256.Int)
+	}
+	return new(uint256.Int).Set(value)
 }
 
 // Square root price and tick calculations matching the TypeScript implementation
