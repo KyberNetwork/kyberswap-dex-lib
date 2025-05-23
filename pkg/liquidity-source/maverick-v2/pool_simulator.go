@@ -861,45 +861,33 @@ func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwap
 
 	if activeTick > startingTick || newTwap > lastTwap {
 		// Create moveData equivalent to MoveData in TypeScript
-		moveData := struct {
-			kind            uint8
-			tickSearchStart int32
-			tickSearchEnd   int32
-			tickLimit       int32
-			firstBinTick    int32
-			firstBinId      uint32
-			mergeBinBalance *uint256.Int
-			totalReserveA   *uint256.Int
-			totalReserveB   *uint256.Int
-			mergeBins       map[uint32]bool
-			counter         uint32
-		}{
-			kind:            0,
-			tickSearchStart: 0,
-			tickSearchEnd:   0,
-			tickLimit:       0,
-			firstBinTick:    0,
-			firstBinId:      0,
-			mergeBinBalance: new(uint256.Int),
-			totalReserveA:   new(uint256.Int),
-			totalReserveB:   new(uint256.Int),
-			mergeBins:       make(map[uint32]bool),
-			counter:         0,
+		moveData := &MoveData{
+			Kind:            0,
+			TickSearchStart: 0,
+			TickSearchEnd:   0,
+			TickLimit:       0,
+			FirstBinTick:    0,
+			FirstBinId:      0,
+			MergeBinBalance: new(uint256.Int),
+			TotalReserveA:   new(uint256.Int),
+			TotalReserveB:   new(uint256.Int),
+			MergeBins:       make(map[uint32]bool),
+			Counter:         0,
 		}
 
 		// Calculate tickLimit as min(activeTick - 1, newTwap)
-		moveData.tickLimit = activeTick - 1
-		if int32(newTwap) < moveData.tickLimit {
-			moveData.tickLimit = int32(newTwap)
+		moveData.TickLimit = activeTick - 1
+		if int32(newTwap) < moveData.TickLimit {
+			moveData.TickLimit = int32(newTwap)
 		}
 
-		if int32(lastTwap)-1 < moveData.tickLimit {
-			moveData.tickSearchStart = int32(lastTwap) - 1
-			moveData.tickSearchEnd = moveData.tickLimit
-			moveData.kind = 1 // Kind 1 = moving up
-			moveDirection(state, &moveData)
-			moveData.kind = 3 // Kind 3 = special case
-			moveDirection(state, &moveData)
+		if int32(lastTwap)-1 < moveData.TickLimit {
+			moveData.TickSearchStart = int32(lastTwap) - 1
+			moveData.TickSearchEnd = moveData.TickLimit
+			moveData.Kind = 1 // Kind 1 = moving up
+			moveDirection(state, moveData)
+			moveData.Kind = 3 // Kind 3 = special case
+			moveDirection(state, moveData)
 
 			// We'll never move in both directions in one swap
 			return
@@ -912,45 +900,33 @@ func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwap
 
 	if activeTick < startingTick || newTwap < lastTwap {
 		// Create moveData equivalent to MoveData in TypeScript
-		moveData := struct {
-			kind            uint8
-			tickSearchStart int32
-			tickSearchEnd   int32
-			tickLimit       int32
-			firstBinTick    int32
-			firstBinId      uint32
-			mergeBinBalance *uint256.Int
-			totalReserveA   *uint256.Int
-			totalReserveB   *uint256.Int
-			mergeBins       map[uint32]bool
-			counter         uint32
-		}{
-			kind:            0,
-			tickSearchStart: 0,
-			tickSearchEnd:   0,
-			tickLimit:       0,
-			firstBinTick:    0,
-			firstBinId:      0,
-			mergeBinBalance: new(uint256.Int),
-			totalReserveA:   new(uint256.Int),
-			totalReserveB:   new(uint256.Int),
-			mergeBins:       make(map[uint32]bool),
-			counter:         0,
+		moveData := &MoveData{
+			Kind:            0,
+			TickSearchStart: 0,
+			TickSearchEnd:   0,
+			TickLimit:       0,
+			FirstBinTick:    0,
+			FirstBinId:      0,
+			MergeBinBalance: new(uint256.Int),
+			TotalReserveA:   new(uint256.Int),
+			TotalReserveB:   new(uint256.Int),
+			MergeBins:       make(map[uint32]bool),
+			Counter:         0,
 		}
 
 		// Calculate tickLimit as max(newTwap, activeTick + 1)
-		moveData.tickLimit = activeTick + 1
-		if int32(newTwap) > moveData.tickLimit {
-			moveData.tickLimit = int32(newTwap)
+		moveData.TickLimit = activeTick + 1
+		if int32(newTwap) > moveData.TickLimit {
+			moveData.TickLimit = int32(newTwap)
 		}
 
-		if moveData.tickLimit < int32(lastTwap)+1 {
-			moveData.tickSearchStart = moveData.tickLimit
-			moveData.tickSearchEnd = int32(lastTwap) + 1
-			moveData.kind = 2 // Kind 2 = moving down
-			moveDirection(state, &moveData)
-			moveData.kind = 3 // Kind 3 = special case
-			moveDirection(state, &moveData)
+		if moveData.TickLimit < int32(lastTwap)+1 {
+			moveData.TickSearchStart = moveData.TickLimit
+			moveData.TickSearchEnd = int32(lastTwap) + 1
+			moveData.Kind = 2 // Kind 2 = moving down
+			moveDirection(state, moveData)
+			moveData.Kind = 3 // Kind 3 = special case
+			moveDirection(state, moveData)
 		}
 	}
 }
@@ -961,89 +937,65 @@ func floorD8Unchecked(value int64) int64 {
 }
 
 // Implementation of moveDirection from TypeScript
-func moveDirection(state *MaverickPoolState, moveData *struct {
-	kind            uint8
-	tickSearchStart int32
-	tickSearchEnd   int32
-	tickLimit       int32
-	firstBinTick    int32
-	firstBinId      uint32
-	mergeBinBalance *uint256.Int
-	totalReserveA   *uint256.Int
-	totalReserveB   *uint256.Int
-	mergeBins       map[uint32]bool
-	counter         uint32
-}) {
+func moveDirection(state *MaverickPoolState, moveData *MoveData) {
 	// Reset values
-	moveData.firstBinTick = 0
-	moveData.firstBinId = 0
-	moveData.mergeBinBalance = new(uint256.Int)
-	moveData.totalReserveA = new(uint256.Int)
-	moveData.totalReserveB = new(uint256.Int)
-	moveData.counter = 0
+	moveData.FirstBinTick = 0
+	moveData.FirstBinId = 0
+	moveData.MergeBinBalance = new(uint256.Int)
+	moveData.TotalReserveA = new(uint256.Int)
+	moveData.TotalReserveB = new(uint256.Int)
+	moveData.Counter = 0
 
 	// Find movement bins in the range
 	getMovementBinsInRange(state, moveData)
 
 	// Skip if no bins found or only one bin at the limit
-	if moveData.firstBinId == 0 || (moveData.counter == 1 && moveData.tickLimit == moveData.firstBinTick) {
+	if moveData.FirstBinId == 0 || (moveData.Counter == 1 && moveData.TickLimit == moveData.FirstBinTick) {
 		return
 	}
 
 	// Get the first bin and its tick state - exactly like TypeScript
-	firstBin, ok := state.Bins[moveData.firstBinId]
+	firstBin, ok := state.Bins[moveData.FirstBinId]
 	if !ok {
 		return
 	}
 
 	// Get first bin tick state - equivalent to this.state.ticks[moveData.firstBinTick.toString()]
-	firstBinTickState := getTickState(state, moveData.firstBinTick)
+	firstBinTickState := getTickState(state, moveData.FirstBinTick)
 
 	// Merge bins in the list - this modifies firstBinTickState
 	mergeBinsInList(state, &firstBin, firstBinTickState, moveData)
 
 	// Move bin to new tick if needed
-	if moveData.tickLimit != moveData.firstBinTick {
-		// Get ending tick state - equivalent to this.state.ticks[moveData.tickLimit.toString()]
-		endingTickState := getTickState(state, moveData.tickLimit)
+	if moveData.TickLimit != moveData.FirstBinTick {
+		// Get ending tick state - equivalent to this.state.ticks[moveData.TickLimit.toString()]
+		endingTickState := getTickState(state, moveData.TickLimit)
 		// Pass the same firstBinTickState that was modified by mergeBinsInList
 		moveBinToNewTick(state, &firstBin, firstBinTickState, endingTickState, moveData)
 	}
 }
 
 // Implementation of getMovementBinsInRange from TypeScript
-func getMovementBinsInRange(state *MaverickPoolState, moveData *struct {
-	kind            uint8
-	tickSearchStart int32
-	tickSearchEnd   int32
-	tickLimit       int32
-	firstBinTick    int32
-	firstBinId      uint32
-	mergeBinBalance *uint256.Int
-	totalReserveA   *uint256.Int
-	totalReserveB   *uint256.Int
-	mergeBins       map[uint32]bool
-	counter         uint32
-}) {
-	for tick := moveData.tickSearchStart; tick <= moveData.tickSearchEnd; tick++ {
-		if moveData.counter == 3 {
+func getMovementBinsInRange(state *MaverickPoolState, moveData *MoveData) {
+	for tick := moveData.TickSearchStart; tick <= moveData.TickSearchEnd; tick++ {
+		if moveData.Counter == 3 {
 			return
 		}
 
 		// Get bin ID by tick and kind
-		binId := binIdByTickKind(state, tick, moveData.kind)
+		binId := binIdByTickKind(state, tick, moveData.Kind)
 		if binId == 0 {
 			continue
 		}
 
 		// Record this bin
-		moveData.mergeBins[binId] = true
-		moveData.counter++
+		moveData.MergeBins[binId] = true
+		moveData.Counter++
 
 		// Update first bin info if needed
-		if moveData.firstBinId == 0 || binId < moveData.firstBinId {
-			moveData.firstBinId = binId
-			moveData.firstBinTick = tick
+		if moveData.FirstBinId == 0 || binId < moveData.FirstBinId {
+			moveData.FirstBinId = binId
+			moveData.FirstBinTick = tick
 		}
 	}
 }
@@ -1068,24 +1020,12 @@ func binIdByTickKind(state *MaverickPoolState, tick int32, kind uint8) uint32 {
 }
 
 // Implementation of mergeBinsInList from TypeScript
-func mergeBinsInList(state *MaverickPoolState, firstBin *Bin, firstBinTickState *TickState, moveData *struct {
-	kind            uint8
-	tickSearchStart int32
-	tickSearchEnd   int32
-	tickLimit       int32
-	firstBinTick    int32
-	firstBinId      uint32
-	mergeBinBalance *uint256.Int
-	totalReserveA   *uint256.Int
-	totalReserveB   *uint256.Int
-	mergeBins       map[uint32]bool
-	counter         uint32
-}) {
+func mergeBinsInList(state *MaverickPoolState, firstBin *Bin, firstBinTickState *TickState, moveData *MoveData) {
 	mergeOccured := false
 
 	// Iterate through all the merge bins
-	for binId := range moveData.mergeBins {
-		if binId == moveData.firstBinId {
+	for binId := range moveData.MergeBins {
+		if binId == moveData.FirstBinId {
 			continue
 		}
 
@@ -1109,7 +1049,7 @@ func mergeBinsInList(state *MaverickPoolState, firstBin *Bin, firstBinTickState 
 		binB := new(uint256.Int).Div(new(uint256.Int).Mul(bin.TickBalance, tickData.ReserveB), new(uint256.Int).Add(tickData.TotalSupply, new(uint256.Int).SetUint64(1)))
 
 		// Mark bin as merged
-		bin.MergeId = moveData.firstBinId
+		bin.MergeId = moveData.FirstBinId
 
 		// Calculate merge bin balance - simplified for now
 		mergeBinBalance := calculateMergeBinBalance(*firstBin, binA, binB)
@@ -1129,9 +1069,9 @@ func mergeBinsInList(state *MaverickPoolState, firstBin *Bin, firstBinTickState 
 		}
 
 		// Update total reserves
-		moveData.totalReserveA = new(uint256.Int).Add(moveData.totalReserveA, binA)
-		moveData.totalReserveB = new(uint256.Int).Add(moveData.totalReserveB, binB)
-		moveData.mergeBinBalance = new(uint256.Int).Add(moveData.mergeBinBalance, mergeBinBalance)
+		moveData.TotalReserveA = new(uint256.Int).Add(moveData.TotalReserveA, binA)
+		moveData.TotalReserveB = new(uint256.Int).Add(moveData.TotalReserveB, binB)
+		moveData.MergeBinBalance = new(uint256.Int).Add(moveData.MergeBinBalance, mergeBinBalance)
 
 		// Update the bin in state
 		state.Bins[binId] = bin
@@ -1140,10 +1080,10 @@ func mergeBinsInList(state *MaverickPoolState, firstBin *Bin, firstBinTickState 
 	// Add the merged liquidity to the first bin if any merges happened
 	if mergeOccured {
 		// Add liquidity to the first bin - equivalent to MaverickBinMath.addLiquidityByReserves
-		addLiquidityByReserves(state, *firstBin, firstBinTickState, moveData.totalReserveA, moveData.totalReserveB, moveData.mergeBinBalance)
+		addLiquidityByReserves(state, *firstBin, firstBinTickState, moveData.TotalReserveA, moveData.TotalReserveB, moveData.MergeBinBalance)
 
 		// Update the bin in state
-		state.Bins[moveData.firstBinId] = *firstBin
+		state.Bins[moveData.FirstBinId] = *firstBin
 	}
 }
 
@@ -1168,19 +1108,7 @@ func addLiquidityByReserves(state *MaverickPoolState, bin Bin, tickState *TickSt
 }
 
 // Implementation of moveBinToNewTick from TypeScript - exact mapping
-func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState *TickState, endingTickState *TickState, moveData *struct {
-	kind            uint8
-	tickSearchStart int32
-	tickSearchEnd   int32
-	tickLimit       int32
-	firstBinTick    int32
-	firstBinId      uint32
-	mergeBinBalance *uint256.Int
-	totalReserveA   *uint256.Int
-	totalReserveB   *uint256.Int
-	mergeBins       map[uint32]bool
-	counter         uint32
-}) {
+func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState *TickState, endingTickState *TickState, moveData *MoveData) {
 	// Step 1: Get bin reserves using binReserves equivalent to MaverickPoolLib.binReserves
 	// Convert TickState back to Bin format for binReserves function
 	startingTickData := Bin{
@@ -1194,7 +1122,7 @@ func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState
 	startingTickState.ReserveA = clip(startingTickState.ReserveA, firstBinA)
 	startingTickState.ReserveB = clip(startingTickState.ReserveB, firstBinB)
 	startingTickState.TotalSupply = clip(startingTickState.TotalSupply, firstBin.TickBalance)
-	startingTickState.BinIdsByTick[moveData.kind] = 0
+	startingTickState.BinIdsByTick[moveData.Kind] = 0
 
 	// Step 3: Delete tick if totalSupply is zero (exact TypeScript logic)
 	if startingTickState.TotalSupply.IsZero() {
@@ -1211,12 +1139,12 @@ func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState
 		}
 	} else {
 		// Update the starting tick state back to pool state
-		updateTickState(state, moveData.firstBinTick, startingTickState)
+		updateTickState(state, moveData.FirstBinTick, startingTickState)
 	}
 
 	// Step 4: Update ending tick state
-	endingTickState.BinIdsByTick[moveData.kind] = moveData.firstBinId
-	firstBin.Tick = moveData.tickLimit
+	endingTickState.BinIdsByTick[moveData.Kind] = moveData.FirstBinId
+	firstBin.Tick = moveData.TickLimit
 
 	// Step 5: Calculate deltaTickBalance using exact TypeScript logic
 	var deltaTickBalance *uint256.Int
@@ -1242,10 +1170,10 @@ func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState
 	endingTickState.TotalSupply = new(uint256.Int).Add(endingTickState.TotalSupply, deltaTickBalance)
 
 	// Step 7: Update ending tick state back to pool state
-	updateTickState(state, moveData.tickLimit, endingTickState)
+	updateTickState(state, moveData.TickLimit, endingTickState)
 
 	// Step 8: Update the bin in state
-	state.Bins[moveData.firstBinId] = *firstBin
+	state.Bins[moveData.FirstBinId] = *firstBin
 }
 
 // Helper function to remove bin from tick
