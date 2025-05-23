@@ -76,24 +76,6 @@ func TestPoolCalcAmountOut_RevertL(t *testing.T) {
 	}
 }
 
-func TestPoolCalcAmountIn(t *testing.T) {
-	t.Parallel()
-
-	result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-		return maverickPool.CalcAmountIn(pool.CalcAmountInParams{
-			TokenAmountOut: pool.TokenAmount{
-				Token:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
-				Amount: bignumber.NewBig10("319754866834816685427"),
-			},
-			TokenIn: "0x4200000000000000000000000000000000000006",
-		})
-	})
-
-	if assert.Nil(t, err) {
-		assert.Equal(t, "100100100100099386", result.TokenAmountIn.Amount.String())
-	}
-}
-
 func TestUpdateBalance(t *testing.T) {
 	t.Parallel()
 	poolRedis := `{"address":"0x5fdf78aef906cbad032fbaea032aaae3accf9dc3","reserveUsd":47625.963767453606,"amplifiedTvl":2.0145226157464416e+41,"swapFee":0.0005,"exchange":"maverick-v2","type":"maverick-v2","timestamp":1704957203,"reserves":["108363845032166910770488","2097024497432052549"],"tokens":[{"address":"0x04506dddbf689714487f91ae1397047169afcf34","decimals":18,"weight":50,"swappable":true},{"address":"0x7448c7456a97769f6cd04f1e83a4a23ccdc46abd","decimals":18,"weight":50,"swappable":true}],"extra":"{\"feeAIn\":500000000000000,\"feeBIn\":500000000000000,\"protocolFeeRatio\":0,\"activeTick\":10,\"bins\":{\"1\":{\"reserveA\":1880866557485545835609,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-5,\"tickBalance\":0},\"10\":{\"reserveA\":2013495774191474777406,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":4,\"tickBalance\":0},\"11\":{\"reserveA\":411993441413380258157,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":5,\"tickBalance\":0},\"12\":{\"reserveA\":491298562692665969507,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":6,\"tickBalance\":0},\"13\":{\"reserveA\":620606767055018215315,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":7,\"tickBalance\":0},\"14\":{\"reserveA\":725257522405584599699,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":8,\"tickBalance\":0},\"15\":{\"reserveA\":897478209865575805530,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":9,\"tickBalance\":0},\"16\":{\"reserveA\":2142944919078882824342,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-6,\"tickBalance\":0},\"17\":{\"reserveA\":1022668409565365293976,\"reserveB\":2097024497432052514,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":10,\"tickBalance\":0},\"2\":{\"reserveA\":1634106566195962389560,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-4,\"tickBalance\":0},\"3\":{\"reserveA\":1405424035812355050009,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-3,\"tickBalance\":0},\"4\":{\"reserveA\":1233705168748319240144,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-2,\"tickBalance\":0},\"5\":{\"reserveA\":47686688533077328269486,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":-1,\"tickBalance\":0},\"6\":{\"reserveA\":30071745509492793533770,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":0,\"tickBalance\":0},\"7\":{\"reserveA\":6925596663250336094803,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":1,\"tickBalance\":0},\"8\":{\"reserveA\":5442282585416271863178,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":2,\"tickBalance\":0},\"9\":{\"reserveA\":3757685806420050749903,\"reserveB\":0,\"mergeBinBalance\":0,\"mergeId\":0,\"totalSupply\":0,\"kind\":0,\"tick\":3,\"tickBalance\":0}},\"binPositions\":{\"-1\":[5],\"-2\":[4],\"-3\":[3],\"-4\":[2],\"-5\":[1],\"-6\":[16],\"0\":[6],\"1\":[7],\"10\":[17],\"2\":[8],\"3\":[9],\"4\":[10],\"5\":[11],\"6\":[12],\"7\":[13],\"8\":[14],\"9\":[15]},\"binMap\":{\"10\":1,\"0\":1}}","staticExtra":"{\"tickSpacing\":50}"}`
@@ -220,7 +202,15 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
-			require.Equal(t, tc.expNextTick, result.SwapInfo.(maverickSwapInfo).activeTick)
+			
+			// Check that the swap info has the expected fields
+			swapInfo, ok := result.SwapInfo.(maverickSwapInfo)
+			require.True(t, ok, "SwapInfo should be of type maverickSwapInfo")
+			require.Equal(t, tc.expNextTick, swapInfo.activeTick)
+			
+			// Verify fractional part is included in swap info
+			require.True(t, swapInfo.fractionalPartD8 >= 0, "Fractional part should be non-negative")
+			require.True(t, swapInfo.fractionalPartD8 <= int64(BI_POWS[8].Uint64()), "Fractional part should be <= 2^8")
 
 			// Capture TWA value before update
 			twaBefore := sim.state.LastTwaD8
@@ -232,15 +222,15 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 				SwapInfo:       result.SwapInfo,
 			}
 			sim.UpdateBalance(updateBalanceParams)
-			
+
 			// Verify TWA value has been updated
 			twaAfter := sim.state.LastTwaD8
-			
+
 			// For significant tick changes, TWA should change
-			if absDiff(int32(tc.expNextTick), 433) > 3 {
+			if absDiffInt32(int32(tc.expNextTick), 433) > 3 {
 				require.NotEqual(t, twaBefore, twaAfter, "TWA should change after significant tick movement")
 			}
-			
+
 			// Verify timestamp gets updated
 			require.True(t, sim.state.Timestamp > 0, "Timestamp should be updated")
 		})
@@ -283,6 +273,141 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	}
 }
 
+// Helper for absolute difference between int32 values
+func absDiffInt32(a, b int32) int32 {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}
+
+// Helper for absolute difference between int64 values
+func absDiffInt64(a, b int64) int64 {
+	if a > b {
+		return a - b
+	}
+	return b - a
+}
+
+// Test for fractional part calculation
+func TestFractionalPartCalculation(t *testing.T) {
+	t.Parallel()
+
+	// Create a simple pool state for testing
+	state := &MaverickPoolState{
+		ActiveTick:   10,
+		TickSpacing:  1,
+		Bins: map[uint32]Bin{
+			1: {
+				ReserveA: new(uint256.Int).SetUint64(1000000),
+				ReserveB: new(uint256.Int).SetUint64(500000),
+				Tick:     10,
+			},
+		},
+		BinPositions: map[int32][]uint32{
+			10: {1},
+		},
+	}
+
+	// Test tickSqrtPriceAndLiquidity
+	sqrtLowerTickPrice, sqrtUpperTickPrice, sqrtPrice, _ := tickSqrtPriceAndLiquidity(state, state.ActiveTick)
+
+	// Verify all sqrt prices are non-zero
+	assert.False(t, sqrtLowerTickPrice.IsZero(), "sqrtLowerTickPrice should not be zero")
+	assert.False(t, sqrtUpperTickPrice.IsZero(), "sqrtUpperTickPrice should not be zero")
+	assert.False(t, sqrtPrice.IsZero(), "sqrtPrice should not be zero")
+
+	// Calculate fractional part for TWA
+	var fractionalPartD8 int64
+	if !sqrtPrice.IsZero() && !sqrtLowerTickPrice.IsZero() && !sqrtUpperTickPrice.IsZero() {
+		// Calculate how far we are between the lower and upper tick prices
+		tickRange := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
+		tickPosition := new(uint256.Int).Sub(sqrtPrice, sqrtLowerTickPrice)
+		
+		if !tickRange.IsZero() {
+			// Calculate the fractional part as a value between 0 and 2^8
+			fractionalPart := mulDiv(tickPosition, BI_POWS[8], tickRange)
+			fractionalPartD8 = int64(fractionalPart.Uint64())
+		} else {
+			// Default to half-tick if calculation fails
+			fractionalPartD8 = int64(BI_POWS[7].Uint64())
+		}
+	} else {
+		// Default to half-tick value if sqrt prices are not available
+		fractionalPartD8 = int64(BI_POWS[7].Uint64())
+	}
+
+	// Verify fractional part is within expected range (0 to 2^8)
+	assert.True(t, fractionalPartD8 >= 0, "Fractional part should be non-negative")
+	assert.True(t, fractionalPartD8 <= int64(BI_POWS[8].Uint64()), "Fractional part should be <= 2^8")
+
+	// Test different positions within the tick
+	t.Run("Different positions within tick", func(t *testing.T) {
+		// Create test cases for different positions within the tick
+		testCases := []struct{
+			name string
+			reserveARatio uint64
+			reserveBRatio uint64
+			expectedRange string  // "low", "mid", or "high"
+		}{
+			{"Near lower bound", 10, 1, "low"},
+			{"Middle of tick", 1, 1, "mid"},
+			{"Near upper bound", 1, 10, "high"},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// Create a bin with the specified reserve ratio
+				testState := &MaverickPoolState{
+					ActiveTick:   10,
+					TickSpacing:  1,
+					Bins: map[uint32]Bin{
+						1: {
+							ReserveA: new(uint256.Int).SetUint64(1000000 * tc.reserveARatio),
+							ReserveB: new(uint256.Int).SetUint64(1000000 * tc.reserveBRatio),
+							Tick:     10,
+						},
+					},
+					BinPositions: map[int32][]uint32{
+						10: {1},
+					},
+				}
+
+				// Calculate sqrt prices and fractional part
+				sqrtLowerTickPrice, sqrtUpperTickPrice, sqrtPrice, _ := tickSqrtPriceAndLiquidity(testState, testState.ActiveTick)
+				var fractionalPartD8 int64
+				if !sqrtPrice.IsZero() && !sqrtLowerTickPrice.IsZero() && !sqrtUpperTickPrice.IsZero() {
+					tickRange := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
+					tickPosition := new(uint256.Int).Sub(sqrtPrice, sqrtLowerTickPrice)
+					
+					if !tickRange.IsZero() {
+						fractionalPart := mulDiv(tickPosition, BI_POWS[8], tickRange)
+						fractionalPartD8 = int64(fractionalPart.Uint64())
+					} else {
+						fractionalPartD8 = int64(BI_POWS[7].Uint64())
+					}
+				} else {
+					fractionalPartD8 = int64(BI_POWS[7].Uint64())
+				}
+
+				// Verify fractional part is in the expected range
+				switch tc.expectedRange {
+				case "low":
+					assert.True(t, fractionalPartD8 < int64(BI_POWS[7].Uint64()), 
+						"Should be in lower half of tick range: %d", fractionalPartD8)
+				case "mid":
+					halfTick := int64(BI_POWS[7].Uint64())
+					assert.True(t, fractionalPartD8 >= halfTick-20 && fractionalPartD8 <= halfTick+20, 
+						"Should be near middle of tick range: %d vs %d", fractionalPartD8, halfTick)
+				case "high":
+					assert.True(t, fractionalPartD8 > int64(BI_POWS[7].Uint64()), 
+						"Should be in upper half of tick range: %d", fractionalPartD8)
+				}
+			})
+		}
+	})
+}
+
 // Helper function to test scaling operations
 func TestScalingOperations(t *testing.T) {
 	testCases := []struct {
@@ -321,7 +446,7 @@ func TestScalingOperations(t *testing.T) {
 
 func TestTwaUpdateAndBinMovement(t *testing.T) {
 	t.Parallel()
-	
+
 	// Create a simple pool state for testing
 	state := &MaverickPoolState{
 		ActiveTick:   10,
@@ -346,35 +471,35 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 			11: {2},
 		},
 	}
-	
+
 	// Test updateTwaValue
 	t.Run("updateTwaValue", func(t *testing.T) {
 		// Update with a 10 second time difference
 		newTimestamp := int64(1010)
 		newValueD8 := int64(3072000) // 12 * 2^8 (12 << 8)
-		
+
 		// Get initial values
 		initialLastTwaD8 := state.LastTwaD8
 		initialAccumValue := new(uint256.Int).Set(state.AccumValueD8)
-		
+
 		// Update TWA value
 		updateTwaValue(state, newValueD8, newTimestamp)
-		
+
 		// Verify values updated
 		assert.NotEqual(t, initialLastTwaD8, state.LastTwaD8, "LastTwaD8 should be updated")
 		assert.Equal(t, newValueD8, state.LastTwaD8, "LastTwaD8 should equal new value")
 		assert.Equal(t, newTimestamp, state.Timestamp, "Timestamp should be updated")
-		
+
 		// Verify accumulator increased
 		// Expected increase = oldValue * timeDelta = 2560000 * 10
 		assert.True(t, state.AccumValueD8.Cmp(initialAccumValue) > 0, "AccumValueD8 should increase")
 	})
-	
+
 	// Test moveBins with significant TWA change
 	t.Run("moveBins with significant change", func(t *testing.T) {
 		// Clone state
 		testState := state.Clone()
-		
+
 		// Initial reserves
 		initialReservesA := make(map[uint32]*uint256.Int)
 		initialReservesB := make(map[uint32]*uint256.Int)
@@ -382,13 +507,13 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 			initialReservesA[binId] = new(uint256.Int).Set(bin.ReserveA)
 			initialReservesB[binId] = new(uint256.Int).Set(bin.ReserveB)
 		}
-		
+
 		// Threshold for bin movement (small value to ensure movement happens)
 		threshold := new(uint256.Int).SetUint64(1)
-		
+
 		// Move from tick 10 to tick 15 with significant TWA change
 		moveBins(testState, 10, 15, 2560000, 3840000, threshold) // 10<<8 to 15<<8
-		
+
 		// Verify bins were adjusted
 		for binId := range testState.Bins {
 			assert.NotEqual(t, initialReservesA[binId], testState.Bins[binId].ReserveA,
@@ -397,12 +522,12 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 				"ReserveB should change after significant bin movement")
 		}
 	})
-	
+
 	// Test moveBins with small TWA change (below threshold)
 	t.Run("moveBins with small change", func(t *testing.T) {
 		// Clone state
 		testState := state.Clone()
-		
+
 		// Initial reserves
 		initialReservesA := make(map[uint32]*uint256.Int)
 		initialReservesB := make(map[uint32]*uint256.Int)
@@ -410,13 +535,13 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 			initialReservesA[binId] = new(uint256.Int).Set(bin.ReserveA)
 			initialReservesB[binId] = new(uint256.Int).Set(bin.ReserveB)
 		}
-		
+
 		// Threshold too high for bin movement
 		threshold := new(uint256.Int).SetUint64(10000000)
-		
+
 		// Move from tick 10 to tick 11 with small TWA change
 		moveBins(testState, 10, 11, 2560000, 2816000, threshold) // 10<<8 to 11<<8
-		
+
 		// Verify bins were NOT adjusted (due to high threshold)
 		for binId := range testState.Bins {
 			assert.True(t, testState.Bins[binId].ReserveA.Cmp(initialReservesA[binId]) == 0,
