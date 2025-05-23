@@ -43,15 +43,17 @@ type HTTPClient struct {
 }
 
 func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
-		SetBaseURL(config.BaseURL).
+	if config.Client == nil {
+		config.Client = resty.New()
+	}
+	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader(bebop.ParamsSourceAuth, config.Authorization)
 
 	return &HTTPClient{
 		config: config,
-		client: client,
+		client: config.Client,
 	}
 }
 
