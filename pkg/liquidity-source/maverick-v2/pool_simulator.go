@@ -102,6 +102,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	var scaleAmount *uint256.Int
 	var err error
+	// scale to AMM Amount 10^18
 	if tokenAIn {
 		scaleAmount, err = scaleFromAmount(amountIn, p.decimals[0])
 	} else {
@@ -112,11 +113,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	newState := p.state.Clone()
-	_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
+	_, amountOut, binCrossed, fractionalPart, err := swap(newState, scaleAmount, tokenAIn, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
 
+	// scale back to token amount
 	var scaleAmountOut *uint256.Int
 	if tokenAIn {
 		scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
@@ -127,26 +129,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
-	// Calculate the fractional part using tickSqrtPriceAndLiquidity
-	sqrtLowerTickPrice, sqrtUpperTickPrice, sqrtPrice, _ := tickSqrtPriceAndLiquidity(newState, newState.ActiveTick)
-
-	// Calculate fractional part for TWA
+	// Use fractional part directly from swap result (matches TypeScript implementation)
 	var fractionalPartD8 int64
-	if !sqrtPrice.IsZero() && !sqrtLowerTickPrice.IsZero() && !sqrtUpperTickPrice.IsZero() {
-		// Calculate how far we are between the lower and upper tick prices
-		tickRange := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
-		tickPosition := new(uint256.Int).Sub(sqrtPrice, sqrtLowerTickPrice)
-
-		if !tickRange.IsZero() {
-			// Calculate the fractional part as a value between 0 and 2^8
-			fractionalPart := mulDiv(tickPosition, BI_POWS[8], tickRange)
-			fractionalPartD8 = int64(fractionalPart.Uint64())
-		} else {
-			// Default to half-tick if calculation fails
-			fractionalPartD8 = int64(BI_POWS[7].Uint64())
-		}
+	if fractionalPart != nil && !fractionalPart.IsZero() {
+		fractionalPartD8 = int64(fractionalPart.Uint64())
 	} else {
-		// Default to half-tick value if sqrt prices are not available
+		// Default to half-tick if not provided
 		fractionalPartD8 = int64(BI_POWS[7].Uint64())
 	}
 
@@ -246,7 +234,7 @@ type maverickSwapInfo struct {
 }
 
 // Helper functions for swap implementation
-func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, bypassLimit bool) (*uint256.Int, *uint256.Int, uint32, error) {
+func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, bypassLimit bool) (*uint256.Int, *uint256.Int, uint32, *uint256.Int, error) {
 	// Implementation based on maverick-v2-pool-math.ts estimateSwap function
 
 	delta := &Delta{
@@ -276,7 +264,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 
 	// In JS, we check if the swap limit is beyond the current tick
 	if (startingTick > tickLimit && tokenAIn) || (startingTick < tickLimit && !tokenAIn) {
-		return nil, nil, 0, fmt.Errorf("beyond swap limit")
+		return nil, nil, 0, new(uint256.Int), fmt.Errorf("beyond swap limit")
 	}
 
 	// Handle main swap operation
@@ -286,7 +274,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 	for !delta.Excess.IsZero() {
 		newDelta, crossedBin, err := swapTick(state, delta, tickLimit)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, new(uint256.Int), err
 		}
 
 		if crossedBin {
@@ -294,14 +282,9 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 		}
 
 		combine(delta, newDelta)
-
-		// Break if we've reached the maximum iterations to avoid infinite loops
-		if binCrossed > MaxSwapCalcIter {
-			break
-		}
 	}
 
-	return delta.DeltaInErc, delta.DeltaOutErc, binCrossed, nil
+	return delta.DeltaInErc, delta.DeltaOutErc, binCrossed, delta.FractionalPart, nil
 }
 
 func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, bool, error) {
@@ -806,9 +789,9 @@ type Delta struct {
 
 // TickState represents a tick's liquidity state
 type TickState struct {
-	ReserveA    *uint256.Int
-	ReserveB    *uint256.Int
-	TotalSupply *uint256.Int
+	ReserveA     *uint256.Int
+	ReserveB     *uint256.Int
+	TotalSupply  *uint256.Int
 	BinIdsByTick map[uint8]uint32
 }
 
@@ -1101,7 +1084,7 @@ func addLiquidityByReserves(state *MaverickPoolState, bin Bin, tickState *TickSt
 
 	// Update the bin's merge bin balance
 	bin.MergeBinBalance = new(uint256.Int).Add(bin.MergeBinBalance, mergeBinBalance)
-	
+
 	// Update the tick state reserves as well
 	tickState.ReserveA = new(uint256.Int).Add(tickState.ReserveA, reserveA)
 	tickState.ReserveB = new(uint256.Int).Add(tickState.ReserveB, reserveB)
@@ -1240,18 +1223,18 @@ func binReserves(bin Bin, tickState Bin) (*uint256.Int, *uint256.Int) {
 	if tickState.TotalSupply.IsZero() {
 		return new(uint256.Int), new(uint256.Int)
 	}
-	
+
 	// Calculate bin reserves proportionally based on tickBalance
 	binA := mulDivDown(bin.TickBalance, tickState.ReserveA, tickState.TotalSupply)
 	binB := mulDivDown(bin.TickBalance, tickState.ReserveB, tickState.TotalSupply)
-	
+
 	return binA, binB
 }
 
 // Helper function to convert tick data to tick state
 func getTickState(state *MaverickPoolState, tick int32) *TickState {
 	tickData, _ := getTickData(state, tick)
-	
+
 	// Create binIdsByTick map
 	binIdsByTick := make(map[uint8]uint32)
 	if binPositions, ok := state.BinPositions[tick]; ok {
@@ -1261,7 +1244,7 @@ func getTickState(state *MaverickPoolState, tick int32) *TickState {
 			}
 		}
 	}
-	
+
 	return &TickState{
 		ReserveA:     new(uint256.Int).Set(tickData.ReserveA),
 		ReserveB:     new(uint256.Int).Set(tickData.ReserveB),
@@ -1286,7 +1269,7 @@ func updateTickState(state *MaverickPoolState, tick int32, tickState *TickState)
 			}
 		}
 	}
-	
+
 	// Update bin mappings based on tickState.BinIdsByTick
 	for kind, binId := range tickState.BinIdsByTick {
 		if binId == 0 {
