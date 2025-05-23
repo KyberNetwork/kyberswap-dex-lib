@@ -22,6 +22,5 @@ const (
 )
 
 var (
-	defaultTokenWeight uint = 50
-	zeroString              = "0"
+	zeroString = "0"
 )

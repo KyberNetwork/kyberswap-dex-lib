@@ -1,8 +1,7 @@
 package dystopia
 
 const (
-	DexTypeDystopia    = "dystopia"
-	defaultTokenWeight = 50
+	DexTypeDystopia = "dystopia"
 
 	poolFactoryMethodAllPairsLength = "allPairsLength"
 	poolFactoryMethodAllPairs       = "allPairs"

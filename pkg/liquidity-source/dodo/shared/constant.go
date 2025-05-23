@@ -8,7 +8,6 @@ const (
 	SubgraphPoolTypeDodoStable         = "DSP"
 	SubgraphPoolTypeDodoPrivate        = "DPP"
 
-	defaultTokenWeight   = 50
 	defaultTokenDecimals = 18
 
 	zeroString = "0"

@@ -1,7 +1,6 @@
 package nomiswap
 
 const (
-	DexType                 = "nomiswap-stable"
-	defaultTokenWeight uint = 50
-	reserveZero             = "0"
+	DexType     = "nomiswap-stable"
+	reserveZero = "0"
 )

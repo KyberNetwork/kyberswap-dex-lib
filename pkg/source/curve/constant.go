@@ -57,8 +57,7 @@ const (
 	addressEther = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 	addressZero  = "0x0000000000000000000000000000000000000000"
 
-	zeroString    = "0"
-	defaultWeight = 1
+	zeroString = "0"
 )
 
 const (

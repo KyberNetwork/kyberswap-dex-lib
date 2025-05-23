@@ -11,11 +11,9 @@ const (
 	poolMethodGetTokenRates        = "getTokenRates"
 	poolMethodGetECLPParams        = "getECLPParams"
 
-	defaultWeight = 1
-
 	poolTypeVer1 = 1
 )
 
 var (
-	defaultGas = Gas{Swap: 80000} // TODO: rebenchmark gas
+	defaultGas = Gas{Swap: 135726}
 )

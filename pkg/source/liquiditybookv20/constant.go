@@ -20,8 +20,6 @@ const (
 	routerGetPriceFromIDMethod = "getPriceFromId"
 )
 const (
-	defaultTokenWeight = 50
-
 	graphFirstLimit = 1000
 
 	basisPointMax = 10000

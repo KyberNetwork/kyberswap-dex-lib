@@ -65,7 +65,6 @@ func (t *PoolTracker) getNewPoolState(
 			Address:   strings.ToLower(common.RSETH),
 			Symbol:    "rsETH",
 			Decimals:  18,
-			Name:      "rsETH",
 			Swappable: true,
 		},
 	}

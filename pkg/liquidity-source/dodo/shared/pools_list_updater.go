@@ -65,10 +65,8 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 
 			tokenModel := entity.PoolToken{
 				Address:   pool.BaseToken.Address,
-				Name:      pool.BaseToken.Name,
 				Symbol:    pool.BaseToken.Symbol,
 				Decimals:  uint8(baseTokenDecimals),
-				Weight:    defaultTokenWeight,
 				Swappable: true,
 			}
 
@@ -91,10 +89,8 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 
 			tokenModel := entity.PoolToken{
 				Address:   pool.QuoteToken.Address,
-				Name:      pool.QuoteToken.Name,
 				Symbol:    pool.QuoteToken.Symbol,
 				Decimals:  uint8(quoteTokenDecimals),
-				Weight:    defaultTokenWeight,
 				Swappable: true,
 			}
 

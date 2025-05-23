@@ -1,8 +1,7 @@
 package ramses
 
 const (
-	DexTypeRamses      = "ramses"
-	defaultTokenWeight = 50
+	DexTypeRamses = "ramses"
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"
