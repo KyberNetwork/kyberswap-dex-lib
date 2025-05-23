@@ -1,6 +1,7 @@
 package stable
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
@@ -52,6 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		hook = hooks.NewFeeTakingHook()
 	case shared.StableSurgeHookType:
 		hook = hooks.NewStableSurgeHook(extra.MaxSurgeFeePercentage, extra.SurgeThresholdPercentage)
+		return nil, errors.New("unsupported hook type")
 	case shared.VeBALFeeDiscountHookType:
 		hook = hooks.NewVeBALFeeDiscountHook()
 	default:
