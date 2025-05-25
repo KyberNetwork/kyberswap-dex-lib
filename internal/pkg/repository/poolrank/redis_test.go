@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/alicebob/miniredis/v2"
 	mapset "github.com/deckarep/golang-set/v2"
+	redisClient "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	redisClient "github.com/redis/go-redis/v9"
 )
 
 func wrap(cfg RedisRepositoryConfig) Config {
@@ -62,18 +61,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -93,18 +88,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -124,18 +115,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -210,18 +197,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -241,18 +224,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -272,18 +251,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -356,18 +331,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -387,18 +358,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -418,18 +385,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -502,18 +465,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -533,18 +492,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -564,18 +519,14 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "poolTokenAddress1",
-						Name:      "poolTokenName1",
 						Symbol:    "poolTokenSymbol1",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 					{
 						Address:   "poolTokenAddress2",
-						Name:      "poolTokenName2",
 						Symbol:    "poolTokenSymbol2",
 						Decimals:  18,
-						Weight:    50,
 						Swappable: true,
 					},
 				},
@@ -692,18 +643,14 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -765,18 +712,14 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -837,18 +780,14 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -910,18 +849,14 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -1014,18 +949,14 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -1091,18 +1022,14 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -1163,18 +1090,14 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},
@@ -1236,18 +1159,14 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "poolTokenAddress1",
-					Name:      "poolTokenName1",
 					Symbol:    "poolTokenSymbol1",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 				{
 					Address:   "poolTokenAddress2",
-					Name:      "poolTokenName2",
 					Symbol:    "poolTokenSymbol2",
 					Decimals:  18,
-					Weight:    50,
 					Swappable: true,
 				},
 			},

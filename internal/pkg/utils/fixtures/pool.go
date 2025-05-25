@@ -15,18 +15,14 @@ var Pools = []*entity.Pool{
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "tokenaddress1",
-				Name:      "tokenName1",
 				Symbol:    "tokenSymbol1",
 				Decimals:  6,
-				Weight:    50,
 				Swappable: true,
 			},
 			{
 				Address:   "tokenaddress2",
-				Name:      "tokenName2",
 				Symbol:    "tokenSymbol2",
 				Decimals:  6,
-				Weight:    50,
 				Swappable: true,
 			},
 		},
@@ -46,18 +42,14 @@ var Pools = []*entity.Pool{
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "tokenaddress2",
-				Name:      "tokenName2",
 				Symbol:    "tokenSymbol2",
 				Decimals:  6,
-				Weight:    50,
 				Swappable: true,
 			},
 			{
 				Address:   "tokenaddress3",
-				Name:      "tokenName3",
 				Symbol:    "tokenSymbol3",
 				Decimals:  6,
-				Weight:    50,
 				Swappable: true,
 			},
 		},

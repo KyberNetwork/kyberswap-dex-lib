@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	tokenPkg "github.com/KyberNetwork/router-service/internal/pkg/repository/token"
-	"github.com/KyberNetwork/router-service/pkg/redis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tokenPkg "github.com/KyberNetwork/router-service/internal/pkg/repository/token"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 func TestRedisRepository_FindByAddresses_SimplifedToken(t *testing.T) {
@@ -143,31 +143,22 @@ func TestRedisRepository_FindByAddresses_FullToken(t *testing.T) {
 		// Prepare data
 		redisTokens := []entity.Token{
 			{
-				Address:     "address1",
-				Symbol:      "symbol1",
-				Name:        "name1",
-				Decimals:    18,
-				CgkID:       "cgkId1",
-				Type:        "erc20",
-				PoolAddress: "poolAddress1",
+				Address:  "address1",
+				Symbol:   "symbol1",
+				Name:     "name1",
+				Decimals: 18,
 			},
 			{
-				Address:     "address2",
-				Symbol:      "symbol2",
-				Name:        "name2",
-				Decimals:    18,
-				CgkID:       "cgkId2",
-				Type:        "erc20",
-				PoolAddress: "poolAddress2",
+				Address:  "address2",
+				Symbol:   "symbol2",
+				Name:     "name2",
+				Decimals: 18,
 			},
 			{
-				Address:     "address3",
-				Symbol:      "symbol3",
-				Name:        "name3",
-				Decimals:    18,
-				CgkID:       "cgkId3",
-				Type:        "erc20",
-				PoolAddress: "poolAddress3",
+				Address:  "address3",
+				Symbol:   "symbol3",
+				Name:     "name3",
+				Decimals: 18,
 			},
 		}
 
@@ -180,22 +171,16 @@ func TestRedisRepository_FindByAddresses_FullToken(t *testing.T) {
 
 		expectedTokens := []*entity.Token{
 			{
-				Address:     "address1",
-				Symbol:      "symbol1",
-				Name:        "name1",
-				Decimals:    18,
-				CgkID:       "cgkId1",
-				Type:        "erc20",
-				PoolAddress: "poolAddress1",
+				Address:  "address1",
+				Symbol:   "symbol1",
+				Name:     "name1",
+				Decimals: 18,
 			},
 			{
-				Address:     "address2",
-				Symbol:      "symbol2",
-				Name:        "name2",
-				Decimals:    18,
-				CgkID:       "cgkId2",
-				Type:        "erc20",
-				PoolAddress: "poolAddress2",
+				Address:  "address2",
+				Symbol:   "symbol2",
+				Name:     "name2",
+				Decimals: 18,
 			},
 		}
 

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 
@@ -25,7 +26,7 @@ func TestPoolController_GetPools(t *testing.T) {
 			name: "it should return OK when passed correct pool addresses",
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				getPoolsResult := &dto.GetPoolsResult{
-					Pools: []*dto.GetPoolsResultPool{
+					Pools: []*entity.Pool{
 						{
 							ReserveUsd:   10000,
 							AmplifiedTvl: 10,
@@ -34,21 +35,17 @@ func TestPoolController_GetPools(t *testing.T) {
 							Type:         "type1",
 							Timestamp:    1658373335,
 							Reserves:     []string{"10000", "20000"},
-							Tokens: []*dto.GetPoolsResultPoolToken{
+							Tokens: []*entity.PoolToken{
 								{
 									Address:   "tokenaddress1",
-									Name:      "tokenName1",
 									Symbol:    "tokenSymbol1",
 									Decimals:  6,
-									Weight:    50,
 									Swappable: true,
 								},
 								{
 									Address:   "tokenaddress2",
-									Name:      "tokenName2",
 									Symbol:    "tokenSymbol2",
 									Decimals:  6,
-									Weight:    50,
 									Swappable: true,
 								},
 							},
@@ -64,21 +61,17 @@ func TestPoolController_GetPools(t *testing.T) {
 							Type:         "type2",
 							Timestamp:    1658373335,
 							Reserves:     []string{"20000", "30000"},
-							Tokens: []*dto.GetPoolsResultPoolToken{
+							Tokens: []*entity.PoolToken{
 								{
 									Address:   "tokenaddress2",
-									Name:      "tokenName2",
 									Symbol:    "tokenSymbol2",
 									Decimals:  6,
-									Weight:    50,
 									Swappable: true,
 								},
 								{
 									Address:   "tokenaddress3",
-									Name:      "tokenName3",
 									Symbol:    "tokenSymbol3",
 									Decimals:  6,
-									Weight:    50,
 									Swappable: true,
 								},
 							},

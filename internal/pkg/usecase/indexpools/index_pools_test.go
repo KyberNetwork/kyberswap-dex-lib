@@ -22,42 +22,32 @@ import (
 func mockPoolTokensTestIndexPools() []*entity.PoolToken {
 	token1 := &entity.PoolToken{
 		Address:   "tokenaddress1",
-		Name:      "tokenName1",
 		Symbol:    "tokenSymbol1",
 		Decimals:  6,
-		Weight:    50,
 		Swappable: true,
 	}
 	token2 := &entity.PoolToken{
 		Address:   "tokenaddress2",
-		Name:      "tokenName2",
 		Symbol:    "tokenSymbol2",
 		Decimals:  6,
-		Weight:    50,
 		Swappable: true,
 	}
 	token3 := &entity.PoolToken{
 		Address:   "tokenaddress3",
-		Name:      "tokenName3",
 		Symbol:    "tokenSymbol3",
 		Decimals:  6,
-		Weight:    50,
 		Swappable: false,
 	}
 	token4 := &entity.PoolToken{
 		Address:   "tokenaddress4",
-		Name:      "tokenName4",
 		Symbol:    "tokenSymbol4",
 		Decimals:  6,
-		Weight:    50,
 		Swappable: true,
 	}
 	token5 := &entity.PoolToken{
 		Address:   "tokenaddress5",
-		Name:      "tokenName5",
 		Symbol:    "tokenSymbol5",
 		Decimals:  6,
-		Weight:    50,
 		Swappable: true,
 	}
 	return []*entity.PoolToken{token1, token2, token3, token4, token5}

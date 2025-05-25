@@ -126,8 +126,8 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 			Type:     "uniswap",
 			Reserves: entity.PoolReserves{"21807913977161779085372", "34113654675815"},
 			Tokens: []*entity.PoolToken{
-				{Address: tokenWETH.Address, Weight: 50, Swappable: true},
-				{Address: tokenUSDT.Address, Weight: 50, Swappable: true},
+				{Address: tokenWETH.Address, Swappable: true},
+				{Address: tokenUSDT.Address, Swappable: true},
 			},
 		},
 	}

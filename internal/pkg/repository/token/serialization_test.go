@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 )
 
@@ -22,13 +22,10 @@ func TestSerialization_DecodeFullToken(t *testing.T) {
 			key:    "address",
 			member: "{\"address\":\"0xABC\",\"symbol\":\"ABC\",\"name\":\"ABC Token\",\"decimals\":18,\"cgkId\":\"abc\",\"type\":\"erc20\",\"poolAddress\":\"xyz\"}",
 			expectedToken: &entity.Token{
-				Address:     "0xABC",
-				Symbol:      "ABC",
-				Name:        "ABC Token",
-				Decimals:    18,
-				CgkID:       "abc",
-				Type:        "erc20",
-				PoolAddress: "xyz",
+				Address:  "0xABC",
+				Symbol:   "ABC",
+				Name:     "ABC Token",
+				Decimals: 18,
 			},
 		},
 		{
@@ -36,13 +33,10 @@ func TestSerialization_DecodeFullToken(t *testing.T) {
 			key:    "address",
 			member: "{\"address\":\"0xABC\",\"symbol\":\"ABC\",\"name\":\"ABC Token\",\"decimals\":18,\"cgkId\":\"abc\",\"type\":\"erc20\"}",
 			expectedToken: &entity.Token{
-				Address:     "0xABC",
-				Symbol:      "ABC",
-				Name:        "ABC Token",
-				Decimals:    18,
-				CgkID:       "abc",
-				Type:        "erc20",
-				PoolAddress: "",
+				Address:  "0xABC",
+				Symbol:   "ABC",
+				Name:     "ABC Token",
+				Decimals: 18,
 			},
 		},
 	}

@@ -151,13 +151,11 @@ func GenPMMPool(token1, token2 *entity.SimplifiedToken) (*kyberpmm.PoolSimulator
 			{
 				Address:   token1.Address,
 				Decimals:  token1.Decimals,
-				Weight:    0,
 				Swappable: true,
 			},
 			{
 				Address:   token2.Address,
 				Decimals:  token2.Decimals,
-				Weight:    0,
 				Swappable: true,
 			}},
 		StaticExtra: `{
