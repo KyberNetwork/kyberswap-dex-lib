@@ -174,7 +174,6 @@ func (u *PoolsListUpdater) initPool(
 	for j, token := range subgraphPool.Tokens {
 		poolTokens[j] = &entity.PoolToken{
 			Address:   token.Address,
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 

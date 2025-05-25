@@ -175,7 +175,6 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coins[i][j].Hex()),
 				Decimals:  decimals[i][j],
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}

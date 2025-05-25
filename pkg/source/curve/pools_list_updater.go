@@ -299,13 +299,11 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			if poolItem.Type == PoolTypeAave {
 				tokens[j] = &entity.PoolToken{
 					Address:   strings.ToLower(poolItem.Tokens[j].Address),
-					Weight:    defaultWeight,
 					Swappable: false,
 				}
 			} else {
 				tokens[j] = &entity.PoolToken{
 					Address:   strings.ToLower(poolItem.Tokens[j].Address),
-					Weight:    defaultWeight,
 					Swappable: true,
 				}
 			}

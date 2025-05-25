@@ -18,23 +18,15 @@ import (
 )
 
 var (
-	ErrInvalidNormalizedWeights   = errors.New("invalid normalizedWeights")
-	ErrBasePoolIsNil              = errors.New("base pool is nil")
 	ErrSameBasePoolSwapNotAllowed = errors.New("swapping between tokens in the same base pool is not allowed")
 	ErrTokenNotRegistered         = errors.New("TOKEN_NOT_REGISTERED")
 	ErrInvalidReserve             = errors.New("invalid reserve")
 	ErrInvalidAmountIn            = errors.New("invalid amount in")
-	ErrInvalidAmountOut           = errors.New("invalid amount out")
-	ErrInvalidSwapFeePercentage   = errors.New("invalid swap fee percentage")
 	ErrPoolPaused                 = errors.New("pool is paused")
 	ErrMaxTotalInRatio            = errors.New("MAX_TOTAL_IN_RATIO")
 	ErrMaxTotalOutRatio           = errors.New("MAX_TOTAL_OUT_RATIO")
 	ErrOverflow                   = errors.New("OVERFLOW")
 	ErrBatchSwapDisabled          = errors.New("batch swap is disabled")
-)
-
-var (
-	defaultGas = Gas{Swap: 80000}
 )
 
 type (

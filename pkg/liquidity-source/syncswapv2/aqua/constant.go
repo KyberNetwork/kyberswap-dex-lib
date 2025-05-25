@@ -3,11 +3,10 @@ package syncswapv2aqua
 var (
 	DexTypeSyncSwapV2Aqua = "syncswapv2-aqua"
 
-	PoolTypeSyncSwapV2Aqua                = "syncswapv2-aqua"
-	poolTypeSyncSwapV2AquaInContract      = 3
-	defaultTokenWeight               uint = 50
-	reserveZero                           = "0"
-	addressZero                           = "0x0000000000000000000000000000000000000000"
+	PoolTypeSyncSwapV2Aqua           = "syncswapv2-aqua"
+	poolTypeSyncSwapV2AquaInContract = 3
+	reserveZero                      = "0"
+	addressZero                      = "0x0000000000000000000000000000000000000000"
 
 	poolMethodPoolType                  = "poolType"
 	poolMethodGetAssets                 = "getAssets"

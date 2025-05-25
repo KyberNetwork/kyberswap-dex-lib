@@ -64,14 +64,12 @@ func (t *PoolTracker) getNewPoolState(
 			Address:   strings.ToLower(EzEthToken),
 			Symbol:    "ezETH",
 			Decimals:  18,
-			Name:      "Renzo Restaked ETH",
 			Swappable: true,
 		},
 		{
 			Address:   strings.ToLower(WETH),
 			Symbol:    "WETH",
 			Decimals:  18,
-			Name:      "Wrapped Ether",
 			Swappable: true,
 		},
 	}

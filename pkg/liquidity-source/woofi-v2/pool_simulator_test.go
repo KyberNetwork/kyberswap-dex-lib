@@ -31,13 +31,11 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
@@ -86,43 +84,36 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
-				Weight:    1,
 				Decimals:  8,
 				Swappable: true,
 			},
 			{
 				Address:   "0xcafcd85d8ca7ad1e1c6f82f651fa15e33aefd07b",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x912ce59144191c1204e64559fe8253a0e49e6548",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
@@ -167,37 +158,31 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0x4200000000000000000000000000000000000006",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x68f180fcce6836688e9084f035309e29bf0a2095",
-				Weight:    1,
 				Decimals:  8,
 				Swappable: true,
 			},
 			{
 				Address:   "0x0b2c639c533813f4aa9d7837caf62653d097ff85",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0x4200000000000000000000000000000000000042",
-				Weight:    1,
 				Decimals:  18,
 				Swappable: true,
 			},
 			{
 				Address:   "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-				Weight:    1,
 				Decimals:  6,
 				Swappable: true,
 			},

@@ -68,10 +68,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		token0Model := entity.PoolToken{
 			Address:   p.TokenXAddress,
-			Name:      p.TokenX,
 			Symbol:    p.TokenX,
 			Decimals:  uint8(p.TokenXDecimals),
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		tokens = append(tokens, &token0Model)
@@ -79,10 +77,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		token1Model := entity.PoolToken{
 			Address:   p.TokenYAddress,
-			Name:      p.TokenY,
 			Symbol:    p.TokenY,
 			Decimals:  uint8(p.TokenYDecimals),
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		tokens = append(tokens, &token1Model)

@@ -57,8 +57,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{reserves, reserves},
 			Tokens: []*entity.PoolToken{
-				{Address: strings.ToLower(WETH), Symbol: "WETH", Decimals: 18, Name: "Wrapped Ether", Swappable: true},
-				{Address: strings.ToLower(RocketTokenRETH), Symbol: "rETH", Decimals: 18, Name: "Rocket Pool ETH", Swappable: true},
+				{Address: strings.ToLower(WETH), Symbol: "WETH", Decimals: 18, Swappable: true},
+				{Address: strings.ToLower(RocketTokenRETH), Symbol: "rETH", Decimals: 18, Swappable: true},
 			},
 			BlockNumber: blockNumber,
 			Extra:       string(extraBytes),

@@ -24,8 +24,6 @@ const (
 	cloracleMethodLatestRoundData = "latestRoundData"
 
 	erc20MethodDecimals = "decimals"
-
-	defaultWeight = 1
 )
 
 var (

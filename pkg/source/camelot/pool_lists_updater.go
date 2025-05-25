@@ -133,12 +133,10 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 	for i, pairAddr := range pairAddresses {
 		token0 := entity.PoolToken{
 			Address:   strings.ToLower(token0Addresses[i].Hex()),
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		token1 := entity.PoolToken{
 			Address:   strings.ToLower(token1Addresses[i].Hex()),
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 

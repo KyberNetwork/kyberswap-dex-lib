@@ -136,7 +136,6 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 	for j, token := range subgraphPool.PoolTokens {
 		poolTokens[j] = &entity.PoolToken{
 			Address:   token.Address,
-			Weight:    defaultWeight,
 			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"

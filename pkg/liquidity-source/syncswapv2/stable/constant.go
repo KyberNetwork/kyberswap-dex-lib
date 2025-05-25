@@ -5,12 +5,11 @@ import (
 )
 
 var (
-	DexTypeSyncSwapV2Stable                 = "syncswapv2-stable"
-	PoolTypeSyncSwapV2Stable                = "syncswapv2-stable"
-	poolTypeSyncSwapV2StableInContract      = 2
-	defaultTokenWeight                 uint = 50
-	reserveZero                             = "0"
-	addressZero                             = "0x0000000000000000000000000000000000000000"
+	DexTypeSyncSwapV2Stable            = "syncswapv2-stable"
+	PoolTypeSyncSwapV2Stable           = "syncswapv2-stable"
+	poolTypeSyncSwapV2StableInContract = 2
+	reserveZero                        = "0"
+	addressZero                        = "0x0000000000000000000000000000000000000000"
 
 	poolMethodPoolType                  = "poolType"
 	poolMethodGetAssets                 = "getAssets"

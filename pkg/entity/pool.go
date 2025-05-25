@@ -18,10 +18,8 @@ func (r PoolReserves) Encode() string {
 
 type PoolToken struct {
 	Address   string `json:"address,omitempty"`
-	Name      string `json:"name,omitempty"`
 	Symbol    string `json:"symbol,omitempty"`
 	Decimals  uint8  `json:"decimals,omitempty"`
-	Weight    uint   `json:"weight,omitempty"`
 	Swappable bool   `json:"swappable,omitempty"`
 }
 
@@ -32,10 +30,8 @@ func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
 	for i, poolToken := range poolTokens {
 		clonePoolToken := &PoolToken{
 			Address:   poolToken.Address,
-			Name:      poolToken.Name,
 			Symbol:    poolToken.Symbol,
 			Decimals:  poolToken.Decimals,
-			Weight:    poolToken.Weight,
 			Swappable: poolToken.Swappable,
 		}
 		result[i] = clonePoolToken
@@ -109,12 +105,10 @@ func (p *Pool) Clear() {
 	if p.Tokens != nil {
 		// Keep allocated memory
 		for i := range p.Tokens {
-			p.Tokens[i].Weight = 0
-			p.Tokens[i].Name = ""
-			p.Tokens[i].Swappable = false
 			p.Tokens[i].Address = ""
 			p.Tokens[i].Symbol = ""
 			p.Tokens[i].Decimals = 0
+			p.Tokens[i].Swappable = false
 		}
 		p.Tokens = p.Tokens[:0]
 	}

@@ -1,8 +1,7 @@
 package pearl
 
 const (
-	DexTypePearl       = "pearl"
-	defaultTokenWeight = 50
+	DexTypePearl = "pearl"
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"

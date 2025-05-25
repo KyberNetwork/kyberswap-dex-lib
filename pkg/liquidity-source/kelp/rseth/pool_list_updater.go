@@ -57,7 +57,6 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Address:   strings.ToLower(common.RSETH),
 			Symbol:    "rsETH",
 			Decimals:  18,
-			Name:      "rsETH",
 			Swappable: true,
 		},
 	}

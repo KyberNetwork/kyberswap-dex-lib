@@ -1,8 +1,7 @@
 package muteswitch
 
 const (
-	DexTypeMuteSwitch  = "muteswitch"
-	defaultTokenWeight = 50
+	DexTypeMuteSwitch = "muteswitch"
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"

@@ -72,7 +72,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coinAddress),
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}

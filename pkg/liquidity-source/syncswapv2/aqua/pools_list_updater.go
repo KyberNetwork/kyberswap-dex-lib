@@ -95,12 +95,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 		var token1 = entity.PoolToken{
 			Address:   token1Address,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
 
