@@ -10,7 +10,7 @@ on:
         type: string
         required: true
       create_tag:
-        description: 'Create tag'
+        description: 'Whether to create tag and release'
         type: boolean
         default: true
 

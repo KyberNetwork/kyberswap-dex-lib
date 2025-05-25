@@ -108,7 +108,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 		poolSim, ok := basePoolMap[pool.Address]
 		if !ok {
 			var err error
-			poolSim, err = f.newPool(nil, *pool, factoryParams, stateRoot)
+			poolSim, err = f.newPool(ctx, *pool, factoryParams, stateRoot)
 			if err != nil {
 				logger.Debugf(ctx, "%+v", err)
 				continue

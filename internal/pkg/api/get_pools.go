@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 // GetPools [GET /pools] Get pools data
@@ -41,6 +42,7 @@ func GetPools(
 		}
 
 		RespondSuccess(ginCtx, result)
+		mempool.ReserveMany(result.Pools...)
 	}
 }
 

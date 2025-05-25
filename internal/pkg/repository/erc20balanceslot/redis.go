@@ -55,7 +55,8 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*types
 	return result, nil
 }
 
-func (r *RedisRepository) GetMany(ctx context.Context, tokens []common.Address) (map[common.Address]*types.ERC20BalanceSlot, error) {
+func (r *RedisRepository) GetMany(ctx context.Context,
+	tokens []common.Address) (map[common.Address]*types.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.GetMany")
 	defer span.End()
 
@@ -133,7 +134,8 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*types
 			token := strings.ToLower(keyValues[i])
 			balanceSlot := new(types.ERC20BalanceSlot)
 			if err := json.Unmarshal([]byte(keyValues[i+1]), balanceSlot); err != nil {
-				logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
+				logger.WithFields(ctx,
+					logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
 				continue
 			}
 			result[common.HexToAddress(token)] = balanceSlot
