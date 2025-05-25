@@ -2,6 +2,7 @@ package entity
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -83,12 +84,7 @@ func (p *Pool) GetLpToken() string {
 // HasReserves check if a pool has some reserves or not.
 // Returns false if there is no reserve in pool, or all reserves are empty string or "0". True otherwise.
 func (p *Pool) HasReserves() bool {
-	for _, reserve := range p.Reserves {
-		if p.HasReserve(reserve) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(p.Reserves, p.HasReserve)
 }
 
 func (p *Pool) HasReserve(reserve string) bool {

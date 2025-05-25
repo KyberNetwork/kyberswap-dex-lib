@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 	"sync"
 
@@ -125,10 +126,8 @@ func (p *NTokenPool) GetPair(tokenIn, tokenOut common.Address) (TokenPair, bool)
 		base, quote = quote, base
 	}
 	pair := TokenPair{Base: base, Quote: quote}
-	for _, p := range p.pairs {
-		if pair == p {
-			return pair, true
-		}
+	if slices.Contains(p.pairs, pair) {
+		return pair, true
 	}
 	return TokenPair{}, false
 }
