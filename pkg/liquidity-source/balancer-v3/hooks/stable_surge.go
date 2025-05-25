@@ -1,12 +1,20 @@
 package hooks
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
+)
+
+var (
+	// AcceptableMaxSurgeFeePercentage caps max acceptable surge fee to avoid high slippage
+	AcceptableMaxSurgeFeePercentage = uint256.NewInt(0.02e18) // 2%
+
+	ErrMaxSurgeFeePercentageTooHigh = errors.New("maxSurgeFeePercentage too high")
 )
 
 type StableSurgeHook struct {
@@ -16,11 +24,14 @@ type StableSurgeHook struct {
 	ThresholdPercentage   *uint256.Int
 }
 
-func NewStableSurgeHook(maxSurgeFeePercentage, thresholdPercentage *uint256.Int) *StableSurgeHook {
+func NewStableSurgeHook(maxSurgeFeePercentage, thresholdPercentage *uint256.Int) (*StableSurgeHook, error) {
+	if maxSurgeFeePercentage.Gt(AcceptableMaxSurgeFeePercentage) {
+		return nil, ErrMaxSurgeFeePercentageTooHigh
+	}
 	return &StableSurgeHook{
 		MaxSurgeFeePercentage: maxSurgeFeePercentage,
 		ThresholdPercentage:   thresholdPercentage,
-	}
+	}, nil
 }
 
 func (h *StableSurgeHook) OnComputeDynamicSwapFeePercentage(params shared.PoolSwapParams) (bool, *uint256.Int, error) {
