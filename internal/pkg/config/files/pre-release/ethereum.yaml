@@ -157,6 +157,7 @@ common:
     - "ekubo"
     - "pmm-2"
     - "hyeth"
+    - "mimswap"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

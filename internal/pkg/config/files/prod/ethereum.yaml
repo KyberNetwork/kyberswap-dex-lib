@@ -168,6 +168,7 @@ common:
     - "ekubo"
     - "pmm-2"
     - "hyeth"
+    - "mimswap"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

@@ -18,7 +18,7 @@ var useApproveMaxFunctionSet = map[string]bool{
 	l1executor.FunctionSelectorCurveSwap.RawName:         true,
 	l1executor.FunctionSelectorPancakeStableSwap.RawName: true,
 	l1executor.FunctionSelectorBalancerV2.RawName:        false,
-	l1executor.FunctionSelectorDODO.RawName:              true,
+	l1executor.FunctionSelectorDODO.RawName:              false,
 	l1executor.FunctionSelectorWSTETH.RawName:            true,
 	l1executor.FunctionSelectorPlatypus.RawName:          true,
 	l1executor.FunctionSelectorPSM.RawName:               true,
