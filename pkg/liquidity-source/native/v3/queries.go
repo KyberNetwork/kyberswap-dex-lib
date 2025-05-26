@@ -42,13 +42,11 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 			feeTier
 			token0 {
 				id
-				name
 				symbol
 				decimals
 			}
 			token1 {
 				id
-				name
 				symbol
 				decimals
 			}

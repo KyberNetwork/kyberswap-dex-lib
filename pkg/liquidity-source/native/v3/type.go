@@ -63,13 +63,24 @@ type (
 		BlockNumber uint64       `json:"blockNumber"`
 	}
 
+	Token struct {
+		Address  string `json:"id"`
+		Symbol   string `json:"symbol"`
+		Decimals string `json:"decimals"`
+	}
+
+	SubgraphPool struct {
+		ID                 string `json:"id"`
+		FeeTier            string `json:"feeTier"`
+		PoolType           string `json:"poolType"`
+		CreatedAtTimestamp string `json:"createdAtTimestamp"`
+		Token0             Token  `json:"token0"`
+		Token1             Token  `json:"token1"`
+	}
+
 	Gas = uniswapv3.Gas
 
 	Metadata = uniswapv3.Metadata
-
-	Token = uniswapv3.Token
-
-	SubgraphPool = uniswapv3.SubgraphPool
 
 	TickResp = ticklens.TickResp
 

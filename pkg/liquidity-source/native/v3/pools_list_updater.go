@@ -66,11 +66,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	return response.Pools, nil
 }
 
-func (d *PoolsListUpdater) processToken(token *Token) *entity.PoolToken {
-	if token == nil || token.Address == "" {
-		return nil
-	}
-
+func (d *PoolsListUpdater) processToken(token Token) *entity.PoolToken {
 	decimals, err := strconv.Atoi(token.Decimals)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -82,10 +78,8 @@ func (d *PoolsListUpdater) processToken(token *Token) *entity.PoolToken {
 
 	return &entity.PoolToken{
 		Address:   token.Address,
-		Name:      token.Name,
 		Symbol:    token.Symbol,
 		Decimals:  uint8(decimals),
-		Weight:    defaultTokenWeight,
 		Swappable: true,
 	}
 }
@@ -94,12 +88,12 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticExtra) e
 	tokens := make([]*entity.PoolToken, 0, 2)
 	reserves := make([]string, 0, 2)
 
-	if token0 := d.processToken(&p.Token0); token0 != nil {
+	if token0 := d.processToken(p.Token0); token0 != nil {
 		tokens = append(tokens, token0)
 		reserves = append(reserves, "0")
 	}
 
-	if token1 := d.processToken(&p.Token1); token1 != nil {
+	if token1 := d.processToken(p.Token1); token1 != nil {
 		tokens = append(tokens, token1)
 		reserves = append(reserves, "0")
 	}
@@ -134,16 +128,14 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticExtra) e
 	}
 
 	return entity.Pool{
-		Address:      p.ID,
-		ReserveUsd:   0,
-		AmplifiedTvl: 0,
-		SwapFee:      swapFee,
-		Exchange:     d.config.DexID,
-		Type:         DexType,
-		Timestamp:    createdAtTimestamp,
-		Reserves:     reserves,
-		Tokens:       tokens,
-		StaticExtra:  string(staticBytes),
+		Address:     p.ID,
+		SwapFee:     swapFee,
+		Exchange:    d.config.DexID,
+		Type:        DexType,
+		Timestamp:   createdAtTimestamp,
+		Reserves:    reserves,
+		Tokens:      tokens,
+		StaticExtra: string(staticBytes),
 	}
 }
 
