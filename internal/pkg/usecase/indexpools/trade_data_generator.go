@@ -12,16 +12,17 @@ import (
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+	"golang.org/x/exp/maps"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
-	"golang.org/x/exp/maps"
 )
 
 type TradeDataGenerator struct {
@@ -66,11 +67,11 @@ func NewTradeDataGenerator(poolRepo IPoolRepository,
 	}
 }
 
-func (u *TradeDataGenerator) ApplyConfig(config TradeDataGeneratorConfig) {
-	u.mu.Lock()
-	u.config.AvailableSources = config.AvailableSources
-	u.config.DexUseAEVM = config.DexUseAEVM
-	u.mu.Unlock()
+func (gen *TradeDataGenerator) ApplyConfig(config TradeDataGeneratorConfig) {
+	gen.mu.Lock()
+	gen.config.AvailableSources = config.AvailableSources
+	gen.config.DexUseAEVM = config.DexUseAEVM
+	gen.mu.Unlock()
 }
 
 func (gen *TradeDataGenerator) getPrices(ctx context.Context, addresses []string) (map[string]*price, error) {
@@ -145,7 +146,7 @@ func (gen *TradeDataGenerator) Handle(ctx context.Context,
 		return
 	}
 
-	// pre-process input to seperate rfq dexes and others
+	// pre-process input to separate rfq dexes and others
 	rfqDexes := mapset.NewThreadUnsafeSet[string]()
 	addresses := make([]string, 0, input.Cardinality())
 	dexUseSwapLimit := mapset.NewThreadUnsafeSet(constant.DexUseSwapLimit...)
@@ -158,7 +159,6 @@ func (gen *TradeDataGenerator) Handle(ctx context.Context,
 	})
 
 	gen.handleAllPools(ctx, output, indexBlacklistWlPools, rfqDexes.ToSlice(), addresses)
-
 }
 
 func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
@@ -241,7 +241,7 @@ func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
 	)
 }
 
-func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
+func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 	rfqDexes []string,
 	output chan<- TradesGenerationOutput,
 	prices map[string]*price,
@@ -251,7 +251,7 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 	alreadyProceed := mapset.NewSet[string]()
 
 	for _, dex := range rfqDexes {
-		addresses, err := u.poolRepo.FindAddressesByDex(ctx, dex)
+		addresses, err := gen.poolRepo.FindAddressesByDex(ctx, dex)
 		if err != nil {
 			logger.WithFields(ctx,
 				logger.Fields{
@@ -281,7 +281,7 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 			return map[string]map[string]*big.Int{poolSimulators[0].GetType(): dexLimit}
 
 		}
-		result, err := u.proceedChunk(ctx, addresses, prices, tokens, poolFilter, calcSwapLimit)
+		result, err := gen.proceedChunk(ctx, addresses, prices, tokens, poolFilter, calcSwapLimit)
 		if err != nil {
 			logger.WithFields(ctx,
 				logger.Fields{
@@ -298,7 +298,7 @@ func (u *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 
 }
 
-func (u *TradeDataGenerator) handlePools(ctx context.Context,
+func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 	output chan<- TradesGenerationOutput,
 	prices map[string]*price,
 	tokens map[string]*entity.SimplifiedToken,
@@ -313,9 +313,9 @@ func (u *TradeDataGenerator) handlePools(ctx context.Context,
 	noSwapLimit := func(poolSimulator []poolpkg.IPoolSimulator) map[string]map[string]*big.Int {
 		return nil
 	}
-	chunks := lo.Chunk(addresses, u.config.ChunkSize)
+	chunks := lo.Chunk(addresses, gen.config.ChunkSize)
 	for _, chunk := range chunks {
-		result, err := u.proceedChunk(ctx, chunk, prices, tokens, poolFilter, noSwapLimit)
+		result, err := gen.proceedChunk(ctx, chunk, prices, tokens, poolFilter, noSwapLimit)
 		if err != nil {
 			logger.WithFields(ctx,
 				logger.Fields{
@@ -341,7 +341,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 ) (TradesGenerationOutput, error) {
 	tradeChan := make(chan []TradeData, len(chunk))
 	var wg sync.WaitGroup
-	tradeDataInChunk := []TradeData{}
+	var tradeDataInChunk []TradeData
 
 	whitelistPools, err := gen.getPoolsUseCase.Handle(ctx, chunk, poolFiler)
 	if err != nil {
@@ -379,7 +379,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 
 	for _, pool := range poolInterfaces {
 		// ignore aevm pools if we can't get latest state from aevm
-		if gen.config.UseAEVM && gen.config.DexUseAEVM[pool.GetExchange()] && len(stateRoot) == 0 {
+		if gen.config.UseAEVM && gen.config.DexUseAEVM[pool.GetExchange()] && stateRoot == (aevmcommon.Hash{}) {
 			continue
 		}
 		poolTokens := pool.GetTokens()
@@ -461,7 +461,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 			delete(result, p)
 		}
 	}
-	// Add zero reserves pools and pools which doesn't yeild any successful swaps to blacklist
+	// Add zero reserves pools and pools which doesn't yield any successful swaps to blacklist
 	indexBlacklistTrack = indexBlacklistTrack.Union(gen.getExhaustedReservesWhitelistPools(result, hasError))
 
 	return TradesGenerationOutput{
@@ -481,7 +481,7 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	pool poolpkg.IPoolSimulator,
 	limit poolpkg.SwapLimit) []TradeData {
 	calcAmountOutInstance := routerpoolpkg.NewCustomFuncs(gen.config.DexUseAEVM)
-	result := []TradeData{}
+	var result []TradeData
 	lastTradeData := TradeData{AmountOutUsd: float64(-1)}
 
 	for i := 0; i <= gen.minDataPointNumber || (!lastTradeData.hasError() && i <= gen.maxDataPointNumber); i++ {
@@ -515,7 +515,7 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 		} else {
 			// use buy price for token out
 			amountOutUsdResult, _ = business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].getBuyPrice()).Float64()
-			// Handle case where 2 consecutive points have a big diffrentiate prices impact, we have to generate 2 extra points between them
+			// Handle case where 2 consecutive points have a big differentiate prices impact, we have to generate 2 extra points between them
 			// example: if At data point 10^1, P1 = 40%; At data point 10^2 P2 = 90%, then delta price impact = 50%, then we have to generate more extra point 20 and 50
 			priceImpact := (amountInUsd - amountOutUsdResult) / amountInUsd
 			if i > 0 && i < MAX_EXPONENT_GENERATE_EXTRA_POINT && math.Abs(priceImpact-lastTradeData.PriceImpact) > PRICE_IMPACT_THRESHOLD {

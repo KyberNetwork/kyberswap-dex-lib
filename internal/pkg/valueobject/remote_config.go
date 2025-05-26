@@ -55,6 +55,7 @@ type (
 		IsOptimizeExecutorFlagsEnabled    bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
 		ShouldValidateSender              bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
 		IsAEVMEnabled                     bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
+		IsRPCPoolEnabled                  bool `mapstructure:"isRPCPoolEnabled" json:"isRPCPoolEnabled"`
 		IsFaultyPoolDetectorEnable        bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
 		IsLiquidityScoreIndexEnable       bool `mapstructure:"isLiquidityScoreEnable" json:"isLiquidityScoreEnable"`
 		IsRouteCachedEnable               bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`

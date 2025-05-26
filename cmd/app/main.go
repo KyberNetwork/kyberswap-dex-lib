@@ -26,6 +26,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/automaxprocs/maxprocs"
@@ -206,12 +207,9 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
-	rpcTimeout := cfg.Common.RPCTimeout
-	if rpcTimeout == 0 {
-		rpcTimeout = 100 * time.Millisecond
-	}
-	rpcClient, err := rpc.DialOptions(ctx, cfg.Common.RPC,
-		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil), Timeout: rpcTimeout}))
+	rpcClient, err := rpc.DialOptions(ctx, lo.CoalesceOrEmpty(cfg.Common.RPCSim, cfg.Common.RPC),
+		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil),
+			Timeout: lo.CoalesceOrEmpty(cfg.Common.RPCTimeout, 100*time.Millisecond)}))
 	if err != nil {
 		logger.Errorf(ctx, "fail to init geth client, err: %v", err)
 	}
@@ -301,8 +299,8 @@ func apiAction(c *cli.Context) (err error) {
 
 	getPoolsUseCase := getpools.NewGetPoolsUseCase(poolRepository)
 	GetPoolsIncludingBasePools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
-	getTokensUseCase := usecase.NewGetTokens(token.NewFullTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,
-		token.NewHTTPClient(cfg.Repository.Token.Http)), onchainpriceRepository)
+	getTokensUseCase := usecase.NewGetTokens(token.NewFullTokenRepository(poolRedisClient.Client,
+		cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)), onchainpriceRepository)
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache

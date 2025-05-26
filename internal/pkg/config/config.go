@@ -45,7 +45,7 @@ type Config struct {
 	Job            job.Config                `mapstructure:"job" json:"job"`
 	Validator      validator.Config          `mapstructure:"validator" json:"validator"`
 	Pprof          bool                      `mapstructure:"pprof" json:"pprof"`
-	AEVMEnabled    bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"`
+	AEVMEnabled    bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"` // overwrite hot config
 	AEVM           *AEVM                     `mapstructure:"aevm" json:"aevm"`
 
 	BundledRouteEnabled bool `mapstructure:"bundledRouteEnabled" json:"bundledRouteEnabled"`

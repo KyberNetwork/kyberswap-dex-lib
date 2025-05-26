@@ -16,6 +16,7 @@ type Common struct {
 	ChainID                 valueobject.ChainID      `mapstructure:"chainId"`
 	ChainName               string                   `mapstructure:"chainName"`
 	RPC                     string                   `mapstructure:"rpc"`
+	RPCSim                  string                   `mapstructure:"rpcSim"`
 	RPCTimeout              time.Duration            `mapstructure:"rpcTimeout"`
 	ExecutorAddress         string                   `mapstructure:"executorAddress"`
 	RouterAddress           string                   `mapstructure:"routerAddress"`

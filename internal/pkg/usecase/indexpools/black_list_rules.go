@@ -8,7 +8,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func (u *TradeDataGenerator) isWhitelistPoolHasReserves(p *entity.Pool) bool {
+func (gen *TradeDataGenerator) isWhitelistPoolHasReserves(p *entity.Pool) bool {
 	if (len(p.Reserves)) == 0 {
 		return false
 	}
@@ -19,11 +19,11 @@ func (u *TradeDataGenerator) isWhitelistPoolHasReserves(p *entity.Pool) bool {
 	zeroReserveCount := 0
 	totalWhitelistTokens := 0
 	for i, token := range p.Tokens {
-		if !u.config.WhitelistedTokenSet[strings.ToLower(token.Address)] {
+		if !gen.config.WhitelistedTokenSet[strings.ToLower(token.Address)] {
 			continue
 		}
 		totalWhitelistTokens++
-		if !u.hasReserve(p.Reserves[i]) {
+		if !gen.hasReserve(p.Reserves[i]) {
 			zeroReserveCount += 1
 		}
 	}
@@ -31,11 +31,11 @@ func (u *TradeDataGenerator) isWhitelistPoolHasReserves(p *entity.Pool) bool {
 	return totalWhitelistTokens-zeroReserveCount >= 1
 }
 
-func (u *TradeDataGenerator) removeZeroReservesPools(pools []*entity.Pool) ([]*entity.Pool, mapset.Set[string]) {
+func (gen *TradeDataGenerator) removeZeroReservesPools(pools []*entity.Pool) ([]*entity.Pool, mapset.Set[string]) {
 	zeroReserve := mapset.NewThreadUnsafeSet[string]()
 
 	return lo.Filter(pools, func(p *entity.Pool, _ int) bool {
-		hasReserve := u.isWhitelistPoolHasReserves(p)
+		hasReserve := gen.isWhitelistPoolHasReserves(p)
 		if !hasReserve {
 			zeroReserve.Add(p.Address)
 		}
@@ -44,7 +44,7 @@ func (u *TradeDataGenerator) removeZeroReservesPools(pools []*entity.Pool) ([]*e
 	}), zeroReserve
 }
 
-func (u *TradeDataGenerator) hasReserve(reserve string) bool {
+func (gen *TradeDataGenerator) hasReserve(reserve string) bool {
 	if len(reserve) == 0 || reserve == "0" || reserve == "1" {
 		return false
 	}
@@ -52,7 +52,7 @@ func (u *TradeDataGenerator) hasReserve(reserve string) bool {
 	return true
 }
 
-func (u *TradeDataGenerator) getExhaustedReservesWhitelistPools(
+func (gen *TradeDataGenerator) getExhaustedReservesWhitelistPools(
 	successed map[string]map[TradePair][]TradeData,
 	failed map[string]map[TradePair][]TradeData) mapset.Set[string] {
 	result := mapset.NewThreadUnsafeSet[string]()

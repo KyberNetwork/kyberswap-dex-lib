@@ -130,7 +130,7 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 		}
 	}
 
-	if f.config.DexUseAEVM[entityPool.Type] {
+	if f.config.UseAEVM && f.config.DexUseAEVM[entityPool.Type] {
 		if aevmPoolFactory := aevmpool.Factory(entityPool.Type); aevmPoolFactory != nil {
 			return f.newAEVMPoolWrapper(ctx, entityPool, aevmPoolFactory, stateRoot)
 		}
@@ -140,17 +140,22 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 		entityPool.Address, entityPool.Exchange, entityPool.Type)
 }
 
+// newAEVMPoolWrapper creates pool simulator from kyberswap-dex-lib-private pkg, including both AEVM and RPC-based pools
 func (f *PoolFactory) newAEVMPoolWrapper(ctx context.Context, entityPool entity.Pool, poolFactory aevmpool.FactoryFn,
 	stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
 	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
+	var balanceSlots = make(map[common.Address]*types.ERC20BalanceSlot)
+	if f.balanceSlotsUseCase != nil { // only get slots if aevm is enabled
+		balanceSlots = f.getBalanceSlots(ctx, &entityPool)
+	}
 	aevmPool, err := poolFactory(aevmpool.FactoryParams{
 		EntityPool:   entityPool,
 		ChainID:      f.config.ChainID,
 		AEVMClient:   f.aevmClient,
 		EthClient:    f.ethClient,
 		StateRoot:    stateRoot,
-		BalanceSlots: f.getBalanceSlots(ctx, &entityPool),
+		BalanceSlots: balanceSlots,
 	})
 	if err != nil {
 		return nil, err
@@ -161,9 +166,6 @@ func (f *PoolFactory) newAEVMPoolWrapper(ctx context.Context, entityPool entity.
 
 func (f *PoolFactory) getBalanceSlots(ctx context.Context,
 	pool *entity.Pool) map[common.Address]*types.ERC20BalanceSlot {
-	if f.balanceSlotsUseCase == nil {
-		return nil
-	}
 	balanceSlots := make(map[common.Address]*types.ERC20BalanceSlot)
 	for _, token := range pool.Tokens {
 		tokenAddr := common.HexToAddress(token.Address)
