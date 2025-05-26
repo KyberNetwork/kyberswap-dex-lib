@@ -3,7 +3,6 @@ package mkr_sky
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -62,7 +62,7 @@ func (t *PoolTracker) getNewPoolState(
 		"pool":   p.Address,
 	}).Info("fetching pool state")
 
-	var fee big.Int
+	var fee = bignumber.ZeroBI
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		req.SetOverrides(overrides)
@@ -73,7 +73,7 @@ func (t *PoolTracker) getNewPoolState(
 		Method: "fee",
 	}, []any{&fee})
 
-	res, err := req.Call()
+	res, err := req.Aggregate()
 	if err != nil {
 		return entity.Pool{}, fmt.Errorf("failed to fetch pool fee: %w", err)
 	}
