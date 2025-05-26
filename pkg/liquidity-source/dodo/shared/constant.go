@@ -29,6 +29,8 @@ const (
 	dodoV2MethodGetPMMStateForCall = "getPMMStateForCall"
 	dodoV2MethodLpFeeRate          = "_LP_FEE_RATE_"
 	dodoV2MethodGetUserFeeRate     = "getUserFeeRate"
+	DodoV2MethodGetBaseToken       = "_BASE_TOKEN_"
+	DodoV2MethodGetQuoteToken      = "_QUOTE_TOKEN_"
 )
 
 var (

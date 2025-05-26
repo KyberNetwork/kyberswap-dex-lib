@@ -221,14 +221,14 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	calls.AddCall(&ethrpc.Call{
-		ABI:    v2PoolABI,
+		ABI:    V2PoolABI,
 		Target: p.Address,
 		Method: dodoV2MethodGetPMMStateForCall,
 		Params: nil,
 	}, []interface{}{&state})
 
 	calls.AddCall(&ethrpc.Call{
-		ABI:    v2PoolABI,
+		ABI:    V2PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodLpFeeRate,
 		Params: nil,
@@ -250,7 +250,7 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	// Some DPP pools have an issue with `getUserFeeRate` function, so we need to separately call
 	calls = d.ethrpcClient.NewRequest()
 	calls.AddCall(&ethrpc.Call{
-		ABI:    v2PoolABI,
+		ABI:    V2PoolABI,
 		Target: p.Address,
 		Method: dodoV2MethodGetUserFeeRate,
 		Params: []interface{}{common.HexToAddress(p.Address)},
