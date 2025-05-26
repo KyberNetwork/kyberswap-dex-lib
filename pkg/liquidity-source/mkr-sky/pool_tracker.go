@@ -37,7 +37,7 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	// ignore tracking new state with legacy version
 	if !strings.EqualFold(p.Address, OneWayPoolAddress) {
-		return entity.Pool{}, nil
+		return p, nil
 	}
 
 	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, nil)
