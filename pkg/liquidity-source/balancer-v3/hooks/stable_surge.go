@@ -12,7 +12,7 @@ import (
 
 var (
 	// AcceptableMaxSurgeFeePercentage caps max acceptable surge fee to avoid high slippage
-	AcceptableMaxSurgeFeePercentage = uint256.NewInt(0.02e18) // 2%
+	AcceptableMaxSurgeFeePercentage = uint256.NewInt(0.05e18) // 5%
 
 	ErrMaxSurgeFeePercentageTooHigh = errors.New("maxSurgeFeePercentage too high")
 )
