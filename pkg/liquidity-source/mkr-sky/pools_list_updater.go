@@ -98,24 +98,18 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 
 func (d *PoolsListUpdater) getNewPool(ctx context.Context, pool *PoolItem) (entity.Pool, error) {
 	var (
-		tokens    = make([]*entity.PoolToken, 0, len(pool.Tokens))
-		reserves  = make(entity.PoolReserves, 0, len(pool.Tokens))
-		rate      *big.Int
-		swappable = true
+		tokens   = make([]*entity.PoolToken, 0, len(pool.Tokens))
+		reserves = make(entity.PoolReserves, 0, len(pool.Tokens))
+		rate     *big.Int
 	)
 
 	req := d.ethrpcClient.R().SetContext(ctx)
 	for _, token := range pool.Tokens {
-		if strings.EqualFold(pool.ID, OneWayPoolAddress) &&
-			strings.EqualFold(token.Address, SkyAddress) {
-			swappable = false
-		}
-
 		tokenEntity := entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
 			Symbol:    token.Symbol,
 			Decimals:  token.Decimals,
-			Swappable: swappable,
+			Swappable: true,
 		}
 
 		tokens = append(tokens, &tokenEntity)
