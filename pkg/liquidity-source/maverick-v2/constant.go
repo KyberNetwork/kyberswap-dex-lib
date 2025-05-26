@@ -1,5 +1,7 @@
 package maverickv2
 
+import "math/big"
+
 const (
 	DexType = "maverick-v2"
 )
@@ -15,6 +17,7 @@ const (
 const (
 	GasSwap     = int64(125000)
 	GasCrossBin = int64(20000)
-	// Constants matching TypeScript implementation
-	MAX_TICK = 460540
 )
+
+// MAX_TICK is the maximum tick value for Maverick V2 pools.
+var MAX_TICK = big.NewInt(460540)

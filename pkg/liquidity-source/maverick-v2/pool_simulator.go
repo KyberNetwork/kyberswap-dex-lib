@@ -262,7 +262,7 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 		tickLimit = startingTick - 100
 	}
 
-	// In JS, we check if the swap limit is beyond the current tick
+	// Check if the swap limit is beyond the current tick
 	if (startingTick > tickLimit && tokenAIn) || (startingTick < tickLimit && !tokenAIn) {
 		return nil, nil, 0, new(uint256.Int), fmt.Errorf("beyond swap limit")
 	}
@@ -287,9 +287,9 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 	return delta.DeltaInErc, delta.DeltaOutErc, binCrossed, delta.FractionalPart, nil
 }
 
+// swapTick
+// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/2108e064319bf14f98c321a8acd4762d3e9e3560/src/dex/maverick-v2/maverick-math/maverick-pool-math.ts#L621
 func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, bool, error) {
-	// Implementation based on maverick-v2 JavaScript logic
-
 	newDelta := &Delta{
 		DeltaInBinInternal: new(uint256.Int),
 		DeltaInErc:         new(uint256.Int),
@@ -317,7 +317,6 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 
 	// Find next tick with liquidity
 	crossedBin := false
-	ticksSearched := 0
 	var tickData Bin
 	var ok bool
 
@@ -332,18 +331,12 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		// Move to next tick in correct direction
 		activeTick += boolToInt32(delta.TokenAIn) - boolToInt32(!delta.TokenAIn)
 		crossedBin = true
-		ticksSearched++
 
 		// Check again if we've reached the tick limit after moving
 		if (activeTick > tickLimit && delta.TokenAIn) || (activeTick < tickLimit && !delta.TokenAIn) {
 			state.ActiveTick += boolToInt32(!delta.TokenAIn) - boolToInt32(delta.TokenAIn)
 			newDelta.SwappedToMaxPrice = true // Set this flag when we hit the tick limit
 			return delta, true, nil
-		}
-
-		// Safety check to avoid infinite loops
-		if ticksSearched > 1000 {
-			return nil, false, fmt.Errorf("too many ticks searched without finding liquidity")
 		}
 	}
 
@@ -1436,169 +1429,184 @@ func safeCloneUint256(value *uint256.Int) *uint256.Int {
 	return new(uint256.Int).Set(value)
 }
 
+// subTickIndex applies tick spacing and validates bounds
+// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-tick-math.ts#L113
+func subTickIndex(tickSpacing uint32, tick int32) *big.Int {
+	// Get absolute value of tick using big.Int for precision
+	subTick := big.NewInt(int64(tick))
+	subTick.Abs(subTick)
+
+	// Multiply by tickSpacing
+	tickSpacingBig := big.NewInt(int64(tickSpacing))
+	subTick.Mul(subTick, tickSpacingBig)
+
+	// Check bounds
+	if subTick.Cmp(MAX_TICK) > 0 {
+		panic("OB") // Out of bounds - matching TypeScript error
+	}
+
+	return subTick
+}
+
 // Square root price and tick calculations matching the TypeScript implementation
-func calculateSqrtPrice(tick int32) *uint256.Int {
+// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-tick-math.ts#L122
+func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
 	// Implementation matching TypeScript's tickSqrtPrice function
-	// First apply tick spacing - for now assuming spacing is 1
-	subTick := uint64(tick)
-	if tick < 0 {
-		subTick = uint64(-tick)
-	}
+	// Apply tick spacing using subTickIndex
+	subTick := subTickIndex(tickSpacing, tick)
 
-	// Check if the tick is within valid range
-	const MAX_TICK = 460540
-	if subTick > MAX_TICK {
-		return new(uint256.Int) // Return 0 if out of bounds
-	}
-
-	// Initialize ratio
-	ratio := new(uint256.Int)
-	if subTick&0x1 != 0 {
-		ratio.SetFromHex("0xfffcb933bd6fad9d3af5f0b9f25db4d6")
+	// Initialize ratio using big.Int for precise calculations, then convert to uint256.Int
+	ratio := new(big.Int)
+	if new(big.Int).And(subTick, big.NewInt(0x1)).Cmp(big.NewInt(0)) != 0 {
+		ratio.SetString("fffcb933bd6fad9d3af5f0b9f25db4d6", 16)
 	} else {
-		ratio.SetFromHex("0x100000000000000000000000000000000")
+		ratio.SetString("100000000000000000000000000000000", 16)
 	}
 
 	// Apply bit shifts and multiplications matching the TypeScript implementation
-	if subTick&0x2 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xfff97272373d41fd789c8cb37ffcaa1c")
+	if new(big.Int).And(subTick, big.NewInt(0x2)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("fff97272373d41fd789c8cb37ffcaa1c", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x4 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xfff2e50f5f656ac9229c67059486f389")
+	if new(big.Int).And(subTick, big.NewInt(0x4)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("fff2e50f5f656ac9229c67059486f389", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x8 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xffe5caca7e10e81259b3cddc7a064941")
+	if new(big.Int).And(subTick, big.NewInt(0x8)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("ffe5caca7e10e81259b3cddc7a064941", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x10 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xffcb9843d60f67b19e8887e0bd251eb7")
+	if new(big.Int).And(subTick, big.NewInt(0x10)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("ffcb9843d60f67b19e8887e0bd251eb7", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x20 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xff973b41fa98cd2e57b660be99eb2c4a")
+	if new(big.Int).And(subTick, big.NewInt(0x20)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("ff973b41fa98cd2e57b660be99eb2c4a", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x40 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xff2ea16466c9838804e327cb417cafcb")
+	if new(big.Int).And(subTick, big.NewInt(0x40)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("ff2ea16466c9838804e327cb417cafcb", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x80 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xfe5dee046a99d51e2cc356c2f617dbe0")
+	if new(big.Int).And(subTick, big.NewInt(0x80)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("fe5dee046a99d51e2cc356c2f617dbe0", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x100 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xfcbe86c7900aecf64236ab31f1f9dcb5")
+	if new(big.Int).And(subTick, big.NewInt(0x100)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("fcbe86c7900aecf64236ab31f1f9dcb5", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x200 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xf987a7253ac4d9194200696907cf2e37")
+	if new(big.Int).And(subTick, big.NewInt(0x200)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("f987a7253ac4d9194200696907cf2e37", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x400 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xf3392b0822b88206f8abe8a3b44dd9be")
+	if new(big.Int).And(subTick, big.NewInt(0x400)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("f3392b0822b88206f8abe8a3b44dd9be", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x800 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xe7159475a2c578ef4f1d17b2b235d480")
+	if new(big.Int).And(subTick, big.NewInt(0x800)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("e7159475a2c578ef4f1d17b2b235d480", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x1000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xd097f3bdfd254ee83bdd3f248e7e785e")
+	if new(big.Int).And(subTick, big.NewInt(0x1000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("d097f3bdfd254ee83bdd3f248e7e785e", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x2000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0xa9f746462d8f7dd10e744d913d033333")
+	if new(big.Int).And(subTick, big.NewInt(0x2000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("a9f746462d8f7dd10e744d913d033333", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x4000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x70d869a156ddd32a39e257bc3f50aa9b")
+	if new(big.Int).And(subTick, big.NewInt(0x4000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("70d869a156ddd32a39e257bc3f50aa9b", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x8000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x31be135f97da6e09a19dc367e3b6da40")
+	if new(big.Int).And(subTick, big.NewInt(0x8000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("31be135f97da6e09a19dc367e3b6da40", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x10000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x9aa508b5b7e5a9780b0cc4e25d61a56")
+	if new(big.Int).And(subTick, big.NewInt(0x10000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("9aa508b5b7e5a9780b0cc4e25d61a56", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x20000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x5d6af8dedbcb3a6ccb7ce618d14225")
+	if new(big.Int).And(subTick, big.NewInt(0x20000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("5d6af8dedbcb3a6ccb7ce618d14225", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x40000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x2216e584f630389b2052b8db590e")
+	if new(big.Int).And(subTick, big.NewInt(0x40000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("2216e584f630389b2052b8db590e", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x80000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x48a1703920644d4030024fe")
+	if new(big.Int).And(subTick, big.NewInt(0x80000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("48a1703920644d4030024fe", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
-	if subTick&0x100000 != 0 {
-		mul := new(uint256.Int)
-		mul.SetFromHex("0x149b34ee7b4532")
+	if new(big.Int).And(subTick, big.NewInt(0x100000)).Cmp(big.NewInt(0)) != 0 {
+		mul := new(big.Int)
+		mul.SetString("149b34ee7b4532", 16)
 		ratio.Mul(ratio, mul)
 		ratio.Rsh(ratio, 128)
 	}
 
 	// If tick is positive, invert the ratio
 	if tick > 0 {
-		max := new(uint256.Int)
-		max.SetFromHex("0xffffffffffffffffffffffffffffffff")
-		ratio = new(uint256.Int).Div(max, ratio)
+		max := new(big.Int)
+		max.SetString("ffffffffffffffffffffffffffffffff", 16)
+		ratio = new(big.Int).Div(max, ratio)
 	}
 
-	// Multiply by 10^18 and shift right by 128
-	ratio.Mul(ratio, BI_POWS[18])
+	// Multiply by 10^18 and shift right by 128, then convert to uint256.Int
+	pow18 := new(big.Int)
+	pow18.Exp(big.NewInt(10), big.NewInt(18), nil)
+	ratio.Mul(ratio, pow18)
 	ratio.Rsh(ratio, 128)
 
-	return ratio
+	result := new(uint256.Int)
+	result.SetFromBig(ratio)
+	return result
 }
 
 func tickSqrtPriceAndLiquidity(state *MaverickPoolState, tick int32) (*uint256.Int, *uint256.Int, *uint256.Int, Bin) {
 	// Calculate the square root prices at the tick boundaries
-	sqrtLowerTickPrice := calculateSqrtPrice(tick)
-	sqrtUpperTickPrice := calculateSqrtPrice(tick + 1)
+	sqrtLowerTickPrice := calculateSqrtPrice(state.TickSpacing, tick)
+	sqrtUpperTickPrice := calculateSqrtPrice(state.TickSpacing, tick+1)
 
 	// Get the consolidated bin data
 	tickData, _ := getTickData(state, tick)
