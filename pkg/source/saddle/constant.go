@@ -14,8 +14,7 @@ const (
 
 	erc20MethodTotalSupply = "totalSupply"
 
-	defaultWeight = 1
-	zeroSrting    = "0"
+	zeroSrting = "0"
 
 	MaxLoopLimit = 256
 )

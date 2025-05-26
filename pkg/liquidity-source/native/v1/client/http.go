@@ -41,15 +41,17 @@ type HTTPClient struct {
 }
 
 func NewHTTPClient(config *nativev1.HTTPClientConfig) *HTTPClient {
-	client := resty.New().
-		SetBaseURL(config.BaseURL).
+	if config.Client == nil {
+		config.Client = resty.New()
+	}
+	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeaderVerbatim(headerApiKey, config.APIKey)
 
 	return &HTTPClient{
 		config: config,
-		client: client,
+		client: config.Client,
 	}
 }
 

@@ -1,8 +1,7 @@
 package usdfi
 
 const (
-	DexTypeUSDFi       = "usdfi"
-	defaultTokenWeight = 50
+	DexTypeUSDFi = "usdfi"
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"

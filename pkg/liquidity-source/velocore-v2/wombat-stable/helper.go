@@ -20,7 +20,6 @@ func newPoolData(p poolDataResp) *poolData {
 		t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
 		poolTokens[i] = &entity.PoolToken{
 			Address:   t,
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 		poolReserves[i] = p.Data.Reserves[i].String()

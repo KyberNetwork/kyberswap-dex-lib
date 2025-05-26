@@ -44,14 +44,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -208,14 +206,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -368,14 +364,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -528,14 +522,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -764,14 +756,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,

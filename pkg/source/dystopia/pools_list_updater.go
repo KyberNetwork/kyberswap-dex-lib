@@ -159,14 +159,12 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,
-			Weight:    defaultTokenWeight,
 			Decimals:  uint8(len(poolMetadata[i].Dec0.String()) - 1),
 			Swappable: true,
 		}
 
 		var token1 = entity.PoolToken{
 			Address:   token1Address,
-			Weight:    defaultTokenWeight,
 			Decimals:  uint8(len(poolMetadata[i].Dec1.String()) - 1),
 			Swappable: true,
 		}

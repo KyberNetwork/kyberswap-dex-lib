@@ -9,7 +9,6 @@ const (
 	graphSkipLimit       = 5000
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
-	defaultTokenWeight   = 50
 	reserveZero          = "0"
 )
 

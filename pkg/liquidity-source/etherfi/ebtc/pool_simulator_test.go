@@ -14,10 +14,10 @@ import (
 
 var entityPoolStrData = "{\"address\":\"0x6ee3aaccf9f2321e49063c4f8da775ddbd407268\",\"exchange\":\"etherfi-ebtc\"," +
 	"\"type\":\"etherfi-ebtc\",\"reserves\":[\"10000000000\",\"10000000000\",\"10000000000\",\"10000000000\"]," +
-	"\"tokens\":[{\"address\":\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\",\"name\":\"ether.fi BTC\",\"symbol\":\"eBTC\",\"decimals\":8,\"swappable\":true}," +
-	"{\"address\":\"0x8236a87084f8b84306f72007f36f2618a5634494\",\"name\":\"Lombard Staked Bitcoin\",\"symbol\":\"LBTC\",\"decimals\":8,\"swappable\":true}," +
-	"{\"address\":\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\",\"name\":\"Wrapped BTC\",\"symbol\":\"WBTC\",\"decimals\":8,\"swappable\":true}," +
-	"{\"address\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"name\":\"Coinbase Wrapped BTC\",\"symbol\":\"cbBTC\",\"decimals\":8,\"swappable\":true}]," +
+	"\"tokens\":[{\"address\":\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\",\"symbol\":\"eBTC\",\"decimals\":8,\"swappable\":true}," +
+	"{\"address\":\"0x8236a87084f8b84306f72007f36f2618a5634494\",\"symbol\":\"LBTC\",\"decimals\":8,\"swappable\":true}," +
+	"{\"address\":\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\",\"symbol\":\"WBTC\",\"decimals\":8,\"swappable\":true}," +
+	"{\"address\":\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\",\"symbol\":\"cbBTC\",\"decimals\":8,\"swappable\":true}]," +
 	"\"extra\":\"{\\\"isTellerPaused\\\":false,\\\"shareLockPeriod\\\":0,\\\"assets\\\":{\\\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\\\":{\\\"allowDeposits\\\":true,\\\"allowWithdraws\\\":true,\\\"sharePremium\\\":30},\\\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\\\":{\\\"allowDeposits\\\":false,\\\"allowWithdraws\\\":false,\\\"sharePremium\\\":0},\\\"0x8236a87084f8b84306f72007f36f2618a5634494\\\":{\\\"allowDeposits\\\":true,\\\"allowWithdraws\\\":true,\\\"sharePremium\\\":0},\\\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\\\":{\\\"allowDeposits\\\":true,\\\"allowWithdraws\\\":true,\\\"sharePremium\\\":0}},\\\"accountantState\\\":{\\\"exchangeRate\\\":100000000,\\\"isPaused\\\":false},\\\"rateProviders\\\":{\\\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\\\":{\\\"isPeggedToBase\\\":false,\\\"rateProvider\\\":\\\"0x0000000000000000000000000000000000000000\\\"},\\\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\\\":{\\\"isPeggedToBase\\\":false,\\\"rateProvider\\\":\\\"0x0000000000000000000000000000000000000000\\\"},\\\"0x8236a87084f8b84306f72007f36f2618a5634494\\\":{\\\"isPeggedToBase\\\":true,\\\"rateProvider\\\":\\\"0x0000000000000000000000000000000000000000\\\"},\\\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\\\":{\\\"isPeggedToBase\\\":true,\\\"rateProvider\\\":\\\"0x0000000000000000000000000000000000000000\\\"}}}\"," +
 	"\"staticExtra\":\"{\\\"accountant\\\":\\\"0x1b293dc39f94157fa0d1d36d7e0090c8b8b8c13f\\\",\\\"base\\\":\\\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\\\",\\\"decimals\\\":8}\"}"
 
@@ -27,10 +27,10 @@ var entityPoolData = entity.Pool{
 	Type:     DexType,
 	Reserves: entity.PoolReserves{defaultReserves, defaultReserves, defaultReserves, defaultReserves},
 	Tokens: []*entity.PoolToken{
-		{Address: "0x657e8c867d8b37dcc18fa4caead9c45eb088c642", Decimals: 8, Swappable: true, Name: "ether.fi BTC", Symbol: "eBTC"},
-		{Address: "0x8236a87084f8b84306f72007f36f2618a5634494", Decimals: 8, Swappable: true, Name: "Lombard Staked Bitcoin", Symbol: "LBTC"},
-		{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Decimals: 8, Swappable: true, Name: "Wrapped BTC", Symbol: "WBTC"},
-		{Address: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", Decimals: 8, Swappable: true, Name: "Coinbase Wrapped BTC", Symbol: "cbBTC"},
+		{Address: "0x657e8c867d8b37dcc18fa4caead9c45eb088c642", Decimals: 8, Swappable: true, Symbol: "eBTC"},
+		{Address: "0x8236a87084f8b84306f72007f36f2618a5634494", Decimals: 8, Swappable: true, Symbol: "LBTC"},
+		{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Decimals: 8, Swappable: true, Symbol: "WBTC"},
+		{Address: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", Decimals: 8, Swappable: true, Symbol: "cbBTC"},
 	},
 	Extra:       "{\"isTellerPaused\":false,\"shareLockPeriod\":0,\"assets\":{\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":30},\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\":{\"allowDeposits\":false,\"allowWithdraws\":false,\"sharePremium\":0},\"0x8236a87084f8b84306f72007f36f2618a5634494\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":0},\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":0}},\"accountantState\":{\"exchangeRate\":100000000,\"isPaused\":false},\"rateProviders\":{\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\":{\"isPeggedToBase\":false,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\":{\"isPeggedToBase\":false,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0x8236a87084f8b84306f72007f36f2618a5634494\":{\"isPeggedToBase\":true,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\":{\"isPeggedToBase\":true,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"}}}",
 	StaticExtra: "{\"accountant\":\"0x1b293dc39f94157fa0d1d36d7e0090c8b8b8c13f\",\"base\":\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\",\"decimals\":8}",
@@ -47,10 +47,10 @@ func TestNewPoolSimulator(t *testing.T) {
 		Type:     "",
 		Reserves: entity.PoolReserves{defaultReserves, defaultReserves, defaultReserves, defaultReserves},
 		Tokens: []*entity.PoolToken{
-			{Address: "0x657e8c867d8b37dcc18fa4caead9c45eb088c642", Decimals: 8, Swappable: true, Name: "ether.fi BTC", Symbol: "eBTC"},
-			{Address: "0x8236a87084f8b84306f72007f36f2618a5634494", Decimals: 8, Swappable: true, Name: "Lombard Staked Bitcoin", Symbol: "LBTC"},
-			{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Decimals: 8, Swappable: true, Name: "Wrapped BTC", Symbol: "WBTC"},
-			{Address: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", Decimals: 8, Swappable: true, Name: "Coinbase Wrapped BTC", Symbol: "cbBTC"},
+			{Address: "0x657e8c867d8b37dcc18fa4caead9c45eb088c642", Decimals: 8, Swappable: true, Symbol: "eBTC"},
+			{Address: "0x8236a87084f8b84306f72007f36f2618a5634494", Decimals: 8, Swappable: true, Symbol: "LBTC"},
+			{Address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Decimals: 8, Swappable: true, Symbol: "WBTC"},
+			{Address: "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf", Decimals: 8, Swappable: true, Symbol: "cbBTC"},
 		},
 		Extra:       "{\"isTellerPaused\":false,\"shareLockPeriod\":0,\"assets\":{\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":30},\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\":{\"allowDeposits\":false,\"allowWithdraws\":false,\"sharePremium\":0},\"0x8236a87084f8b84306f72007f36f2618a5634494\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":0},\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\":{\"allowDeposits\":true,\"allowWithdraws\":true,\"sharePremium\":0}},\"accountantState\":{\"exchangeRate\":100000000,\"isPaused\":false},\"rateProviders\":{\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\":{\"isPeggedToBase\":false,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0x657e8c867d8b37dcc18fa4caead9c45eb088c642\":{\"isPeggedToBase\":false,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0x8236a87084f8b84306f72007f36f2618a5634494\":{\"isPeggedToBase\":true,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"},\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\":{\"isPeggedToBase\":true,\"rateProvider\":\"0x0000000000000000000000000000000000000000\"}}}",
 		StaticExtra: "{\"accountant\":\"0x1b293dc39f94157fa0d1d36d7e0090c8b8b8c13f\",\"base\":\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\",\"decimals\":8}",

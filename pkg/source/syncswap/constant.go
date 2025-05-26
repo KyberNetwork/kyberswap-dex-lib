@@ -9,9 +9,8 @@ var (
 	// poolTypeSyncSwapClassicInContract = 1
 	poolTypeSyncSwapStableInContract = 2
 
-	defaultTokenWeight uint = 50
-	reserveZero             = "0"
-	addressZero             = "0x0000000000000000000000000000000000000000"
+	reserveZero = "0"
+	addressZero = "0x0000000000000000000000000000000000000000"
 
 	poolMasterMethodPoolsLength = "poolsLength"
 	poolMasterMethodPools       = "pools"

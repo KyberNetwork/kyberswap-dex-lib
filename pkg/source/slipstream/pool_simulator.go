@@ -42,9 +42,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address),
-		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
+		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
 	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address),
-		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
+		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
 
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)

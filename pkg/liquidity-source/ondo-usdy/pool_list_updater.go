@@ -99,10 +99,8 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		for _, token := range pool.Tokens {
 			tokenEntity := entity.PoolToken{
 				Address:   strings.ToLower(token.Address),
-				Name:      token.Name,
 				Symbol:    token.Symbol,
 				Decimals:  token.Decimals,
-				Weight:    18,
 				Swappable: true,
 			}
 			tokens = append(tokens, &tokenEntity)

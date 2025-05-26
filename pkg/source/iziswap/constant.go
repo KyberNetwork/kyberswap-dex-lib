@@ -10,8 +10,6 @@ const (
 	methodGetLimitOrderSnapshot = "limitOrderSnapshot"
 	erc20MethodBalanceOf        = "balanceOf"
 
-	defaultTokenWeight = 50
-
 	SNAPSHOT_BATCH = 256
 	RIGHT_MOST_PT  = 800000
 

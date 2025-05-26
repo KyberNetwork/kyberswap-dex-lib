@@ -97,7 +97,6 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 		tokens[i] = &entity.PoolToken{
 			Address:   strings.ToLower(tokenAddress.Hex()),
 			Decimals:  tokenDecimals[i],
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 		reserves[i] = "0"

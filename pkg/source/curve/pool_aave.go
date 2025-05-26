@@ -80,7 +80,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
 				Address:   strings.ToLower(coinAddress),
-				Weight:    defaultWeight,
 				Swappable: true,
 			})
 		}

@@ -11,8 +11,6 @@ const (
 	poolMethodGetPausedState       = "getPausedState"
 	poolMethodGetVault             = "getVault"
 	poolMethodGetSqrtParameters    = "getSqrtParameters"
-
-	defaultWeight = 1
 )
 
-var defaultGas = Gas{Swap: 100000} // TODO: benchmark
+var defaultGas = Gas{Swap: 126379}

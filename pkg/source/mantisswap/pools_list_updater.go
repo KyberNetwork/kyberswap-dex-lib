@@ -100,7 +100,6 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	for i, tokenAddress := range underliers {
 		tokens[i] = &entity.PoolToken{
 			Address:   strings.ToLower(tokenAddress.Hex()),
-			Weight:    defaultWeight,
 			Swappable: true,
 		}
 		reserves[i] = zeroString

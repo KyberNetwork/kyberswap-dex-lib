@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -15,17 +14,17 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
+	fee  *big.Int
+	rate *big.Int
 	gas  int64
-	rate *uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
-
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal static extra: %w", err)
 	}
 
 	numTokens := len(entityPool.Tokens)
@@ -54,63 +53,73 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		rate: staticExtra.Rate,
+		fee:  big.NewInt(int64(entityPool.SwapFee)),
 		gas:  DefaultGas,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-
-	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
-	var tokenOutIndex = p.GetTokenIndex(tokenOut)
+	tokenInIndex := p.GetTokenIndex(param.TokenAmountIn.Token)
+	tokenOutIndex := p.GetTokenIndex(param.TokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return nil, fmt.Errorf("invalid token indices: in=%d, out=%d", tokenInIndex, tokenOutIndex)
 	}
 
-	var amountOut *uint256.Int
-	if tokenInIndex == 0 { // mkr -> skyAmt = mkrAmt * rate;
-		amountOut = new(uint256.Int).Mul(uint256.MustFromBig(tokenAmountIn.Amount), p.rate)
-	} else {
-		amountOut = new(uint256.Int).Div(uint256.MustFromBig(tokenAmountIn.Amount), p.rate)
+	amountOut := p._MkrToSky(param.TokenAmountIn.Amount)
+	if amountOut.Sign() <= 0 {
+		return nil, fmt.Errorf("invalid output amount: %s", amountOut.String())
 	}
-	totalGas := p.gas
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
+			Token:  param.TokenOut,
+			Amount: amountOut,
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  param.TokenAmountIn.Token,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas: totalGas,
+		Gas: p.gas,
 	}, nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+// _MkrToSky converts MKR amount to SKY amount using the pool's rate and fee
+func (p *PoolSimulator) _MkrToSky(mkrAmt *big.Int) *big.Int {
+	var skyAmt, tmp big.Int
+	skyAmt.Mul(mkrAmt, p.rate)
+
+	if p.fee.Sign() > 0 {
+		tmp.Mul(&skyAmt, p.fee)
+		tmp.Div(&tmp, WAD)
+		skyAmt.Sub(&skyAmt, &tmp)
+	}
+
+	return &skyAmt
 }
 
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
+
 func (p *PoolSimulator) CanSwapTo(address string) []string {
-	// can only swap from ETH to stETH
-	// to convert back (withdraw) we'll need to interact with another contract
-	if strings.EqualFold(p.Info.Tokens[1], address) {
-		return []string{p.Info.Tokens[0]}
+	if strings.EqualFold(address, SkyAddress) {
+		return []string{MkrAddress}
 	}
-	return []string{p.Info.Tokens[1]}
+
+	return []string{}
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
-	// can only swap from ETH to stETH
-	// to convert back (withdraw) we'll need to interact with another contract
-	if strings.EqualFold(p.Info.Tokens[0], address) {
-		return []string{p.Info.Tokens[1]}
+	if strings.EqualFold(address, MkrAddress) {
+		return []string{SkyAddress}
 	}
-	return []string{p.Info.Tokens[0]}
+
+	return []string{}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+	return struct {
+		BlockNumber uint64 `json:"blockNumber"`
+	}{
+		BlockNumber: p.Info.BlockNumber,
+	}
 }

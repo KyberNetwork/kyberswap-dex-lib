@@ -24,8 +24,7 @@ const (
 	GasSwap     = 125000
 	GasCrossBin = 20000
 
-	zeroString              = "0"
-	defaultTokenWeight uint = 50
+	zeroString = "0"
 
 	MaxTick                   = 460540
 	MaxSwapCalcIter           = 150
