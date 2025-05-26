@@ -106,7 +106,8 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, pool *PoolItem) (enti
 
 	req := d.ethrpcClient.R().SetContext(ctx)
 	for _, token := range pool.Tokens {
-		if strings.EqualFold(token.Address, SkyAddress) {
+		if strings.EqualFold(pool.ID, OneWayPoolAddress) &&
+			strings.EqualFold(token.Address, SkyAddress) {
 			swappable = false
 		}
 
@@ -120,6 +121,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, pool *PoolItem) (enti
 		tokens = append(tokens, &tokenEntity)
 		reserves = append(reserves, defaultReserves)
 	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    mkrSkyABI,
 		Target: pool.ID,

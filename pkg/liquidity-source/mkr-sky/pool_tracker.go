@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -29,12 +30,17 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	return p, nil
+	// ignore tracking new state with legacy version
+	if !strings.EqualFold(p.Address, OneWayPoolAddress) {
+		return entity.Pool{}, nil
+	}
+
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, nil)
 }
 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(
@@ -73,7 +79,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	swapFee, _ := fee.Float64()
-	p.SwapFee = swapFee
+	p.SwapFee = swapFee / wad
 	p.BlockNumber = res.BlockNumber.Uint64()
 	p.Timestamp = time.Now().Unix()
 

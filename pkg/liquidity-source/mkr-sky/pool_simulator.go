@@ -101,15 +101,33 @@ func (p *PoolSimulator) _MkrToSky(mkrAmt *big.Int) *big.Int {
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
+	// For OneWay pool, only allow swapping from MKR to SKY
+	if strings.EqualFold(p.GetAddress(), OneWayPoolAddress) {
+		if strings.EqualFold(address, SkyAddress) {
+			return []string{MkrAddress}
+		}
+		return []string{}
+	}
+
+	// For Legacy pools, allow swapping in both directions
 	if strings.EqualFold(address, SkyAddress) {
 		return []string{MkrAddress}
 	}
-	return []string{}
+	return []string{SkyAddress}
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
-	if strings.EqualFold(address, SkyAddress) {
+	// For OneWay pool, only allow swapping from MKR to SKY
+	if strings.EqualFold(p.GetAddress(), OneWayPoolAddress) {
+		if strings.EqualFold(address, MkrAddress) {
+			return []string{SkyAddress}
+		}
 		return []string{}
+	}
+
+	// For Legacy pool, allow swapping in both directions
+	if strings.EqualFold(address, MkrAddress) {
+		return []string{SkyAddress}
 	}
 	return []string{MkrAddress}
 }
