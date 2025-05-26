@@ -16,11 +16,12 @@ import (
 func TestPoolFactory(t *testing.T) {
 	t.Parallel()
 	excludedPoolTypes := []string{
-		"ambient",     // private
-		"maverick-v2", // private
-		"kyber-pmm",   // private
-		"pmm-1",       // private
-		"pmm-2",       // private
+		"ambient",       // private
+		"maverick-v2",   // private
+		"kyber-pmm",     // private
+		"pmm-1",         // private
+		"pmm-2",         // private
+		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))

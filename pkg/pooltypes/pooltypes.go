@@ -51,6 +51,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -304,6 +305,7 @@ type Types struct {
 	ERC4626                    string
 	HyETH                      string
 	MimSwap                    string
+	InfinityPools              string
 
 	KyberPMM  string
 	Pmm1      string
@@ -468,6 +470,7 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
+		InfinityPools:              infinitypools.DexType,
 
 		KyberPMM:  valueobject.ExchangeKyberPMM,
 		Pmm1:      valueobject.ExchangePmm1,
