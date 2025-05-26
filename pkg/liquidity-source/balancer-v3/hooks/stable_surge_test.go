@@ -21,7 +21,7 @@ func TestNewStableSurgeHook(t *testing.T) {
 		{
 			"valid",
 			args{
-				maxSurgeFeePercentage: uint256.NewInt(20000000000000000),
+				maxSurgeFeePercentage: uint256.NewInt(50000000000000000),
 				thresholdPercentage:   uint256.NewInt(20000000000000000),
 			},
 			assert.NoError,
