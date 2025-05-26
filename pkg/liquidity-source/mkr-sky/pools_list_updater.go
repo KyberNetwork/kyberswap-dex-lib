@@ -10,7 +10,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -40,7 +39,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	pools, err := d.initPools()
+	pools, err := d.initPools(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -52,7 +51,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, nil, nil
 }
 
-func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
+func (d *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error) {
 	byteData, ok := bytesByPath[d.config.PoolPath]
 	if !ok {
 		logger.Errorf("misconfigured poolPath")
@@ -66,7 +65,7 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 		return nil, err
 	}
 
-	pools, err := d.processBatch(poolItems)
+	pools, err := d.processBatch(ctx, poolItems)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -78,14 +77,14 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 	return pools, nil
 }
 
-func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, error) {
+func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolItem) ([]entity.Pool, error) {
 	var pools = make([]entity.Pool, 0, len(poolItems))
 
 	for _, pool := range poolItems {
 		var err error
 		var poolEntity entity.Pool
 
-		poolEntity, err = d.getNewPool(&pool)
+		poolEntity, err = d.getNewPool(ctx, &pool)
 
 		if err != nil {
 			return nil, err
@@ -97,10 +96,14 @@ func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, er
 	return pools, nil
 }
 
-func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
-	var tokens = make([]*entity.PoolToken, 0, len(pool.Tokens))
-	var reserves = make(entity.PoolReserves, 0, len(pool.Tokens))
-	req := d.ethrpcClient.R()
+func (d *PoolsListUpdater) getNewPool(ctx context.Context, pool *PoolItem) (entity.Pool, error) {
+	var (
+		tokens   = make([]*entity.PoolToken, 0, len(pool.Tokens))
+		reserves = make(entity.PoolReserves, 0, len(pool.Tokens))
+		rate     *big.Int
+	)
+
+	req := d.ethrpcClient.R().SetContext(ctx)
 	for _, token := range pool.Tokens {
 		tokenEntity := entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
@@ -112,19 +115,19 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 		tokens = append(tokens, &tokenEntity)
 		reserves = append(reserves, defaultReserves)
 	}
-	var rate *big.Int
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    mkrSkyABI,
 		Target: pool.ID,
 		Method: "rate",
-	}, []interface{}{&rate})
+	}, []any{&rate})
 
 	if _, err := req.Aggregate(); err != nil {
 		return entity.Pool{}, err
 	}
 
 	staticExtraBytes, err := json.Marshal(StaticExtra{
-		Rate: uint256.MustFromBig(rate),
+		Rate: rate,
 	})
 	if err != nil {
 		return entity.Pool{}, err
