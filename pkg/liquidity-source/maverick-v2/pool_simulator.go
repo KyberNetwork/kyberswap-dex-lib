@@ -233,6 +233,25 @@ type maverickSwapInfo struct {
 	timestamp        int64
 }
 
+// pastMaxTick checks if we've reached the tick limit and zeros out excess if so
+// This is equivalent to MaverickDeltaMath.pastMaxTick() in TypeScript
+func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
+	swappedToMaxPrice := false
+	if delta.TokenAIn {
+		swappedToMaxPrice = tickLimit < activeTick
+	} else {
+		swappedToMaxPrice = tickLimit > activeTick
+	}
+
+	if swappedToMaxPrice {
+		delta.Excess = new(uint256.Int) // CRITICAL: Zero out excess to terminate main loop
+		delta.SkipCombine = true
+		delta.SwappedToMaxPrice = true
+	}
+
+	return swappedToMaxPrice
+}
+
 // Helper functions for swap implementation
 func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, bypassLimit bool) (*uint256.Int, *uint256.Int, uint32, *uint256.Int, error) {
 	// Implementation based on maverick-v2-pool-math.ts estimateSwap function
@@ -260,11 +279,6 @@ func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOut
 		tickLimit = startingTick + 100
 	} else {
 		tickLimit = startingTick - 100
-	}
-
-	// Check if the swap limit is beyond the current tick
-	if (startingTick > tickLimit && tokenAIn) || (startingTick < tickLimit && !tokenAIn) {
-		return nil, nil, 0, new(uint256.Int), fmt.Errorf("beyond swap limit")
 	}
 
 	// Handle main swap operation
@@ -309,9 +323,8 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 	activeTick := state.ActiveTick
 
 	// Check if we've reached the tick limit - equivalent to TypeScript pastMaxTick function
-	if (activeTick > tickLimit && delta.TokenAIn) || (activeTick < tickLimit && !delta.TokenAIn) {
+	if pastMaxTick(delta, activeTick, tickLimit) {
 		state.ActiveTick += boolToInt32(!delta.TokenAIn) - boolToInt32(delta.TokenAIn)
-		newDelta.SwappedToMaxPrice = true // Set this flag when we hit the tick limit
 		return delta, true, nil
 	}
 
@@ -333,9 +346,8 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		crossedBin = true
 
 		// Check again if we've reached the tick limit after moving
-		if (activeTick > tickLimit && delta.TokenAIn) || (activeTick < tickLimit && !delta.TokenAIn) {
+		if pastMaxTick(delta, activeTick, tickLimit) {
 			state.ActiveTick += boolToInt32(!delta.TokenAIn) - boolToInt32(delta.TokenAIn)
-			newDelta.SwappedToMaxPrice = true // Set this flag when we hit the tick limit
 			return delta, true, nil
 		}
 	}
@@ -353,6 +365,14 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		computeSwapExactIn(state, delta.Excess, delta.TokenAIn, tickData, newDelta)
 	}
 
+	// Match TypeScript logic exactly
+	if newDelta.Excess.IsZero() {
+		computeEndPrice(delta, newDelta, tickData)
+	}
+
+	// don't need allocateSwapValuesToTick (but don't mutate state in simulation)
+	// allocateSwapValuesToTick(newDelta, delta.TokenAIn, activeTick, tickData)
+
 	// If there's excess remaining, we need to move to the next tick
 	if !newDelta.Excess.IsZero() {
 		nextTick := activeTick + boolToInt32(delta.TokenAIn) - boolToInt32(!delta.TokenAIn)
@@ -360,20 +380,84 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 		crossedBin = true
 	}
 
-	// Calculate the fractional part based on the position within the tick
-	// In the JavaScript code, this would be used for TWA updates
-	if !newDelta.SqrtPrice.IsZero() && !newDelta.SqrtLowerTickPrice.IsZero() && !newDelta.SqrtUpperTickPrice.IsZero() {
-		// Calculate how far we are between the lower and upper tick prices
-		_range := new(uint256.Int).Sub(newDelta.SqrtUpperTickPrice, newDelta.SqrtLowerTickPrice)
-		position := new(uint256.Int).Sub(newDelta.SqrtPrice, newDelta.SqrtLowerTickPrice)
+	return newDelta, crossedBin, nil
+}
 
-		if !_range.IsZero() {
-			// Calculate the fractional part as a value between 0 and 2^8
-			newDelta.FractionalPart = mulDiv(position, BI_POWS[8], _range)
+// allocateSwapValuesToTick simulates the tick reserve updates (for calculation purposes only)
+// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/2108e064319bf14f98c321a8acd4762d3e9e3560/src/dex/maverick-v2/maverick-math/maverick-pool-math.ts#L692
+func allocateSwapValuesToTick(delta *Delta, tokenAIn bool, tick int32, tickData Bin) {
+	// In a pool simulator, we don't actually mutate state, but we simulate the logic
+	// to ensure calculations are consistent with real swaps
+
+	// This matches the TypeScript logic but doesn't persist changes:
+	// let reserveA = tickState.reserveA;
+	// let reserveB = tickState.reserveB;
+
+	if tokenAIn {
+		// reserveA = reserveA + delta.deltaInBinInternal;
+		// reserveB = delta.excess > 0n ? 0n : MaverickBasicMath.clip(reserveB, delta.deltaOutErc);
+		if !delta.Excess.IsZero() {
+			// If there's excess, this tick is fully consumed (reserveB becomes 0)
+			// No actual state mutation needed in simulator
+		} else {
+			// Normal case: reduce reserveB by deltaOutErc
+			// tickState.reserveB = clip(tickState.reserveB, delta.deltaOutErc)
+			// No actual state mutation needed in simulator
+		}
+	} else {
+		// reserveA = delta.excess > 0n ? 0n : MaverickBasicMath.clip(reserveA, delta.deltaOutErc);
+		// reserveB = reserveB + delta.deltaInBinInternal;
+		if !delta.Excess.IsZero() {
+			// If there's excess, this tick is fully consumed (reserveA becomes 0)
+			// No actual state mutation needed in simulator
+		} else {
+			// Normal case: reduce reserveA by deltaOutErc
+			// tickState.reserveA = clip(tickState.reserveA, delta.deltaOutErc)
+			// No actual state mutation needed in simulator
 		}
 	}
 
-	return newDelta, crossedBin, nil
+	// Note: In the real implementation (UpdateBalance), this would update the actual bins
+	// But in simulation, we only need to ensure the calculation logic is consistent
+}
+
+// computeEndPrice calculates the end price and fractional part when there's no excess remaining
+// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-swap-math.ts#L178
+func computeEndPrice(delta *Delta, newDelta *Delta, tickData Bin) {
+	// Calculate endSqrtPrice following TypeScript logic exactly
+	// endSqrtPrice = divDown(newDelta.deltaInBinInternal, tickData.currentLiquidity) +
+	//                (delta.tokenAIn ? delta.sqrtPrice : invFloor(delta.sqrtPrice))
+
+	var endSqrtPrice *uint256.Int
+	if tickData.CurrentLiquidity.IsZero() {
+		endSqrtPrice = new(uint256.Int)
+	} else {
+		endSqrtPrice = mulDivDown(newDelta.DeltaInBinInternal, BI_POWS[18], tickData.CurrentLiquidity)
+	}
+
+	if delta.TokenAIn {
+		endSqrtPrice.Add(endSqrtPrice, delta.SqrtPrice)
+	} else {
+		endSqrtPrice.Add(endSqrtPrice, invFloor(delta.SqrtPrice))
+	}
+
+	// If not tokenAIn, apply invFloor to the result
+	if !delta.TokenAIn {
+		endSqrtPrice = invFloor(endSqrtPrice)
+	}
+
+	// Calculate fractional part
+	// newDelta.fractionalPart = min(BI_POWS[8], divDown(clip(endSqrtPrice, delta.sqrtLowerTickPrice), BI_POWS[10] * (delta.sqrtUpperTickPrice - delta.sqrtLowerTickPrice)))
+	clippedPrice := clip(endSqrtPrice, delta.SqrtLowerTickPrice)
+	denominator := new(uint256.Int).Sub(delta.SqrtUpperTickPrice, delta.SqrtLowerTickPrice)
+	denominator.Mul(denominator, BI_POWS[10])
+
+	if !denominator.IsZero() {
+		fractionalPart := mulDivDown(clippedPrice, BI_POWS[18], denominator)
+		newDelta.FractionalPart = minUint256(BI_POWS[8], fractionalPart)
+	} else {
+		newDelta.FractionalPart = new(uint256.Int)
+	}
 }
 
 func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData Bin, delta *Delta) {
@@ -443,19 +527,16 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 	if tokenAIn {
 		// delta.deltaOutErc = MaverickBasicMath.min(delta.deltaOutErc, MaverickBasicMath.mulDivDown(
 		//   binAmountIn, MaverickBasicMath.invFloor(sqrtPrice), inOverL + sqrtPrice))
-		denominator := new(uint256.Int).Add(inOverL, sqrtPrice)
-		calculatedOut = mulDivDown(binAmountIn, invFloor(sqrtPrice), denominator)
+		denominator := new(uint256.Int).Add(inOverL, delta.SqrtPrice)
+		calculatedOut = mulDivDown(binAmountIn, invFloor(delta.SqrtPrice), denominator)
 	} else {
 		// delta.deltaOutErc = MaverickBasicMath.min(delta.deltaOutErc, MaverickBasicMath.mulDivDown(
 		//   binAmountIn, sqrtPrice, inOverL + MaverickBasicMath.invCeil(sqrtPrice)))
-		denominator := new(uint256.Int).Add(inOverL, invCeil(sqrtPrice))
-		calculatedOut = mulDivDown(binAmountIn, sqrtPrice, denominator)
+		denominator := new(uint256.Int).Add(inOverL, invCeil(delta.SqrtPrice))
+		calculatedOut = mulDivDown(binAmountIn, delta.SqrtPrice, denominator)
 	}
 
 	delta.DeltaOutErc = minUint256(delta.DeltaOutErc, calculatedOut)
-
-	// Update the bin data in the state
-	updateBinData(state, activeTick, tickData)
 }
 
 func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, tokenAIn bool, tickData Bin, delta *Delta) {
@@ -490,7 +571,7 @@ func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, token
 	)
 
 	// Calculate fee - lines 160-164 in TypeScript
-	var fee uint32
+	var fee uint64
 	if tokenAIn {
 		fee = state.FeeAIn
 	} else {
@@ -711,8 +792,8 @@ func boolToInt32(b bool) int32 {
 
 // Types and constants section
 type MaverickPoolState struct {
-	FeeAIn           uint32
-	FeeBIn           uint32
+	FeeAIn           uint64
+	FeeBIn           uint64
 	ProtocolFeeRatio uint8
 	Bins             map[uint32]Bin
 	BinPositions     map[int32][]uint32
@@ -727,8 +808,8 @@ type MaverickPoolState struct {
 }
 
 type Extra struct {
-	FeeAIn           uint32             `json:"feeAIn"`
-	FeeBIn           uint32             `json:"feeBIn"`
+	FeeAIn           uint64             `json:"feeAIn"`
+	FeeBIn           uint64             `json:"feeBIn"`
 	ProtocolFeeRatio uint8              `json:"protocolFeeRatio"`
 	Bins             map[uint32]Bin     `json:"bins"`
 	BinPositions     map[int32][]uint32 `json:"binPositions"`
