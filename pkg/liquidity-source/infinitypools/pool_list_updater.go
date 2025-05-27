@@ -15,9 +15,7 @@ import (
 )
 
 type Config struct {
-	DexID          string         `json:"dexId"`
-	FactoryAddress common.Address `json:"factoryAddress"`
-	QuoterAddress  common.Address `json:"quoterAddress"`
+	DexID string `json:"dexId"`
 }
 
 type PoolListUpdater struct {
@@ -92,7 +90,7 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 		Target: poolAddress,
 		Method: "getPoolInfo",
 		Params: nil,
-	}, []interface{}{&poolInfoResponse})
+	}, []any{&poolInfoResponse})
 
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -104,7 +102,6 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 
 	token0 := poolInfoResponse[0].(common.Address)
 	token1 := poolInfoResponse[1].(common.Address)
-	splits := poolInfoResponse[2].(*big.Int)
 
 	var balanceToken0 *big.Int
 	var balanceToken1 *big.Int
@@ -132,21 +129,6 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 		return entity.Pool{}, err
 	}
 
-	extra := Extra{
-		Splits:         splits,
-		FactoryAddress: u.cfg.FactoryAddress,
-		QuoterAddress:  u.cfg.QuoterAddress,
-	}
-
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": poolAddress,
-			"err":         err,
-		}).Errorf("[%s] failed to marshal extra", DexType)
-		return entity.Pool{}, err
-	}
-
 	return entity.Pool{
 		Address:   poolAddress,
 		Exchange:  u.cfg.DexID,
@@ -157,6 +139,5 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 			{Address: strings.ToLower(token0.String()), Swappable: true},
 			{Address: strings.ToLower(token1.String()), Swappable: true},
 		},
-		Extra: string(extraBytes),
 	}, nil
 }
