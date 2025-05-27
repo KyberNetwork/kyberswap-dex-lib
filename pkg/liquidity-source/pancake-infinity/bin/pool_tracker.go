@@ -43,7 +43,7 @@ func NewPoolTracker(
 }
 
 func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := t.fetchRpcState(ctx, &p, blockNumber)
+	rpcData, err := t.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, bloc
 	return rpcDataBytes, nil
 }
 
-func (t *PoolTracker) fetchRpcState(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
 		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
@@ -105,7 +105,7 @@ func (t *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = t.fetchRpcState(ctx, &p, 0)
+		rpcData, err = t.FetchRPCData(ctx, p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,

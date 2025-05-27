@@ -54,7 +54,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcResult, err = d.queryRpc(ctx, p, 0)
+		rpcResult, err = d.FetchRPCData(ctx, p, 0)
 		if err != nil {
 			return err
 		}
@@ -102,14 +102,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 }
 
 func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
-	result, err := d.queryRpc(ctx, pool, blockNumber)
+	result, err := d.FetchRPCData(ctx, pool, blockNumber) // to update also???
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(result)
 }
 
-func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 		binStep        uint16
