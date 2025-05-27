@@ -103,7 +103,6 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		for _, token := range pool.Tokens {
 			tokenModel := entity.PoolToken{
 				Address:   token.Address,
-				Weight:    defaultWeight,
 				Swappable: true,
 			}
 			tokens = append(tokens, &tokenModel)

@@ -2,6 +2,7 @@ package entity
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -17,10 +18,8 @@ func (r PoolReserves) Encode() string {
 
 type PoolToken struct {
 	Address   string `json:"address,omitempty"`
-	Name      string `json:"name,omitempty"`
 	Symbol    string `json:"symbol,omitempty"`
 	Decimals  uint8  `json:"decimals,omitempty"`
-	Weight    uint   `json:"weight,omitempty"`
 	Swappable bool   `json:"swappable,omitempty"`
 }
 
@@ -31,10 +30,8 @@ func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
 	for i, poolToken := range poolTokens {
 		clonePoolToken := &PoolToken{
 			Address:   poolToken.Address,
-			Name:      poolToken.Name,
 			Symbol:    poolToken.Symbol,
 			Decimals:  poolToken.Decimals,
-			Weight:    poolToken.Weight,
 			Swappable: poolToken.Swappable,
 		}
 		result[i] = clonePoolToken
@@ -83,12 +80,7 @@ func (p *Pool) GetLpToken() string {
 // HasReserves check if a pool has some reserves or not.
 // Returns false if there is no reserve in pool, or all reserves are empty string or "0". True otherwise.
 func (p *Pool) HasReserves() bool {
-	for _, reserve := range p.Reserves {
-		if p.HasReserve(reserve) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(p.Reserves, p.HasReserve)
 }
 
 func (p *Pool) HasReserve(reserve string) bool {
@@ -113,12 +105,10 @@ func (p *Pool) Clear() {
 	if p.Tokens != nil {
 		// Keep allocated memory
 		for i := range p.Tokens {
-			p.Tokens[i].Weight = 0
-			p.Tokens[i].Name = ""
-			p.Tokens[i].Swappable = false
 			p.Tokens[i].Address = ""
 			p.Tokens[i].Symbol = ""
 			p.Tokens[i].Decimals = 0
+			p.Tokens[i].Swappable = false
 		}
 		p.Tokens = p.Tokens[:0]
 	}

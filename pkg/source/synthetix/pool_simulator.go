@@ -83,7 +83,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		tokenAmountIn.Amount,
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{

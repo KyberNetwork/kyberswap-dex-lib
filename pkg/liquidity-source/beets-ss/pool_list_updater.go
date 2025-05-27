@@ -60,14 +60,12 @@ func (u *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDSonic]),
-					Name:      "Wrapped Sonic",
 					Symbol:    "wS",
 					Decimals:  18,
 					Swappable: true,
 				},
 				{
 					Address:   Beets_Staked_Sonic_Address,
-					Name:      "Beets Staked Sonic",
 					Symbol:    "stS",
 					Decimals:  18,
 					Swappable: true,

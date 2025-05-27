@@ -1,6 +1,9 @@
 package bebop
 
-import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+import (
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/go-resty/resty/v2"
+)
 
 type HTTPClientConfig struct {
 	BaseURL       string                `mapstructure:"base_url" json:"base_url"`
@@ -8,4 +11,5 @@ type HTTPClientConfig struct {
 	RetryCount    int                   `mapstructure:"retry_count" json:"retry_count"`
 	Name          string                `mapstructure:"name" json:"name"`
 	Authorization string                `mapstructure:"authorization" json:"authorization"`
+	Client        *resty.Client
 }

@@ -64,7 +64,6 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 	for _, token := range initialPool.Tokens {
 		tokenEntity := entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
-			Name:      token.Name,
 			Symbol:    token.Symbol,
 			Decimals:  token.Decimals,
 			Swappable: true,

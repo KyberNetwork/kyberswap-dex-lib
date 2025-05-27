@@ -5,8 +5,6 @@ import "math/big"
 const (
 	DexTypeEqualizer = "equalizer"
 
-	defaultTokenWeight = 50
-
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"
 	poolFactoryMethodStableFee     = "stableFee"

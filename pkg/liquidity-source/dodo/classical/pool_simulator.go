@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
@@ -17,9 +18,8 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	Storage
-	Tokens entity.PoolTokens
-	Meta   Meta
-	gas    Gas
+	Meta Meta
+	gas  Gas
 }
 
 var _ = pool.RegisterFactory0(PoolType, NewPoolSimulator)
@@ -51,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		SwapFee:  swapFee,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
-		Tokens:   staticExtra.Tokens,
+		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, index int) string { return e.Address }),
 		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
 	}
 
@@ -75,6 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		DodoV1SellHelper: staticExtra.DodoV1SellHelper,
 		BaseToken:        entityPool.Tokens[0].Address,
 		QuoteToken:       entityPool.Tokens[1].Address,
+		ApprovalAddress:  entityPool.Address,
 	}
 
 	return &PoolSimulator{
@@ -82,7 +83,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: info,
 		},
 		Storage: poolState,
-		Tokens:  entity.ClonePoolTokens(entityPool.Tokens),
 		Meta:    meta,
 		gas:     DefaultGas,
 	}, nil
@@ -111,7 +111,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if tokenAmountIn.Token == p.Info.Tokens[0] { // sell base
 		receiveQuote, lpFeeQuote, mtFeeQuote, _, _, _, err := p._querySellBaseToken(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFeeQuote, mtFeeQuote)
@@ -135,12 +135,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/dbf02abd4489dfb499b3f97118d4db1570932303/src/contracts/executor-helpers/ExecutorHelper2.sol#L346-L351
 		canBuyBaseAmount, err := p.querySellQuoteToken(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		spentQuoteAmount, lpFeeBase, mtFeeBase, _, _, _, err := p._queryBuyBaseToken(canBuyBaseAmount)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		if spentQuoteAmount.Cmp(amountIn) > 0 {
@@ -195,7 +195,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	payQuote, lpFeeBase, mtFeeBase, _, _, _, err := p._queryBuyBaseToken(amountOut)
 	if err != nil {
-		return &pool.CalcAmountInResult{}, err
+		return nil, err
 	}
 
 	fee := new(uint256.Int).Add(lpFeeBase, mtFeeBase)
@@ -252,6 +252,6 @@ func (p *PoolSimulator) GetLpToken() string {
 	return p.Info.Address
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return p.Meta
 }

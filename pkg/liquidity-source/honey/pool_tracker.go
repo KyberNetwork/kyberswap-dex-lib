@@ -268,7 +268,6 @@ func (t *PoolTracker) getNewPoolState(
 				p.Reserves = append(p.Reserves, defaultReserves)
 				p.Tokens = append(p.Tokens, &entity.PoolToken{
 					Address:   strings.ToLower(registeredAssets[i].Hex()),
-					Name:      strings.ToLower(assetsName[i]),
 					Symbol:    strings.ToLower(assetsSymbol[i]),
 					Decimals:  assetsDecimals[i],
 					Swappable: true,

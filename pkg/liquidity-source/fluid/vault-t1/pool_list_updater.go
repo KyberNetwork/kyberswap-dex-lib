@@ -61,12 +61,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   valueobject.WrapNativeLower(swapPath.TokenIn.Hex(), u.config.ChainID),
-					Weight:    1,
 					Swappable: true,
 				},
 				{
 					Address:   valueobject.WrapNativeLower(swapPath.TokenOut.Hex(), u.config.ChainID),
-					Weight:    1,
 					Swappable: true,
 				},
 			},

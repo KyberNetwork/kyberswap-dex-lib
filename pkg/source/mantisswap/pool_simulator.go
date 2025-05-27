@@ -48,6 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			SlippageK:   extra.SlippageK,
 			LPs:         extra.LPs,
 		},
+		gas: DefaultGas,
 	}, nil
 }
 
@@ -58,16 +59,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct",
+			tokenInIndex, tokenOutIndex)
 	}
 
 	newState, err := p.deepCopy(p.state)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 	amountOut, err := GetAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount, newState)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{

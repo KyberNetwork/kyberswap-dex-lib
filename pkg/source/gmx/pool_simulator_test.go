@@ -378,12 +378,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				})
 			})
 
-			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut)
-			assert.Equal(t, tc.expectedFee, result.Fee)
-			assert.Equal(t, tc.expectedGas, result.Gas)
 			assert.Equal(t, tc.expectedErr, err)
 
 			if err == nil {
+				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut)
+				assert.Equal(t, tc.expectedFee, result.Fee)
+				assert.Equal(t, tc.expectedGas, result.Gas)
 				go cloned.CloneState() // data race check
 				poolSim.UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn:  tc.tokenAmountIn,

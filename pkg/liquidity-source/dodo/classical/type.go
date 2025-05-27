@@ -9,6 +9,7 @@ type Meta struct {
 	DodoV1SellHelper string `json:"dodoV1SellHelper"`
 	BaseToken        string `json:"baseToken"`
 	QuoteToken       string `json:"quoteToken"`
+	ApprovalAddress  string `json:"approvalAddress"`
 }
 
 type Gas struct {

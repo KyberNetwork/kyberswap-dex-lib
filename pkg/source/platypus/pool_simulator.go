@@ -86,12 +86,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	fromAsset, err := p._assetOf(tokenAmountIn.Token)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	toAsset, err := p._assetOf(tokenOut)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	if fromAsset.AggregateAccount != toAsset.AggregateAccount {
@@ -100,7 +100,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	actualToAmount, hairCut, err := p._quoteFrom(fromAsset, toAsset, tokenAmountIn.Amount)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{

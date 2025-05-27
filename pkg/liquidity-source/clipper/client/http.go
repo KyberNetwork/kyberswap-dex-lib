@@ -31,14 +31,16 @@ type httpClient struct {
 }
 
 func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
-	client := resty.New().
-		SetBaseURL(config.BaseURL).
+	if config.Client == nil {
+		config.Client = resty.New()
+	}
+	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
 		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
 
 	return &httpClient{
-		client: client,
+		client: config.Client,
 		config: config,
 	}
 }
