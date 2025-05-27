@@ -95,7 +95,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if tokenAmountIn.Token == p.Info.Tokens[0] { // tokenIn is base token
 		receiveQuoteAmount, lpFee, mtFee, err := p.querySellBase(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFee, mtFee)
@@ -118,7 +118,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	} else if tokenAmountIn.Token == p.Info.Tokens[1] { // tokenIn is quote token
 		receiveBaseAmount, lpFee, mtFee, err := p.querySellQuote(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFee, mtFee)

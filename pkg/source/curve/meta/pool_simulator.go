@@ -138,7 +138,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			tokenAmountIn.Amount,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		if amountOut.Cmp(constant.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -171,7 +171,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			tokenIndexTo,
 			tokenAmountIn.Amount)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		if amountOut.Cmp(constant.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{

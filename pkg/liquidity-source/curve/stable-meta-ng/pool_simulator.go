@@ -119,7 +119,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			&addLiquidityInfo, &metaswapInfo, &withdrawInfo,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		if !amountOut.IsZero() {
 			swapInfo := SwapInfo{

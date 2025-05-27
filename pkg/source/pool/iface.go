@@ -96,7 +96,7 @@ type IPoolRFQ interface {
 }
 
 type ITicksBasedPoolTracker[T any] interface {
-	FetchRPCData(ctx context.Context, pool entity.Pool, blockNumber uint64) (T, error)
+	FetchRPCData(ctx context.Context, pool *entity.Pool, blockNumber uint64) (T, error)
 }
 
 type IPoolDecoder interface {

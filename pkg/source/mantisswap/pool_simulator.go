@@ -65,11 +65,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	newState, err := p.deepCopy(p.state)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 	amountOut, err := GetAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount, newState)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{

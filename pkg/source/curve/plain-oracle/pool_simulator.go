@@ -101,7 +101,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			nil,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		if amountOut.Cmp(constant.ZeroBI) > 0 {
@@ -119,7 +119,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		}
 
-		return &pool.CalcAmountOutResult{}, errors.New("[core.CurvePlainOracle] - GetDy returns 0")
+		return nil, errors.New("[core.CurvePlainOracle] - GetDy returns 0")
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }

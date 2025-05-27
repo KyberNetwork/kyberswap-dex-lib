@@ -111,7 +111,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if tokenAmountIn.Token == p.Info.Tokens[0] { // sell base
 		receiveQuote, lpFeeQuote, mtFeeQuote, _, _, _, err := p._querySellBaseToken(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFeeQuote, mtFeeQuote)
@@ -135,12 +135,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/dbf02abd4489dfb499b3f97118d4db1570932303/src/contracts/executor-helpers/ExecutorHelper2.sol#L346-L351
 		canBuyBaseAmount, err := p.querySellQuoteToken(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		spentQuoteAmount, lpFeeBase, mtFeeBase, _, _, _, err := p._queryBuyBaseToken(canBuyBaseAmount)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		if spentQuoteAmount.Cmp(amountIn) > 0 {
@@ -195,7 +195,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	payQuote, lpFeeBase, mtFeeBase, _, _, _, err := p._queryBuyBaseToken(amountOut)
 	if err != nil {
-		return &pool.CalcAmountInResult{}, err
+		return nil, err
 	}
 
 	fee := new(uint256.Int).Add(lpFeeBase, mtFeeBase)

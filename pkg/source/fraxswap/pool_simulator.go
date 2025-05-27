@@ -92,7 +92,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	amountOut, err := p.getAmountOut(tokenAmountIn.Amount, tokenAmountIn.Token)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	if amountOut.Cmp(reserveOut) >= 0 {

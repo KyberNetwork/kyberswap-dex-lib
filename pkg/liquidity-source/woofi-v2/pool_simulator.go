@@ -117,7 +117,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		var newPrice *uint256.Int
 		amountOut, swapFee, newPrice, err = s._sellQuote(tokenOut, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
@@ -127,7 +127,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		var newPrice *uint256.Int
 		amountOut, swapFee, newPrice, err = s._sellBase(tokenAmountIn.Token, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
@@ -137,7 +137,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		var newBase1Price, newBase2Price *uint256.Int
 		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		swapInfo = woofiV2SwapInfo{
