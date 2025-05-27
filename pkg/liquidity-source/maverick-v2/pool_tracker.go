@@ -2,6 +2,7 @@ package maverickv2
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"time"
 
@@ -29,6 +30,8 @@ type (
 		IsLocked           bool     `json:"isLocked"`
 		BinCounter         uint32   `json:"binCounter"`
 		ProtocolFeeRatioD3 uint8    `json:"protocolFeeRatioD3"`
+		FeeAIn             uint64   `json:"feeAIn"` // Fee for tokenA -> tokenB swaps
+		FeeBIn             uint64   `json:"feeBIn"` // Fee for tokenB -> tokenA swaps
 	}
 
 	// because the result is a tuple with internal type = struct IMaverickV2Pool.State, we need to wrap it in a struct like this
@@ -92,6 +95,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, *big.Int, error) {
 	var getStateResult GetStateResultWrapper
+	var feeAIn, feeBIn *big.Int
 
 	getStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
 
@@ -104,15 +108,38 @@ func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, 
 		&getStateResult,
 	})
 
+	// Add calls to get current fees
+	getStateRequest.AddCall(&ethrpc.Call{
+		ABI:    maverickV2PoolABI,
+		Target: poolAddress,
+		Method: "fee",
+		Params: []interface{}{true}, // true for tokenAIn
+	}, []interface{}{&feeAIn})
+
+	getStateRequest.AddCall(&ethrpc.Call{
+		ABI:    maverickV2PoolABI,
+		Target: poolAddress,
+		Method: "fee",
+		Params: []interface{}{false}, // false for tokenBIn
+	}, []interface{}{&feeBIn})
+
 	resp, err := getStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return State{}, nil, err
 	}
 
 	return State{
-		ReserveA:      getStateResult.ReserveA,
-		ReserveB:      getStateResult.ReserveB,
-		LastTimestamp: getStateResult.LastTimestamp.Int64(),
+		ReserveA:           getStateResult.ReserveA,
+		ReserveB:           getStateResult.ReserveB,
+		LastTimestamp:      getStateResult.LastTimestamp.Int64(),
+		LastTwaD8:          getStateResult.LastTwaD8,
+		LastLogPriceD8:     getStateResult.LastLogPriceD8,
+		ActiveTick:         getStateResult.ActiveTick,
+		IsLocked:           getStateResult.IsLocked,
+		BinCounter:         getStateResult.BinCounter,
+		ProtocolFeeRatioD3: getStateResult.ProtocolFeeRatioD3,
+		FeeAIn:             feeAIn.Uint64(),
+		FeeBIn:             feeBIn.Uint64(),
 	}, resp.BlockNumber, nil
 }
 
@@ -123,6 +150,38 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 	}
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = state.LastTimestamp
+
+	// Parse StaticExtra to get lookback information
+	var staticExtra StaticExtra
+	if pool.StaticExtra != "" {
+		if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
+			logger.WithFields(logger.Fields{
+				"pool_address": pool.Address,
+				"error":        err,
+			}).Warn("Failed to unmarshal static extra data")
+		}
+	}
+
+	// Update extra data with actual values from the state and static data
+	extra := Extra{
+		FeeAIn:           state.FeeAIn, // Use dynamic fees from state
+		FeeBIn:           state.FeeBIn, // Use dynamic fees from state
+		ProtocolFeeRatio: state.ProtocolFeeRatioD3,
+		Bins:             make(map[uint32]Bin),
+		BinPositions:     make(map[int32][]uint32),
+		BinMap:           make(map[int32]uint32),
+		ActiveTick:       state.ActiveTick,
+		LastTwaD8:        state.LastTwaD8,
+		Timestamp:        state.LastTimestamp,
+		AccumValueD8:     "0", // Initialize with default value
+	}
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return pool, err
+	}
+
+	pool.Extra = string(extraBytes)
 
 	return pool, nil
 }

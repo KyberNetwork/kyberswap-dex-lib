@@ -202,12 +202,12 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
-			
+
 			// Check that the swap info has the expected fields
 			swapInfo, ok := result.SwapInfo.(maverickSwapInfo)
 			require.True(t, ok, "SwapInfo should be of type maverickSwapInfo")
 			require.Equal(t, tc.expNextTick, swapInfo.activeTick)
-			
+
 			// Verify fractional part is included in swap info
 			require.True(t, swapInfo.fractionalPartD8 >= 0, "Fractional part should be non-negative")
 			require.True(t, swapInfo.fractionalPartD8 <= int64(BI_POWS[8].Uint64()), "Fractional part should be <= 2^8")
@@ -295,8 +295,8 @@ func TestFractionalPartCalculation(t *testing.T) {
 
 	// Create a simple pool state for testing
 	state := &MaverickPoolState{
-		ActiveTick:   10,
-		TickSpacing:  1,
+		ActiveTick:  10,
+		TickSpacing: 1,
 		Bins: map[uint32]Bin{
 			1: {
 				ReserveA: new(uint256.Int).SetUint64(1000000),
@@ -323,7 +323,7 @@ func TestFractionalPartCalculation(t *testing.T) {
 		// Calculate how far we are between the lower and upper tick prices
 		tickRange := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
 		tickPosition := new(uint256.Int).Sub(sqrtPrice, sqrtLowerTickPrice)
-		
+
 		if !tickRange.IsZero() {
 			// Calculate the fractional part as a value between 0 and 2^8
 			fractionalPart := mulDiv(tickPosition, BI_POWS[8], tickRange)
@@ -344,11 +344,11 @@ func TestFractionalPartCalculation(t *testing.T) {
 	// Test different positions within the tick
 	t.Run("Different positions within tick", func(t *testing.T) {
 		// Create test cases for different positions within the tick
-		testCases := []struct{
-			name string
+		testCases := []struct {
+			name          string
 			reserveARatio uint64
 			reserveBRatio uint64
-			expectedRange string  // "low", "mid", or "high"
+			expectedRange string // "low", "mid", or "high"
 		}{
 			{"Near lower bound", 10, 1, "low"},
 			{"Middle of tick", 1, 1, "mid"},
@@ -359,8 +359,8 @@ func TestFractionalPartCalculation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create a bin with the specified reserve ratio
 				testState := &MaverickPoolState{
-					ActiveTick:   10,
-					TickSpacing:  1,
+					ActiveTick:  10,
+					TickSpacing: 1,
 					Bins: map[uint32]Bin{
 						1: {
 							ReserveA: new(uint256.Int).SetUint64(1000000 * tc.reserveARatio),
@@ -379,7 +379,7 @@ func TestFractionalPartCalculation(t *testing.T) {
 				if !sqrtPrice.IsZero() && !sqrtLowerTickPrice.IsZero() && !sqrtUpperTickPrice.IsZero() {
 					tickRange := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
 					tickPosition := new(uint256.Int).Sub(sqrtPrice, sqrtLowerTickPrice)
-					
+
 					if !tickRange.IsZero() {
 						fractionalPart := mulDiv(tickPosition, BI_POWS[8], tickRange)
 						fractionalPartD8 = int64(fractionalPart.Uint64())
@@ -393,14 +393,14 @@ func TestFractionalPartCalculation(t *testing.T) {
 				// Verify fractional part is in the expected range
 				switch tc.expectedRange {
 				case "low":
-					assert.True(t, fractionalPartD8 < int64(BI_POWS[7].Uint64()), 
+					assert.True(t, fractionalPartD8 < int64(BI_POWS[7].Uint64()),
 						"Should be in lower half of tick range: %d", fractionalPartD8)
 				case "mid":
 					halfTick := int64(BI_POWS[7].Uint64())
-					assert.True(t, fractionalPartD8 >= halfTick-20 && fractionalPartD8 <= halfTick+20, 
+					assert.True(t, fractionalPartD8 >= halfTick-20 && fractionalPartD8 <= halfTick+20,
 						"Should be near middle of tick range: %d vs %d", fractionalPartD8, halfTick)
 				case "high":
-					assert.True(t, fractionalPartD8 > int64(BI_POWS[7].Uint64()), 
+					assert.True(t, fractionalPartD8 > int64(BI_POWS[7].Uint64()),
 						"Should be in upper half of tick range: %d", fractionalPartD8)
 				}
 			})
@@ -449,11 +449,9 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 
 	// Create a simple pool state for testing
 	state := &MaverickPoolState{
-		ActiveTick:   10,
-		LastTwaD8:    2560000, // 10 * 2^8 (10 << 8)
-		Timestamp:    1000,
-		LookbackSec:  600,
-		AccumValueD8: new(uint256.Int),
+		ActiveTick: 10,
+		LastTwaD8:  2560000, // 10 * 2^8 (10 << 8)
+		Timestamp:  1000,
 		Bins: map[uint32]Bin{
 			1: {
 				ReserveA: new(uint256.Int).SetUint64(1000000),
@@ -471,29 +469,6 @@ func TestTwaUpdateAndBinMovement(t *testing.T) {
 			11: {2},
 		},
 	}
-
-	// Test updateTwaValue
-	t.Run("updateTwaValue", func(t *testing.T) {
-		// Update with a 10 second time difference
-		newTimestamp := int64(1010)
-		newValueD8 := int64(3072000) // 12 * 2^8 (12 << 8)
-
-		// Get initial values
-		initialLastTwaD8 := state.LastTwaD8
-		initialAccumValue := new(uint256.Int).Set(state.AccumValueD8)
-
-		// Update TWA value
-		updateTwaValue(state, newValueD8, newTimestamp)
-
-		// Verify values updated
-		assert.NotEqual(t, initialLastTwaD8, state.LastTwaD8, "LastTwaD8 should be updated")
-		assert.Equal(t, newValueD8, state.LastTwaD8, "LastTwaD8 should equal new value")
-		assert.Equal(t, newTimestamp, state.Timestamp, "Timestamp should be updated")
-
-		// Verify accumulator increased
-		// Expected increase = oldValue * timeDelta = 2560000 * 10
-		assert.True(t, state.AccumValueD8.Cmp(initialAccumValue) > 0, "AccumValueD8 should increase")
-	})
 
 	// Test moveBins with significant TWA change
 	t.Run("moveBins with significant change", func(t *testing.T) {

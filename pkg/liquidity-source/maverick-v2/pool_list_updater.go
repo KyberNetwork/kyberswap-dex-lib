@@ -210,9 +210,17 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 		return nil, err
 	}
 
+	// Fetch tick spacing for all pools
+	tickSpacingList, err := u.listPoolTickSpacing(ctx, poolAddrs)
+	if err != nil {
+		return nil, err
+	}
+
 	pools := make([]entity.Pool, 0, len(poolAddrs))
 
 	for i, poolAddress := range poolAddrs {
+		poolAddrLower := strings.ToLower(poolAddress.Hex())
+
 		token0 := &entity.PoolToken{
 			Address:   strings.ToLower(tokenAList[i].Hex()),
 			Swappable: true,
@@ -223,13 +231,28 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 			Swappable: true,
 		}
 
+		// Create StaticExtra with data from both on-chain and API
+		staticExtra := StaticExtra{
+			TickSpacing: uint32(tickSpacingList[i].Uint64()),
+		}
+
+		staticExtraBytes, err := json.Marshal(staticExtra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"pool_address": poolAddress.Hex(),
+				"error":        err,
+			}).Error("Failed to marshal static extra data")
+			continue
+		}
+
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(poolAddress.Hex()),
-			Exchange:  u.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens:    []*entity.PoolToken{token0, token1},
+			Address:     poolAddrLower,
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{token0, token1},
+			StaticExtra: string(staticExtraBytes),
 		}
 
 		pools = append(pools, newPool)

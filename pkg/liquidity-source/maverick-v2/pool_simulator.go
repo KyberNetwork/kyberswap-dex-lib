@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -38,27 +38,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	binMap := extra.BinMap
-	binPositions := extra.BinPositions
-
-	// Parse accumValueD8 from string to uint256
-	var accumValueD8 *uint256.Int
-	if extra.AccumValueD8 != "" {
-		var err error
-		accumValueD8, err = uint256.FromDecimal(extra.AccumValueD8)
-		if err != nil {
-			accumValueD8 = new(uint256.Int)
-		}
-	} else {
-		accumValueD8 = new(uint256.Int)
-	}
-
-	// Default lookback to 10 minutes if not specified
-	lookbackSec := extra.LookbackSec
-	if lookbackSec == 0 {
-		lookbackSec = 600 // 10 minutes in seconds
-	}
-
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -66,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-				Reserves: []*big.Int{utils.NewBig10(entityPool.Reserves[0]), utils.NewBig10(entityPool.Reserves[1])},
+				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
 			},
 		},
 		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
@@ -75,14 +54,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			FeeBIn:           extra.FeeBIn,
 			ProtocolFeeRatio: extra.ProtocolFeeRatio,
 			Bins:             extra.Bins,
-			BinPositions:     binPositions,
-			BinMap:           binMap,
+			BinPositions:     extra.BinPositions,
+			BinMap:           extra.BinMap,
 			TickSpacing:      staticExtra.TickSpacing,
 			ActiveTick:       extra.ActiveTick,
 			LastTwaD8:        extra.LastTwaD8,
 			Timestamp:        extra.Timestamp,
-			AccumValueD8:     accumValueD8,
-			LookbackSec:      lookbackSec,
 		},
 	}, nil
 }
@@ -187,17 +164,18 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.state.ActiveTick = newState.activeTick
 
 	// Update time-weighted average
-	fractionalPartD8 := newState.fractionalPartD8
-	if fractionalPartD8 == 0 {
-		// Default to half the tick if not provided
-		fractionalPartD8 = int64(BI_POWS[7].Uint64())
-	}
+	// fractionalPartD8 := newState.fractionalPartD8
+	// if fractionalPartD8 == 0 {
+	// 	// Default to half the tick if not provided
+	// 	fractionalPartD8 = int64(BI_POWS[7].Uint64())
+	// }
 
 	// Calculate full tick position with fractional part
-	tickPositionD8 := int64(p.state.ActiveTick)*int64(BI_POWS[8].Uint64()) + fractionalPartD8
+	// tickPositionD8 := int64(p.state.ActiveTick)*int64(BI_POWS[8].Uint64()) + fractionalPartD8
 
 	// Update TWA
-	updateTwaValue(p.state, tickPositionD8, timestamp)
+	// no need to updatw time weighted average price, as UpdateBalance only call in same Route in one block
+	// updateTwaValue(p.state, tickPositionD8, timestamp)
 
 	// Move bins based on tick changes
 	threshold := new(uint256.Int).Mul(new(uint256.Int).SetUint64(5), BI_POWS[7])
@@ -632,45 +610,6 @@ func getTickData(state *MaverickPoolState, tick int32) (Bin, bool) {
 	}, true
 }
 
-func updateBinData(state *MaverickPoolState, tick int32, tickData Bin) {
-	bins, ok := state.BinPositions[tick]
-	if !ok || len(bins) == 0 {
-		return
-	}
-
-	// Distribute the new reserves proportionally across bins
-	// This is a simplification - in the actual implementation, each bin may have specific logic
-	totalReserveA := new(uint256.Int)
-	totalReserveB := new(uint256.Int)
-
-	for _, binId := range bins {
-		bin, ok := state.Bins[binId]
-		if ok {
-			totalReserveA = new(uint256.Int).Add(totalReserveA, bin.ReserveA)
-			totalReserveB = new(uint256.Int).Add(totalReserveB, bin.ReserveB)
-		}
-	}
-
-	// Update each bin proportionally
-	for _, binId := range bins {
-		bin, ok := state.Bins[binId]
-		if ok {
-			// Calculate new reserves proportionally
-			if !totalReserveA.IsZero() {
-				ratio := divRoundingDown(mulDiv(bin.ReserveA, BI_POWS[18], totalReserveA), BI_POWS[18])
-				bin.ReserveA = mulDiv(tickData.ReserveA, ratio, BI_POWS[18])
-			}
-
-			if !totalReserveB.IsZero() {
-				ratio := divRoundingDown(mulDiv(bin.ReserveB, BI_POWS[18], totalReserveB), BI_POWS[18])
-				bin.ReserveB = mulDiv(tickData.ReserveB, ratio, BI_POWS[18])
-			}
-
-			state.Bins[binId] = bin
-		}
-	}
-}
-
 func combine(self *Delta, delta *Delta) {
 	if !self.SkipCombine {
 		self.DeltaInBinInternal = new(uint256.Int).Add(self.DeltaInBinInternal, delta.DeltaInBinInternal)
@@ -723,15 +662,7 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		BinMap:           make(map[int32]uint32, len(state.BinMap)),
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.Timestamp,
-		LookbackSec:      state.LookbackSec,
 		BinCounter:       state.BinCounter,
-	}
-
-	// Clone the accumulated value
-	if state.AccumValueD8 != nil {
-		cloned.AccumValueD8 = new(uint256.Int).Set(state.AccumValueD8)
-	} else {
-		cloned.AccumValueD8 = new(uint256.Int)
 	}
 
 	for k, v := range state.Bins {
@@ -800,11 +731,9 @@ type MaverickPoolState struct {
 	BinMap           map[int32]uint32
 	TickSpacing      uint32
 	ActiveTick       int32
-	LastTwaD8        int64        // Time-weighted average tick data
-	Timestamp        int64        // Current timestamp
-	AccumValueD8     *uint256.Int // Accumulated TWA value with 8 decimals
-	LookbackSec      int64        // Lookback period in seconds
-	BinCounter       uint32       // Counter for bin IDs
+	LastTwaD8        int64  // Time-weighted average tick data
+	Timestamp        int64  // Current timestamp
+	BinCounter       uint32 // Counter for bin IDs
 }
 
 type Extra struct {
@@ -818,11 +747,6 @@ type Extra struct {
 	LastTwaD8        int64              `json:"lastTwaD8"`
 	Timestamp        int64              `json:"timestamp"`
 	AccumValueD8     string             `json:"accumValueD8"`
-	LookbackSec      int64              `json:"lookbackSec"`
-}
-
-type StaticExtra struct {
-	TickSpacing uint32 `json:"tickSpacing"`
 }
 
 type Bin struct {
@@ -859,42 +783,6 @@ type TickState struct {
 	ReserveB     *uint256.Int
 	TotalSupply  *uint256.Int
 	BinIdsByTick map[uint8]uint32
-}
-
-// TWA and Bin movement related functions
-func updateTwaValue(state *MaverickPoolState, newValueD8 int64, timestamp int64) {
-	// Skip if no timestamp change
-	if state.Timestamp == timestamp {
-		return
-	}
-
-	// Handle initial case
-	if state.LastTwaD8 == 0 {
-		state.LastTwaD8 = newValueD8
-		state.Timestamp = timestamp
-		return
-	}
-
-	// Calculate time delta
-	timeDelta := timestamp - state.Timestamp
-
-	// Ensure we don't have negative time
-	if timeDelta <= 0 {
-		return
-	}
-
-	// Calculate weighted value to add to accumulator
-	weightedValue := new(uint256.Int).SetUint64(uint64(state.LastTwaD8 * timeDelta))
-
-	// Add to accumulator
-	if state.AccumValueD8 == nil {
-		state.AccumValueD8 = new(uint256.Int)
-	}
-	state.AccumValueD8.Add(state.AccumValueD8, weightedValue)
-
-	// Update state
-	state.LastTwaD8 = newValueD8
-	state.Timestamp = timestamp
 }
 
 func moveBins(state *MaverickPoolState, startingTick, activeTick int32, lastTwapD8, newTwapD8 int64, threshold *uint256.Int) {
