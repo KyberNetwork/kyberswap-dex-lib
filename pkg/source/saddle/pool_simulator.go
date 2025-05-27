@@ -107,7 +107,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -140,7 +140,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -174,7 +174,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -191,7 +191,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}
 		}
 	}
-	return &pool.CalcAmountOutResult{}, errors.New("i'm dead here")
+	return nil, errors.New("i'm dead here")
 }
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {

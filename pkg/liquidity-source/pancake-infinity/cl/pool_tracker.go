@@ -43,7 +43,7 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (t *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var staticExtra StaticExtra
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 
@@ -101,7 +101,7 @@ func (t *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = t.FetchRPCData(ctx, p, 0)
+		rpcData, err = t.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -339,14 +339,12 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 }
 
 func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
-	liquidityGross := new(big.Int)
-	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
+	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
 	}
 
-	liquidityNet := new(big.Int)
-	liquidityNet, ok = liquidityNet.SetString(tickResp.LiquidityNet, 10)
+	liquidityNet, ok := new(big.Int).SetString(tickResp.LiquidityNet, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
 	}
@@ -361,18 +359,4 @@ func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,
 	}, nil
-}
-
-func (t *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := t.FetchRPCData(ctx, p, blockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	rpcDataBytes, err := json.Marshal(rpcData)
-	if err != nil {
-		return nil, err
-	}
-
-	return rpcDataBytes, nil
 }

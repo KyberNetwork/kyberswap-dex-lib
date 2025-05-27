@@ -118,7 +118,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			&amountOut, &adminFee,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		if amountOut.IsZero() {
@@ -159,7 +159,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			&adminFee,
 		)
 		if err != nil {
-			return &pool.CalcAmountInResult{}, err
+			return nil, err
 		}
 
 		if amountIn.IsZero() {

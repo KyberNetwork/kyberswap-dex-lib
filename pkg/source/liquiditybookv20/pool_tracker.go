@@ -47,14 +47,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		rpcResult      *QueryRpcPoolStateResult
+		rpcData        *QueryRpcPoolStateResult
 		subgraphResult *querySubgraphPoolStateResult
 		err            error
 	)
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcResult, err = d.FetchRPCData(ctx, p, 0)
+		rpcData, err = d.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			return err
 		}
@@ -72,13 +72,13 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extra := Extra{
-		RpcBlockTimestamp:      rpcResult.BlockTimestamp,
+		RpcBlockTimestamp:      rpcData.BlockTimestamp,
 		SubgraphBlockTimestamp: subgraphResult.BlockTimestamp,
-		FeeParameters:          rpcResult.FeeParameters,
-		ActiveBinID:            uint32(rpcResult.ReservesAndID.ActiveId.Uint64()),
+		FeeParameters:          rpcData.FeeParameters,
+		ActiveBinID:            uint32(rpcData.ReservesAndID.ActiveId.Uint64()),
 		Bins:                   subgraphResult.Bins,
-		PriceX128:              rpcResult.PriceX128,
-		Liquidity:              rpcResult.Liquidity,
+		PriceX128:              rpcData.PriceX128,
+		Liquidity:              rpcData.Liquidity,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -86,8 +86,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	p.Reserves = entity.PoolReserves{
-		rpcResult.ReservesAndID.ReserveX.String(),
-		rpcResult.ReservesAndID.ReserveY.String(),
+		rpcData.ReservesAndID.ReserveX.String(),
+		rpcData.ReservesAndID.ReserveY.String(),
 	}
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
@@ -99,15 +99,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
-	result, err := d.FetchRPCData(ctx, pool, blockNumber)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(result)
-}
-
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 

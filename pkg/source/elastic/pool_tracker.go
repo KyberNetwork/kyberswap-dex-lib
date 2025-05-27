@@ -46,14 +46,14 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.Infof("[Elastic] Start getting new state of pool: %v", p.Address)
 
 	var (
-		rpcData   FetchRPCResult
+		rpcData   *FetchRPCResult
 		poolTicks []TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.FetchRPCData(ctx, p)
+		rpcData, err = d.FetchRPCData(ctx, &p)
 		if err != nil {
 			logger.Errorf("failed to fetch data from RPC for pool: %v, err: %v", p.Address, err)
 		}
@@ -111,7 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool) (*FetchRPCResult, error) {
 	var (
 		liquidityState LiquidityState
 		poolState      PoolState
@@ -155,10 +155,10 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
-		return FetchRPCResult{}, err
+		return nil, err
 	}
 
-	return FetchRPCResult{
+	return &FetchRPCResult{
 		liquidityState: liquidityState,
 		poolState:      poolState,
 		reserve0:       reserve0,

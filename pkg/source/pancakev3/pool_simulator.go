@@ -266,7 +266,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}, nil
 		}
 
-		return &pool.CalcAmountOutResult{}, errors.New("amountOut is 0")
+		return nil, errors.New("amountOut is 0")
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)

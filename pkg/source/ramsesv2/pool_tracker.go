@@ -48,14 +48,14 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
 
 	var (
-		rpcData   FetchRPCResult
+		rpcData   *FetchRPCResult
 		poolTicks []ticklens.TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.FetchRPCData(ctx, p, 0)
+		rpcData, err = d.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
@@ -140,21 +140,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := d.FetchRPCData(ctx, p, blockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	rpcDataBytes, err := json.Marshal(rpcData)
-	if err != nil {
-		return nil, err
-	}
-
-	return rpcDataBytes, nil
-}
-
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var (
 		liquidity   *big.Int
 		slot0       Slot0
@@ -231,10 +217,10 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("failed to process Aggregate")
-		return FetchRPCResult{}, err
+		return nil, err
 	}
 
-	return FetchRPCResult{
+	return &FetchRPCResult{
 		Liquidity:   liquidity,
 		Slot0:       slot0,
 		FeeTier:     feeTier.Int64(),

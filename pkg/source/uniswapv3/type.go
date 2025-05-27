@@ -106,14 +106,12 @@ type PoolMeta struct {
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {
-	liquidityGross := new(big.Int)
-	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
+	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
 	}
 
-	liquidityNet := new(big.Int)
-	liquidityNet, ok = liquidityNet.SetString(tickResp.LiquidityNet, 10)
+	liquidityNet, ok := new(big.Int).SetString(tickResp.LiquidityNet, 10)
 	if !ok {
 		return Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
 	}
