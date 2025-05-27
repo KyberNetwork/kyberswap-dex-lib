@@ -17,6 +17,7 @@ const (
 	poolMethodGetLastJoinExitData               = "getLastJoinExitData"
 	poolMethodGetRateProviders                  = "getRateProviders"
 	poolMethodGetTokenRateCache                 = "getTokenRateCache"
+	poolMethodGetTokenRateCacheLegacy           = "getTokenRateCacheLegacy"
 	poolMethodGetProtocolFeePercentageCache     = "getProtocolFeePercentageCache"
 	poolMethodIsTokenExemptFromYieldProtocolFee = "isTokenExemptFromYieldProtocolFee"
 	poolMethodInRecoveryMode                    = "inRecoveryMode"

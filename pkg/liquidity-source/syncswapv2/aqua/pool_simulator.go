@@ -119,7 +119,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		uint256.MustFromBig(tokenAmountIn.Amount),
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 	if amountOut.Cmp(big256.ZeroBI) > 0 {
 		return &pool.CalcAmountOutResult{

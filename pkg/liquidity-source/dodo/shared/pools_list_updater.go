@@ -50,7 +50,6 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 			PoolId:           pool.ID,
 			LpToken:          pool.BaseLpToken.Address,
 			Type:             pool.Type,
-			Tokens:           []string{pool.BaseToken.Address, pool.QuoteToken.Address},
 			DodoV1SellHelper: d.config.DodoV1SellHelper,
 		}
 

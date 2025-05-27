@@ -95,8 +95,8 @@ type IPoolRFQ interface {
 	SupportBatch() bool
 }
 
-type ITicksBasedPoolTracker interface {
-	FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error)
+type ITicksBasedPoolTracker[T any] interface {
+	FetchRPCData(ctx context.Context, pool *entity.Pool, blockNumber uint64) (T, error)
 }
 
 type IPoolDecoder interface {

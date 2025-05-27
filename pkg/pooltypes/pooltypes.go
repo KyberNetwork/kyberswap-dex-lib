@@ -59,6 +59,7 @@ import (
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
 	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
@@ -304,6 +305,7 @@ type Types struct {
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string
+	MimSwap                    string
 
 	KyberPMM  string
 	Pmm1      string
@@ -468,10 +470,11 @@ var (
 		Ekubo:                      ekubo.DexType,
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
+		MimSwap:                    mimswap.DexType,
 
-		KyberPMM:  string(valueobject.ExchangeKyberPMM),
-		Pmm1:      string(valueobject.ExchangePmm1),
-		Pmm2:      string(valueobject.ExchangePmm2),
+		KyberPMM:  valueobject.ExchangeKyberPMM,
+		Pmm1:      valueobject.ExchangePmm1,
+		Pmm2:      valueobject.ExchangePmm2,
 		UniswapLO: uniswaplo.DexType,
 	}
 )
