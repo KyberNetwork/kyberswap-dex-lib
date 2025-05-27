@@ -78,6 +78,12 @@ type TokenRateCacheResp struct {
 	Expires  *big.Int
 }
 
+type TokenRateCacheLegacyResp struct {
+	Rate     *big.Int
+	Duration *big.Int
+	Expires  *big.Int
+}
+
 type PoolTokensResp struct {
 	Tokens          []common.Address
 	Balances        []*big.Int
