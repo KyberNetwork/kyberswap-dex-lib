@@ -102,7 +102,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 }
 
 func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
-	result, err := d.FetchRPCData(ctx, pool, blockNumber) // to update also???
+	result, err := d.FetchRPCData(ctx, pool, blockNumber)
 	if err != nil {
 		return nil, err
 	}
