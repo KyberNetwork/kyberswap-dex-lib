@@ -53,7 +53,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchRPCData(ctx, p)
+		rpcData, err = d.FetchRPCData(ctx, p)
 		if err != nil {
 			logger.Errorf("failed to fetch data from RPC for pool: %v, err: %v", p.Address, err)
 		}
@@ -111,7 +111,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
 	var (
 		liquidityState LiquidityState
 		poolState      PoolState

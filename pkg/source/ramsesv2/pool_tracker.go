@@ -55,7 +55,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchRPCData(ctx, p, 0)
+		rpcData, err = d.FetchRPCData(ctx, p, 0)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
@@ -141,7 +141,7 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := d.fetchRPCData(ctx, p, blockNumber)
+	rpcData, err := d.FetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, bloc
 	return rpcDataBytes, nil
 }
 
-func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
 	var (
 		liquidity   *big.Int
 		slot0       Slot0
