@@ -361,44 +361,6 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 	return newDelta, crossedBin, nil
 }
 
-// allocateSwapValuesToTick simulates the tick reserve updates (for calculation purposes only)
-// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/2108e064319bf14f98c321a8acd4762d3e9e3560/src/dex/maverick-v2/maverick-math/maverick-pool-math.ts#L692
-func allocateSwapValuesToTick(delta *Delta, tokenAIn bool, tick int32, tickData Bin) {
-	// In a pool simulator, we don't actually mutate state, but we simulate the logic
-	// to ensure calculations are consistent with real swaps
-
-	// This matches the TypeScript logic but doesn't persist changes:
-	// let reserveA = tickState.reserveA;
-	// let reserveB = tickState.reserveB;
-
-	if tokenAIn {
-		// reserveA = reserveA + delta.deltaInBinInternal;
-		// reserveB = delta.excess > 0n ? 0n : MaverickBasicMath.clip(reserveB, delta.deltaOutErc);
-		if !delta.Excess.IsZero() {
-			// If there's excess, this tick is fully consumed (reserveB becomes 0)
-			// No actual state mutation needed in simulator
-		} else {
-			// Normal case: reduce reserveB by deltaOutErc
-			// tickState.reserveB = clip(tickState.reserveB, delta.deltaOutErc)
-			// No actual state mutation needed in simulator
-		}
-	} else {
-		// reserveA = delta.excess > 0n ? 0n : MaverickBasicMath.clip(reserveA, delta.deltaOutErc);
-		// reserveB = reserveB + delta.deltaInBinInternal;
-		if !delta.Excess.IsZero() {
-			// If there's excess, this tick is fully consumed (reserveA becomes 0)
-			// No actual state mutation needed in simulator
-		} else {
-			// Normal case: reduce reserveA by deltaOutErc
-			// tickState.reserveA = clip(tickState.reserveA, delta.deltaOutErc)
-			// No actual state mutation needed in simulator
-		}
-	}
-
-	// Note: In the real implementation (UpdateBalance), this would update the actual bins
-	// But in simulation, we only need to ensure the calculation logic is consistent
-}
-
 // computeEndPrice calculates the end price and fractional part when there's no excess remaining
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-swap-math.ts#L178
 func computeEndPrice(delta *Delta, newDelta *Delta, tickData Bin) {
@@ -695,23 +657,6 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 func mulDiv(a, b, denominator *uint256.Int) *uint256.Int {
 	product := new(uint256.Int).Mul(a, b)
 	return new(uint256.Int).Div(product, denominator)
-}
-
-// Helper function to get token index (0 for tokenA, 1 for tokenB)
-func getTokenIndex(isTokenA bool) int {
-	if isTokenA {
-		return 0
-	}
-	return 1
-}
-
-func divRoundingUp(a, b *uint256.Int) *uint256.Int {
-	numerator := new(uint256.Int).Add(a, new(uint256.Int).Sub(b, new(uint256.Int).SetUint64(1)))
-	return new(uint256.Int).Div(numerator, b)
-}
-
-func divRoundingDown(a, b *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Div(a, b)
 }
 
 func boolToInt32(b bool) int32 {
@@ -1112,40 +1057,6 @@ func moveBinToNewTick(state *MaverickPoolState, firstBin *Bin, startingTickState
 	state.Bins[moveData.FirstBinId] = *firstBin
 }
 
-// Helper function to remove bin from tick
-func removeBinFromTick(state *MaverickPoolState, tick int32, binId uint32, kind uint8) {
-	// Get bins at this tick
-	tickState, ok := state.BinPositions[tick]
-	if !ok || len(tickState) == 0 {
-		return
-	}
-
-	// Remove this bin
-	newTickState := make([]uint32, 0, len(tickState))
-	for _, id := range tickState {
-		if id != binId {
-			newTickState = append(newTickState, id)
-		}
-	}
-
-	// Update tick state
-	state.BinPositions[tick] = newTickState
-}
-
-// Helper function to add bin to tick
-func addBinToTick(state *MaverickPoolState, tick int32, binId uint32, kind uint8) {
-	// Get bins at this tick
-	tickState, ok := state.BinPositions[tick]
-	if !ok {
-		// Create new tick state if it doesn't exist
-		state.BinPositions[tick] = []uint32{binId}
-		return
-	}
-
-	// Add bin to tick
-	state.BinPositions[tick] = append(tickState, binId)
-}
-
 // Helper to get max of two uint256.Int
 func max(a, b *uint256.Int) *uint256.Int {
 	if a.Cmp(b) > 0 {
@@ -1352,122 +1263,6 @@ func updateTickState(state *MaverickPoolState, tick int32, tickState *TickState)
 			}
 		}
 	}
-}
-
-// Helper for moveBins - processes a single tick
-func processTick(state *MaverickPoolState, tick int32, direction int32) {
-	// Skip if no bins at this tick
-	binIds, ok := state.BinPositions[tick]
-	if !ok || len(binIds) == 0 {
-		return
-	}
-
-	// Process all bins at this tick
-	for _, binId := range binIds {
-		bin, ok := state.Bins[binId]
-		if !ok {
-			continue
-		}
-
-		// Skip if no reserves
-		if bin.ReserveA.IsZero() && bin.ReserveB.IsZero() {
-			continue
-		}
-
-		// Here we would implement the rebalancing logic based on direction
-		// This is a simplified version that just shifts bins
-		if direction > 0 {
-			// Moving up, increase A, decrease B (simplified)
-			shiftBin(&bin, true)
-		} else {
-			// Moving down, decrease A, increase B (simplified)
-			shiftBin(&bin, false)
-		}
-
-		// Update bin
-		state.Bins[binId] = bin
-	}
-}
-
-// Helper to shift bin reserves when moving bins
-func shiftBin(bin *Bin, increaseA bool) {
-	// Skip if empty bin
-	if bin.ReserveA.IsZero() && bin.ReserveB.IsZero() {
-		return
-	}
-
-	// This is a simplified bin shift - actual implementation would depend on
-	// Maverick's specific bin rebalancing formulas
-	if increaseA {
-		// Increase A, decrease B by a small percentage
-		adjustment := mulDiv(bin.ReserveB, new(uint256.Int).SetUint64(1), new(uint256.Int).SetUint64(100))
-		bin.ReserveA.Add(bin.ReserveA, adjustment)
-		bin.ReserveB.Sub(bin.ReserveB, adjustment)
-		if bin.ReserveB.IsZero() {
-			bin.ReserveB = new(uint256.Int).SetUint64(1) // Ensure non-zero
-		}
-	} else {
-		// Decrease A, increase B by a small percentage
-		adjustment := mulDiv(bin.ReserveA, new(uint256.Int).SetUint64(1), new(uint256.Int).SetUint64(100))
-		bin.ReserveA.Sub(bin.ReserveA, adjustment)
-		bin.ReserveB.Add(bin.ReserveB, adjustment)
-		if bin.ReserveA.IsZero() {
-			bin.ReserveA = new(uint256.Int).SetUint64(1) // Ensure non-zero
-		}
-	}
-}
-
-// Implementation of getOrCreateBin from TypeScript
-func getOrCreateBin(state *MaverickPoolState, kind uint8, tick int32) (uint32, Bin) {
-	// First check if bin exists
-	binId := binIdByTickKind(state, tick, kind)
-
-	if binId == 0 {
-		// Create a new bin
-		state.BinCounter++
-		binId = state.BinCounter
-
-		// Initialize the new bin
-		bin := Bin{
-			Tick:            tick,
-			Kind:            kind,
-			MergeBinBalance: new(uint256.Int),
-			MergeId:         0,
-			TotalSupply:     new(uint256.Int),
-			TickBalance:     new(uint256.Int),
-			ReserveA:        new(uint256.Int),
-			ReserveB:        new(uint256.Int),
-		}
-
-		// Store the bin
-		state.Bins[binId] = bin
-
-		// Create tick state if it doesn't exist
-		_, ok := state.BinPositions[tick]
-		if !ok {
-			state.BinPositions[tick] = []uint32{}
-		}
-
-		// Add bin to tick
-		state.BinPositions[tick] = append(state.BinPositions[tick], binId)
-
-		// Create bin map entry
-		state.BinMap[tick] = binId
-
-		return binId, bin
-	}
-
-	// Return existing bin
-	bin := state.Bins[binId]
-	return binId, bin
-}
-
-// Helper to get absolute difference between two int64
-func absDiff(a, b int64) int64 {
-	if a > b {
-		return a - b
-	}
-	return b - a
 }
 
 // Helper to get current unix timestamp in seconds
