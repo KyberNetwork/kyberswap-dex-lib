@@ -1,8 +1,8 @@
 package honey
 
 import (
-	"errors"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
@@ -14,40 +14,23 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type (
-	PoolSimulator struct {
-		pool.Pool
-		gas                    Gas
-		forcedBasketMode       bool
-		registeredAssets       []string
-		isBasketEnabledMint    bool
-		isBasketEnabledRedeem  bool
-		isPegged               []bool
-		isBadCollateral        []bool
-		mintRates              []*uint256.Int
-		redeemRates            []*uint256.Int
-		polFeeCollectorFeeRate *uint256.Int
-		assetsDecimals         []uint8
-		vaultsDecimals         []uint8
-		vaultsMaxRedeems       []*uint256.Int
-	}
+type PoolSimulator struct {
+	pool.Pool
+	forcedBasketMode       bool
+	registeredAssets       []string
+	isBasketEnabledMint    bool
+	isBasketEnabledRedeem  bool
+	isPegged               []bool
+	isBadCollateral        []bool
+	mintRates              []*uint256.Int
+	redeemRates            []*uint256.Int
+	polFeeCollectorFeeRate *uint256.Int
+	assetsDecimals         []uint8
+	vaultsDecimals         []uint8
+	vaultsMaxRedeems       []*uint256.Int
+}
 
-	Gas struct {
-		Swap int64
-	}
-)
-
-var (
-	honeyToken                       = "0xfcbd14dc51f0a4d49d5e53c2e0950e0bc26d0dce"
-	U_1e18                           = uint256.MustFromDecimal("1000000000000000000")
-	U_10                             = uint256.MustFromDecimal("10")
-	ErrInvalidToken                  = errors.New("invalid token")
-	ErrInvalidAmountIn               = errors.New("invalid amount in")
-	ErrInsufficientInputAmount       = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrMaxRedeemAmountExceeded       = errors.New("MAX_REDEEM_AMOUNT_EXCEEDED")
-	ErrAssetFullyLiquidatedCantCheck = errors.New("asset fully liquidated, can't check")
-	ErrBasketMode                    = errors.New("basket mode")
-)
+var ()
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -65,7 +48,6 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		gas:                    defaultGas,
 		isBasketEnabledMint:    extra.IsBasketEnabledMint,
 		isBasketEnabledRedeem:  extra.IsBasketEnabledRedeem,
 		isPegged:               extra.IsPegged,
@@ -81,13 +63,13 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
 	)
 
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
@@ -101,110 +83,116 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientInputAmount
 	}
 
-	var isMint bool
 	var assetIndex int
-
-	if tokenAmountIn.Token != honeyToken {
-		isMint = true
-		assetIndex = lo.IndexOf(s.registeredAssets, tokenAmountIn.Token)
+	isMint := tokenAmountIn.Token != honeyToken
+	if isMint {
+		assetIndex = lo.IndexOf(p.registeredAssets, tokenAmountIn.Token)
 	} else {
-		assetIndex = lo.IndexOf(s.registeredAssets, tokenOut)
-	}
-	assetAmount := uint256.MustFromBig(tokenAmountIn.Amount)
-	if isMint && !s.forcedBasketMode && !s.isBasketEnabledMint && !s.isBadCollateral[assetIndex] && s.isPegged[assetIndex] {
-		shares := s.convertToShares(assetAmount, assetIndex)
-		amountOut, feeShares, _ := s.getHoneyMintedFromShares(shares, assetIndex)
-		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-			Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
-			Gas:            s.gas.Swap,
-		}, nil
+		assetIndex = lo.IndexOf(p.registeredAssets, tokenOut)
 	}
 
-	if !isMint && !s.forcedBasketMode && !s.isBasketEnabledRedeem {
-		if assetIndex >= len(s.vaultsMaxRedeems) || s.vaultsMaxRedeems[assetIndex].Cmp(amountIn) <= 0 {
+	if isMint && !p.forcedBasketMode && !p.isBasketEnabledMint && !p.isBadCollateral[assetIndex] && p.isPegged[assetIndex] {
+		assetAmount := uint256.MustFromBig(tokenAmountIn.Amount)
+		shares := p.convertToShares(assetAmount, assetIndex)
+		amountOut, feeShares, _ := p.getHoneyMintedFromShares(shares, assetIndex)
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+			Fee:            &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
+			Gas:            defaultGas,
+			SwapInfo:       SwapInfo{deltaShares: amountOut, assetIndex: assetIndex},
+		}, nil
+	} else if !isMint && !p.forcedBasketMode && !p.isBasketEnabledRedeem {
+		if assetIndex >= len(p.vaultsMaxRedeems) || p.vaultsMaxRedeems[assetIndex].Cmp(amountIn) < 0 {
 			return nil, ErrMaxRedeemAmountExceeded
 		}
-		sharesForRedeem, feeReceiverFeeShares, _ := s.getSharesRedeemedFromHoney(amountIn, assetIndex)
-		redeemedAssets := s.convertToAssets(sharesForRedeem, assetIndex)
+		shares, feeShares, _ := p.getSharesRedeemedFromHoney(amountIn, assetIndex)
+		redeemedAssets := p.convertToAssets(shares, assetIndex)
 		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: redeemedAssets.ToBig()},
-			Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: feeReceiverFeeShares.ToBig()},
-			Gas:            s.gas.Swap,
+			TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: redeemedAssets.ToBig()},
+			Fee:            &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
+			Gas:            defaultGas,
+			SwapInfo:       SwapInfo{deltaShares: new(uint256.Int).Neg(amountIn), assetIndex: assetIndex},
 		}, nil
 	}
 
 	return nil, ErrBasketMode
 }
 
-func (s *PoolSimulator) convertToShares(assets *uint256.Int, assetIndex int) (share *uint256.Int) {
+func (p *PoolSimulator) convertToShares(assets *uint256.Int, assetIndex int) (share *uint256.Int) {
 	var exponent uint8
 	share = new(uint256.Int)
-	if s.vaultsDecimals[assetIndex] >= s.assetsDecimals[assetIndex] {
-		exponent = s.vaultsDecimals[assetIndex] - s.assetsDecimals[assetIndex]
-		share.Mul(assets, share.Exp(U_10, uint256.NewInt(uint64(exponent))))
+	if p.vaultsDecimals[assetIndex] >= p.assetsDecimals[assetIndex] {
+		exponent = p.vaultsDecimals[assetIndex] - p.assetsDecimals[assetIndex]
+		share.Mul(assets, share.Exp(U10, uint256.NewInt(uint64(exponent))))
 	} else {
-		exponent = s.assetsDecimals[assetIndex] - s.vaultsDecimals[assetIndex]
-		share.Div(assets, share.Exp(U_10, uint256.NewInt(uint64(exponent))))
+		exponent = p.assetsDecimals[assetIndex] - p.vaultsDecimals[assetIndex]
+		share.Div(assets, share.Exp(U10, uint256.NewInt(uint64(exponent))))
 	}
 	return
 }
 
-func (s *PoolSimulator) getHoneyMintedFromShares(shares *uint256.Int, assetIndex int) (honeyAmount *uint256.Int, feeReceiverFeeShares *uint256.Int, polFeeCollectorFeeShares *uint256.Int) {
-	honeyAmount = new(uint256.Int)
-	honeyAmount.Mul(shares, s.mintRates[assetIndex]).Div(honeyAmount, U_1e18)
-	feeShares := new(uint256.Int).Sub(shares, honeyAmount)
-	polFeeCollectorFeeShares = new(uint256.Int).Set(feeShares)
-	polFeeCollectorFeeShares.Mul(polFeeCollectorFeeShares, s.polFeeCollectorFeeRate).Div(polFeeCollectorFeeShares, U_1e18)
-	feeReceiverFeeShares = new(uint256.Int).Sub(feeShares, polFeeCollectorFeeShares)
+func (p *PoolSimulator) getHoneyMintedFromShares(shares *uint256.Int,
+	assetIndex int) (honeyAmount, feeReceiverFeeShares, polFeeCollectorFeeShares *uint256.Int) {
+	honeyAmount, _ = new(uint256.Int).MulDivOverflow(shares, p.mintRates[assetIndex], U1e18)
+	feeReceiverFeeShares = new(uint256.Int).Sub(shares, honeyAmount)
+	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, U1e18)
+	feeReceiverFeeShares.Sub(feeReceiverFeeShares, polFeeCollectorFeeShares)
 	return
 }
 
-func (s *PoolSimulator) getSharesRedeemedFromHoney(amountIn *uint256.Int, assetIndex int) (shares *uint256.Int, feeReceiverFeeShares *uint256.Int, polFeeCollectorFeeShares *uint256.Int) {
-	shares = new(uint256.Int)
-	shares.Mul(amountIn, s.redeemRates[assetIndex]).Div(shares, U_1e18)
-	feeShares := new(uint256.Int).Sub(amountIn, shares)
-	polFeeCollectorFeeShares = new(uint256.Int).Set(feeShares)
-	polFeeCollectorFeeShares.Mul(polFeeCollectorFeeShares, s.polFeeCollectorFeeRate).Div(polFeeCollectorFeeShares, U_1e18)
-	feeReceiverFeeShares = new(uint256.Int).Sub(feeShares, polFeeCollectorFeeShares)
+func (p *PoolSimulator) getSharesRedeemedFromHoney(amountIn *uint256.Int,
+	assetIndex int) (shares, feeReceiverFeeShares, polFeeCollectorFeeShares *uint256.Int) {
+	shares, _ = new(uint256.Int).MulDivOverflow(amountIn, p.redeemRates[assetIndex], U1e18)
+	feeReceiverFeeShares = new(uint256.Int).Sub(amountIn, shares)
+	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, U1e18)
+	feeReceiverFeeShares.Sub(feeReceiverFeeShares, polFeeCollectorFeeShares)
 	return
 }
 
-func (s *PoolSimulator) convertToAssets(shares *uint256.Int, assetIndex int) (assets *uint256.Int) {
+func (p *PoolSimulator) convertToAssets(shares *uint256.Int, assetIndex int) (assets *uint256.Int) {
 	var exponent uint8
 	assets = new(uint256.Int)
-	if s.vaultsDecimals[assetIndex] >= s.assetsDecimals[assetIndex] {
-		exponent = s.vaultsDecimals[assetIndex] - s.assetsDecimals[assetIndex]
-		assets.Div(shares, assets.Exp(U_10, uint256.NewInt(uint64(exponent))))
+	if p.vaultsDecimals[assetIndex] >= p.assetsDecimals[assetIndex] {
+		exponent = p.vaultsDecimals[assetIndex] - p.assetsDecimals[assetIndex]
+		assets.Div(shares, assets.Exp(U10, uint256.NewInt(uint64(exponent))))
 	} else {
-		exponent = s.assetsDecimals[assetIndex] - s.vaultsDecimals[assetIndex]
-		assets.Mul(shares, assets.Exp(U_10, uint256.NewInt(uint64(exponent))))
+		exponent = p.assetsDecimals[assetIndex] - p.vaultsDecimals[assetIndex]
+		assets.Mul(shares, assets.Exp(U10, uint256.NewInt(uint64(exponent))))
 	}
 	return
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.vaultsMaxRedeems = slices.Clone(p.vaultsMaxRedeems)
+	return &cloned
 }
 
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	result := make([]string, 0, len(s.Info.Tokens))
-	var tokenIndex = s.GetTokenIndex(address)
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
+		p.vaultsMaxRedeems[swapInfo.assetIndex] = new(uint256.Int).Add(
+			p.vaultsMaxRedeems[swapInfo.assetIndex], swapInfo.deltaShares)
+	}
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	result := make([]string, 0, len(p.Info.Tokens))
+	var tokenIndex = p.GetTokenIndex(address)
 	if tokenIndex < 0 {
 		return result
 	}
 
 	if address == honeyToken {
-		return s.registeredAssets
+		return p.registeredAssets
 	}
 
 	return []string{honeyToken}
 }
 
-func (s *PoolSimulator) CanSwapFrom(address string) []string {
-	return s.CanSwapTo(address)
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
 }
