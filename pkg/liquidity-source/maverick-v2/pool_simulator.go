@@ -746,7 +746,6 @@ type Extra struct {
 	ActiveTick       int32              `json:"activeTick"`
 	LastTwaD8        int64              `json:"lastTwaD8"`
 	Timestamp        int64              `json:"timestamp"`
-	AccumValueD8     string             `json:"accumValueD8"`
 }
 
 type Bin struct {

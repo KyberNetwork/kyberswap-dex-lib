@@ -173,7 +173,6 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 		ActiveTick:       state.ActiveTick,
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.LastTimestamp,
-		AccumValueD8:     "0", // Initialize with default value
 	}
 
 	extraBytes, err := json.Marshal(extra)

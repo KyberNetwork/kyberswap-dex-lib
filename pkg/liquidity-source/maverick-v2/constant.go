@@ -4,9 +4,6 @@ import "math/big"
 
 const (
 	DexType = "maverick-v2"
-
-	// API URL for Maverick V2 API
-	MaverickAPIURL = "https://v2-api.mav.xyz"
 )
 
 const (
