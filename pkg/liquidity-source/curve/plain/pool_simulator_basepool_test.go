@@ -20,6 +20,7 @@ import (
 // copy from curve-meta
 
 func TestCalcAmountOutAsBasePool(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1#readContract
 	testcases := []struct {
 		in                string
@@ -89,6 +90,7 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 }
 
 func TestUpdateBalanceAsBasePool(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1#readContract
 	testcases := []struct {
 		in               string

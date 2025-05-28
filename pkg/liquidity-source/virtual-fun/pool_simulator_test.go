@@ -49,6 +49,7 @@ func createTestPoolSimulator() *PoolSimulator {
 }
 
 func TestNewPoolSimulator(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	assert.NotNil(t, poolSimulator)
@@ -63,6 +64,7 @@ func TestNewPoolSimulator(t *testing.T) {
 }
 
 func TestCalcAmountOut_SellToken(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	amountIn, _ := uint256.FromBig(big.NewInt(187))
@@ -82,6 +84,7 @@ func TestCalcAmountOut_SellToken(t *testing.T) {
 }
 
 func TestCalcAmountOut_BuyToken(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	amountIn, _ := uint256.FromBig(big.NewInt(100))
@@ -101,6 +104,7 @@ func TestCalcAmountOut_BuyToken(t *testing.T) {
 }
 
 func TestCalcAmountIn_SellExactOut(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	amountOut, _ := uint256.FromBig(big.NewInt(100))
@@ -135,6 +139,7 @@ func TestCalcAmountIn_SellExactOut(t *testing.T) {
 }
 
 func TestCalcAmountIn_BuyExactOut(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	amountOut, _ := uint256.FromBig(big.NewInt(100))
@@ -169,6 +174,7 @@ func TestCalcAmountIn_BuyExactOut(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	newReserveA := uint256.NewInt(1200)
@@ -194,6 +200,7 @@ func TestUpdateBalance(t *testing.T) {
 }
 
 func TestErrorCases(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	t.Run("Insufficient Input Amount", func(t *testing.T) {
@@ -226,6 +233,7 @@ func TestErrorCases(t *testing.T) {
 }
 
 func TestGetMetaInfo(t *testing.T) {
+	t.Parallel()
 	poolSimulator := createTestPoolSimulator()
 
 	metaInfo := poolSimulator.GetMetaInfo("", "")

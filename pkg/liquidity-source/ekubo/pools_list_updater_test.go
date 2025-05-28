@@ -35,6 +35,7 @@ var MainnetConfig = Config{
 }
 
 func TestPoolListUpdater(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}

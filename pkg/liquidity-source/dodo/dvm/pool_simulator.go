@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/libv2"
@@ -20,9 +21,8 @@ type PoolSimulator struct {
 	sync.RWMutex
 	pool.Pool
 	libv2.PMMState
-	Tokens entity.PoolTokens
-	Meta   shared.V2Meta
-	gas    shared.V2Gas
+	Meta shared.V2Meta
+	gas  shared.V2Gas
 }
 
 var _ = pool.RegisterFactory0(PoolType, NewPoolSimulator)
@@ -50,14 +50,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	swapFee := number.Add(extra.LpFeeRate, extra.MtFeeRate).ToBig()
 
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     staticExtra.Tokens,
-		Reserves:   []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   lo.Map(entityPool.Tokens, func(e *entity.PoolToken, index int) string { return e.Address }),
+		Reserves: []*big.Int{extra.B.ToBig(), extra.Q.ToBig()},
 	}
 
 	poolState := libv2.PMMState{
@@ -83,7 +81,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: info,
 		},
 		PMMState: poolState,
-		Tokens:   entity.ClonePoolTokens(entityPool.Tokens),
 		Meta:     meta,
 		gas:      shared.V2DefaultGas,
 	}, nil
@@ -98,7 +95,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if tokenAmountIn.Token == p.Info.Tokens[0] { // tokenIn is base token
 		receiveQuoteAmount, lpFee, mtFee, err := p.querySellBase(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFee, mtFee)
@@ -121,7 +118,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	} else if tokenAmountIn.Token == p.Info.Tokens[1] { // tokenIn is quote token
 		receiveBaseAmount, lpFee, mtFee, err := p.querySellQuote(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		fee := new(uint256.Int).Add(lpFee, mtFee)
@@ -181,6 +178,6 @@ func (p *PoolSimulator) GetLpToken() string {
 	return p.Info.Address
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return p.Meta
 }

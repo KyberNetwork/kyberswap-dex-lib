@@ -91,13 +91,11 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 		var tokens = []*entity.PoolToken{
 			{
 				Address:   p.TokenA.ID,
-				Weight:    defaultTokenWeight,
 				Decimals:  p.TokenA.Decimals,
 				Swappable: true,
 			},
 			{
 				Address:   p.TokenB.ID,
-				Weight:    defaultTokenWeight,
 				Decimals:  p.TokenB.Decimals,
 				Swappable: true,
 			},

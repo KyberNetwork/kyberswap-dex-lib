@@ -30,6 +30,8 @@ var (
 	expectedResFicT0    = parseString("8094353523617659658")
 	expectedResFicT1    = parseString("51232857537391979202756")
 	expectedAmountOutT0 = parseString("7216407639514371353522")
+
+	_ = func() bool { now = func() time.Time { return time.Unix(TIMESTAMP_JAN_2020, 0) }; return true }()
 )
 
 func parseString(value string) *big.Int {
@@ -39,6 +41,7 @@ func parseString(value string) *big.Int {
 }
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	extra := SmardexPair{
 		PairFee: PairFee{
 			FeesLP:   feesLP,
@@ -76,9 +79,6 @@ func TestCalcAmountOut(t *testing.T) {
 		Extra:    string(extraJson),
 	}
 	poolSimulator, _ := NewPoolSimulator(pool)
-	now = func() time.Time {
-		return time.Unix(TIMESTAMP_JAN_2020, 0)
-	}
 	result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(
 			poolpkg.CalcAmountOutParams{
@@ -117,6 +117,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name                string
 		amountParams        GetAmountParameters
@@ -215,6 +216,7 @@ func TestGetAmountOut(t *testing.T) {
 }
 
 func TestComputeFictiveReservesTrueOeGT1(t *testing.T) {
+	t.Parallel()
 	resT0 := parseString("13873434733749100000")
 	resT1 := parseString("119492838392173000000000")
 	resFicT0 := parseString("7120725548088060000")
@@ -238,6 +240,7 @@ func TestComputeFictiveReservesTrueOeGT1(t *testing.T) {
 }
 
 func TestComputeFictiveReservesEthInTrueOeLT1(t *testing.T) {
+	t.Parallel()
 	resT0 := parseString("13864885801349700000")
 	resT1 := parseString("119555797951391000000000")
 	resFicT0 := parseString("6459029119172690000")
@@ -261,6 +264,7 @@ func TestComputeFictiveReservesEthInTrueOeLT1(t *testing.T) {
 }
 
 func TestComputeFictiveReservesEthInTrueOeGT1(t *testing.T) {
+	t.Parallel()
 	// ETH_in, oe > 1, line 23
 	resT0 := parseString("12668420462955600000")
 	resT1 := parseString("103877534648498000000000")
@@ -285,6 +289,7 @@ func TestComputeFictiveReservesEthInTrueOeGT1(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	extra := SmardexPair{
 		PairFee: PairFee{
 			FeesLP:   feesLP,
@@ -326,9 +331,6 @@ func TestUpdateBalance(t *testing.T) {
 		Token:  "token0",
 		Amount: amountInT0,
 	}
-	now = func() time.Time {
-		return time.Unix(TIMESTAMP_JAN_2020, 0)
-	}
 	result, _ := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
@@ -345,8 +347,10 @@ func TestUpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve0.Cmp(expectedResFicT0), 0)
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
-	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(new(big.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0)), 0)
-	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(new(big.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1)), 0)
+	assert.Equal(t,
+		poolSimulator.Info.Reserves[0].Cmp(new(big.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0)), 0)
+	assert.Equal(t,
+		poolSimulator.Info.Reserves[1].Cmp(new(big.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1)), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage0.Cmp(priceAvT0), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage1.Cmp(priceAvT1), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(big.NewInt(TIMESTAMP_JAN_2020)), 0)

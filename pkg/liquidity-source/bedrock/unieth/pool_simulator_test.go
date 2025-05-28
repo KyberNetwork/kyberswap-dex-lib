@@ -11,6 +11,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		poolSimulator     *PoolSimulator
@@ -58,6 +59,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	t.Run("it should update balance correctly", func(t *testing.T) {
 		poolSimulator := &PoolSimulator{
 			Pool: poolpkg.Pool{

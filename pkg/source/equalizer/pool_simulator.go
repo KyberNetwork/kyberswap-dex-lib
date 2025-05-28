@@ -36,14 +36,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	decimals[1] = bignumber.TenPowInt(entityPool.Tokens[1].Decimals)
 
 	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	staticExtra, err := extractStaticExtra(entityPool.StaticExtra)

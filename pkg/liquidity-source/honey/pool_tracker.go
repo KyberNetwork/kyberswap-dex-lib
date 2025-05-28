@@ -3,12 +3,12 @@ package honey
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -75,99 +75,73 @@ func (t *PoolTracker) getNewPoolState(
 	var isBasketModeEnabledRedeem bool
 	var forcedBasketMode bool
 	var polFeeCollectorFeeRate *big.Int
-	calls.AddCall(&ethrpc.Call{
+	if _, err = calls.AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "numRegisteredAssets",
-		Params: []interface{}{},
-	}, []interface{}{&numRegisteredAssets})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&numRegisteredAssets}).AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "isBasketModeEnabled",
-		Params: []interface{}{true},
-	}, []interface{}{&isBasketModeEnabledMint})
-	calls.AddCall(&ethrpc.Call{
+		Params: []any{true},
+	}, []any{&isBasketModeEnabledMint}).AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "isBasketModeEnabled",
-		Params: []interface{}{false},
-	}, []interface{}{&isBasketModeEnabledRedeem})
-	calls.AddCall(&ethrpc.Call{
+		Params: []any{false},
+	}, []any{&isBasketModeEnabledRedeem}).AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "forcedBasketMode",
-		Params: []interface{}{},
-	}, []interface{}{&forcedBasketMode})
-	calls.AddCall(&ethrpc.Call{
+	}, []any{&forcedBasketMode}).AddCall(&ethrpc.Call{
 		ABI:    honeyABI,
 		Target: p.Address,
 		Method: "polFeeCollectorFeeRate",
-		Params: []interface{}{},
-	}, []interface{}{&polFeeCollectorFeeRate})
-	_, err = calls.Aggregate()
-	if err != nil {
+	}, []any{&polFeeCollectorFeeRate}).Aggregate(); err != nil {
 		return p, err
 	}
 
 	noAssets := int(numRegisteredAssets.Int64())
-	registeredAssets := lo.Map(extra.RegisteredAssets, func(item string, _ int) common.Address {
-		return common.HexToAddress(item)
-	})
-	hasNewAssets := false
-	if noAssets != len(extra.RegisteredAssets) {
-		hasNewAssets = true
-	}
-	if hasNewAssets {
-		// new registered assets
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	registeredAssets := lo.Map(extra.RegisteredAssets,
+		func(item string, _ int) common.Address { return common.HexToAddress(item) })
+	vaults := lo.Map(extra.Vaults, func(item string, _ int) common.Address { return common.HexToAddress(item) })
+	assetsDecimals := extra.AssetsDecimals
+	vaultsDecimals := extra.VaultsDecimals
+	hasNewAssets := noAssets != len(extra.RegisteredAssets)
+	if hasNewAssets { // new registered assets
 		registeredAssets = make([]common.Address, noAssets)
-		for i := 0; i < int(noAssets); i++ {
+		vaults = make([]common.Address, noAssets)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
 				Target: p.Address,
 				Method: "registeredAssets",
-				Params: []interface{}{big.NewInt(int64(i))},
-			}, []interface{}{&registeredAssets[i]})
+				Params: []any{big.NewInt(int64(i))},
+			}, []any{&registeredAssets[i]})
 		}
-		_, err = calls.Aggregate()
-		if err != nil {
+		if _, err = calls.Aggregate(); err != nil {
 			return p, err
 		}
-	}
 
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
-	vaults := make([]common.Address, noAssets)
-	assetsDecimals := extra.AssetsDecimals
-	assetsName := make([]string, noAssets)
-	assetsSymbol := make([]string, noAssets)
-	if hasNewAssets {
 		assetsDecimals = make([]uint8, noAssets)
-		for i := 0; i < int(noAssets); i++ {
+		vaultsDecimals = make([]uint8, noAssets)
+		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+		for i := range noAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    honeyABI,
 				Target: p.Address,
 				Method: "vaults",
-				Params: []interface{}{registeredAssets[i]},
-			}, []interface{}{&vaults[i]})
-			calls.AddCall(&ethrpc.Call{
+				Params: []any{registeredAssets[i]},
+			}, []any{&vaults[i]}).AddCall(&ethrpc.Call{
 				ABI:    erc20ABI,
 				Target: registeredAssets[i].Hex(),
 				Method: "decimals",
 				Params: []interface{}{},
 			}, []interface{}{&assetsDecimals[i]})
-			calls.AddCall(&ethrpc.Call{
-				ABI:    erc20ABI,
-				Target: registeredAssets[i].Hex(),
-				Method: "name",
-				Params: []interface{}{},
-			}, []interface{}{&assetsName[i]})
-			calls.AddCall(&ethrpc.Call{
-				ABI:    erc20ABI,
-				Target: registeredAssets[i].Hex(),
-				Method: "symbol",
-				Params: []interface{}{},
-			}, []interface{}{&assetsSymbol[i]})
+		}
+		if _, err = calls.Aggregate(); err != nil {
+			return p, err
 		}
 	}
 
@@ -175,58 +149,50 @@ func (t *PoolTracker) getNewPoolState(
 	isBadCollateral := make([]bool, noAssets)
 	mintRates := make([]*big.Int, noAssets)
 	redeemRates := make([]*big.Int, noAssets)
-	for i := 0; i < int(noAssets); i++ {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    honeyABI,
-			Target: p.Address,
-			Method: "isPegged",
-			Params: []interface{}{registeredAssets[i]},
-		}, []interface{}{&isPegged[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    honeyABI,
-			Target: p.Address,
-			Method: "isBadCollateralAsset",
-			Params: []interface{}{registeredAssets[i]},
-		}, []interface{}{&isBadCollateral[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    honeyABI,
-			Target: p.Address,
-			Method: "mintRates",
-			Params: []interface{}{registeredAssets[i]},
-		}, []interface{}{&mintRates[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    honeyABI,
-			Target: p.Address,
-			Method: "redeemRates",
-			Params: []interface{}{registeredAssets[i]},
-		}, []interface{}{&redeemRates[i]})
-
-	}
-	_, err = calls.Aggregate()
-	if err != nil {
-		return p, err
-	}
-
-	vaultsDecimals := extra.VaultsDecimals
-	if hasNewAssets {
-		calls = t.ethrpcClient.NewRequest().SetContext(ctx)
-		vaultsDecimals = make([]uint8, noAssets)
-		for i := 0; i < int(noAssets); i++ {
+	vaultsMaxRedeems := make([]*big.Int, noAssets)
+	poolAddress := common.HexToAddress(p.Address)
+	for i := range noAssets {
+		if hasNewAssets {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    assetVaultABI,
 				Target: vaults[i].Hex(),
 				Method: "decimals",
-				Params: []interface{}{},
-			}, []interface{}{&vaultsDecimals[i]})
+			}, []any{&vaultsDecimals[i]})
 		}
-		_, err = calls.Aggregate()
-		if err != nil {
-			return p, err
-		}
+		calls.AddCall(&ethrpc.Call{
+			ABI:    honeyABI,
+			Target: p.Address,
+			Method: "isPegged",
+			Params: []any{registeredAssets[i]},
+		}, []any{&isPegged[i]}).AddCall(&ethrpc.Call{
+			ABI:    honeyABI,
+			Target: p.Address,
+			Method: "isBadCollateralAsset",
+			Params: []any{registeredAssets[i]},
+		}, []any{&isBadCollateral[i]}).AddCall(&ethrpc.Call{
+			ABI:    honeyABI,
+			Target: p.Address,
+			Method: "mintRates",
+			Params: []any{registeredAssets[i]},
+		}, []any{&mintRates[i]}).AddCall(&ethrpc.Call{
+			ABI:    honeyABI,
+			Target: p.Address,
+			Method: "redeemRates",
+			Params: []any{registeredAssets[i]},
+		}, []any{&redeemRates[i]}).AddCall(&ethrpc.Call{
+			ABI:    assetVaultABI,
+			Target: vaults[i].Hex(),
+			Method: "maxRedeem",
+			Params: []any{poolAddress},
+		}, []any{&vaultsMaxRedeems[i]})
 	}
-	extraBytes, err := json.Marshal(Extra{
+	if _, err = calls.Aggregate(); err != nil {
+		return p, err
+	}
+
+	extra = Extra{
 		RegisteredAssets: lo.Map(registeredAssets, func(item common.Address, _ int) string {
-			return strings.ToLower(item.Hex())
+			return hexutil.Encode(item[:])
 		}),
 		ForceBasketMode:        forcedBasketMode,
 		IsBasketEnabledMint:    isBasketModeEnabledMint,
@@ -234,34 +200,37 @@ func (t *PoolTracker) getNewPoolState(
 		IsPegged:               isPegged,
 		IsBadCollateral:        isBadCollateral,
 		PolFeeCollectorFeeRate: uint256.MustFromBig(polFeeCollectorFeeRate),
-		MintRates: lo.Map(mintRates, func(item *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(item)
-		}),
-		RedeemRates: lo.Map(redeemRates, func(item *big.Int, _ int) *uint256.Int {
-			return uint256.MustFromBig(item)
-		}),
+		MintRates: lo.Map(mintRates,
+			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		RedeemRates: lo.Map(redeemRates,
+			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		Vaults: lo.Map(vaults,
+			func(item common.Address, _ int) string { return hexutil.Encode(item[:]) }),
 		VaultsDecimals: vaultsDecimals,
 		AssetsDecimals: assetsDecimals,
-	})
+		VaultsMaxRedeems: lo.Map(vaultsMaxRedeems,
+			func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+	}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
-	if hasNewAssets {
-		for i := range registeredAssets {
-			if _, ok := lo.Find(p.Tokens, func(item *entity.PoolToken) bool {
-				return strings.EqualFold(item.Address, registeredAssets[i].Hex())
-			}); !ok {
-				p.Reserves = append(p.Reserves, defaultReserves)
-				p.Tokens = append(p.Tokens, &entity.PoolToken{
-					Address:   strings.ToLower(registeredAssets[i].Hex()),
-					Name:      strings.ToLower(assetsName[i]),
-					Symbol:    strings.ToLower(assetsSymbol[i]),
-					Decimals:  assetsDecimals[i],
-					Swappable: true,
-				})
-			}
+	p.Reserves = p.Reserves[:min(1, len(p.Reserves))]
+	p.Tokens = p.Tokens[:min(1, len(p.Tokens))]
+	var shares, exp uint256.Int
+	for i := range registeredAssets {
+		shares.MulDivOverflow(extra.VaultsMaxRedeems[i], extra.RedeemRates[i], U1e18)
+		if vaultsDecimals[i] >= assetsDecimals[i] {
+			shares.Div(&shares, exp.Exp(U10, exp.SetUint64(uint64(vaultsDecimals[i]-assetsDecimals[i]))))
+		} else {
+			shares.Mul(&shares, exp.Exp(U10, exp.SetUint64(uint64(assetsDecimals[i]-vaultsDecimals[i]))))
 		}
+		p.Reserves = append(p.Reserves, shares.String())
+		p.Tokens = append(p.Tokens, &entity.PoolToken{
+			Address:   hexutil.Encode(registeredAssets[i][:]),
+			Swappable: true,
+		})
 	}
 	p.Timestamp = time.Now().Unix()
 	logger.WithFields(logger.Fields{

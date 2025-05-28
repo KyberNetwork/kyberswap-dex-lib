@@ -1,8 +1,9 @@
 package mkr_sky
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/holiman/uint256"
 )
 
 type PoolItem struct {
@@ -13,5 +14,5 @@ type PoolItem struct {
 }
 
 type StaticExtra struct {
-	Rate *uint256.Int `json:"rate"`
+	Rate *big.Int `json:"rate"`
 }

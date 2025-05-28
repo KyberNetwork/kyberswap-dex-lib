@@ -66,7 +66,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
-			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),

@@ -23,12 +23,12 @@ func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return true
 }
 
-func GetHook(hookAddress common.Address) Hook {
-	if hook, ok := Hooks[hookAddress]; ok {
-		return hook
+func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
+	hook, ok = Hooks[hookAddress]
+	if hook == nil {
+		hook = (*BaseHook)(nil)
 	}
-
-	return (*BaseHook)(nil)
+	return hook, ok
 }
 
 type BaseHook struct{ Exchange valueobject.Exchange }

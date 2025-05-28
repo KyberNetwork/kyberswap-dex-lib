@@ -46,8 +46,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrTickNil
 	}
 
-	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
-	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
+	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
+	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
@@ -103,14 +103,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	tickMax := v3Ticks[len(v3Ticks)-1].Index
 
 	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -198,7 +196,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}, nil
 		}
 
-		return &pool.CalcAmountOutResult{}, errors.New("amountOut is 0")
+		return nil, errors.New("amountOut is 0")
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)

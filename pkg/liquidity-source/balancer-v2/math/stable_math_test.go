@@ -8,6 +8,7 @@ import (
 )
 
 func TestCalculateInvariantV1(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct invariant", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -136,6 +137,7 @@ func TestCalculateInvariantV1(t *testing.T) {
 }
 
 func TestCalculateInvariantV2(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct invariant", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -265,6 +267,7 @@ func TestCalculateInvariantV2(t *testing.T) {
 }
 
 func TestGetTokenBalanceGivenInvariantAndAllOtherBalances(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct balance", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -411,6 +414,7 @@ func TestGetTokenBalanceGivenInvariantAndAllOtherBalances(t *testing.T) {
 }
 
 func Test_stableMath_CalcInGivenOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		invariant *uint256.Int
 		amp       *uint256.Int

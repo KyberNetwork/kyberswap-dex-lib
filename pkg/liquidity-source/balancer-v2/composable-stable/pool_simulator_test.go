@@ -14,6 +14,7 @@ import (
 )
 
 func TestRegularSwap(t *testing.T) {
+	t.Parallel()
 	t.Run("1. Should return OK", func(t *testing.T) {
 		// data
 		reserve0, _ := new(big.Int).SetString("2596148429267407814265248164610048", 10)
@@ -140,6 +141,7 @@ func TestRegularSwap(t *testing.T) {
 }
 
 func TestBptSwap(t *testing.T) {
+	t.Parallel()
 	t.Run("1. Join swap pool type ver 1 should return OK", func(t *testing.T) {
 		// data
 		reserve0, _ := new(big.Int).SetString("414101427485347", 10)
@@ -907,6 +909,7 @@ func TestBptSwap(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	amountOutTest2, _ := new(big.Int).SetString("100000000", 10)
 	expectedAmountInTest2, _ := new(big.Int).SetString("99981105484344981876", 10)
 	amountOutTest3, _ := new(big.Int).SetString("100000000000000000000", 10)

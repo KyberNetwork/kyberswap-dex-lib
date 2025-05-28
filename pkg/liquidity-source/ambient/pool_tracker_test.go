@@ -22,6 +22,7 @@ const (
 )
 
 func TestPoolTracker(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}

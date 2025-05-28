@@ -12,6 +12,7 @@ import (
 )
 
 func TestTwammPoolQuote(t *testing.T) {
+	t.Parallel()
 	poolKey := NewPoolKey(
 		common.HexToAddress("0x0000000000000000000000000000000000000000"),
 		common.HexToAddress("0x0000000000000000000000000000000000000001"),

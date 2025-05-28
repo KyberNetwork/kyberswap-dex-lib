@@ -87,14 +87,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    integer.Zero(),
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  integer.Zero(),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		token0:                             staticExtra.Token0,
@@ -443,8 +441,8 @@ func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
 	return SwapSideUnknown
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return p.routerAddress
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return MetaInfo{ApprovalAddress: p.routerAddress}
 }
 
 // Inventory Limit

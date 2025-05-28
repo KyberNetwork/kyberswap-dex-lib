@@ -7,6 +7,7 @@ import (
 )
 
 func Test_getPoolSpecialization(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct answer", func(t *testing.T) {
 		r, err := _getPoolSpecialization("0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed")
 		assert.Nil(t, err)

@@ -7,6 +7,7 @@ import (
 )
 
 func TestGetPreferredPrice(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                  string
 		key                   string

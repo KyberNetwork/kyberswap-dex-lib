@@ -13,6 +13,7 @@ import (
 )
 
 func TestBasePoolQuote(t *testing.T) {
+	t.Parallel()
 	poolKey := func(tickSpacing uint32, fee uint64) *PoolKey {
 		return NewPoolKey(
 			common.HexToAddress("0x0000000000000000000000000000000000000000"),
@@ -123,6 +124,7 @@ func TestBasePoolQuote(t *testing.T) {
 }
 
 func TestNearestInitializedTickIndex(t *testing.T) {
+	t.Parallel()
 	t.Run("no ticks", func(t *testing.T) {
 		require.Equal(t, -1, NearestInitializedTickIndex([]Tick{}, 0))
 	})
@@ -203,6 +205,7 @@ func TestNearestInitializedTickIndex(t *testing.T) {
 }
 
 func TestAddLiquidityCutoffs(t *testing.T) {
+	t.Parallel()
 	var (
 		checkedTickNumberBounds     = [2]int32{-2, 2}
 		minCheckedTickNumber        = checkedTickNumberBounds[0]

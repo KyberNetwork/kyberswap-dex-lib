@@ -9,6 +9,7 @@ import (
 )
 
 func TestChainClientInterceptor(t *testing.T) {
+	t.Parallel()
 	expectedLogs := []string{
 		"Before interceptor 1",
 

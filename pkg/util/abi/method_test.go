@@ -9,6 +9,7 @@ import (
 )
 
 func TestGenMethodID(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		rawName    string
 		types      []string

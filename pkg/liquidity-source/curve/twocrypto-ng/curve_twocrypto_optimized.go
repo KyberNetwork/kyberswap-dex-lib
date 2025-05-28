@@ -183,16 +183,15 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	total_supply := t.Extra.LpSupply
 	old_xcp_profit := t.Extra.XcpProfit
 	old_virtual_price := t.Extra.VirtualPrice
-	var last_prices_timestamp = t.Extra.LastPricesTimestamp
 
-	var blockTimestamp = time.Now().Unix()
+	blockTimestamp := time.Now().Unix()
 	var err error
 
-	if last_prices_timestamp < blockTimestamp {
+	if t.tweakedPrice {
 		// this block update price_oracle and last_price_timestamp
-		// but in pool tracker we've fetched the calculated price_oracle, not the raw packed value, so we can use that here without updating
-
-		t.Extra.LastPricesTimestamp = blockTimestamp
+		// but in pool tracker we've fetched the calculated price_oracle, not the raw packed value,
+		// so we can use that here without updating. we only check that we tweak only once
+		return nil
 	}
 
 	// #                  price_oracle is used further on to calculate its vector
@@ -209,12 +208,12 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	}
 
 	// # ----------------------- Calculate last_prices --------------------------
-	err = get_p(_xp, D_unadjusted, A, gamma, t.Extra.LastPrices)
+	err = get_p(_xp, D_unadjusted, A, gamma, lastPrices)
 	if err != nil {
 		return err
 	}
 	for k := 0; k < NumTokens-1; k += 1 {
-		lastPrices[k].Div(number.SafeMul(&t.Extra.LastPrices[k], &t.Extra.PriceScale[k]), U_1e18)
+		lastPrices[k].Div(number.SafeMul(&lastPrices[k], &t.Extra.PriceScale[k]), U_1e18)
 	}
 
 	// # ---------- Update profit numbers without price adjustment first --------

@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -35,6 +35,7 @@ var (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	var poolEnt entity.Pool
 
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
@@ -54,6 +55,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	var poolEnt entity.Pool
 
 	assert.NoError(t, json.Unmarshal([]byte(poolData), &poolEnt))
@@ -65,6 +67,7 @@ func TestCalcAmountIn(t *testing.T) {
 }
 
 func TestPancakeInfinityCL(t *testing.T) {
+	t.Parallel()
 	if os.Getenv("CI") != "" {
 		t.Skip()
 	}

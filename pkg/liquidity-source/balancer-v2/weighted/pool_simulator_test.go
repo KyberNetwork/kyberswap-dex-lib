@@ -14,6 +14,7 @@ import (
 )
 
 func Test_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return OK", func(t *testing.T) {
 		// input
 		s := PoolSimulator{
@@ -370,6 +371,7 @@ func Test_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	amountOutTest1, _ := new(big.Int).SetString("1014934149732776116160723", 10)
 	expectedAmountInTest1, _ := new(big.Int).SetString("1979999999999513367997", 10)
 

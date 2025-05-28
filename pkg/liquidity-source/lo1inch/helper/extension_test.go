@@ -7,6 +7,7 @@ import (
 )
 
 func TestExtension(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		input   ExtensionData

@@ -17,6 +17,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://etherscan.io/address/0x2889302a794da87fbf1d6db415c1492194663d13#events
 		"{\"address\":\"0x2889302a794da87fbf1d6db415c1492194663d13\",\"exchange\":\"curve-tricrypto-ng\",\"type\":\"curve-tricrypto-ng\",\"timestamp\":1710842900,\"reserves\":[\"3848079508071253519125552\",\"60997386412794855327\",\"1028200997183081004168\"],\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"symbol\":\"crvUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x18084fba666a33d37592fa2633fd49a74dd93a88\",\"symbol\":\"tBTC\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1707629\\\",\\\"InitialGamma\\\":\\\"11809167828997\\\",\\\"InitialAGammaTime\\\":1705051559,\\\"FutureA\\\":\\\"540000\\\",\\\"FutureGamma\\\":\\\"80500000000000\\\",\\\"FutureAGammaTime\\\":1705537322,\\\"D\\\":\\\"11990883592127090140834712\\\",\\\"PriceScale\\\":[\\\"66313464177401058702341\\\",\\\"3988288337309167729564\\\"],\\\"PriceOracle\\\":[\\\"63612706012126486095056\\\",\\\"3782761569503404058823\\\"],\\\"LastPrices\\\":[\\\"63608488224235038716789\\\",\\\"3782322291001686876800\\\"],\\\"LastPricesTimestamp\\\":1710838775,\\\"FeeGamma\\\":\\\"400000000000000\\\",\\\"MidFee\\\":\\\"1000000\\\",\\\"OutFee\\\":\\\"140000000\\\",\\\"LpSupply\\\":\\\"6209561906175920711602\\\",\\\"XcpProfit\\\":\\\"1005532234158713186\\\",\\\"VirtualPrice\\\":\\\"1002781276086899355\\\",\\\"AllowedExtraProfit\\\":\\\"100000000\\\",\\\"AdjustmentStep\\\":\\\"100000000000\\\",\\\"MaTime\\\":\\\"601\\\"}\",\"staticExtra\":\"{\\\"IsNativeCoins\\\":[false,false,false]}\",\"blockNumber\":19468099}",
@@ -84,6 +85,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://etherscan.io/address/0x2889302a794da87fbf1d6db415c1492194663d13#readContract
 		"{\"address\":\"0x2889302a794da87fbf1d6db415c1492194663d13\",\"reserveUsd\":9528657.094819583,\"amplifiedTvl\":9528657.094819583,\"exchange\":\"curve-tricrypto-ng\",\"type\":\"curve-tricrypto-ng\",\"timestamp\":1714975165,\"reserves\":[\"2947201605123522350748728\",\"45611346320331519581\",\"788479732384942283053\"],\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"symbol\":\"crvUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x18084fba666a33d37592fa2633fd49a74dd93a88\",\"symbol\":\"tBTC\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1707629\\\",\\\"InitialGamma\\\":\\\"11809167828997\\\",\\\"InitialAGammaTime\\\":1705051559,\\\"FutureA\\\":\\\"540000\\\",\\\"FutureGamma\\\":\\\"80500000000000\\\",\\\"FutureAGammaTime\\\":1705537322,\\\"D\\\":\\\"8754450085519836953184450\\\",\\\"PriceScale\\\":[\\\"63936461273794516756888\\\",\\\"3666635369668832599935\\\"],\\\"PriceOracle\\\":[\\\"64075375610827630797332\\\",\\\"3681151306766592332262\\\"],\\\"LastPrices\\\":[\\\"64129534522750421957793\\\",\\\"3686896248129881507013\\\"],\\\"LastPricesTimestamp\\\":1714974575,\\\"FeeGamma\\\":\\\"400000000000000\\\",\\\"MidFee\\\":\\\"1000000\\\",\\\"OutFee\\\":\\\"140000000\\\",\\\"LpSupply\\\":\\\"4703464587192803610456\\\",\\\"XcpProfit\\\":\\\"1010482237832981057\\\",\\\"VirtualPrice\\\":\\\"1006199965234185124\\\",\\\"AllowedExtraProfit\\\":\\\"100000000\\\",\\\"AdjustmentStep\\\":\\\"100000000000\\\"}\",\"staticExtra\":\"{\\\"IsNativeCoins\\\":[false,false,false]}\",\"blockNumber\":19809115}",
@@ -179,9 +181,10 @@ func TestCalcAmountIn(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://etherscan.io/address/0x2889302a794da87fbf1d6db415c1492194663d13#events
-		"{\"address\":\"0x2889302a794da87fbf1d6db415c1492194663d13\",\"exchange\":\"curve-tricrypto-ng\",\"type\":\"curve-tricrypto-ng\",\"timestamp\":1710842900,\"reserves\":[\"3848079508071253519125552\",\"60997386412794855327\",\"1028200997183081004168\"],\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"symbol\":\"crvUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x18084fba666a33d37592fa2633fd49a74dd93a88\",\"symbol\":\"tBTC\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1707629\\\",\\\"InitialGamma\\\":\\\"11809167828997\\\",\\\"InitialAGammaTime\\\":1705051559,\\\"FutureA\\\":\\\"540000\\\",\\\"FutureGamma\\\":\\\"80500000000000\\\",\\\"FutureAGammaTime\\\":1705537322,\\\"D\\\":\\\"11990883592127090140834712\\\",\\\"PriceScale\\\":[\\\"66313464177401058702341\\\",\\\"3988288337309167729564\\\"],\\\"PriceOracle\\\":[\\\"63612706012126486095056\\\",\\\"3782761569503404058823\\\"],\\\"LastPrices\\\":[\\\"63608488224235038716789\\\",\\\"3782322291001686876800\\\"],\\\"LastPricesTimestamp\\\":1710838775,\\\"FeeGamma\\\":\\\"400000000000000\\\",\\\"MidFee\\\":\\\"1000000\\\",\\\"OutFee\\\":\\\"140000000\\\",\\\"LpSupply\\\":\\\"6209561906175920711602\\\",\\\"XcpProfit\\\":\\\"1005532234158713186\\\",\\\"VirtualPrice\\\":\\\"1002781276086899355\\\",\\\"AllowedExtraProfit\\\":\\\"100000000\\\",\\\"AdjustmentStep\\\":\\\"100000000000\\\",\\\"MaTime\\\":\\\"866\\\"}\",\"staticExtra\":\"{\\\"IsNativeCoins\\\":[false,false,false]}\",\"blockNumber\":19468099}",
+		`{"address":"0x4ebdf703948ddcea3b11f675b4d1fba9d2414a14","amplifiedTvl":9342623.983114064,"exchange":"curve-tricrypto-ng","type":"curve-tricrypto-ng","timestamp":1747387794,"reserves":["2861820037467305203466191","1093506849144527022340","3982280374395661297312344"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","name":"","symbol":"crvUSD","decimals":18,"weight":0,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true},{"address":"0xd533a949740bb3306d119cc777fa900ba034cd52","name":"","symbol":"CRV","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"2700000\",\"InitialGamma\":\"1300000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"2700000\",\"FutureGamma\":\"1300000000000\",\"FutureAGammaTime\":0,\"D\":\"8532048735922426944154787\",\"PriceScale\":[\"2593891046098680504189\",\"711612014969964544\"],\"PriceOracle\":[\"2597753463916981281317\",\"712667936366669756\"],\"LastPrices\":[\"2612188986152217640529\",\"717156747966546519\"],\"LastPricesTimestamp\":1747387787,\"FeeGamma\":\"350000000000000\",\"MidFee\":\"2999999\",\"OutFee\":\"80000000\",\"LpSupply\":\"200731208332421373598995\",\"XcpProfit\":\"1133157971398689394\",\"VirtualPrice\":\"1155009367459460589\",\"AllowedExtraProfit\":\"100000000000\",\"AdjustmentStep\":\"100000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false,false]}"}`,
 	}
 
 	testcases := []struct {
@@ -191,27 +194,30 @@ func TestUpdateBalance(t *testing.T) {
 		out        string
 		outOrError interface{}
 	}{
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0x18084fba666a33d37592fa2633fd49a74dd93a88", ErrTweakPrice},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "50000000000000000", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "777940997580"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000000000001", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "7779409029619"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "5000000000000000012", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "77793995822360"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "50000000000000000123", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "777930511062449"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000000000001234", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "7778361047648857"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "5000000000000000012345", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "77689853414055234"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "50000000000000000", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "13063159475035"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000000000001", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "130631578041005"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "5000000000000000012", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "1306314111679213"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "50000000000000000123", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "13062974255148374"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000000000001234", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "130613068528414923"},
-		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "5000000000000000012345", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "1304475753930054478"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "50000000000000000", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "2944281383075492"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "500000000000000001", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "29429160844225131"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "5000000000000000012", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "292898020911624817"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "50000000000000000123", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "2784126686177687134"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "500000000000000001234", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "18092508659102257720"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "5000000000000000012345", "0x18084fba666a33d37592fa2633fd49a74dd93a88", "29791521158275658506"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "500000000000000000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "269495174387166607472662"},
-		{0, "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "5000000000000000000001", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1468879551843067569968646"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304718298868"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304675974788"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1304898571422510"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "1306024453847454"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "3393536839049"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1822607809867"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1819677288075988"},
+		{0, "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1821248242501378"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "1574126861158"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xd533a949740bb3306d119cc777fa900ba034cd52", "2056531723"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "696648048123"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xd533a949740bb3306d119cc777fa900ba034cd52", "697248127714"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "362851"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191462"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191255367"},
+		{0, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "191420171"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "302552"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137440"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137149910"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "137268281"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "444235376"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358363928"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358242922283"},
+		{0, "0xd533a949740bb3306d119cc777fa900ba034cd52", "500000000123", "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", "358551652118"},
 	}
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
@@ -238,7 +244,7 @@ func TestUpdateBalance(t *testing.T) {
 				return
 			}
 
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.outOrError.(string)), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 

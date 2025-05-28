@@ -67,7 +67,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Type:        entityPool.Type,
 		Tokens:      tokens,
 		Reserves:    reserves,
-		Checked:     true,
 		BlockNumber: entityPool.BlockNumber,
 	}
 
@@ -221,13 +220,18 @@ func (s *PoolSimulator) _downscaleDown(amount, scalingFactor *uint256.Int) (*uin
 	return math.GyroFixedPoint.DivDown(amount, scalingFactor)
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
-		TokenOutIndex: s.GetTokenIndex(tokenOut),
-		BlockNumber:   s.Info.BlockNumber,
+		Vault:           s.vault,
+		PoolID:          s.poolID,
+		TokenOutIndex:   s.GetTokenIndex(tokenOut),
+		BlockNumber:     s.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	return s.vault
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

@@ -69,14 +69,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    bignumber.NewBig10(extra.SwapFee),
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  bignumber.NewBig10(extra.SwapFee),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		Multipliers:  multipliers,
@@ -108,7 +106,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			nil,
 		)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 

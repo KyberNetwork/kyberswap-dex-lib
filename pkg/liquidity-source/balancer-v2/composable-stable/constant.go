@@ -2,13 +2,7 @@ package composablestable
 
 const (
 	DexType = "balancer-v2-composable-stable"
-)
 
-var (
-	DefaultGas = Gas{Swap: 80000}
-)
-
-const (
 	poolTypeLegacyComposableStable = "ComposableStable"
 	poolTypeComposableStable       = "COMPOSABLE_STABLE"
 
@@ -23,6 +17,7 @@ const (
 	poolMethodGetLastJoinExitData               = "getLastJoinExitData"
 	poolMethodGetRateProviders                  = "getRateProviders"
 	poolMethodGetTokenRateCache                 = "getTokenRateCache"
+	poolMethodGetTokenRateCacheLegacy           = "getTokenRateCacheLegacy"
 	poolMethodGetProtocolFeePercentageCache     = "getProtocolFeePercentageCache"
 	poolMethodIsTokenExemptFromYieldProtocolFee = "isTokenExemptFromYieldProtocolFee"
 	poolMethodInRecoveryMode                    = "inRecoveryMode"
@@ -34,4 +29,8 @@ const (
 	feeTypeYield = 2
 
 	zeroAddress = "0x0000000000000000000000000000000000000000"
+)
+
+var (
+	DefaultGas = Gas{Swap: 134478}
 )

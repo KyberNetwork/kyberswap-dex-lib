@@ -10,6 +10,7 @@ import (
 )
 
 func TestNoRounding(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
@@ -21,6 +22,7 @@ func TestNoRounding(t *testing.T) {
 }
 
 func TestWithRounding(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		big.NewInt(6),
 		big.NewInt(7),
@@ -32,6 +34,7 @@ func TestWithRounding(t *testing.T) {
 }
 
 func TestNoRoundingNeeded(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		big.NewInt(8),
 		big.NewInt(2),
@@ -43,6 +46,7 @@ func TestNoRoundingNeeded(t *testing.T) {
 }
 
 func TestDivideByZero(t *testing.T) {
+	t.Parallel()
 	_, err := MulDivOverflow(
 		big.NewInt(1),
 		big.NewInt(1),
@@ -53,6 +57,7 @@ func TestDivideByZero(t *testing.T) {
 }
 
 func TestOverflow(t *testing.T) {
+	t.Parallel()
 	_, err := MulDivOverflow(
 		U256Max,
 		big.NewInt(2),
@@ -63,6 +68,7 @@ func TestOverflow(t *testing.T) {
 }
 
 func TestLargeNumbers(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		bignum.NewBig("123456789012345678901234567890"),
 		bignum.NewBig("987654321098765432109876543210"),
@@ -74,6 +80,7 @@ func TestLargeNumbers(t *testing.T) {
 }
 
 func TestRoundingBehavior(t *testing.T) {
+	t.Parallel()
 	x, y, d := big.NewInt(10), big.NewInt(10), big.NewInt(5)
 
 	res, err := MulDivOverflow(x, y, d, true)
@@ -88,6 +95,7 @@ func TestRoundingBehavior(t *testing.T) {
 }
 
 func TestZeroNumerator(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		new(big.Int),
 		big.NewInt(100),
@@ -99,6 +107,7 @@ func TestZeroNumerator(t *testing.T) {
 }
 
 func TestOneDenominator(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		big.NewInt(123456789),
 		big.NewInt(987654321),
@@ -110,6 +119,7 @@ func TestOneDenominator(t *testing.T) {
 }
 
 func TestMaxValuesNoRounding(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
@@ -121,6 +131,7 @@ func TestMaxValuesNoRounding(t *testing.T) {
 }
 
 func TestMaxValuesWithRounding(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
@@ -132,6 +143,7 @@ func TestMaxValuesWithRounding(t *testing.T) {
 }
 
 func TestRoundingUp(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		U256Max,
 		bignum.One,
@@ -143,6 +155,7 @@ func TestRoundingUp(t *testing.T) {
 }
 
 func TestIntermediateOverflow(t *testing.T) {
+	t.Parallel()
 	_, err := MulDivOverflow(
 		U256Max,
 		U256Max,
@@ -153,6 +166,7 @@ func TestIntermediateOverflow(t *testing.T) {
 }
 
 func TestMaxValuesRoundingUpOverflow(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		new(big.Int).Sub(U256Max, bignum.One),
 		U256Max,
@@ -164,6 +178,7 @@ func TestMaxValuesRoundingUpOverflow(t *testing.T) {
 }
 
 func TestRoundingEdgeCase(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		big.NewInt(5),
 		big.NewInt(5),
@@ -175,6 +190,7 @@ func TestRoundingEdgeCase(t *testing.T) {
 }
 
 func TestLargeIntermediateResult(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		bignum.NewBig("123456789012345678901234567890"),
 		bignum.NewBig("98765432109876543210987654321"),
@@ -186,6 +202,7 @@ func TestLargeIntermediateResult(t *testing.T) {
 }
 
 func TestSmallDenominatorLargeNumerator(t *testing.T) {
+	t.Parallel()
 	res, err := MulDivOverflow(
 		bignum.NewBig("340282366920938463463374607431768211455"),
 		big.NewInt(2),

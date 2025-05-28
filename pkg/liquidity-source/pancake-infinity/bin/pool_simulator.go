@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -16,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
 )
 
 var (
@@ -51,7 +51,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("failed to unmarshal extra: %w", err)
 	}
 
-	if staticExtra.HasSwapPermissions {
+	hook, ok := GetHook(staticExtra.HooksAddress)
+	if !ok && staticExtra.HasSwapPermissions {
 		return nil, shared.ErrUnsupportedHook
 	}
 
@@ -73,7 +74,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		lpFee:          uint256.NewInt(uint64(entityPool.SwapFee)),
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
-		hook:           GetHook(staticExtra.HooksAddress),
+		hook:           hook,
 		activeId:       extra.ActiveBinID,
 		binStep:        staticExtra.BinStep,
 		isNative:       staticExtra.IsNative,

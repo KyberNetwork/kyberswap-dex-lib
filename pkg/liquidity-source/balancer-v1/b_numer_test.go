@@ -8,6 +8,7 @@ import (
 )
 
 func TestBPowApprox(t *testing.T) {
+	t.Parallel()
 	res, err := BNum.BPowApprox(
 		uint256.MustFromDecimal("999999998494616385"),
 		uint256.MustFromDecimal("750000000000000000"),

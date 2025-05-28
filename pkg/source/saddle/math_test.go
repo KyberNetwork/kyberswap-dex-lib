@@ -4,12 +4,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/sirupsen/logrus"
 )
 
 func TestCalculateSwap(t *testing.T) {
+	t.Parallel()
 	nTokens := 3
 	var tokenBalances = []*big.Int{
 		utils.NewBig10("263829355937719884193312195"),
@@ -52,6 +54,7 @@ func TestCalculateSwap(t *testing.T) {
 }
 
 func TestCalculateSwap2(t *testing.T) {
+	t.Parallel()
 	nTokens := 2
 	var tokenBalances = []*big.Int{
 		utils.NewBig10("300524667948860812161452556"),
@@ -92,6 +95,7 @@ func TestCalculateSwap2(t *testing.T) {
 }
 
 func TestCalculateWithdrawOneToken(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		utils.NewBig10("264038322528061367790859241"),
 		utils.NewBig10("253311544042014270158626065"),
@@ -138,6 +142,7 @@ func TestCalculateWithdrawOneToken(t *testing.T) {
 }
 
 func TestCalculateTokenAmount(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		utils.NewBig10("1762846108183174838018939"),
 		utils.NewBig10("3674225304303"),
@@ -173,6 +178,7 @@ func TestCalculateTokenAmount(t *testing.T) {
 }
 
 func TestGetDyUnderlying(t *testing.T) {
+	t.Parallel()
 	var balances = []*big.Int{
 		utils.NewBig10("70382246141748845587674511"),
 		utils.NewBig10("164292114057107"),

@@ -65,15 +65,17 @@ type IPoolSimulator interface {
 	GetAddress() string
 	GetExchange() string
 	GetType() string
-	GetMetaInfo(tokenIn string, tokenOut string) interface{}
+	GetMetaInfo(tokenIn, tokenOut string) any
 	GetTokenIndex(address string) int
 	CalculateLimit() map[string]*big.Int
+	// GetApprovalAddress returns the address that should be approved to spend tokenIn
+	GetApprovalAddress(tokenIn, tokenOut string) string
 }
 
 type IPoolExactOutSimulator interface {
 	// CalcAmountIn returns amountIn, fee, gas
 	// the required params is TokenAmountOut and TokenIn.
-	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
+	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
 	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 
@@ -83,14 +85,18 @@ type IMetaPoolSimulator interface {
 	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 
-type IPoolRFQ interface {
+type IPoolSingleRFQ interface {
 	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
+}
+
+type IPoolRFQ interface {
+	IPoolSingleRFQ
 	BatchRFQ(ctx context.Context, paramsSlice []RFQParams) ([]*RFQResult, error)
 	SupportBatch() bool
 }
 
-type ITicksBasedPoolTracker interface {
-	FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error)
+type ITicksBasedPoolTracker[T any] interface {
+	FetchRPCData(ctx context.Context, pool *entity.Pool, blockNumber uint64) (T, error)
 }
 
 type IPoolDecoder interface {

@@ -56,6 +56,7 @@ func marshalPool(t *testing.T, extra Extra, staticExtra *StaticExtra) *entity.Po
 }
 
 func TestBasePool(t *testing.T) {
+	t.Parallel()
 	entityPool := marshalPool(
 		t,
 		&pools.BasePoolState{
@@ -125,6 +126,7 @@ func TestBasePool(t *testing.T) {
 }
 
 func TestOraclePool(t *testing.T) {
+	t.Parallel()
 	entityPool := marshalPool(
 		t,
 		&pools.OraclePoolState{
@@ -436,5 +438,6 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountIn() {
 }
 
 func TestPoolSimulatorTestSuite(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, new(PoolSimulatorTestSuite))
 }

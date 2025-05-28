@@ -18,6 +18,7 @@ import (
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
@@ -43,14 +44,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -207,14 +206,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -367,14 +364,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -527,14 +522,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -763,14 +756,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Tokens: []*entity.PoolToken{
 					{
 						Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-						Name:      "USDT",
 						Symbol:    "USDT",
 						Decimals:  6,
 						Swappable: true,
 					},
 					{
 						Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-						Name:      "USDC",
 						Symbol:    "USDC",
 						Decimals:  6,
 						Swappable: true,
@@ -875,6 +866,7 @@ func marshalPoolExtra(extra *Extra) string {
 }
 
 func TestPool_CalcAmountOut_v2(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		makingAmount     string
@@ -986,6 +978,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 }
 
 func TestPool_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		makingAmount     string
@@ -1116,6 +1109,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 }
 
 func TestPool_Inventory(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id               int64
 		maker            string
@@ -1266,6 +1260,7 @@ func TestPool_Inventory(t *testing.T) {
 }
 
 func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
+	t.Parallel()
 	type testorder struct {
 		id              int64
 		makingAmount    string
@@ -1377,6 +1372,7 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 }
 
 func TestPool_FilterAllowedSenders(t *testing.T) {
+	t.Parallel()
 	extra := Extra{
 		BuyOrders: []*order{
 			{

@@ -50,7 +50,6 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 			PoolId:           pool.ID,
 			LpToken:          pool.BaseLpToken.Address,
 			Type:             pool.Type,
-			Tokens:           []string{pool.BaseToken.Address, pool.QuoteToken.Address},
 			DodoV1SellHelper: d.config.DodoV1SellHelper,
 		}
 
@@ -65,10 +64,8 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 
 			tokenModel := entity.PoolToken{
 				Address:   pool.BaseToken.Address,
-				Name:      pool.BaseToken.Name,
 				Symbol:    pool.BaseToken.Symbol,
 				Decimals:  uint8(baseTokenDecimals),
-				Weight:    defaultTokenWeight,
 				Swappable: true,
 			}
 
@@ -91,10 +88,8 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 
 			tokenModel := entity.PoolToken{
 				Address:   pool.QuoteToken.Address,
-				Name:      pool.QuoteToken.Name,
 				Symbol:    pool.QuoteToken.Symbol,
 				Decimals:  uint8(quoteTokenDecimals),
-				Weight:    defaultTokenWeight,
 				Swappable: true,
 			}
 

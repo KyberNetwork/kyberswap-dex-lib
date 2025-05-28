@@ -16,6 +16,7 @@ import (
 )
 
 func TestCalcAmountOut_Saddle(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xa6018520eaacc06c30ff2e1b3ee2c7c22e64196a#readContract
 	testcases := []struct {
 		in                string
@@ -68,6 +69,7 @@ func TestCalcAmountOut_Saddle(t *testing.T) {
 }
 
 func TestCalcAmountOut_Nerve(t *testing.T) {
+	t.Parallel()
 	// test data from https://bscscan.com/address/0x146cd24dcc9f4eb224dfd010c5bf2b0d25afa9c0#readContract
 	testcases := []struct {
 		in                string
@@ -111,6 +113,7 @@ func TestCalcAmountOut_Nerve(t *testing.T) {
 }
 
 func TestCalcAmountOut_OneSwap(t *testing.T) {
+	t.Parallel()
 	// test data from https://bscscan.com/address/0x01c9475dbd36e46d1961572c8de24b74616bae9e#readContract
 	testcases := []struct {
 		in                string
@@ -159,6 +162,7 @@ func TestCalcAmountOut_OneSwap(t *testing.T) {
 }
 
 func TestCalcAmountOut_IronStable(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0x837503e8a8753ae17fb8c8151b8e6f586defcb57#readContract
 	testcases := []struct {
 		in                string
@@ -208,6 +212,7 @@ func TestCalcAmountOut_IronStable(t *testing.T) {
 }
 
 func TestUpdateBalance_Saddle(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xa6018520eaacc06c30ff2e1b3ee2c7c22e64196a#readContract
 	testcases := []struct {
 		in               string

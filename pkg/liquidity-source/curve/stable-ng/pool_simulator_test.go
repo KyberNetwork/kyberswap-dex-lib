@@ -16,6 +16,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://arbiscan.io/address/0xdc40d14accd5629bbfa65d057f175871628d13c7#readContract
 		`{"address":"0xdc40d14accd5629bbfa65d057f175871628d13c7","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1709285278,"reserves":["50980","75958","100000000000000"],"tokens":[{"address":"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9","symbol":"USDT","decimals":6,"swappable":true},{"address":"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8","symbol":"USDC.e","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\"}","blockNumber":185969597}`,
@@ -77,6 +78,7 @@ func TestCalcAmountOut(t *testing.T) {
 // TestCalcAmountIn how to test it? Go to the pool contract and use the `get_dx` function to get the expected amount in
 // For example, https://etherscan.io/address/0x02950460E2b9529D0E00284A5fA2d7bDF3fA4d72#readContract
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://arbiscan.io/address/0xdc40d14accd5629bbfa65d057f175871628d13c7#readContract
 		`{"address":"0xdc40d14accd5629bbfa65d057f175871628d13c7","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1709285278,"reserves":["66996","59934","100000000000000"],"tokens":[{"address":"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9","symbol":"USDT","decimals":6,"swappable":true},{"address":"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8","symbol":"USDC.e","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\"}","blockNumber":207324939}`,
@@ -215,6 +217,7 @@ func TestCalcAmountIn(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://arbiscan.io/address/0xdc40d14accd5629bbfa65d057f175871628d13c7#readContract
 		`{"address":"0xdc40d14accd5629bbfa65d057f175871628d13c7","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1709285278,"reserves":["50980","75958","100000000000000"],"tokens":[{"address":"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9","symbol":"USDT","decimals":6,"swappable":true},{"address":"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8","symbol":"USDC.e","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\"}","blockNumber":185969597}`,
@@ -283,6 +286,7 @@ func TestUpdateBalance(t *testing.T) {
 }
 
 func TestCalcAmountOutError(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// zero balance: https://arbiscan.io/address/0x9097065db449a59ce30bec522e1e077292c0d8fc#readContract
 		`{"address":"0x9097065db449a59ce30bec522e1e077292c0d8fc","exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1709287720,"reserves":["0","0","0"],"tokens":[{"address":"0xaf88d065e77c8cc2239327c5edb3a432268e5831","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xb88a5ac00917a02d82c7cd6cebd73e2852d43574","symbol":"SWEEP","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"10000\",\"FutureA\":\"10000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000000000000000\",\"1023767000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\"}","blockNumber":185979218}`,

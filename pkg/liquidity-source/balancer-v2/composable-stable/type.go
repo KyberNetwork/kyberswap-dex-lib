@@ -8,10 +8,11 @@ import (
 )
 
 type PoolMetaInfo struct {
-	Vault         string `json:"vault"`
-	PoolID        string `json:"poolId"`
-	TokenOutIndex int    `json:"tokenOutIndex"`
-	BlockNumber   uint64 `json:"blockNumber"`
+	Vault           string `json:"vault"`
+	PoolID          string `json:"poolId"`
+	TokenOutIndex   int    `json:"tokenOutIndex"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type SwapInfo struct {
@@ -73,6 +74,12 @@ type LastJoinExitResp struct {
 type TokenRateCacheResp struct {
 	Rate     *big.Int
 	OldRate  *big.Int
+	Duration *big.Int
+	Expires  *big.Int
+}
+
+type TokenRateCacheLegacyResp struct {
+	Rate     *big.Int
 	Duration *big.Int
 	Expires  *big.Int
 }

@@ -22,8 +22,7 @@ const (
 
 	erc20MethodDecimals = "decimals"
 
-	defaultWeight = 1
-	zeroString    = "0"
+	zeroString = "0"
 )
 
 var (

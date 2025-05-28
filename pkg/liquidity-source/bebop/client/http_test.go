@@ -13,6 +13,7 @@ import (
 )
 
 func TestHTTPClient(t *testing.T) {
+	t.Parallel()
 	t.Skip("has rate-limit for non-authorization requests")
 
 	c := client.NewHTTPClient(

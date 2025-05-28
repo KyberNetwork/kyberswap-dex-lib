@@ -34,3 +34,7 @@ type SwapInfo struct {
 	NewReserve0    *big.Int `json:"-"`
 	NewReserve1    *big.Int `json:"-"`
 }
+
+type MetaInfo struct {
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
+}

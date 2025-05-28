@@ -10,6 +10,7 @@ import (
 )
 
 func TestIsSyncEvent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		event  types.Log
 		expect bool
@@ -78,6 +79,7 @@ func TestIsSyncEvent(t *testing.T) {
 }
 
 func TestDecodeSyncEvent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		event   types.Log
 		expect  Reserves
@@ -159,6 +161,7 @@ func TestDecodeSyncEvent(t *testing.T) {
 }
 
 func TestFindLatestSyncEvent(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		events []types.Log
 		expect *types.Log

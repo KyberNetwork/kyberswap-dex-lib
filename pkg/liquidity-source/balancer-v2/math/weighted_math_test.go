@@ -8,6 +8,7 @@ import (
 )
 
 func TestCalcOutGivenIn(t *testing.T) {
+	t.Parallel()
 	t.Run("1.should return OK", func(t *testing.T) {
 		// input
 		balanceIn := uint256.MustFromDecimal("2133741937219414819371293")
@@ -82,6 +83,7 @@ func TestCalcOutGivenIn(t *testing.T) {
 }
 
 func Test_weightedMath_CalcInGivenOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		balanceIn  *uint256.Int
 		weightIn   *uint256.Int

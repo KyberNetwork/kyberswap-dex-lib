@@ -14,6 +14,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// Tx simulate: https://www.tdly.co/shared/simulation/30202958-4fb6-4144-bda4-4099eea6be11
 	token0 := "0x912ce59144191c1204e64559fe8253a0e49e6548"
 	token1 := "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"

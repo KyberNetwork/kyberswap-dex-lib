@@ -92,7 +92,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		for j, t := range p.Tokens {
 			newToken := entity.PoolToken{
 				Address:   t.Address,
-				Weight:    poolTokenDefaultWeight,
 				Swappable: true,
 			}
 			tokens = append(tokens, &newToken)

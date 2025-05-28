@@ -12,6 +12,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		entityPool entity.Pool
 	}
@@ -37,12 +38,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Tokens: entity.PoolTokens{
 						{
 							Address:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-							Weight:    50,
 							Swappable: true,
 						},
 						{
 							Address:   "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
-							Weight:    50,
 							Swappable: true,
 						},
 					},

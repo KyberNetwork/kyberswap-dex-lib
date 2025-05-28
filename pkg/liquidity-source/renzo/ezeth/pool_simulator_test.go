@@ -10,6 +10,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// https://etherscan.io/tx/0xe78708a81ecb2cc6ac6906e251d1dc5fd10bec32e421250b88f9c5127d2074f9
 	t.Run("[DepositETH] it should return correct amountOut", func(t *testing.T) {
 		poolSimulator := PoolSimulator{

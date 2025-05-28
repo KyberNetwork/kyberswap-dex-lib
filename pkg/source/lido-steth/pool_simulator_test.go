@@ -17,6 +17,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 
 	tokens := []string{"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"}
 	p, err := NewPoolSimulator(entity.Pool{
@@ -68,6 +69,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_WrongChain(t *testing.T) {
+	t.Parallel()
 
 	tokens := []string{"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"}
 	_, err := NewPoolSimulator(entity.Pool{

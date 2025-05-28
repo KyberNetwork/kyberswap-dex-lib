@@ -14,6 +14,7 @@ import (
 )
 
 func TestCalcAmountOutConcurrentSafe(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name        string
 		poolEncoded string
@@ -75,56 +76,3 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 		_ = result
 	}
 }
-
-// func getPoolEntity(poolAddr string) (string, error) {
-// 	cfg := &Config{
-// 		VaultAddress:    "0x1d0188c4B276A09366D05d6Be06aF61a73bC7535",
-// 		RegistryAddress: "0x111A6d7f5dDb85776F1b6A6DEAbe552815559f9E",
-// 		NewPoolLimit:    100,
-// 		LensAddress:     "0xaA18cDb16a4DD88a59f4c2f45b5c91d009549e06",
-// 		Wrappers: map[string]string{
-// 			"0x1e1f509963a6d33e169d9497b11c7dbfe73b7f13": "0xb30e7a2e6f7389ca5ddc714da4c991b7a1dcc88e",
-// 			"0xb79dd08ea68a908a97220c76d19a6aa9cbde4376": "0x3f006b0493ff32b33be2809367f5f6722cb84a7b",
-// 		},
-// 	}
-
-// 	ethrpcClient := ethrpc.New("https://rpc.linea.build")
-// 	ethrpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
-
-// 	poolsListUpdater := NewPoolsListUpdater(cfg, ethrpcClient)
-// 	pools, _, err := poolsListUpdater.GetNewPools(context.TODO(), nil)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	var _p *entity.Pool
-// 	for _, p := range pools {
-// 		if strings.EqualFold(p.Address, poolAddr) {
-// 			_p = &p
-// 			break
-// 		}
-// 	}
-
-// 	if _p == nil {
-// 		return "", fmt.Errorf("pool %s not found", poolAddr)
-// 	}
-
-// 	poolTracker, err := NewPoolTracker(cfg, ethrpcClient)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	poolEntity, err := poolTracker.GetNewPoolState(context.TODO(), *_p, pool.GetNewPoolStateParams{})
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	poolEncoded, _ := json.MarshalIndent(poolEntity, "", "\t")
-
-// 	return string(poolEncoded), nil
-// }
-
-// func TestGetPoolEntity(t *testing.T) {
-// 	poolEncoded, err := getPoolEntity("0x61cb3a0c59825464474ebb287a3e7d2b9b59d093")
-// 	require.NoError(t, err)
-// 	fmt.Printf("%s\n", poolEncoded)
-// }

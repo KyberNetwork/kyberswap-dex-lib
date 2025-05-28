@@ -160,6 +160,7 @@ func (t *PoolTracker) queryRPC(
 		lastJoinExit                      LastJoinExitResp
 		rateProviders                     = make([]common.Address, tokenNbr)
 		tokenRateCaches                   = make([]TokenRateCacheResp, tokenNbr)
+		tokenRateCachesLegacy             = make([]TokenRateCacheLegacyResp, tokenNbr)
 		swapFeePercentage                 *big.Int
 		protocolFeePercentageCache        = make(map[int]*big.Int)
 		isTokenExemptFromYieldProtocolFee = make([]bool, tokenNbr)
@@ -228,12 +229,21 @@ func (t *PoolTracker) queryRPC(
 		if token.Swappable {
 			tokenAddr := common.HexToAddress(token.Address)
 
-			req.AddCall(&ethrpc.Call{
-				ABI:    poolABI,
-				Target: poolAddress,
-				Method: poolMethodGetTokenRateCache,
-				Params: []any{tokenAddr},
-			}, []any{&tokenRateCaches[i]})
+			if poolTypeVer == 0 {
+				req.AddCall(&ethrpc.Call{
+					ABI:    poolABI,
+					Target: poolAddress,
+					Method: poolMethodGetTokenRateCacheLegacy,
+					Params: []any{tokenAddr},
+				}, []any{&tokenRateCachesLegacy[i]})
+			} else {
+				req.AddCall(&ethrpc.Call{
+					ABI:    poolABI,
+					Target: poolAddress,
+					Method: poolMethodGetTokenRateCache,
+					Params: []any{tokenAddr},
+				}, []any{&tokenRateCaches[i]})
+			}
 
 			req.AddCall(&ethrpc.Call{
 				ABI:    poolABI,
@@ -285,6 +295,19 @@ func (t *PoolTracker) queryRPC(
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return nil, err
+	}
+
+	if poolTypeVer == 0 {
+		for i := range tokenRateCaches {
+			if tokenRateCachesLegacy[i].Rate != nil {
+				tokenRateCaches[i] = TokenRateCacheResp{
+					Rate:     tokenRateCachesLegacy[i].Rate,
+					OldRate:  tokenRateCachesLegacy[i].Rate,
+					Duration: tokenRateCachesLegacy[i].Duration,
+					Expires:  tokenRateCachesLegacy[i].Expires,
+				}
+			}
+		}
 	}
 
 	blockNbr = res.BlockNumber

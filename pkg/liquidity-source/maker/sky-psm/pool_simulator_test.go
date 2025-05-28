@@ -56,6 +56,7 @@ var (
 )
 
 func TestPoolSimulator_getSwapQuote(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		inIdx  int
@@ -130,5 +131,6 @@ func TestPoolSimulator_getSwapQuote(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
 }

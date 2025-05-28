@@ -8,6 +8,7 @@ import (
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		Name           string
 		amountIn       *big.Int

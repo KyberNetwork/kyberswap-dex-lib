@@ -18,6 +18,7 @@ import (
 )
 
 func TestCalcAmountOutPlain(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// plain3basic: http://etherscan.io/address/0xe7a3b38c39f97e977723bd1239c3470702568e7b
 		"{\"address\":\"0xe7a3b38c39f97e977723bd1239c3470702568e7b\",\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1708682750,\"reserves\":[\"103902458912250371998101\",\"96026429950922739854657\",\"90684626303\",\"289489289998600589912023\"],\"tokens\":[{\"address\":\"0xee586e7eaad39207f0549bc65f19e336942c992f\",\"symbol\":\"cEUR\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x1a7e4e63778b4f12a199c062f3efdd288afcbce8\",\"symbol\":\"agEUR\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c\",\"symbol\":\"EURC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1000\\\",\\\"FutureA\\\":\\\"1000\\\",\\\"InitialATime\\\":0,\\\"FutureATime\\\":0,\\\"SwapFee\\\":\\\"4000000\\\",\\\"AdminFee\\\":\\\"5000000000\\\"}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"100\\\",\\\"LpToken\\\":\\\"0xe7A3b38c39F97E977723bd1239C3470702568e7B\\\"}\"}",
@@ -110,6 +111,7 @@ func TestCalcAmountOutPlain(t *testing.T) {
 }
 
 func TestCalcAmountOutPlainError(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// zero balance: https://arbiscan.io/address/0xedce214e7a52c77914342b072230ac971149eb00#readContract
 		`{"address":"0xedce214e7a52c77914342b072230ac971149eb00","exchange":"curve-stable-plain","type":"curve-stable-plain","timestamp":1709178100,"reserves":["0","0","0"],"tokens":[{"address":"0x730d5ab5a375c3a6cdc22a9d3bec1573fdea97d6","symbol":"GDC","decimals":18,"swappable":true},{"address":"0xaf88d065e77c8cc2239327c5edb3a432268e5831","symbol":"USDC","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"10000\",\"FutureA\":\"10000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\"}","staticExtra":"{\"APrecision\":\"100\",\"LpToken\":\"0xedCe214e7a52c77914342B072230ac971149Eb00\"}","blockNumber":185550266}`,
@@ -188,6 +190,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 // old tests from curve-base (with decimal added)
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x1005f7406f32a61bd760cfa14accd2737913d546#readContract
 	// 	call balances, totalSupply to get pool params
 	// 	call get_dy to get amount out
@@ -238,6 +241,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
+	t.Parallel()
 	// if A is getting ramped up then it should interpolate A correctly
 	// 100k at zero to 200k at now*2, so now should be 150k, so the same as the contract above -> get expected output from contract get_dy
 	now := time.Now().Unix()
@@ -269,6 +273,7 @@ func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 }
 
 func TestGetDyVirtualPrice(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x1005f7406f32a61bd760cfa14accd2737913d546#readContract
 	testcases := []struct {
 		i      int
@@ -331,6 +336,7 @@ func TestGetDyVirtualPrice(t *testing.T) {
 }
 
 func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// plain3basic: http://etherscan.io/address/0xe7a3b38c39f97e977723bd1239c3470702568e7b
 		"{\"address\":\"0xe7a3b38c39f97e977723bd1239c3470702568e7b\",\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1708682750,\"reserves\":[\"103902458912250371998101\",\"96026429950922739854657\",\"90684626303\",\"289489289998600589912023\"],\"tokens\":[{\"address\":\"0xee586e7eaad39207f0549bc65f19e336942c992f\",\"symbol\":\"cEUR\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x1a7e4e63778b4f12a199c062f3efdd288afcbce8\",\"symbol\":\"agEUR\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c\",\"symbol\":\"EURC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1000\\\",\\\"FutureA\\\":\\\"1000\\\",\\\"InitialATime\\\":0,\\\"FutureATime\\\":0,\\\"SwapFee\\\":\\\"4000000\\\",\\\"AdminFee\\\":\\\"5000000000\\\"}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"100\\\",\\\"LpToken\\\":\\\"0xe7A3b38c39F97E977723bd1239C3470702568e7B\\\"}\"}",

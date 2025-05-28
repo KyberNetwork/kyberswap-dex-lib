@@ -14,6 +14,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0#readContract
 	testcases := []struct {
 		in                string

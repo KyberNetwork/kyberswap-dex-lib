@@ -13,6 +13,7 @@ import (
 )
 
 func TestPool_getAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		pool              PoolSimulator

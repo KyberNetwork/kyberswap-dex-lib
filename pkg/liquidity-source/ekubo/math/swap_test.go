@@ -10,6 +10,7 @@ import (
 )
 
 func TestZeroAmountToken0(t *testing.T) {
+	t.Parallel()
 	sqrtRatio := TwoPow128
 
 	res, err := ComputeStep(
@@ -29,6 +30,7 @@ func TestZeroAmountToken0(t *testing.T) {
 }
 
 func TestZeroAmountToken1(t *testing.T) {
+	t.Parallel()
 	sqrtRatio := TwoPow128
 
 	res, err := ComputeStep(
@@ -48,6 +50,7 @@ func TestZeroAmountToken1(t *testing.T) {
 }
 
 func TestSwapRatioEqualLimitToken1(t *testing.T) {
+	t.Parallel()
 	sqrtRatio := TwoPow128
 
 	res, err := ComputeStep(
@@ -67,6 +70,7 @@ func TestSwapRatioEqualLimitToken1(t *testing.T) {
 }
 
 func TestMaxLimitToken0Input(t *testing.T) {
+	t.Parallel()
 	sqrtRatio := TwoPow128
 
 	res, err := ComputeStep(
@@ -86,6 +90,7 @@ func TestMaxLimitToken0Input(t *testing.T) {
 }
 
 func TestMaxLimitToken1Input(t *testing.T) {
+	t.Parallel()
 	res, err := ComputeStep(
 		TwoPow128,
 		big.NewInt(100_000),
@@ -103,6 +108,7 @@ func TestMaxLimitToken1Input(t *testing.T) {
 }
 
 func TestMaxLimitToken0Output(t *testing.T) {
+	t.Parallel()
 	res, err := ComputeStep(
 		TwoPow128,
 		big.NewInt(100_000),
@@ -120,6 +126,7 @@ func TestMaxLimitToken0Output(t *testing.T) {
 }
 
 func TestMaxLimitToken1Output(t *testing.T) {
+	t.Parallel()
 	res, err := ComputeStep(
 		TwoPow128,
 		big.NewInt(100_000),
@@ -137,6 +144,7 @@ func TestMaxLimitToken1Output(t *testing.T) {
 }
 
 func TestLimitedToken0Output(t *testing.T) {
+	t.Parallel()
 	sqrtRatioLimit := bignum.NewBig("359186942860990600322450974511310889870")
 
 	res, err := ComputeStep(
@@ -156,6 +164,7 @@ func TestLimitedToken0Output(t *testing.T) {
 }
 
 func TestLimitedToken1Output(t *testing.T) {
+	t.Parallel()
 	sqrtRatioLimit := bignum.NewBig("323268248574891540290205877060179800883")
 
 	res, err := ComputeStep(

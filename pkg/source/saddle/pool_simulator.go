@@ -63,14 +63,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    swapFee,
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  strings.ToLower(entityPool.Address),
+				SwapFee:  swapFee,
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		Multipliers:        multipliers,
@@ -109,7 +107,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -142,7 +140,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -176,7 +174,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				tokenAmountIn.Amount,
 			)
 			if err != nil {
-				return &pool.CalcAmountOutResult{}, err
+				return nil, err
 			}
 			if amountOut.Cmp(constant.ZeroBI) > 0 {
 				return &pool.CalcAmountOutResult{
@@ -193,7 +191,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}
 		}
 	}
-	return &pool.CalcAmountOutResult{}, errors.New("i'm dead here")
+	return nil, errors.New("i'm dead here")
 }
 
 func (t *PoolSimulator) CloneState() pool.IPoolSimulator {

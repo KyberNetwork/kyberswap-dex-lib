@@ -16,15 +16,18 @@ import (
 
 type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
+	cfg          *Config
 }
 
-var _ = pooltrack.RegisterFactoryE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
+	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
 		ethrpcClient: ethrpcClient,
+		cfg:          cfg,
 	}, nil
 }
 
@@ -95,6 +98,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extra := Extra{
+		ChainID:       d.cfg.ChainID,
 		Fee1e9:        fee1e9,
 		FeeMultiplier: feeMultiplier,
 	}

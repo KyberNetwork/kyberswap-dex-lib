@@ -17,6 +17,7 @@ import (
 var sampleFile embed.FS
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// Read the embedded file
 	data, err := sampleFile.ReadFile("sample_pool_data.txt")
 	if err != nil {

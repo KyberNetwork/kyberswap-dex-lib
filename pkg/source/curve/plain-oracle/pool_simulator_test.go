@@ -16,6 +16,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://optimistic.etherscan.io/address/0xb90b9b1f91a01ea22a182cd84c1e22222e39b415#readContract
 	testcases := []struct {
 		in                string
@@ -64,6 +65,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestGetDyVirtualPrice(t *testing.T) {
+	t.Parallel()
 	// test data from https://optimistic.etherscan.io/address/0xb90b9b1f91a01ea22a182cd84c1e22222e39b415#readContract
 	testcases := []struct {
 		i      int

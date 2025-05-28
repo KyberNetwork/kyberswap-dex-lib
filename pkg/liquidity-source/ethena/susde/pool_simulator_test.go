@@ -5,13 +5,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Pool        pool.Pool
 		totalAssets *uint256.Int

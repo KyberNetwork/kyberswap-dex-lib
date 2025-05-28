@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 )
 
 var (
@@ -34,7 +34,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	if staticExtra.HasSwapPermissions {
+	hook, ok := GetHook(staticExtra.HooksAddress)
+	if !ok && staticExtra.HasSwapPermissions {
 		return nil, shared.ErrUnsupportedHook
 	}
 
@@ -52,7 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
-		hook:          GetHook(staticExtra.HooksAddress),
+		hook:          hook,
 	}, nil
 }
 

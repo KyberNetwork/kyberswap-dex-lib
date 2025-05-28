@@ -20,6 +20,7 @@ const (
 )
 
 func TestPool_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenIn        string
 		tokenAmountOut pool.TokenAmount
@@ -269,6 +270,7 @@ func TestPool_CalcAmountIn(t *testing.T) {
 }
 
 func TestPool_CalcAmountOut_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenIn   string
 		amountIn  *big.Int
@@ -397,14 +399,12 @@ func newExamplePool(t *testing.T, sellOrders, buyOrders []*order) entity.Pool {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   tokenUSDT,
-				Name:      "USDT",
 				Symbol:    "USDT",
 				Decimals:  6,
 				Swappable: true,
 			},
 			{
 				Address:   tokenUSDC,
-				Name:      "USDC",
 				Symbol:    "USDC",
 				Decimals:  6,
 				Swappable: true,

@@ -19,10 +19,11 @@ type Gas struct {
 }
 
 type PoolMetaInfo struct {
-	Vault         string `json:"vault"`
-	PoolID        string `json:"poolId"`
-	TokenOutIndex int    `json:"tokenOutIndex"`
-	BlockNumber   uint64 `json:"blockNumber"`
+	Vault           string `json:"vault"`
+	PoolID          string `json:"poolId"`
+	TokenOutIndex   int    `json:"tokenOutIndex"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 type Extra struct {

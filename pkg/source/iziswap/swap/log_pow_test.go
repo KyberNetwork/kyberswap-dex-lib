@@ -10,6 +10,7 @@ import (
 )
 
 func TestSqrtPrice(t *testing.T) {
+	t.Parallel()
 	points := []int{
 		-799982, -635215,
 		-533123, -178798,
@@ -39,6 +40,7 @@ func TestSqrtPrice(t *testing.T) {
 }
 
 func TestLog(t *testing.T) {
+	t.Parallel()
 	points := []int{
 		-800048, -799982, -799929,
 		-635281, -635215, -635162,

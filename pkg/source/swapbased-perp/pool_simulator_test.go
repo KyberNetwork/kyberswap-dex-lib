@@ -374,10 +374,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				})
 			})
 
-			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
-			assert.Equal(t, tc.expectedFee, calcAmountOutResult.Fee)
-			assert.Equal(t, tc.expectedGas, calcAmountOutResult.Gas)
 			assert.Equal(t, tc.expectedErr, err)
+			if err == nil {
+				assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
+				assert.Equal(t, tc.expectedFee, calcAmountOutResult.Fee)
+				assert.Equal(t, tc.expectedGas, calcAmountOutResult.Gas)
+			}
 		})
 	}
 }
@@ -496,6 +498,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 }
 
 func TestPool_CanSwapTo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
 		pool := PoolSimulator{
 			vault: &Vault{
@@ -529,6 +532,7 @@ func TestPool_CanSwapTo(t *testing.T) {
 }
 
 func TestPool_GetMetaInfo(t *testing.T) {
+	t.Parallel()
 	t.Run("it should return nil", func(t *testing.T) {
 		pool := PoolSimulator{}
 

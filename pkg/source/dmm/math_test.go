@@ -8,6 +8,7 @@ import (
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		amountIn       *big.Int
 		reserveIn      *big.Int

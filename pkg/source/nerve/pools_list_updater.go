@@ -86,7 +86,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		for _, item := range pool.Tokens {
 			tokenModel := entity.PoolToken{
 				Address:   item.Address,
-				Weight:    1,
 				Swappable: true,
 			}
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, item.Precision)

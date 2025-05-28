@@ -17,6 +17,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
@@ -235,6 +236,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)

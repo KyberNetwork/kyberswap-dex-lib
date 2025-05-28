@@ -17,6 +17,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xA2B47E3D5c44877cca798226B7B8118F9BFb7A56#readContract
 	// create a foundry test to call to get_dy_underlying, and record the rates/supply/block
 	testcases := []struct {
@@ -94,6 +95,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	t.Parallel()
 	pools := []string{
 		// https://etherscan.io/address/0xA2B47E3D5c44877cca798226B7B8118F9BFb7A56#readContract
 		// block: 19830916

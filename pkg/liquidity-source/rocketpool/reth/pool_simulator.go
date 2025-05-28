@@ -74,7 +74,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
-			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
@@ -114,10 +113,16 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	isDeposit := tokenIn == s.Info.Tokens[0] && tokenOut == s.Info.Tokens[1]
+	return lo.Ternary(!isDeposit, tokenOut, "")
 }
 
 // deposit ETH and mint rETH

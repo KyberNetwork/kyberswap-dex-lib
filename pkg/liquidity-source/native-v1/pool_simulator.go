@@ -27,7 +27,6 @@ type PoolSimulator struct {
 	timestamp      int64
 	priceTolerance uint
 	expirySecs     uint
-	gas            Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -41,10 +40,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(entityPool.Address),
-				ReserveUsd: entityPool.ReserveUsd,
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
+				Address:  strings.ToLower(entityPool.Address),
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
 				Tokens: lo.Map(entityPool.Tokens,
 					func(item *entity.PoolToken, index int) string { return item.Address }),
 				Reserves: lo.Map(entityPool.Reserves,
@@ -61,7 +59,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
 		expirySecs:     extra.ExpirySecs,
-		gas:            defaultGas,
 	}, nil
 }
 
@@ -125,7 +122,7 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
-		Gas:            p.gas.Quote,
+		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			BaseToken:        baseToken.Address,
 			BaseTokenAmount:  amountIn.String(),

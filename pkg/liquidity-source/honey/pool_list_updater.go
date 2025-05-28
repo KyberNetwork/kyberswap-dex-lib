@@ -32,7 +32,7 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Pool, []byte, error) {
 	if d.hasInitialized {
 		logger.Debug("skip since pool has been initialized")
 		return nil, nil, nil
@@ -75,40 +75,30 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 
 	return pools, nil
 }
+
 func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, error) {
-	var pools = make([]entity.Pool, 0, len(poolItems))
-
+	pools := make([]entity.Pool, 0, len(poolItems))
 	for _, pool := range poolItems {
-		var err error
-		var poolEntity entity.Pool
-
-		poolEntity, err = d.getNewPool(&pool)
-
+		poolEntity, err := d.getNewPool(&pool)
 		if err != nil {
-			return nil, err
+			continue
 		}
-
 		pools = append(pools, poolEntity)
 	}
-
 	return pools, nil
 }
 
 func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
-	var tokens = make([]*entity.PoolToken, 0, len(pool.Tokens))
-	var reserves = make(entity.PoolReserves, 0, len(pool.Tokens))
-	for _, token := range pool.Tokens {
-		tokenEntity := entity.PoolToken{
+	tokens := make([]*entity.PoolToken, len(pool.Tokens))
+	reserves := make(entity.PoolReserves, len(pool.Tokens))
+	for i, token := range pool.Tokens {
+		tokens[i] = &entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
-			Name:      token.Name,
 			Symbol:    token.Symbol,
 			Decimals:  token.Decimals,
-			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
-
-		tokens = append(tokens, &tokenEntity)
-		reserves = append(reserves, defaultReserves)
+		reserves[i] = defaultReserves
 	}
 
 	poolEntity := entity.Pool{

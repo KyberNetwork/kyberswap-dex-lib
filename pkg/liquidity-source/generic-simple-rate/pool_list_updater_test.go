@@ -15,6 +15,7 @@ import (
 )
 
 func Test_getNewPool(t *testing.T) {
+	t.Parallel()
 	rateDefault := big.NewInt(100)
 
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
@@ -53,12 +54,10 @@ func Test_getNewPool(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
-				Weight:    1,
 				Swappable: true,
 			},
 			{
 				Address:   "0x56072c95faa701256059aa122697b133aded9279",
-				Weight:    1,
 				Swappable: true,
 			},
 		},

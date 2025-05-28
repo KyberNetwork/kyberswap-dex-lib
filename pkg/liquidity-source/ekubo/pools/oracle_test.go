@@ -21,6 +21,7 @@ var oraclePoolKey = &PoolKey{
 }
 
 func TestQuoteToken1Input(t *testing.T) {
+	t.Parallel()
 	p := NewOraclePool(
 		oraclePoolKey,
 		&OraclePoolState{
@@ -39,6 +40,7 @@ func TestQuoteToken1Input(t *testing.T) {
 }
 
 func TestQuoteToken0Input(t *testing.T) {
+	t.Parallel()
 	p := NewOraclePool(
 		oraclePoolKey,
 		&OraclePoolState{

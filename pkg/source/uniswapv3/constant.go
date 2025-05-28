@@ -9,7 +9,6 @@ const (
 	DexTypeUniswapV3     = "uniswapv3"
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
-	defaultTokenWeight   = 50
 	rpcChunkSize         = 100
 )
 

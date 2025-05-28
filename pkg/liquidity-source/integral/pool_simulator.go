@@ -7,10 +7,12 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -40,13 +42,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    entityPool.Address,
-				ReserveUsd: entityPool.ReserveUsd,
-				Exchange:   entityPool.Exchange,
-				Type:       entityPool.Type,
-				Tokens:     tokens,
-				Reserves:   reserves,
-				Checked:    false,
+				Address:  entityPool.Address,
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   tokens,
+				Reserves: reserves,
 			},
 		},
 		IntegralPair: pair,
@@ -110,8 +110,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+	return MetaInfo{ApprovalAddress: t.GetApprovalAddress(tokenIn, tokenOut)}
+}
+
+func (t *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return lo.Ternary(valueobject.IsNative(tokenIn), "", t.GetAddress())
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

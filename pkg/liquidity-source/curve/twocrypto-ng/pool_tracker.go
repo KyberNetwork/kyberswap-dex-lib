@@ -73,7 +73,7 @@ func (t *PoolTracker) getNewPoolState(
 	var (
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		lastTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
+		xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -149,13 +149,6 @@ func (t *PoolTracker) getNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    curveTwocryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodLastTimestamp,
-		Params: nil,
-	}, []interface{}{&lastTimestamp})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    curveTwocryptoNGABI,
-		Target: p.Address,
 		Method: poolMethodXcpProfit,
 		Params: nil,
 	}, []interface{}{&xcpProfit})
@@ -227,22 +220,21 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var extra = Extra{
-		InitialA:            number.SetFromBig(new(big.Int).Rsh(initialAGamma, 128)),
-		InitialGamma:        new(uint256.Int).And(number.SetFromBig(initialAGamma), PriceMask),
-		InitialAGammaTime:   initialAGammaTime.Int64(),
-		FutureA:             number.SetFromBig(new(big.Int).Rsh(futureAGamma, 128)),
-		FutureGamma:         new(uint256.Int).And(number.SetFromBig(futureAGamma), PriceMask),
-		FutureAGammaTime:    futureAGammaTime.Int64(),
-		D:                   number.SetFromBig(d),
-		LastPricesTimestamp: lastTimestamp.Int64(),
-		FeeGamma:            number.SetFromBig(feeGamma),
-		MidFee:              number.SetFromBig(midFee),
-		OutFee:              number.SetFromBig(outFee),
-		LpSupply:            number.SetFromBig(lpSupply),
-		XcpProfit:           number.SetFromBig(xcpProfit),
-		VirtualPrice:        number.SetFromBig(virtualPrice),
-		AllowedExtraProfit:  number.SetFromBig(allowedExtraProfit),
-		AdjustmentStep:      number.SetFromBig(adjustmentStep),
+		InitialA:           number.SetFromBig(new(big.Int).Rsh(initialAGamma, 128)),
+		InitialGamma:       new(uint256.Int).And(number.SetFromBig(initialAGamma), PriceMask),
+		InitialAGammaTime:  initialAGammaTime.Int64(),
+		FutureA:            number.SetFromBig(new(big.Int).Rsh(futureAGamma, 128)),
+		FutureGamma:        new(uint256.Int).And(number.SetFromBig(futureAGamma), PriceMask),
+		FutureAGammaTime:   futureAGammaTime.Int64(),
+		D:                  number.SetFromBig(d),
+		FeeGamma:           number.SetFromBig(feeGamma),
+		MidFee:             number.SetFromBig(midFee),
+		OutFee:             number.SetFromBig(outFee),
+		LpSupply:           number.SetFromBig(lpSupply),
+		XcpProfit:          number.SetFromBig(xcpProfit),
+		VirtualPrice:       number.SetFromBig(virtualPrice),
+		AllowedExtraProfit: number.SetFromBig(allowedExtraProfit),
+		AdjustmentStep:     number.SetFromBig(adjustmentStep),
 	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })

@@ -15,6 +15,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xd51a44d3fae010294c616388b506acda1bfaae46#readContract
 	testcases := []struct {
 		in                string
@@ -37,8 +38,8 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	assert.Equal(t, []string{}, p.CanSwapTo("LP"))
-	assert.Equal(t, []string{"B", "C"}, p.CanSwapTo("A"))
+	assert.ElementsMatch(t, nil, p.CanSwapTo("LP"))
+	assert.ElementsMatch(t, []string{"B", "C"}, p.CanSwapTo("A"))
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
@@ -57,6 +58,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 	// test data from https://etherscan.io/address/0xd51a44d3fae010294c616388b506acda1bfaae46#readContract
 	// use foundry test to call `exchange` and record updated balance
 	testcases := []struct {

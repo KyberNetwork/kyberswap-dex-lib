@@ -42,6 +42,7 @@ var (
 )
 
 func TestPoolSimulator_NewPool(t *testing.T) {
+	t.Parallel()
 	poolSimulator, err := NewPoolSimulator(entityPool1)
 	assert.NoError(t, err)
 	assert.Equal(t, "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", poolSimulator.Token0.Address)
@@ -59,6 +60,7 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 }
 
 func TestPoolSimulator_GetAmountOut(t *testing.T) {
+	t.Parallel()
 	poolSimulator, err := NewPoolSimulator(entityPool1)
 	assert.NoError(t, err)
 
@@ -107,6 +109,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_GetAmountOut2(t *testing.T) {
+	t.Parallel()
 	poolSimulator, err := NewPoolSimulator(entityPool2)
 	assert.NoError(t, err)
 

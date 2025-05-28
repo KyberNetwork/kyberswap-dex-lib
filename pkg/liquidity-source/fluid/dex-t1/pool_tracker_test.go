@@ -18,6 +18,7 @@ import (
 )
 
 func TestPoolTracker(t *testing.T) {
+	t.Parallel()
 	_ = logger.SetLogLevel("debug")
 
 	if os.Getenv("CI") != "" {
@@ -26,7 +27,7 @@ func TestPoolTracker(t *testing.T) {
 
 	var (
 		config = Config{
-			DexReservesResolver: "0xb387f9C2092cF7c4943F97842887eBff7AE96EB3",
+			DexReservesResolver: "0xC93876C0EEd99645DD53937b25433e311881A27C",
 		}
 	)
 
@@ -54,13 +55,11 @@ func TestPoolTracker(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
-					Weight:    1,
 					Swappable: true,
 					Decimals:  18,
 				},
 				{
 					Address:   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-					Weight:    1,
 					Swappable: true,
 					Decimals:  18,
 				},

@@ -11,8 +11,6 @@ const (
 	poolMethodGetPausedState       = "getPausedState"
 	poolMethodGetVault             = "getVault"
 	poolMethodGetRoot3Alpha        = "getRoot3Alpha"
-
-	defaultWeight = 1
 )
 
-var defaultGas = Gas{Swap: 100000} // TODO: benchmark
+var defaultGas = Gas{Swap: 125660}

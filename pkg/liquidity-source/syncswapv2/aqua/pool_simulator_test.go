@@ -14,6 +14,7 @@ import (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://explorer.zksync.io/address/0x50e00Ac0B02fEdB1b8044A565B86311425b1355f
 	testcases := []struct {
 		in                string

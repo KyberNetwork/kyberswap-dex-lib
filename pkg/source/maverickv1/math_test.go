@@ -10,6 +10,7 @@ import (
 )
 
 func TestSwapAForBWithoutExactOut(t *testing.T) {
+	t.Parallel()
 	var bins = map[uint32]Bin{
 		1: {
 			ReserveA:  bignumber.NewUint256("497483862887020288"),
@@ -172,6 +173,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 }
 
 func TestSwapAForBExactOut(t *testing.T) {
+	t.Parallel()
 	var bins = map[uint32]Bin{
 		1: {
 			ReserveA:  bignumber.NewUint256("497483862887020288"),
@@ -334,6 +336,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 }
 
 func TestSwapBForAExactOut(t *testing.T) {
+	t.Parallel()
 	var bins = map[uint32]Bin{
 		1: {
 			ReserveA:  bignumber.NewUint256("497483862887020288"),
@@ -496,6 +499,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 }
 
 func TestSwapBForAWithoutExactOut(t *testing.T) {
+	t.Parallel()
 	bins := map[uint32]Bin{
 		1: {
 			ReserveA:  bignumber.NewUint256("36455272596522751"),
@@ -675,6 +679,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 }
 
 func Test_getKindsAtTick(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		binMap map[int16]*uint256.Int
 		tick   int32

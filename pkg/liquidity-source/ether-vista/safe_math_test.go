@@ -12,6 +12,7 @@ var (
 )
 
 func TestSafeAdd(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		x *uint256.Int
 		y *uint256.Int
@@ -55,6 +56,7 @@ func TestSafeAdd(t *testing.T) {
 }
 
 func TestSafeSub(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		x *uint256.Int
 		y *uint256.Int
@@ -98,6 +100,7 @@ func TestSafeSub(t *testing.T) {
 }
 
 func TestSafeMul(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		x *uint256.Int
 		y *uint256.Int

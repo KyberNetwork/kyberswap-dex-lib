@@ -13,6 +13,7 @@ import (
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		entityPool        entity.Pool
@@ -109,6 +110,7 @@ func TestGetAmountOut(t *testing.T) {
 }
 
 func TestGetAmountIn(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name             string
 		entityPool       entity.Pool
@@ -205,6 +207,7 @@ func TestGetAmountIn(t *testing.T) {
 }
 
 func TestGetAmountOutWithUpdateBalance(t *testing.T) {
+	t.Parallel()
 	entityPool := entity.Pool{
 		Address:  "0x624202a3913fc479bd29f0e5165164575b74a8e6",
 		Exchange: "syncswap",

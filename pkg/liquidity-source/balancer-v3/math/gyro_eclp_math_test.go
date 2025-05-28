@@ -8,6 +8,7 @@ import (
 )
 
 func Test_calcAChiAChiInXp(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -334,6 +335,7 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 }
 
 func Test_calcAtAChi(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -611,6 +613,7 @@ func Test_calcAtAChi(t *testing.T) {
 }
 
 func Test_virtualOffset0(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -794,6 +797,7 @@ func Test_virtualOffset0(t *testing.T) {
 }
 
 func Test_virtualOffset1(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -977,6 +981,7 @@ func Test_virtualOffset1(t *testing.T) {
 }
 
 func Test_maxBalances0(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -1160,6 +1165,7 @@ func Test_maxBalances0(t *testing.T) {
 }
 
 func Test_maxBalances1(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -1343,6 +1349,7 @@ func Test_maxBalances1(t *testing.T) {
 }
 
 func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -1510,6 +1517,7 @@ func Test_calcMinAtxAChiySqPlusAtxSq(t *testing.T) {
 }
 
 func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -1677,6 +1685,7 @@ func Test_calc2AtxAtyAChixAChiy(t *testing.T) {
 }
 
 func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -1844,6 +1853,7 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 }
 
 func Test_calcInvariantSqrt(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			alpha  = int256.MustFromDec("2153421421514125231432")
@@ -2017,6 +2027,7 @@ func Test_calcInvariantSqrt(t *testing.T) {
 }
 
 func Test_calcXpXpDivLambdaLambda(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			x = int256.MustFromDec("2153421421514125231432")
@@ -2107,6 +2118,7 @@ func Test_calcXpXpDivLambdaLambda(t *testing.T) {
 }
 
 func Test_solveQuadraticSwap(t *testing.T) {
+	t.Parallel()
 	t.Run("1. should return correct result", func(t *testing.T) {
 		var (
 			lambda = int256.MustFromDec("532142342142142144365")
@@ -2199,9 +2211,11 @@ func Test_solveQuadraticSwap(t *testing.T) {
 }
 
 func Test_calcYGivenX(t *testing.T) {
+	t.Parallel()
 
 }
 
 func Test_calcXGivenY(t *testing.T) {
+	t.Parallel()
 
 }

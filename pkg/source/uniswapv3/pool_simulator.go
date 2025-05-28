@@ -42,9 +42,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address),
-		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
+		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
 	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address),
-		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
+		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
@@ -110,13 +110,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	tickMax := v3Ticks[len(v3Ticks)-1].Index
 
 	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
+		Address:  strings.ToLower(entityPool.Address),
+		SwapFee:  swapFee,
+		Exchange: entityPool.Exchange,
+		Type:     entityPool.Type,
+		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	return &PoolSimulator{
@@ -206,7 +205,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Amount: bignumber.ZeroBI,
 	}
 	if amountOutResult.RemainingAmountIn != nil {
-		remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+		if amountOutResult.RemainingAmountIn.Sign() == 0 {
+			amountOutResult.RemainingAmountIn = nil
+		} else {
+			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+		}
 	}
 	amountOut := amountOutResult.ReturnedAmount
 	if amountOut.Sign() <= 0 {
@@ -223,6 +226,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops),
 		SwapInfo: SwapInfo{
+			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			nextStateLiquidity:    amountOutResult.Liquidity,
 			nextStateTickCurrent:  amountOutResult.CurrentTick,

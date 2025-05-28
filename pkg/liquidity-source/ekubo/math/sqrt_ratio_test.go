@@ -10,6 +10,7 @@ import (
 )
 
 func TestNextSqrtRatioFromAmount0AddPriceGoesDown(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount0(
 		TwoPow128,
 		big.NewInt(1_000_000),
@@ -20,6 +21,7 @@ func TestNextSqrtRatioFromAmount0AddPriceGoesDown(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount0ExactOutOverflow(t *testing.T) {
+	t.Parallel()
 	_, err := nextSqrtRatioFromAmount0(
 		TwoPow128,
 		bignum.One,
@@ -29,6 +31,7 @@ func TestNextSqrtRatioFromAmount0ExactOutOverflow(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount0ExactInCantUnderflow(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount0(
 		TwoPow128,
 		bignum.One,
@@ -39,6 +42,7 @@ func TestNextSqrtRatioFromAmount0ExactInCantUnderflow(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount0SubPriceGoesUp(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount0(
 		TwoPow128,
 		bignum.NewBig("100_000_000_000"),
@@ -49,6 +53,7 @@ func TestNextSqrtRatioFromAmount0SubPriceGoesUp(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount1AddPriceGoesUp(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount1(
 		TwoPow128,
 		bignum.NewBig("1_000_000"),
@@ -59,6 +64,7 @@ func TestNextSqrtRatioFromAmount1AddPriceGoesUp(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount1ExactOutOverflow(t *testing.T) {
+	t.Parallel()
 	_, err := nextSqrtRatioFromAmount1(
 		TwoPow128,
 		bignum.One,
@@ -68,6 +74,7 @@ func TestNextSqrtRatioFromAmount1ExactOutOverflow(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount1ExactInCantUnderflow(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount1(
 		TwoPow128,
 		bignum.One,
@@ -78,6 +85,7 @@ func TestNextSqrtRatioFromAmount1ExactInCantUnderflow(t *testing.T) {
 }
 
 func TestNextSqrtRatioFromAmount1SubPriceGoesDown(t *testing.T) {
+	t.Parallel()
 	res, err := nextSqrtRatioFromAmount1(
 		TwoPow128,
 		bignum.NewBig("100_000_000_000"),
@@ -88,6 +96,7 @@ func TestNextSqrtRatioFromAmount1SubPriceGoesDown(t *testing.T) {
 }
 
 func TestFloatSqrtRatioToFixed(t *testing.T) {
+	t.Parallel()
 	require.Zero(t, FloatSqrtRatioToFixed(bignum.NewBig("19807080470146244316807077133")).
 		Cmp(bignum.NewBig("684473135231248274430278569558016")))
 	require.Zero(t, FloatSqrtRatioToFixed(bignum.NewBig("39614081272525913171640211645")).

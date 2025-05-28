@@ -19,6 +19,7 @@ func getPool() *PoolSimulator {
 	return pool
 }
 func TestPoolSimulator_issue(t *testing.T) {
+	t.Parallel()
 	// https://etherscan.io/address/0x04b59F9F09750C044D7CfbC177561E409085f0f3#readContract
 	// revert of getRequiredComponentIssuanceUnits
 	p := getPool()
@@ -37,6 +38,7 @@ func TestPoolSimulator_issue(t *testing.T) {
 }
 
 func TestPoolSimulator_redeem(t *testing.T) {
+	t.Parallel()
 	// https://etherscan.io/address/0x04b59F9F09750C044D7CfbC177561E409085f0f3#readContract
 	// getRequiredComponentRedemptionUnits
 	p := getPool()

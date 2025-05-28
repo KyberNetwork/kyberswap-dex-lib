@@ -1,12 +1,9 @@
 package uniswapv4
 
 import (
-	"context"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -47,7 +44,6 @@ func HasSwapPermissions(address common.Address) bool {
 
 type Hook interface {
 	GetExchange() string
-	RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error)
 }
 
 var Hooks = map[common.Address]Hook{}
@@ -59,6 +55,14 @@ func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	return true
 }
 
+func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
+	hook, ok = Hooks[hookAddress]
+	if hook == nil {
+		hook = (*BaseHook)(nil)
+	}
+	return hook, ok
+}
+
 var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddress)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
@@ -68,8 +72,4 @@ func (h *BaseHook) GetExchange() string {
 		return string(h.Exchange)
 	}
 	return DexType
-}
-
-func (*BaseHook) RFQ(context.Context, pool.RFQParams, *PoolMetaInfo, *pool.RFQResult) (any, error) {
-	return nil, nil
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -52,6 +51,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -60,6 +60,7 @@ import (
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
@@ -67,6 +68,7 @@ import (
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
 	pancakeinfinitybin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/bin"
 	pancakeinfinitycl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/cl"
+	pancakestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -82,6 +84,7 @@ import (
 	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
 	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
 	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
+	uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-lo"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
@@ -202,6 +205,7 @@ type Types struct {
 	PancakeV3                  string
 	PancakeInfinityCL          string
 	PancakeInfinityBin         string
+	PancakeStable              string
 	MaverickV1                 string
 	AlgebraV1                  string
 	IZiSwap                    string
@@ -300,10 +304,13 @@ type Types struct {
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string
-	Brownfi                    string
-	KyberPMM                   string
-	Pmm1                       string
-	Pmm2                       string
+	MimSwap                    string
+	InfinityPools              string
+
+	KyberPMM  string
+	Pmm1      string
+	Pmm2      string
+	UniswapLO string
 }
 
 var (
@@ -362,6 +369,7 @@ var (
 		PancakeV3:                  pancakev3.DexTypePancakeV3,
 		PancakeInfinityCL:          pancakeinfinitycl.DexType,
 		PancakeInfinityBin:         pancakeinfinitybin.DexType,
+		PancakeStable:              pancakestable.DexType,
 		MaverickV1:                 maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                  algebrav1.DexTypeAlgebraV1,
 		IZiSwap:                    iziswap.DexTypeiZiSwap,
@@ -461,10 +469,12 @@ var (
 		Ekubo:                      ekubo.DexType,
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
-		Brownfi:                    brownfi.DexType,
+		MimSwap:                    mimswap.DexType,
+		InfinityPools:              infinitypools.DexType,
 
-		KyberPMM: string(valueobject.ExchangeKyberPMM),
-		Pmm1:     string(valueobject.ExchangePmm1),
-		Pmm2:     string(valueobject.ExchangePmm2),
+		KyberPMM:  valueobject.ExchangeKyberPMM,
+		Pmm1:      valueobject.ExchangePmm1,
+		Pmm2:      valueobject.ExchangePmm2,
+		UniswapLO: uniswaplo.DexType,
 	}
 )

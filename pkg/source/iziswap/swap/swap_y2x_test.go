@@ -49,6 +49,7 @@ func getPoolInfoY2X() PoolInfoU256 {
 }
 
 func TestSwapY2X1(t *testing.T) {
+	t.Parallel()
 	poolInfo := getPoolInfoY2X()
 	var amount uint256.Int
 	_ = amount.SetFromDecimal("100000000000000000000000")
@@ -64,6 +65,7 @@ func TestSwapY2X1(t *testing.T) {
 }
 
 func TestSwapY2X2(t *testing.T) {
+	t.Parallel()
 	poolInfo := getPoolInfoY2X()
 	var amount uint256.Int
 	_ = amount.SetFromDecimal("211374358247")
@@ -79,6 +81,7 @@ func TestSwapY2X2(t *testing.T) {
 }
 
 func TestSwapY2X3(t *testing.T) {
+	t.Parallel()
 	poolInfo := getPoolInfoY2X()
 	var amount uint256.Int
 	_ = amount.SetFromDecimal("190236922422")
@@ -94,6 +97,7 @@ func TestSwapY2X3(t *testing.T) {
 }
 
 func TestSwapY2X4(t *testing.T) {
+	t.Parallel()
 	poolInfo := getPoolInfoY2X()
 	var amount uint256.Int
 	_ = amount.SetFromDecimal("126824614948")
@@ -109,6 +113,7 @@ func TestSwapY2X4(t *testing.T) {
 }
 
 func TestSwapY2X5(t *testing.T) {
+	t.Parallel()
 	poolInfo := getPoolInfoY2X()
 	var amount uint256.Int
 	_ = amount.SetFromDecimal("63412307474")

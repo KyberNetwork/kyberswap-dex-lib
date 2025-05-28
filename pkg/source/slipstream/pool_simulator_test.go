@@ -49,6 +49,7 @@ var (
 )
 
 func TestCalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name              string
 		tokenIn           string
@@ -82,5 +83,6 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSim)
 }

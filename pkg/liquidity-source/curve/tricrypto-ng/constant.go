@@ -15,23 +15,22 @@ const (
 
 	DefaultGas = 240000
 
-	poolMethodD                   = "D"
-	poolMethodFeeGamma            = "fee_gamma"
-	poolMethodMidFee              = "mid_fee"
-	poolMethodOutFee              = "out_fee"
-	poolMethodInitialAGamma       = "initial_A_gamma"
-	poolMethodInitialAGammaTime   = "initial_A_gamma_time"
-	poolMethodFutureAGamma        = "future_A_gamma"
-	poolMethodFutureAGammaTime    = "future_A_gamma_time"
-	poolMethodLastPricesTimestamp = "last_prices_timestamp"
-	poolMethodXcpProfit           = "xcp_profit"
-	poolMethodVirtualPrice        = "virtual_price"
-	poolMethodAllowedExtraProfit  = "allowed_extra_profit"
-	poolMethodAdjustmentStep      = "adjustment_step"
-	poolMethodBalances            = "balances"
-	poolMethodPriceScale          = "price_scale"
-	poolMethodPriceOracle         = "price_oracle"
-	poolMethodLastPrices          = "last_prices"
+	poolMethodD                  = "D"
+	poolMethodFeeGamma           = "fee_gamma"
+	poolMethodMidFee             = "mid_fee"
+	poolMethodOutFee             = "out_fee"
+	poolMethodInitialAGamma      = "initial_A_gamma"
+	poolMethodInitialAGammaTime  = "initial_A_gamma_time"
+	poolMethodFutureAGamma       = "future_A_gamma"
+	poolMethodFutureAGammaTime   = "future_A_gamma_time"
+	poolMethodXcpProfit          = "xcp_profit"
+	poolMethodVirtualPrice       = "virtual_price"
+	poolMethodAllowedExtraProfit = "allowed_extra_profit"
+	poolMethodAdjustmentStep     = "adjustment_step"
+	poolMethodBalances           = "balances"
+	poolMethodPriceScale         = "price_scale"
+	poolMethodPriceOracle        = "price_oracle"
+	poolMethodLastPrices         = "last_prices"
 
 	MaxLoopLimit = 256
 	NumTokens    = 3
@@ -121,5 +120,4 @@ var (
 	ErrUnsafeXi            = errors.New("unsafe values x[i]")
 	ErrCoinIndexOutOfRange = errors.New("coin index out of range")
 	ErrExchange0Coins      = errors.New("do not exchange 0 coins")
-	ErrTweakPrice          = errors.New("tweak price")
 )

@@ -12,6 +12,7 @@ import (
 )
 
 func TestGetAmountOut(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name              string
 		entityPool        entity.Pool

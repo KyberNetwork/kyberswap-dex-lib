@@ -49,18 +49,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   USDe,
-				Name:      "USDe",
 				Symbol:    "USDe",
 				Decimals:  18,
-				Weight:    1,
 				Swappable: true,
 			},
 			{
 				Address:   StakedUSDeV2,
-				Name:      "Staked USDe",
 				Symbol:    "sUSDe",
 				Decimals:  18,
-				Weight:    1,
 				Swappable: true,
 			},
 		},

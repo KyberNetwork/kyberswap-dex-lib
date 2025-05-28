@@ -1,12 +1,12 @@
 package testutil
 
 import (
-	"reflect"
 	"runtime"
 	"sync"
 	"testing"
 
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/israce"
 )
@@ -41,18 +41,8 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, err
 	reference := outputs[0]
 
 	for i := 1; i < concurrentFactor; i++ {
-		if !reflect.DeepEqual(reference.A, outputs[i].A) {
-			t.Fatalf("outputs value are not equal, expected %v actual %v", reference.A, outputs[i].A)
-			return
-		}
-
-		if (reference.B == nil) != (outputs[i].B == nil) {
-			t.Fatalf("outputs are not equal, expected %v actual %v", reference, outputs[i])
-			return
-		} else if reference.B != nil && reference.B.Error() != outputs[i].B.Error() {
-			t.Fatalf("outputs error are not equal, expected %v actual %v", reference.B, outputs[i].B)
-			return
-		}
+		require.EqualValues(t, reference.A, outputs[i].A, "concurrent output value differs")
+		require.EqualValues(t, reference.B, outputs[i].B, "concurrent output error differs")
 	}
 
 	return reference.Unpack()

@@ -56,3 +56,7 @@ func WrapNativeLower(token string, chainID ChainID) string {
 func IsWrappedNative(address string, chainID ChainID) bool {
 	return strings.EqualFold(address, WrappedNativeMap[chainID])
 }
+
+func IsNative(address string) bool {
+	return strings.EqualFold(address, NativeAddress)
+}

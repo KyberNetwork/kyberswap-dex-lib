@@ -48,7 +48,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Type:     entityPool.Type,
 				Exchange: entityPool.Exchange,
 				Tokens:   tokens,
-				Checked:  false,
 			},
 		},
 		paused:        extra.Paused,
@@ -77,7 +76,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		p.assets,
 	)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	tokenAmountOut := &pool.TokenAmount{

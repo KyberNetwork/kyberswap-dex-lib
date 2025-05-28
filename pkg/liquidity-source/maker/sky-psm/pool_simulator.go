@@ -40,7 +40,6 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
 			Address:     p.Address,
-			ReserveUsd:  p.ReserveUsd,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
 			Tokens:      lo.Map(p.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),

@@ -16,6 +16,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0xE990519F19DCc6c1589A544C331c4Ec046593e7A#readContract
 	// need to set bufferAmounts to all 1 to allow swap
 	// need to set lastUpdatedAt to Now so it will get same price as simulation
@@ -57,6 +58,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
+	t.Parallel()
 	// test data from https://polygonscan.com/address/0xE990519F19DCc6c1589A544C331c4Ec046593e7A#readContract
 	// need to set bufferAmounts to all 1 to allow swap
 	// need to set lastUpdatedAt to Now so it will get same price as simulation

@@ -8,6 +8,7 @@ import (
 )
 
 func TestStableMath_ComputeInvariant(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name              string
 		amp               *uint256.Int
@@ -73,6 +74,7 @@ func TestStableMath_ComputeInvariant(t *testing.T) {
 }
 
 func TestStableMath_ComputeBalance(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name            string
 		amp             *uint256.Int
@@ -123,6 +125,7 @@ func TestStableMath_ComputeBalance(t *testing.T) {
 }
 
 func TestStableMath_ComputeOutGivenExactIn(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		amp            *uint256.Int
@@ -186,6 +189,7 @@ func TestStableMath_ComputeOutGivenExactIn(t *testing.T) {
 }
 
 func TestStableMath_ComputeInGivenExactOut(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name           string
 		amp            *uint256.Int

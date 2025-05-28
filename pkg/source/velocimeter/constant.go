@@ -2,7 +2,6 @@ package velocimeter
 
 const (
 	DexTypeVelocimeter = "velocimeter"
-	defaultTokenWeight = 50
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"

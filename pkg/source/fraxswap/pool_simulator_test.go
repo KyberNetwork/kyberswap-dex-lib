@@ -15,6 +15,7 @@ import (
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string

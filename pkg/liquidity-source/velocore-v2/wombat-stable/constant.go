@@ -8,8 +8,6 @@ const (
 	registryMethodGetPools = "getPools"
 	lensMethodQueryPool    = "queryPool"
 	poolMethodTokenInfo    = "tokenInfo"
-
-	defaultWeight = 1
 )
 
 var (

@@ -35,14 +35,33 @@ type RFQResult struct {
 // RFQHandler is the default no-op RFQ handler
 type RFQHandler struct{}
 
-func (p *RFQHandler) RFQ(_ context.Context, _ RFQParams) (*RFQResult, error) {
+func (h *RFQHandler) RFQ(_ context.Context, _ RFQParams) (*RFQResult, error) {
 	return nil, nil
 }
 
-func (p *RFQHandler) BatchRFQ(_ context.Context, _ []RFQParams) ([]*RFQResult, error) {
+func (h *RFQHandler) BatchRFQ(_ context.Context, _ []RFQParams) ([]*RFQResult, error) {
 	return nil, nil
 }
 
-func (p *RFQHandler) SupportBatch() bool {
+func (h *RFQHandler) SupportBatch() bool {
 	return false
+}
+
+type SequentialBatchRFQHandler struct {
+	IPoolSingleRFQ
+}
+
+func (h *SequentialBatchRFQHandler) BatchRFQ(ctx context.Context, paramsSlice []RFQParams) (results []*RFQResult,
+	err error) {
+	results = make([]*RFQResult, len(paramsSlice))
+	for i, params := range paramsSlice {
+		if results[i], err = h.RFQ(ctx, params); err != nil {
+			return nil, err
+		}
+	}
+	return results, nil
+}
+
+func (h *SequentialBatchRFQHandler) SupportBatch() bool {
+	return true
 }
