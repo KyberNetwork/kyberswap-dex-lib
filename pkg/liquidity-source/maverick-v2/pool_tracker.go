@@ -163,7 +163,7 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 			ABI:    maverickV2PoolLensABI,
 			Target: t.config.PoolLensAddress,
 			Method: poolLensMethodGetFullPoolState,
-			Params: []interface{}{common.HexToAddress(poolAddress), startIndex, endIndex},
+			Params: []interface{}{common.HexToAddress(poolAddress), uint32(startIndex), uint32(endIndex)},
 		}
 		fmt.Println("call debug:", call.Params)
 		allCalls = append(allCalls, call)
