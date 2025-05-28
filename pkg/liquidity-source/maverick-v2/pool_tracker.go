@@ -3,6 +3,7 @@ package maverickv2
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -162,8 +163,9 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 			ABI:    maverickV2PoolLensABI,
 			Target: t.config.PoolLensAddress,
 			Method: poolLensMethodGetFullPoolState,
-			Params: []interface{}{eth.StringToBytes32(poolAddress), uint32(startIndex), uint32(endIndex)},
+			Params: []interface{}{eth.StringToBytes32(poolAddress), &startIndex, &endIndex},
 		}
+		fmt.Println("call debug:", call.Params)
 		allCalls = append(allCalls, call)
 		callResults = append(callResults, FullPoolState{})
 	}
@@ -173,7 +175,6 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 	for i, call := range allCalls {
 		request.AddCall(call, []interface{}{&callResults[i]})
 	}
-
 	_, err := request.TryBlockAndAggregate()
 	if err != nil {
 		return nil, nil, err
