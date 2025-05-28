@@ -59,7 +59,7 @@ type PoolStateFromLens struct {
 	ReserveB           *big.Int `json:"reserveB"`
 	LastTwaD8          int64    `json:"lastTwaD8"`
 	LastLogPriceD8     int64    `json:"lastLogPriceD8"`
-	LastTimestamp      uint64   `json:"lastTimestamp"`
+	LastTimestamp      *big.Int `json:"lastTimestamp"`
 	ActiveTick         int32    `json:"activeTick"`
 	IsLocked           bool     `json:"isLocked"`
 	BinCounter         uint32   `json:"binCounter"`
