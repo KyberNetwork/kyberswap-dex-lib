@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -143,6 +144,87 @@ func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, 
 	}, resp.BlockNumber, nil
 }
 
+func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, binCounter uint32) (map[uint32]Bin, map[int32][]uint32, error) {
+	// Calculate number of batches needed (5000 items per batch)
+	batchSize := DefaultBinBatchSize
+	numBatches := (int(binCounter) / batchSize) + 1
+
+	// Prepare all calls for aggregation
+	var allCalls []*ethrpc.Call
+	var callResults []FullPoolState
+
+	for i := 0; i < numBatches; i++ {
+		startIndex := i * batchSize
+		endIndex := (i + 1) * batchSize
+
+		call := &ethrpc.Call{
+			ABI:    maverickV2PoolLensABI,
+			Target: t.config.PoolLensAddress,
+			Method: poolLensMethodGetFullPoolState,
+			Params: []interface{}{poolAddress, new(big.Int).SetUint64(uint64(startIndex)), new(big.Int).SetUint64(uint64(endIndex))},
+		}
+		allCalls = append(allCalls, call)
+		callResults = append(callResults, FullPoolState{})
+	}
+
+	// Execute all calls in aggregate
+	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
+	for i, call := range allCalls {
+		request.AddCall(call, []interface{}{&callResults[i]})
+	}
+
+	_, err := request.TryBlockAndAggregate()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Now map the aggregated results to our needed struct
+	bins := make(map[uint32]Bin)
+	binPositions := make(map[int32][]uint32)
+
+	for batchIndex, fullPoolState := range callResults {
+		startIndex := batchIndex * batchSize
+
+		// Process the batch results
+		for binIndex, binState := range fullPoolState.BinStateMapping {
+			if binIndex == 0 {
+				continue // skip index 0 as per TypeScript implementation
+			}
+
+			binId := binIndex + startIndex
+			// Convert BinStateMapping to Bin
+			bin := Bin{
+				MergeBinBalance: binState.MergeBinBalance,
+				MergeId:         binState.MergeId,
+				TotalSupply:     binState.TotalSupply,
+				Kind:            binState.Kind,
+				Tick:            binState.Tick,
+				TickBalance:     binState.TickBalance,
+				ReserveA:        uint256.NewInt(0), // Will be set from tick state
+				ReserveB:        uint256.NewInt(0), // Will be set from tick state
+			}
+
+			// Get corresponding tick state
+			if binIndex < len(fullPoolState.TickStateMapping) {
+				tickState := fullPoolState.TickStateMapping[binIndex]
+				bin.ReserveA = tickState.ReserveA
+				bin.ReserveB = tickState.ReserveB
+			}
+
+			bins[uint32(binId)] = bin
+
+			// Update binPositions map
+			tick := binState.Tick
+			if binPositions[tick] == nil {
+				binPositions[tick] = make([]uint32, 0)
+			}
+			binPositions[tick] = append(binPositions[tick], uint32(binId))
+		}
+	}
+
+	return bins, binPositions, nil
+}
+
 func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big.Int) (entity.Pool, error) {
 	pool.Reserves = entity.PoolReserves{
 		state.ReserveA.String(),
@@ -151,7 +233,7 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = state.LastTimestamp
 
-	// Parse StaticExtra to get lookback information
+	// Parse StaticExtra to get tick spacing
 	var staticExtra StaticExtra
 	if pool.StaticExtra != "" {
 		if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
@@ -162,14 +244,24 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 		}
 	}
 
-	// Update extra data with actual values from the state and static data
+	// Fetch full pool state with bins and ticks data
+	bins, binPositions, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"pool_address": pool.Address,
+			"error":        err,
+		}).Warn("Failed to fetch full pool state, using empty bins")
+		bins = make(map[uint32]Bin)
+		binPositions = make(map[int32][]uint32)
+	}
+
+	// Update extra data with actual values from the state and fetched data
 	extra := Extra{
-		FeeAIn:           state.FeeAIn, // Use dynamic fees from state
-		FeeBIn:           state.FeeBIn, // Use dynamic fees from state
+		FeeAIn:           state.FeeAIn,
+		FeeBIn:           state.FeeBIn,
 		ProtocolFeeRatio: state.ProtocolFeeRatioD3,
-		Bins:             make(map[uint32]Bin),
-		BinPositions:     make(map[int32][]uint32),
-		BinMap:           make(map[int32]uint32),
+		Bins:             bins,
+		BinPositions:     binPositions,
 		ActiveTick:       state.ActiveTick,
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.LastTimestamp,

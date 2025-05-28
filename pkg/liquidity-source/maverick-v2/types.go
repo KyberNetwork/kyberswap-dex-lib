@@ -20,12 +20,50 @@ type State struct {
 	FeeBIn             uint64   `json:"feeBIn"` // Fee for tokenB -> tokenA swaps
 }
 
-// TwaData represents Time-Weighted Average data for the pool
-type TwaData struct {
-	LastTimestamp int64        `json:"lastTimestamp"`
-	LastTwaD8     int64        `json:"lastTwaD8"`
-	LookbackSec   int64        `json:"lookbackSec"`
-	AccumValue    *uint256.Int `json:"accumValue"`
+// FullPoolState represents the complete pool state from pool lens
+type FullPoolState struct {
+	TickStateMapping       []TickStateMapping       `json:"tickStateMapping"`
+	BinStateMapping        []BinStateMapping        `json:"binStateMapping"`
+	BinIdByTickKindMapping []BinIdByTickKindMapping `json:"binIdByTickKindMapping"`
+	State                  PoolStateFromLens        `json:"state"`
+	ProtocolFees           ProtocolFees             `json:"protocolFees"`
+}
+
+type TickStateMapping struct {
+	ReserveA     *uint256.Int `json:"reserveA"`
+	ReserveB     *uint256.Int `json:"reserveB"`
+	TotalSupply  *uint256.Int `json:"totalSupply"`
+	BinIdsByTick [4]uint32    `json:"binIdsByTick"`
+}
+
+type BinStateMapping struct {
+	MergeBinBalance *uint256.Int `json:"mergeBinBalance"`
+	TickBalance     *uint256.Int `json:"tickBalance"`
+	TotalSupply     *uint256.Int `json:"totalSupply"`
+	Kind            uint8        `json:"kind"`
+	Tick            int32        `json:"tick"`
+	MergeId         uint32       `json:"mergeId"`
+}
+
+type BinIdByTickKindMapping struct {
+	Values [4]*uint256.Int `json:"values"`
+}
+
+type PoolStateFromLens struct {
+	ReserveA           *uint256.Int `json:"reserveA"`
+	ReserveB           *uint256.Int `json:"reserveB"`
+	LastTwaD8          int64        `json:"lastTwaD8"`
+	LastLogPriceD8     int64        `json:"lastLogPriceD8"`
+	LastTimestamp      uint64       `json:"lastTimestamp"`
+	ActiveTick         int32        `json:"activeTick"`
+	IsLocked           bool         `json:"isLocked"`
+	BinCounter         uint32       `json:"binCounter"`
+	ProtocolFeeRatioD3 uint8        `json:"protocolFeeRatioD3"`
+}
+
+type ProtocolFees struct {
+	AmountA *uint256.Int `json:"amountA"`
+	AmountB *uint256.Int `json:"amountB"`
 }
 
 // MoveBinsParams contains parameters needed for the moveBins operation

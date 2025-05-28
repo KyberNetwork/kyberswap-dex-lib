@@ -55,7 +55,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			ProtocolFeeRatio: extra.ProtocolFeeRatio,
 			Bins:             extra.Bins,
 			BinPositions:     extra.BinPositions,
-			BinMap:           extra.BinMap,
 			TickSpacing:      staticExtra.TickSpacing,
 			ActiveTick:       extra.ActiveTick,
 			LastTwaD8:        extra.LastTwaD8,
@@ -621,7 +620,6 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		ActiveTick:       state.ActiveTick,
 		Bins:             make(map[uint32]Bin, len(state.Bins)),
 		BinPositions:     make(map[int32][]uint32, len(state.BinPositions)),
-		BinMap:           make(map[int32]uint32, len(state.BinMap)),
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.Timestamp,
 		BinCounter:       state.BinCounter,
@@ -644,10 +642,6 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 	for k, v := range state.BinPositions {
 		cloned.BinPositions[k] = make([]uint32, len(v))
 		copy(cloned.BinPositions[k], v)
-	}
-
-	for k, v := range state.BinMap {
-		cloned.BinMap[k] = v
 	}
 
 	return cloned
@@ -673,7 +667,6 @@ type MaverickPoolState struct {
 	ProtocolFeeRatio uint8
 	Bins             map[uint32]Bin
 	BinPositions     map[int32][]uint32
-	BinMap           map[int32]uint32
 	TickSpacing      uint32
 	ActiveTick       int32
 	LastTwaD8        int64  // Time-weighted average tick data
@@ -687,7 +680,6 @@ type Extra struct {
 	ProtocolFeeRatio uint8              `json:"protocolFeeRatio"`
 	Bins             map[uint32]Bin     `json:"bins"`
 	BinPositions     map[int32][]uint32 `json:"binPositions"`
-	BinMap           map[int32]uint32   `json:"binMap"`
 	ActiveTick       int32              `json:"activeTick"`
 	LastTwaD8        int64              `json:"lastTwaD8"`
 	Timestamp        int64              `json:"timestamp"`
