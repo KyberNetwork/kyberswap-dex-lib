@@ -29,6 +29,11 @@ type FullPoolState struct {
 	ProtocolFees           ProtocolFees             `json:"protocolFees"`
 }
 
+// FullPoolStateWrapper wraps the FullPoolState in a struct to match the contract's return type
+type FullPoolStateWrapper struct {
+	PoolState FullPoolState `json:"poolState"`
+}
+
 type TickStateMapping struct {
 	ReserveA     *big.Int  `json:"reserveA"`
 	ReserveB     *big.Int  `json:"reserveB"`

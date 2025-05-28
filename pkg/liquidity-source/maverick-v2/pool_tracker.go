@@ -153,7 +153,7 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 
 	// Prepare all calls for aggregation
 	var allCalls []*ethrpc.Call
-	var callResults []FullPoolState
+	var callResults []FullPoolStateWrapper
 
 	for i := 0; i < numBatches; i++ {
 		startIndex := i * batchSize
@@ -167,7 +167,7 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 		}
 		fmt.Println("call debug:", common.HexToAddress(poolAddress), uint32(startIndex), uint32(endIndex))
 		allCalls = append(allCalls, call)
-		callResults = append(callResults, FullPoolState{})
+		callResults = append(callResults, FullPoolStateWrapper{})
 	}
 
 	// Execute all calls in aggregate
@@ -184,7 +184,8 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 	bins := make(map[uint32]Bin)
 	binPositions := make(map[int32][]uint32)
 
-	for batchIndex, fullPoolState := range callResults {
+	for batchIndex, wrapper := range callResults {
+		fullPoolState := wrapper.PoolState
 		startIndex := batchIndex * batchSize
 
 		// Process the batch results
