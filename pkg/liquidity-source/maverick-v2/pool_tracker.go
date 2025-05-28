@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type (
@@ -161,7 +162,7 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 			ABI:    maverickV2PoolLensABI,
 			Target: t.config.PoolLensAddress,
 			Method: poolLensMethodGetFullPoolState,
-			Params: []interface{}{poolAddress, new(big.Int).SetUint64(uint64(startIndex)), new(big.Int).SetUint64(uint64(endIndex))},
+			Params: []interface{}{eth.StringToBytes32(poolAddress), new(big.Int).SetUint64(uint64(startIndex)), new(big.Int).SetUint64(uint64(endIndex))},
 		}
 		allCalls = append(allCalls, call)
 		callResults = append(callResults, FullPoolState{})
