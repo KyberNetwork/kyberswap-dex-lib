@@ -30,40 +30,40 @@ type FullPoolState struct {
 }
 
 type TickStateMapping struct {
-	ReserveA     *uint256.Int `json:"reserveA"`
-	ReserveB     *uint256.Int `json:"reserveB"`
-	TotalSupply  *uint256.Int `json:"totalSupply"`
-	BinIdsByTick [4]uint32    `json:"binIdsByTick"`
+	ReserveA     *big.Int  `json:"reserveA"`
+	ReserveB     *big.Int  `json:"reserveB"`
+	TotalSupply  *big.Int  `json:"totalSupply"`
+	BinIdsByTick [4]uint32 `json:"binIdsByTick"`
 }
 
 type BinStateMapping struct {
-	MergeBinBalance *uint256.Int `json:"mergeBinBalance"`
-	TickBalance     *uint256.Int `json:"tickBalance"`
-	TotalSupply     *uint256.Int `json:"totalSupply"`
-	Kind            uint8        `json:"kind"`
-	Tick            int32        `json:"tick"`
-	MergeId         uint32       `json:"mergeId"`
+	MergeBinBalance *big.Int `json:"mergeBinBalance"`
+	TickBalance     *big.Int `json:"tickBalance"`
+	TotalSupply     *big.Int `json:"totalSupply"`
+	Kind            uint8    `json:"kind"`
+	Tick            int32    `json:"tick"`
+	MergeId         uint32   `json:"mergeId"`
 }
 
 type BinIdByTickKindMapping struct {
-	Values [4]*uint256.Int `json:"values"`
+	Values [4]*big.Int `json:"values"`
 }
 
 type PoolStateFromLens struct {
-	ReserveA           *uint256.Int `json:"reserveA"`
-	ReserveB           *uint256.Int `json:"reserveB"`
-	LastTwaD8          int64        `json:"lastTwaD8"`
-	LastLogPriceD8     int64        `json:"lastLogPriceD8"`
-	LastTimestamp      uint64       `json:"lastTimestamp"`
-	ActiveTick         int32        `json:"activeTick"`
-	IsLocked           bool         `json:"isLocked"`
-	BinCounter         uint32       `json:"binCounter"`
-	ProtocolFeeRatioD3 uint8        `json:"protocolFeeRatioD3"`
+	ReserveA           *big.Int `json:"reserveA"`
+	ReserveB           *big.Int `json:"reserveB"`
+	LastTwaD8          int64    `json:"lastTwaD8"`
+	LastLogPriceD8     int64    `json:"lastLogPriceD8"`
+	LastTimestamp      uint64   `json:"lastTimestamp"`
+	ActiveTick         int32    `json:"activeTick"`
+	IsLocked           bool     `json:"isLocked"`
+	BinCounter         uint32   `json:"binCounter"`
+	ProtocolFeeRatioD3 uint8    `json:"protocolFeeRatioD3"`
 }
 
 type ProtocolFees struct {
-	AmountA *uint256.Int `json:"amountA"`
-	AmountB *uint256.Int `json:"amountB"`
+	AmountA *big.Int `json:"amountA"`
+	AmountB *big.Int `json:"amountB"`
 }
 
 // MoveBinsParams contains parameters needed for the moveBins operation

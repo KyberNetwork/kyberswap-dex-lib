@@ -196,12 +196,12 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 			binId := binIndex + startIndex
 			// Convert BinStateMapping to Bin
 			bin := Bin{
-				MergeBinBalance: binState.MergeBinBalance,
+				MergeBinBalance: uint256.MustFromBig(binState.MergeBinBalance),
 				MergeId:         binState.MergeId,
-				TotalSupply:     binState.TotalSupply,
+				TotalSupply:     uint256.MustFromBig(binState.TotalSupply),
 				Kind:            binState.Kind,
 				Tick:            binState.Tick,
-				TickBalance:     binState.TickBalance,
+				TickBalance:     uint256.MustFromBig(binState.TickBalance),
 				ReserveA:        uint256.NewInt(0), // Will be set from tick state
 				ReserveB:        uint256.NewInt(0), // Will be set from tick state
 			}
@@ -209,8 +209,12 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 			// Get corresponding tick state
 			if binIndex < len(fullPoolState.TickStateMapping) {
 				tickState := fullPoolState.TickStateMapping[binIndex]
-				bin.ReserveA = tickState.ReserveA
-				bin.ReserveB = tickState.ReserveB
+				if tickState.ReserveA != nil {
+					bin.ReserveA = uint256.MustFromBig(tickState.ReserveA)
+				}
+				if tickState.ReserveB != nil {
+					bin.ReserveB = uint256.MustFromBig(tickState.ReserveB)
+				}
 			}
 
 			bins[uint32(binId)] = bin
