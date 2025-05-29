@@ -13,6 +13,7 @@ var canReceiveTokenBeforeSwapFunctionSet = map[string]struct{}{
 	l1executor.FunctionSelectorVelodrome.RawName:   {},
 	l1executor.FunctionSelectorMuteSwitch.RawName:  {},
 	l1executor.FunctionSelectorKTX.RawName:         {},
+	l1executor.FunctionSelectorBrownfi.RawName:     {},
 
 	l2executor.FunctionSelectorUniswap.RawName:     {},
 	l2executor.FunctionSelectorKSClassic.RawName:   {},
