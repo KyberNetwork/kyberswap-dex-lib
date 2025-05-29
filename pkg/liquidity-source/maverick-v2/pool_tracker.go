@@ -3,6 +3,7 @@ package maverickv2
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -145,7 +146,7 @@ func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, 
 	}, resp.BlockNumber, nil
 }
 
-func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, binCounter uint32) (map[uint32]Bin, map[int32][]uint32, error) {
+func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, binCounter uint32) (map[uint32]Bin, map[int32]Tick, error) {
 	// Calculate number of batches needed (5000 items per batch)
 	batchSize := DefaultBinBatchSize
 	numBatches := (int(binCounter) / batchSize) + 1
@@ -181,8 +182,8 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 
 	// Now map the aggregated results to our needed struct
 	bins := make(map[uint32]Bin)
-	binPositions := make(map[int32][]uint32)
-
+	ticks := make(map[int32]Tick)
+	fmt.Println("callResults", len(callResults))
 	for batchIndex, wrapper := range callResults {
 		fullPoolState := wrapper.PoolState
 		startIndex := batchIndex * batchSize
@@ -202,33 +203,23 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 				Kind:            binState.Kind,
 				Tick:            binState.Tick,
 				TickBalance:     uint256.MustFromBig(binState.TickBalance),
-				ReserveA:        uint256.NewInt(0), // Will be set from tick state
-				ReserveB:        uint256.NewInt(0), // Will be set from tick state
 			}
 
-			// Get corresponding tick state
-			if binIndex < len(fullPoolState.TickStateMapping) {
-				tickState := fullPoolState.TickStateMapping[binIndex]
-				if tickState.ReserveA != nil {
-					bin.ReserveA = uint256.MustFromBig(tickState.ReserveA)
-				}
-				if tickState.ReserveB != nil {
-					bin.ReserveB = uint256.MustFromBig(tickState.ReserveB)
-				}
-			}
-
+			tickState := fullPoolState.TickStateMapping[binIndex]
 			bins[uint32(binId)] = bin
-
-			// Update binPositions map
-			tick := binState.Tick
-			if binPositions[tick] == nil {
-				binPositions[tick] = make([]uint32, 0)
+			ticks[bin.Tick] = Tick{
+				ReserveA:     uint256.MustFromBig(tickState.ReserveA),
+				ReserveB:     uint256.MustFromBig(tickState.ReserveB),
+				TotalSupply:  uint256.MustFromBig(tickState.TotalSupply),
+				BinIdsByTick: make(map[uint8]uint32),
 			}
-			binPositions[tick] = append(binPositions[tick], uint32(binId))
+			for i, binId := range tickState.BinIdsByTick {
+				ticks[bin.Tick].BinIdsByTick[uint8(i)] = binId
+			}
 		}
 	}
 
-	return bins, binPositions, nil
+	return bins, ticks, nil
 }
 
 func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big.Int) (entity.Pool, error) {
@@ -251,14 +242,14 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 	}
 
 	// Fetch full pool state with bins and ticks data
-	bins, binPositions, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter)
+	bins, ticks, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool_address": pool.Address,
 			"error":        err,
 		}).Warn("Failed to fetch full pool state, using empty bins")
 		bins = make(map[uint32]Bin)
-		binPositions = make(map[int32][]uint32)
+		ticks = make(map[int32]Tick)
 	}
 
 	// Update extra data with actual values from the state and fetched data
@@ -267,7 +258,7 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 		FeeBIn:           state.FeeBIn,
 		ProtocolFeeRatio: state.ProtocolFeeRatioD3,
 		Bins:             bins,
-		BinPositions:     binPositions,
+		Ticks:            ticks,
 		ActiveTick:       state.ActiveTick,
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.LastTimestamp,
