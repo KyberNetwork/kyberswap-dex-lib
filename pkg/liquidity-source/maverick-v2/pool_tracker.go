@@ -3,7 +3,6 @@ package maverickv2
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"time"
 
@@ -183,7 +182,6 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 	// Now map the aggregated results to our needed struct
 	bins := make(map[uint32]Bin)
 	ticks := make(map[int32]Tick)
-	fmt.Println("callResults", len(callResults))
 	for batchIndex, wrapper := range callResults {
 		fullPoolState := wrapper.PoolState
 		startIndex := batchIndex * batchSize

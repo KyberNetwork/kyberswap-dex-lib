@@ -48,11 +48,19 @@ func TestGetFullPoolState(t *testing.T) {
 	t.Logf("Number of ticks: %d", len(ticks))
 
 	for tickId, tick := range ticks {
-		t.Logf("Tick %d: %+v", tickId, tick)
+		if tickId == 4 {
+			for _, binID := range tick.BinIdsByTick {
+				if binID == 16 {
+					t.Log(binReserves(bins[binID], tick))
+				}
+			}
+		}
+
 	}
 
 	// Verify bin data
 	for binId, bin := range bins {
+
 		assert.NotNil(t, bin, "Bin %d should not be nil", binId)
 		assert.NotNil(t, bin.TotalSupply, "Bin %d total supply should not be nil", binId)
 	}

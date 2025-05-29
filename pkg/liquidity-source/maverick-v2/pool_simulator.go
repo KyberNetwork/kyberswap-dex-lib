@@ -126,7 +126,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		SwapInfo: maverickSwapInfo{
 			activeTick:       newState.ActiveTick,
 			bins:             newState.Bins,
-			binPositions:     newState.BinPositions,
+			ticks:            newState.Ticks,
 			fractionalPartD8: fractionalPartD8,
 			timestamp:        getCurrentTimestamp(),
 		},
@@ -159,7 +159,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// Update the primary state values
 	p.state.Bins = newState.bins
-	p.state.BinPositions = newState.binPositions
+	p.state.Ticks = newState.ticks
 	p.state.ActiveTick = newState.activeTick
 
 	// Update time-weighted average
@@ -205,7 +205,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 type maverickSwapInfo struct {
 	activeTick       int32
 	bins             map[uint32]Bin
-	binPositions     map[int32][]uint32
+	ticks            map[int32]Tick
 	fractionalPartD8 int64
 	timestamp        int64
 }
@@ -338,9 +338,9 @@ func swapTick(state *MaverickPoolState, delta *Delta, tickLimit int32) (*Delta, 
 
 	// Perform the actual swap computation
 	if delta.ExactOutput {
-		computeSwapExactOut(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta)
+		*newDelta = computeSwapExactOut(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta.SqrtPrice)
 	} else {
-		computeSwapExactIn(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta)
+		*newDelta = computeSwapExactIn(state, delta.Excess, delta.TokenAIn, tickDataFromLiquidity, newDelta.SqrtPrice)
 	}
 
 	// Match TypeScript logic exactly
@@ -400,13 +400,23 @@ func computeEndPrice(delta *Delta, newDelta *Delta, tickData TickData) {
 	}
 }
 
-func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData TickData, delta *Delta) {
-
-	// Initialize delta with proper values - matching TypeScript exactly
-	delta.TokenAIn = tokenAIn
-	delta.ExactOutput = false
-	delta.SwappedToMaxPrice = false
-	delta.SkipCombine = false
+func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAIn bool, tickData TickData, sqrtPrice *uint256.Int) Delta {
+	// Create a new delta - matching TypeScript exactly
+	delta := Delta{
+		DeltaInBinInternal: new(uint256.Int),
+		DeltaInErc:         new(uint256.Int),
+		DeltaOutErc:        new(uint256.Int),
+		Excess:             new(uint256.Int),
+		TokenAIn:           tokenAIn,
+		ExactOutput:        false,
+		SwappedToMaxPrice:  false,
+		SkipCombine:        false,
+		TickLimit:          0,
+		SqrtLowerTickPrice: new(uint256.Int),
+		SqrtUpperTickPrice: new(uint256.Int),
+		SqrtPrice:          new(uint256.Int).Set(sqrtPrice),
+		FractionalPart:     new(uint256.Int),
+	}
 
 	// Set initial deltaOutErc to all available reserves - line 68-70 in TypeScript
 	if tokenAIn {
@@ -471,7 +481,7 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 
 	// Early return if excess exists - line 105 in TypeScript
 	if !delta.Excess.IsZero() {
-		return
+		return delta
 	}
 
 	// Calculate inOverL - lines 107-110 in TypeScript
@@ -492,14 +502,27 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 	}
 
 	delta.DeltaOutErc = minUint256(delta.DeltaOutErc, calculatedOut)
+
+	return delta
 }
 
-func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, tokenAIn bool, tickData TickData, delta *Delta) {
-	// Initialize delta with proper values - matching TypeScript exactly
-	delta.TokenAIn = tokenAIn
-	delta.ExactOutput = true
-	delta.SwappedToMaxPrice = false
-	delta.SkipCombine = false
+func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, tokenAIn bool, tickData TickData, sqrtPrice *uint256.Int) Delta {
+	// Create a new delta - matching TypeScript exactly
+	delta := Delta{
+		DeltaInBinInternal: new(uint256.Int),
+		DeltaInErc:         new(uint256.Int),
+		DeltaOutErc:        new(uint256.Int),
+		Excess:             new(uint256.Int),
+		TokenAIn:           false, // Note: TypeScript sets this to false initially
+		ExactOutput:        false, // Note: TypeScript sets this to false initially
+		SwappedToMaxPrice:  false,
+		SkipCombine:        false,
+		TickLimit:          0,
+		SqrtLowerTickPrice: new(uint256.Int),
+		SqrtUpperTickPrice: new(uint256.Int),
+		SqrtPrice:          new(uint256.Int).Set(sqrtPrice),
+		FractionalPart:     new(uint256.Int),
+	}
 
 	// Determine available output amount - lines 148-150 in TypeScript
 	var amountOutAvailable *uint256.Int
@@ -556,6 +579,8 @@ func computeSwapExactOut(state *MaverickPoolState, amountOut *uint256.Int, token
 	} else {
 		delta.Excess = new(uint256.Int)
 	}
+
+	return delta
 }
 
 func combine(self *Delta, delta *Delta) {
@@ -606,7 +631,7 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		TickSpacing:      state.TickSpacing,
 		ActiveTick:       state.ActiveTick,
 		Bins:             make(map[uint32]Bin, len(state.Bins)),
-		BinPositions:     make(map[int32][]uint32, len(state.BinPositions)),
+		Ticks:            make(map[int32]Tick),
 		LastTwaD8:        state.LastTwaD8,
 		Timestamp:        state.Timestamp,
 		BinCounter:       state.BinCounter,
@@ -624,9 +649,8 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		cloned.Bins[k] = clonedBin
 	}
 
-	for k, v := range state.BinPositions {
-		cloned.BinPositions[k] = make([]uint32, len(v))
-		copy(cloned.BinPositions[k], v)
+	for k, v := range state.Ticks {
+		cloned.Ticks[k] = v
 	}
 
 	return cloned
@@ -651,7 +675,6 @@ type MaverickPoolState struct {
 	FeeBIn           uint64
 	ProtocolFeeRatio uint8
 	Bins             map[uint32]Bin
-	BinPositions     map[int32][]uint32
 	Ticks            map[int32]Tick
 	TickSpacing      uint32
 	ActiveTick       int32
@@ -861,21 +884,12 @@ func getMovementBinsInRange(state *MaverickPoolState, moveData *MoveData) {
 
 // Helper function to get bin ID by tick and kind
 func binIdByTickKind(state *MaverickPoolState, tick int32, kind uint8) uint32 {
-	// Get bin positions at this tick
-	binPositions, ok := state.BinPositions[tick]
-	if !ok || len(binPositions) == 0 {
+	bin, ok := state.Ticks[tick]
+	if !ok {
 		return 0
 	}
 
-	// Find bin with matching kind
-	for _, binId := range binPositions {
-		bin, ok := state.Bins[binId]
-		if ok && bin.Kind == kind {
-			return binId
-		}
-	}
-
-	return 0
+	return bin.BinIdsByTick[kind]
 }
 
 // Implementation of mergeBinsInList from TypeScript
@@ -1131,30 +1145,22 @@ func mulDivDown(a, b, denominator *uint256.Int) *uint256.Int {
 
 // Helper function equivalent to MaverickBasicMath.mulDivUp
 func mulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
-	if denominator.IsZero() {
+	z := new(uint256.Int).Mul(a, b)
+
+	if z.IsZero() {
 		return new(uint256.Int)
 	}
-	product := new(uint256.Int).Mul(a, b)
-	result := new(uint256.Int).Div(product, denominator)
-	// Add 1 if there's a remainder (for ceiling division)
-	remainder := new(uint256.Int).Mod(product, denominator)
-	if !remainder.IsZero() {
-		result.Add(result, new(uint256.Int).SetUint64(1))
-	}
+
+	// return (z - 1) / denominator + 1
+	zMinus1 := new(uint256.Int).Sub(z, new(uint256.Int).SetUint64(1))
+	result := new(uint256.Int).Div(zMinus1, denominator)
+	result.Add(result, new(uint256.Int).SetUint64(1))
 	return result
 }
 
 // Helper function equivalent to MaverickBasicMath.divUp
 func divUp(a, b *uint256.Int) *uint256.Int {
-	if b.IsZero() {
-		return new(uint256.Int)
-	}
-	result := new(uint256.Int).Div(a, b)
-	remainder := new(uint256.Int).Mod(a, b)
-	if !remainder.IsZero() {
-		result.Add(result, new(uint256.Int).SetUint64(1))
-	}
-	return result
+	return mulDivUp(a, BI_POWS[18], b)
 }
 
 // Helper function equivalent to MaverickBasicMath.invFloor
@@ -1345,22 +1351,15 @@ func subTickIndex(tickSpacing uint32, tick int32) *big.Int {
 // Square root price and tick calculations matching the TypeScript implementation
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-tick-math.ts#L122
 func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
-	logger.Debugf("calculateSqrtPrice - Input parameters:")
-	logger.Debugf("  tickSpacing: %d", tickSpacing)
-	logger.Debugf("  tick: %d", tick)
-
 	// Apply tick spacing using subTickIndex
 	subTick := subTickIndex(tickSpacing, tick)
-	logger.Debugf("  subTick: %s", subTick.String())
 
 	// Initialize ratio using big.Int for precise calculations, then convert to uint256.Int
 	ratio := new(big.Int)
 	if new(big.Int).And(subTick, big.NewInt(0x1)).Cmp(big.NewInt(0)) != 0 {
 		ratio.SetString("fffcb933bd6fad9d3af5f0b9f25db4d6", 16)
-		logger.Debugf("  Initial ratio (odd): %s", ratio.String())
 	} else {
 		ratio.SetString("100000000000000000000000000000000", 16)
-		logger.Debugf("  Initial ratio (even): %s", ratio.String())
 	}
 
 	// Apply bit shifts and multiplications matching the TypeScript implementation
@@ -1491,7 +1490,6 @@ func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
 		max := new(big.Int)
 		max.SetString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)
 		ratio = new(big.Int).Div(max, ratio)
-		logger.Debugf("  Inverted ratio (positive tick): %s", ratio.String())
 	}
 
 	// Multiply by 10^18 and shift right by 128, then convert to uint256.Int
@@ -1499,7 +1497,6 @@ func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
 	pow18.Exp(big.NewInt(10), big.NewInt(18), nil)
 	ratio.Mul(ratio, pow18)
 	ratio.Rsh(ratio, 128)
-	logger.Debugf("  Final ratio after scaling: %s", ratio.String())
 
 	result := new(uint256.Int)
 	result.SetFromBig(ratio)
@@ -1566,17 +1563,44 @@ func getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint25
 
 	// b >>= 1 (divide by 2)
 	b.Rsh(b, 1)
-	logger.Debugf("  b after right shift: %s", b.String())
 
-	// Calculate complex liquidity formula
-	bSquared := mulDivDown(b, b, BI_POWS[18])
+	// Calculate complex liquidity formula exactly matching TypeScript:
+	// MaverickBasicMath.mulDiv(
+	//   b + MaverickBasicMath.sqrt(
+	//     MaverickBasicMath.mulDiv(b, b, BI_POWS[18]) +
+	//     MaverickBasicMath.mulDiv(
+	//       MaverickBasicMath.mulFloor(reserveB, reserveA),
+	//       diff,
+	//       sqrtUpperTickPrice,
+	//     ),
+	//   ) * BI_POWS[9],
+	//   sqrtUpperTickPrice,
+	//   diff,
+	// )
+
+	// Step 1: MaverickBasicMath.mulDiv(b, b, BI_POWS[18])
+	bSquared := mulDiv(b, b, BI_POWS[18])
+
+	// Step 2: MaverickBasicMath.mulFloor(reserveB, reserveA) = mulDivDown(reserveB, reserveA, BI_POWS[18])
 	reserveProduct := mulDivDown(reserveB, reserveA, BI_POWS[18])
-	reserveProductDiff := mulDivDown(reserveProduct, diff, sqrtUpperTickPrice)
+
+	// Step 3: MaverickBasicMath.mulDiv(reserveProduct, diff, sqrtUpperTickPrice)
+	reserveProductDiff := mulDiv(reserveProduct, diff, sqrtUpperTickPrice)
+
+	// Step 4: bSquared + reserveProductDiff
 	bSquaredPlusReserveProduct := new(uint256.Int).Add(bSquared, reserveProductDiff)
+
+	// Step 5: MaverickBasicMath.sqrt(...)
 	sqrtTerm := sqrt(bSquaredPlusReserveProduct)
-	bPlusSqrtTerm := new(uint256.Int).Add(b, sqrtTerm)
-	bPlusSqrtTermScaled := mulDivDown(bPlusSqrtTerm, BI_POWS[9], BI_POWS[18])
-	result := mulDivDown(bPlusSqrtTermScaled, sqrtUpperTickPrice, diff)
+
+	// Step 6: sqrtTerm * BI_POWS[9] - multiplication has higher precedence than addition!
+	sqrtTermTimesPow9 := new(uint256.Int).Mul(sqrtTerm, BI_POWS[9])
+
+	// Step 7: b + (sqrtTerm * BI_POWS[9])
+	bPlusSqrtTermTimesPow9 := new(uint256.Int).Add(b, sqrtTermTimesPow9)
+
+	// Step 8: MaverickBasicMath.mulDiv(bPlusSqrtTermTimesPow9, sqrtUpperTickPrice, diff)
+	result := mulDiv(bPlusSqrtTermTimesPow9, sqrtUpperTickPrice, diff)
 
 	if precisionBump > 0 {
 		result.Rsh(result, precisionBump)
@@ -1626,7 +1650,7 @@ func getSqrtPrice(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice, li
 
 func tickSqrtPriceAndLiquidity(state *MaverickPoolState, tick int32) (*uint256.Int, *uint256.Int, *uint256.Int, TickData) {
 	logger.Debugf("tickSqrtPriceAndLiquidity - Input parameters:")
-	logger.Debugf("  tick: %d", tick)
+	logger.Debugf("  debug tick: %d %s %s", tick, state.Ticks[tick].ReserveA.String(), state.Ticks[tick].ReserveB.String())
 	logger.Debugf("  tickSpacing: %d", state.TickSpacing)
 
 	// Get the consolidated bin data (equivalent to this.state.ticks[tick.toString()])
