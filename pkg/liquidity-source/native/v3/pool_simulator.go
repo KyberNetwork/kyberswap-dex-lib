@@ -1,7 +1,6 @@
 package v3
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -155,18 +154,19 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	underlyingTokenOutIndex := p.GetUnderlyingTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 && underlyingTokenInIndex < 0 {
-		return nil, errors.New("tokenInIndex is not correct")
+		return nil, ErrTokenInInvalid
 	}
 	if tokenOutIndex < 0 && underlyingTokenOutIndex < 0 {
-		return nil, errors.New("tokenOutIndex is not correct")
+		return nil, ErrTokenOutInvalid
 	}
 
+	totalGas := p.Gas.BaseGas
 	// Add wrap gas cost if needed
 	if tokenInIndex < 0 {
-		p.Gas.BaseGas += WrapGasCost
+		totalGas += WrapGasCost
 	}
 	if tokenOutIndex < 0 {
-		p.Gas.BaseGas += WrapGasCost
+		totalGas += WrapGasCost
 	}
 
 	zeroForOne := tokenInIndex == 0 || underlyingTokenInIndex == 0
@@ -176,6 +176,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
 	}
+
 	amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
 	if err != nil {
 		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
@@ -183,7 +184,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	amountInBI := amountIn.Quotient()
 	if amountInBI.Sign() <= 0 {
-		return nil, errors.New("amountIn is 0")
+		return nil, ErrAmountInZero
 	}
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
@@ -193,7 +194,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: p.Gas.BaseGas,
+		Gas: totalGas,
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
 			nextStateLiquidity:    newPoolState.Liquidity,
@@ -211,18 +212,20 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	underlyingTokenOutIndex := p.GetUnderlyingTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 && underlyingTokenInIndex < 0 {
-		return nil, errors.New("tokenInIndex is not correct")
+		return nil, ErrTokenInInvalid
 	}
 	if tokenOutIndex < 0 && underlyingTokenOutIndex < 0 {
-		return nil, errors.New("tokenOutIndex is not correct")
+		return nil, ErrTokenOutInvalid
 	}
 
-	// Add wrap/unwrap gas cost if needed
+	gasCost := p.Gas.BaseGas
+	// Add unwrap gas cost if tokenIn is underlying token
 	if underlyingTokenInIndex >= 0 {
-		p.Gas.BaseGas += UnwrapGasCost
+		gasCost += UnwrapGasCost
 	}
+	// Add wrap gas cost if tokenOut is underlying token
 	if underlyingTokenOutIndex >= 0 {
-		p.Gas.BaseGas += WrapGasCost
+		gasCost += WrapGasCost
 	}
 
 	var amountIn v3Utils.Int256
@@ -235,6 +238,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 	}
+
 	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
@@ -253,8 +257,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	amountOut := amountOutResult.ReturnedAmount
 	if amountOut.Sign() <= 0 {
-		return nil, errors.New("amountOut is 0")
+		return nil, ErrAmountOutZero
 	}
+
+	lpTokenIn, lpTokenOut := p.Info.Tokens[0], p.Info.Tokens[1]
+	if !zeroForOne {
+		lpTokenIn, lpTokenOut = p.Info.Tokens[1], p.Info.Tokens[0]
+	}
+
+	// Add cross tick gas cost
+	gasCost += p.Gas.CrossInitTickGas * int64(amountOutResult.CrossInitTickLoops)
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -264,8 +277,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		Gas: p.Gas.BaseGas + p.Gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops),
+		Gas: gasCost,
 		SwapInfo: SwapInfo{
+			LpTokenIn:             lpTokenIn,
+			LpTokenOut:            lpTokenOut,
 			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			nextStateLiquidity:    amountOutResult.Liquidity,
@@ -296,7 +311,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	var priceLimit v3Utils.Uint160
-	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
+	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0]) || strings.EqualFold(tokenIn, p.underlyingTokens[0])
+	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
+
 	return PoolMeta{
 		SwapFee:     uint32(p.Pool.Info.SwapFee.Int64()),
 		PriceLimit:  &priceLimit,

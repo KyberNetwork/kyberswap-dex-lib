@@ -38,7 +38,7 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) fetchPoolData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       d.config.DexID,
@@ -47,7 +47,7 @@ func (d *PoolTracker) fetchPoolData(ctx context.Context, p entity.Pool, blockNum
 	var staticExtra StaticExtra
 	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	if err != nil {
-		return FetchRPCResult{}, err
+		return nil, err
 	}
 
 	var (
@@ -57,7 +57,7 @@ func (d *PoolTracker) fetchPoolData(ctx context.Context, p entity.Pool, blockNum
 		reserves = [2]*big.Int{Zero, Zero}
 	)
 
-	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(big.NewInt(int64(blockNumber)))
+	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
 		blockNumberBI.SetUint64(blockNumber)
@@ -108,7 +108,7 @@ func (d *PoolTracker) fetchPoolData(ctx context.Context, p entity.Pool, blockNum
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to process Aggregate")
-		return FetchRPCResult{}, err
+		return nil, err
 	}
 
 	if needFetchUnderlyingToken {
@@ -118,12 +118,13 @@ func (d *PoolTracker) fetchPoolData(ctx context.Context, p entity.Pool, blockNum
 		}
 	}
 
-	return FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		Reserves:    reserves,
-		StaticExtra: staticExtra,
-		BlockNumber: res.BlockNumber.Uint64(),
+	return &FetchRPCResult{
+		Liquidity:        liquidity,
+		Slot0:            slot0,
+		Reserves:         reserves,
+		TickSpacing:      staticExtra.TickSpacing,
+		UnderlyingTokens: staticExtra.UnderlyingTokens,
+		BlockNumber:      res.BlockNumber.Uint64(),
 	}, nil
 }
 
@@ -156,14 +157,14 @@ func (d *PoolTracker) GetNewPoolState(
 	l.Info("Start getting new state of pool")
 
 	var (
-		rpcData   FetchRPCResult
+		rpcData   *FetchRPCResult
 		poolTicks []TickResp
 	)
 
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchPoolData(ctx, p, 0)
+		rpcData, err = d.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -208,7 +209,10 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	staticExtraBytes, err := json.Marshal(rpcData.StaticExtra)
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		TickSpacing:      rpcData.TickSpacing,
+		UnderlyingTokens: rpcData.UnderlyingTokens,
+	})
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -228,20 +232,6 @@ func (d *PoolTracker) GetNewPoolState(
 	l.Infof("Finish updating state of pool")
 
 	return p, nil
-}
-
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
-	rpcData, err := d.fetchPoolData(ctx, p, blockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	rpcDataBytes, err := json.Marshal(rpcData)
-	if err != nil {
-		return nil, err
-	}
-
-	return rpcDataBytes, nil
 }
 
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {

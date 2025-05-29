@@ -14,6 +14,8 @@ import (
 
 type (
 	SwapInfo struct {
+		LpTokenIn             string           `json:"lpTokenIn"`
+		LpTokenOut            string           `json:"lpTokenOut"`
 		RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
 		NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
 		nextStateLiquidity    *v3Utils.Uint128
@@ -40,11 +42,12 @@ type (
 	}
 
 	FetchRPCResult struct {
-		BlockNumber uint64
-		Liquidity   *big.Int
-		Slot0       Slot0
-		Reserves    [2]*big.Int
-		StaticExtra StaticExtra
+		BlockNumber      uint64
+		Liquidity        *big.Int
+		Slot0            Slot0
+		Reserves         [2]*big.Int
+		TickSpacing      uint64
+		UnderlyingTokens [2]string
 	}
 
 	Slot0 struct {
