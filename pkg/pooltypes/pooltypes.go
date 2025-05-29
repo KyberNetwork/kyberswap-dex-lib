@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -51,6 +52,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -306,11 +308,12 @@ type Types struct {
 	ERC4626                    string
 	HyETH                      string
 	MimSwap                    string
-
-	KyberPMM  string
-	Pmm1      string
-	Pmm2      string
-	UniswapLO string
+	InfinityPools              string
+	Brownfi                    string
+	KyberPMM                   string
+	Pmm1                       string
+	Pmm2                       string
+	UniswapLO                  string
 }
 
 var (
@@ -471,10 +474,11 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
-
-		KyberPMM:  valueobject.ExchangeKyberPMM,
-		Pmm1:      valueobject.ExchangePmm1,
-		Pmm2:      valueobject.ExchangePmm2,
-		UniswapLO: uniswaplo.DexType,
+		InfinityPools:              infinitypools.DexType,
+		Brownfi:                    brownfi.DexType,
+		KyberPMM:                   valueobject.ExchangeKyberPMM,
+		Pmm1:                       valueobject.ExchangePmm1,
+		Pmm2:                       valueobject.ExchangePmm2,
+		UniswapLO:                  uniswaplo.DexType,
 	}
 )
