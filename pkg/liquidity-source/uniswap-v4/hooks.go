@@ -63,7 +63,7 @@ func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
 	return hook, ok
 }
 
-var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddress)
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddresses...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
