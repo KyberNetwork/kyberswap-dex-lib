@@ -26,8 +26,8 @@ github.com/KyberNetwork/kutils v0.3.8 h1:FMU3ux4yYRcXfT3EWk8PY0Is4vm0R6lBe9KiAXA
 github.com/KyberNetwork/kutils v0.3.8/go.mod h1:n8qRo+TkBkqspGRKu52h/UP5GvIxoSxWueTpgvHMuvo=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.106.4 h1:ytz8vPwAlwUD5rEYS+M/B59fh5AXe76ISe7CRY68w00=
-github.com/KyberNetwork/kyberswap-dex-lib v0.106.4/go.mod h1:kLeyGqZBzGEOnuSYJxolUMs4n+8xBR1UptONVm7Riag=
+github.com/KyberNetwork/kyberswap-dex-lib v0.108.1 h1:ZpJ2dRvHr0ttIAJwSoaXQ6qodZGAad0+VK99dTtwldw=
+github.com/KyberNetwork/kyberswap-dex-lib v0.108.1/go.mod h1:kLeyGqZBzGEOnuSYJxolUMs4n+8xBR1UptONVm7Riag=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.13.3 h1:dOLVTdbrKG1Te/DbJH9tJQ9ycq09pTsetLAXV6d3oc0=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.13.3/go.mod h1:lYAvM3osRAbdLKIFwqggDkK6TmMFsr0rUHldjFrWnQ8=
 github.com/KyberNetwork/logger v1.0.3 h1:q3O6+rbJWDw9xqF4zWbc48uNooDXF++2XBaj3NL1P5s=
