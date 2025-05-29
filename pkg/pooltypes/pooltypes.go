@@ -63,7 +63,8 @@ import (
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
+	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
@@ -265,6 +266,7 @@ type Types struct {
 	HashflowV3                 string
 	NomiSwapStable             string
 	NativeV1                   string
+	NativeV3                   string
 	RenzoEZETH                 string
 	Slipstream                 string
 	NuriV2                     string
@@ -430,6 +432,7 @@ var (
 		HashflowV3:                 hashflowv3.DexType,
 		NomiSwapStable:             nomiswap.DexType,
 		NativeV1:                   nativev1.DexType,
+		NativeV3:                   nativev3.DexType,
 		RenzoEZETH:                 ezeth.DexType,
 		Slipstream:                 slipstream.DexType,
 		NuriV2:                     nuriv2.DexType,

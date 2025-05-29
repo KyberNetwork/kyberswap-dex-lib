@@ -63,7 +63,8 @@ import (
 	pkg_liquiditysource_maker_skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	pkg_liquiditysource_mantle_meth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	pkg_liquiditysource_mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	pkg_liquiditysource_nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	pkg_liquiditysource_native_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
+	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	pkg_liquiditysource_overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
@@ -205,7 +206,8 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_meth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_nativev1.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v1.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_overnightusdp.PoolSimulator{})
