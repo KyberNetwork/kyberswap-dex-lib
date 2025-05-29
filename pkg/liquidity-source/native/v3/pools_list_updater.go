@@ -74,6 +74,12 @@ func (d *PoolsListUpdater) processToken(token Token) *entity.PoolToken {
 			"error": err,
 		}).Warn("invalid decimals, using default")
 		decimals = defaultTokenDecimals
+	} else if decimals < 0 || decimals > math.MaxUint8 {
+		logger.WithFields(logger.Fields{
+			"token":   token.Address,
+			"decimals": decimals,
+		}).Warn("decimals out of range, using default")
+		decimals = defaultTokenDecimals
 	}
 
 	return &entity.PoolToken{
