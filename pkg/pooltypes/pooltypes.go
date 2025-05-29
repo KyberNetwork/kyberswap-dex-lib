@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -306,11 +307,11 @@ type Types struct {
 	HyETH                      string
 	MimSwap                    string
 	InfinityPools              string
-
-	KyberPMM  string
-	Pmm1      string
-	Pmm2      string
-	UniswapLO string
+	Brownfi                    string
+	KyberPMM                   string
+	Pmm1                       string
+	Pmm2                       string
+	UniswapLO                  string
 }
 
 var (
@@ -471,10 +472,10 @@ var (
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
 		InfinityPools:              infinitypools.DexType,
-
-		KyberPMM:  valueobject.ExchangeKyberPMM,
-		Pmm1:      valueobject.ExchangePmm1,
-		Pmm2:      valueobject.ExchangePmm2,
-		UniswapLO: uniswaplo.DexType,
+		Brownfi:                    brownfi.DexType,
+		KyberPMM:                   valueobject.ExchangeKyberPMM,
+		Pmm1:                       valueobject.ExchangePmm1,
+		Pmm2:                       valueobject.ExchangePmm2,
+		UniswapLO:                  uniswaplo.DexType,
 	}
 )
