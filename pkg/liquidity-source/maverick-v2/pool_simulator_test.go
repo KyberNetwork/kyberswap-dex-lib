@@ -645,14 +645,6 @@ func absDiffInt32(a, b int32) int32 {
 	return b - a
 }
 
-// Helper for absolute difference between int64 values
-func absDiffInt64(a, b int64) int64 {
-	if a > b {
-		return a - b
-	}
-	return b - a
-}
-
 // Test for fractional part calculation
 func TestFractionalPartCalculation(t *testing.T) {
 	t.Parallel()

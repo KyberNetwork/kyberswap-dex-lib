@@ -26,7 +26,7 @@ func TestGetFullPoolState(t *testing.T) {
 	binCounter := uint32(615)
 
 	// Get full pool state
-	bins, binPositions, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter)
+	bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter)
 	assert.NoError(t, err)
 	// print binId ascending
 	for binId, bin := range bins {
@@ -45,7 +45,11 @@ func TestGetFullPoolState(t *testing.T) {
 	// fmt.Println("bins", bins)
 	// Log some basic info
 	t.Logf("Number of bins: %d", len(bins))
-	t.Logf("Number of bin positions: %d", len(binPositions))
+	t.Logf("Number of ticks: %d", len(ticks))
+
+	for tickId, tick := range ticks {
+		t.Logf("Tick %d: %+v", tickId, tick)
+	}
 
 	// Verify bin data
 	for binId, bin := range bins {
