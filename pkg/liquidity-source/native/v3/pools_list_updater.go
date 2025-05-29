@@ -67,7 +67,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 }
 
 func (d *PoolsListUpdater) processToken(token Token) *entity.PoolToken {
-	decimals, err := strconv.Atoi(token.Decimals)
+	decimals, err := kutils.Atou[uint8](token.Decimals)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"token": token.Address,
@@ -79,7 +79,7 @@ func (d *PoolsListUpdater) processToken(token Token) *entity.PoolToken {
 	return &entity.PoolToken{
 		Address:   token.Address,
 		Symbol:    token.Symbol,
-		Decimals:  uint8(decimals),
+		Decimals:  decimals,
 		Swappable: true,
 	}
 }
