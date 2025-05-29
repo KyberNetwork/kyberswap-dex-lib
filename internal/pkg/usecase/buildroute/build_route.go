@@ -145,7 +145,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 					RouteSummary: command.RouteSummary,
 				})
 			if command.RouteSummary.AlphaFee != nil {
-				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID,
+				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID, nil,
 					"apply default alpha fee")
 			}
 		}

@@ -186,7 +186,7 @@ func TestBuildRoute(t *testing.T) {
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
 				mockBuildRouteUseCase.EXPECT().
 					Handle(gomock.Any(), gomock.Any()).
-					Return(&dto.BuildRouteResult{}, errors.New("some error"))
+					Return(nil, errors.New("some error"))
 
 				errResponse := ErrorResponse{
 					HTTPStatus: http.StatusInternalServerError,

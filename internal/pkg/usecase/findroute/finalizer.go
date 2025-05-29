@@ -84,14 +84,16 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 	// Step 1.1: Prepare alpha fee if needed
 	var alphaFee *routerEntity.AlphaFeeV2
+	var bestAmmRoute *finderCommon.ConstructRoute
 	if params.ReturnAMMBestPath {
 		feeReductionFinalizerExtraData, _ := extraData.(FeeReductionFinalizerExtraData)
+		bestAmmRoute = feeReductionFinalizerExtraData.BestAmmRoute
 		// Pass a new simulator bucket to avoid modifying the original one
 		simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits, f.CustomFuncs())
 		alphaFee, err = f.alphaFeeCalculation.Calculate(
 			ctx, alphafee.AlphaFeeParams{
 				BestRoute:           constructRoute,
-				BestAmmRoute:        feeReductionFinalizerExtraData.BestAmmRoute,
+				BestAmmRoute:        bestAmmRoute,
 				Prices:              params.Prices,
 				Tokens:              params.Tokens,
 				PoolSimulatorBucket: simulatorBucket,
@@ -251,7 +253,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	extra.AlphaFee = alphaFee
 
 	if alphaFee != nil {
-		alphafee.LogAlphaFeeV2Info(alphaFee, routeId, "route has alpha fee")
+		alphafee.LogAlphaFeeV2Info(alphaFee, routeId, bestAmmRoute, "route has alpha fee")
 	}
 
 	route = &finderEntity.Route{

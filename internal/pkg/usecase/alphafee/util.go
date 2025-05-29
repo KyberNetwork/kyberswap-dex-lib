@@ -9,6 +9,7 @@ import (
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -90,7 +91,8 @@ func countAlphaFeeSourcesInPath(path []swapInfoV2) int {
 	return alphaFeeSourceCount
 }
 
-func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, message string) {
+func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAmmRoute *common.ConstructRoute,
+	message string) {
 	if alphaFee == nil {
 		return
 	}
@@ -98,20 +100,24 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, messag
 	alphaFeeTokens := make([]string, 0, len(alphaFee.SwapReductions))
 	alphaFeeAmounts := make([]*big.Int, 0, len(alphaFee.SwapReductions))
 	alphaFeeAmountUsds := make([]string, 0, len(alphaFee.SwapReductions))
+	logFields := logger.Fields{
+		"routeId":            routeId,
+		"alphaFeeTokens":     alphaFeeTokens,
+		"alphaFeeAmounts":    alphaFeeAmounts,
+		"alphaFeeAmountUsds": alphaFeeAmountUsds,
+	}
 
 	for _, swapReduction := range alphaFee.SwapReductions {
 		alphaFeeTokens = append(alphaFeeTokens, swapReduction.TokenOut)
 		alphaFeeAmounts = append(alphaFeeAmounts, swapReduction.ReduceAmount)
 		alphaFeeAmountUsds = append(alphaFeeAmountUsds, fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd))
+		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 1 {
+			logFields["bestAmmRoute"] = bestAmmRoute
+		}
 	}
 
 	if message == "" {
 		message = "route has alpha fee"
 	}
-	logger.WithFields(logger.Fields{
-		"routeId":            routeId,
-		"alphaFeeTokens":     alphaFeeTokens,
-		"alphaFeeAmounts":    alphaFeeAmounts,
-		"alphaFeeAmountUsds": alphaFeeAmountUsds,
-	}).Info(message)
+	logger.WithFields(logFields).Info(message)
 }
