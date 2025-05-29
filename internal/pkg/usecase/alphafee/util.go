@@ -16,7 +16,8 @@ import (
 
 const basisPointFloat = 10000.0
 
-func convertConstructRouteToRouteInfoV2(ctx context.Context, route *common.ConstructRoute, simulatorBucket *common.SimulatorBucket) [][]swapInfoV2 {
+func convertConstructRouteToRouteInfoV2(ctx context.Context, route *common.ConstructRoute,
+	simulatorBucket *common.SimulatorBucket) [][]swapInfoV2 {
 	routeInfoV2 := make([][]swapInfoV2, len(route.Paths))
 	for pathIdx, path := range route.Paths {
 		pathInfoV2 := make([]swapInfoV2, len(path.PoolsOrder))
@@ -97,9 +98,9 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 		return
 	}
 
-	alphaFeeTokens := make([]string, 0, len(alphaFee.SwapReductions))
-	alphaFeeAmounts := make([]*big.Int, 0, len(alphaFee.SwapReductions))
-	alphaFeeAmountUsds := make([]string, 0, len(alphaFee.SwapReductions))
+	alphaFeeTokens := make([]string, len(alphaFee.SwapReductions))
+	alphaFeeAmounts := make([]*big.Int, len(alphaFee.SwapReductions))
+	alphaFeeAmountUsds := make([]string, len(alphaFee.SwapReductions))
 	logFields := logger.Fields{
 		"routeId":            routeId,
 		"alphaFeeTokens":     alphaFeeTokens,
@@ -107,10 +108,10 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 		"alphaFeeAmountUsds": alphaFeeAmountUsds,
 	}
 
-	for _, swapReduction := range alphaFee.SwapReductions {
-		alphaFeeTokens = append(alphaFeeTokens, swapReduction.TokenOut)
-		alphaFeeAmounts = append(alphaFeeAmounts, swapReduction.ReduceAmount)
-		alphaFeeAmountUsds = append(alphaFeeAmountUsds, fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd))
+	for i, swapReduction := range alphaFee.SwapReductions {
+		alphaFeeTokens[i] = swapReduction.TokenOut
+		alphaFeeAmounts[i] = swapReduction.ReduceAmount
+		alphaFeeAmountUsds[i] = fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd)
 		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 1 {
 			logFields["bestAmmRoute"] = bestAmmRoute
 		}
