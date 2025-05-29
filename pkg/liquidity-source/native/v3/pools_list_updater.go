@@ -236,7 +236,7 @@ func (d *PoolsListUpdater) FetchStaticData(
 			}, []any{&underlyingTokens1[j]})
 		}
 
-		_, err := req.Aggregate()
+		_, err := req.TryAggregate()
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error":      err,

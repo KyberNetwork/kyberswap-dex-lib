@@ -103,11 +103,11 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		}
 	}
 
-	res, err := rpcRequest.Aggregate()
+	res, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to process Aggregate")
+		}).Error("failed to process TryBlockAndAggregate")
 		return nil, err
 	}
 
@@ -198,6 +198,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
+		Unlocked:     rpcData.Slot0.Unlocked,
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,

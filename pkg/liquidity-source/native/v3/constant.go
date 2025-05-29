@@ -33,6 +33,7 @@ var (
 
 	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
 
+	ErrPoolLocked      = errors.New("pool is locked")
 	ErrOverflow        = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier  = errors.New("invalid feeTier")
 	ErrTickNil         = errors.New("tick is nil")
