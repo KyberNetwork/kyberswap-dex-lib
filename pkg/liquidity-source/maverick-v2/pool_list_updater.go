@@ -159,36 +159,44 @@ func (u *PoolsListUpdater) getPoolsFromFactory(ctx context.Context, startIndex *
 	return poolAddrs, nil
 }
 
-// listPoolTokens receives list of pool addresses and returns their tokenA and tokenB
-func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []common.Address) ([]common.Address, []common.Address, error) {
+// listPoolData receives list of pool addresses and returns their tokenA, tokenB and tick spacing
+func (u *PoolsListUpdater) listPoolData(ctx context.Context, poolAddresses []common.Address) ([]common.Address, []common.Address, []*big.Int, error) {
 	var (
 		listTokenAResult = make([]common.Address, len(poolAddresses))
 		listTokenBResult = make([]common.Address, len(poolAddresses))
+		tickSpacingList  = make([]*big.Int, len(poolAddresses))
 	)
 
-	listTokensRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	listDataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, pairAddress := range poolAddresses {
-		listTokensRequest.AddCall(&ethrpc.Call{
+		listDataRequest.AddCall(&ethrpc.Call{
 			ABI:    maverickV2PoolABI,
 			Target: pairAddress.Hex(),
 			Method: poolMethodTokenA,
 			Params: nil,
 		}, []interface{}{&listTokenAResult[i]})
 
-		listTokensRequest.AddCall(&ethrpc.Call{
+		listDataRequest.AddCall(&ethrpc.Call{
 			ABI:    maverickV2PoolABI,
 			Target: pairAddress.Hex(),
 			Method: poolMethodTokenB,
 			Params: nil,
 		}, []interface{}{&listTokenBResult[i]})
+
+		listDataRequest.AddCall(&ethrpc.Call{
+			ABI:    maverickV2PoolABI,
+			Target: pairAddress.Hex(),
+			Method: "tickSpacing",
+			Params: nil,
+		}, []interface{}{&tickSpacingList[i]})
 	}
 
-	if _, err := listTokensRequest.Aggregate(); err != nil {
-		return nil, nil, err
+	if _, err := listDataRequest.Aggregate(); err != nil {
+		return nil, nil, nil, err
 	}
 
-	return listTokenAResult, listTokenBResult, nil
+	return listTokenAResult, listTokenBResult, tickSpacingList, nil
 }
 
 func (u *PoolsListUpdater) newMetadata(lastIndex *big.Int) ([]byte, error) {
@@ -205,7 +213,7 @@ func (u *PoolsListUpdater) newMetadata(lastIndex *big.Int) ([]byte, error) {
 }
 
 func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Address) ([]entity.Pool, error) {
-	tokenAList, tokenBList, err := u.listPoolTokens(ctx, poolAddrs)
+	tokenAList, tokenBList, tickSpacingList, err := u.listPoolData(ctx, poolAddrs)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +221,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 	pools := make([]entity.Pool, 0, len(poolAddrs))
 
 	for i, poolAddress := range poolAddrs {
+		poolAddrLower := strings.ToLower(poolAddress.Hex())
+
 		token0 := &entity.PoolToken{
 			Address:   strings.ToLower(tokenAList[i].Hex()),
 			Swappable: true,
@@ -223,13 +233,28 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 			Swappable: true,
 		}
 
+		// Create StaticExtra with data from both on-chain and API
+		staticExtra := StaticExtra{
+			TickSpacing: uint32(tickSpacingList[i].Uint64()),
+		}
+
+		staticExtraBytes, err := json.Marshal(staticExtra)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"pool_address": poolAddress.Hex(),
+				"error":        err,
+			}).Error("Failed to marshal static extra data")
+			continue
+		}
+
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(poolAddress.Hex()),
-			Exchange:  u.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens:    []*entity.PoolToken{token0, token1},
+			Address:     poolAddrLower,
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{token0, token1},
+			StaticExtra: string(staticExtraBytes),
 		}
 
 		pools = append(pools, newPool)
