@@ -216,6 +216,7 @@ const (
 	ExchangeMuteSwitch                 = "muteswitch"
 	ExchangeNativeV1                   = "native-v1"
 	ExchangeNativeV2                   = "native-v2"
+	ExchangeNativeV3                   = "native-v3"
 	ExchangeNavigator                  = "navigator"
 	ExchangeNearPad                    = "nearpad"
 	ExchangeNerve                      = "nerve"
@@ -783,6 +784,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZyberSwapV3:                {},
 	ExchangeInfinityPools:              {},
 	ExchangeBrownfi:                    {},
+	ExchangeNativeV3:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
