@@ -60,7 +60,6 @@ func TestGetFullPoolState(t *testing.T) {
 
 	// Verify bin data
 	for binId, bin := range bins {
-
 		assert.NotNil(t, bin, "Bin %d should not be nil", binId)
 		assert.NotNil(t, bin.TotalSupply, "Bin %d total supply should not be nil", binId)
 	}
@@ -124,9 +123,9 @@ func TestGetState(t *testing.T) {
 
 			// Validate fee values (should be reasonable percentages)
 			// Fees are typically in basis points or similar small units
-			assert.True(t, state.FeeAIn >= 0, "FeeAIn should be non-negative")
-			assert.True(t, state.FeeBIn >= 0, "FeeBIn should be non-negative")
-			assert.True(t, state.ProtocolFeeRatioD3 >= 0, "ProtocolFeeRatioD3 should be non-negative")
+			// assert.True(t, state.FeeAIn >= 0, "FeeAIn should be non-negative")
+			// assert.True(t, state.FeeBIn >= 0, "FeeBIn should be non-negative")
+			// assert.True(t, state.ProtocolFeeRatioD3 >= 0, "ProtocolFeeRatioD3 should be non-negative")
 
 			// Check that at least one reserve has liquidity (unless it's a completely empty pool)
 			hasLiquidity := state.ReserveA.Cmp(big.NewInt(0)) > 0 || state.ReserveB.Cmp(big.NewInt(0)) > 0

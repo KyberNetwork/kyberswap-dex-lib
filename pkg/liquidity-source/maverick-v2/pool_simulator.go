@@ -157,23 +157,23 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	p.state.Timestamp = timestamp
 
-	// Update the primary state values
+	// Update the primary state values from swap result
 	p.state.Bins = newState.bins
 	p.state.Ticks = newState.ticks
 	p.state.ActiveTick = newState.activeTick
 
-	// Update time-weighted average
+	// Update TWA
+	// no need to updatw time weighted average price, as UpdateBalance only call in same Route in one block
+	// so timeStamp == lastTimeStamp in this context
+	// ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-twa-math.ts#L13
+
+	// Update time-weighted average with fractional part
 	// fractionalPartD8 := newState.fractionalPartD8
 	// if fractionalPartD8 == 0 {
 	// 	// Default to half the tick if not provided
 	// 	fractionalPartD8 = int64(BI_POWS[7].Uint64())
 	// }
-
-	// Calculate full tick position with fractional part
 	// tickPositionD8 := int64(p.state.ActiveTick)*int64(BI_POWS[8].Uint64()) + fractionalPartD8
-
-	// Update TWA
-	// no need to updatw time weighted average price, as UpdateBalance only call in same Route in one block
 	// updateTwaValue(p.state, tickPositionD8, timestamp)
 
 	// Move bins based on tick changes
@@ -185,16 +185,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	tokenAmountOut := params.TokenAmountOut
 	isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0])
 
-	// Calculate new internal balance (same as TypeScript's implementation)
-	newInternalBalance := new(big.Int)
+	// Update reserves based on swap direction
 	if isTokenAIn {
-		newInternalBalance = new(big.Int).Add(p.Pool.Info.Reserves[0], tokenAmountIn.Amount)
-		p.Pool.Info.Reserves[0] = newInternalBalance
+		p.Pool.Info.Reserves[0] = new(big.Int).Add(p.Pool.Info.Reserves[0], tokenAmountIn.Amount)
 		p.Pool.Info.Reserves[1] = new(big.Int).Sub(p.Pool.Info.Reserves[1], tokenAmountOut.Amount)
 	} else {
-		newInternalBalance = new(big.Int).Add(p.Pool.Info.Reserves[1], tokenAmountIn.Amount)
 		p.Pool.Info.Reserves[0] = new(big.Int).Sub(p.Pool.Info.Reserves[0], tokenAmountOut.Amount)
-		p.Pool.Info.Reserves[1] = newInternalBalance
+		p.Pool.Info.Reserves[1] = new(big.Int).Add(p.Pool.Info.Reserves[1], tokenAmountIn.Amount)
 	}
 }
 
@@ -230,7 +227,7 @@ func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
 }
 
 // Helper functions for swap implementation
-func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, bypassLimit bool) (*uint256.Int, *uint256.Int, uint32, *uint256.Int, error) {
+func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, _ bool) (*uint256.Int, *uint256.Int, uint32, *uint256.Int, error) {
 	// Implementation based on maverick-v2-pool-math.ts estimateSwap function
 
 	delta := &Delta{
@@ -444,12 +441,6 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 	// Calculate user bin amount in - lines 80-83 in TypeScript
 	userBinAmountIn := mulDown(amountIn, new(uint256.Int).Sub(BI_POWS[18], fee))
 
-	logger.Debugf("computeSwapExactIn - Critical calculations:")
-	logger.Debugf("  amountIn (scaled): %s", amountIn.String())
-	logger.Debugf("  fee: %s", fee.String())
-	logger.Debugf("  binAmountIn (from remainingBinInputSpace): %s", binAmountIn.String())
-	logger.Debugf("  userBinAmountIn (amountIn after fee): %s", userBinAmountIn.String())
-
 	var feeBasis *uint256.Int
 
 	// Logic for determining actual binAmountIn and fees - lines 85-97 in TypeScript
@@ -457,19 +448,10 @@ func computeSwapExactIn(state *MaverickPoolState, amountIn *uint256.Int, tokenAI
 		binAmountIn = new(uint256.Int).Set(userBinAmountIn)
 		delta.DeltaInErc = new(uint256.Int).Set(amountIn)
 		feeBasis = new(uint256.Int).Sub(delta.DeltaInErc, userBinAmountIn)
-		logger.Debugf("  Branch: userBinAmountIn < binAmountIn")
-		logger.Debugf("  Setting binAmountIn = userBinAmountIn = %s", binAmountIn.String())
-		logger.Debugf("  Setting deltaInErc = amountIn = %s", delta.DeltaInErc.String())
-		logger.Debugf("  No excess (swap completes in this tick)")
 	} else {
 		feeBasis = mulDivUp(binAmountIn, fee, new(uint256.Int).Sub(BI_POWS[18], fee))
 		delta.DeltaInErc = new(uint256.Int).Add(binAmountIn, feeBasis)
 		delta.Excess = clip(amountIn, delta.DeltaInErc)
-		logger.Debugf("  Branch: userBinAmountIn >= binAmountIn")
-		logger.Debugf("  feeBasis = %s", feeBasis.String())
-		logger.Debugf("  deltaInErc = binAmountIn + feeBasis = %s", delta.DeltaInErc.String())
-		logger.Debugf("  excess = clip(amountIn, deltaInErc) = %s", delta.Excess.String())
-		logger.Debugf("  Excess exists, will move to next tick")
 	}
 
 	// Calculate amount to bin net of protocol fee - lines 99-103 in TypeScript
@@ -970,25 +952,25 @@ func maverickBinMathLpBalancesFromDeltaReserve(
 	deltaB *uint256.Int,
 ) *uint256.Int {
 	if tick.ReserveA.Cmp(tick.ReserveB) >= 0 {
-		reserveA := maverickBasicMathMulDivUp(
+		reserveA := mulDivUp(
 			tick.ReserveA,
 			self.TickBalance,
 			tick.TotalSupply,
 		)
-		return maverickBasicMathMulDivDown(
+		return mulDivDown(
 			deltaA,
-			maverickBasicMathMax(new(uint256.Int).SetUint64(1), self.TotalSupply),
+			max(new(uint256.Int).SetUint64(1), self.TotalSupply),
 			reserveA,
 		)
 	} else {
-		reserveB := maverickBasicMathMulDivUp(
+		reserveB := mulDivUp(
 			tick.ReserveB,
 			self.TickBalance,
 			tick.TotalSupply,
 		)
-		return maverickBasicMathMulDivDown(
+		return mulDivDown(
 			deltaB,
-			maverickBasicMathMax(new(uint256.Int).SetUint64(1), self.TotalSupply),
+			max(new(uint256.Int).SetUint64(1), self.TotalSupply),
 			reserveB,
 		)
 	}
@@ -1033,33 +1015,6 @@ func maverickBinMathUpdateBinState(
 	self.TickBalance = new(uint256.Int).Add(self.TickBalance, deltaTickBalance)
 	tick.ReserveA = new(uint256.Int).Add(tick.ReserveA, deltaA)
 	tick.ReserveB = new(uint256.Int).Add(tick.ReserveB, deltaB)
-}
-
-func maverickBasicMathMax(a, b *uint256.Int) *uint256.Int {
-	if a.Cmp(b) > 0 {
-		return new(uint256.Int).Set(a)
-	}
-	return new(uint256.Int).Set(b)
-}
-
-func maverickBasicMathMulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
-	if denominator.IsZero() {
-		return new(uint256.Int)
-	}
-	product := new(uint256.Int).Mul(a, b)
-	remainder := new(uint256.Int).Mod(product, denominator)
-	result := new(uint256.Int).Div(product, denominator)
-	if !remainder.IsZero() {
-		result.Add(result, new(uint256.Int).SetUint64(1))
-	}
-	return result
-}
-
-func maverickBasicMathMulDivDown(a, b, denominator *uint256.Int) *uint256.Int {
-	if denominator.IsZero() {
-		return new(uint256.Int)
-	}
-	return new(uint256.Int).Div(new(uint256.Int).Mul(a, b), denominator)
 }
 
 // Implementation of moveBinToNewTick from TypeScript - exact mapping
@@ -1199,29 +1154,17 @@ func minUint256(a, b *uint256.Int) *uint256.Int {
 // remainingBinInputSpaceGivenOutput calculates remaining input space, matching TypeScript implementation
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-swap-math.ts#L21
 func remainingBinInputSpaceGivenOutput(binLiquidity, output, sqrtPrice *uint256.Int, tokenAIn bool) *uint256.Int {
-	// Debug logging for input parameters
-	logger.Debugf("remainingBinInputSpaceGivenOutput - Input parameters:")
-	logger.Debugf("  binLiquidity: %s", binLiquidity.String())
-	logger.Debugf("  output: %s", output.String())
-	logger.Debugf("  sqrtPrice: %s", sqrtPrice.String())
-	logger.Debugf("  tokenAIn: %v", tokenAIn)
-
 	var outOverL *uint256.Int
 	if binLiquidity.IsZero() {
 		outOverL = new(uint256.Int)
-		logger.Debug("  binLiquidity is zero, setting outOverL to 0")
 	} else {
 		outOverL = divUp(output, binLiquidity)
-		logger.Debugf("  outOverL = divUp(output, binLiquidity) = %s", outOverL.String())
 	}
 
 	if tokenAIn {
 		// return MaverickBasicMath.mulDivUp(output, sqrtPrice, MaverickBasicMath.invFloor(sqrtPrice) - outOverL)
 		invSqrtPrice := invFloor(sqrtPrice)
-		logger.Debugf("  invSqrtPrice = invFloor(sqrtPrice) = %s", invSqrtPrice.String())
-
 		denominator := new(uint256.Int).Sub(invSqrtPrice, outOverL)
-		logger.Debugf("  denominator = invSqrtPrice - outOverL = %s", denominator.String())
 
 		if denominator.IsZero() {
 			logger.Debug("  denominator is zero, returning 0")
@@ -1229,15 +1172,11 @@ func remainingBinInputSpaceGivenOutput(binLiquidity, output, sqrtPrice *uint256.
 		}
 
 		result := mulDivUp(output, sqrtPrice, denominator)
-		logger.Debugf("  result = mulDivUp(output, sqrtPrice, denominator) = %s", result.String())
 		return result
 	} else {
 		// return MaverickBasicMath.divUp(output, MaverickBasicMath.mulDown(sqrtPrice, sqrtPrice - outOverL))
 		numerator := new(uint256.Int).Sub(sqrtPrice, outOverL)
-		logger.Debugf("  numerator = sqrtPrice - outOverL = %s", numerator.String())
-
 		denominator := mulDown(sqrtPrice, numerator)
-		logger.Debugf("  denominator = mulDown(sqrtPrice, numerator) = %s", denominator.String())
 
 		if denominator.IsZero() {
 			logger.Debug("  denominator is zero, returning 0")
@@ -1245,7 +1184,6 @@ func remainingBinInputSpaceGivenOutput(binLiquidity, output, sqrtPrice *uint256.
 		}
 
 		result := divUp(output, denominator)
-		logger.Debugf("  result = divUp(output, denominator) = %s", result.String())
 		return result
 	}
 }
@@ -1500,7 +1438,6 @@ func calculateSqrtPrice(tickSpacing uint32, tick int32) *uint256.Int {
 
 	result := new(uint256.Int)
 	result.SetFromBig(ratio)
-	logger.Debugf("  Final result: %s", result.String())
 	return result
 }
 
@@ -1519,12 +1456,6 @@ func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickP
 // getTickL calculates liquidity for a tick (internal helper)
 // ref: https://github.com/VeloraDEX/paraswap-dex-lib/blob/86f630d54658926d606a08b11e0206062886c57d/src/dex/maverick-v2/maverick-math/maverick-tick-math.ts#L60
 func getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint256.Int) *uint256.Int {
-	logger.Debugf("getTickL - Input parameters:")
-	logger.Debugf("  reserveA: %s", reserveA.String())
-	logger.Debugf("  reserveB: %s", reserveB.String())
-	logger.Debugf("  sqrtLowerTickPrice: %s", sqrtLowerTickPrice.String())
-	logger.Debugf("  sqrtUpperTickPrice: %s", sqrtUpperTickPrice.String())
-
 	precisionBump := uint(0)
 	tempA := new(uint256.Int).Set(reserveA)
 	tempB := new(uint256.Int).Set(reserveB)
@@ -1534,22 +1465,14 @@ func getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint25
 		precisionBump = 57
 		reserveA = new(uint256.Int).Lsh(reserveA, 57)
 		reserveB = new(uint256.Int).Lsh(reserveB, 57)
-		logger.Debugf("Applied precision bump of 57 bits")
-		logger.Debugf("  Adjusted reserveA: %s", reserveA.String())
-		logger.Debugf("  Adjusted reserveB: %s", reserveB.String())
 	}
 
 	// Calculate diff = sqrtUpperTickPrice - sqrtLowerTickPrice
 	diff := new(uint256.Int).Sub(sqrtUpperTickPrice, sqrtLowerTickPrice)
-	logger.Debugf("  diff: %s", diff.String())
-
 	// Calculate b = divDown(reserveA, sqrtUpperTickPrice) + mulDown(reserveB, sqrtLowerTickPrice)
 	term1 := mulDivDown(reserveA, BI_POWS[18], sqrtUpperTickPrice)
 	term2 := mulDivDown(reserveB, sqrtLowerTickPrice, BI_POWS[18])
 	b := new(uint256.Int).Add(term1, term2)
-	logger.Debugf("  term1: %s", term1.String())
-	logger.Debugf("  term2: %s", term2.String())
-	logger.Debugf("  b: %s", b.String())
 
 	// Handle special case: if either reserve is zero
 	if reserveA.IsZero() || reserveB.IsZero() {
@@ -1557,7 +1480,6 @@ func getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint25
 		if precisionBump > 0 {
 			result.Rsh(result, precisionBump)
 		}
-		logger.Debugf("Special case - zero reserves, result: %s", result.String())
 		return result
 	}
 
@@ -1606,7 +1528,6 @@ func getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *uint25
 		result.Rsh(result, precisionBump)
 	}
 
-	logger.Debugf("  Final result: %s", result.String())
 	return result
 }
 
@@ -1649,25 +1570,14 @@ func getSqrtPrice(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice, li
 }
 
 func tickSqrtPriceAndLiquidity(state *MaverickPoolState, tick int32) (*uint256.Int, *uint256.Int, *uint256.Int, TickData) {
-	logger.Debugf("tickSqrtPriceAndLiquidity - Input parameters:")
-	logger.Debugf("  debug tick: %d %s %s", tick, state.Ticks[tick].ReserveA.String(), state.Ticks[tick].ReserveB.String())
-	logger.Debugf("  tickSpacing: %d", state.TickSpacing)
-
 	// Get the consolidated bin data (equivalent to this.state.ticks[tick.toString()])
 	tickData := getTickDataWithZeroLiquidity(state, tick)
-	logger.Debugf("  tickData.CurrentReserveA: %s", tickData.CurrentReserveA.String())
-	logger.Debugf("  tickData.CurrentReserveB: %s", tickData.CurrentReserveB.String())
-
 	// Calculate the square root prices at the tick boundaries using tickSqrtPrices
 	sqrtLowerTickPrice := calculateSqrtPrice(state.TickSpacing, tick)
 	sqrtUpperTickPrice := calculateSqrtPrice(state.TickSpacing, tick+1)
-	logger.Debugf("  sqrtLowerTickPrice: %s", sqrtLowerTickPrice.String())
-	logger.Debugf("  sqrtUpperTickPrice: %s", sqrtUpperTickPrice.String())
 
 	// Calculate sqrt price and liquidity using the combined TypeScript logic
 	sqrtPrice, currentLiquidity := getTickSqrtPriceAndL(tickData.CurrentReserveA, tickData.CurrentReserveB, sqrtLowerTickPrice, sqrtUpperTickPrice)
-	logger.Debugf("  sqrtPrice: %s", sqrtPrice.String())
-	logger.Debugf("  currentLiquidity: %s", currentLiquidity.String())
 
 	// Set the calculated liquidity in the tickData
 	tickData.CurrentLiquidity = currentLiquidity
