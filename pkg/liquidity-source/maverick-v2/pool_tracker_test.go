@@ -135,3 +135,134 @@ func TestGetState(t *testing.T) {
 		})
 	}
 }
+
+func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
+	// Create ethrpc client
+	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
+
+	// Test parameters
+	poolAddress := "0x31373595f40ea48a7aab6cbcb0d377c6066e2dca"
+	binCounter := uint32(615)
+
+	// Test cases with different batch sizes
+	testCases := []struct {
+		name      string
+		batchSize int
+	}{
+		{
+			name:      "Default Batch Size",
+			batchSize: DefaultBinBatchSize, // 500
+		},
+		{
+			name:      "Small Batch Size",
+			batchSize: 5,
+		},
+	}
+
+	// Store results for comparison
+	results := make(map[string]struct {
+		bins  map[uint32]Bin
+		ticks map[int32]Tick
+	})
+
+	// Run tests for each batch size
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create pool tracker with specific batch size
+			config := &Config{
+				PoolLensAddress: "0x6A9EB38DE5D349Fe751E0aDb4c0D9D391f94cc8D",
+			}
+			tracker, err := NewPoolTracker(config, ethrpcClient)
+			assert.NoError(t, err)
+
+			// Override default batch size
+			DefaultBinBatchSize = tc.batchSize
+
+			// Get full pool state
+			bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter)
+			assert.NoError(t, err)
+
+			// Store results for comparison
+			results[tc.name] = struct {
+				bins  map[uint32]Bin
+				ticks map[int32]Tick
+			}{
+				bins:  bins,
+				ticks: ticks,
+			}
+
+			// Log basic info
+			t.Logf("Batch size: %d", tc.batchSize)
+			t.Logf("Number of bins: %d", len(bins))
+			t.Logf("Number of ticks: %d", len(ticks))
+		})
+	}
+
+	// Compare results
+	t.Run("Compare Results", func(t *testing.T) {
+		defaultResult := results["Default Batch Size"]
+		smallBatchResult := results["Small Batch Size"]
+
+		// Compare bin counts
+		assert.Equal(t, len(defaultResult.bins), len(smallBatchResult.bins),
+			"Number of bins should be the same")
+
+		// Compare tick counts
+		assert.Equal(t, len(defaultResult.ticks), len(smallBatchResult.ticks),
+			"Number of ticks should be the same")
+
+		// Compare bin data
+		for binId, defaultBin := range defaultResult.bins {
+			smallBatchBin, exists := smallBatchResult.bins[binId]
+			assert.True(t, exists, "Bin %d should exist in small batch results", binId)
+
+			// Compare bin data
+			if defaultBin.TotalSupply != nil {
+				assert.Equal(t, defaultBin.TotalSupply.String(), smallBatchBin.TotalSupply.String(),
+					"Bin %d TotalSupply should match", binId)
+			}
+			if defaultBin.CurrentLiquidity != nil {
+				assert.Equal(t, defaultBin.CurrentLiquidity.String(), smallBatchBin.CurrentLiquidity.String(),
+					"Bin %d CurrentLiquidity should match", binId)
+			}
+			if defaultBin.TickBalance != nil {
+				assert.Equal(t, defaultBin.TickBalance.String(), smallBatchBin.TickBalance.String(),
+					"Bin %d TickBalance should match", binId)
+			}
+			assert.Equal(t, defaultBin.Tick, smallBatchBin.Tick,
+				"Bin %d Tick should match", binId)
+			assert.Equal(t, defaultBin.Kind, smallBatchBin.Kind,
+				"Bin %d Kind should match", binId)
+			assert.Equal(t, defaultBin.MergeId, smallBatchBin.MergeId,
+				"Bin %d MergeId should match", binId)
+		}
+
+		// Compare tick data
+		for tickId, defaultTick := range defaultResult.ticks {
+			smallBatchTick, exists := smallBatchResult.ticks[tickId]
+			assert.True(t, exists, "Tick %d should exist in small batch results", tickId)
+
+			// Compare tick data
+			if defaultTick.TotalSupply != nil {
+				assert.Equal(t, defaultTick.TotalSupply.String(), smallBatchTick.TotalSupply.String(),
+					"Tick %d TotalSupply should match", tickId)
+			}
+			if defaultTick.ReserveA != nil {
+				assert.Equal(t, defaultTick.ReserveA.String(), smallBatchTick.ReserveA.String(),
+					"Tick %d ReserveA should match", tickId)
+			}
+			if defaultTick.ReserveB != nil {
+				assert.Equal(t, defaultTick.ReserveB.String(), smallBatchTick.ReserveB.String(),
+					"Tick %d ReserveB should match", tickId)
+			}
+
+			// Compare bin IDs in tick
+			assert.Equal(t, len(defaultTick.BinIdsByTick), len(smallBatchTick.BinIdsByTick),
+				"Tick %d should have same number of bins", tickId)
+			for kind, binId := range defaultTick.BinIdsByTick {
+				assert.Equal(t, binId, smallBatchTick.BinIdsByTick[kind],
+					"Tick %d bin ID for kind %d should match", tickId, kind)
+			}
+		}
+	})
+}

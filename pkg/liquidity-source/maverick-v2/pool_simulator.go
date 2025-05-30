@@ -228,8 +228,6 @@ func pastMaxTick(delta *Delta, activeTick, tickLimit int32) bool {
 
 // Helper functions for swap implementation
 func swap(state *MaverickPoolState, amount *uint256.Int, tokenAIn bool, exactOutput bool, _ bool) (*uint256.Int, *uint256.Int, uint32, *uint256.Int, error) {
-	// Implementation based on maverick-v2-pool-math.ts estimateSwap function
-
 	delta := &Delta{
 		DeltaInBinInternal: new(uint256.Int),
 		DeltaInErc:         new(uint256.Int),
