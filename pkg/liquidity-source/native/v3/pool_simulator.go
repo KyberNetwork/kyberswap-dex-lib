@@ -21,10 +21,13 @@ import (
 )
 
 type PoolSimulator struct {
-	V3Pool *v3Entities.Pool
 	pool.Pool
+
+	V3Pool *v3Entities.Pool
+	Gas    Gas
+
+	unlocked         bool
 	underlyingTokens [2]string
-	Gas              Gas
 	tickMin          int
 	tickMax          int
 }
@@ -127,8 +130,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	return &PoolSimulator{
 		Pool:             pool.Pool{Info: info},
 		V3Pool:           v3Pool,
-		underlyingTokens: staticExtra.UnderlyingTokens,
 		Gas:              defaultGas,
+		unlocked:         extra.Unlocked,
+		underlyingTokens: staticExtra.UnderlyingTokens,
 		tickMin:          tickMin,
 		tickMax:          tickMax,
 	}, nil
@@ -145,6 +149,10 @@ func (p *PoolSimulator) GetSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint1
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if !p.unlocked {
+		return nil, ErrPoolLocked
+	}
+
 	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
 	tokenOut := tokenAmountOut.Token
 
@@ -204,6 +212,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if !p.unlocked {
+		return nil, ErrPoolLocked
+	}
+
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex := p.GetTokenIndex(tokenIn)
