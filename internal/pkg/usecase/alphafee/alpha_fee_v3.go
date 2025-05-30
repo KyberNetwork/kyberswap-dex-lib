@@ -386,5 +386,5 @@ func (c *AlphaFeeV3Calculation) getWeightDistribute(pool dexlibPool.IPoolSimulat
 		return weightDistribute
 	}
 
-	return DefaultReductionFactor
+	return DefaultWeightDistribute
 }
