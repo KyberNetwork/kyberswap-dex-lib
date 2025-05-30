@@ -77,7 +77,7 @@ type BuildRouteUseCase struct {
 	clientDataEncoder    IClientDataEncoder
 	encoder              encode.IEncoder
 
-	alphaFeeCalculation *alphafee.AlphaFeeV2Calculation
+	alphaFeeCalculation *alphafee.AlphaFeeV3Calculation
 
 	config Config
 
@@ -98,6 +98,13 @@ func NewBuildRouteUseCase(
 	encoder encode.IEncoder,
 	config Config,
 ) *BuildRouteUseCase {
+	alphaFeeCalculation := alphafee.NewAlphaFeeV3Calculation(
+		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, routerpoolpkg.NewCustomFuncs(nil)),
+		config.AlphaFeeConfig,
+		&valueobject.TokenGroupConfig{}, // We don't need to use tokenGroupConfig when calculating alpha fee for build route
+		routerpoolpkg.NewCustomFuncs(nil),
+	)
+
 	return &BuildRouteUseCase{
 		tokenRepository:           tokenRepository,
 		poolRepository:            poolRepository,
@@ -112,8 +119,7 @@ func NewBuildRouteUseCase(
 		encoder:                   encoder,
 		config:                    config,
 
-		alphaFeeCalculation: alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig,
-			routerpoolpkg.NewCustomFuncs(nil)),
+		alphaFeeCalculation: alphaFeeCalculation,
 	}
 }
 
@@ -279,6 +285,16 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	defer uc.mu.Unlock()
 	uc.config.FeatureFlags = config.FeatureFlags
 	uc.config.RFQAcceptableSlippageFraction = config.RFQAcceptableSlippageFraction
+
+	// Refresh AlphaFeeUseCase configuration
+	uc.config.AlphaFeeConfig = config.AlphaFeeConfig
+
+	uc.alphaFeeCalculation = alphafee.NewAlphaFeeV3Calculation(
+		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, routerpoolpkg.NewCustomFuncs(nil)),
+		config.AlphaFeeConfig,
+		&valueobject.TokenGroupConfig{},
+		routerpoolpkg.NewCustomFuncs(nil),
+	)
 }
 
 func (uc *BuildRouteUseCase) rfq(

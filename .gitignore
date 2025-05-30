@@ -42,3 +42,5 @@ __pycache__/
 trade_data.txt
 failed_trade_data.txt
 *.csv
+
+internal/pkg/config/files/quoting-factor.yaml

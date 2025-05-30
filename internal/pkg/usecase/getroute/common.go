@@ -305,9 +305,15 @@ func InitializeFinderEngine(
 		finderOptions,
 	)
 
+	alphaFeeCalculator := alphafee.NewAlphaFeeV3Calculation(
+		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, customFuncs),
+		config.AlphaFeeConfig,
+		config.SafetyQuoteConfig.TokenGroupConfig,
+		customFuncs,
+	)
 	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
-		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, customFuncs),
+		alphaFeeCalculator,
 		customFuncs,
 	)
 

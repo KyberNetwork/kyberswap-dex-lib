@@ -28,7 +28,7 @@ import (
 
 type FeeReductionRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
-	alphaFeeCalculation  *alphafee.AlphaFeeV2Calculation
+	alphaFeeCalculation  *alphafee.AlphaFeeV3Calculation
 
 	finderEntity.ICustomFuncsHolder
 }
@@ -39,7 +39,7 @@ type FeeReductionFinalizerExtraData struct {
 
 func NewFeeReductionRouteFinalizer(
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
-	alphaFeeCalculation *alphafee.AlphaFeeV2Calculation,
+	alphaFeeCalculation *alphafee.AlphaFeeV3Calculation,
 	customFuncs finderEntity.ICustomFuncs,
 ) *FeeReductionRouteFinalizer {
 	return &FeeReductionRouteFinalizer{

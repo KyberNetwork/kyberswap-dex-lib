@@ -259,7 +259,12 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 
 	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
-		alphafee.NewAlphaFeeV2Calculation(valueobject.AlphaFeeConfig{}, calcAmountOutInstance),
+		alphafee.NewAlphaFeeV3Calculation(
+			alphafee.NewAlphaFeeV2Calculation(valueobject.AlphaFeeConfig{}, calcAmountOutInstance),
+			valueobject.AlphaFeeConfig{},
+			&valueobject.TokenGroupConfig{},
+			calcAmountOutInstance,
+		),
 		calcAmountOutInstance,
 	)
 

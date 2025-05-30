@@ -167,6 +167,11 @@ type (
 	AlphaFeeReductionConfig struct {
 		ReductionFactorInBps  map[string]float64 `mapstructure:"reductionFactorInBps" json:"afFactorInBps"`
 		ReductionFactorByPool map[string]float64 `mapstructure:"reductionFactorByPool" json:"afFactorByPool"`
+
+		WeightDistributeBySource     map[string]int `mapstructure:"weightDistributeBySource" json:"weightDistributeBySource"`
+		WeightDistributeByPool       map[string]int `mapstructure:"weightDistributeByPool" json:"weightDistributeByPool"`
+		WeightDistributeByTokenGroup map[string]int `mapstructure:"weightDistributeByTokenGroup" json:"weightDistributeByTokenGroup"`
+
 		// To avoid amm best path returns weird route due to lack of swap source, we must check difference between
 		// amm best path and multi best path do not exceed AlphaFeeSlippageTolerance config
 		MaxThresholdPercentageInBps  int64   `mapstructure:"maxThresholdPercentageInBps" json:"maxThresholdPercentageInBps"`

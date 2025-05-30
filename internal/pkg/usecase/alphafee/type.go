@@ -7,6 +7,12 @@ type pathReduction struct {
 	ReduceAmount *big.Int
 }
 
+type pathExchangeRate struct {
+	PathIdx        int
+	PathAmountInF  float64
+	PathAmountOutF float64
+}
+
 type swapInfoV2 struct {
 	Pool      string
 	TokenIn   string

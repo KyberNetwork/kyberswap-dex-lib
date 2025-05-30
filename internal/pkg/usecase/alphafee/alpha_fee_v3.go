@@ -1,0 +1,390 @@
+package alphafee
+
+import (
+	"context"
+	"math"
+	"math/big"
+	"runtime/debug"
+
+	"slices"
+
+	"github.com/KyberNetwork/kutils/klog"
+	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
+	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
+)
+
+const (
+	DefaultReductionFactor  = 5000
+	DefaultWeightDistribute = 1000
+)
+
+type AlphaFeeV3Calculation struct {
+	v2Calculation *AlphaFeeV2Calculation
+	config        routerValueObject.AlphaFeeConfig
+	tokenGroups   *routerValueObject.TokenGroupConfig
+	entity.ICustomFuncsHolder
+}
+
+func NewAlphaFeeV3Calculation(
+	v2Calculation *AlphaFeeV2Calculation,
+	config routerValueObject.AlphaFeeConfig,
+	tokenGroupsConfig *routerValueObject.TokenGroupConfig,
+	customFuncs entity.ICustomFuncs,
+) *AlphaFeeV3Calculation {
+	return &AlphaFeeV3Calculation{
+		v2Calculation:      v2Calculation,
+		config:             config,
+		tokenGroups:        tokenGroupsConfig,
+		ICustomFuncsHolder: &entity.CustomFuncsHolder{ICustomFuncs: customFuncs},
+	}
+}
+
+func (c *AlphaFeeV3Calculation) Calculate(ctx context.Context, param AlphaFeeParams) (*routerEntity.AlphaFeeV2, error) {
+	routeInfo := convertConstructRouteToRouteInfoV2(ctx, param.BestRoute, param.PoolSimulatorBucket)
+
+	if !c.isRouteContainsAlphaFeeSource(ctx, routeInfo) {
+		return nil, ErrRouteNotHaveAlphaFeeDex
+	}
+
+	if param.BestAmmRoute != nil && c.notMuchBetter(param.BestRoute, param.BestAmmRoute, true) {
+		return nil, errors.WithMessage(ErrAlphaFeeNotExists, "amm route is almost equal with best route")
+	}
+
+	ammBestRouteAmountOut := c.getAMMBestRouteAmountOut(ctx, param)
+
+	pathReductions := c.getReductionPerPath(ctx, param, routeInfo, ammBestRouteAmountOut)
+
+	swapReductions, err := c.getReductionPerSwap(ctx, param, pathReductions, routeInfo)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to apply reduction on paths")
+	}
+
+	return &routerEntity.AlphaFeeV2{
+		AMMAmount:      ammBestRouteAmountOut,
+		SwapReductions: swapReductions,
+	}, nil
+}
+
+func (c *AlphaFeeV3Calculation) CalculateDefaultAlphaFee(ctx context.Context, param DefaultAlphaFeeParams) (*routerEntity.AlphaFeeV2, error) {
+	return c.v2Calculation.CalculateDefaultAlphaFee(ctx, param)
+}
+
+func (c *AlphaFeeV3Calculation) getReductionPerPath(
+	_ context.Context,
+	param AlphaFeeParams,
+	routeInfo [][]swapInfoV2,
+	ammBestRouteAmountOut *big.Int,
+) []pathReduction {
+	var amountOutDiff big.Int
+	amountOutDiff.Sub(param.BestRoute.AmountOut, ammBestRouteAmountOut)
+	amountOutDiffF, _ := amountOutDiff.Float64()
+
+	pathExchangeRates := []pathExchangeRate{}
+	for idx, path := range routeInfo {
+		if isPathContainsAlphaFeeSources(path) {
+			pathAmountInF, _ := path[0].AmountIn.Float64()
+			pathAmountOutF, _ := path[len(path)-1].AmountOut.Float64()
+			pathExchangeRates = append(pathExchangeRates, pathExchangeRate{
+				PathIdx:        idx,
+				PathAmountInF:  pathAmountInF,
+				PathAmountOutF: pathAmountOutF,
+			})
+		}
+	}
+
+	// Path with best rate will be at the start of the slice
+	slices.SortFunc(pathExchangeRates, func(a, b pathExchangeRate) int {
+		if a.PathAmountOutF*b.PathAmountInF >= a.PathAmountInF*b.PathAmountOutF {
+			return -1
+		}
+		return 1
+	})
+
+	surpluses := make([]pathReduction, 0, len(pathExchangeRates))
+
+	ammBestRouteAmountInF, _ := param.BestRoute.AmountIn.Float64()
+	ammBestRouteAmountOutF, _ := ammBestRouteAmountOut.Float64()
+	ammExchangeRate := ammBestRouteAmountOutF / ammBestRouteAmountInF
+
+	var curAmountInF, totalSurplus float64
+
+	for idx, path := range pathExchangeRates {
+		var nextRate float64
+		if idx < len(pathExchangeRates)-1 {
+			nextPath := pathExchangeRates[idx+1]
+			nextRate = nextPath.PathAmountOutF / nextPath.PathAmountInF
+		} else {
+			nextRate = ammExchangeRate
+		}
+
+		curRate := path.PathAmountOutF / path.PathAmountInF
+
+		curAmountInF += path.PathAmountInF
+		surplus := max(curAmountInF*(curRate-nextRate), 0)
+
+		if totalSurplus+surplus > amountOutDiffF {
+			surplus = amountOutDiffF - totalSurplus
+		}
+
+		totalSurplus += surplus
+		surplusPerPath := surplus / float64(idx+1)
+		surplusPerPathBI, _ := new(big.Float).SetFloat64(surplusPerPath).Int(nil)
+
+		// We will also add surplus = 0 to the `suprluses` slice,
+		// since some paths can have the same rate. We will filter them out later.
+		surpluses = append(surpluses, pathReduction{
+			PathIdx:      path.PathIdx,
+			ReduceAmount: surplusPerPathBI,
+		})
+		for i := idx - 1; i >= 0; i-- {
+			surpluses[i].ReduceAmount.Add(surpluses[i].ReduceAmount, surplusPerPathBI)
+		}
+	}
+
+	surpluses = lo.Filter(surpluses, func(surplus pathReduction, _ int) bool {
+		return surplus.ReduceAmount.Sign() > 0
+	})
+
+	// Sort surpluses by path index, since later functions expect them to be sorted.
+	slices.SortFunc(surpluses, func(a, b pathReduction) int {
+		return a.PathIdx - b.PathIdx
+	})
+
+	return surpluses
+}
+
+func (c *AlphaFeeV3Calculation) getReductionPerSwap(
+	ctx context.Context,
+	param AlphaFeeParams,
+	pathReductions []pathReduction,
+	routeInfo [][]swapInfoV2,
+) (swapReductions []routerEntity.AlphaFeeV2SwapReduction, err error) {
+	swapReductions = make([]routerEntity.AlphaFeeV2SwapReduction, 0)
+
+	// Handle recovery from panic in UpdateBalance.
+	var currentPool string
+	defer func() {
+		if r := recover(); r != nil {
+			swapReductions = nil
+			err = errors.WithMessagef(finderCommon.ErrPanicRefreshPath, "%v", r)
+			klog.Warnf(ctx, "alphaFeeV3|refreshPath|%s panicked: %s", currentPool, string(debug.Stack()))
+		}
+	}()
+
+	// NOTE: param.PoolSimulatorBucket should be a fresh instance and not shared,
+	// as it will be modified.
+	simulatorBucket := param.PoolSimulatorBucket
+
+	pointer := 0 // to track the pathReductions
+	executedId := 0
+	for idx, path := range param.BestRoute.Paths {
+		pathInfo := routeInfo[idx]
+		pathContainsAlphaFeeSources := isPathContainsAlphaFeeSources(pathInfo)
+		var pathSurplusRate, totalWeight float64
+		if pathContainsAlphaFeeSources {
+			surplusAmountF, _ := pathReductions[pointer].ReduceAmount.Float64()
+			pathAmountOutF, _ := path.AmountOut.Float64()
+			pathSurplusRate = surplusAmountF / pathAmountOutF
+
+			for _, swapInfo := range pathInfo {
+				if privo.IsAlphaFeeSource(swapInfo.Exchange) {
+					weight := c.getWeightDistribute(simulatorBucket.GetPool(swapInfo.Pool), swapInfo.TokenIn, swapInfo.TokenOut)
+					totalWeight += float64(weight)
+				}
+			}
+		}
+
+		// Update the path amount out and the path reduction.
+		// Even if the path does not contain alpha fee sources,
+		// we still need to refresh the path amount out,
+		// to update the pool state in simulatorBucket for the next path.
+		var currentAmountIn big.Int
+		currentAmountIn.Set(path.AmountIn)
+		for i, poolId := range path.PoolsOrder {
+			fromToken := path.TokensOrder[i]
+			toToken := path.TokensOrder[i+1]
+
+			pool := simulatorBucket.GetPool(poolId)
+			swapLimit := simulatorBucket.GetPoolSwapLimit(poolId)
+			currentPool = pool.GetExchange() + "/" + poolId // For tracking panic refresh path
+
+			tokenAmountIn := dexlibPool.TokenAmount{Token: fromToken, Amount: &currentAmountIn}
+			res, err := c.CalcAmountOut(ctx, pool, tokenAmountIn, toToken, swapLimit)
+			if err != nil {
+				return nil, err
+			} else if !res.IsValid() {
+				return nil, finderCommon.ErrCalcAmountOutEmpty
+			}
+
+			var currentAmountOut big.Int
+			currentAmountOut.Set(res.TokenAmountOut.Amount)
+
+			if privo.IsAlphaFeeSource(pool.GetExchange()) {
+				currentAmountOutF, _ := currentAmountOut.Float64()
+
+				// https://www.notion.so/kybernetwork/Alpha-Fee-Phase-3-20026751887e809b9d53f6937378078c
+				weight := c.getWeightDistribute(pool, fromToken, toToken)
+				reductionFactor := c.getReductionFactor(pool)
+				surplusRate := 1 - math.Exp(math.Log(1-pathSurplusRate)*float64(weight)/totalWeight)
+				poolSurplus := currentAmountOutF * surplusRate
+				reducedAmountF := poolSurplus * reductionFactor / basisPointFloat
+
+				currentAmountOutF -= reducedAmountF
+				new(big.Float).SetFloat64(currentAmountOutF).Int(&currentAmountOut)
+
+				reducedAmount := new(big.Int).Sub(res.TokenAmountOut.Amount, &currentAmountOut)
+				reducedAmountUsd := c.GetFairPrice(
+					ctx, fromToken, toToken,
+					param.Prices[fromToken], param.Prices[toToken],
+					param.Tokens[fromToken].Decimals, param.Tokens[toToken].Decimals,
+					&currentAmountIn, &currentAmountOut, reducedAmount,
+				)
+
+				swapReductions = append(swapReductions, routerEntity.AlphaFeeV2SwapReduction{
+					ExecutedId:      executedId,
+					PoolAddress:     poolId,
+					TokenIn:         fromToken,
+					TokenOut:        toToken,
+					ReduceAmount:    reducedAmount,
+					ReduceAmountUsd: reducedAmountUsd,
+				})
+			}
+
+			// No need to BackupPool here, since if we fails,
+			// we stop the process and return the error.
+			pool = simulatorBucket.ClonePoolById(ctx, poolId)
+			swapLimit = simulatorBucket.CloneSwapLimitById(ctx, poolId)
+
+			updateBalanceParams := dexlibPool.UpdateBalanceParams{
+				TokenAmountIn:  tokenAmountIn,
+				TokenAmountOut: *res.TokenAmountOut,
+				Fee:            *res.Fee,
+				SwapInfo:       res.SwapInfo,
+				SwapLimit:      swapLimit,
+			}
+			pool.UpdateBalance(updateBalanceParams)
+
+			currentAmountIn.Set(&currentAmountOut)
+			executedId++
+		}
+	}
+
+	return swapReductions, nil
+}
+
+func (c *AlphaFeeV3Calculation) notMuchBetter(bestRoute, bestAMMRoute *finderCommon.ConstructRoute, gasIncluded bool) bool {
+	if bestPrice, ammPrice := bestRoute.AmountOutPrice, bestAMMRoute.AmountOutPrice; bestPrice != 0 || ammPrice != 0 {
+		if gasIncluded {
+			bestPrice -= bestRoute.GasFeePrice + bestRoute.L1GasFeePrice
+			ammPrice -= bestAMMRoute.GasFeePrice + bestAMMRoute.L1GasFeePrice
+		}
+		return bestPrice-ammPrice <= c.config.ReductionConfig.MinDifferentThresholdUSD
+	}
+
+	var diff big.Int
+	diff.Sub(bestRoute.AmountOut, bestAMMRoute.AmountOut)
+	diff.Mul(&diff, valueobject.BasisPoint).Div(&diff, bestAMMRoute.AmountOut)
+	return diff.Int64() <= c.config.ReductionConfig.MinDifferentThresholdBps
+}
+
+func (c *AlphaFeeV3Calculation) isRouteContainsAlphaFeeSource(_ context.Context, routeInfo [][]swapInfoV2) bool {
+	return slices.ContainsFunc(routeInfo, isPathContainsAlphaFeeSources)
+}
+
+func (c *AlphaFeeV3Calculation) getAMMBestRouteAmountOut(_ context.Context, param AlphaFeeParams) *big.Int {
+	ammBestRouteAmountOut := new(big.Int)
+	if param.BestAmmRoute != nil {
+		ammBestRouteAmountOut.Set(param.BestAmmRoute.AmountOut)
+	}
+
+	// If the AMM best route is unavailable, or if it returns an exceedingly small amount,
+	// we set the AMM best route to `maxReducedAmountOut`, which is a portion of the bestRoute.AmountOut.
+	var maxReducedAmountOut big.Int
+	maxReducedAmountOut.Div(
+		maxReducedAmountOut.Mul(
+			param.BestRoute.AmountOut,
+			maxReducedAmountOut.SetInt64(c.config.ReductionConfig.MaxThresholdPercentageInBps),
+		),
+		valueobject.BasisPoint,
+	)
+
+	if ammBestRouteAmountOut.Cmp(&maxReducedAmountOut) < 0 {
+		ammBestRouteAmountOut.Set(&maxReducedAmountOut)
+	}
+
+	return ammBestRouteAmountOut
+}
+
+func (c *AlphaFeeV3Calculation) GetFairPrice(
+	_ context.Context,
+	tokenIn, tokenOut string,
+	tokenInPrice, tokenOutPrice float64,
+	tokenInDecimals, tokenOutDecimals uint8,
+	amountIn, amountOut, alphaFeeAmount *big.Int,
+) float64 {
+	isTokenInWhitelistPrices := c.config.WhitelistPrices[tokenIn]
+	isTokenOutWhitelistPrice := c.config.WhitelistPrices[tokenOut]
+
+	if isTokenOutWhitelistPrice || !isTokenInWhitelistPrices {
+		return finderUtil.CalcAmountPrice(
+			alphaFeeAmount,
+			tokenOutDecimals,
+			tokenOutPrice,
+		)
+	}
+
+	amountInF, _ := amountIn.Float64()
+	amountInF = amountInF / math.Pow(10, float64(tokenInDecimals))
+	amountOutF, _ := amountOut.Float64()
+	amountOutF = amountOutF / math.Pow(10, float64(tokenOutDecimals))
+	tokenOutFairPrice := tokenInPrice * amountInF / amountOutF
+
+	return finderUtil.CalcAmountPrice(
+		alphaFeeAmount,
+		tokenOutDecimals,
+		tokenOutFairPrice,
+	)
+}
+
+func (c *AlphaFeeV3Calculation) getReductionFactor(pool dexlibPool.IPoolSimulator) float64 {
+	if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]; ok {
+		return sourceReductionFactorF
+	}
+	if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]; ok {
+		return sourceReductionFactorF
+
+	}
+
+	return DefaultReductionFactor
+}
+
+func (c *AlphaFeeV3Calculation) getWeightDistribute(pool dexlibPool.IPoolSimulator, tokenIn, tokenOut string) int {
+	if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByPool[pool.GetAddress()]; ok {
+		return weightDistribute
+	}
+
+	tokenGroupParams := routerValueObject.TokenGroupParams{
+		TokenIn:  tokenIn,
+		TokenOut: tokenOut,
+		Exchange: pool.GetExchange(),
+	}
+	if groupType, ok := c.tokenGroups.GetTokenGroupType(tokenGroupParams); ok {
+		if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByTokenGroup[groupType]; ok {
+			return weightDistribute
+		}
+	}
+
+	if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeBySource[pool.GetExchange()]; ok {
+		return weightDistribute
+	}
+
+	return DefaultReductionFactor
+}
