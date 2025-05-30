@@ -120,4 +120,5 @@ func (p *Pool) Clear() {
 	p.SwapFee = 0
 	p.AmplifiedTvl = 0
 	p.TotalSupply = ""
+	p.BlockNumber = 0
 }

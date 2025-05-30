@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
@@ -51,6 +52,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/honey"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hyeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
@@ -61,7 +63,8 @@ import (
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
+	nativev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
@@ -263,6 +266,7 @@ type Types struct {
 	HashflowV3                 string
 	NomiSwapStable             string
 	NativeV1                   string
+	NativeV3                   string
 	RenzoEZETH                 string
 	Slipstream                 string
 	NuriV2                     string
@@ -304,11 +308,12 @@ type Types struct {
 	ERC4626                    string
 	HyETH                      string
 	MimSwap                    string
-
-	KyberPMM  string
-	Pmm1      string
-	Pmm2      string
-	UniswapLO string
+	InfinityPools              string
+	Brownfi                    string
+	KyberPMM                   string
+	Pmm1                       string
+	Pmm2                       string
+	UniswapLO                  string
 }
 
 var (
@@ -427,6 +432,7 @@ var (
 		HashflowV3:                 hashflowv3.DexType,
 		NomiSwapStable:             nomiswap.DexType,
 		NativeV1:                   nativev1.DexType,
+		NativeV3:                   nativev3.DexType,
 		RenzoEZETH:                 ezeth.DexType,
 		Slipstream:                 slipstream.DexType,
 		NuriV2:                     nuriv2.DexType,
@@ -468,10 +474,11 @@ var (
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
 		MimSwap:                    mimswap.DexType,
-
-		KyberPMM:  valueobject.ExchangeKyberPMM,
-		Pmm1:      valueobject.ExchangePmm1,
-		Pmm2:      valueobject.ExchangePmm2,
-		UniswapLO: uniswaplo.DexType,
+		InfinityPools:              infinitypools.DexType,
+		Brownfi:                    brownfi.DexType,
+		KyberPMM:                   valueobject.ExchangeKyberPMM,
+		Pmm1:                       valueobject.ExchangePmm1,
+		Pmm2:                       valueobject.ExchangePmm2,
+		UniswapLO:                  uniswaplo.DexType,
 	}
 )

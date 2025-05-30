@@ -102,10 +102,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			SwapInfo:       SwapInfo{deltaShares: amountOut, assetIndex: assetIndex},
 		}, nil
 	} else if !isMint && !p.forcedBasketMode && !p.isBasketEnabledRedeem {
-		if assetIndex >= len(p.vaultsMaxRedeems) || p.vaultsMaxRedeems[assetIndex].Cmp(amountIn) < 0 {
+		shares, feeShares, polFeeCollectorFeeShares := p.getSharesRedeemedFromHoney(amountIn, assetIndex)
+		// https://berascan.com/address/0x8fe54a1fb9d97ab6f02ad9e0931e9ab788f5d942#codeL597
+		// redeem polFeeCollectorFeeShares will reduce the amount of vaultsMaxRedeems
+		availableRedeemAmount := new(uint256.Int).Sub(p.vaultsMaxRedeems[assetIndex], polFeeCollectorFeeShares)
+		availableRedeemAmount.Sub(availableRedeemAmount, availableRedeemAmount.Div(availableRedeemAmount, U100))
+		if assetIndex >= len(p.vaultsMaxRedeems) || availableRedeemAmount.Cmp(shares) <= 0 {
 			return nil, ErrMaxRedeemAmountExceeded
 		}
-		shares, feeShares, _ := p.getSharesRedeemedFromHoney(amountIn, assetIndex)
 		redeemedAssets := p.convertToAssets(shares, assetIndex)
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: redeemedAssets.ToBig()},

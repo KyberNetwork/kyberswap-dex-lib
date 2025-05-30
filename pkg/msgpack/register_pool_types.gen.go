@@ -20,6 +20,7 @@ import (
 	pkg_liquiditysource_bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	pkg_liquiditysource_bedrock_unieth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
+	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	pkg_liquiditysource_curve_llamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	pkg_liquiditysource_curve_plain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
@@ -63,7 +64,8 @@ import (
 	pkg_liquiditysource_mantle_meth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	pkg_liquiditysource_maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	pkg_liquiditysource_mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-	pkg_liquiditysource_nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	pkg_liquiditysource_native_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
+	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_ondousdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	pkg_liquiditysource_overnightusdp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/overnight-usdp"
@@ -162,6 +164,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bebop.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bedrock_unieth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_llamma.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
@@ -205,7 +208,8 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_meth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maverickv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_nativev1.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v1.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ondousdy.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_overnightusdp.PoolSimulator{})

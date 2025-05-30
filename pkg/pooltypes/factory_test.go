@@ -16,11 +16,12 @@ import (
 func TestPoolFactory(t *testing.T) {
 	t.Parallel()
 	excludedPoolTypes := []string{
-		"ambient",     // private
-		"maverick-v2", // private
-		"kyber-pmm",   // private
-		"pmm-1",       // private
-		"pmm-2",       // private
+		"ambient",       // private
+		"maverick-v2",   // private
+		"kyber-pmm",     // private
+		"pmm-1",         // private
+		"pmm-2",         // private
+		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
 	assert.NoError(t, mapstructure.Decode(PoolTypes, &poolTypesMap))
@@ -71,7 +72,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"erc4626", "hyeth"}
+		"erc4626", "hyeth", "brownfi"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
@@ -101,7 +102,7 @@ func TestPoolTrackerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"erc4626", "hyeth"}
+		"erc4626", "hyeth", "brownfi"}
 	t.Logf("%#v", poolTrackers)
 
 	for _, poolTracker := range poolTrackers {
