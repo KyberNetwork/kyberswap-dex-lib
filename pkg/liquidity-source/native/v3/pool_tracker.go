@@ -221,14 +221,19 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	if rpcData.Slot0.Unlocked {
+		p.Reserves = entity.PoolReserves{
+			rpcData.Reserves[0].String(),
+			rpcData.Reserves[1].String(),
+		}
+	} else {
+		p.Reserves = entity.PoolReserves{"0", "0"}
+	}
+
 	p.StaticExtra = string(staticExtraBytes)
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = rpcData.BlockNumber
-	p.Reserves = entity.PoolReserves{
-		rpcData.Reserves[0].String(),
-		rpcData.Reserves[1].String(),
-	}
 
 	l.Infof("Finish updating state of pool")
 
