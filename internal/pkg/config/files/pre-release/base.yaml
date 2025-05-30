@@ -106,6 +106,7 @@ common:
     - "sky-psm"
     - "memebox"
     - "native-v3"
+    - "infinitypools"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -122,6 +123,7 @@ common:
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
     uniswap-v4: true
+    infinitypools: true
   useAEVM: &useAEVM false
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:

@@ -108,6 +108,7 @@ common:
     - "uniswap-v4-fairflow"
     - "memebox"
     - "native-v3"
+    - "infinitypools"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -123,6 +124,7 @@ common:
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
     uniswap-v4: true
+    infinitypools: true
   useAEVM: &useAEVM false
   alphaFeeConfig: &alphaFeeConfig
     reductionConfig:
