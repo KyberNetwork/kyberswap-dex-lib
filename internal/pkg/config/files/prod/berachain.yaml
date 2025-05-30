@@ -51,6 +51,7 @@ common:
     - "honey"
     - "panda-fun"
     - "brownfi"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

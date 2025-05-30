@@ -107,6 +107,7 @@ common:
     - "uniswap-v4-kem"
     - "uniswap-v4-fairflow"
     - "memebox"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

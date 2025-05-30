@@ -169,6 +169,7 @@ common:
     - "pmm-2"
     - "hyeth"
     - "mimswap"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

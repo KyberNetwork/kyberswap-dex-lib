@@ -158,6 +158,7 @@ common:
     - "pmm-2"
     - "hyeth"
     - "mimswap"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

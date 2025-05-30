@@ -105,6 +105,7 @@ common:
     - "overnight-usdp"
     - "sky-psm"
     - "memebox"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

@@ -136,6 +136,7 @@ common:
     - "overnight-usdp"
     - "pmm-2"
     - "mimswap"
+    - "native-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
