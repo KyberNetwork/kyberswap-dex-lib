@@ -321,18 +321,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
-	var priceLimit v3Utils.Uint160
-	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0]) || strings.EqualFold(tokenIn, p.underlyingTokens[0])
-	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
-
-	return PoolMeta{
-		SwapFee:     uint32(p.Pool.Info.SwapFee.Int64()),
-		PriceLimit:  &priceLimit,
-		BlockNumber: p.Info.BlockNumber,
-	}
-}
-
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
 	if tokenIndex > -1 {
@@ -368,4 +356,25 @@ func (p *PoolSimulator) GetTokens() []string {
 	}
 
 	return append(res, p.Info.Tokens...)
+}
+
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+	var priceLimit v3Utils.Uint160
+	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0]) || strings.EqualFold(tokenIn, p.underlyingTokens[0])
+	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
+
+	return PoolMeta{
+		SwapFee:         uint32(p.Pool.Info.SwapFee.Int64()),
+		PriceLimit:      &priceLimit,
+		BlockNumber:     p.Info.BlockNumber,
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+	}
+}
+
+func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	if s.GetUnderlyingTokenIndex(tokenIn) < 0 {
+		return s.GetAddress()
+	}
+
+	return ""
 }
