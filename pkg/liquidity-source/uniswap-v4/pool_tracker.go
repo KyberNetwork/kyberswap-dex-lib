@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -183,7 +184,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	switch {
-	case hookAddress == bunniv2.HookAddress:
+	case lo.Contains(bunniv2.HookAddresses, hookAddress):
 		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
 			p.Reserves = reserves
 		}
