@@ -3,6 +3,7 @@ package maverickv2
 import (
 	"context"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -137,6 +138,10 @@ func TestGetState(t *testing.T) {
 }
 
 func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
