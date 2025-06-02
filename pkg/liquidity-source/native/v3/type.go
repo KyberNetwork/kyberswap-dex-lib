@@ -63,9 +63,10 @@ type (
 	}
 
 	PoolMeta struct {
-		SwapFee     uint32       `json:"swapFee"`
-		PriceLimit  *uint256.Int `json:"priceLimit"`
-		BlockNumber uint64       `json:"blockNumber"`
+		SwapFee         uint32       `json:"swapFee"`
+		PriceLimit      *uint256.Int `json:"priceLimit"`
+		BlockNumber     uint64       `json:"blockNumber"`
+		ApprovalAddress string       `json:"approvalAddress,omitempty"`
 	}
 
 	Token struct {
