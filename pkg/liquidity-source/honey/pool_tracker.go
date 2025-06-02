@@ -107,7 +107,7 @@ func (t *PoolTracker) getNewPoolState(
 	vaults := lo.Map(extra.Vaults, func(item string, _ int) common.Address { return common.HexToAddress(item) })
 	assetsDecimals := extra.AssetsDecimals
 	vaultsDecimals := extra.VaultsDecimals
-	hasNewAssets := noAssets != len(extra.RegisteredAssets)
+	hasNewAssets := noAssets != len(extra.RegisteredAssets) || len(extra.Vaults) != noAssets
 	if hasNewAssets { // new registered assets
 		registeredAssets = make([]common.Address, noAssets)
 		vaults = make([]common.Address, noAssets)

@@ -17,6 +17,7 @@ var (
 	honeyToken = "0xfcbd14dc51f0a4d49d5e53c2e0950e0bc26d0dce"
 
 	U10   = uint256.NewInt(10)
+	U100  = uint256.NewInt(100)
 	U1e18 = uint256.NewInt(1e18)
 
 	ErrInvalidToken            = errors.New("invalid token")

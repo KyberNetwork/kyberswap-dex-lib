@@ -23,6 +23,7 @@ type (
 	}
 
 	Extra struct {
+		Unlocked     bool     `json:"unlocked"`
 		Liquidity    *big.Int `json:"liquidity"`
 		SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 		Tick         *big.Int `json:"tick"`
@@ -35,6 +36,7 @@ type (
 	}
 
 	ExtraTickU256 struct {
+		Unlocked     bool         `json:"unlocked"`
 		Liquidity    *uint256.Int `json:"liquidity"`
 		SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
 		Tick         *int         `json:"tick"`
