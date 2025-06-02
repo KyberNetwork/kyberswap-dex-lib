@@ -13,7 +13,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -24,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -183,8 +183,9 @@ func (t *PoolTracker) GetNewPoolState(
 		hookAddress = staticExtra.HooksAddress
 	}
 
-	switch {
-	case lo.Contains(bunniv2.HookAddresses, hookAddress):
+	hook, _ := GetHook(hookAddress)
+	switch hook.GetExchange() {
+	case valueobject.ExchangeUniswapV4BunniV2:
 		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
 			p.Reserves = reserves
 		}
