@@ -23,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -182,8 +183,9 @@ func (t *PoolTracker) GetNewPoolState(
 		hookAddress = staticExtra.HooksAddress
 	}
 
-	switch {
-	case hookAddress == bunniv2.HookAddress:
+	hook, _ := GetHook(hookAddress)
+	switch hook.GetExchange() {
+	case valueobject.ExchangeUniswapV4BunniV2:
 		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
 			p.Reserves = reserves
 		}
