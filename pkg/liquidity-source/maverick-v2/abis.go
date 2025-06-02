@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	maverickV2FactoryABI abi.ABI
-	maverickV2PoolABI    abi.ABI
+	maverickV2FactoryABI  abi.ABI
+	maverickV2PoolABI     abi.ABI
+	maverickV2PoolLensABI abi.ABI
 )
 
 func init() {
@@ -21,6 +22,9 @@ func init() {
 		},
 		{
 			&maverickV2PoolABI, maverickV2PoolABIJson,
+		},
+		{
+			&maverickV2PoolLensABI, maverickV2PoolLensABIJson,
 		},
 	}
 

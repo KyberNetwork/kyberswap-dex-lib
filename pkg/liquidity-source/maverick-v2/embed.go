@@ -7,3 +7,6 @@ var maverickV2FactoryABIJson []byte
 
 //go:embed abis/MaverickV2Pool.json
 var maverickV2PoolABIJson []byte
+
+//go:embed abis/MaverickV2PoolLens.json
+var maverickV2PoolLensABIJson []byte
