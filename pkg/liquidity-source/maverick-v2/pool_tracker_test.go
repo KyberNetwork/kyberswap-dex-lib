@@ -3,7 +3,6 @@ package maverickv2
 import (
 	"context"
 	"math/big"
-	"sync"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -177,17 +176,10 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 		ticks map[int32]Tick
 	})
 
-	// Create a mutex to ensure sequential execution
-	var mu sync.Mutex
-
 	// Run tests for each batch size
 	for _, tc := range testCases {
 		tc := tc // Create new variable to avoid closure issues
 		t.Run(tc.name, func(t *testing.T) {
-			// Lock to ensure sequential execution
-			mu.Lock()
-			defer mu.Unlock()
-
 			// Create pool tracker with specific batch size
 			config := &Config{
 				PoolLensAddress: "0x6A9EB38DE5D349Fe751E0aDb4c0D9D391f94cc8D",
@@ -220,10 +212,6 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 
 	// Compare results
 	t.Run("Compare Results", func(t *testing.T) {
-		// Lock to ensure sequential execution
-		mu.Lock()
-		defer mu.Unlock()
-
 		defaultResult := results["Default Batch Size"]
 		smallBatchResult := results["Small Batch Size"]
 
