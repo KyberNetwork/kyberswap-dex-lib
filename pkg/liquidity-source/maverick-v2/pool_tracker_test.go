@@ -178,7 +178,6 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 
 	// Run tests for each batch size
 	for _, tc := range testCases {
-		tc := tc // Create new variable to avoid closure issues
 		t.Run(tc.name, func(t *testing.T) {
 			// Create pool tracker with specific batch size
 			config := &Config{
