@@ -2,7 +2,6 @@ package cl
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"slices"
@@ -248,10 +247,12 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 }
 
 type rpcTick struct {
-	LiquidityGross        *big.Int
-	LiquidityNet          *big.Int
-	FeeGrowthOutside0X128 *big.Int
-	FeeGrowthOutside1X128 *big.Int
+	Data struct {
+		LiquidityGross        *big.Int
+		LiquidityNet          *big.Int
+		FeeGrowthOutside0X128 *big.Int
+		FeeGrowthOutside1X128 *big.Int
+	}
 }
 
 func (t *PoolTracker) getPoolTicksFromRPC(
@@ -265,8 +266,10 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 	})
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return nil, errors.New("failed to unmarshal pool extra")
+	if p.Extra != "" {
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			return nil, err
+		}
 	}
 
 	changedTicks := ticklens.GetChangedTicks(param.Logs)
@@ -286,7 +289,7 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 			ABI:    clPoolManagerABI,
 			Target: t.config.CLPoolManagerAddress,
 			Method: clPoolManagerMethodGetPoolTickInfo,
-			Params: []any{common.HexToAddress(p.Address), big.NewInt(tickIdx)},
+			Params: []any{common.HexToHash(p.Address), big.NewInt(tickIdx)},
 		}, []any{&rpcTicks[i]})
 	}
 
@@ -305,7 +308,7 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 		tIdx := int64(t.Index)
 		if slices.Contains(changedTicks, tIdx) {
 			tick := resTicks[tIdx]
-			if tick.LiquidityNet == nil || tick.LiquidityNet.Sign() == 0 {
+			if tick.Data.LiquidityNet == nil || tick.Data.LiquidityNet.Sign() == 0 {
 				// some changed ticks might be consumed entirely, delete them
 				logger.Debugf("deleted tick %v %v", p.Address, t)
 				continue
@@ -314,8 +317,8 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 			// changed, use new value
 			combined = append(combined, ticklens.TickResp{
 				TickIdx:        strconv.FormatInt(tIdx, 10),
-				LiquidityGross: tick.LiquidityGross.String(),
-				LiquidityNet:   tick.LiquidityNet.String(),
+				LiquidityGross: tick.Data.LiquidityGross.String(),
+				LiquidityNet:   tick.Data.LiquidityNet.String(),
 			})
 		} else {
 			// use old value

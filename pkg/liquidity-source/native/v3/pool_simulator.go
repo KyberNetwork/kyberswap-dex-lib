@@ -372,8 +372,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 }
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	if s.GetUnderlyingTokenIndex(tokenIn) < 0 {
-		return s.GetAddress()
+	if idx := s.GetUnderlyingTokenIndex(tokenIn); idx >= 0 {
+		return s.Info.Tokens[idx]
 	}
 
 	return ""

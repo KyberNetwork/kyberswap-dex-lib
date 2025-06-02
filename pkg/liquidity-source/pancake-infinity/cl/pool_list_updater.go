@@ -125,6 +125,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Reserves:    entity.PoolReserves{"0", "0"},
 			Tokens:      tokens,
 			StaticExtra: string(staticExtraBytes),
+			Extra:       "{}",
 		}
 		pools = append(pools, pool)
 	}
