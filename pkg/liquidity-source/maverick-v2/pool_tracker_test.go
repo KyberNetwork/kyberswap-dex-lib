@@ -3,6 +3,7 @@ package maverickv2
 import (
 	"context"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -11,6 +12,9 @@ import (
 )
 
 func TestGetFullPoolState(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
@@ -66,6 +70,9 @@ func TestGetFullPoolState(t *testing.T) {
 }
 
 func TestGetState(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
@@ -137,12 +144,27 @@ func TestGetState(t *testing.T) {
 }
 
 func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	// Test parameters
 	poolAddress := "0x31373595f40ea48a7aab6cbcb0d377c6066e2dca"
-	binCounter := uint32(615)
+
+	// Create pool tracker to get binCounter
+	config := &Config{
+		PoolLensAddress: "0x6A9EB38DE5D349Fe751E0aDb4c0D9D391f94cc8D",
+	}
+	tracker, err := NewPoolTracker(config, ethrpcClient)
+	assert.NoError(t, err)
+
+	// Get current state to get binCounter
+	state, _, err := tracker.getState(context.Background(), poolAddress)
+	assert.NoError(t, err)
+	binCounter := state.BinCounter
 
 	// Test cases with different batch sizes
 	testCases := []struct {
