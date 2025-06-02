@@ -12,6 +12,9 @@ import (
 )
 
 func TestGetFullPoolState(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
@@ -67,6 +70,9 @@ func TestGetFullPoolState(t *testing.T) {
 }
 
 func TestGetState(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 	// Create ethrpc client
 	ethrpcClient := ethrpc.New("https://ethereum.kyberengineering.io").SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
