@@ -113,7 +113,7 @@ func (t *PoolTracker) getNewPoolState(
 		blockNumber                  = rpcRes.BlockNumber
 	)
 
-	if staticExtra.PoolType == poolTypeMetaStable {
+	if staticExtra.PoolType == poolTypeMetaStable || staticExtra.PoolType == poolTypeStable {
 		factors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
 		for idx, factor := range rpcRes.ScalingFactors {
 			factors[idx], _ = uint256.FromBig(factor)
@@ -232,7 +232,7 @@ func (t *PoolTracker) queryRPC(
 		Method: poolMethodGetPausedState,
 	}, []any{&pausedState})
 
-	if poolType == poolTypeMetaStable {
+	if poolType == poolTypeMetaStable || poolType == poolTypeLegacyMetaStable {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress,
