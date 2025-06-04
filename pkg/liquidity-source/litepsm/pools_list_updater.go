@@ -74,8 +74,6 @@ func (d *PoolsListUpdater) newPool(ctx context.Context, psmCfg PSMConfig) (entit
 		debtTokenDecimals, gemTokenDecimals uint8
 	)
 
-	fmt.Println("psmCfg:", psmCfg.GemToken)
-
 	req := d.ethrpcClient.
 		NewRequest().
 		SetContext(ctx).
