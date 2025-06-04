@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolTracker struct {
@@ -56,18 +57,28 @@ func (t *PoolTracker) getNewPoolState(
 	defer func(startTime time.Time) {
 		logger.
 			WithFields(logger.Fields{
-				"dexID":             t.cfg.DexID,
-				"poolsUpdatedCount": 1,
-				"duration":          time.Since(startTime).Milliseconds(),
+				"exchange": pool.Exchange,
+				"address":  pool.Address,
+				"duration": time.Since(startTime).Milliseconds(),
 			}).
 			Info("finished GetNewPoolState")
 	}(time.Now())
 
-	litePSM, err := t.getLitePSM(ctx, pool.Address, overrides)
+	var staticExtra StaticExtra
+	err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"dexID": t.cfg.DexID,
-			"error": err,
+			"exchange": pool.Exchange,
+			"error":    err,
+		}).Error("can not unmarshal static extra")
+		return entity.Pool{}, err
+	}
+
+	litePSM, err := t.getLitePSM(ctx, staticExtra.Psm.String(), overrides)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"exchange": pool.Exchange,
+			"error":    err,
 		}).Error("get psm error")
 		return entity.Pool{}, err
 	}
@@ -78,17 +89,17 @@ func (t *PoolTracker) getNewPoolState(
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"dexID": t.cfg.DexID,
-			"error": err,
+			"exchange": pool.Exchange,
+			"error":    err,
 		}).Error("can not marshal extra")
 		return entity.Pool{}, err
 	}
 
-	reserves, err := t.getReserves(ctx, pool, overrides)
+	reserves, err := t.getReserves(ctx, pool, staticExtra, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"dexID": t.cfg.DexID,
-			"error": err,
+			"exchange": pool.Exchange,
+			"error":    err,
 		}).Error("get reserves error")
 		return entity.Pool{}, err
 	}
@@ -112,17 +123,15 @@ func (t *PoolTracker) getLitePSM(
 		NewRequest().
 		SetContext(ctx).
 		AddCall(&ethrpc.Call{
-			ABI:    litePSMABI,
+			ABI:    LitePSMABI,
 			Target: address,
 			Method: litePSMMethodTIn,
-			Params: nil,
-		}, []interface{}{&tIn}).
+		}, []any{&tIn}).
 		AddCall(&ethrpc.Call{
-			ABI:    litePSMABI,
+			ABI:    LitePSMABI,
 			Target: address,
 			Method: litePSMMethodTOut,
-			Params: nil,
-		}, []interface{}{&tOut})
+		}, []any{&tOut})
 
 	if overrides != nil {
 		req.SetOverrides(overrides)
@@ -145,44 +154,35 @@ func (t *PoolTracker) getLitePSM(
 func (t *PoolTracker) getReserves(
 	ctx context.Context,
 	pool entity.Pool,
+	staticExtra StaticExtra,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]*big.Int, error) {
-	var staticExtra StaticExtra
-	err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexID": t.cfg.DexID,
-			"error": err,
-		}).Error("can not unmarshal static extra")
-		return nil, err
-	}
-
 	var daiReserve, gemReserve *big.Int
-
 	req := t.ethrpcClient.
 		NewRequest().
 		SetContext(ctx).
 		AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: DAIAddress,
-			Method: erc20MethodBalanaceOf,
-			Params: []interface{}{common.HexToAddress(pool.Address)},
-		}, []interface{}{&daiReserve}).
+			ABI:    abi.Erc20ABI,
+			Target: staticExtra.Dai.String(),
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{staticExtra.Psm},
+		}, []any{&daiReserve}).
 		AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: staticExtra.Gem.Address,
-			Method: erc20MethodBalanaceOf,
-			Params: []interface{}{staticExtra.Pocket},
-		}, []interface{}{&gemReserve})
+			ABI:    abi.Erc20ABI,
+			Target: pool.Tokens[1].Address,
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{staticExtra.Pocket},
+		}, []any{&gemReserve})
+
 	if overrides != nil {
 		req.SetOverrides(overrides)
 	}
 
-	_, err = req.Aggregate()
+	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"dexID": DexTypeLitePSM,
-			"error": err,
+			"exchange": pool.Exchange,
+			"error":    err,
 		}).Error("[getReserves] eth rpc call error")
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 type PoolsListUpdater struct {
@@ -37,7 +38,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	err := d.initializeDexConfig()
+	psmConfigs, err := d.initializeDexConfig()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -46,9 +47,9 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools := make([]entity.Pool, 0, len(d.cfg.DexConfig.PSMs))
-	for _, psmCfg := range d.cfg.DexConfig.PSMs {
-		newPool, err := d.newPool(psmCfg)
+	pools := make([]entity.Pool, 0, len(d.cfg.ConfigPath))
+	for _, psmCfg := range psmConfigs {
+		newPool, err := d.newPool(ctx, psmCfg)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexID": d.cfg.DexID,
@@ -67,60 +68,69 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, nil, nil
 }
 
-func (d *PoolsListUpdater) newPool(psmCfg PSMConfig) (entity.Pool, error) {
-	token0 := &entity.PoolToken{
-		Address:   d.cfg.DexConfig.Dai.Address,
-		Decimals:  d.cfg.DexConfig.Dai.Decimals,
-		Swappable: true,
-	}
+func (d *PoolsListUpdater) newPool(ctx context.Context, psmCfg PSMConfig) (entity.Pool, error) {
+	var (
+		gemPocket                           common.Address
+		debtTokenDecimals, gemTokenDecimals uint8
+	)
 
-	token1 := &entity.PoolToken{
-		Address:   psmCfg.Gem.Address,
-		Decimals:  psmCfg.Gem.Decimals,
-		Swappable: true,
-	}
-
-	var gemPocket common.Address
 	req := d.ethrpcClient.
 		NewRequest().
+		SetContext(ctx).
 		AddCall(&ethrpc.Call{
-			ABI:    litePSMABI,
-			Target: psmCfg.Address,
-			Method: litePSMMethodPocket,
+			ABI:    abi.Erc20ABI,
+			Target: psmCfg.DebtToken,
+			Method: abi.Erc20DecimalsMethod,
+		}, []any{&debtTokenDecimals}).
+		AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: psmCfg.GemToken,
+			Method: abi.Erc20DecimalsMethod,
 			Params: nil,
-		}, []interface{}{&gemPocket})
+		}, []any{&gemTokenDecimals}).
+		AddCall(&ethrpc.Call{
+			ABI:    LitePSMABI,
+			Target: psmCfg.PoolAddress,
+			Method: litePSMMethodPocket,
+		}, []any{&gemPocket})
 
-	_, err := req.Call()
+	_, err := req.Aggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexID": DexTypeLitePSM,
-			"error": err,
-		}).Error("[getReserves] eth rpc call error")
 		return entity.Pool{}, err
 	}
 
-	staticExtra := StaticExtra{
-		Gem:    psmCfg.Gem,
+	staticExtraBytes, err := json.Marshal(StaticExtra{
 		Pocket: gemPocket,
-	}
-
-	staticExtraBytes, err := json.Marshal(staticExtra)
+		Psm:    common.HexToAddress(psmCfg.PsmAddress),
+		Dai:    common.HexToAddress(psmCfg.DaiToken),
+	})
 	if err != nil {
 		panic(err)
 	}
 
 	return entity.Pool{
-		Address:     strings.ToLower(psmCfg.Address),
-		Exchange:    d.cfg.DexID,
-		Type:        DexTypeLitePSM,
-		Tokens:      []*entity.PoolToken{token0, token1},
+		Address:  strings.ToLower(psmCfg.PoolAddress),
+		Exchange: d.cfg.DexID,
+		Type:     DexTypeLitePSM,
+		Tokens: []*entity.PoolToken{
+			{
+				Address:   strings.ToLower(psmCfg.DebtToken),
+				Decimals:  debtTokenDecimals,
+				Swappable: true,
+			},
+			{
+				Address:   strings.ToLower(psmCfg.GemToken),
+				Decimals:  gemTokenDecimals,
+				Swappable: true,
+			},
+		},
 		Reserves:    entity.PoolReserves{"0", "0"},
 		Timestamp:   time.Now().Unix(),
 		StaticExtra: string(staticExtraBytes),
 	}, nil
 }
 
-func (d *PoolsListUpdater) initializeDexConfig() error {
+func (d *PoolsListUpdater) initializeDexConfig() ([]PSMConfig, error) {
 	dexConfigBytes, ok := bytesByPath[d.cfg.ConfigPath]
 	if !ok {
 		err := fmt.Errorf("key %s not found", d.cfg.ConfigPath)
@@ -128,17 +138,18 @@ func (d *PoolsListUpdater) initializeDexConfig() error {
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not find dex config")
-		return err
+		return nil, err
 	}
 
-	err := json.Unmarshal(dexConfigBytes, &d.cfg.DexConfig)
+	var psmConfigs []PSMConfig
+	err := json.Unmarshal(dexConfigBytes, &psmConfigs)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
 		}).Error("can not unmarshal dex config")
-		return err
+		return nil, err
 	}
 
-	return nil
+	return psmConfigs, nil
 }

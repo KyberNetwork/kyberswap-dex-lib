@@ -22,7 +22,6 @@
     "stateMutability": "view",
     "type": "function"
   },
-
   {
     "inputs": [
       {
@@ -36,6 +35,19 @@
       {
         "internalType": "uint256",
         "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
