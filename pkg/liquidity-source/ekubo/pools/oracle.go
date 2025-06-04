@@ -25,6 +25,12 @@ func NewOraclePool(key *PoolKey, state *OraclePoolState) *OraclePool {
 	}
 }
 
+func (p *OraclePool) CloneState() any {
+	cloned := *p
+	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	return &cloned
+}
+
 func (p *OraclePool) SetSwapState(state quoting.SwapState) {
 	oracleState := state.(*OraclePoolSwapState)
 
