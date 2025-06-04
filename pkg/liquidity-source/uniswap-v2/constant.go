@@ -1,19 +1,19 @@
 package uniswapv2
 
+import (
+	"errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
 const (
 	DexType = "uniswap-v2"
-)
 
-var (
-	defaultGas = Gas{Swap: 60000}
-)
+	defaultGas = 76562
 
-const (
 	factoryMethodGetPair        = "allPairs"
 	factoryMethodAllPairsLength = "allPairsLength"
-)
 
-const (
 	pairMethodToken0      = "token0"
 	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
@@ -24,15 +24,29 @@ const (
 	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
 	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
 	memeswapPairMethodGetSwapFee               = "getFee"
-	babyDogeSwapPairMethodTransactionFee       = "transactionFee"
-)
 
-const (
 	FeeTrackerIDMMF         = "mmf"
 	FeeTrackerIDMdex        = "mdex"
 	FeeTrackerIDShibaswap   = "shibaswap"
 	FeeTrackerIDDefiswap    = "defiswap"
 	FeeTrackerZKSwapFinance = "zkswap-finance"
 	FeeTrackerMemeswap      = "memeswap"
-	FeeTrackerBabyDogeSwap  = "babydogeswap"
+)
+
+var (
+	approvalAddressByExchange = map[string]string{
+		valueobject.ExchangeBabyDogeSwap: "0xC9a0F685F39d05D835c369036251ee3aEaaF3c47",
+	}
+	extraGasByExchange = map[string]int64{
+		valueobject.ExchangeBabyDogeSwap: 259957 - defaultGas,
+	}
+
+	ErrInvalidToken             = errors.New("invalid token")
+	ErrInvalidReserve           = errors.New("invalid reserve")
+	ErrInvalidAmountIn          = errors.New("invalid amount in")
+	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
+	ErrInvalidAmountOut         = errors.New("invalid amount out")
+	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
+	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
+	ErrInvalidK                 = errors.New("K")
 )
