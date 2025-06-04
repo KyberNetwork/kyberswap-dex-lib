@@ -1,0 +1,9 @@
+[
+  {
+    "poolAddress": "0xa188eec8f81263234da3622a406892f3d630f98c",
+    "psmAddress": "0xf6e72Db5454dd049d0788e411b06CfAF16853042",
+    "daiToken": "0x6b175474e89094c44da98b954eedeac495271d0f",
+    "debtToken": "0xdc035d45d973e3ec169d2276ddab16f1e407384f",
+    "gemToken": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+  }
+]

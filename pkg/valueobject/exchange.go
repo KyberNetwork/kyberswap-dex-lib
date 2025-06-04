@@ -359,6 +359,7 @@ const (
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUsd0PP                     = "usd0pp"
+	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeVVS                        = "vvs"
 	ExchangeValleySwap                 = "valleyswap"
 	ExchangeValleySwapV2               = "valleyswap-v2"
@@ -744,6 +745,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
 	ExchangeUsd0PP:                     {},
+	ExchangeUsdsLitePsm:                {},
 	ExchangeVVS:                        {},
 	ExchangeValleySwap:                 {},
 	ExchangeValleySwapV2:               {},

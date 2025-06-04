@@ -276,6 +276,7 @@ type Types struct {
 	Ambient                    string
 	MaverickV2                 string
 	LitePSM                    string
+	UsdsLitePSM                string
 	Usd0PP                     string
 	Bebop                      string
 	Dexalot                    string
