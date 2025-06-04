@@ -37,6 +37,13 @@ func (p *FullRangePool) GetState() any {
 	return p.FullRangePoolState
 }
 
+func (p *FullRangePool) CloneState() any {
+	cloned := *p
+	clonedFullRangePoolState := *p.FullRangePoolState
+	cloned.FullRangePoolState = &clonedFullRangePoolState
+	return &cloned
+}
+
 func (p *FullRangePool) SetSwapState(state quoting.SwapState) {
 	p.FullRangePoolSwapState = state.(*FullRangePoolSwapState)
 }
