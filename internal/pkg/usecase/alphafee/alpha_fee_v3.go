@@ -61,6 +61,9 @@ func (c *AlphaFeeV3Calculation) Calculate(ctx context.Context, param AlphaFeePar
 	ammBestRouteAmountOut := c.getAMMBestRouteAmountOut(ctx, param)
 
 	pathReductions := c.getReductionPerPath(ctx, param, routeInfo, ammBestRouteAmountOut)
+	if len(pathReductions) == 0 {
+		return nil, nil
+	}
 
 	swapReductions, err := c.getReductionPerSwap(ctx, param, pathReductions, routeInfo)
 	if err != nil {
@@ -187,9 +190,12 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 	executedId := 0
 	for idx, path := range param.BestRoute.Paths {
 		pathInfo := routeInfo[idx]
-		pathContainsAlphaFeeSources := isPathContainsAlphaFeeSources(pathInfo)
+		shouldTakeAlphaFeeInPath := isPathContainsAlphaFeeSources(pathInfo) &&
+			pointer < len(pathReductions) &&
+			pathReductions[pointer].PathIdx == idx
+
 		var pathSurplusRate, totalWeight float64
-		if pathContainsAlphaFeeSources {
+		if shouldTakeAlphaFeeInPath {
 			surplusAmountF, _ := pathReductions[pointer].ReduceAmount.Float64()
 			pathAmountOutF, _ := path.AmountOut.Float64()
 			pathSurplusRate = surplusAmountF / pathAmountOutF
@@ -200,6 +206,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 					totalWeight += float64(weight)
 				}
 			}
+			pointer++
 		}
 
 		// Update the path amount out and the path reduction.
@@ -227,7 +234,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 			var currentAmountOut big.Int
 			currentAmountOut.Set(res.TokenAmountOut.Amount)
 
-			if privo.IsAlphaFeeSource(pool.GetExchange()) {
+			if shouldTakeAlphaFeeInPath && privo.IsAlphaFeeSource(pool.GetExchange()) {
 				currentAmountOutF, _ := currentAmountOut.Float64()
 
 				// https://www.notion.so/kybernetwork/Alpha-Fee-Phase-3-20026751887e809b9d53f6937378078c
@@ -355,35 +362,48 @@ func (c *AlphaFeeV3Calculation) GetFairPrice(
 }
 
 func (c *AlphaFeeV3Calculation) getReductionFactor(pool dexlibPool.IPoolSimulator) float64 {
-	if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]; ok {
-		return sourceReductionFactorF
+	if c.config.ReductionConfig.ReductionFactorByPool != nil {
+		if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]; ok {
+			return sourceReductionFactorF
+		}
 	}
-	if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]; ok {
-		return sourceReductionFactorF
 
+	if c.config.ReductionConfig.ReductionFactorInBps != nil {
+		if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]; ok {
+			return sourceReductionFactorF
+		}
 	}
 
 	return DefaultReductionFactor
 }
 
 func (c *AlphaFeeV3Calculation) getWeightDistribute(pool dexlibPool.IPoolSimulator, tokenIn, tokenOut string) int {
-	if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByPool[pool.GetAddress()]; ok {
-		return weightDistribute
-	}
-
-	tokenGroupParams := routerValueObject.TokenGroupParams{
-		TokenIn:  tokenIn,
-		TokenOut: tokenOut,
-		Exchange: pool.GetExchange(),
-	}
-	if groupType, ok := c.tokenGroups.GetTokenGroupType(tokenGroupParams); ok {
-		if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByTokenGroup[groupType]; ok {
+	if c.config.ReductionConfig.WeightDistributeByPool != nil {
+		if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByPool[pool.GetAddress()]; ok {
 			return weightDistribute
 		}
 	}
 
-	if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeBySource[pool.GetExchange()]; ok {
-		return weightDistribute
+	if c.tokenGroups != nil {
+		tokenGroupParams := routerValueObject.TokenGroupParams{
+			TokenIn:  tokenIn,
+			TokenOut: tokenOut,
+			Exchange: pool.GetExchange(),
+		}
+
+		if groupType, ok := c.tokenGroups.GetTokenGroupType(tokenGroupParams); ok {
+			if c.config.ReductionConfig.WeightDistributeByTokenGroup != nil {
+				if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeByTokenGroup[groupType]; ok {
+					return weightDistribute
+				}
+			}
+		}
+	}
+
+	if c.config.ReductionConfig.WeightDistributeBySource != nil {
+		if weightDistribute, ok := c.config.ReductionConfig.WeightDistributeBySource[pool.GetExchange()]; ok {
+			return weightDistribute
+		}
 	}
 
 	return DefaultWeightDistribute
