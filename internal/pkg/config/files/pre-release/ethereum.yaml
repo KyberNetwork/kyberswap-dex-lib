@@ -159,6 +159,7 @@ common:
     - "hyeth"
     - "mimswap"
     - "native-v3"
+    - "usds-lite-psm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

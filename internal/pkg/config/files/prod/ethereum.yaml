@@ -170,6 +170,7 @@ common:
     - "hyeth"
     - "mimswap"
     - "native-v3"
+    - "usds-lite-psm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -267,7 +268,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl: ""
+  httpUrl: https://ks-setting-admin.kyberengineering.io/api/v1/admin/configurations?serviceCode=aggregator-1
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -767,11 +768,11 @@ aevmEnabled: false
 aevm:
   serverUrl: "localhost:8246"
   publishingPoolsUrls:
-  retryOnTimeOutMs: 500
-  findRouteRetryOnTimeOutMs: 1000
+  retryOnTimeOutMs: 5000
+  findRouteRetryOnTimeOutMs: 10000
   maxRetry: 3
   rpc: "http://localhost:8545"
-  simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  simulationWallet: "0x6759aCD57cB5EA451a3eDF397734eDDDFc123049"
   useHoldersListAsFallback: false
   tokenHoldersRedis:
     addresses:
@@ -788,7 +789,7 @@ aevm:
     # LIDO token
     0x5a98fcbea516cf06857215779fd812ca3bef1b32:
       token: 0x5a98fcbea516cf06857215779fd812ca3bef1b32
-      wallet: 0x19767032471665df0fd7f6160381a103ece6261a
+      wallet: 0x6759aCD57cB5EA451a3eDF397734eDDDFc123049
       found: true
       balanceSlot: 0x1d92366e0eb8047c54dfd3b4dbea0f8e23e5b021de7fe643c5e1b27c1a169cf0
       # the first 128 bits is balance = 0x0000ffffffffffffffffffffffffffff (which is large enough)
