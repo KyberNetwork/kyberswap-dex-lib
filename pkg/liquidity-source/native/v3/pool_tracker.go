@@ -44,17 +44,12 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		"dexID":       d.config.DexID,
 	})
 
-	var staticExtra StaticExtra
-	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-	if err != nil {
-		return nil, err
-	}
-
 	var (
 		slot0                  Slot0
 		liquidity, tickSpacing *big.Int
 
-		reserves = [2]*big.Int{Zero, Zero}
+		reserves         = [2]*big.Int{common.Big0, common.Big0}
+		underlyingTokens = make([]common.Address, len(p.Tokens))
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -82,10 +77,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Method: poolMethodTickSpacing,
 	}, []any{&tickSpacing})
 
-	var underlyingTokens = make([]common.Address, len(p.Tokens))
-	var needFetchUnderlyingToken = len(staticExtra.UnderlyingTokens) == 0
-
-	for i := range len(p.Tokens) {
+	// Only query state from the first 2 tokens (which are the 2 LP tokens of the pool)
+	for i := range 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[i].Address,
@@ -93,14 +86,12 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&reserves[i]})
 
-		if needFetchUnderlyingToken {
-			rpcRequest.AddCall(&ethrpc.Call{
-				ABI:    lpTokenABI,
-				Target: p.Tokens[i].Address,
-				Method: lpTokenMethodUnderlying,
-				Params: nil,
-			}, []any{&underlyingTokens[i]})
-		}
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    lpTokenABI,
+			Target: p.Tokens[i].Address,
+			Method: lpTokenMethodUnderlying,
+			Params: nil,
+		}, []any{&underlyingTokens[i]})
 	}
 
 	res, err := rpcRequest.TryBlockAndAggregate()
@@ -111,19 +102,11 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 
-	if needFetchUnderlyingToken {
-		staticExtra.UnderlyingTokens = [2]string{
-			underlyingTokens[0].Hex(),
-			underlyingTokens[1].Hex(),
-		}
-	}
-
 	return &FetchRPCResult{
 		Liquidity:        liquidity,
 		Slot0:            slot0,
 		Reserves:         reserves,
-		TickSpacing:      staticExtra.TickSpacing,
-		UnderlyingTokens: staticExtra.UnderlyingTokens,
+		UnderlyingTokens: underlyingTokens,
 		BlockNumber:      res.BlockNumber.Uint64(),
 	}, nil
 }
@@ -210,27 +193,19 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{
-		TickSpacing:      rpcData.TickSpacing,
-		UnderlyingTokens: rpcData.UnderlyingTokens,
-	})
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to marshal static extra data")
-		return entity.Pool{}, err
-	}
-
 	if rpcData.Slot0.Unlocked {
-		p.Reserves = entity.PoolReserves{
-			rpcData.Reserves[0].String(),
-			rpcData.Reserves[1].String(),
-		}
+		p.Reserves = lo.Map(p.Tokens, func(_ *entity.PoolToken, i int) string {
+			if i < 2 {
+				return rpcData.Reserves[i].String()
+			}
+			return "1"
+		})
 	} else {
-		p.Reserves = entity.PoolReserves{"0", "0"}
+		p.Reserves = lo.Map(p.Tokens, func(_ *entity.PoolToken, _ int) string {
+			return "0"
+		})
 	}
 
-	p.StaticExtra = string(staticExtraBytes)
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = rpcData.BlockNumber

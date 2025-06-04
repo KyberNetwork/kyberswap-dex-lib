@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
@@ -31,8 +32,12 @@ type (
 	}
 
 	StaticExtra struct {
-		TickSpacing      uint64    `json:"tickSpacing"`
-		UnderlyingTokens [2]string `json:"underlyingTokens"`
+		TickSpacing uint64 `json:"tickSpacing"`
+	}
+
+	StaticData struct {
+		TickSpacing      uint64   `json:"tickSpacing"`
+		UnderlyingTokens []string `json:"underlyingTokens"`
 	}
 
 	ExtraTickU256 struct {
@@ -48,8 +53,7 @@ type (
 		Liquidity        *big.Int
 		Slot0            Slot0
 		Reserves         [2]*big.Int
-		TickSpacing      uint64
-		UnderlyingTokens [2]string
+		UnderlyingTokens []common.Address
 	}
 
 	Slot0 struct {
@@ -80,8 +84,8 @@ type (
 		FeeTier            string `json:"feeTier"`
 		PoolType           string `json:"poolType"`
 		CreatedAtTimestamp string `json:"createdAtTimestamp"`
-		Token0             Token  `json:"token0"`
-		Token1             Token  `json:"token1"`
+		LpToken0           Token  `json:"token0"`
+		LpToken1           Token  `json:"token1"`
 	}
 
 	Gas = uniswapv3.Gas

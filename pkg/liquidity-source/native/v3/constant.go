@@ -2,7 +2,6 @@ package v3
 
 import (
 	"errors"
-	"math/big"
 )
 
 const (
@@ -29,8 +28,6 @@ const (
 )
 
 var (
-	Zero = big.NewInt(0)
-
 	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
 
 	ErrPoolLocked      = errors.New("pool is locked")

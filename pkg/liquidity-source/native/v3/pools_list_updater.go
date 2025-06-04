@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -66,36 +67,56 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 	return response.Pools, nil
 }
 
-func (d *PoolsListUpdater) processToken(token Token) *entity.PoolToken {
-	decimals, err := kutils.Atou[uint8](token.Decimals)
+func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) entity.Pool {
+	decimals0, err := kutils.Atou[uint8](p.LpToken0.Decimals)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"token": token.Address,
+			"token": p.LpToken0.Address,
 			"error": err,
 		}).Warn("invalid decimals, using default")
-		decimals = defaultTokenDecimals
+		decimals0 = defaultTokenDecimals
 	}
 
-	return &entity.PoolToken{
-		Address:   token.Address,
-		Symbol:    token.Symbol,
-		Decimals:  decimals,
-		Swappable: true,
-	}
-}
-
-func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticExtra) entity.Pool {
-	tokens := make([]*entity.PoolToken, 0, 2)
-	reserves := make([]string, 0, 2)
-
-	if token0 := d.processToken(p.Token0); token0 != nil {
-		tokens = append(tokens, token0)
-		reserves = append(reserves, "0")
+	decimals1, err := kutils.Atou[uint8](p.LpToken1.Decimals)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"token": p.LpToken1.Address,
+			"error": err,
+		}).Warn("invalid decimals, using default")
+		decimals1 = defaultTokenDecimals
 	}
 
-	if token1 := d.processToken(p.Token1); token1 != nil {
-		tokens = append(tokens, token1)
-		reserves = append(reserves, "0")
+	tokens := []*entity.PoolToken{
+		{
+			Address:   p.LpToken0.Address,
+			Decimals:  decimals0,
+			Symbol:    p.LpToken0.Symbol,
+			Swappable: true,
+		},
+		{
+			Address:   p.LpToken1.Address,
+			Decimals:  decimals1,
+			Symbol:    p.LpToken1.Symbol,
+			Swappable: true,
+		},
+	}
+
+	// Add underlying tokens if exists
+	for i, underlyingToken := range staticData.UnderlyingTokens {
+		if strings.EqualFold(underlyingToken, valueobject.ZeroAddress) {
+			continue
+		}
+
+		tokens = append(tokens, &entity.PoolToken{
+			Address:   underlyingToken,
+			Decimals:  lo.Ternary(i == 0, decimals0, decimals1),
+			Swappable: true,
+		})
+	}
+
+	reserves := make(entity.PoolReserves, len(tokens))
+	for i := range reserves {
+		reserves[i] = "0"
 	}
 
 	swapFee, err := strconv.ParseFloat(p.FeeTier, 64)
@@ -117,18 +138,17 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticExtra) e
 	}
 
 	staticBytes, err := json.Marshal(StaticExtra{
-		TickSpacing:      staticData.TickSpacing,
-		UnderlyingTokens: staticData.UnderlyingTokens,
+		TickSpacing: staticData.TickSpacing,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool":  p.ID,
 			"error": err,
-		}).Error("failed to marshal static data")
+		}).Error("failed to marshal static extra data")
 	}
 
 	return entity.Pool{
-		Address:     p.ID,
+		Address:     strings.ToLower(p.ID),
 		SwapFee:     swapFee,
 		Exchange:    d.config.DexID,
 		Type:        DexType,
@@ -201,8 +221,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (d *PoolsListUpdater) FetchStaticData(
 	ctx context.Context,
 	pools []SubgraphPool,
-) (map[string]StaticExtra, error) {
-	result := make(map[string]StaticExtra, len(pools))
+) (map[string]StaticData, error) {
+	result := make(map[string]StaticData, len(pools))
 
 	for i := 0; i < len(pools); i += rpcChunkSize {
 		endIndex := min(i+rpcChunkSize, len(pools))
@@ -223,14 +243,14 @@ func (d *PoolsListUpdater) FetchStaticData(
 
 			req.AddCall(&ethrpc.Call{
 				ABI:    lpTokenABI,
-				Target: pool.Token0.Address,
+				Target: pool.LpToken0.Address,
 				Method: lpTokenMethodUnderlying,
 				Params: nil,
 			}, []any{&underlyingTokens0[j]})
 
 			req.AddCall(&ethrpc.Call{
 				ABI:    lpTokenABI,
-				Target: pool.Token1.Address,
+				Target: pool.LpToken1.Address,
 				Method: lpTokenMethodUnderlying,
 				Params: nil,
 			}, []any{&underlyingTokens1[j]})
@@ -248,9 +268,9 @@ func (d *PoolsListUpdater) FetchStaticData(
 
 		for j := range chunk {
 			poolAddress := pools[i+j].ID
-			result[poolAddress] = StaticExtra{
+			result[poolAddress] = StaticData{
 				TickSpacing: tickSpacings[j].Uint64(),
-				UnderlyingTokens: [2]string{
+				UnderlyingTokens: []string{
 					strings.ToLower(underlyingTokens0[j].Hex()),
 					strings.ToLower(underlyingTokens1[j].Hex()),
 				},
