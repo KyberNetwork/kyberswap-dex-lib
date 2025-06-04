@@ -32,7 +32,8 @@ type (
 	}
 
 	StaticExtra struct {
-		TickSpacing uint64 `json:"tickSpacing"`
+		TickSpacing            uint64 `json:"tickSpacing"`
+		UnderlyingTokenScanned bool   `json:"scanned"`
 	}
 
 	StaticData struct {

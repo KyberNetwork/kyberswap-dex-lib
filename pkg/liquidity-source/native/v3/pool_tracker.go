@@ -44,6 +44,11 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		"dexID":       d.config.DexID,
 	})
 
+	var scanned bool
+	if ctx.Value("scanned") != nil {
+		scanned = ctx.Value("scanned").(bool)
+	}
+
 	var (
 		slot0                  Slot0
 		liquidity, tickSpacing *big.Int
@@ -86,12 +91,14 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&reserves[i]})
 
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    lpTokenABI,
-			Target: p.Tokens[i].Address,
-			Method: lpTokenMethodUnderlying,
-			Params: nil,
-		}, []any{&underlyingTokens[i]})
+		if !scanned {
+			rpcRequest.AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodUnderlying,
+				Params: nil,
+			}, []any{&underlyingTokens[i]})
+		}
 	}
 
 	res, err := rpcRequest.TryBlockAndAggregate()

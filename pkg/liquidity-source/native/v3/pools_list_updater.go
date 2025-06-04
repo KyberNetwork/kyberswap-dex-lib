@@ -138,7 +138,8 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) en
 	}
 
 	staticBytes, err := json.Marshal(StaticExtra{
-		TickSpacing: staticData.TickSpacing,
+		TickSpacing:            staticData.TickSpacing,
+		UnderlyingTokenScanned: true,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
