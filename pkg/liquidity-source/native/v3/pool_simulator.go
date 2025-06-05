@@ -175,11 +175,11 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	totalGas := p.Gas.BaseGas
 	// Add unwrap gas cost if tokenIn is not a LP token
-	if tokenInIndex >= 2 {
+	if tokenInIndex < 2 {
 		totalGas += WrapGasCost
 	}
 	// Add unwrap gas cost if tokenOut is not a LP token
-	if tokenOutIndex >= 2 {
+	if tokenOutIndex < 2 {
 		totalGas += WrapGasCost
 	}
 
@@ -236,11 +236,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	gasCost := p.Gas.BaseGas
 	// Add unwrap gas cost if tokenIn is not a LP token
-	if tokenInIndex >= 2 {
+	if tokenInIndex < 2 {
 		gasCost += UnwrapGasCost
 	}
 	// Add wrap gas cost if tokenOut is not a LP token
-	if tokenOutIndex >= 2 {
+	if tokenOutIndex < 2 {
 		gasCost += WrapGasCost
 	}
 
@@ -276,9 +276,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrAmountOutZero
 	}
 
-	lpTokenIn, lpTokenOut := p.Info.Tokens[0], p.Info.Tokens[1]
+	numTokens := len(p.Info.Tokens)
+	lpTokenIn, lpTokenOut := p.Info.Tokens[numTokens-2], p.Info.Tokens[numTokens-1]
 	if !zeroForOne {
-		lpTokenIn, lpTokenOut = p.Info.Tokens[1], p.Info.Tokens[0]
+		lpTokenIn, lpTokenOut = p.Info.Tokens[numTokens-1], p.Info.Tokens[numTokens-2]
 	}
 
 	// Add cross tick gas cost
@@ -359,7 +360,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 }
 
 func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	if idx := p.GetTokenIndex(tokenIn); idx >= 2 && idx < len(p.Info.Tokens) {
+	if idx := p.GetTokenIndex(tokenIn); idx >= 0 && idx < 2 {
 		return p.Info.Tokens[idx]
 	}
 
