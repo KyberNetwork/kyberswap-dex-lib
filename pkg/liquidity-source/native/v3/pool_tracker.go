@@ -78,14 +78,18 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Method: poolMethodTickSpacing,
 	}, []any{&tickSpacing})
 
-	// Only query state from the first 2 tokens (which are the 2 LP tokens of the pool)
-	for i := range 2 {
+	start := 0
+	if len(p.Tokens) == 4 {
+		start = 2
+	}
+
+	for i := start; i < len(p.Tokens); i++ {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[i].Address,
 			Method: erc20MethodBalanceOf,
 			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserves[i]})
+		}, []any{&reserves[i-start]})
 
 		if !isUnderlyingScanned {
 			rpcRequest.AddCall(&ethrpc.Call{
@@ -93,7 +97,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 				Target: p.Tokens[i].Address,
 				Method: lpTokenMethodUnderlying,
 				Params: nil,
-			}, []any{&underlyingTokens[i]})
+			}, []any{&underlyingTokens[i-start]})
 		}
 	}
 

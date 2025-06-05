@@ -71,20 +71,7 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) en
 	decimals0, _ := kutils.Atou[uint8](p.LpToken0.Decimals)
 	decimals1, _ := kutils.Atou[uint8](p.LpToken1.Decimals)
 
-	tokens := []*entity.PoolToken{
-		{
-			Address:   p.LpToken0.Address,
-			Decimals:  decimals0,
-			Symbol:    p.LpToken0.Symbol,
-			Swappable: true,
-		},
-		{
-			Address:   p.LpToken1.Address,
-			Decimals:  decimals1,
-			Symbol:    p.LpToken1.Symbol,
-			Swappable: true,
-		},
-	}
+	tokens := make([]*entity.PoolToken, 0, 4)
 
 	// Add underlying tokens if exists
 	for i, underlyingToken := range staticData.UnderlyingTokens {
@@ -98,6 +85,21 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) en
 			Swappable: true,
 		})
 	}
+
+	tokens = append(tokens,
+		&entity.PoolToken{
+			Address:   p.LpToken0.Address,
+			Decimals:  decimals0,
+			Symbol:    p.LpToken0.Symbol,
+			Swappable: true,
+		},
+		&entity.PoolToken{
+			Address:   p.LpToken1.Address,
+			Decimals:  decimals1,
+			Symbol:    p.LpToken1.Symbol,
+			Swappable: true,
+		},
+	)
 
 	reserves := make(entity.PoolReserves, len(tokens))
 	for i := range reserves {
