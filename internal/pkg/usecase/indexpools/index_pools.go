@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -250,10 +249,6 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 		if err := u.processBalancerV2(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil && result == nil {
 			result = err
 		}
-	case pooltypes.PoolTypes.NativeV3:
-		if err := u.processNativeV3(ctx, pool, tvlNative, amplifiedTvlNative, handler); err != nil && result == nil {
-			result = err
-		}
 	}
 
 	return result
@@ -261,11 +256,19 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 
 func (u *IndexPoolsUseCase) processMainPoolIndexes(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
 	var result error
+
+	// For some DEXes, prevent swapping between underlying and wrapped tokens within the same pool
+	hasWrappedTokens := pool.Type == pooltypes.PoolTypes.RingSwap || pool.Type == pooltypes.PoolTypes.NativeV3
+
 	for i, tokenI := range pool.Tokens {
 		if !tokenI.Swappable || len(pool.Reserves)-1 < i {
 			continue
 		}
 		for j := i + 1; j < len(pool.Tokens); j++ {
+			if hasWrappedTokens && i%2 == j%2 {
+				continue
+			}
+
 			tokenJ := pool.Tokens[j]
 			if !tokenJ.Swappable || len(pool.Reserves)-1 < j {
 				continue
@@ -275,52 +278,6 @@ func (u *IndexPoolsUseCase) processMainPoolIndexes(ctx context.Context, pool *en
 				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
 					result = err
 				}
-			}
-		}
-	}
-
-	return result
-}
-
-func (u *IndexPoolsUseCase) processNativeV3(ctx context.Context, pool *entity.Pool, tvl, amplifiedTvl float64, handler IndexProcessingHandler) error {
-	var extra struct {
-		UnderlyingTokens []string `json:"underlyingTokens"`
-	}
-
-	if err := json.Unmarshal([]byte(pool.StaticExtra), &extra); err != nil {
-		return nil
-	}
-
-	// Becase we know there are exactly 2 tokens in main pool and 2 in underlying
-	if len(pool.Tokens) != 2 || len(extra.UnderlyingTokens) != 2 {
-		return nil
-	}
-
-	tokenA := pool.Tokens[0]
-	tokenB := pool.Tokens[1]
-	underlyingA := extra.UnderlyingTokens[0]
-	underlyingB := extra.UnderlyingTokens[1]
-
-	if !tokenA.Swappable || !tokenB.Swappable || !pool.HasReserve(pool.Reserves[0]) || !pool.HasReserve(pool.Reserves[1]) {
-		return nil
-	}
-
-	pairs := []struct {
-		token0 string
-		token1 string
-	}{
-		{tokenA.Address, tokenB.Address},
-		{tokenA.Address, underlyingB},
-		{underlyingA, tokenB.Address},
-		{underlyingA, underlyingB},
-	}
-
-	var result error
-	for _, pair := range pairs {
-		if !strings.EqualFold(pair.token0, valueobject.ZeroAddress) &&
-			!strings.EqualFold(pair.token1, valueobject.ZeroAddress) {
-			if err := handler(ctx, NewPoolIndex(pool, pair.token0, pair.token1, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
-				result = err
 			}
 		}
 	}
