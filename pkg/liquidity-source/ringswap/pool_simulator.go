@@ -21,7 +21,6 @@ type PoolSimulator struct {
 	fee          *uint256.Int
 	feePrecision *uint256.Int
 
-	gas              uniswapv2.Gas
 	originalReserves uniswapv2.ReserveData
 }
 
@@ -49,7 +48,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		fee:              uint256.NewInt(staticExtra.Fee),
 		feePrecision:     uint256.NewInt(staticExtra.FeePrecision),
-		gas:              defaultGas,
 		originalReserves: originalReserves,
 	}, nil
 }
@@ -110,7 +108,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas: s.gas.Swap,
+		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,
 			WTokenOut:   wTokenOut,
@@ -201,7 +199,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas: s.gas.Swap,
+		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,
 			WTokenOut:   wTokenOut,
