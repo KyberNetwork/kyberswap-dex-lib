@@ -2,17 +2,11 @@ package ringswap
 
 import (
 	"errors"
-
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 )
 
 const (
-	DexType     = "ringswap"
-	ZeroAddress = "0x0000000000000000000000000000000000000000"
-)
-
-var (
-	defaultGas = uniswapv2.Gas{Swap: 225000}
+	DexType    = "ringswap"
+	defaultGas = 225000
 )
 
 const (

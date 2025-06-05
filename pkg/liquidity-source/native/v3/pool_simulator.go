@@ -26,10 +26,9 @@ type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	Gas    Gas
 
-	unlocked         bool
-	underlyingTokens [2]string
-	tickMin          int
-	tickMax          int
+	unlocked bool
+	tickMin  int
+	tickMax  int
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -49,25 +48,34 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
-	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address),
-		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
-	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address),
-		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
+	token0 := coreEntities.NewToken(
+		uint(chainID),
+		common.HexToAddress(entityPool.Tokens[0].Address),
+		uint(entityPool.Tokens[0].Decimals),
+		entityPool.Tokens[0].Symbol,
+		"",
+	)
+	token1 := coreEntities.NewToken(
+		uint(chainID),
+		common.HexToAddress(entityPool.Tokens[1].Address),
+		uint(entityPool.Tokens[1].Decimals),
+		entityPool.Tokens[1].Symbol,
+		"",
+	)
 
 	swapFee := big.NewInt(int64(entityPool.SwapFee))
-	tokens := make([]string, 2)
-	reserves := make([]*big.Int, 2)
-	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
-		tokens[0] = entityPool.Tokens[0].Address
-		reserves[0] = bignumber.NewBig(entityPool.Reserves[0])
-		tokens[1] = entityPool.Tokens[1].Address
-		reserves[1] = bignumber.NewBig(entityPool.Reserves[1])
+	tokens := make([]string, len(entityPool.Tokens))
+	reserves := make([]*big.Int, len(entityPool.Tokens))
+	if len(entityPool.Reserves) >= 2 && len(entityPool.Tokens) >= 2 {
+		for i := range entityPool.Tokens {
+			tokens[i] = entityPool.Tokens[i].Address
+			reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
+		}
 	}
-
-	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
 
 	// Ticks are sorted from the pool service, so we don't have to do it again here
 	// Purpose: to improve the latency
+	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
 	for _, t := range extra.Ticks {
 		// LiquidityGross = 0 means that the tick is uninitialized
 		if t.LiquidityGross.IsZero() {
@@ -128,13 +136,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	return &PoolSimulator{
-		Pool:             pool.Pool{Info: info},
-		V3Pool:           v3Pool,
-		Gas:              defaultGas,
-		unlocked:         extra.Unlocked,
-		underlyingTokens: staticExtra.UnderlyingTokens,
-		tickMin:          tickMin,
-		tickMax:          tickMax,
+		Pool:     pool.Pool{Info: info},
+		V3Pool:   v3Pool,
+		Gas:      defaultGas,
+		unlocked: extra.Unlocked,
+		tickMin:  tickMin,
+		tickMax:  tickMax,
 	}, nil
 }
 
@@ -158,26 +165,25 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	tokenInIndex := p.GetTokenIndex(tokenIn)
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
-	underlyingTokenInIndex := p.GetUnderlyingTokenIndex(tokenIn)
-	underlyingTokenOutIndex := p.GetUnderlyingTokenIndex(tokenOut)
 
-	if tokenInIndex < 0 && underlyingTokenInIndex < 0 {
+	if tokenInIndex < 0 {
 		return nil, ErrTokenInInvalid
 	}
-	if tokenOutIndex < 0 && underlyingTokenOutIndex < 0 {
+	if tokenOutIndex < 0 {
 		return nil, ErrTokenOutInvalid
 	}
 
 	totalGas := p.Gas.BaseGas
-	// Add wrap gas cost if needed
-	if tokenInIndex < 0 {
+	// Add unwrap gas cost if tokenIn is not a LP token
+	if tokenInIndex >= 2 {
 		totalGas += WrapGasCost
 	}
-	if tokenOutIndex < 0 {
+	// Add unwrap gas cost if tokenOut is not a LP token
+	if tokenOutIndex >= 2 {
 		totalGas += WrapGasCost
 	}
 
-	zeroForOne := tokenInIndex == 0 || underlyingTokenInIndex == 0
+	zeroForOne := tokenInIndex%2 == 0
 	amountOut := coreEntities.FromRawAmount(lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
 		tokenAmountOut.Amount)
 	var priceLimit v3Utils.Uint160
@@ -220,23 +226,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenIn := tokenAmountIn.Token
 	tokenInIndex := p.GetTokenIndex(tokenIn)
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
-	underlyingTokenInIndex := p.GetUnderlyingTokenIndex(tokenIn)
-	underlyingTokenOutIndex := p.GetUnderlyingTokenIndex(tokenOut)
 
-	if tokenInIndex < 0 && underlyingTokenInIndex < 0 {
+	if tokenInIndex < 0 {
 		return nil, ErrTokenInInvalid
 	}
-	if tokenOutIndex < 0 && underlyingTokenOutIndex < 0 {
+	if tokenOutIndex < 0 {
 		return nil, ErrTokenOutInvalid
 	}
 
 	gasCost := p.Gas.BaseGas
-	// Add unwrap gas cost if tokenIn is underlying token
-	if underlyingTokenInIndex >= 0 {
+	// Add unwrap gas cost if tokenIn is not a LP token
+	if tokenInIndex >= 2 {
 		gasCost += UnwrapGasCost
 	}
-	// Add wrap gas cost if tokenOut is underlying token
-	if underlyingTokenOutIndex >= 0 {
+	// Add wrap gas cost if tokenOut is not a LP token
+	if tokenOutIndex >= 2 {
 		gasCost += WrapGasCost
 	}
 
@@ -245,7 +249,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrOverflow
 	}
 
-	zeroForOne := tokenInIndex == 0 || underlyingTokenInIndex == 0
+	zeroForOne := tokenInIndex%2 == 0
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
@@ -322,45 +326,28 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
-	tokenIndex := p.GetTokenIndex(address)
-	if tokenIndex > -1 {
-		return []string{p.Info.Tokens[1-tokenIndex], p.underlyingTokens[1-tokenIndex]}
+	idx := p.GetTokenIndex(address)
+	if idx < 0 {
+		return []string{}
 	}
 
-	underlyingIndex := p.GetUnderlyingTokenIndex(address)
-	if underlyingIndex > -1 {
-		return []string{p.Info.Tokens[1-underlyingIndex], p.underlyingTokens[1-underlyingIndex]}
-	}
-
-	return []string{}
-}
-
-func (p *PoolSimulator) GetUnderlyingTokenIndex(address string) int {
-	for i, token := range p.underlyingTokens {
-		if strings.EqualFold(token, address) {
-			return i
+	result := make([]string, 0, len(p.Info.Tokens))
+	for i, token := range p.Info.Tokens {
+		if i != idx && i%2 != idx%2 {
+			result = append(result, token)
 		}
 	}
-	return -1
+
+	return result
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
 
-func (p *PoolSimulator) GetTokens() []string {
-	res := make([]string, 0, len(p.Info.Tokens)+len(p.underlyingTokens))
-
-	for _, token := range p.underlyingTokens {
-		res = append(res, token)
-	}
-
-	return append(res, p.Info.Tokens...)
-}
-
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var priceLimit v3Utils.Uint160
-	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0]) || strings.EqualFold(tokenIn, p.underlyingTokens[0])
+	zeroForOne := p.GetTokenIndex(tokenIn)%2 == 0
 	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 
 	return PoolMeta{
@@ -371,9 +358,9 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	}
 }
 
-func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	if idx := s.GetUnderlyingTokenIndex(tokenIn); idx >= 0 {
-		return s.Info.Tokens[idx]
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	if idx := p.GetTokenIndex(tokenIn); idx >= 2 && idx < len(p.Info.Tokens) {
+		return p.Info.Tokens[idx]
 	}
 
 	return ""
