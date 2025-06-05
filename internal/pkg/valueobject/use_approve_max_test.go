@@ -112,6 +112,8 @@ func TestMustCheckApproveMaxFlagExchange(t *testing.T) {
 
 		valueobject.ExchangeBeefySonic,
 		valueobject.ExchangeNativeV3,
+		valueobject.ExchangeBakerySwap,
+		valueobject.ExchangeBabyDogeSwap,
 	}
 	for _, exchange := range approveMaxExchanges {
 		t.Run(string(exchange), func(t *testing.T) {
@@ -218,8 +220,6 @@ func TestMustCheckApproveMaxFlagExchange(t *testing.T) {
 		valueobject.ExchangeArenaDex,
 		valueobject.ExchangeArenaDexV2,
 		valueobject.ExchangeBabySwap,
-		valueobject.ExchangeBakerySwap,
-		valueobject.ExchangeBabyDogeSwap,
 		valueobject.ExchangeDinosaurEggs,
 		valueobject.ExchangeFstsSwap,
 		valueobject.ExchangeDMM,
