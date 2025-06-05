@@ -29,6 +29,7 @@ type (
 		GetKey() *pools.PoolKey
 		GetState() PoolState
 
+		CloneState() any
 		SetSwapState(quoting.SwapState)
 		ApplyEvent(event pools.Event, data []byte, blockTimestamp uint64) error
 		NewBlock()

@@ -27,8 +27,6 @@ type PoolSimulator struct {
 	lastTradeBlockNumber     uint64
 	dsFee                    *uint256.Int
 	dsFeeThreshold           *uint256.Int
-
-	gas uniswapv2.Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -57,7 +55,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		lastTradeBlockNumber:     extra.LastTradeBlockNumber,
 
 		feePrecision: Number_1000,
-		gas:          defaultGas,
 	}, nil
 }
 
@@ -107,7 +104,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas:            s.gas.Swap,
+		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
 			FeePrecision:   uint32(s.feePrecision.Uint64()),
@@ -202,7 +199,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas:           s.gas.Swap,
+		Gas:           defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
 			FeePrecision:   uint32(s.feePrecision.Uint64()),

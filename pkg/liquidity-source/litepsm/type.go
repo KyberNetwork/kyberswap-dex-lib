@@ -5,19 +5,12 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type DexConfig struct {
-	Dai  Token       `json:"dai"`
-	PSMs []PSMConfig `json:"psms"`
-}
-
 type PSMConfig struct {
-	Address string `json:"address"`
-	Gem     Token  `json:"gem"`
-}
-
-type Token struct {
-	Address  string `json:"address"`
-	Decimals uint8  `json:"decimals"`
+	PoolAddress string `json:"poolAddress"`
+	PsmAddress  string `json:"psmAddress"`
+	DebtToken   string `json:"debtToken"`
+	GemToken    string `json:"gemToken"`
+	DaiToken    string `json:"daiToken"`
 }
 
 type LitePSM struct {
@@ -30,12 +23,18 @@ type LitePSM struct {
 }
 
 type StaticExtra struct {
-	Gem    Token          `json:"gem"`
 	Pocket common.Address `json:"pocket"` // The ultimate holder of the gems
+	Psm    common.Address `json:"psm"`
+	Dai    common.Address `json:"dai"`
 }
 
 type Extra struct {
 	LitePSM LitePSM `json:"litePSM"`
+}
+
+type MetaInfo struct {
+	IsSellGem       bool   `json:"isSellGem"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type Gas struct {

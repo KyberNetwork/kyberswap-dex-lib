@@ -4,17 +4,15 @@ import (
 	"errors"
 
 	"github.com/holiman/uint256"
-
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 )
 
 const (
 	DexType = "deltaswap-v1"
+
+	defaultGas = 225000
 )
 
 var (
-	defaultGas = uniswapv2.Gas{Swap: 225000}
-
 	Number_20   = uint256.NewInt(20)
 	Number_100  = uint256.NewInt(100)
 	Number_1000 = uint256.NewInt(1000)

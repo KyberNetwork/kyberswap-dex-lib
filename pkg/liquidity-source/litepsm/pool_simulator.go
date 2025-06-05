@@ -1,33 +1,28 @@
 package litepsm
 
 import (
-	"strings"
-
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
 	pool.Pool
 	litePSM LitePSM
-	gem     Token
-	gas     Gas
+
+	gemDecimals uint8
+
+	gas Gas
 }
 
 var _ = pool.RegisterFactory0(DexTypeLitePSM, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, err
-	}
-
-	gem := staticExtra.Gem
-
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -38,17 +33,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
-	poolInfo := pool.PoolInfo{
-		Address:  entityPool.Address,
-		Exchange: entityPool.Exchange,
-		Type:     entityPool.Type,
-		Tokens:   tokens,
-	}
+	gemDecimals := entityPool.Tokens[1].Decimals
 
 	litePSM := extra.LitePSM
 	litePSM.To18ConversionFactor = new(uint256.Int).Exp(
 		number.Number_10,
-		uint256.NewInt(uint64(18-gem.Decimals)),
+		uint256.NewInt(uint64(18-gemDecimals)),
 	)
 
 	daiBalance, err := uint256.FromDecimal(entityPool.Reserves[0])
@@ -64,12 +54,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	litePSM.GemBalance = gemBalance
 
 	return &PoolSimulator{
-		Pool: pool.Pool{
-			Info: poolInfo,
-		},
-		litePSM: litePSM,
-		gem:     gem,
-		gas:     DefaultGas,
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens:   tokens,
+		}},
+		litePSM:     litePSM,
+		gemDecimals: gemDecimals,
+		gas:         DefaultGas,
 	}, nil
 }
 
@@ -82,7 +75,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrOverflow
 	}
 
-	if strings.EqualFold(tokenAmountIn.Token, DAIAddress) {
+	if p.IsGem(tokenOut) {
 		daiAmt, fee, err := p.litePSM.buyGem(amountIn)
 		if err != nil {
 			return nil, err
@@ -101,7 +94,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}, nil
 	}
 
-	if strings.EqualFold(tokenAmountIn.Token, p.gem.Address) {
+	if p.IsGem(tokenAmountIn.Token) {
 		daiAmt, fee, err := p.litePSM.sellGem(amountIn)
 		if err != nil {
 			return nil, err
@@ -133,7 +126,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	if strings.EqualFold(input.Token, DAIAddress) {
+	if p.IsGem(output.Token) {
 		p.litePSM.updateBalanceBuyingGem(inputAmount, outputAmount)
 		return
 	}
@@ -141,6 +134,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.litePSM.updateBalanceSellingGem(inputAmount, outputAmount)
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+func (p *PoolSimulator) GetMetaInfo(tokenIn, _ string) any {
+	return MetaInfo{
+		IsSellGem:       p.IsGem(tokenIn),
+		ApprovalAddress: lo.Ternary(valueobject.IsNative(tokenIn), "", p.GetAddress()),
+	}
+}
+
+func (p *PoolSimulator) IsGem(token string) bool {
+	return p.GetTokenIndex(token) == 1
 }

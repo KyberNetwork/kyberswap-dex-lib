@@ -26,8 +26,6 @@ func TestEventParserDecode(t *testing.T) {
 		Twamm: common.HexToAddress("0xd4279c050da1f5c5b2830558c7a08e57e12b54ec"),
 	})
 
-	t.Parallel()
-
 	tests := []struct {
 		name        string
 		txHash      string

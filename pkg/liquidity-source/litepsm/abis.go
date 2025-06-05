@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	erc20ABI   abi.ABI
-	litePSMABI abi.ABI
+	LitePSMABI abi.ABI
 )
 
 func init() {
@@ -16,8 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&erc20ABI, erc20ABIBytes},
-		{&litePSMABI, litePSMBytes},
+		{&LitePSMABI, litePSMBytes},
 	}
 
 	for _, b := range builder {

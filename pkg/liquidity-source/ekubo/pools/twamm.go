@@ -62,6 +62,12 @@ func (p *TwammPool) GetState() any {
 	}
 }
 
+func (p *TwammPool) CloneState() any {
+	cloned := *p
+	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	return &cloned
+}
+
 func (p *TwammPool) SetSwapState(state quoting.SwapState) {
 	twammState := state.(*TwammPoolSwapState)
 
