@@ -36,9 +36,11 @@ const (
 var (
 	approvalAddressByExchange = map[string]string{
 		valueobject.ExchangeBabyDogeSwap: "0xC9a0F685F39d05D835c369036251ee3aEaaF3c47",
+		valueobject.ExchangeBakerySwap:   "0xCDe540d7eAFE93aC5fE6233Bee57E1270D3E330F",
 	}
 	extraGasByExchange = map[string]int64{
 		valueobject.ExchangeBabyDogeSwap: 259957 - defaultGas,
+		valueobject.ExchangeBakerySwap:   111012 - defaultGas,
 	}
 
 	ErrInvalidToken             = errors.New("invalid token")
