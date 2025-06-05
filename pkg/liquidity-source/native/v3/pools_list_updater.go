@@ -74,14 +74,13 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) en
 	tokens := make([]*entity.PoolToken, 0, 4)
 
 	// Add underlying tokens if exists
-	for i, underlyingToken := range staticData.UnderlyingTokens {
+	for _, underlyingToken := range staticData.UnderlyingTokens {
 		if strings.EqualFold(underlyingToken, valueobject.ZeroAddress) {
 			continue
 		}
 
 		tokens = append(tokens, &entity.PoolToken{
 			Address:   underlyingToken,
-			Decimals:  lo.Ternary(i == 0, decimals0, decimals1),
 			Swappable: true,
 		})
 	}
