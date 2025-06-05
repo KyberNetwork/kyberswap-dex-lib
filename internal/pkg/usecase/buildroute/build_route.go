@@ -145,7 +145,10 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 			command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
 			isValidChecksum = uc.IsValidChecksum(command.RouteSummary, command.Checksum)
 		}
-		if command.RouteSummary.AlphaFee == nil { // charge default fee if no best amm
+
+		// If the client modifies the route (checksum is still invalid),
+		// we apply the default alpha fee.
+		if !isValidChecksum && command.RouteSummary.AlphaFee == nil {
 			command.RouteSummary.AlphaFee, _ = uc.alphaFeeCalculation.CalculateDefaultAlphaFee(
 				ctx, alphafee.DefaultAlphaFeeParams{
 					RouteSummary: command.RouteSummary,
