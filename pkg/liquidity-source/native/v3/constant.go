@@ -5,14 +5,10 @@ import (
 )
 
 const (
-	DexType              = "native-v3"
-	graphFirstLimit      = 1000
-	defaultTokenDecimals = 18
-	defaultTokenWeight   = 50
-	rpcChunkSize         = 100
-)
+	DexType         = "native-v3"
+	graphFirstLimit = 1000
+	rpcChunkSize    = 100
 
-const (
 	poolMethodGetLiquidity = "liquidity"
 	poolMethodGetSlot0     = "slot0"
 	poolMethodTickSpacing  = "tickSpacing"
@@ -20,9 +16,7 @@ const (
 	erc20MethodBalanceOf = "balanceOf"
 
 	lpTokenMethodUnderlying = "underlying"
-)
 
-const (
 	WrapGasCost   = 80000 // Gas cost for wrapping token
 	UnwrapGasCost = 40000 // Gas cost for unwrapping token
 )

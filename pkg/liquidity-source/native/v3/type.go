@@ -32,8 +32,8 @@ type (
 	}
 
 	StaticExtra struct {
-		TickSpacing            uint64 `json:"tickSpacing"`
-		UnderlyingTokenScanned bool   `json:"scanned"`
+		TickSpacing        uint64 `json:"tickSpacing"`
+		NeedScanUnderlying bool   `json:"scanned,omitempty"`
 	}
 
 	StaticData struct {
@@ -94,8 +94,6 @@ type (
 	Metadata = uniswapv3.Metadata
 
 	TickResp = ticklens.TickResp
-
-	SubgraphPoolTicks = uniswapv3.SubgraphPoolTicks
 
 	Tick = uniswapv3.Tick
 

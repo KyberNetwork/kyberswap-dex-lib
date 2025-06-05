@@ -68,23 +68,8 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 }
 
 func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) entity.Pool {
-	decimals0, err := kutils.Atou[uint8](p.LpToken0.Decimals)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"token": p.LpToken0.Address,
-			"error": err,
-		}).Warn("invalid decimals, using default")
-		decimals0 = defaultTokenDecimals
-	}
-
-	decimals1, err := kutils.Atou[uint8](p.LpToken1.Decimals)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"token": p.LpToken1.Address,
-			"error": err,
-		}).Warn("invalid decimals, using default")
-		decimals1 = defaultTokenDecimals
-	}
+	decimals0, _ := kutils.Atou[uint8](p.LpToken0.Decimals)
+	decimals1, _ := kutils.Atou[uint8](p.LpToken1.Decimals)
 
 	tokens := []*entity.PoolToken{
 		{
@@ -138,8 +123,8 @@ func (d *PoolsListUpdater) processPool(p SubgraphPool, staticData StaticData) en
 	}
 
 	staticBytes, err := json.Marshal(StaticExtra{
-		TickSpacing:            staticData.TickSpacing,
-		UnderlyingTokenScanned: true,
+		TickSpacing:        staticData.TickSpacing,
+		NeedScanUnderlying: true,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
