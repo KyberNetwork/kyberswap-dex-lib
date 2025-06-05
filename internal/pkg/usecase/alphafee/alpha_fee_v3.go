@@ -62,7 +62,7 @@ func (c *AlphaFeeV3Calculation) Calculate(ctx context.Context, param AlphaFeePar
 
 	pathReductions := c.getReductionPerPath(ctx, param, routeInfo, ammBestRouteAmountOut)
 	if len(pathReductions) == 0 {
-		return nil, nil
+		return nil, errors.WithMessage(ErrAlphaFeeNotExists, "empty path reductions")
 	}
 
 	swapReductions, err := c.getReductionPerSwap(ctx, param, pathReductions, routeInfo)
@@ -138,17 +138,20 @@ func (c *AlphaFeeV3Calculation) getReductionPerPath(
 		}
 
 		totalSurplus += surplus
-		surplusPerPath := surplus / float64(idx+1)
-		surplusPerPathBI, _ := new(big.Float).SetFloat64(surplusPerPath).Int(nil)
 
-		// We will also add surplus = 0 to the `suprluses` slice,
+		surplusF := surplus * path.PathAmountInF / curAmountInF
+		surplusBI, _ := new(big.Float).SetFloat64(surplusF).Int(nil)
+
+		// We will also add surplus = 0 to the `surpluses` slice,
 		// since some paths can have the same rate. We will filter them out later.
 		surpluses = append(surpluses, pathReduction{
 			PathIdx:      path.PathIdx,
-			ReduceAmount: surplusPerPathBI,
+			ReduceAmount: surplusBI,
 		})
 		for i := idx - 1; i >= 0; i-- {
-			surpluses[i].ReduceAmount.Add(surpluses[i].ReduceAmount, surplusPerPathBI)
+			surplusF := surplus * pathExchangeRates[i].PathAmountInF / curAmountInF
+			surplusBI, _ := new(big.Float).SetFloat64(surplusF).Int(nil)
+			surpluses[i].ReduceAmount.Add(surpluses[i].ReduceAmount, surplusBI)
 		}
 	}
 
