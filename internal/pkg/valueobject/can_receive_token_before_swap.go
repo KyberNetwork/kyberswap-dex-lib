@@ -34,6 +34,7 @@ var (
 	// `canReceiveTokenBeforeSwapExchangeSet` defines exchanges that can receive token before calling swap.
 	canReceiveTokenBeforeSwapExchangeSet = map[Exchange]struct{}{
 		valueobject.ExchangeBabyDogeSwap: {},
+		valueobject.ExchangeBakerySwap:   {},
 	}
 )
 
