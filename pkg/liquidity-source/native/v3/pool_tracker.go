@@ -44,17 +44,13 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		"dexID":       d.config.DexID,
 	})
 
-	var scanned bool
-	if ctx.Value("scanned") != nil {
-		scanned = ctx.Value("scanned").(bool)
-	}
-
 	var (
 		slot0                  Slot0
 		liquidity, tickSpacing *big.Int
 
-		reserves         = [2]*big.Int{common.Big0, common.Big0}
-		underlyingTokens = make([]common.Address, len(p.Tokens))
+		reserves            = [2]*big.Int{common.Big0, common.Big0}
+		underlyingTokens    = make([]common.Address, len(p.Tokens))
+		isUnderlyingScanned = IsUnderlyingScanned(ctx)
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -91,7 +87,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			Params: []any{common.HexToAddress(p.Address)},
 		}, []any{&reserves[i]})
 
-		if !scanned {
+		if !isUnderlyingScanned {
 			rpcRequest.AddCall(&ethrpc.Call{
 				ABI:    lpTokenABI,
 				Target: p.Tokens[i].Address,
