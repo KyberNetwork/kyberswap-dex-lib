@@ -40,6 +40,7 @@ type RouteCacheKey struct {
 	Index                     string
 	UseKyberPrivateLimitOrder bool
 	IsScaleHelperClient       bool
+	PoolIds                   []string
 }
 
 type RouteCacheKeyTTL struct {
@@ -94,6 +95,9 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 		for _, pool := range pools {
 			dexHash ^= xxhash.Sum64String(pool) ^ 0x31
 		}
+	}
+	for _, pool := range k.PoolIds {
+		dexHash ^= xxhash.Sum64String(pool)
 	}
 	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, dexHash))
 	if k.GasInclude {

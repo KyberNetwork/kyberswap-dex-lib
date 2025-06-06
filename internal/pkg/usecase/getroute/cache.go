@@ -14,6 +14,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -414,6 +415,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	if simpleRoute.AMMRoute != nil {
 		poolAddresses = append(poolAddresses, simpleRoute.AMMRoute.ExtractPoolAddresses()...)
 	}
+	poolAddresses = lo.Uniq(poolAddresses)
 	state, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
 		poolAddresses,
@@ -426,7 +428,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 	if err != nil {
 		return nil, err
 	}
-	if len(state.Pools) != len(poolAddresses) {
+	if len(state.Pools) < len(poolAddresses) {
 		return nil, errors.New("could not get all pools from pool manager")
 	}
 

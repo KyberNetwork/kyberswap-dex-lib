@@ -50,6 +50,12 @@ type GetRoutesParams struct {
 
 	// Index type
 	Index string `form:"index"`
+
+	// PoolIds is a list of pool IDs to be used in the route.
+	// Only pools in this list will be considered,
+	// even if they are not present in the indexes.
+	// If the list is empty, all pools from the indexes will be used.
+	PoolIds string `form:"poolIds"`
 }
 
 type GetRoutesResponse struct {

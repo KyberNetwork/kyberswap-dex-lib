@@ -149,11 +149,24 @@ func (a *aggregator) getStateByAddress(
 		logger.Errorf(ctx, "sources list is empty, error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
 	}
-	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(ctx, params.TokenIn.Address, params.TokenOut.Address,
-		params.AmountInUsd, a.config.GetBestPoolsOptions, params.Index, params.ForcePoolsForToken)
+	var bestPoolIDs []string
+	var err error
 
-	if err != nil {
-		return nil, err
+	if len(params.PoolIds) > 0 {
+		bestPoolIDs = params.PoolIds
+	} else {
+		bestPoolIDs, err = a.poolRankRepository.FindBestPoolIDs(
+			ctx,
+			params.TokenIn.Address,
+			params.TokenOut.Address,
+			params.AmountInUsd,
+			a.config.GetBestPoolsOptions,
+			params.Index,
+			params.ForcePoolsForToken,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(bestPoolIDs) == 0 {
