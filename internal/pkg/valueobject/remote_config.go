@@ -12,13 +12,14 @@ type (
 		FeatureFlags FeatureFlags `json:"featureFlags"`
 		Log          Log          `json:"log"`
 
-		AvailableSources         []Source            `json:"availableSources"`
-		UnscalableSources        []Source            `json:"unscalableSources"`
-		ExcludedSourcesByClient  map[string][]Source `json:"excludedSourcesByClient"`
-		ValidateChecksumBySource map[string]bool     `json:"validateChecksumBySource"`
-		DexUseAEVM               map[string]bool     `json:"dexUseAEVM"`
-		BlacklistedRecipients    []string            `json:"blacklistedRecipients"`
-		ScaleHelperClients       []string            `json:"scaleHelperClients"`
+		AvailableSources           []Source                       `json:"availableSources"`
+		UnscalableSources          []Source                       `json:"unscalableSources"`
+		ExcludedSourcesByClient    map[string][]Source            `json:"excludedSourcesByClient"`
+		ForcePoolsForTokenByClient map[string]map[string][]string `json:"forcePoolsForTokenByClient"`
+		ValidateChecksumBySource   map[string]bool                `json:"validateChecksumBySource"`
+		DexUseAEVM                 map[string]bool                `json:"dexUseAEVM"`
+		BlacklistedRecipients      []string                       `json:"blacklistedRecipients"`
+		ScaleHelperClients         []string                       `json:"scaleHelperClients"`
 
 		WhitelistedTokens   []WhitelistedToken  `json:"whitelistedTokens"`
 		BlacklistedPools    []string            `json:"blacklistedPools"`

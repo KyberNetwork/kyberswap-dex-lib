@@ -260,6 +260,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
 		Index:                         index,
 		ExcludedPools:                 query.ExcludedPools,
+		ForcePoolsForToken:            u.config.ForcePoolsForTokenByClient[query.ClientId],
 		ClientId:                      query.ClientId,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 		IsScaleHelperClient:           lo.Contains(u.config.ScaleHelperClients, query.ClientId),
@@ -268,7 +269,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	}, nil
 }
 
-func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (map[string]entity.SimplifiedToken, error) {
+func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (map[string]entity.SimplifiedToken,
+	error) {
 	tokens, err := u.tokenRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err

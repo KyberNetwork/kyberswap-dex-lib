@@ -126,6 +126,14 @@ func (mr *MockIPoolSimulatorMockRecorder) GetAddress() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAddress", reflect.TypeOf((*MockIPoolSimulator)(nil).GetAddress))
 }
 
+// GetApprovalAddress mocks base method.
+func (m *MockIPoolSimulator) GetApprovalAddress(tokenIn, tokenOut string) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetApprovalAddress", tokenIn, tokenOut)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
 // GetApprovalAddress indicates an expected call of GetApprovalAddress.
 func (mr *MockIPoolSimulatorMockRecorder) GetApprovalAddress(tokenIn, tokenOut any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
@@ -226,12 +234,4 @@ func (m *MockIPoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (mr *MockIPoolSimulatorMockRecorder) UpdateBalance(params any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBalance", reflect.TypeOf((*MockIPoolSimulator)(nil).UpdateBalance), params)
-}
-
-// GetApprovalAddress mocks base method.
-func (m *MockIPoolSimulator) GetApprovalAddress(arg0, arg1 string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetApprovalAddress", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	return ret0
 }

@@ -39,7 +39,8 @@ type IPoolManager interface {
 
 type IPoolFactory interface {
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
-	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
+	NewSwapLimit(limits map[string]map[string]*big.Int,
+		poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
 	CloneMetaPoolsWithBasePools(
 		ctx context.Context,
@@ -60,13 +61,9 @@ type IL1FeeEstimator interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/pool_rank_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolRankRepository
 type IPoolRankRepository interface {
-	FindBestPoolIDs(
-		ctx context.Context,
-		tokenIn, tokenOut string,
-		amountIn float64,
-		opt valueobject.GetBestPoolsOptions,
-		index valueobject.IndexType,
-	) ([]string, error)
+	FindBestPoolIDs(ctx context.Context, tokenIn, tokenOut string, amountIn float64,
+		opt valueobject.GetBestPoolsOptions, index valueobject.IndexType,
+		forcePoolsForToken map[string][]string) ([]string, error)
 }
 
 type IPoolRepository interface {
@@ -75,7 +72,9 @@ type IPoolRepository interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
 type IRouteCacheRepository interface {
-	Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData, error)
+	Get(ctx context.Context,
+		keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData,
+		error)
 	Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRouteWithExtraData) error
 	Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error
 }

@@ -209,6 +209,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		IsHillClimbEnabled:            u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
 		Index:                         index,
 		ExcludedPools:                 query.ExcludedPools,
+		ForcePoolsForToken:            u.config.ForcePoolsForTokenByClient[query.ClientId],
 		ClientId:                      query.ClientId,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable && query.EnableAlphaFee,

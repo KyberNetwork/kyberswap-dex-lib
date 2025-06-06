@@ -195,6 +195,7 @@ func (c *correlatedPairs) getStateByAddress(
 		params.AmountInUsd,
 		c.config.Aggregator.GetBestPoolsOptions,
 		params.Index,
+		params.ForcePoolsForToken,
 	)
 	if err != nil {
 		return nil, err

@@ -137,11 +137,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				true, true, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
-		pools, err := repo.FindBestPoolIDs(
-			context.Background(),
-			"poolTokenAddress1",
-			"poolTokenAddress2",
-			0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -152,9 +148,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			},
-			valueobject.NativeTvl,
-		)
+			}, valueobject.NativeTvl, "")
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -273,11 +267,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				true, false, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
-		pools, err := repo.FindBestPoolIDs(
-			context.Background(),
-			"poolTokenAddress1",
-			"poolTokenAddress2",
-			0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -288,9 +278,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			},
-			valueobject.NativeTvl,
-		)
+			}, valueobject.NativeTvl, "")
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -407,11 +395,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				false, true, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
-		pools, err := repo.FindBestPoolIDs(
-			context.Background(),
-			"poolTokenAddress1",
-			"poolTokenAddress2",
-			0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -422,9 +406,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			},
-			valueobject.NativeTvl,
-		)
+			}, valueobject.NativeTvl, "")
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -541,11 +523,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				false, false, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
-		pools, err := repo.FindBestPoolIDs(
-			context.Background(),
-			"poolTokenAddress1",
-			"poolTokenAddress2",
-			0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -556,9 +534,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			},
-			valueobject.NativeTvl,
-		)
+			}, valueobject.NativeTvl, "")
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -585,11 +561,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 
 		redisServer.Close()
 
-		pools, err := repo.FindBestPoolIDs(
-			context.Background(),
-			"poolTokenAddress1",
-			"poolTokenAddress2",
-			0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -600,9 +572,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			},
-			valueobject.NativeTvl,
-		)
+			}, valueobject.NativeTvl, "")
 
 		assert.Nil(t, pools)
 		assert.Error(t, err)
@@ -2067,14 +2037,8 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 
 			repo := test.prepare(db.Client)
 
-			pools, err := repo.findBestPoolIDsByScore(
-				context.Background(),
-				test.tokenIn,
-				test.tokenOut,
-				test.amountIn,
-				options,
-				test.sortBy,
-			)
+			pools, err := repo.findBestPoolIDsByScore(context.Background(), test.tokenIn, test.tokenOut, test.amountIn,
+				options, test.sortBy, "")
 
 			assert.ElementsMatch(t, test.expectedResult, pools)
 			assert.Nil(t, err)

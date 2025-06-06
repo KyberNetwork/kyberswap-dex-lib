@@ -5,14 +5,15 @@ import (
 )
 
 type Config struct {
-	ChainID                 valueobject.ChainID `mapstructure:"chainId" json:"chainId"`
-	RouterAddress           string              `mapstructure:"routerAddress" json:"routerAddress"`
-	KyberExecutorAddress    string
-	GasTokenAddress         string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
-	AvailableSources        []string            `mapstructure:"availableSources" json:"availableSources"`
-	UnscalableSources       []string            `mapstructure:"unscalableSources" json:"unscalableSources"`
-	ScaleHelperClients      []string            `mapstructure:"scaleHelperClients" json:"scaleHelperClients"`
-	ExcludedSourcesByClient map[string][]string `mapstructure:"excludedSourcesByClient" json:"excludedSourcesByClient"`
+	ChainID                    valueobject.ChainID `mapstructure:"chainId" json:"chainId"`
+	RouterAddress              string              `mapstructure:"routerAddress" json:"routerAddress"`
+	KyberExecutorAddress       string
+	GasTokenAddress            string                         `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
+	AvailableSources           []string                       `mapstructure:"availableSources" json:"availableSources"`
+	UnscalableSources          []string                       `mapstructure:"unscalableSources" json:"unscalableSources"`
+	ScaleHelperClients         []string                       `mapstructure:"scaleHelperClients" json:"scaleHelperClients"`
+	ExcludedSourcesByClient    map[string][]string            `mapstructure:"excludedSourcesByClient" json:"excludedSourcesByClient"`
+	ForcePoolsForTokenByClient map[string]map[string][]string `mapstructure:"forcePoolsForTokenByClient" json:"forcePoolsForTokenByClient"`
 
 	Aggregator        AggregatorConfig                        `mapstructure:"aggregator" json:"aggregator"`
 	Cache             valueobject.CacheConfig                 `mapstructure:"cache" json:"cache"`

@@ -176,6 +176,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setAvailableSources(remoteCfg.AvailableSources)
 		cl.setUnscalableSources(remoteCfg.UnscalableSources)
 		cl.setExcludedSourcesByClient(remoteCfg.ExcludedSourcesByClient)
+		cl.setForcePoolsForTokenByClient(remoteCfg.ForcePoolsForTokenByClient)
 		cl.setValidateChecksumBySource(remoteCfg.ValidateChecksumBySource)
 		cl.setDexUseAEVM(remoteCfg.DexUseAEVM)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
@@ -252,6 +253,18 @@ func (cl *ConfigLoader) setExcludedSourcesByClient(sourcesByClient map[string][]
 	cl.config.Common.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetCustomRoute.ExcludedSourcesByClient = newSourcesByClient
 	cl.config.UseCase.GetRoute.ExcludedSourcesByClient = newSourcesByClient
+}
+
+func (cl *ConfigLoader) setForcePoolsForTokenByClient(forcePoolsForTokenByClient map[string]map[string][]string) {
+	for _, forcePoolsForToken := range forcePoolsForTokenByClient {
+		for token, pools := range forcePoolsForToken {
+			forcePoolsForToken[strings.ToLower(token)] = lo.Map(pools, func(pool string, _ int) string {
+				return strings.ToLower(pool)
+			})
+		}
+	}
+	cl.config.UseCase.GetCustomRoute.ForcePoolsForTokenByClient = forcePoolsForTokenByClient
+	cl.config.UseCase.GetRoute.ForcePoolsForTokenByClient = forcePoolsForTokenByClient
 }
 
 func (cl *ConfigLoader) setValidateChecksumBySource(validateChecksumBySource map[string]bool) {

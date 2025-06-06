@@ -58,6 +58,9 @@ type AggregateParams struct {
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]
 
+	// ForcePoolsForToken force routing through specific pools for specified tokens
+	ForcePoolsForToken map[string][]string
+
 	ClientId string
 
 	// KyberLimitOrderAllowedSenders is a comma-separated list of addresses used to filter
@@ -111,6 +114,9 @@ type AggregateBundledParams struct {
 
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]
+
+	// ForcePoolsForToken force routing through specific pools for specified tokens
+	ForcePoolsForToken map[string][]string
 
 	ClientId string
 

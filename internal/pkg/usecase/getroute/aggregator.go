@@ -50,7 +50,8 @@ func NewAggregator(
 	}
 }
 
-func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries, error) {
+func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummaries,
+	error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] aggregator.Aggregate")
 	defer span.End()
 
@@ -148,14 +149,8 @@ func (a *aggregator) getStateByAddress(
 		logger.Errorf(ctx, "sources list is empty, error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
 	}
-	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
-		ctx,
-		params.TokenIn.Address,
-		params.TokenOut.Address,
-		params.AmountInUsd,
-		a.config.GetBestPoolsOptions,
-		params.Index,
-	)
+	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(ctx, params.TokenIn.Address, params.TokenOut.Address,
+		params.AmountInUsd, a.config.GetBestPoolsOptions, params.Index, params.ForcePoolsForToken)
 
 	if err != nil {
 		return nil, err
@@ -191,7 +186,8 @@ func (a *aggregator) getStateByAddress(
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.SimplifiedToken
-func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
+func (a *aggregator) getTokenByAddress(ctx context.Context,
+	tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
