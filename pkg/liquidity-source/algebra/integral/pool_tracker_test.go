@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -19,7 +20,9 @@ import (
 
 func TestPoolTracker_GetNewPoolState(t *testing.T) {
 	t.Parallel()
-	// t.Skip()
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
 
 	d := &PoolTracker{
 		PoolTracker: algebra.PoolTracker[Timepoint, TimepointRPC]{
@@ -27,7 +30,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 				SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 		},
 		config: &Config{
-			DexID:              string(valueobject.ExchangeThenaFusionV3),
+			DexID:              valueobject.ExchangeThenaFusionV3,
 			AllowSubgraphError: true,
 			UseBasePluginV2:    true,
 		},
