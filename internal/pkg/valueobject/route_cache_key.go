@@ -84,15 +84,15 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	}
 	dexHash := uint64(0)
 	for _, dex := range k.Dexes {
-		dexHash ^= xxhash.Sum64String(dex)^0x10
+		dexHash ^= xxhash.Sum64String(dex) ^ 0x10
 	}
 	for _, pool := range k.ExcludedPools {
-		dexHash ^= xxhash.Sum64String(pool)^0x20
+		dexHash ^= xxhash.Sum64String(pool) ^ 0x20
 	}
 	for token, pools := range k.ForcePoolsForToken {
-		dexHash ^= xxhash.Sum64String(token)^0x30
+		dexHash ^= xxhash.Sum64String(token) ^ 0x30
 		for _, pool := range pools {
-			dexHash ^= xxhash.Sum64String(pool)^0x31
+			dexHash ^= xxhash.Sum64String(pool) ^ 0x31
 		}
 	}
 	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, dexHash))

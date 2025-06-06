@@ -148,7 +148,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			}, valueobject.NativeTvl, "")
+			}, valueobject.NativeTvl, nil)
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -278,7 +278,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			}, valueobject.NativeTvl, "")
+			}, valueobject.NativeTvl, nil)
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -406,7 +406,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			}, valueobject.NativeTvl, "")
+			}, valueobject.NativeTvl, nil)
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -534,7 +534,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			}, valueobject.NativeTvl, "")
+			}, valueobject.NativeTvl, nil)
 
 		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
 		assert.Nil(t, err)
@@ -572,7 +572,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlWhitelistPoolsCount: 200,
 				AmplifiedTvlTokenInPoolsCount:   100,
 				AmplifiedTvlTokenOutPoolCount:   100,
-			}, valueobject.NativeTvl, "")
+			}, valueobject.NativeTvl, nil)
 
 		assert.Nil(t, pools)
 		assert.Error(t, err)
@@ -2038,7 +2038,7 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 			repo := test.prepare(db.Client)
 
 			pools, err := repo.findBestPoolIDsByScore(context.Background(), test.tokenIn, test.tokenOut, test.amountIn,
-				options, test.sortBy, "")
+				options, test.sortBy, nil)
 
 			assert.ElementsMatch(t, test.expectedResult, pools)
 			assert.Nil(t, err)

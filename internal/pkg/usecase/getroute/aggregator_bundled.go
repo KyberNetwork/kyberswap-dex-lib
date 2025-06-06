@@ -178,7 +178,7 @@ func (a *bundledAggregator) getStateByBundledAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	return a.poolManager.GetStateByPoolAddresses(
+	state, err := a.poolManager.GetStateByPoolAddresses(
 		ctx,
 		filteredPoolIDs,
 		params.Sources,
@@ -187,6 +187,14 @@ func (a *bundledAggregator) getStateByBundledAddress(
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	for _, pair := range params.Pairs {
+		forcePoolsForToken(state, pair.TokenIn, pair.TokenOut, params.ForcePoolsForToken)
+	}
+
+	return state, nil
 }
 
 func (a *bundledAggregator) findBestBundledRoute(

@@ -258,6 +258,7 @@ func (cl *ConfigLoader) setExcludedSourcesByClient(sourcesByClient map[string][]
 func (cl *ConfigLoader) setForcePoolsForTokenByClient(forcePoolsForTokenByClient map[string]map[string][]string) {
 	for _, forcePoolsForToken := range forcePoolsForTokenByClient {
 		for token, pools := range forcePoolsForToken {
+			delete(forcePoolsForToken, token)
 			forcePoolsForToken[strings.ToLower(token)] = lo.Map(pools, func(pool string, _ int) string {
 				return strings.ToLower(pool)
 			})

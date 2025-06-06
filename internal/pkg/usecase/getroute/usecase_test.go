@@ -137,7 +137,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock IPoolRankRepository
 	poolRankRepository := getroute.NewMockIPoolRankRepository(ctrl)
 	poolRankRepository.EXPECT().
-		FindBestPoolIDs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		FindBestPoolIDs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(lo.Map(entityPools, func(item *entity.Pool, _ int) string { return item.Address }), nil).
 		AnyTimes()
 

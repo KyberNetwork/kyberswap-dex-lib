@@ -220,7 +220,7 @@ func (c *correlatedPairs) getStateByAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	return c.poolManager.GetStateByPoolAddresses(
+	state, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
 		filteredPoolIDs,
 		params.Sources,
@@ -229,6 +229,12 @@ func (c *correlatedPairs) getStateByAddress(
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	forcePoolsForToken(state, params.TokenIn.Address, params.TokenOut.Address, params.ForcePoolsForToken)
+
+	return state, nil
 }
 
 func (a *correlatedPairs) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {

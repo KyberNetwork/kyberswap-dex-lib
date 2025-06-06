@@ -174,7 +174,7 @@ func (a *aggregator) getStateByAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	return a.poolManager.GetStateByPoolAddresses(
+	state, err := a.poolManager.GetStateByPoolAddresses(
 		ctx,
 		filteredPoolIDs,
 		params.Sources,
@@ -183,6 +183,12 @@ func (a *aggregator) getStateByAddress(
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	forcePoolsForToken(state, params.TokenIn.Address, params.TokenOut.Address, params.ForcePoolsForToken)
+
+	return state, nil
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.SimplifiedToken
@@ -199,4 +205,27 @@ func (a *aggregator) getTokenByAddress(ctx context.Context,
 	}
 
 	return tokenByAddress, nil
+}
+
+func forcePoolsForToken(state *types.FindRouteState, tokenIn, tokenOut string, forcePoolsForToken map[string][]string) {
+	if forcePoolsForTokenIn := forcePoolsForToken[tokenIn]; len(forcePoolsForTokenIn) > 0 {
+		for _, pool := range state.Pools {
+			if pool.GetTokenIndex(tokenIn) >= 0 {
+				poolAddr := pool.GetAddress()
+				if !lo.Contains(forcePoolsForTokenIn, poolAddr) {
+					delete(state.Pools, poolAddr)
+				}
+			}
+		}
+	}
+	if forcePoolsForTokenOut := forcePoolsForToken[tokenOut]; len(forcePoolsForTokenOut) > 0 {
+		for _, pool := range state.Pools {
+			if pool.GetTokenIndex(tokenOut) >= 0 {
+				poolAddr := pool.GetAddress()
+				if !lo.Contains(forcePoolsForTokenOut, poolAddr) {
+					delete(state.Pools, poolAddr)
+				}
+			}
+		}
+	}
 }

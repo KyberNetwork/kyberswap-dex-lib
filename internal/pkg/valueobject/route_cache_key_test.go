@@ -34,7 +34,7 @@ func TestRouteCacheKey_String(t *testing.T) {
 		}
 
 		assert.Equal(t, key.String("prefix"),
-			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x")
+			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x:")
 	})
 	t.Run("it should return correct key with index", func(t *testing.T) {
 		key := RouteCacheKey{
@@ -50,7 +50,7 @@ func TestRouteCacheKey_String(t *testing.T) {
 		}
 
 		assert.Equal(t, key.String("prefix"),
-			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x:composite")
+			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x::composite")
 	})
 }
 
