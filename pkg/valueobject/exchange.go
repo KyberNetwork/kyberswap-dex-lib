@@ -22,12 +22,13 @@ const (
 	ExchangeArenaDex                   = "arenadex"
 	ExchangeArenaDexV2                 = "arenadex-v2"
 	ExchangeAstroSwap                  = "astroswap"
+	ExchangeAtlantis                   = "atlantis"
 	ExchangeAxial                      = "axial"
-	ExchangeBabySwap                   = "babyswap"
-	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBMX                        = "bmx"
 	ExchangeBMXGLP                     = "bmx-glp"
 	ExchangeBabyDogeSwap               = "babydogeswap"
+	ExchangeBabySwap                   = "babyswap"
+	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalDex                     = "baldex"
 	ExchangeBalancer                   = "balancer"
 	ExchangeBalancerV1                 = "balancer-v1"
@@ -62,6 +63,7 @@ const (
 	ExchangeBlastDex                   = "blastdex"
 	ExchangeBlasterSwap                = "blasterswap"
 	ExchangeBlueprint                  = "blueprint"
+	ExchangeBrownfi                    = "brownfi"
 	ExchangeBulla                      = "bulla"
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
@@ -151,6 +153,7 @@ const (
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
 	ExchangeIZiSwap                    = "iziswap"
+	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
 	ExchangeIntegral                   = "integral"
 	ExchangeIronStable                 = "iron-stable"
@@ -350,10 +353,10 @@ const (
 	ExchangeUcsFinance                 = "ucs-finance"
 	ExchangeUnchainX                   = "unchainx"
 	ExchangeUniSwap                    = "uniswap"
-	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniSwapV1                  = "uniswap-v1"
 	ExchangeUniSwapV2                  = "uniswap-v2"
 	ExchangeUniSwapV3                  = "uniswapv3"
+	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniswapV4                  = "uniswap-v4"
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
@@ -398,8 +401,6 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeInfinityPools              = "infinitypools"
-	ExchangeBrownfi                    = "brownfi"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -422,6 +423,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArenaDex:                   {},
 	ExchangeArenaDexV2:                 {},
 	ExchangeAstroSwap:                  {},
+	ExchangeAtlantis:                   {},
 	ExchangeAxial:                      {},
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},
@@ -461,6 +463,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlastDex:                   {},
 	ExchangeBlasterSwap:                {},
 	ExchangeBlueprint:                  {},
+	ExchangeBrownfi:                    {},
 	ExchangeBulla:                      {},
 	ExchangeBurrBearComposableStable:   {},
 	ExchangeBurrBearStable:             {},
@@ -546,6 +549,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
 	ExchangeIZiSwap:                    {},
+	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
 	ExchangeIntegral:                   {},
 	ExchangeIronStable:                 {},
@@ -607,6 +611,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMorpheus:                   {},
 	ExchangeMummyFinance:               {},
 	ExchangeMuteSwitch:                 {},
+	ExchangeNativeV3:                   {},
 	ExchangeNavigator:                  {},
 	ExchangeNearPad:                    {},
 	ExchangeNerve:                      {},
@@ -784,9 +789,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeInfinityPools:              {},
-	ExchangeBrownfi:                    {},
-	ExchangeNativeV3:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
