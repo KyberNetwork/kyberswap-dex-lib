@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -56,6 +57,12 @@ func (d *PoolTracker) GetNewPoolState(
 		WoFeasible bool     `json:"woFeasible"`
 	}
 
+	type clOracleResp struct {
+		Oracle       common.Address `json:"oracle"`
+		Decimal      uint8          `json:"decimal"`
+		CloPreferred bool           `json:"cloPreferred"`
+	}
+
 	var (
 		quoteToken, wooracle     common.Address
 		timestamp, staleDuration *big.Int
@@ -66,11 +73,7 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate uint16   `json:"feeRate"`
 		}, len(p.Tokens))
 		woState   = make([]struct{ WoStateContractType }, len(p.Tokens))
-		clOracles = make([]struct {
-			Oracle       common.Address `json:"oracle"`
-			Decimal      uint8          `json:"decimal"`
-			CloPreferred bool           `json:"cloPreferred"`
-		}, len(p.Tokens))
+		clOracles = make([]clOracleResp, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -162,21 +165,25 @@ func (d *PoolTracker) GetNewPoolState(
 		AnsweredInRound *big.Int `json:"answeredInRound" abi:"answeredInRound"`
 	}, len(p.Tokens))
 
-	cloracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	for i := range p.Tokens {
-		cloracleCalls.AddCall(&ethrpc.Call{
-			ABI:    CloracleABI,
-			Target: clOracles[i].Oracle.Hex(),
-			Method: cloracleMethodLatestRoundData,
-			Params: nil,
-		}, []interface{}{&latestRoundData[i]})
-	}
-	if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"err":         err,
-		}).Errorf("[WooFiV2] failed to aggregate call to chainlink oracle")
-		return entity.Pool{}, err
+	if _, ok := lo.Find(clOracles, func(clOracle clOracleResp) bool {
+		return clOracle.Oracle.Cmp(zeroAddress) == 0
+	}); !ok {
+		cloracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		for i := range p.Tokens {
+			cloracleCalls.AddCall(&ethrpc.Call{
+				ABI:    CloracleABI,
+				Target: clOracles[i].Oracle.Hex(),
+				Method: cloracleMethodLatestRoundData,
+				Params: nil,
+			}, []interface{}{&latestRoundData[i]})
+		}
+		if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"err":         err,
+			}).Errorf("[WooFiV2] failed to aggregate call to chainlink oracle")
+			return entity.Pool{}, err
+		}
 	}
 
 	poolCloracle := make(map[string]Cloracle, len(p.Tokens))
