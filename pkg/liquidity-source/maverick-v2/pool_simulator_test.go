@@ -203,7 +203,6 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	fmt.Printf("Fee B In: %d\n", poolSim.state.FeeBIn)
 	fmt.Printf("Protocol Fee Ratio: %d\n", poolSim.state.ProtocolFeeRatio)
 	fmt.Printf("Active Tick: %d\n", poolSim.state.ActiveTick)
-
 	// Debug tick information around active tick
 	fmt.Printf("\nTick information around active tick %d:\n", poolSim.state.ActiveTick)
 	for tick := poolSim.state.ActiveTick - 2; tick <= poolSim.state.ActiveTick+2; tick++ {
@@ -234,8 +233,9 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	fmt.Printf("Scale B (WETH, 18 decimals): %s\n", scaleB.String())
 
 	// Perform a swap to get swap info
-	amountIn := big.NewInt(1_000_000_000_000_000_000) // 1 MAV
-	fmt.Printf("\nSwapping 1 MAV (%s) for WETH\n", amountIn.String())
+	amountIn, ok := new(big.Int).SetString("20000000000000000000", 10) // 20 MAV
+	require.True(t, ok)
+	fmt.Printf("\nSwapping 20 MAV (%s) for WETH\n", amountIn.String())
 
 	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
@@ -254,12 +254,12 @@ func TestDebugSwap_MAV_WETH(t *testing.T) {
 	require.NotNil(t, result)
 
 	fmt.Printf("Result amount: %s WETH\n", result.TokenAmountOut.Amount.String())
-	fmt.Printf("Expected amount: 22034312672685 WETH\n")
+	fmt.Printf("Expected amount: 440665698723087 WETH\n")
 	fmt.Printf("Current amount: %s WETH\n", result.TokenAmountOut.Amount.String())
 	fmt.Printf("Gas estimation: %d\n", result.Gas)
 
 	// Check if the result matches expected value
-	expectedAmount := big.NewInt(22034312672685)
+	expectedAmount := big.NewInt(440665698723087)
 	if result.TokenAmountOut.Amount.Cmp(expectedAmount) != 0 {
 		fmt.Printf("❌ MISMATCH: Expected %s, got %s\n", expectedAmount.String(), result.TokenAmountOut.Amount.String())
 		fmt.Printf("Difference: %s\n", new(big.Int).Sub(result.TokenAmountOut.Amount, expectedAmount).String())

@@ -105,9 +105,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
-	// Debug logging
-	logger.Debugf("Final scaled amount out: %s", scaleAmountOut.String())
-
 	// Use fractional part directly from swap result (matches TypeScript implementation)
 	var fractionalPartD8 int64
 	if fractionalPart != nil && !fractionalPart.IsZero() {
