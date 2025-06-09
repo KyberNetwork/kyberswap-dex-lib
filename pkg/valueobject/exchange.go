@@ -247,6 +247,7 @@ const (
 	ExchangePancakeV3                  = "pancake-v3"
 	ExchangePandaFun                   = "panda-fun"
 	ExchangePangolin                   = "pangolin"
+	ExchangePangolinV3                 = "pangolin-v3"
 	ExchangePantherSwap                = "pantherswap"
 	ExchangePearl                      = "pearl"
 	ExchangePearlV2                    = "pearl-v2"
@@ -640,6 +641,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePancakeV3:                  {},
 	ExchangePandaFun:                   {},
 	ExchangePangolin:                   {},
+	ExchangePangolinV3:                 {},
 	ExchangePantherSwap:                {},
 	ExchangePearl:                      {},
 	ExchangePearlV2:                    {},
