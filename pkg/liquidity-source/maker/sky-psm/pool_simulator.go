@@ -47,9 +47,9 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: p.BlockNumber,
 		}},
 		rate:           extra.Rate,
-		usdcPrecision:  big256.TenPowInt(p.Tokens[0].Decimals),
-		usdsPrecision:  big256.TenPowInt(p.Tokens[1].Decimals),
-		susdsPrecision: big256.TenPowInt(p.Tokens[2].Decimals),
+		usdcPrecision:  big256.TenPow(p.Tokens[0].Decimals),
+		usdsPrecision:  big256.TenPow(p.Tokens[1].Decimals),
+		susdsPrecision: big256.TenPow(p.Tokens[2].Decimals),
 		balances: lo.Map(p.Reserves, func(reserve string, _ int) *uint256.Int {
 			bal, _ := uint256.FromDecimal(reserve)
 			return bal

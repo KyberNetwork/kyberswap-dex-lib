@@ -13,7 +13,7 @@ const (
 )
 
 var (
-	oneShare = big256.TenPowInt(vaultDecimals)
+	oneShare = big256.TenPow(vaultDecimals)
 
 	defaultReserves = "10000000000"
 

@@ -85,7 +85,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	shares, err := p.erc20Deposit(tokenIn, amountIn, utils.ZeroBI, asset)
+	shares, err := p.erc20Deposit(tokenIn, amountIn, utils.U0, asset)
 	if err != nil {
 		return nil, err
 	}
@@ -175,9 +175,9 @@ func (p *PoolSimulator) changeDecimals(amount *uint256.Int, fromDecimals, toDeci
 	if fromDecimals == toDecimals {
 		return amount
 	} else if fromDecimals < toDecimals {
-		return amount.Mul(amount, utils.TenPowInt(toDecimals-fromDecimals))
+		return amount.Mul(amount, utils.TenPow(toDecimals-fromDecimals))
 	} else {
-		return amount.Div(amount, utils.TenPowInt(fromDecimals-toDecimals))
+		return amount.Div(amount, utils.TenPow(fromDecimals-toDecimals))
 	}
 }
 

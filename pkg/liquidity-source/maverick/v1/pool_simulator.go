@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
-	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
@@ -78,31 +77,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if overflow {
 		return nil, ErrOverflow
 	}
-	tokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0])
 
-	var scaleAmount *uint256.Int
-	var err error
-	if tokenAIn {
-		scaleAmount, err = scaleFromAmount(amountIn, p.decimals[0])
-	} else {
-		scaleAmount, err = scaleFromAmount(amountIn, p.decimals[1])
-	}
+	scaledAmountIn, err := scaleFromAmount(amountIn, p.decimals[tokenInIndex])
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
 	newState := p.state.Clone()
-	_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
+	_, amountOut, binCrossed, err := swap(newState, scaledAmountIn, tokenInIndex == 0, false, false)
 	if err != nil {
 		return nil, fmt.Errorf("can not get amount out, err: %v", err)
 	}
 
-	var scaleAmountOut *uint256.Int
-	if tokenAIn {
-		scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
-	} else {
-		scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[0])
-	}
+	scaledAmountOut, err := ScaleToAmount(amountOut, p.decimals[tokenOutIndex])
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
@@ -110,7 +97,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: scaleAmountOut.ToBig(),
+			Amount: scaledAmountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token: tokenAmountIn.Token,
@@ -136,31 +123,19 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if overflow {
 		return nil, ErrOverflow
 	}
-	tokenAIn := strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0])
 
-	var scaleAmount *uint256.Int
-	var err error
-	if tokenAIn {
-		scaleAmount, err = ScaleToAmount(amountOut, p.decimals[1])
-	} else {
-		scaleAmount, err = ScaleToAmount(amountOut, p.decimals[0])
-	}
+	scaledAmountOut, err := scaleFromAmount(amountOut, p.decimals[tokenOutIndex])
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
 
 	newState := p.state.Clone()
-	amountIn, _, binCrossed, err := swap(newState, scaleAmount, tokenAIn, true, false)
+	amountIn, _, binCrossed, err := swap(newState, scaledAmountOut, tokenInIndex == 0, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("swap failed, err: %v", err)
 	}
 
-	var scaleAmountIn *uint256.Int
-	if tokenAIn {
-		scaleAmountIn, err = scaleFromAmount(amountIn, p.decimals[0])
-	} else {
-		scaleAmountIn, err = scaleFromAmount(amountIn, p.decimals[1])
-	}
+	scaledAmountIn, err := ScaleToAmount(amountIn, p.decimals[tokenInIndex])
 	if err != nil {
 		return nil, fmt.Errorf("can not scale amount maverick, err: %v", err)
 	}
@@ -168,7 +143,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
-			Amount: scaleAmountIn.ToBig(),
+			Amount: scaledAmountIn.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,

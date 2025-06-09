@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	RAY = big256.TenPowInt(27)
+	RAY = big256.TenPow(27)
 )
 
 var (

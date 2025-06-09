@@ -6,18 +6,16 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -244,8 +242,8 @@ func (t *PoolTracker) calcAvailableBalances(tokens []*entity.PoolToken, bands []
 		totalY.Add(totalY, band.BandY)
 	}
 
-	precisionX := big256.TenPowInt(18 - tokens[0].Decimals)
-	precisionY := big256.TenPowInt(18 - tokens[1].Decimals)
+	precisionX := big256.TenPow(18 - tokens[0].Decimals)
+	precisionY := big256.TenPow(18 - tokens[1].Decimals)
 
 	totalX.Div(totalX, precisionX)
 	totalY.Div(totalY, precisionY)

@@ -243,8 +243,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				totalMakingAmount.Add(totalMakingAmount, orderRemainingMakingAmount)
 				filledOrderInfo := newFilledOrderInfo(
 					order,
-					utils.ZeroBI,
-					utils.ZeroBI,
+					utils.U0,
+					utils.U0,
 				)
 				filledOrderInfo.IsBackup = true
 				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
