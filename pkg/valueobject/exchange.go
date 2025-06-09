@@ -102,6 +102,7 @@ const (
 	ExchangeDexalot                    = "dexalot"
 	ExchangeDinoSwap                   = "dinoswap"
 	ExchangeDinosaurEggs               = "dinosaureggs"
+	ExchangeDooarSwapV2                = "dooarswap-v2"
 	ExchangeDodo                       = "dodo"
 	ExchangeDodoClassical              = "dodo-classical"
 	ExchangeDodoPrivatePool            = "dodo-dpp"
@@ -500,6 +501,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDeltaSwapV1:                {},
 	ExchangeDinoSwap:                   {},
 	ExchangeDinosaurEggs:               {},
+	ExchangeDooarSwapV2:                {},
 	ExchangeDodo:                       {},
 	ExchangeDodoClassical:              {},
 	ExchangeDodoPrivatePool:            {},
