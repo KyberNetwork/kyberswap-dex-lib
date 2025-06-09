@@ -98,3 +98,74 @@ type MoveData struct {
 type StaticExtra struct {
 	TickSpacing uint32 `json:"tickSpacing"`
 }
+
+type MaverickPoolState struct {
+	FeeAIn           uint64
+	FeeBIn           uint64
+	ProtocolFeeRatio uint8
+	Bins             map[uint32]Bin
+	Ticks            map[int32]Tick
+	TickSpacing      uint32
+	ActiveTick       int32
+	LastTwaD8        int64  // Time-weighted average tick data
+	Timestamp        int64  // Current timestamp
+	BinCounter       uint32 // Counter for bin IDs
+}
+
+type Extra struct {
+	FeeAIn           uint64         `json:"feeAIn"`
+	FeeBIn           uint64         `json:"feeBIn"`
+	ProtocolFeeRatio uint8          `json:"protocolFeeRatio"`
+	Bins             map[uint32]Bin `json:"bins"`
+	Ticks            map[int32]Tick `json:"ticks"`
+	ActiveTick       int32          `json:"activeTick"`
+	LastTwaD8        int64          `json:"lastTwaD8"`
+	Timestamp        int64          `json:"timestamp"`
+}
+
+type Bin struct {
+	MergeBinBalance  *uint256.Int `json:"mergeBinBalance"`
+	MergeId          uint32       `json:"mergeId"`
+	TotalSupply      *uint256.Int `json:"totalSupply"`
+	Kind             uint8        `json:"kind"`
+	Tick             int32        `json:"tick"`
+	TickBalance      *uint256.Int `json:"tickBalance"`
+	CurrentLiquidity *uint256.Int `json:"currentLiquidity,omitempty"` // Added for TypeScript compatibility
+}
+
+type Delta struct {
+	DeltaInBinInternal *uint256.Int
+	DeltaInErc         *uint256.Int
+	DeltaOutErc        *uint256.Int
+	Excess             *uint256.Int
+	TokenAIn           bool
+	ExactOutput        bool
+	TickLimit          int32
+	SqrtLowerTickPrice *uint256.Int
+	SqrtUpperTickPrice *uint256.Int
+	SqrtPrice          *uint256.Int
+	FractionalPart     *uint256.Int
+	SwappedToMaxPrice  bool
+	SkipCombine        bool
+}
+
+// Tick represents a tick's liquidity state
+type Tick struct {
+	ReserveA     *uint256.Int
+	ReserveB     *uint256.Int
+	TotalSupply  *uint256.Int
+	BinIdsByTick map[uint8]uint32
+}
+
+type TickData struct {
+	CurrentReserveA  *uint256.Int
+	CurrentReserveB  *uint256.Int
+	CurrentLiquidity *uint256.Int
+}
+
+type maverickSwapInfo struct {
+	activeTick       int32
+	bins             map[uint32]Bin
+	ticks            map[int32]Tick
+	fractionalPartD8 int64
+}

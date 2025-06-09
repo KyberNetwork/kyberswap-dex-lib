@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	scale          = new(uint256.Int).Lsh(big256.One, scaleOffset)
+	scale          = new(uint256.Int).Lsh(big256.U1, scaleOffset)
 	uBasisPointMax = uint256.NewInt(basisPointMax)
 	precision      = big256.BONE
 

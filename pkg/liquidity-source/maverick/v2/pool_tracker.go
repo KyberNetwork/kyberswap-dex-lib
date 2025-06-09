@@ -8,12 +8,12 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type (
@@ -221,12 +221,9 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 }
 
 func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big.Int) (entity.Pool, error) {
-	pool.Reserves = entity.PoolReserves{
-		state.ReserveA.String(),
-		state.ReserveB.String(),
-	}
+	pool.Reserves = entity.PoolReserves{state.ReserveA.String(), state.ReserveB.String()}
 	pool.BlockNumber = blockNumber.Uint64()
-	pool.Timestamp = state.LastTimestamp
+	pool.Timestamp = time.Now().Unix()
 
 	// Parse StaticExtra to get tick spacing
 	var staticExtra StaticExtra

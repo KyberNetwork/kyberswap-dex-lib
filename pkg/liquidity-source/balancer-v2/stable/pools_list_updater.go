@@ -140,7 +140,7 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 		}
 		reserves[j] = "0"
 		scalingFactors[j] = new(uint256.Int).Mul(
-			bignumber.TenPowInt(18-uint8(token.Decimals)),
+			bignumber.TenPow(18-uint8(token.Decimals)),
 			bignumber.BONE,
 		)
 

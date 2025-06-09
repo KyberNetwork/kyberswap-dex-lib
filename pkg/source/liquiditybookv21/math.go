@@ -38,7 +38,7 @@ func pow(x, y *uint256.Int) (*uint256.Int, error) {
 		squared.Set(x)
 
 		if x.Cmp(big256.TwoPow128) >= 0 {
-			squared.Div(big256.Max, &squared)
+			squared.Div(big256.UMax, &squared)
 			invert = !invert
 		}
 
@@ -57,7 +57,7 @@ func pow(x, y *uint256.Int) (*uint256.Int, error) {
 	}
 
 	if invert {
-		result.Div(big256.Max, &result)
+		result.Div(big256.UMax, &result)
 	}
 
 	return &result, nil
@@ -78,7 +78,7 @@ func shiftDivRoundUp(x *uint256.Int, offset uint8, denominator *uint256.Int) (*u
 	}
 	var v uint256.Int
 	if !v.MulMod(
-		x, v.Lsh(big256.One, uint(offset)),
+		x, v.Lsh(big256.U1, uint(offset)),
 		denominator,
 	).IsZero() {
 		result.AddUint64(result, 1)
@@ -92,7 +92,7 @@ func shiftDivRoundDown(x *uint256.Int, offset uint8, denominator *uint256.Int) (
 	var prod0, prod1, y uint256.Int
 	prod0.Lsh(x, uint(offset))
 	prod1.Rsh(x, uint(256-int(offset)))
-	y.Lsh(big256.One, uint(offset))
+	y.Lsh(big256.U1, uint(offset))
 	return getEndOfDivRoundDown(x, &y, denominator, &prod0, &prod1)
 }
 
@@ -138,7 +138,7 @@ func getEndOfDivRoundDown(
 	for range 6 {
 		inverse.Mul(
 			inverse,
-			tmp.Sub(big256.Two, tmp.Mul(denominator, inverse)),
+			tmp.Sub(big256.U2, tmp.Mul(denominator, inverse)),
 		)
 	}
 
@@ -155,7 +155,7 @@ func mulShiftRoundUp(x, y *uint256.Int, offset uint8) (*uint256.Int, error) {
 	var v uint256.Int
 	if !v.MulMod(
 		x, y,
-		v.Lsh(big256.One, uint(offset)),
+		v.Lsh(big256.U1, uint(offset)),
 	).IsZero() {
 		result.AddUint64(result, 1)
 	}
@@ -172,7 +172,7 @@ func mulShiftRoundDown(x, y *uint256.Int, offset uint8) (*uint256.Int, error) {
 	}
 	if !prod1.IsZero() {
 		var tmp uint256.Int
-		if prod1.Cmp(tmp.Lsh(big256.One, uint(offset))) >= 0 {
+		if prod1.Cmp(tmp.Lsh(big256.U1, uint(offset))) >= 0 {
 			return nil, ErrMulShiftOverflow
 		}
 		result.Add(
@@ -187,7 +187,7 @@ func mulShiftRoundDown(x, y *uint256.Int, offset uint8) (*uint256.Int, error) {
 // https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L152
 func getMulProds(x, y *uint256.Int, prod0, prod1 *uint256.Int) (*uint256.Int, *uint256.Int) {
 	var mm uint256.Int
-	mm.MulMod(x, y, big256.Max)
+	mm.MulMod(x, y, big256.UMax)
 	prod0.Mul(x, y)
 	prod1.Sub(&mm, prod0)
 	if mm.Cmp(prod0) < 0 {

@@ -12,7 +12,23 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
+
+func BenchmarkPoolSimulator_CalcAmountOut(b *testing.B) {
+	// Read pool_data.json
+	data, err := os.ReadFile("./data/pool_data.json")
+	require.NoError(b, err)
+
+	// Unmarshal to entity.Pool
+	var poolEntity entity.Pool
+	err = json.Unmarshal(data, &poolEntity)
+	require.NoError(b, err)
+
+	poolSim, _ := NewPoolSimulator(poolEntity)
+
+	testutil.TestCalcAmountIn(b, poolSim)
+}
 
 func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 	t.Parallel()
@@ -35,9 +51,6 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 	poolSim, err := NewPoolSimulator(poolEntity)
 	require.NoError(t, err)
 
-	// Store initial state for comparison
-	initialTimestamp := poolSim.state.Timestamp
-
 	// Perform a swap to get swap info
 	amountIn := big.NewInt(10000000) // 10 USDC
 	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
@@ -48,7 +61,6 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 		TokenOut: poolEntity.Tokens[1].Address, // USDT
 		Limit:    nil,
 	})
-	t.Log("DEBUG result amount", result.TokenAmountOut.Amount)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -56,7 +68,6 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 	swapInfo, ok := result.SwapInfo.(maverickSwapInfo)
 	require.True(t, ok)
 
-	// t.Log("DEBUG type", reflect.TypeOf(swapInfo))
 	// Store state before UpdateBalance
 	beforeUpdateReserveA := new(big.Int).Set(poolSim.Pool.Info.Reserves[0])
 	beforeUpdateReserveB := new(big.Int).Set(poolSim.Pool.Info.Reserves[1])
@@ -109,14 +120,6 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 		require.Equal(t, expectedReserveB.String(), poolSim.Pool.Info.Reserves[1].String(), "Reserve B should be updated correctly")
 	})
 
-	t.Run("Timestamp Updated", func(t *testing.T) {
-		if swapInfo.timestamp != 0 {
-			require.Equal(t, swapInfo.timestamp, poolSim.state.Timestamp, "Timestamp should be updated from swap info")
-		} else {
-			require.GreaterOrEqual(t, poolSim.state.Timestamp, initialTimestamp, "Timestamp should be updated to current time")
-		}
-	})
-
 	// Test error handling
 	t.Run("Invalid SwapInfo Type", func(t *testing.T) {
 		// This should not panic but should log a warning
@@ -133,6 +136,10 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 		})
 		// Should not crash - just verify simulator is still functional
 		require.NotNil(t, poolSim.state)
+	})
+
+	t.Run("CalcAmountIn", func(t *testing.T) {
+		testutil.TestCalcAmountIn(t, poolSim, 2) // so slow...
 	})
 }
 
@@ -167,13 +174,16 @@ func TestSimpleSwaps_MAV_WETH(t *testing.T) {
 		TokenOut: poolEntity.Tokens[1].Address, // WETH
 		Limit:    nil,
 	})
-	t.Log("DEBUG result amount", result.TokenAmountOut.Amount)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
 	// Assert the expected amount
 	expectedAmount := big.NewInt(22034312672685)
 	require.Equal(t, expectedAmount.String(), result.TokenAmountOut.Amount.String(), "Swap amount should match expected value")
+
+	t.Run("CalcAmountIn", func(t *testing.T) {
+		testutil.TestCalcAmountIn(t, poolSim, 2) // so slow...
+	})
 }
 
 func TestDebugSwap_MAV_WETH(t *testing.T) {

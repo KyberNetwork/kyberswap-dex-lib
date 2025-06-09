@@ -218,7 +218,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 
 func decodeCap(amountCap *uint256.Int) *uint256.Int {
 	//   10 ** (amountCap & 63) * (amountCap >> 6) / 100
-	if amountCap.Cmp(bignumber.ZeroBI) == 0 {
+	if amountCap.Cmp(bignumber.U0) == 0 {
 		return new(uint256.Int).Set(maxUint256)
 	}
 

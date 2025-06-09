@@ -151,7 +151,7 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"
-		scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
+		scalingFactors[j] = bignumber.TenPow(18 - uint8(token.Decimals))
 		if subgraphPool.Version > poolTypeVer1 {
 			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
 		}

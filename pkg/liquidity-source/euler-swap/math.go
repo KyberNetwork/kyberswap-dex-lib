@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 112), bignumber.One) // 2^112 - 1
-	MaxUint248 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 248), bignumber.One) // 2^248 - 1
-	maxUint256 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.One, 256), bignumber.One) // 2^256 - 1
+	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 112), bignumber.U1) // 2^112 - 1
+	MaxUint248 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 248), bignumber.U1) // 2^248 - 1
+	maxUint256 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 256), bignumber.U1) // 2^256 - 1
 	hundred    = uint256.NewInt(100)
 	sixtyThree = uint256.NewInt(63)
 	ten        = uint256.NewInt(10)
@@ -42,18 +42,18 @@ func BinarySearch(
 	if exactIn {
 		if asset0IsInput {
 			dx.Set(amount)
-			dy.Set(bignumber.ZeroBI)
+			dy.Set(bignumber.U0)
 		} else {
-			dx.Set(bignumber.ZeroBI)
+			dx.Set(bignumber.U0)
 			dy.Set(amount)
 		}
 	} else {
 		if asset0IsInput {
-			dx.Set(bignumber.ZeroBI)
+			dx.Set(bignumber.U0)
 			dy.Neg(amount)
 		} else {
 			dx.Neg(amount)
-			dy.Set(bignumber.ZeroBI)
+			dy.Set(bignumber.U0)
 		}
 	}
 
@@ -66,7 +66,7 @@ func BinarySearch(
 
 	for low.Cmp(high) < 0 {
 		mid.Add(low, high)
-		mid.Div(mid, bignumber.Two)
+		mid.Div(mid, bignumber.U2)
 
 		if mid.Sign() <= 0 {
 			return nil, ErrSwapLimitExceeded
@@ -83,7 +83,7 @@ func BinarySearch(
 		if verify(a, b) {
 			high.Set(mid)
 		} else {
-			low.Add(mid, bignumber.One)
+			low.Add(mid, bignumber.U1)
 		}
 	}
 

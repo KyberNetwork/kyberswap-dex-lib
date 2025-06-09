@@ -101,8 +101,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		BandsX:     lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandX }),
 		BandsY:     lo.SliceToMap(extra.Bands, func(e Band) (int64, *uint256.Int) { return e.Index, e.BandY }),
 
-		borrowedPrecision:   big256.TenPowInt(18 - ep.Tokens[0].Decimals),
-		collateralPrecision: big256.TenPowInt(18 - ep.Tokens[1].Decimals),
+		borrowedPrecision:   big256.TenPow(18 - ep.Tokens[0].Decimals),
+		collateralPrecision: big256.TenPow(18 - ep.Tokens[1].Decimals),
 
 		gas: defaultGas,
 	}, nil

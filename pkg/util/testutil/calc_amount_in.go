@@ -15,10 +15,17 @@ import (
 )
 
 // TestCalcAmountIn tests CalcAmountIn with generated sensible inputs
-func TestCalcAmountIn(t *testing.T, poolSim interface {
+func TestCalcAmountIn[TB interface {
+	testing.TB
+	Run(string, func(TB)) bool
+}](tb TB, poolSim interface {
 	pool.IPoolSimulator
 	pool.IPoolExactOutSimulator
-}) {
+}, runsOpt ...int) {
+	runs := 32
+	if len(runsOpt) > 0 {
+		runs = runsOpt[0]
+	}
 	tokens := poolSim.GetTokens()
 	for inIdx, tokenIn := range tokens {
 		tokenOuts := poolSim.CanSwapFrom(tokenIn)
@@ -47,10 +54,10 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 				maxExp, _ = baseOut.TokenAmountOut.Amount.Float64()
 				maxExp = math.Log10(maxExp/base) - 1
 			}
-			for range 32 {
+			for range runs {
 				amountOut, _ := big.NewFloat(base * (math.Pow(10, 1+rand.Float64()*maxExp))).Int(nil)
-				t.Run(fmt.Sprintf("? token%d -> %s token%d", inIdx, amountOut, outIdx), func(t *testing.T) {
-					resIn, err := MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+				tb.Run(fmt.Sprintf("? token%d -> %s token%d", inIdx, amountOut, outIdx), func(tb TB) {
+					resIn, err := MustConcurrentSafe(tb, func() (*pool.CalcAmountInResult, error) {
 						return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 							TokenAmountOut: pool.TokenAmount{
 								Token:  tokenOut,
@@ -59,7 +66,7 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 							TokenIn: tokenIn,
 						})
 					})
-					require.NoError(t, err)
+					require.NoError(tb, err)
 
 					if resIn.RemainingTokenAmountOut != nil && resIn.RemainingTokenAmountOut.Amount.Sign() > 0 {
 						amountOut.Sub(amountOut, resIn.RemainingTokenAmountOut.Amount)
@@ -70,7 +77,7 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 							},
 							TokenIn: tokenIn,
 						})
-						require.NoError(t, err)
+						require.NoError(tb, err)
 
 						if resIn.RemainingTokenAmountOut != nil && resIn.RemainingTokenAmountOut.Amount.Sign() > 0 {
 							amountOut.Sub(amountOut, resIn.RemainingTokenAmountOut.Amount)
@@ -81,12 +88,12 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 								},
 								TokenIn: tokenIn,
 							})
-							require.NoError(t, err)
+							require.NoError(tb, err)
 						}
-						require.True(t,
+						require.True(tb,
 							resIn.RemainingTokenAmountOut == nil || resIn.RemainingTokenAmountOut.Amount.Sign() <= 0)
 
-						resOut, err := MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+						resOut, err := MustConcurrentSafe(tb, func() (*pool.CalcAmountOutResult, error) {
 							return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 								TokenAmountIn: pool.TokenAmount{
 									Token:  tokenIn,
@@ -95,14 +102,14 @@ func TestCalcAmountIn(t *testing.T, poolSim interface {
 								TokenOut: tokenOut,
 							})
 						})
-						require.NoError(t, err)
+						require.NoError(tb, err)
 
 						finalAmtOut := resOut.TokenAmountOut.Amount
 						origAmountOutF, _ := amountOut.Float64()
 						finalAmountOutF, _ := finalAmtOut.Float64()
-						t.Logf("amountOut: %s, amountIn: %s, finalAmtOut: %s",
+						tb.Logf("amountOut: %s, amountIn: %s, finalAmtOut: %s",
 							amountOut, resIn.TokenAmountIn.Amount, finalAmtOut)
-						assert.InEpsilonf(t, origAmountOutF, finalAmountOutF, 1e-4,
+						assert.InEpsilonf(tb, origAmountOutF, finalAmountOutF, 1e-4,
 							"expected ~%s, got %s", amountOut, finalAmtOut)
 					}
 				})

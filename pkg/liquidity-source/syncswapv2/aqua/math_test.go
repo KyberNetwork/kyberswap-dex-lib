@@ -33,10 +33,10 @@ func TestUint256Refactor(t *testing.T) {
 		assert.Equal(t, new(uint256.Int).Div(
 			new(uint256.Int).Mul(
 				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.Two, constant.BONE), nCoinsBi,
+					new(uint256.Int).Mul(constant.U2, constant.BONE), nCoinsBi,
 				), K0,
 			), _g1k0,
-		), mul2.Mul(constant.Two, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0), "fail")
+		), mul2.Mul(constant.U2, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4))
 
 	func(S, mul2, mul1, nCoinsBi, K0, D *uint256.Int) {
@@ -107,10 +107,10 @@ func TestUint256Refactor(t *testing.T) {
 		assert.Equal(t, new(uint256.Int).Add(
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.Two, constant.BONE), K0,
+					new(uint256.Int).Mul(constant.U2, constant.BONE), K0,
 				), _g1k0,
 			), constant.BONE,
-		), mul2.Mul(constant.Two, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE), "fail")
+		), mul2.Mul(constant.U2, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3))
 
 	func(gamma, ETHER, xp0, xp1, f *uint256.Int) {
@@ -134,7 +134,7 @@ func TestUint256Refactor(t *testing.T) {
 							new(uint256.Int).Mul(
 								new(uint256.Int).Mul(
 									constant.BONE,
-									constant.Four,
+									constant.U4,
 								),
 								xp0,
 							),
@@ -145,7 +145,7 @@ func TestUint256Refactor(t *testing.T) {
 					f,
 				),
 			),
-		), f.Mul(constant.BONE, constant.Four).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
+		), f.Mul(constant.BONE, constant.U4).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
 			new(uint256.Int).Add(gamma, constant.BONE), f,
 		).Div(
 			new(uint256.Int).Mul(gamma, constant.BONE), f,
