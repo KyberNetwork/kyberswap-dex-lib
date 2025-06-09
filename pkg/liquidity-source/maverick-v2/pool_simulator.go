@@ -591,16 +591,25 @@ func combine(self *Delta, delta *Delta) {
 
 func scaleFromAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	scale := getScale(decimals)
-	return mulDiv(amount, BI_POWS[18], scale), nil
+	if scale.Cmp(new(uint256.Int).SetUint64(1)) == 0 {
+		return new(uint256.Int).Set(amount), nil
+	}
+	return new(uint256.Int).Mul(amount, scale), nil
 }
 
 func ScaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	scale := getScale(decimals)
-	return mulDiv(amount, scale, BI_POWS[18]), nil
+	if scale.Cmp(new(uint256.Int).SetUint64(1)) == 0 || amount.IsZero() {
+		return new(uint256.Int).Set(amount), nil
+	}
+	return new(uint256.Int).Div(amount, scale), nil
 }
 
 func getScale(decimals uint8) *uint256.Int {
-	return new(uint256.Int).Exp(new(uint256.Int).SetUint64(10), new(uint256.Int).SetUint64(uint64(decimals)))
+	if decimals == 18 {
+		return new(uint256.Int).SetUint64(1)
+	}
+	return new(uint256.Int).Exp(new(uint256.Int).SetUint64(10), new(uint256.Int).SetUint64(uint64(18-decimals)))
 }
 
 func (state *MaverickPoolState) Clone() *MaverickPoolState {
@@ -1543,6 +1552,10 @@ func getSqrtPrice(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice, li
 	//   reserveA + mulDown(liquidity, sqrtLowerTickPrice),
 	//   reserveB + divDown(liquidity, sqrtUpperTickPrice)
 	// ))
+	//
+	// Note: divDown(x, y) = mulDivDown(x, BI_POWS[18], y) in TypeScript
+	// So the calculation is: sqrt(BI_POWS[18] * mulDivDown(numerator, BI_POWS[18], denominator))
+	// Which simplifies to: sqrt(mulDivDown(numerator, BI_POWS[18]^2, denominator))
 
 	// Numerator: reserveA + mulDown(liquidity, sqrtLowerTickPrice)
 	liquidityTermA := mulDivDown(liquidity, sqrtLowerTickPrice, BI_POWS[18])
@@ -1552,8 +1565,9 @@ func getSqrtPrice(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice, li
 	liquidityTermB := mulDivDown(liquidity, BI_POWS[18], sqrtUpperTickPrice)
 	denominator := new(uint256.Int).Add(reserveB, liquidityTermB)
 
-	// Calculate ratio and apply BI_POWS[18] scaling
-	ratio := mulDivDown(numerator, BI_POWS[18], denominator)
+	// Calculate ratio with BI_POWS[18]^2 scaling to match TypeScript
+	biPows18Squared := new(uint256.Int).Mul(BI_POWS[18], BI_POWS[18])
+	ratio := mulDivDown(numerator, biPows18Squared, denominator)
 	sqrtPrice := new(uint256.Int).Sqrt(ratio)
 
 	// Ensure the price is within bounds: min(max(sqrtPrice, sqrtLowerTickPrice), sqrtUpperTickPrice)
