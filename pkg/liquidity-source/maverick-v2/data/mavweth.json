@@ -1,0 +1,27 @@
+{
+    "address": "0x97a3eb00eb67e6e92d43dfe9c28f5211e05e2342",
+    "exchange": "maverick-v2",
+    "type": "maverick-v2",
+    "timestamp": 1748748119,
+    "reserves": [
+        "1784002215889661568319367",
+        "959122602062931"
+    ],
+    "tokens": [
+        {
+            "address": "0x7448c7456a97769f6cd04f1e83a4a23ccdc46abd",
+            "symbol": "MAV",
+            "decimals": 18,
+            "swappable": true
+        },
+        {
+            "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "symbol": "WETH",
+            "decimals": 18,
+            "swappable": true
+        }
+    ],
+    "extra": "{\"feeAIn\":10000000000000000,\"feeBIn\":10000000000000000,\"protocolFeeRatio\":0,\"bins\":{\"1\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"469787545828454439255\",\"kind\":0,\"tick\":43,\"tickBalance\":\"235053002744183002757\"},\"10\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"218450560305246277475\",\"kind\":0,\"tick\":47,\"tickBalance\":\"218450559972146245938\"},\"11\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"100000000\",\"kind\":1,\"tick\":46,\"tickBalance\":\"72580693\"},\"12\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"12509111754960187\",\"kind\":0,\"tick\":59,\"tickBalance\":\"12509111654960187\"},\"13\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"360720940327256009\",\"kind\":0,\"tick\":91,\"tickBalance\":\"360720940227256009\"},\"2\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"3363623372505065981812\",\"kind\":0,\"tick\":38,\"tickBalance\":\"3363623367376111174371\"},\"3\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"3363623372505071537045\",\"kind\":0,\"tick\":39,\"tickBalance\":\"3363623367376116729598\"},\"4\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"3363650408112170604001\",\"kind\":0,\"tick\":40,\"tickBalance\":\"3363650402983174571849\"},\"5\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"3210828676044155957220\",\"kind\":0,\"tick\":41,\"tickBalance\":\"3210828671148187131312\"},\"6\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"3642031058762278859656\",\"kind\":0,\"tick\":42,\"tickBalance\":\"3642031053208799578861\"},\"7\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"218476412090364075396\",\"kind\":0,\"tick\":44,\"tickBalance\":\"218476411757224624273\"},\"8\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"218477595912354747217\",\"kind\":0,\"tick\":45,\"tickBalance\":\"218477595579213490966\"},\"9\":{\"mergeBinBalance\":\"0\",\"mergeId\":0,\"totalSupply\":\"218450560305246222307\",\"kind\":0,\"tick\":46,\"tickBalance\":\"218450559972146190770\"}},\"ticks\":{\"38\":{\"ReserveA\":\"233599182229908832889175\",\"ReserveB\":\"0\",\"TotalSupply\":\"3363623367376111174371\",\"BinIdsByTick\":{\"0\":2,\"1\":0,\"2\":0,\"3\":0}},\"39\":{\"ReserveA\":\"261177739705697790293446\",\"ReserveB\":\"0\",\"TotalSupply\":\"3363623367376116729598\",\"BinIdsByTick\":{\"0\":3,\"1\":0,\"2\":0,\"3\":0}},\"40\":{\"ReserveA\":\"292014549644152624323439\",\"ReserveB\":\"0\",\"TotalSupply\":\"3363650402983174571849\",\"BinIdsByTick\":{\"0\":4,\"1\":0,\"2\":0,\"3\":0}},\"41\":{\"ReserveA\":\"328566166678126065056620\",\"ReserveB\":\"0\",\"TotalSupply\":\"3210828671148187131312\",\"BinIdsByTick\":{\"0\":5,\"1\":0,\"2\":0,\"3\":0}},\"42\":{\"ReserveA\":\"474757656319844537888947\",\"ReserveB\":\"0\",\"TotalSupply\":\"3642031053208799578861\",\"BinIdsByTick\":{\"0\":6,\"1\":0,\"2\":0,\"3\":0}},\"43\":{\"ReserveA\":\"35783401343336175318327\",\"ReserveB\":\"0\",\"TotalSupply\":\"235053002744183002757\",\"BinIdsByTick\":{\"0\":1,\"1\":0,\"2\":0,\"3\":0}},\"44\":{\"ReserveA\":\"31581339099984878507390\",\"ReserveB\":\"0\",\"TotalSupply\":\"218476411757224624273\",\"BinIdsByTick\":{\"0\":7,\"1\":0,\"2\":0,\"3\":0}},\"45\":{\"ReserveA\":\"37777979507427586484769\",\"ReserveB\":\"0\",\"TotalSupply\":\"218477595579213490966\",\"BinIdsByTick\":{\"0\":8,\"1\":0,\"2\":0,\"3\":0}},\"46\":{\"ReserveA\":\"46200160096971231027495\",\"ReserveB\":\"0\",\"TotalSupply\":\"218450559972218771463\",\"BinIdsByTick\":{\"0\":9,\"1\":11,\"2\":0,\"3\":0}},\"47\":{\"ReserveA\":\"42544041264211846529759\",\"ReserveB\":\"931114965770597\",\"TotalSupply\":\"218450559972146245938\",\"BinIdsByTick\":{\"0\":10,\"1\":0,\"2\":0,\"3\":0}},\"59\":{\"ReserveA\":\"0\",\"ReserveB\":\"15464504535479\",\"TotalSupply\":\"12509111654960187\",\"BinIdsByTick\":{\"0\":12,\"1\":0,\"2\":0,\"3\":0}},\"91\":{\"ReserveA\":\"0\",\"ReserveB\":\"12543131756855\",\"TotalSupply\":\"360720940227256009\",\"BinIdsByTick\":{\"0\":13,\"1\":0,\"2\":0,\"3\":0}}},\"activeTick\":47,\"lastTwaD8\":4799299345,\"timestamp\":1748748119}",
+    "staticExtra": "{\"tickSpacing\":2232}",
+    "blockNumber": 22664456
+}
