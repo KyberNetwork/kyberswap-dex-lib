@@ -35,3 +35,5 @@ type Swap struct {
 }
 
 const RouteIDInExtra = "ri"
+const ChecksumInExtra = "_cs"
+const TimestampInExtra = "_ts"
