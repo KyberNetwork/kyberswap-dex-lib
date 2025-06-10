@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/big"
 	"runtime/debug"
-
 	"slices"
 
 	"github.com/KyberNetwork/kutils/klog"
@@ -15,10 +14,11 @@ import (
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 const (
@@ -113,10 +113,6 @@ func (c *AlphaFeeV3Calculation) getReductionPerPath(
 
 	surpluses := make([]pathReduction, 0, len(pathExchangeRates))
 
-	ammBestRouteAmountInF, _ := param.BestRoute.AmountIn.Float64()
-	ammBestRouteAmountOutF, _ := ammBestRouteAmountOut.Float64()
-	ammExchangeRate := ammBestRouteAmountOutF / ammBestRouteAmountInF
-
 	var curAmountInF, totalSurplus float64
 
 	for idx, path := range pathExchangeRates {
@@ -124,8 +120,6 @@ func (c *AlphaFeeV3Calculation) getReductionPerPath(
 		if idx < len(pathExchangeRates)-1 {
 			nextPath := pathExchangeRates[idx+1]
 			nextRate = nextPath.PathAmountOutF / nextPath.PathAmountInF
-		} else {
-			nextRate = ammExchangeRate
 		}
 
 		curRate := path.PathAmountOutF / path.PathAmountInF
