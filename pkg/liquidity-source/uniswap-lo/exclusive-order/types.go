@@ -35,6 +35,8 @@ type ExclusiveDutchOrder struct {
 	Outputs                []DutchOutput
 }
 
+// orderTuple
+// reference: https://github.com/Uniswap/UniswapX/blob/e451175f285cfc7e11ae253b3b88b87e08cd1d91/src/lib/ExclusiveDutchOrderLib.sol#L8
 var orderTuple, _ = abi.NewType("tuple", "", []abi.ArgumentMarshaling{
 	{Name: "info", Type: "tuple", Components: []abi.ArgumentMarshaling{
 		{Name: "reactor", Type: "address"},
