@@ -5,17 +5,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
-
-func s(s string) *uint256.Int {
-	res, _ := uint256.FromDecimal(s)
-	return res
-}
 
 func getPool() *PoolSimulator {
 	var poolE entity.Pool
