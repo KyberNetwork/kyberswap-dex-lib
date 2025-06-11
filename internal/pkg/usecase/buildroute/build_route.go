@@ -928,13 +928,13 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 	gas := uint64(routeSummary.Gas)
 	gasUSD := routeSummary.GasUSD
 	var estimatedSlippage float64
-	var returnAmount *big.Int
 
 	if uc.isGasEstimationEnabled(command) {
 		if utils.IsEmptyString(command.Sender) {
 			return 0, 0.0, 0, 0, ErrSenderEmptyWhenEnableEstimateGas
 		}
 
+		var returnAmount *big.Int
 		gas, gasUSD, returnAmount, err = uc.gasEstimator.EstimateGasAndPriceUSD(ctx, tx)
 		if err == nil {
 			estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
@@ -955,7 +955,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 		}
 	} else if uc.isFaultyPoolTrackingEnabled(command) {
 		go func(ctx context.Context) {
-			_, returnAmount, err = uc.gasEstimator.EstimateGas(ctx, tx)
+			_, returnAmount, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			if err == nil {
 				estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
 					returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
