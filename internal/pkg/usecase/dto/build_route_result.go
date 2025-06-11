@@ -19,6 +19,8 @@ type BuildRouteResult struct {
 	Data             string `json:"data"`
 	RouterAddress    string `json:"routerAddress"`
 	TransactionValue string `json:"transactionValue"`
+
+	SuggestedSlippage float64 `json:"suggestedSlippage,omitempty"`
 }
 
 type OutputChange struct {

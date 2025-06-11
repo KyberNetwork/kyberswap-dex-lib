@@ -18,12 +18,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func isErrReturnAmountIsNotEnough(err error) bool {
-	return err != nil && strings.Contains(strings.ToLower(err.Error()), ErrReturnAmountIsNotEnough.Error())
-}
-
-func slippageIsAboveMinThreshold(slippageTolerance float64, config FaultyPoolsConfig) bool {
-	return slippageTolerance > config.MinSlippageThreshold
+func isSlippageAboveMinThreshold(estimatedSlippage float64, config FaultyPoolsConfig) bool {
+	return estimatedSlippage > config.MinSlippageThreshold
 }
 
 // requests to be tracked should only involve tokens that have been whitelisted or native token
@@ -63,4 +59,8 @@ func isPMMFaultyPoolError(err error) bool {
 	}
 
 	return false
+}
+
+func isSwapSinglePoolFailed(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "swapSinglePool failed")
 }

@@ -348,6 +348,83 @@ func TestBuildRoute(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "it should return suggested slippage when return amount is not enough",
+			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
+				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
+				mockBuildRouteParamValidator.EXPECT().
+					Validate(gomock.Any(), gomock.Any()).
+					Return(nil)
+
+				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
+				estimateGasFailedErr := buildroute.ErrEstimateGasFailed(testError)
+				mockBuildRouteUseCase.EXPECT().
+					Handle(gomock.Any(), gomock.Any()).
+					Return(&dto.BuildRouteResult{SuggestedSlippage: 100}, estimateGasFailedErr)
+
+				errResponse := SlippageErrorResponse{
+					ErrorResponse: ErrorResponse{
+						HTTPStatus: http.StatusUnprocessableEntity,
+						Code:       estimateGasFailedErr.Code(),
+						Message:    estimateGasFailedErr.Error(),
+						Details:    []interface{}{estimateGasFailedErr.Error()},
+					},
+					SuggestedSlippage: 100,
+				}
+
+				return test.HTTPTestCase{
+					ReqMethod:  http.MethodPost,
+					ReqURL:     "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqBody: strings.NewReader(`{
+						"routeSummary": {
+							"tokenIn": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+							"amountIn": "1000000000000000000",
+							"amountInUsd": "1829.51",
+							"tokenInMarketPriceAvailable": false,
+							"tokenOut": "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+							"amountOut": "1816792704",
+							"amountOutUsd": "1825.8766675199997",
+							"tokenOutMarketPriceAvailable": false,
+							"gas": "250000",
+							"gasPrice": "1169251241",
+							"gasUsd": "0.5347892094804775",
+							"extraFee": {
+								"feeAmount": "",
+								"chargeFeeBy": "",
+								"isInBps": false,
+								"feeReceiver": ""
+							},
+							"route": [
+								[
+									{
+										"pool": "0xf5d215d9c84778f85746d15762daf39b9e83a2d6",
+										"tokenIn": "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f",
+										"tokenOut": "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+										"limitReturnAmount": "0",
+										"swapAmount": "1000000000000000000",
+										"amountOut": "1816792704",
+										"exchange": "woofi-v2",
+										"poolLength": 2,
+										"poolType": "woofi-v2",
+										"poolExtra": null,
+										"extra": {}
+									}
+								]
+							]
+						},
+					"enableGasEstimation": true,
+					"slippageTolerance": 500,
+					"recipient": "0x0193a8a52D77E27bDd4f12E0cDd52d8Ff1d97d68",
+					"sender": "0x0193a8a52D77E27bDd4f12E0cDd52d8Ff1d97c67",
+					"source": "kyberswap",
+					"skipSimulateTx": false
+				}`),
+					RespHTTPStatus: http.StatusUnprocessableEntity,
+					RespBody:       errResponse,
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -313,6 +313,7 @@ useCase:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
+      expireTime: 15m
     rfq:
       kyberswap-limit-order-v2:
         handler: limit-order
@@ -342,6 +343,10 @@ useCase:
     alphaFeeConfig: *alphaFeeConfig
     clientRefCode:
       bitgetswap: bitget
+    slippageBufferConfig:
+      stable: 1
+      correlated: 5
+      default: 50
 
   poolFactory:
     chainId: *chainId

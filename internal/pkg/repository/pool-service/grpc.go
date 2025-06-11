@@ -3,6 +3,7 @@ package poolservice
 import (
 	"context"
 	"strconv"
+	"time"
 
 	poolv1 "github.com/KyberNetwork/grpc-service/go/pool/v1"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -76,4 +77,20 @@ func (c *GRPCPoolClient) GetFaultyPools(ctx context.Context, offset int64, count
 	}
 
 	return addresses, err
+}
+
+func (c *GRPCPoolClient) AddFaultyPools(ctx context.Context, faultyPools []entity.FaultyPool) error {
+	pools := make([]*poolv1.FaultyPool, 0, len(faultyPools))
+	for _, p := range faultyPools {
+		pools = append(pools, &poolv1.FaultyPool{
+			Address:   p.Address,
+			ExpiredAt: p.ExpiresAt.Format(time.RFC3339),
+		})
+	}
+
+	_, err := c.client.AddFaultyPools(c.setHeaders(ctx), &poolv1.AddFaultyPoolsRequest{
+		Pools: pools,
+	})
+
+	return err
 }

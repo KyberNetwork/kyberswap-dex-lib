@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	ethereum "github.com/ethereum/go-ethereum"
+	ethclient "github.com/ethereum/go-ethereum/ethclient"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -54,4 +55,18 @@ func (m *MockIEthereumGasEstimator) EstimateGas(ctx context.Context, call ethere
 func (mr *MockIEthereumGasEstimatorMockRecorder) EstimateGas(ctx, call any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGas", reflect.TypeOf((*MockIEthereumGasEstimator)(nil).EstimateGas), ctx, call)
+}
+
+// GetETHClient mocks base method.
+func (m *MockIEthereumGasEstimator) GetETHClient() *ethclient.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetETHClient")
+	ret0, _ := ret[0].(*ethclient.Client)
+	return ret0
+}
+
+// GetETHClient indicates an expected call of GetETHClient.
+func (mr *MockIEthereumGasEstimatorMockRecorder) GetETHClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetETHClient", reflect.TypeOf((*MockIEthereumGasEstimator)(nil).GetETHClient))
 }

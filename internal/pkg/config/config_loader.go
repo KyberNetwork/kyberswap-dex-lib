@@ -120,6 +120,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
 	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
+	c.UseCase.BuildRoute.TokenGroups = c.UseCase.GetRoute.SafetyQuoteConfig.TokenGroupConfig
 	fmt.Println("ENV:", viper.GetString("ENV"))
 	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 

@@ -11,6 +11,7 @@ package buildroute
 
 import (
 	context "context"
+	big "math/big"
 	reflect "reflect"
 
 	buildroute "github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
@@ -42,12 +43,13 @@ func (m *MockIGasEstimator) EXPECT() *MockIGasEstimatorMockRecorder {
 }
 
 // EstimateGas mocks base method.
-func (m *MockIGasEstimator) EstimateGas(ctx context.Context, tx buildroute.UnsignedTransaction) (uint64, error) {
+func (m *MockIGasEstimator) EstimateGas(ctx context.Context, tx buildroute.UnsignedTransaction) (uint64, *big.Int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EstimateGas", ctx, tx)
 	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(*big.Int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // EstimateGas indicates an expected call of EstimateGas.
@@ -56,20 +58,21 @@ func (mr *MockIGasEstimatorMockRecorder) EstimateGas(ctx, tx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGas", reflect.TypeOf((*MockIGasEstimator)(nil).EstimateGas), ctx, tx)
 }
 
-// Execute mocks base method.
-func (m *MockIGasEstimator) Execute(ctx context.Context, tx buildroute.UnsignedTransaction) (uint64, float64, error) {
+// EstimateGasAndPriceUSD mocks base method.
+func (m *MockIGasEstimator) EstimateGasAndPriceUSD(ctx context.Context, tx buildroute.UnsignedTransaction) (uint64, float64, *big.Int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Execute", ctx, tx)
+	ret := m.ctrl.Call(m, "EstimateGasAndPriceUSD", ctx, tx)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(float64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret2, _ := ret[2].(*big.Int)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
-// Execute indicates an expected call of Execute.
-func (mr *MockIGasEstimatorMockRecorder) Execute(ctx, tx any) *gomock.Call {
+// EstimateGasAndPriceUSD indicates an expected call of EstimateGasAndPriceUSD.
+func (mr *MockIGasEstimatorMockRecorder) EstimateGasAndPriceUSD(ctx, tx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIGasEstimator)(nil).Execute), ctx, tx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGasAndPriceUSD", reflect.TypeOf((*MockIGasEstimator)(nil).EstimateGasAndPriceUSD), ctx, tx)
 }
 
 // GetGasTokenPriceUSD mocks base method.

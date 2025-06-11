@@ -385,6 +385,11 @@ type ErrorResponse struct {
 	RequestID  string `json:"requestId"`
 }
 
+type SlippageErrorResponse struct {
+	ErrorResponse
+	SuggestedSlippage float64 `json:"suggestedSlippage"`
+}
+
 type DetailsBadRequest struct {
 	FieldViolations []*DetailBadRequestFieldViolation `json:"fieldViolations"`
 }
@@ -498,5 +503,25 @@ func respondContextCanceledError(c *gin.Context, _ error) {
 	c.JSON(
 		ClientClosedRequestStatusCode,
 		errorResponse,
+	)
+}
+
+func RespondSlippageError(c *gin.Context, err error, suggestedSlippage float64) {
+	requestID := requestid.ExtractRequestID(c)
+	baseResponse := responseFromErr(err)
+
+	response := SlippageErrorResponse{
+		ErrorResponse:     baseResponse,
+		SuggestedSlippage: suggestedSlippage,
+	}
+	response.RequestID = requestID
+
+	logger.
+		WithFields(c, logger.Fields{"request.id": requestID, "error": err}).
+		Warn("respond slippage error")
+
+	c.JSON(
+		response.HTTPStatus,
+		response,
 	)
 }

@@ -394,7 +394,7 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByExchange[dexId] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,
+	gasEstimator := buildroute.NewGasEstimator(ethClient.GetETHClient(), gasRepository, onchainpriceRepository,
 		cfg.Common.ChainID,
 		cfg.Common.RouterAddress)
 

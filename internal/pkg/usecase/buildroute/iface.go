@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -37,8 +38,8 @@ type IEncodeBuilder interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/gas_estimator.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IGasEstimator
 type IGasEstimator interface {
-	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error)
-	EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error)
+	EstimateGasAndPriceUSD(ctx context.Context, tx UnsignedTransaction) (uint64, float64, *big.Int, error)
+	EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, *big.Int, error)
 	GetGasTokenPriceUSD(ctx context.Context) (float64, error)
 }
 
@@ -54,6 +55,7 @@ type IExecutorBalanceRepository interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/pool_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPoolRepository
 type IPoolRepository interface {
+	AddFaultyPools(ctx context.Context, pools []routerEntity.FaultyPool) error
 	TrackFaultyPools(ctx context.Context, trackers []routerEntity.FaultyPoolTracker) ([]string, error)
 	GetFaultyPools(ctx context.Context) ([]string, error)
 }
@@ -72,6 +74,11 @@ type IAlphaFeeRepository interface {
 type IPublisherRepository interface {
 	Publish(ctx context.Context, topic string, data []byte) error
 	PublishMultiple(ctx context.Context, topic string, data [][]byte) error
+}
+
+type IETHClient interface {
+	EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64, error)
+	CallContract(ctx context.Context, msg ethereum.CallMsg, blockNumber *big.Int) ([]byte, error)
 }
 
 type WithAlphaFee interface {

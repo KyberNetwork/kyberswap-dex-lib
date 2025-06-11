@@ -229,3 +229,14 @@ func (r *redisRepository) ScanPools(ctx context.Context, cursor uint64, count in
 
 	return pools, failedPoolAddresses, cursor, nil
 }
+
+func (r *redisRepository) AddFaultyPools(ctx context.Context, pools []routerEntities.FaultyPool) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.AddFaultyPools")
+	defer span.End()
+
+	if len(pools) == 0 {
+		return nil
+	}
+
+	return r.poolClient.AddFaultyPools(ctx, pools)
+}

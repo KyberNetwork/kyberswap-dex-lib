@@ -46,8 +46,8 @@ func NewEncodingDataBuilder(
 	}
 }
 
-func (b *EncodingDataBuilder) SetSlippageTolerance(slippageTolerance float64) *EncodingDataBuilder {
-	b.data.SlippageTolerance = slippageTolerance
+func (b *EncodingDataBuilder) SetMinAmountOut(minAmountOut *big.Int) *EncodingDataBuilder {
+	b.data.MinAmountOut = minAmountOut
 
 	return b
 }

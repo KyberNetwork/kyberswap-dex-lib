@@ -41,6 +41,20 @@ func (m *MockIPoolRepository) EXPECT() *MockIPoolRepositoryMockRecorder {
 	return m.recorder
 }
 
+// AddFaultyPools mocks base method.
+func (m *MockIPoolRepository) AddFaultyPools(ctx context.Context, pools []entity.FaultyPool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddFaultyPools", ctx, pools)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddFaultyPools indicates an expected call of AddFaultyPools.
+func (mr *MockIPoolRepositoryMockRecorder) AddFaultyPools(ctx, pools any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).AddFaultyPools), ctx, pools)
+}
+
 // GetFaultyPools mocks base method.
 func (m *MockIPoolRepository) GetFaultyPools(ctx context.Context) ([]string, error) {
 	m.ctrl.T.Helper()

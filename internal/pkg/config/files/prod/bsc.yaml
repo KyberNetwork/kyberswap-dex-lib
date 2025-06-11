@@ -439,6 +439,7 @@ useCase:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
+      expireTime: 15m
     rfqAcceptableSlippageFraction: 1000
     faultyPoolDetectorDisabled: false
     publisher:
@@ -446,6 +447,10 @@ useCase:
     alphaFeeConfig: *alphaFeeConfig
     clientRefCode:
       bitgetswap: bitget
+    slippageBufferConfig:
+      stable: 1
+      correlated: 5
+      default: 50
 
   poolFactory:
     chainId: *chainId

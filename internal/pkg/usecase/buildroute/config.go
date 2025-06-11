@@ -1,6 +1,8 @@
 package buildroute
 
 import (
+	"time"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -18,6 +20,8 @@ type (
 		AlphaFeeConfig                valueobject.AlphaFeeConfig         `mapstructure:"alphaFeeConfig"`
 		Salt                          string                             `mapstructure:"salt"`
 		ClientRefCode                 map[string]string                  `mapstructure:"clientRefCode"`
+		TokenGroups                   *valueobject.TokenGroupConfig      `mapstructure:"tokenGroups"`
+		SlippageBufferConfig          map[string]float64                 `mapstructure:"slippageBufferConfig"`
 	}
 
 	AlphaFeeConfig struct {
@@ -37,5 +41,6 @@ type (
 		// Min slippage threshold configured in BPS format, e.g.: 0.01% -> 1, 0.5% -> 50
 		MinSlippageThreshold float64         `mapstructure:"minSlippageThreshold" json:"minSlippageThreshold"`
 		WhitelistedTokenSet  map[string]bool `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
+		ExpireTime           time.Duration   `mapstructure:"expireTime" json:"expireTime"`
 	}
 )

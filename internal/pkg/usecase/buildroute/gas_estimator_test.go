@@ -3,8 +3,10 @@ package buildroute_test
 import (
 	"context"
 	"math/big"
+	"strings"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -16,15 +18,49 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+const (
+	routerABI = `[{
+		"inputs": [{
+			"components": [
+				{"internalType": "address", "name": "callTarget", "type": "address"},
+				{"internalType": "address", "name": "approveTarget", "type": "address"},
+				{"internalType": "bytes", "name": "targetData", "type": "bytes"},
+				{"components": [
+					{"internalType": "contract IERC20", "name": "srcToken", "type": "address"},
+					{"internalType": "contract IERC20", "name": "dstToken", "type": "address"},
+					{"internalType": "address", "name": "dstReceiver", "type": "address"},
+					{"internalType": "uint256", "name": "amount", "type": "uint256"},
+					{"internalType": "uint256", "name": "minReturnAmount", "type": "uint256"},
+					{"internalType": "uint256", "name": "flags", "type": "uint256"}
+				], "internalType": "struct MetaAggregationRouterV2.SwapDescriptionV2", "name": "desc", "type": "tuple"},
+				{"internalType": "bytes", "name": "clientData", "type": "bytes"}
+			], "internalType": "struct MetaAggregationRouterV2.SwapExecutionParams", "name": "execution", "type": "tuple"}
+		],
+		"name": "swap",
+		"outputs": [
+			{"internalType": "uint256", "name": "returnAmount", "type": "uint256"},
+			{"internalType": "uint256", "name": "gasUsed", "type": "uint256"}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	}]`
+)
+
 func TestGasEstimator(t *testing.T) {
 	mockError := errors.New("mock error")
+	parsedABI, err := abi.JSON(strings.NewReader(routerABI))
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	testCases := []struct {
-		name         string
-		input        UnsignedTransaction
-		prepare      func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator
-		wantedError  error
-		wantedGas    uint64
-		wantedGasUSD float64
+		name               string
+		input              UnsignedTransaction
+		prepare            func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator
+		wantedError        error
+		wantedGas          uint64
+		wantedReturnAmount *big.Int
+		wantedGasUSD       float64
 	}{
 		{
 			name: "it should return correct gas",
@@ -36,12 +72,20 @@ func TestGasEstimator(t *testing.T) {
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				ethClient := mocks.NewMockIETHClient(ctrl)
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
-					Return(uint64(123), nil).Times(1)
+
+				returnAmount := big.NewInt(123)
+				gasUsed := big.NewInt(123)
+
+				packedData, err := parsedABI.Methods["swap"].Outputs.Pack(returnAmount, gasUsed)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return(packedData, nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
-				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
+				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil).Times(1)
 				chainId := valueobject.ChainIDEthereum
 				prices := map[string]*routerEntities.OnchainPrice{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
@@ -51,12 +95,13 @@ func TestGasEstimator(t *testing.T) {
 						USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
 					}}
 				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
-				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}).Return(prices, nil)
-				return NewGasEstimator(ethEstimator, gasRep, onchainPriceRepo, chainId, routerAddress)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}).Return(prices, nil).Times(1)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, chainId, routerAddress)
 			},
-			wantedGas:    uint64(123),
-			wantedGasUSD: utils.CalcGasUsd(big.NewFloat(2), int64(123), 0.5),
-			wantedError:  nil,
+			wantedGas:          EstimateTotalGas(123),
+			wantedReturnAmount: big.NewInt(123),
+			wantedGasUSD:       utils.CalcGasUsd(big.NewFloat(2), int64(EstimateTotalGas(123)), 0.5),
+			wantedError:        nil,
 		},
 		{
 			name: "it should return valid gas when sender address is empty",
@@ -68,13 +113,20 @@ func TestGasEstimator(t *testing.T) {
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				ethClient := mocks.NewMockIETHClient(ctrl)
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
-					Return(uint64(123), nil).Times(1)
+
+				returnAmount := big.NewInt(123)
+				gasUsed := big.NewInt(123)
+
+				packedData, err := parsedABI.Methods["swap"].Outputs.Pack(returnAmount, gasUsed)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return(packedData, nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
-				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
+				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil).Times(1)
 				chainId := valueobject.ChainIDEthereum
 				prices := map[string]*routerEntities.OnchainPrice{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
@@ -84,12 +136,13 @@ func TestGasEstimator(t *testing.T) {
 						USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
 					}}
 				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
-				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}).Return(prices, nil)
-				return NewGasEstimator(ethEstimator, gasRep, onchainPriceRepo, chainId, routerAddress)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}).Return(prices, nil).Times(1)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, chainId, routerAddress)
 			},
-			wantedGas:    uint64(123),
-			wantedGasUSD: utils.CalcGasUsd(big.NewFloat(2), int64(123), 0.5),
-			wantedError:  nil,
+			wantedGas:          EstimateTotalGas(123),
+			wantedReturnAmount: big.NewInt(123),
+			wantedGasUSD:       utils.CalcGasUsd(big.NewFloat(2), int64(EstimateTotalGas(123)), 0.5),
+			wantedError:        nil,
 		},
 		{
 			name: "it should return error when repository return error",
@@ -101,20 +154,28 @@ func TestGasEstimator(t *testing.T) {
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				ethClient := mocks.NewMockIETHClient(ctrl)
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
-					Return(uint64(0), mockError).Times(1)
+
+				returnAmount := big.NewInt(123)
+				gasUsed := big.NewInt(123)
+
+				packedData, err := parsedABI.Methods["swap"].Outputs.Pack(returnAmount, gasUsed)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return(packedData, nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
-				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Times(0)
+				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(nil, mockError).Times(1)
 				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
-				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Times(0)
-				return NewGasEstimator(ethEstimator, gasRep, onchainPriceRepo, valueobject.ChainIDEthereum, routerAddress)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return(nil, mockError).Times(0)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, valueobject.ChainIDEthereum, routerAddress)
 			},
-			wantedGas:    0,
-			wantedGasUSD: 0.0,
-			wantedError:  mockError,
+			wantedGas:          0,
+			wantedReturnAmount: nil,
+			wantedGasUSD:       0.0,
+			wantedError:        mockError,
 		},
 		{
 			name: "it should return error when data is empty",
@@ -127,15 +188,17 @@ func TestGasEstimator(t *testing.T) {
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
-				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).Times(0)
+				ethClient := mocks.NewMockIETHClient(ctrl)
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte{}, nil).Times(0)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Times(0)
-				return NewGasEstimator(ethEstimator, gasRep, nil, valueobject.ChainIDEthereum, routerAddress)
+				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, valueobject.ChainIDEthereum, routerAddress)
 			},
-			wantedGas:   0,
-			wantedError: errors.New("empty hex string"),
+			wantedGas:          0,
+			wantedReturnAmount: nil,
+			wantedGasUSD:       0.0,
+			wantedError:        errors.New("empty hex string"),
 		},
 		{
 			name: "it should return error when get gas price failed",
@@ -147,17 +210,27 @@ func TestGasEstimator(t *testing.T) {
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				ethClient := mocks.NewMockIETHClient(ctrl)
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
-					Return(uint64(123), nil).Times(1)
+
+				returnAmount := big.NewInt(123)
+				gasUsed := big.NewInt(123)
+
+				packedData, err := parsedABI.Methods["swap"].Outputs.Pack(returnAmount, gasUsed)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return(packedData, nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(nil, mockError)
-				return NewGasEstimator(ethEstimator, gasRep, nil, valueobject.ChainIDEthereum, routerAddress)
+				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, valueobject.ChainIDEthereum, routerAddress)
 			},
-			wantedGas:    0,
-			wantedGasUSD: 0.0,
-			wantedError:  mockError,
+			wantedGas:          0,
+			wantedReturnAmount: nil,
+			wantedGasUSD:       0.0,
+			wantedError:        mockError,
 		},
 		{
 			name: "it should return error when get gas token price failed",
@@ -169,20 +242,28 @@ func TestGasEstimator(t *testing.T) {
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
-				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				ethClient := mocks.NewMockIETHClient(ctrl)
 				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
-					Return(uint64(123), nil).Times(1)
+
+				returnAmount := big.NewInt(123)
+				gasUsed := big.NewInt(123)
+
+				packedData, err := parsedABI.Methods["swap"].Outputs.Pack(returnAmount, gasUsed)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ethClient.EXPECT().CallContract(gomock.Any(), gomock.Any(), gomock.Any()).Return(packedData, nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
-				chainId := valueobject.ChainIDEthereum
 				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
 				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"}).Return(nil, mockError)
-				return NewGasEstimator(ethEstimator, gasRep, onchainPriceRepo, chainId, routerAddress)
+				return NewGasEstimator(ethClient, gasRep, onchainPriceRepo, valueobject.ChainIDEthereum, routerAddress)
 			},
-			wantedGas:    0,
-			wantedGasUSD: 0.0,
-			wantedError:  mockError,
+			wantedGas:          0,
+			wantedReturnAmount: nil,
+			wantedGasUSD:       0.0,
+			wantedError:        mockError,
 		},
 	}
 	for _, tc := range testCases {
@@ -191,16 +272,16 @@ func TestGasEstimator(t *testing.T) {
 			defer ctrl.Finish()
 
 			gasEstimator := tc.prepare(ctrl, tc.input)
-			gas, gasUSD, err := gasEstimator.Execute(context.Background(), tc.input)
+			gas, gasUSD, returnAmount, err := gasEstimator.EstimateGasAndPriceUSD(context.Background(), tc.input)
 
 			assert.Equal(t, tc.wantedGas, gas)
+			assert.Equal(t, tc.wantedReturnAmount, returnAmount)
 			assert.Equal(t, tc.wantedGasUSD, gasUSD)
 			if err != nil {
 				assert.EqualErrorf(t, err, tc.wantedError.Error(), err.Error())
 			} else {
 				assert.NoError(t, err)
 			}
-
 		})
 	}
 }

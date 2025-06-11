@@ -58,6 +58,12 @@ func BuildRoute(validator IBuildRouteParamsValidator, useCase IBuildRouteUseCase
 
 		result, err := useCase.Handle(ctx, command)
 		if err != nil {
+			// When slippage is too low, return suggested slippage to help user adjust their transaction
+			if result != nil && result.SuggestedSlippage > 0 {
+				RespondSlippageError(ginCtx, err, result.SuggestedSlippage)
+				return
+			}
+
 			RespondFailure(ginCtx, err)
 			return
 		}

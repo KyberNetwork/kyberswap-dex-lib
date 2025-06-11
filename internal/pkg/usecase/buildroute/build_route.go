@@ -22,6 +22,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -35,26 +37,29 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/alphafee"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/slippage"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-var OutputChangeNoChange = dto.OutputChange{
-	Amount:  "0",
-	Percent: 0,
-	Level:   dto.OutputChangeLevelNormal,
-}
+var (
+	OutputChangeNoChange = dto.OutputChange{
+		Amount:  "0",
+		Percent: 0,
+		Level:   dto.OutputChangeLevelNormal,
+	}
+
+	BasisPoints = big.NewInt(10000)
+)
 
 type RouteType string
 
@@ -250,24 +255,30 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	encodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress)
+	// Estimate gas and slippage using simulation data
+	estimatedGas, gasInUSD, l1FeeUSD, estimatedSlippage, err := uc.simulateSwapAndEstimateGas(ctx, routeSummary,
+		command, executorAddress, isFaultyPoolTrackEnable)
+	if err != nil {
+		if estimatedSlippage > 0 {
+			return &dto.BuildRouteResult{
+				SuggestedSlippage: estimatedSlippage,
+			}, err
+		}
+		return nil, err
+	}
+
+	encodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress, false)
 	if err != nil {
 		return nil, err
 	}
 
-	// estimate gas price for a transaction
-	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData,
-		isFaultyPoolTrackEnable)
-	if err != nil {
-		return nil, err
-	}
-
-	// the only additional cost for now is L1 fee
+	// Prepare additional cost message if L1 fee exists
 	additionalCostMessage := ""
 	if l1FeeUSD > 0 {
 		additionalCostMessage = constant.AdditionalCostMessageL1Fee
 	}
 
+	// Set transaction value if token in is ETH
 	transactionValue := constant.Zero
 	if eth.IsEther(routeSummary.TokenIn) {
 		transactionValue = routeSummary.AmountIn
@@ -562,10 +573,9 @@ func (uc *BuildRouteUseCase) processRFQs(
 		return routeSummary.Route[param.PathIdx][param.SwapIdx]
 	})
 	// Track faulty pools if we got RFQ errors due to market too volatile
-	go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx),
-		uc.convertPMMSwapsToPoolTrackers(swaps, err),
-		isFaultyPoolTrackEnable,
-	)
+	if isFaultyPoolTrackEnable {
+		go uc.monitorFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), uc.createPMMPoolTrackers(swaps, err))
+	}
 
 	if err != nil {
 		return errors.WithMessagef(err, "swaps data: %v", swaps)
@@ -772,6 +782,7 @@ func (uc *BuildRouteUseCase) encode(
 	routeSummary valueobject.RouteSummary,
 	encoder encode.IEncoder,
 	executorAddress string,
+	isSimulation bool,
 ) (string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.encode")
 	defer span.End()
@@ -785,13 +796,18 @@ func (uc *BuildRouteUseCase) encode(
 		ctx, uc.config.ChainID, uc.executorBalanceRepository, uc.config.FeatureFlags).
 		SetRoute(&routeSummary, executorAddress, command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
-		SetSlippageTolerance(command.SlippageTolerance).
 		SetClientID(command.Source).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
-		SetReferral(lo.CoalesceOrEmpty(command.Referral, uc.config.ClientRefCode[command.Source])).
-		GetData()
-	return encoder.Encode(encodingData)
+		SetReferral(lo.CoalesceOrEmpty(command.Referral, uc.config.ClientRefCode[command.Source]))
+
+	if isSimulation {
+		encodingData.SetMinAmountOut(bignumber.One)
+	} else {
+		encodingData.SetMinAmountOut(slippage.GetMinAmountOutExactInput(routeSummary.AmountOut, command.SlippageTolerance))
+	}
+
+	return encoder.Encode(encodingData.GetData())
 }
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
@@ -885,64 +901,99 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 	return result, nil
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary,
-	command dto.BuildRouteCommand, encodedData string, isFaultyPoolTrackEnable bool) (uint64, float64, float64, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
+// simulateSwap simulates the swap transaction to get actual returnAmount and gasUsed
+func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
+	ctx context.Context,
+	routeSummary valueobject.RouteSummary,
+	command dto.BuildRouteCommand,
+	executorAddress string,
+	isFaultyPoolTrackEnable bool,
+) (uint64, float64, float64, float64, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.simulateSwapAndEstimateCosts")
 	defer span.End()
 
-	value := constant.Zero
-	if eth.IsEther(routeSummary.TokenIn) {
-		value = routeSummary.AmountIn
+	// Generate encoded data for simulation
+	simulationEncodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress, true)
+	if err != nil {
+		return 0, 0.0, 0, 0, err
 	}
+
 	tx := UnsignedTransaction{
 		command.Sender,
-		encodedData,
-		value,
+		simulationEncodedData,
+		lo.Ternary(eth.IsEther(routeSummary.TokenIn), routeSummary.AmountIn, constant.Zero),
 		nil,
 	}
 
 	gas := uint64(routeSummary.Gas)
 	gasUSD := routeSummary.GasUSD
-	var err error
-	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
+	var estimatedSlippage float64
+	var returnAmount *big.Int
+
+	if uc.isGasEstimationEnabled(command) {
 		if utils.IsEmptyString(command.Sender) {
-			return 0, 0.0, 0, ErrSenderEmptyWhenEnableEstimateGas
+			return 0, 0.0, 0, 0, ErrSenderEmptyWhenEnableEstimateGas
 		}
 
-		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
-		uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-		go uc.trackFaultyPools(
+		gas, gasUSD, returnAmount, err = uc.gasEstimator.EstimateGasAndPriceUSD(ctx, tx)
+		if err == nil {
+			estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
+				returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
+		}
+
+		go uc.handleFaultyPools(
 			ctxUtils.NewBackgroundCtxWithReqId(ctx),
-			uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
+			routeSummary,
+			command.SlippageTolerance,
+			estimatedSlippage,
+			err,
 			isFaultyPoolTrackEnable,
 		)
+
 		if err != nil {
-			return 0, 0.0, 0, ErrEstimateGasFailed(err)
+			return 0, 0.0, 0, estimatedSlippage, ErrEstimateGasFailed(err)
 		}
-	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !uc.config.FaultyPoolDetectorDisabled && !utils.IsEmptyString(command.Sender) {
+	} else if uc.isFaultyPoolTrackingEnabled(command) {
 		go func(ctx context.Context) {
-			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
-			uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-			uc.trackFaultyPools(
+			_, returnAmount, err = uc.gasEstimator.EstimateGas(ctx, tx)
+			if err == nil {
+				estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
+					returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
+			}
+
+			uc.handleFaultyPools(
 				ctx,
-				uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
+				routeSummary,
+				command.SlippageTolerance,
+				estimatedSlippage,
+				err,
 				isFaultyPoolTrackEnable,
 			)
 		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 
 	// for some L2 chains we'll need to account for L1 fee as well
-	l1FeeUSDFloat, err := uc.calculateL1FeeUSD(ctx, routeSummary, encodedData)
+	l1FeeUSDFloat, err := uc.calculateL1FeeInUSD(ctx, routeSummary, simulationEncodedData)
 	if err != nil {
-		return 0, 0.0, 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
+		return 0, 0.0, 0, 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
 	}
 
-	return gas, gasUSD, l1FeeUSDFloat, nil
+	return gas, gasUSD, l1FeeUSDFloat, 0, nil
 }
 
-func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary valueobject.RouteSummary,
+func (uc *BuildRouteUseCase) isGasEstimationEnabled(command dto.BuildRouteCommand) bool {
+	return uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation
+}
+
+func (uc *BuildRouteUseCase) isFaultyPoolTrackingEnabled(command dto.BuildRouteCommand) bool {
+	return uc.config.FeatureFlags.IsFaultyPoolDetectorEnable &&
+		!uc.config.FaultyPoolDetectorDisabled &&
+		!utils.IsEmptyString(command.Sender)
+}
+
+func (uc *BuildRouteUseCase) calculateL1FeeInUSD(ctx context.Context, routeSummary valueobject.RouteSummary,
 	encodedData string) (float64, error) {
-	// Using the estimated L1 fee because we haven’t implemented Brotli compression for Arbitrum yet.
+	// Using the estimated L1 fee because we haven't implemented Brotli compression for Arbitrum yet.
 	if uc.config.ChainID == valueobject.ChainIDArbitrumOne {
 		return routeSummary.L1FeeUSD, nil
 	}
@@ -967,30 +1018,6 @@ func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, routeSummary
 		l1FeeUSDFloat, _ = l1FeeUSD.Float64()
 	}
 	return l1FeeUSDFloat, nil
-}
-
-func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
-	routeSummary valueobject.RouteSummary, err error, slippage float64) {
-	clientId := clientid.GetClientIDFromCtx(ctx)
-	poolTags := make([]string, 0)
-
-	for _, path := range routeSummary.Route {
-		for _, swap := range path {
-			metrics.CountEstimateGas(ctx, err == nil, string(swap.Exchange), clientId)
-			poolTags = append(poolTags, fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool))
-		}
-	}
-
-	if err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestid.GetRequestIDFromCtx(ctx),
-			"clientId":  clientId,
-			"pool":      strings.Join(poolTags, ","),
-		}).Infof("EstimateGas failed error %s", err)
-
-		// send failed metrics with slippage when error is Return amount is not enough
-		metrics.RecordEstimateGasWithSlippage(ctx, slippage, !isErrReturnAmountIsNotEnough(err))
-	}
 }
 
 // This function checks the amount of tokenOut that needs to be retained because the executor contract
@@ -1043,4 +1070,56 @@ func (uc *BuildRouteUseCase) consumeRouteMsgDatas(ctx context.Context, rfqRouteM
 			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
 		}
 	}
+}
+
+func (uc *BuildRouteUseCase) ValidateReturnAmount(
+	tokenIn, tokenOut string,
+	returnAmount, routeAmountOut *big.Int,
+	slippageTolerance float64,
+) (float64, error) {
+	if returnAmount == nil || returnAmount.Sign() <= 0 {
+		return 0, errors.New("invalid returnAmount")
+	}
+
+	if routeAmountOut == nil || routeAmountOut.Sign() <= 0 {
+		return 0, errors.New("invalid routeAmountOut")
+	}
+
+	minAmountOut := slippage.GetMinAmountOutExactInput(routeAmountOut, slippageTolerance)
+	if returnAmount.Cmp(minAmountOut) >= 0 {
+		return 0, nil
+	}
+
+	actualSlippage := minAmountOut.Sub(routeAmountOut, returnAmount)
+	actualSlippage.Mul(actualSlippage, BasisPoints)
+
+	remainder := new(big.Int).Rem(actualSlippage, routeAmountOut)
+	actualSlippage.Div(actualSlippage, routeAmountOut)
+	if remainder.Sign() > 0 {
+		actualSlippage.Add(actualSlippage, bignumber.One)
+	}
+
+	estimatedSlippage, _ := actualSlippage.Float64()
+	estimatedSlippage += uc.getSlippageBuffer(tokenIn, tokenOut)
+
+	return estimatedSlippage, ErrReturnAmountIsNotEnough
+}
+
+// getSlippageBuffer returns the slippage buffer for a given token pair
+// Returns 0 if no buffer is configured or if token group type cannot be determined
+func (uc *BuildRouteUseCase) getSlippageBuffer(tokenIn, tokenOut string) float64 {
+	if uc.config.TokenGroups == nil || uc.config.SlippageBufferConfig == nil {
+		return 0.0
+	}
+
+	tokenGroupType, _ := uc.config.TokenGroups.GetTokenGroupType(valueobject.TokenGroupParams{
+		TokenIn:  tokenIn,
+		TokenOut: tokenOut,
+	})
+
+	if buffer, found := uc.config.SlippageBufferConfig[strings.ToLower(tokenGroupType)]; found {
+		return buffer
+	}
+
+	return 0.0
 }
