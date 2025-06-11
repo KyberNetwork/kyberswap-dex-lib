@@ -10,7 +10,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -37,10 +39,11 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (d *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	lg := klog.WithFields(ctx, klog.Fields{
 		"dexId":       d.config.DexId,
@@ -74,7 +77,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	if needRpcCall {
-		poolWithBlockNumber, err = d.forceUpdateState(ctx, staticExtra.PoolKey)
+		poolWithBlockNumber, err = d.forceUpdateState(ctx, staticExtra.PoolKey, overrides)
 		if err != nil {
 			return p, err
 		}
@@ -98,6 +101,24 @@ func (d *PoolTracker) GetNewPoolState(
 	lg.Infof("Finish updating state at block %d", p.BlockNumber)
 
 	return p, nil
+}
+
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{
+		Logs: params.Logs,
+	}, params.Overrides)
 }
 
 func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWithBlockNumber) error {
@@ -159,7 +180,11 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 	return nil
 }
 
-func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *pools.PoolKey) (*PoolWithBlockNumber, error) {
+func (d *PoolTracker) forceUpdateState(
+	ctx context.Context,
+	poolKey *pools.PoolKey,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*PoolWithBlockNumber, error) {
 	poolAddress, _ := poolKey.ToPoolAddress()
 	logger.WithFields(logger.Fields{
 		"dexId":       d.config.DexId,
@@ -168,7 +193,9 @@ func (d *PoolTracker) forceUpdateState(ctx context.Context, poolKey *pools.PoolK
 
 	pools, err := d.dataFetcher.fetchPools(
 		ctx,
-		[]*pools.PoolKey{poolKey})
+		[]*pools.PoolKey{poolKey},
+		overrides,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("fetching pool state: %w", err)
 	}

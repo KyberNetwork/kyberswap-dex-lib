@@ -121,7 +121,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.P
 		return nil, nil, err
 	}
 
-	newEkuboPools, err := u.dataFetchers.fetchPools(ctx, newPoolKeys)
+	newEkuboPools, err := u.dataFetchers.fetchPools(ctx, newPoolKeys, nil)
 	if err != nil {
 		return nil, nil, err
 	}
