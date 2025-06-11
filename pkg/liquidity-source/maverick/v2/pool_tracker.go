@@ -111,7 +111,7 @@ func (t *PoolTracker) getNewPoolState(
 		},
 	).Info("Finished getting new pool state")
 
-	return t.updatePool(p, state, blockNumber)
+	return t.updatePool(p, state, blockNumber, overrides)
 }
 
 func (t *PoolTracker) getState(
