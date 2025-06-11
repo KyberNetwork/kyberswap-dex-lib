@@ -70,11 +70,11 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	}
 	delta.SqrtPrice = currSqrtPrice
 
-	delta.SqrtLowerTickPrice, err = tickPrice(state.TickSpacing, activeTick)
+	delta.SqrtLowerTickPrice, err = TickPrice(state.TickSpacing, activeTick)
 	if err != nil {
 		return nil, err
 	}
-	delta.SqrtUpperTickPrice, err = tickPrice(state.TickSpacing, activeTick+1)
+	delta.SqrtUpperTickPrice, err = TickPrice(state.TickSpacing, activeTick+1)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +328,7 @@ func computeSwapExactIn(
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L252
 func amountToBin(deltaInErc, feeBases *uint256.Int, state *MaverickPoolState) (*uint256.Int, error) {
 	if !state.ProtocolFeeRatio.IsZero() {
-		tmp := bignumber.TenPowInt(15)
+		tmp := bignumber.TenPow(15)
 		tmpMul, err := mul(feeBases, tmp.Mul(state.ProtocolFeeRatio, tmp))
 		if err != nil {
 			return nil, err
@@ -386,9 +386,9 @@ func currentTickLiquidity(activeTick int32,
 	}
 
 	var lowerSqrtP, upperSqrtP *uint256.Int
-	if lowerSqrtP, err = tickPrice(state.TickSpacing, activeTick); err != nil {
+	if lowerSqrtP, err = TickPrice(state.TickSpacing, activeTick); err != nil {
 		return nil, nil, nil, nil, nil, err
-	} else if upperSqrtP, err = tickPrice(state.TickSpacing, activeTick+1); err != nil {
+	} else if upperSqrtP, err = TickPrice(state.TickSpacing, activeTick+1); err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
 
@@ -397,7 +397,7 @@ func currentTickLiquidity(activeTick int32,
 }
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L511C3-L511C12
-func tickPrice(tickSpacing int32, activeTick int32) (*uint256.Int, error) {
+func TickPrice(tickSpacing int32, activeTick int32) (*uint256.Int, error) {
 	tick := kutils.Abs(activeTick) * tickSpacing
 	if tick > MaxTick {
 		return nil, ErrLargerThanMaxTick
@@ -950,13 +950,13 @@ func scaleFromAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) 
 	if decimals > 18 {
 		scalingFactor.Mul(
 			bignumber.BONE,
-			bignumber.TenPowInt(decimals-18),
+			bignumber.TenPow(decimals-18),
 		)
 		return sDivDownFixed(amount, &scalingFactor)
 	} else {
 		scalingFactor.Mul(
 			bignumber.BONE,
-			bignumber.TenPowInt(18-decimals),
+			bignumber.TenPow(18-decimals),
 		)
 		return sMulUpFixed(amount, &scalingFactor)
 	}
@@ -971,13 +971,13 @@ func ScaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	if decimals > 18 {
 		scalingFactor.Mul(
 			bignumber.BONE,
-			bignumber.TenPowInt(decimals-18),
+			bignumber.TenPow(decimals-18),
 		)
 		return sMulUpFixed(amount, &scalingFactor)
 	} else {
 		scalingFactor.Mul(
 			bignumber.BONE,
-			bignumber.TenPowInt(18-decimals),
+			bignumber.TenPow(18-decimals),
 		)
 		return sDivDownFixed(amount, &scalingFactor)
 	}

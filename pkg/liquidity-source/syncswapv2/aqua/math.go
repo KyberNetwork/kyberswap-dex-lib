@@ -13,7 +13,7 @@ var (
 	ErrDenominatorZero              = errors.New("denominator should not be 0")
 	ErrAmountOutSmallerThanFee      = errors.New("amount out smaller than fee")
 	ErrReserveViolation             = errors.New("reserve violation")
-	PriceMask                       = new(uint256.Int).Sub(new(uint256.Int).Lsh(constant.One, 128), constant.One)
+	PriceMask                       = new(uint256.Int).Sub(new(uint256.Int).Lsh(constant.U1, 128), constant.U1)
 	PriceSize                  uint = 128
 )
 
@@ -46,7 +46,7 @@ func geometricMean(unsortedX []*uint256.Int, sort bool) (*uint256.Int, error) {
 	// https://gist.github.com/0xnakato/3785ba596c6fa661a5bc56f045360bf6#file-syncswaphelper-ts-L2099
 	// Assuming ethers has sqrt method for BigNumber (This may be an oversimplification, and a more detailed algorithm might be needed for accurate square root computation)
 	// sqrt(x0.mul(x1));
-	res := constant.One
+	res := constant.U1
 	for _, x := range unsortedX {
 		res = new(uint256.Int).Mul(res, x)
 	}
@@ -54,17 +54,17 @@ func geometricMean(unsortedX []*uint256.Int, sort bool) (*uint256.Int, error) {
 }
 
 func sqrtInt(x *uint256.Int) (*uint256.Int, error) {
-	if x.Cmp(constant.ZeroBI) == 0 {
-		return constant.ZeroBI, nil
+	if x.Cmp(constant.U0) == 0 {
+		return constant.U0, nil
 	}
-	var z = new(uint256.Int).Div(new(uint256.Int).Add(x, constant.BONE), constant.Two)
+	var z = new(uint256.Int).Div(new(uint256.Int).Add(x, constant.BONE), constant.U2)
 	var y = x
 	for i := 0; i < 256; i += 1 {
 		if z.Cmp(y) == 0 {
 			return y, nil
 		}
 		y = z
-		z = new(uint256.Int).Div(new(uint256.Int).Add(new(uint256.Int).Div(new(uint256.Int).Mul(x, constant.BONE), z), z), constant.Two)
+		z = new(uint256.Int).Div(new(uint256.Int).Add(new(uint256.Int).Div(new(uint256.Int).Mul(x, constant.BONE), z), z), constant.U2)
 	}
 	return nil, errors.New("sqrt_int did not converge")
 }
@@ -73,14 +73,14 @@ func halfpow(power *uint256.Int, precision *uint256.Int) (*uint256.Int, error) {
 	var intpow = new(uint256.Int).Div(power, constant.BONE)
 	var otherpow = new(uint256.Int).Sub(power, new(uint256.Int).Mul(intpow, constant.BONE))
 	if intpow.Cmp(uint256.NewInt(59)) > 0 {
-		return constant.ZeroBI, nil
+		return constant.U0, nil
 	}
-	var result = new(uint256.Int).Div(constant.BONE, new(uint256.Int).Exp(constant.Two, intpow))
-	if otherpow.Cmp(constant.ZeroBI) == 0 {
+	var result = new(uint256.Int).Div(constant.BONE, new(uint256.Int).Exp(constant.U2, intpow))
+	if otherpow.Cmp(constant.U0) == 0 {
 		return result, nil
 	}
 	var term = constant.BONE
-	var x = new(uint256.Int).Mul(constant.Five, constant.TenPowInt(17))
+	var x = new(uint256.Int).Mul(constant.U5, constant.TenPow(17))
 	var S = constant.BONE
 	var neg = false
 	for i := 1; i < 256; i += 1 {
@@ -109,12 +109,12 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 	var nCoins = len(xUnsorted)
 	var nCoinsBi = uint256.NewInt(uint64(nCoins))
 	var x = sortArray(xUnsorted)
-	if x[0].Cmp(constant.TenPowInt(9)) < 0 || x[0].Cmp(constant.TenPowInt(33)) > 0 {
+	if x[0].Cmp(constant.TenPow(9)) < 0 || x[0].Cmp(constant.TenPow(33)) > 0 {
 		return nil, errors.New("unsafe values x[0]")
 	}
 	for i := 1; i < nCoins; i += 1 {
 		var frac = new(uint256.Int).Div(new(uint256.Int).Mul(x[i], constant.BONE), x[0])
-		if frac.Cmp(constant.TenPowInt(11)) < 0 {
+		if frac.Cmp(constant.TenPow(11)) < 0 {
 			return nil, errors.New("unsafe values x[i]")
 		}
 	}
@@ -123,7 +123,7 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		return nil, err
 	}
 	var D = new(uint256.Int).Mul(nCoinsBi, mean)
-	var S = constant.ZeroBI
+	var S = constant.U0
 	for _, xI := range x {
 		S = new(uint256.Int).Add(S, xI)
 	}
@@ -135,9 +135,9 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		}
 		var _g1k0 = new(uint256.Int).Add(gamma, constant.BONE)
 		if _g1k0.Cmp(K0) > 0 {
-			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(_g1k0, K0), constant.One)
+			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(_g1k0, K0), constant.U1)
 		} else {
-			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.One)
+			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.U1)
 		}
 		// var mul1 = new(uint256.Int).Div(
 		// 	new(uint256.Int).Mul(
@@ -162,7 +162,7 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		// 	), _g1k0,
 		// )
 		var mul2 = new(uint256.Int)
-		mul2.Mul(constant.Two, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0)
+		mul2.Mul(constant.U2, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0)
 		// var negFprime = new(uint256.Int).Sub(
 		// 	new(uint256.Int).Add(
 		// 		new(uint256.Int).Add(S, new(uint256.Int).Div(new(uint256.Int).Mul(S, mul2), constant.BONE)),
@@ -198,7 +198,7 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		if DPlus.Cmp(DMinus) > 0 {
 			D = new(uint256.Int).Sub(DPlus, DMinus)
 		} else {
-			D = new(uint256.Int).Div(new(uint256.Int).Sub(DMinus, DPlus), constant.Two)
+			D = new(uint256.Int).Div(new(uint256.Int).Sub(DMinus, DPlus), constant.U2)
 		}
 		var diff *uint256.Int
 		if D.Cmp(DPrev) > 0 {
@@ -206,14 +206,14 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		} else {
 			diff = new(uint256.Int).Sub(DPrev, D)
 		}
-		var temp = constant.TenPowInt(16)
+		var temp = constant.TenPow(16)
 		if D.Cmp(temp) > 0 {
 			temp = D
 		}
-		if new(uint256.Int).Mul(diff, constant.TenPowInt(14)).Cmp(temp) < 0 {
+		if new(uint256.Int).Mul(diff, constant.TenPow(14)).Cmp(temp) < 0 {
 			for _, _x := range x {
 				var frac = new(uint256.Int).Div(new(uint256.Int).Mul(_x, constant.BONE), D)
-				if frac.Cmp(constant.TenPowInt(16)) < 0 || frac.Cmp(constant.TenPowInt(20)) > 0 {
+				if frac.Cmp(constant.TenPow(16)) < 0 || frac.Cmp(constant.TenPow(20)) > 0 {
 					return nil, errors.New("unsafe values x[i]")
 				}
 			}
@@ -230,15 +230,15 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 	var nCoinBi = uint256.NewInt(uint64(nCoins))
 	var y = new(uint256.Int).Div(D, nCoinBi)
 	var K0i = constant.BONE
-	var Si = constant.ZeroBI
+	var Si = constant.U0
 
 	var xSorted = make([]*uint256.Int, nCoins)
 	for j := 0; j < nCoins; j += 1 {
 		xSorted[j] = x[j]
 	}
-	xSorted[i] = constant.ZeroBI
+	xSorted[i] = constant.U0
 	xSorted = sortArray(xSorted)
-	var tenPow14 = constant.TenPowInt(14)
+	var tenPow14 = constant.TenPow(14)
 	var convergenceLimit = new(uint256.Int).Div(xSorted[0], tenPow14)
 	var temp = new(uint256.Int).Div(D, tenPow14)
 	if temp.Cmp(convergenceLimit) > 0 {
@@ -250,7 +250,7 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 
 	for j := 2; j < nCoins+1; j += 1 {
 		var _x = xSorted[nCoins-j]
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(constant.U0) == 0 {
 			return nil, ErrDenominatorZero
 		}
 		y = new(uint256.Int).Div(new(uint256.Int).Mul(y, D), new(uint256.Int).Mul(_x, nCoinBi))
@@ -265,9 +265,9 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		var S = new(uint256.Int).Add(Si, y)
 		var _g1k0 = new(uint256.Int).Add(gamma, constant.BONE)
 		if _g1k0.Cmp(K0) > 0 {
-			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(_g1k0, K0), constant.One)
+			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(_g1k0, K0), constant.U1)
 		} else {
-			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.One)
+			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.U1)
 		}
 		// var mul1 = new(uint256.Int).Div(
 		// 	new(uint256.Int).Mul(
@@ -290,25 +290,25 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		// 	), constant.BONE,
 		// )
 		var mul2 = new(uint256.Int)
-		mul2.Mul(constant.Two, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE)
+		mul2.Mul(constant.U2, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE)
 		var yfprime = new(uint256.Int).Add(
 			new(uint256.Int).Add(new(uint256.Int).Mul(constant.BONE, y), new(uint256.Int).Mul(S, mul2)), mul1,
 		)
 		var _dyfprime = new(uint256.Int).Mul(D, mul2)
 		if yfprime.Cmp(_dyfprime) < 0 {
-			y = new(uint256.Int).Div(yPrev, constant.Two)
+			y = new(uint256.Int).Div(yPrev, constant.U2)
 			continue
 		} else {
 			yfprime = new(uint256.Int).Sub(yfprime, _dyfprime)
 		}
 
-		if y.Cmp(constant.ZeroBI) == 0 {
+		if y.Cmp(constant.U0) == 0 {
 			return nil, ErrDenominatorZero
 		}
 
 		var fprime = new(uint256.Int).Div(yfprime, y)
 
-		if fprime.Cmp(constant.ZeroBI) == 0 {
+		if fprime.Cmp(constant.U0) == 0 {
 			return nil, ErrDenominatorZero
 		}
 
@@ -322,11 +322,11 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		)
 		yMinus = new(uint256.Int).Add(yMinus, new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, S), fprime))
 		if yPlus.Cmp(yMinus) < 0 {
-			y = new(uint256.Int).Div(yPrev, constant.Two)
+			y = new(uint256.Int).Div(yPrev, constant.U2)
 		} else {
 			y = new(uint256.Int).Sub(yPlus, yMinus)
 		}
-		var diff = constant.ZeroBI
+		var diff = constant.U0
 		if y.Cmp(yPrev) > 0 {
 			diff = new(uint256.Int).Sub(y, yPrev)
 		} else {
@@ -338,7 +338,7 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		}
 		if diff.Cmp(t) < 0 {
 			var frac = new(uint256.Int).Div(new(uint256.Int).Mul(y, constant.BONE), D)
-			if frac.Cmp(constant.TenPowInt(16)) < 0 || frac.Cmp(constant.TenPowInt(20)) > 0 {
+			if frac.Cmp(constant.TenPow(16)) < 0 || frac.Cmp(constant.TenPow(20)) > 0 {
 				return nil, errors.New("unsafe value for y")
 			}
 			return y, nil
@@ -364,11 +364,11 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *uint256.Int) (*uint256.Int, *uin
 		return nil, nil, err
 	}
 
-	if xp[j].Cmp(new(uint256.Int).Add(y, constant.One)) < 0 {
+	if xp[j].Cmp(new(uint256.Int).Add(y, constant.U1)) < 0 {
 		return nil, nil, ErrReserveViolation
 	}
 
-	var dy = new(uint256.Int).Sub(new(uint256.Int).Sub(xp[j], y), constant.One) // dy: uint256 = xp[j] - y - 1
+	var dy = new(uint256.Int).Sub(new(uint256.Int).Sub(xp[j], y), constant.U1) // dy: uint256 = xp[j] - y - 1
 	xp[j] = y
 	if j > 0 {
 		dy = new(uint256.Int).Div(new(uint256.Int).Mul(dy, Precision), priceScale) // dy = dy * PRECISION / price_scale
@@ -402,7 +402,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
 		return nil, errors.New("coin index out of range")
 	}
-	if dx.Cmp(constant.ZeroBI) <= 0 {
+	if dx.Cmp(constant.U0) <= 0 {
 		return nil, errors.New("do not exchange 0 coins")
 	}
 
@@ -411,8 +411,8 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 		xp[k] = uint256.MustFromBig(t.Info.Reserves[k])
 	}
 	var ix = j
-	var p = constant.ZeroBI
-	var dy = constant.ZeroBI
+	var p = constant.U0
+	var dy = constant.U0
 
 	var y = xp[j]
 	var x0 = xp[i]
@@ -441,7 +441,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 	}
 	dy = new(uint256.Int).Sub(xp[j], temp)
 	xp[j] = new(uint256.Int).Sub(xp[j], dy)
-	dy = new(uint256.Int).Sub(dy, constant.One)
+	dy = new(uint256.Int).Sub(dy, constant.U1)
 	if j > 0 {
 		dy = new(uint256.Int).Div(new(uint256.Int).Mul(dy, Precision), priceScale[j-1])
 	}
@@ -462,7 +462,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 		y = new(uint256.Int).Div(new(uint256.Int).Mul(y, priceScale[j-1]), Precision)
 	}
 	xp[j] = y
-	if dx.Cmp(constant.TenPowInt(5)) > 0 && dy.Cmp(constant.TenPowInt(5)) > 0 {
+	if dx.Cmp(constant.TenPow(5)) > 0 && dy.Cmp(constant.TenPow(5)) > 0 {
 		var _dx = new(uint256.Int).Mul(dx, t.Precisions[i])
 		var _dy = new(uint256.Int).Mul(dy, t.Precisions[j])
 		if i != 0 && j != 0 {
@@ -482,7 +482,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *uint256.Int) (*uint256.Int, e
 			ix = i
 		}
 	}
-	err = t.tweakPrice(aGamma, xp, ix, p, constant.ZeroBI)
+	err = t.tweakPrice(aGamma, xp, ix, p, constant.U0)
 	return dy, err
 }
 
@@ -513,9 +513,9 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(uint256.NewInt(uint64(blockTimestamp-lastPricesTimestamp)), constant.BONE), maHalfTime,
 			),
-			constant.TenPowInt(10),
+			constant.TenPow(10),
 		)
-		packedPrices = constant.ZeroBI
+		packedPrices = constant.U0
 		for k := 0; k < nCoins-1; k += 1 {
 			priceOracle[k] = new(uint256.Int).Div(
 				new(uint256.Int).Add(
@@ -534,7 +534,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 		t.LastPricesTimestamp = blockTimestamp
 	}
 	var DUnadjusted = newD
-	if newD.Cmp(constant.ZeroBI) == 0 {
+	if newD.Cmp(constant.U0) == 0 {
 		DUnadjusted, _ = newtonD(AGamma[0], AGamma[1], _xp)
 	}
 	packedPrices = t.PriceScalePacked
@@ -542,7 +542,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 		priceScale[k] = new(uint256.Int).And(packedPrices, PriceMask)
 		packedPrices = new(uint256.Int).Rsh(packedPrices, PriceSize)
 	}
-	if pI.Cmp(constant.ZeroBI) > 0 {
+	if pI.Cmp(constant.U0) > 0 {
 		if i > 0 {
 			lastPrices[i-1] = pI
 		} else {
@@ -555,7 +555,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 		for k := 0; k < nCoins; k += 1 {
 			__xp[k] = new(uint256.Int).Set(_xp[k])
 		}
-		var dxPrice = new(uint256.Int).Div(__xp[0], constant.TenPowInt(6))
+		var dxPrice = new(uint256.Int).Div(__xp[0], constant.TenPow(6))
 		__xp[0] = new(uint256.Int).Add(__xp[0], dxPrice)
 		for k := 0; k < nCoins-1; k += 1 {
 			var temp, err = newtonY(AGamma[0], AGamma[1], __xp, DUnadjusted, k+1)
@@ -567,7 +567,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 			)
 		}
 	}
-	packedPrices = constant.ZeroBI
+	packedPrices = constant.U0
 	for k := 0; k < nCoins-1; k += 1 {
 		packedPrices = new(uint256.Int).Lsh(packedPrices, PriceSize)
 		var p = lastPrices[nCoins-2-k]
@@ -587,7 +587,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 	}
 	var xcpProfit = constant.BONE
 	var virtualPrice = constant.BONE
-	if oldVirtualPrice.Cmp(constant.ZeroBI) > 0 {
+	if oldVirtualPrice.Cmp(constant.U0) > 0 {
 		var xcp, err = geometricMean(xp, true)
 		if err != nil {
 			return err
@@ -604,15 +604,15 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 	}
 	t.XcpProfit = xcpProfit
 	var needsAdjustment = t.NotAdjusted
-	if new(uint256.Int).Sub(new(uint256.Int).Mul(virtualPrice, constant.Two), constant.BONE).Cmp(
-		new(uint256.Int).Add(xcpProfit, new(uint256.Int).Mul(constant.Two, t.AllowedExtraProfit)),
+	if new(uint256.Int).Sub(new(uint256.Int).Mul(virtualPrice, constant.U2), constant.BONE).Cmp(
+		new(uint256.Int).Add(xcpProfit, new(uint256.Int).Mul(constant.U2, t.AllowedExtraProfit)),
 	) > 0 {
 		needsAdjustment = true
 		t.NotAdjusted = true
 	}
 	if needsAdjustment {
 		var adjustmentStep = t.AdjustmentStep
-		var norm = constant.ZeroBI
+		var norm = constant.U0
 		for k := 0; k < nCoins-1; k += 1 {
 			var ratio = new(uint256.Int).Div(new(uint256.Int).Mul(priceOracle[k], constant.BONE), priceScale[k])
 			if ratio.Cmp(constant.BONE) > 0 {
@@ -626,7 +626,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 			new(uint256.Int).Mul(
 				adjustmentStep, adjustmentStep,
 			),
-		) > 0 && oldVirtualPrice.Cmp(constant.ZeroBI) > 0 {
+		) > 0 && oldVirtualPrice.Cmp(constant.U0) > 0 {
 			var temp, err = sqrtInt(new(uint256.Int).Div(norm, constant.BONE))
 			if err != nil {
 				return err
@@ -662,10 +662,10 @@ func (t *PoolSimulator) tweakPrice(AGamma []*uint256.Int, _xp []*uint256.Int, i 
 			oldVirtualPrice = new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, temp), totalSupply)
 			if oldVirtualPrice.Cmp(constant.BONE) > 0 && new(uint256.Int).Sub(
 				new(uint256.Int).Mul(
-					constant.Two, oldVirtualPrice,
+					constant.U2, oldVirtualPrice,
 				), constant.BONE,
 			).Cmp(xcpProfit) > 0 {
-				packedPrices = constant.ZeroBI
+				packedPrices = constant.U0
 				for k := 0; k < nCoins-1; k += 1 {
 					packedPrices = new(uint256.Int).Lsh(packedPrices, PriceSize)
 					packedPrices = new(uint256.Int).Or(pNew[nCoins-2-k], packedPrices)
@@ -720,7 +720,7 @@ func getCryptoFee(minFee, maxFee, gamma, xp0, xp1 *uint256.Int) *uint256.Int {
 	// 	),
 	// )
 	f1 := new(uint256.Int).Set(f)
-	f = f.Mul(constant.BONE, constant.Four).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
+	f = f.Mul(constant.BONE, constant.U4).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
 		new(uint256.Int).Add(gamma, constant.BONE), f,
 	).Div(
 		new(uint256.Int).Mul(gamma, constant.BONE), f,

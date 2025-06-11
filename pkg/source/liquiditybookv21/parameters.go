@@ -80,7 +80,7 @@ func (p *parameters) getBaseFee(binStep uint16, baseFee *uint256.Int) *uint256.I
 	baseFactor := uint256.NewInt(uint64(p.StaticFeeParams.BaseFactor))
 	baseFee.Mul(
 		baseFee.Mul(baseFactor, baseFee.SetUint64(uint64(binStep))),
-		big256.TenPowInt(10), // 1e10
+		big256.TenPow(10), // 1e10
 	)
 	return baseFee
 }
@@ -88,7 +88,7 @@ func (p *parameters) getBaseFee(binStep uint16, baseFee *uint256.Int) *uint256.I
 func (p *parameters) getVariableFee(binStep uint16, variableFee *uint256.Int) *uint256.Int {
 	variableFeeControl := p.StaticFeeParams.VariableFeeControl
 	if variableFeeControl == 0 {
-		return big256.ZeroBI
+		return big256.U0
 	}
 
 	volAcc := uint256.NewInt(uint64(p.VariableFeeParams.VolatilityAccumulator))
@@ -101,7 +101,7 @@ func (p *parameters) getVariableFee(binStep uint16, variableFee *uint256.Int) *u
 			),
 			volAcc.SetUint64(99),
 		),
-		big256.TenPowInt(2), // 100
+		big256.TenPow(2), // 100
 	)
 	return variableFee
 }

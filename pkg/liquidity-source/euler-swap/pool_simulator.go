@@ -247,7 +247,7 @@ func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, rese
 	}
 
 	quote.Mul(quote, oneE18)
-	quote.Add(quote, new(uint256.Int).Sub(s.feeMultiplier, big256.One))
+	quote.Add(quote, new(uint256.Int).Sub(s.feeMultiplier, big256.U1))
 	return quote.Div(quote, s.feeMultiplier), nil
 }
 
@@ -359,7 +359,7 @@ func f(
 
 	t2.Mul(x, oneE18)
 
-	t1.Add(t1, new(uint256.Int).Sub(t2, big256.One))
+	t1.Add(t1, new(uint256.Int).Sub(t2, big256.U1))
 
 	t1.Div(t1, t2)
 
@@ -367,7 +367,7 @@ func f(
 		return nil, ErrOverflow
 	}
 
-	t1.Add(t1, new(uint256.Int).Sub(py, big256.One))
+	t1.Add(t1, new(uint256.Int).Sub(py, big256.U1))
 	t1.Div(t1, py)
 
 	return new(uint256.Int).Add(y0, t1), nil
