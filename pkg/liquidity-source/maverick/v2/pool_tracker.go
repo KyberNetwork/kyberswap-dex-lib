@@ -55,7 +55,7 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (t *PoolTracker) GetNewPoolStateWithOverride(
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateWithOverridesParams,
