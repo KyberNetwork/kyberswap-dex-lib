@@ -30,7 +30,7 @@ func TestGetFullPoolState(t *testing.T) {
 	binCounter := uint32(615)
 
 	// Get full pool state
-	bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter)
+	bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil)
 	assert.NoError(t, err)
 	// print binId ascending
 	for binId, bin := range bins {
@@ -100,7 +100,7 @@ func TestGetState(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Get pool state
-			state, blockNumber, err := tracker.getState(context.Background(), tc.poolAddress)
+			state, blockNumber, err := tracker.getState(context.Background(), tc.poolAddress, nil)
 			assert.NoError(t, err, "getState should not return error for %s", tc.description)
 			assert.NotNil(t, blockNumber, "Block number should not be nil")
 
@@ -162,7 +162,7 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get current state to get binCounter
-	state, _, err := tracker.getState(context.Background(), poolAddress)
+	state, _, err := tracker.getState(context.Background(), poolAddress, nil)
 	assert.NoError(t, err)
 	binCounter := state.BinCounter
 
@@ -201,7 +201,7 @@ func TestGetFullPoolStateWithDifferentBatchSizes(t *testing.T) {
 			DefaultBinBatchSize = tc.batchSize
 
 			// Get full pool state
-			bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter)
+			bins, ticks, err := tracker.getFullPoolState(context.Background(), poolAddress, binCounter, nil)
 			assert.NoError(t, err)
 
 			// Store results for comparison
