@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
@@ -12,7 +13,8 @@ import (
 type LockedState struct {
 	poolByAddress map[string]poolpkg.IPoolSimulator
 	limits        map[string]map[string]*big.Int
-	lock          *sync.RWMutex
+	stateRoot     common.Hash
+	*sync.RWMutex
 }
 
 func NewLockedState() *LockedState {
@@ -24,16 +26,17 @@ func NewLockedState() *LockedState {
 	return &LockedState{
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),
 		limits:        limits,
-		lock:          &sync.RWMutex{},
+		RWMutex:       &sync.RWMutex{},
 	}
 }
 
-func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator, stateRoot common.Hash) {
+	s.Lock()
+	defer s.Unlock()
 	s.poolByAddress = poolByAddress
 	s.clearLimits()
 	UpdateLimits(s.limits, poolByAddress)
+	s.stateRoot = stateRoot
 }
 
 func (s *LockedState) clearLimits() {

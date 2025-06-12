@@ -5,9 +5,10 @@ import (
 	"strconv"
 
 	poolv1 "github.com/KyberNetwork/grpc-service/go/pool/v1"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 var chainHeader = "X-Chain-Id"

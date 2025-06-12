@@ -75,7 +75,7 @@ func (r *redisRepository) Set(ctx context.Context, keys []valueobject.RouteCache
 		return nil, nil
 	}
 
-	cmds, e := r.redisClient.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+	cmds, e := r.redisClient.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for i, key := range keys {
 			encoded, err := encodeRoute(*routes[i])
 			if err != nil {

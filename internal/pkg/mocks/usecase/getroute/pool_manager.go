@@ -13,9 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	aevmclient "github.com/KyberNetwork/aevm/client"
 	types "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -43,31 +41,17 @@ func (m *MockIPoolManager) EXPECT() *MockIPoolManagerMockRecorder {
 	return m.recorder
 }
 
-// GetAEVMClient mocks base method.
-func (m *MockIPoolManager) GetAEVMClient() aevmclient.Client {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAEVMClient")
-	ret0, _ := ret[0].(aevmclient.Client)
-	return ret0
-}
-
-// GetAEVMClient indicates an expected call of GetAEVMClient.
-func (mr *MockIPoolManagerMockRecorder) GetAEVMClient() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAEVMClient", reflect.TypeOf((*MockIPoolManager)(nil).GetAEVMClient))
-}
-
 // GetStateByPoolAddresses mocks base method.
-func (m *MockIPoolManager) GetStateByPoolAddresses(ctx context.Context, addresses, dex []string, stateRoot common.Hash, extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
+func (m *MockIPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStateByPoolAddresses", ctx, addresses, dex, stateRoot, extraData)
+	ret := m.ctrl.Call(m, "GetStateByPoolAddresses", ctx, poolAddresses, dex, extraData)
 	ret0, _ := ret[0].(*types.FindRouteState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStateByPoolAddresses indicates an expected call of GetStateByPoolAddresses.
-func (mr *MockIPoolManagerMockRecorder) GetStateByPoolAddresses(ctx, addresses, dex, stateRoot, extraData any) *gomock.Call {
+func (mr *MockIPoolManagerMockRecorder) GetStateByPoolAddresses(ctx, poolAddresses, dex, extraData any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateByPoolAddresses", reflect.TypeOf((*MockIPoolManager)(nil).GetStateByPoolAddresses), ctx, addresses, dex, stateRoot, extraData)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateByPoolAddresses", reflect.TypeOf((*MockIPoolManager)(nil).GetStateByPoolAddresses), ctx, poolAddresses, dex, extraData)
 }

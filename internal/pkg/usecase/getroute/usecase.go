@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -51,6 +52,7 @@ func NewUseCase(
 	alphaFeeRepository IAlphaFeeRepository,
 	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
+	aevmClient aevmclient.Client,
 	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
 ) *useCase {
@@ -68,6 +70,7 @@ func NewUseCase(
 		tokenRepository,
 		onchainpriceRepository,
 		poolManager,
+		aevmClient,
 		config,
 	)
 

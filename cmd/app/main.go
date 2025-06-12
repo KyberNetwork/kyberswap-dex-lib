@@ -367,6 +367,7 @@ func apiAction(c *cli.Context) (err error) {
 		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
+		aevmClient,
 		finderEngine,
 		cfg.UseCase.GetRoute,
 	)

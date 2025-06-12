@@ -236,7 +236,7 @@ func (r *redisRepository) AddToSortedSet(
 		Member: memberName,
 	}
 
-	_, err := r.redisClient.TxPipelined(
+	_, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			if useGlobal {
 				tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(key), member)
@@ -270,7 +270,7 @@ func (r *redisRepository) RemoveFromSortedSet(
 	useGlobal bool,
 ) error {
 
-	_, err := r.redisClient.TxPipelined(
+	_, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			if useGlobal {
 				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(key), memberName)
@@ -303,7 +303,7 @@ func (r *redisRepository) RemoveAddressesFromWhitelistIndex(ctx context.Context,
 	}
 	// remove pools from global and whitelist for both tvl and amplifiedtvl
 	if removeFromGlobal {
-		_, err := r.redisClient.TxPipelined(
+		_, err := r.redisClient.Pipelined(
 			ctx, func(tx redis.Pipeliner) error {
 				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(SortByTVLNative), pools)
 				tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools)

@@ -6,20 +6,19 @@ import (
 	"sync"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // FindRouteState enclose the data we need for a findRoute rquest
 type FindRouteState struct {
-	// map PoolAddress - IPoolSimulator implementation
-	Pools map[string]poolpkg.IPoolSimulator
-	// map LimitType-SwapLimit
-	SwapLimit map[string]poolpkg.SwapLimit
-	// PoolsStorageID represents the last published pools
-	PublishedPoolsStorageID string
+	Pools                   map[string]poolpkg.IPoolSimulator // map PoolAddress-IPoolSimulator implementation
+	SwapLimit               map[string]poolpkg.SwapLimit      // map dexType-SwapLimit
+	StateRoot               common.Hash                       // aevm state root
+	PublishedPoolsStorageID string                            // last published pools
 }
 
 type pooledSlice[T any] struct {

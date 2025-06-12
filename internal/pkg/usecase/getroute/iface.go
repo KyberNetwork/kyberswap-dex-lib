@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -27,14 +26,8 @@ type IBundledAggregator interface {
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
 type IPoolManager interface {
 	// GetStateByPoolAddresses return a map of address - pools and a map of dexType- swapLimit for
-	GetStateByPoolAddresses(
-		ctx context.Context,
-		addresses, dex []string,
-		stateRoot common.Hash,
-		extraData types.PoolManagerExtraData,
-	) (*types.FindRouteState, error)
-	// GetAEVMClient if using AEVM pools, return the AEVM client, otherwise, return nil. Caller should check for nil.
-	GetAEVMClient() aevmclient.Client
+	GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string,
+		extraData types.PoolManagerExtraData) (*types.FindRouteState, error)
 }
 
 type IPoolFactory interface {

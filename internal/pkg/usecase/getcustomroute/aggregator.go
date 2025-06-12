@@ -2,18 +2,12 @@ package getcustomroute
 
 import (
 	"context"
-	"fmt"
-	"math/big"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -55,30 +49,12 @@ func NewCustomAggregator(
 func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams,
 	poolIds []string) (*valueobject.RouteSummaries, error) {
 	// Step 1: get pool set
-	poolEntities, err := a.poolRepository.FindByAddresses(ctx, poolIds)
+	state, err := a.poolManager.GetStateByPoolAddresses(ctx, poolIds, params.Sources,
+		types.PoolManagerExtraData{
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+		})
 	if err != nil {
 		return nil, err
-	}
-
-	if len(poolEntities) == 0 {
-		return nil, getroute.ErrPoolSetEmpty
-	}
-
-	var stateRoot aevmcommon.Hash
-	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
-	}
-	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(poolIds))
-	poolInterfaces := a.poolFactory.NewPools(ctx, poolEntities, common.Hash(stateRoot))
-	for i := range poolInterfaces {
-		poolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
-	}
-
-	if len(poolByAddress) == 0 {
-		return nil, getroute.ErrPoolSetFiltered
 	}
 
 	// Step 2: collect tokens and price data
@@ -101,31 +77,16 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	var limits = make(map[string]map[string]*big.Int)
-	for _, poolType := range constant.DexUseSwapLimit {
-		limits[poolType] = make(map[string]*big.Int)
-	}
-	for _, pool := range poolInterfaces {
-		dexLimit, avail := limits[pool.GetType()]
-		if !avail {
-			continue
-		}
-		limitMap := pool.CalculateLimit()
-		for k, v := range limitMap {
-			if old, exist := dexLimit[k]; !exist || old.Cmp(v) < 0 {
-				dexLimit[k] = v
-			}
-		}
-	}
-
 	// Step 3: finds best route
 	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, &types.FindRouteState{
-		Pools:     poolByAddress,
-		SwapLimit: a.poolFactory.NewSwapLimit(limits, types.PoolManagerExtraData{}),
+		Pools:     state.Pools,
+		SwapLimit: state.SwapLimit,
 	})
 }
 
-func (a *aggregator) ApplyConfig(config getroute.Config) {}
+func (a *aggregator) ApplyConfig(config getroute.Config) {
+	a.config = config.Aggregator
+}
 
 // findBestRoute find the best route and summarize it
 func (a *aggregator) findBestRoute(
