@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"math/big"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -95,7 +94,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 		// We don't support cache merged swaps route for now.
 		if routeSummary.AmountInUSD < c.config.MinAmountInUSD ||
 			routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
-			c.setRouteToCache(ctx, routeSummaries, keys)
+			go c.setRouteToCache(kutils.CtxWithoutCancel(ctx), routeSummaries, keys)
 		}
 	} else {
 		// we have no key cacheRoute -> recalculate new route.
@@ -135,7 +134,7 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 		if amountInKey, ok := new(big.Float).SetString(key.Key.AmountIn); !ok {
 			logger.
 				WithFields(ctx, logger.Fields{
-					"key":        key.Key.String(""),
+					"key":        key.Key,
 					"amountIn":   key.Key.AmountIn,
 					"request_id": requestid.GetRequestIDFromCtx(ctx),
 				}).
@@ -180,15 +179,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	}
 
 	// prepare data for summarize route
-	var stateRoot aevmcommon.Hash
-	if aevmClient := c.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
-	}
-
-	rfqTokens := []string{}
+	var rfqTokens []string
 	if bestRoute.AMMRoute != nil {
 		rfqTokens = c.getRFQMakerTokenAddresses(bestRoute.BestRoute).ToSlice()
 	}
@@ -202,12 +193,11 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 		return nil, err
 	}
 
-	routeSummaries, err := c.summarizeSimpleRouteWithExtraData(ctx, bestRoute, params, stateRoot, tokenByAddress,
-		priceByAddress)
+	routeSummaries, err := c.summarizeSimpleRouteWithExtraData(ctx, bestRoute, params, tokenByAddress, priceByAddress)
 	if err != nil {
 		logger.
 			WithFields(ctx, logger.Fields{
-				"key":        bestKey.Key.String(""),
+				"key":        bestKey.Key,
 				"reason":     "summarize simple route failed",
 				"error":      err,
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
@@ -230,7 +220,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	if priceImpact > c.config.PriceImpactThreshold {
 		logger.
 			WithFields(ctx, logger.Fields{
-				"key":        bestKey.Key.String(""),
+				"key":        bestKey.Key,
 				"reason":     "price impact is greater than threshold",
 				"error":      err,
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
@@ -243,7 +233,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 		// when we round a get-route input to multiple points, we need to delete multiple cached points if they are useless as well
 		// but sometimes, we might delete others useless points which are cached by another input if 2 inputs are overlapse,
 		// for simplicity implementation and performance improvement, we might accept this usecase
-		c.routeCacheRepository.Del(ctx, keys)
+		_ = c.routeCacheRepository.Del(ctx, keys)
 		return nil, errors.WithMessagef(
 			ErrPriceImpactIsGreaterThanThreshold,
 			"priceImpact: [%f]",
@@ -253,7 +243,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 
 	logger.
 		WithFields(ctx, logger.Fields{
-			"key":        bestKey.Key.String(""),
+			"key":        bestKey.Key,
 			"request_id": requestid.GetRequestIDFromCtx(ctx),
 			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
@@ -401,14 +391,10 @@ func (c *cache) getPrices(ctx context.Context, params *types.AggregateParams,
 	return priceByAddress, nil
 }
 
-func (c *cache) summarizeSimpleRouteWithExtraData(
-	ctx context.Context,
-	simpleRoute *valueobject.SimpleRouteWithExtraData,
-	params *types.AggregateParams,
-	stateRoot aevmcommon.Hash,
+func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
+	simpleRoute *valueobject.SimpleRouteWithExtraData, params *types.AggregateParams,
 	tokenMap map[string]*entity.SimplifiedToken,
-	priceMap map[string]*routerEntity.OnchainPrice,
-) (*valueobject.RouteSummaries, error) {
+	priceMap map[string]*routerEntity.OnchainPrice) (*valueobject.RouteSummaries, error) {
 	var err error
 	// Step 1: prepare pool data
 	poolAddresses := simpleRoute.BestRoute.ExtractPoolAddresses()
@@ -416,15 +402,9 @@ func (c *cache) summarizeSimpleRouteWithExtraData(
 		poolAddresses = append(poolAddresses, simpleRoute.AMMRoute.ExtractPoolAddresses()...)
 	}
 	poolAddresses = lo.Uniq(poolAddresses)
-	state, err := c.poolManager.GetStateByPoolAddresses(
-		ctx,
-		poolAddresses,
-		params.Sources,
-		common.Hash(stateRoot),
-		types.PoolManagerExtraData{
-			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
-		},
-	)
+	state, err := c.poolManager.GetStateByPoolAddresses(ctx, poolAddresses, params.Sources, types.PoolManagerExtraData{
+		KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+	})
 	if err != nil {
 		return nil, err
 	}

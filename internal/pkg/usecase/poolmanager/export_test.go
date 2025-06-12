@@ -30,26 +30,26 @@ func NewPointerSwapPoolManagerInstance(
 	}
 }
 
-func (m *PointerSwapPoolManager) FilterInvalidPoolAddresses(addresses []string) []string {
-	return m.filterInvalidPoolAddresses(addresses)
+func (p *PointerSwapPoolManager) FilterInvalidPoolAddresses(addresses []string) []string {
+	return p.filterInvalidPoolAddresses(addresses)
 }
 
-func (m *PointerSwapPoolManager) UpdateFaultyPools(ctx context.Context) {
-	m.updateFaultyPools(ctx)
+func (p *PointerSwapPoolManager) UpdateFaultyPools(ctx context.Context) {
+	p.updateFaultyPools(ctx)
 }
 
-func (m *PointerSwapPoolManager) UpdateBlackListPool(ctx context.Context) {
-	m.updateBlackListPool(ctx)
+func (p *PointerSwapPoolManager) UpdateBlackListPool(ctx context.Context) {
+	p.updateBlackListPool(ctx)
 }
 
-func (m *PointerSwapPoolManager) ReadFrom() int32 {
-	return m.readFrom.Load()
+func (p *PointerSwapPoolManager) ReadFrom() int32 {
+	return p.readFrom.Load()
 }
 
-func (m *PointerSwapPoolManager) BlackListPool() mapset.Set[string] {
-	return m.blackListPools
+func (p *PointerSwapPoolManager) BlackListPool() mapset.Set[string] {
+	return p.blackListPools
 }
 
-func (m *PointerSwapPoolManager) FaultyPools() mapset.Set[string] {
-	return m.faultyPools
+func (p *PointerSwapPoolManager) FaultyPools() mapset.Set[string] {
+	return p.faultyPools
 }

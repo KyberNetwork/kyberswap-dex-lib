@@ -5,11 +5,10 @@ import (
 	"slices"
 	"sync"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -28,6 +27,7 @@ type correlatedPairs struct {
 	tokenRepository        ITokenRepository
 	onchainPriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
+	aevmClient             aevmclient.Client
 
 	// map[token0] -> map[token1] -> poolAddress
 	correlatedPairs map[string]map[string]string
@@ -42,9 +42,10 @@ func NewCorrelatedPairs(
 	tokenRepository ITokenRepository,
 	onchainPriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
+	aevmClient aevmclient.Client,
 	config Config,
 ) *correlatedPairs {
-	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, poolManager.GetAEVMClient())
+	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, aevmClient)
 
 	return &correlatedPairs{
 		aggregator: aggregator,
@@ -56,6 +57,7 @@ func NewCorrelatedPairs(
 		tokenRepository:        tokenRepository,
 		onchainPriceRepository: onchainPriceRepository,
 		poolManager:            poolManager,
+		aevmClient:             aevmClient,
 
 		correlatedPairs: convertCorrelatedPairsMap(config.CorrelatedPairs),
 		config:          config,
@@ -76,7 +78,8 @@ func (c *correlatedPairs) Aggregate(
 	poolInAddress, tokenMidIn := c.findFirstCorrelatedPool(params.TokenIn.Address)
 	poolOutAddress, tokenMidOut := c.findFirstCorrelatedPool(params.TokenOut.Address)
 
-	additionPoolAddresses := slices.DeleteFunc([]string{poolInAddress, poolOutAddress}, func(s string) bool { return s == "" })
+	additionPoolAddresses := slices.DeleteFunc([]string{poolInAddress, poolOutAddress},
+		func(s string) bool { return s == "" })
 	additionHops := len(additionPoolAddresses)
 	if additionHops == 0 {
 		// Can't find any correlated pairs. Return the base result.
@@ -84,16 +87,7 @@ func (c *correlatedPairs) Aggregate(
 	}
 
 	// Initialize find route data
-	var stateRoot aevmcommon.Hash
-	var err error
-	if aevmClient := c.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	state, err := c.getStateByAddress(ctx, params, tokenMidIn, tokenMidOut, additionPoolAddresses, common.Hash(stateRoot))
+	state, err := c.getStateByAddress(ctx, params, tokenMidIn, tokenMidOut, additionPoolAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +149,7 @@ func (c *correlatedPairs) ApplyConfig(config Config) {
 	c.mu.Unlock()
 
 	c.correlatedPairs = convertCorrelatedPairsMap(config.CorrelatedPairs)
-	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, c.poolManager.GetAEVMClient())
+	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, c.aevmClient)
 	c.oneAdditionHopFinderEngine = oneAdditionHopFinderEngine
 	c.twoAdditionHopsFinderEngine = twoAdditionHopsFinderEngine
 
@@ -173,14 +167,8 @@ func (c *correlatedPairs) findFirstCorrelatedPool(token string) (string, string)
 	return "", token
 }
 
-func (c *correlatedPairs) getStateByAddress(
-	ctx context.Context,
-	params *types.AggregateParams,
-	tokenMidIn string,
-	tokenMidOut string,
-	additionPoolAddresses []string,
-	stateRoot common.Hash,
-) (*types.FindRouteState, error) {
+func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.AggregateParams, tokenMidIn string,
+	tokenMidOut string, additionPoolAddresses []string) (*types.FindRouteState, error) {
 	if len(params.Sources) == 0 {
 		logger.Errorf(ctx, "sources list is empty, returning error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
@@ -216,19 +204,16 @@ func (c *correlatedPairs) getStateByAddress(
 	}
 
 	if len(filteredPoolIDs) == 0 {
-		logger.Errorf(ctx, "empty filtered pool IDs after excluding pools, returning error: %v, bestPoolIDs: %v, index: %v", ErrPoolSetFiltered, bestPoolIDs, params.Index)
+		logger.Errorf(ctx,
+			"empty filtered pool IDs after excluding pools, returning error: %v, bestPoolIDs: %v, index: %v",
+			ErrPoolSetFiltered, bestPoolIDs, params.Index)
 		return nil, ErrPoolSetFiltered
 	}
 
-	state, err := c.poolManager.GetStateByPoolAddresses(
-		ctx,
-		filteredPoolIDs,
-		params.Sources,
-		stateRoot,
+	state, err := c.poolManager.GetStateByPoolAddresses(ctx, filteredPoolIDs, params.Sources,
 		types.PoolManagerExtraData{
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
-		},
-	)
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +222,8 @@ func (c *correlatedPairs) getStateByAddress(
 	return state, nil
 }
 
-func (a *correlatedPairs) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
+func (a *correlatedPairs) getTokenByAddress(ctx context.Context,
+	tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err

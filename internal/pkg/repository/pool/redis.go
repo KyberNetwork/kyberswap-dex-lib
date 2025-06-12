@@ -4,17 +4,15 @@ import (
 	"context"
 	"errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 

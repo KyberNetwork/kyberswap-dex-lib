@@ -2,13 +2,10 @@ package getroute
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -56,18 +53,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	defer span.End()
 
 	// Step 1: get pool set
-	var (
-		stateRoot aevmcommon.Hash
-		err       error
-	)
-	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
-	}
-
-	state, err := a.getStateByAddress(ctx, params, common.Hash(stateRoot))
+	state, err := a.getStateByAddress(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -140,11 +126,8 @@ func (a *aggregator) findBestRoute(
 	return ConvertToRouteSummaries(params, routes), nil
 }
 
-func (a *aggregator) getStateByAddress(
-	ctx context.Context,
-	params *types.AggregateParams,
-	stateRoot common.Hash,
-) (*types.FindRouteState, error) {
+func (a *aggregator) getStateByAddress(ctx context.Context, params *types.AggregateParams) (*types.FindRouteState,
+	error) {
 	if len(params.Sources) == 0 {
 		logger.Errorf(ctx, "sources list is empty, error: %v", ErrPoolSetFiltered)
 		return nil, ErrPoolSetFiltered
@@ -187,15 +170,10 @@ func (a *aggregator) getStateByAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	state, err := a.poolManager.GetStateByPoolAddresses(
-		ctx,
-		filteredPoolIDs,
-		params.Sources,
-		stateRoot,
+	state, err := a.poolManager.GetStateByPoolAddresses(ctx, filteredPoolIDs, params.Sources,
 		types.PoolManagerExtraData{
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
-		},
-	)
+		})
 	if err != nil {
 		return nil, err
 	}

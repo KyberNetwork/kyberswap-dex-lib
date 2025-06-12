@@ -2,13 +2,10 @@ package getroute
 
 import (
 	"context"
-	"fmt"
 	"maps"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -59,15 +56,9 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 	}
 
 	// Step 1: get pool set
-	var (
-		stateRoot aevmcommon.Hash
-		err       error
-	)
-	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
+	state, err := a.getStateByBundledAddress(ctx, params)
+	if err != nil {
+		return nil, err
 	}
 
 	// Step 2: collect tokens and price data
@@ -100,19 +91,14 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		}
 	}
 
-	state, err := a.getStateByBundledAddress(ctx, params, common.Hash(stateRoot))
-	if err != nil {
-		return nil, err
-	}
-
 	// override pool if requested
 	if len(params.OverridePools) > 0 {
 		// create pool simulators from override pools
 		// if caller want to override a curve meta pool, they need to supply override state for its base pool as well
-		poolSims := a.poolFactory.NewPoolByAddress(ctx, params.OverridePools, common.Hash(stateRoot))
+		poolSims := a.poolFactory.NewPoolByAddress(ctx, params.OverridePools, state.StateRoot)
 
 		for _, pool := range params.OverridePools {
-			if len(pool.Address) == 0 {
+			if pool.Address == "" {
 				continue
 			}
 			poolSim := poolSims[pool.Address]
@@ -140,11 +126,8 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 	return a.findBestBundledRoute(ctx, params, tokenByAddress, priceByAddress, state)
 }
 
-func (a *bundledAggregator) getStateByBundledAddress(
-	ctx context.Context,
-	params *types.AggregateBundledParams,
-	stateRoot common.Hash,
-) (*types.FindRouteState, error) {
+func (a *bundledAggregator) getStateByBundledAddress(ctx context.Context,
+	params *types.AggregateBundledParams) (*types.FindRouteState, error) {
 	if len(params.Sources) == 0 {
 		return nil, ErrPoolSetFiltered
 	}
@@ -178,15 +161,10 @@ func (a *bundledAggregator) getStateByBundledAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	state, err := a.poolManager.GetStateByPoolAddresses(
-		ctx,
-		filteredPoolIDs,
-		params.Sources,
-		stateRoot,
+	state, err := a.poolManager.GetStateByPoolAddresses(ctx, filteredPoolIDs, params.Sources,
 		types.PoolManagerExtraData{
 			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
-		},
-	)
+		})
 	if err != nil {
 		return nil, err
 	}

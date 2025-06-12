@@ -233,7 +233,8 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	require.NoError(t, err)
 	// let sleep for 3 sec
 	time.Sleep(3 * time.Second)
-	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, whitelistDexes, common.Hash{0x00}, types.PoolManagerExtraData{})
+	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, whitelistDexes,
+		types.PoolManagerExtraData{})
 	require.Error(t, err)
 	assert.Equal(t, true, state == nil)
 }
@@ -825,7 +826,8 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 			defer ctrl.Finish()
 
 			pm := tc.prepare(ctrl, tc.blacklist, tc.faultyPools)
-			state, err := pm.GetStateByPoolAddresses(context.Background(), tc.inputPoolAddr.ToSlice(), tc.dex.ToSlice(), common.Hash{0x00}, types.PoolManagerExtraData{})
+			state, err := pm.GetStateByPoolAddresses(context.Background(), tc.inputPoolAddr.ToSlice(), tc.dex.ToSlice(),
+				types.PoolManagerExtraData{})
 
 			// verify result
 			if state != nil {

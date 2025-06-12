@@ -175,9 +175,9 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock IPoolManager
 	poolManager := getroute.NewMockIPoolManager(ctrl)
 	poolManager.EXPECT().
-		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
-			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash, extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
+			func(ctx context.Context, addresses, dex []string, extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
 				addressesSet := mapset.NewThreadUnsafeSet(addresses...)
 				dexesSet := mapset.NewThreadUnsafeSet(dex...)
 				tokenToPoolAddress := make(map[string]*types.AddressList)
@@ -224,7 +224,6 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 			},
 		).
 		AnyTimes()
-	poolManager.EXPECT().GetAEVMClient().Return(nil).AnyTimes()
 
 	// Mock IBestPathRepository
 	bestPathRepository := getroute.NewMockIBestPathRepository(ctrl)
@@ -286,6 +285,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
+		nil,
 		finderEngine,
 		Config{
 			ChainID:          valueobject.ChainIDEthereum,

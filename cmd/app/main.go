@@ -367,6 +367,7 @@ func apiAction(c *cli.Context) (err error) {
 		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
+		aevmClient,
 		finderEngine,
 		cfg.UseCase.GetRoute,
 	)
@@ -386,7 +387,7 @@ func apiAction(c *cli.Context) (err error) {
 	rfqHandlerByExchange := make(map[valueobject.Exchange]poolpkg.IPoolRFQ)
 	for dexId, dex := range cfg.UseCase.BuildRoute.RFQ {
 		dex.Properties["dexID"] = dexId
-		rfqHandler, err := bootstrap.NewRFQHandler(dex)
+		rfqHandler, err := bootstrap.NewRFQHandler(dex, poolManager, finderEngine.GetFinder().CustomFuncs())
 		if err != nil {
 			return fmt.Errorf("can not create RFQ handler: %v, err: %v", dex.Handler, err)
 		}

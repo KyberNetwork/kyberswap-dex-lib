@@ -48,10 +48,8 @@ type RouteCacheKeyTTL struct {
 	TTL time.Duration
 }
 
-// String receives prefix and returns cache key
-func (k *RouteCacheKey) String(prefix string) string {
-	args := []interface{}{
-		prefix,
+func (k *RouteCacheKey) String() string {
+	args := []any{
 		strings.Join([]string{k.TokenIn, k.TokenOut}, RouteCacheKeyTokensDelimiter),
 		k.OnlySinglePath,
 		k.CacheMode,
@@ -83,23 +81,23 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	if k.Index != "" {
 		_, _ = d.WriteString(k.Index)
 	}
-	dexHash := uint64(0)
+	var unorderedHash uint64
 	for _, dex := range k.Dexes {
-		dexHash ^= xxhash.Sum64String(dex) ^ 0x10
+		unorderedHash ^= xxhash.Sum64String("d" + dex)
 	}
 	for _, pool := range k.ExcludedPools {
-		dexHash ^= xxhash.Sum64String(pool) ^ 0x20
+		unorderedHash ^= xxhash.Sum64String("e" + pool)
 	}
 	for token, pools := range k.ForcePoolsForToken {
-		dexHash ^= xxhash.Sum64String(token) ^ 0x30
+		unorderedHash ^= xxhash.Sum64String("f" + token)
 		for _, pool := range pools {
-			dexHash ^= xxhash.Sum64String(pool) ^ 0x31
+			unorderedHash ^= xxhash.Sum64String("o" + pool)
 		}
 	}
 	for _, pool := range k.PoolIds {
-		dexHash ^= xxhash.Sum64String(pool)
+		unorderedHash ^= xxhash.Sum64String("p" + pool)
 	}
-	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, dexHash))
+	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, unorderedHash))
 	if k.GasInclude {
 		_, _ = d.Write([]byte{1})
 	}

@@ -5,22 +5,15 @@ import (
 	"math"
 	"sync"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // FindRouteState enclose the data we need for a findRoute rquest
-type FindRouteState struct {
-	// map PoolAddress - IPoolSimulator implementation
-	Pools map[string]poolpkg.IPoolSimulator
-	// map LimitType-SwapLimit
-	SwapLimit map[string]poolpkg.SwapLimit
-	// PoolsStorageID represents the last published pools
-	PublishedPoolsStorageID string
-}
+type FindRouteState = pool.FindRouteState
 
 type pooledSlice[T any] struct {
 	data []T
@@ -106,7 +99,7 @@ type TokenToPoolAddressMap struct {
 // where values are pool indexes in poolAddressList.
 //
 // If the max pool index is larger than uint16, then we use 2 elements (element 2i and 2i + 1) in the uint16 slice to store indexes.
-func MakeTokenToPoolAddressMapFromPools(pools map[string]poolpkg.IPoolSimulator) *TokenToPoolAddressMap {
+func MakeTokenToPoolAddressMapFromPools(pools map[string]pool.IPoolSimulator) *TokenToPoolAddressMap {
 	use32BitIndex := false
 	if len(pools) >= math.MaxUint16 {
 		if len(pools) >= math.MaxUint32 {
@@ -117,10 +110,10 @@ func MakeTokenToPoolAddressMapFromPools(pools map[string]poolpkg.IPoolSimulator)
 
 	addressIndexLists := make(map[string]*indexedAddressList)
 	poolAddrs := poolAddrsPoolGet()
-	for _, pool := range pools {
+	for _, poolSim := range pools {
 		poolAddrIndex := uint32(len(poolAddrs.data))
-		poolAddrs.data = append(poolAddrs.data, pool.GetAddress())
-		for _, tokenAddress := range pool.GetTokens() {
+		poolAddrs.data = append(poolAddrs.data, poolSim.GetAddress())
+		for _, tokenAddress := range poolSim.GetTokens() {
 			if _, ok := addressIndexLists[tokenAddress]; !ok {
 				addressIndexLists[tokenAddress] = indexedAddressListPoolGet()
 			}
@@ -211,7 +204,6 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 	}
 
 	a.TrueLen++
-
 }
 
 type FinalizeExtraData struct {
@@ -221,6 +213,6 @@ type FinalizeExtraData struct {
 }
 
 type StateAfterSwap struct {
-	UpdatedBalancePools map[string]poolpkg.IPoolSimulator
-	UpdatedSwapLimits   map[string]poolpkg.SwapLimit
+	UpdatedBalancePools map[string]pool.IPoolSimulator
+	UpdatedSwapLimits   map[string]pool.SwapLimit
 }

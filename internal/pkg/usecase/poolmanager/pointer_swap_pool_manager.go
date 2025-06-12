@@ -154,15 +154,6 @@ func (p *PointerSwapPoolManager) findGlobalBestPools(ctx context.Context, poolCo
 	return p.poolRankRepository.FindGlobalBestPools(ctx, poolCount)
 }
 
-// TODO will be refactor to remove this function from pool manager
-func (p *PointerSwapPoolManager) GetAEVMClient() aevmclient.Client {
-	if p.config.FeatureFlags.IsAEVMEnabled {
-		return p.aevmClient
-	}
-
-	return nil
-}
-
 func (p *PointerSwapPoolManager) reloadBlackListPool(ctx context.Context) {
 	for {
 		time.Sleep(p.config.BlackListRenewalInterval)
@@ -277,7 +268,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
 		p.publishedStorageIDs[writeTo] = storageID
 	}
-	p.states[writeTo].update(pools)
+	p.states[writeTo].update(pools, common.Hash(stateRoot))
 
 	// swapping pointer
 	p.swapPointer(writeTo)
@@ -305,12 +296,8 @@ func (p *PointerSwapPoolManager) filterInvalidPoolAddresses(poolAddresses []stri
 
 // GetStateByPoolAddresses return a reference to pool simulators maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned from here, clone IPoolSimulator before UpdateBalance
-func (p *PointerSwapPoolManager) GetStateByPoolAddresses(
-	ctx context.Context,
-	poolAddresses, dex []string,
-	stateRoot common.Hash,
-	extraData types.PoolManagerExtraData,
-) (*types.FindRouteState, error) {
+func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string,
+	extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx,
@@ -328,6 +315,11 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(
 		logger.Errorf(ctx, "dex list is empty, error: %v", getroute.ErrPoolSetFiltered)
 		return nil, getroute.ErrPoolSetFiltered
 	}
+
+	readState := p.states[p.readFrom.Load()]
+	readState.RLock()
+	stateRoot := readState.stateRoot
+	readState.RUnlock()
 
 	state, err := p.getPoolStates(ctx, filteredPoolAddress, dex, stateRoot, extraData)
 	if err != nil {
@@ -358,7 +350,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	state := p.states[readFrom]
 
 	// 1. Read all pool entities that are available in read state
-	state.lock.RLock()
+	state.RLock()
 	for _, key := range poolAddresses {
 		if pool, ok := state.poolByAddress[key]; ok {
 			if !whitelistDexSet.Has(pool.GetExchange()) {
@@ -382,7 +374,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	for dexName, limits := range state.limits {
 		resultLimits[dexName] = maps.Clone(limits)
 	}
-	state.lock.RUnlock()
+	state.RUnlock()
 
 	if len(pools) == 0 && len(poolsToFetchFromDB) == 0 {
 		logger.Errorf(ctx, "no pools available and no pools to fetch from DB, error: %v", getroute.ErrPoolSetFiltered)
@@ -394,6 +386,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 		return &types.FindRouteState{
 			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
+			StateRoot:               stateRoot,
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -410,6 +403,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 		return &types.FindRouteState{
 			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
+			StateRoot:               stateRoot,
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -424,6 +418,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 		return &types.FindRouteState{
 			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
+			StateRoot:               stateRoot,
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
@@ -449,6 +444,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	return &types.FindRouteState{
 		Pools:                   pools,
 		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
+		StateRoot:               stateRoot,
 		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
 }
@@ -474,6 +470,6 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 	p.config = config
 	p.configLock.Unlock()
 
-	// poolCache is guared by internal lock
+	// poolCache is guarded by internal lock
 	p.poolCache.Resize(config.Capacity)
 }

@@ -382,6 +382,7 @@ func (uc *BuildRouteUseCase) rfq(
 					RFQParams: pool.RFQParams{
 						NetworkID:    uc.config.ChainID,
 						RequestID:    routeSummary.RouteID,
+						PoolID:       swap.Pool,
 						Sender:       sender,
 						Recipient:    recipient,
 						RFQSender:    executorAddress,
