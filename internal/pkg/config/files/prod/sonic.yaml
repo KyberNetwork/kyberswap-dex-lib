@@ -339,6 +339,14 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+      swaap-v2:
+        handler: swaap-v2
+        properties:
+          http:
+            api_key:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
