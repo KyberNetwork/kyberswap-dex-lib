@@ -55,13 +55,12 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (t *PoolTracker) GetNewPoolStateWithOverride(
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	ctx context.Context,
 	p entity.Pool,
-	params pool.GetNewPoolStateParams,
-	overrides map[common.Address]gethclient.OverrideAccount,
+	params pool.GetNewPoolStateWithOverridesParams,
 ) (entity.Pool, error) {
-	return t.getNewPoolState(ctx, p, params, overrides)
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
 }
 
 func (t *PoolTracker) GetNewPoolState(
