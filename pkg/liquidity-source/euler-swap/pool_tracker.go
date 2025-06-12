@@ -222,13 +222,12 @@ func decodeCap(amountCap *uint256.Int) *uint256.Int {
 		return new(uint256.Int).Set(maxUint256)
 	}
 
-	powerBits := new(uint256.Int).And(amountCap, sixtyThree)
-	tenToPower := new(uint256.Int).Exp(ten, powerBits)
+	var powerBits, tenToPower, multiplier uint256.Int
+	powerBits.And(amountCap, sixtyThree)
+	tenToPower.Exp(ten, &powerBits)
+	multiplier.Rsh(amountCap, 6)
 
-	multiplier := new(uint256.Int).Rsh(amountCap, 6)
-
-	amountCap = tenToPower.Mul(tenToPower, multiplier)
-
+	amountCap.Mul(&tenToPower, &multiplier)
 	return amountCap.Div(amountCap, hundred)
 }
 
