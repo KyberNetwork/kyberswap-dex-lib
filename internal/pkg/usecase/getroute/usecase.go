@@ -3,6 +3,7 @@ package getroute
 import (
 	"context"
 	"math/big"
+	"strconv"
 	"sync"
 	"time"
 
@@ -143,19 +144,25 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	routeSummary.TokenOut = originalTokenOut
 	routeSummary.Timestamp = time.Now().Unix()
 	routeSummary.RouteID = routeID
-	// Also attach routeID into the first swap's extra data
+	// Also attach routeID, timestamp & checksum into the first swap's extra data
 	firstSwapExtra, err := util.AnyToStruct[map[string]any](routeSummary.Route[0][0].Extra)
 	if err == nil {
 		if (*firstSwapExtra) == nil {
 			(*firstSwapExtra) = map[string]any{}
 		}
 		(*firstSwapExtra)[valueobject.RouteIDInExtra] = routeID
+		(*firstSwapExtra)[valueobject.TimestampInExtra] = strconv.FormatInt(routeSummary.Timestamp, 10)
 		routeSummary.Route[0][0].Extra = *firstSwapExtra
 	}
 
 	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
 	if !u.config.FeatureFlags.ReturnAlphaFee {
 		routeSummary.AlphaFee = nil
+	}
+
+	if (*firstSwapExtra) != nil {
+		(*firstSwapExtra)[valueobject.ChecksumInExtra] = strconv.FormatUint(checksum.Hash(), 10)
+		routeSummary.Route[0][0].Extra = *firstSwapExtra
 	}
 
 	return &dto.GetRoutesResult{

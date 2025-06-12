@@ -130,12 +130,25 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// Some clients may omit the routeID in the request.
 	// As a fallback, we attach the routeID during the first swap
 	// and retrieve it from there.
-	if command.RouteSummary.RouteID == "" &&
-		len(command.RouteSummary.Route) > 0 &&
+	if len(command.RouteSummary.Route) > 0 &&
 		len(command.RouteSummary.Route[0]) > 0 {
 		firstSwapExtra, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
 		if err == nil && (*firstSwapExtra) != nil {
-			command.RouteSummary.RouteID, _ = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
+			if command.RouteSummary.RouteID == "" {
+				command.RouteSummary.RouteID, _ = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
+			}
+			if command.RouteSummary.Timestamp == 0 {
+				timestampString, _ := (*firstSwapExtra)[valueobject.TimestampInExtra].(string)
+				command.RouteSummary.Timestamp, _ = strconv.ParseInt(timestampString, 10, 64)
+			}
+			if command.Checksum == 0 {
+				checkSumString, _ := (*firstSwapExtra)[valueobject.ChecksumInExtra].(string)
+				command.Checksum, _ = strconv.ParseUint(checkSumString, 10, 64)
+			}
+
+			// Need to remove the checksum from the first swap extra to avoid checksum mismatch.
+			delete(*firstSwapExtra, valueobject.ChecksumInExtra)
+			command.RouteSummary.Route[0][0].Extra = *firstSwapExtra
 		}
 	}
 
@@ -358,6 +371,7 @@ func (uc *BuildRouteUseCase) rfq(
 					RFQParams: pool.RFQParams{
 						NetworkID:    uc.config.ChainID,
 						RequestID:    routeSummary.RouteID,
+						PoolID:       swap.Pool,
 						Sender:       sender,
 						Recipient:    recipient,
 						RFQSender:    executorAddress,

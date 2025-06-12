@@ -27,8 +27,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 )
 
 type NoopRFQHandler struct{}
@@ -49,7 +51,8 @@ func (h *NoopRFQHandler) SupportBatch() bool {
 	return false
 }
 
-func NewRFQHandler(rfqCfg buildroute.RFQConfig) (pool.IPoolRFQ, error) {
+func NewRFQHandler(rfqCfg buildroute.RFQConfig, poolManager *poolmanager.PointerSwapPoolManager,
+	customFuncs entity.ICustomFuncs) (pool.IPoolRFQ, error) {
 	switch rfqCfg.Handler {
 	case kyberpmm.DexTypeKyberPMM:
 		cfg, err := util.AnyToStruct[kyberpmm.Config](rfqCfg.Properties)
@@ -135,21 +138,21 @@ func NewRFQHandler(rfqCfg buildroute.RFQConfig) (pool.IPoolRFQ, error) {
 		if err != nil {
 			return nil, err
 		}
-		return kem.NewRFQHandler(cfg), nil
+		return kem.NewRFQHandler(cfg, poolManager, customFuncs), nil
 
 	case fairflow.Handler:
 		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
 		if err != nil {
 			return nil, err
 		}
-		return fairflow.NewRFQHandler(cfg), nil
+		return fairflow.NewRFQHandler(cfg, poolManager, customFuncs), nil
 
 	case pcsfairflow.Handler:
 		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
 		if err != nil {
 			return nil, err
 		}
-		return pcsfairflow.NewRFQHandler(cfg), nil
+		return pcsfairflow.NewRFQHandler(cfg, poolManager, customFuncs), nil
 
 	default:
 		return NewNoopRFQHandler(), nil
