@@ -85,6 +85,33 @@ type IMetaPoolSimulator interface {
 	SetBasePool(basePool IPoolSimulator) // set base pool
 }
 
+type (
+	// ICustomFuncs provides customizable functions for calculating amount out and cloning pool states
+	ICustomFuncs interface {
+		ICustomCalcAmountOut
+		ICustomClone
+	}
+
+	// ICustomCalcAmountOut can CalcAmountOut and customize this function
+	ICustomCalcAmountOut interface {
+		CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
+			swapLimit SwapLimit) (*CalcAmountOutResult, error)
+		SetCustomCalcAmountOutFunc(f CalcAmountOutFunc)
+	}
+	// ICustomClone can ClonePool and CloneSwapLimit and customize these functions
+	ICustomClone interface {
+		ClonePool(ctx context.Context, pool IPoolSimulator) IPoolSimulator
+		SetCustomClonePoolFunc(f ClonePoolFunc)
+		CloneSwapLimit(ctx context.Context, limit SwapLimit) SwapLimit
+		SetCustomCloneSwapLimitFunc(f CloneSwapLimitFunc)
+	}
+
+	CalcAmountOutFunc func(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount,
+		tokenOut string, swapLimit SwapLimit) (*CalcAmountOutResult, error)
+	ClonePoolFunc      func(ctx context.Context, pool IPoolSimulator) IPoolSimulator
+	CloneSwapLimitFunc func(ctx context.Context, limit SwapLimit) SwapLimit
+)
+
 type IPoolSingleRFQ interface {
 	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
 }
