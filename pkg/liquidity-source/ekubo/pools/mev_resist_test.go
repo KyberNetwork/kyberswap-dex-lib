@@ -44,7 +44,7 @@ func TestSwapInputAmountToken0(t *testing.T) {
 		},
 		TickBounds: [2]int32{math.MinTick, math.MaxTick},
 		ActiveTick: 700_000,
-	}, 700_000)
+	})
 
 	quote, err := pool.Quote(big.NewInt(100_000), false)
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestSwapOutputAmountToken0(t *testing.T) {
 		},
 		TickBounds: [2]int32{math.MinTick, math.MaxTick},
 		ActiveTick: 700_000,
-	}, 700_000)
+	})
 
 	quote, err := pool.Quote(big.NewInt(-100_000), false)
 	require.NoError(t, err)

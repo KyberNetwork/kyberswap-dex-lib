@@ -18,10 +18,10 @@ type MevResistPool struct {
 	swappedThisBlock bool
 }
 
-func NewMevResistPool(key *PoolKey, state *BasePoolState, lastTick int32) *MevResistPool {
+func NewMevResistPool(key *PoolKey, state *BasePoolState) *MevResistPool {
 	return &MevResistPool{
 		BasePool:         NewBasePool(key, state),
-		lastTick:         lastTick,
+		lastTick:         state.ActiveTick,
 		swappedThisBlock: false,
 	}
 }
