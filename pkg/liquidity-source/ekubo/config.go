@@ -20,6 +20,7 @@ type Config struct {
 	Core             common.Address      `json:"core"`
 	Oracle           common.Address      `json:"oracle"`
 	Twamm            common.Address      `json:"twamm"`
+	MevResist        common.Address      `json:"mevResist"`
 	BasicDataFetcher string              `json:"basicDataFetcher"`
 	TwammDataFetcher string              `json:"twammDataFetcher"`
 	Router           string              `json:"router"`
@@ -30,9 +31,10 @@ type Config struct {
 func (c *Config) SupportedExtensions() map[common.Address]ExtensionType {
 	if c.supportedExtensions == nil {
 		c.supportedExtensions = map[common.Address]ExtensionType{
-			{}:       ExtensionTypeBase,
-			c.Oracle: ExtensionTypeOracle,
-			c.Twamm:  ExtensionTypeTwamm,
+			{}:          ExtensionTypeBase,
+			c.Oracle:    ExtensionTypeOracle,
+			c.Twamm:     ExtensionTypeTwamm,
+			c.MevResist: ExtensionTypeMevResist,
 		}
 	}
 	return c.supportedExtensions
