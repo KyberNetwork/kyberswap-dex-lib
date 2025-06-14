@@ -28,15 +28,12 @@ func NewMevResistPool(key *PoolKey, state *BasePoolState, lastTick int32) *MevRe
 
 func (p *MevResistPool) CloneState() any {
 	cloned := *p
-	clonedSwapState := *p.BasePoolSwapState
-	cloned.BasePoolSwapState = &clonedSwapState
+	cloned.BasePool = p.BasePool.CloneState().(*BasePool)
 	return &cloned
 }
 
 func (p *MevResistPool) SetSwapState(state quoting.SwapState) {
-	swapState := state.(*MevResistPoolSwapState)
-
-	p.BasePoolSwapState = swapState
+	p.BasePoolSwapState = state.(*MevResistPoolSwapState)
 	p.swappedThisBlock = true
 }
 
