@@ -55,6 +55,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/infinitypools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lidoarm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -314,6 +315,7 @@ type Types struct {
 	Pmm1                       string
 	Pmm2                       string
 	UniswapLO                  string
+	LidoArm                    string
 }
 
 var (
@@ -480,5 +482,6 @@ var (
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		UniswapLO:                  uniswaplo.DexType,
+		LidoArm:                    lidoarm.DexType,
 	}
 )
