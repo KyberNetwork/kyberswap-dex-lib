@@ -60,3 +60,7 @@ func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *
 
 	return ticksCrossed / tickSpacing
 }
+
+func ApproximateSqrtRatioToTick(sqrtRatio *big.Int) int32 {
+	return int32(math.Round(math.Log(U256ToFloatBaseX128(sqrtRatio)) / logBaseSqrtTickSize))
+}
