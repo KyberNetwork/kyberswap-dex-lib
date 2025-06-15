@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -54,16 +55,33 @@ func NewPoolTracker(
 	}, nil
 }
 
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	startTime := time.Now()
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	state, blockNumber, err := t.getState(ctx, p.Address)
+	state, blockNumber, err := t.getState(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -92,14 +110,21 @@ func (t *PoolTracker) GetNewPoolState(
 		},
 	).Info("Finished getting new pool state")
 
-	return t.updatePool(p, state, blockNumber)
+	return t.updatePool(p, state, blockNumber, overrides)
 }
 
-func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, *big.Int, error) {
+func (t *PoolTracker) getState(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (State, *big.Int, error) {
 	var getStateResult GetStateResultWrapper
 	var feeAIn, feeBIn *big.Int
 
 	getStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
+	if overrides != nil {
+		getStateRequest.SetOverrides(overrides)
+	}
 
 	getStateRequest.AddCall(&ethrpc.Call{
 		ABI:    maverickV2PoolABI,
@@ -145,7 +170,12 @@ func (t *PoolTracker) getState(ctx context.Context, poolAddress string) (State, 
 	}, resp.BlockNumber, nil
 }
 
-func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, binCounter uint32) (map[uint32]Bin, map[int32]Tick, error) {
+func (t *PoolTracker) getFullPoolState(
+	ctx context.Context,
+	poolAddress string,
+	binCounter uint32,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (map[uint32]Bin, map[int32]Tick, error) {
 	// Calculate number of batches needed (5000 items per batch)
 	batchSize := DefaultBinBatchSize
 	numBatches := (int(binCounter) / batchSize) + 1
@@ -171,6 +201,10 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 
 	// Execute all calls in aggregate
 	request := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true)
+	if overrides != nil {
+		request.SetOverrides(overrides)
+	}
+
 	for i, call := range allCalls {
 		request.AddCall(call, []interface{}{&callResults[i]})
 	}
@@ -220,7 +254,12 @@ func (t *PoolTracker) getFullPoolState(ctx context.Context, poolAddress string, 
 	return bins, ticks, nil
 }
 
-func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big.Int) (entity.Pool, error) {
+func (t *PoolTracker) updatePool(
+	pool entity.Pool,
+	state State,
+	blockNumber *big.Int,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	pool.Reserves = entity.PoolReserves{state.ReserveA.String(), state.ReserveB.String()}
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = time.Now().Unix()
@@ -237,7 +276,7 @@ func (t *PoolTracker) updatePool(pool entity.Pool, state State, blockNumber *big
 	}
 
 	// Fetch full pool state with bins and ticks data
-	bins, ticks, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter)
+	bins, ticks, err := t.getFullPoolState(context.Background(), pool.Address, state.BinCounter, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool_address": pool.Address,

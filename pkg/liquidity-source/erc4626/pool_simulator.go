@@ -158,7 +158,7 @@ func (s *PoolSimulator) previewRedeem(shares *uint256.Int) (*uint256.Int, error)
 }
 
 func (s *PoolSimulator) maxRedeem() *uint256.Int {
-	if s.MaxRedeem == nil {
+	if s.MaxRedeem == nil || s.MaxRedeem.IsZero() {
 		return number.MaxU256
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
@@ -72,6 +73,7 @@ const (
 func (f *dataFetchers) fetchPools(
 	ctx context.Context,
 	poolKeys []*pools.PoolKey,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]*PoolWithBlockNumber, error) {
 	if len(poolKeys) == 0 {
 		return nil, nil
@@ -88,6 +90,10 @@ func (f *dataFetchers) fetchPools(
 		endIdx := min(startIdx+maxBatchSize, len(basicPoolKeys))
 
 		req := f.ethrpcClient.R().SetContext(ctx)
+		if overrides != nil {
+			req.SetOverrides(overrides)
+		}
+
 		batchQuoteData := make([]BasicQuoteData, endIdx-startIdx)
 		resp, err := req.AddCall(&ethrpc.Call{
 			ABI:    abis.BasicDataFetcherABI,
@@ -144,6 +150,10 @@ func (f *dataFetchers) fetchPools(
 		endIdx := min(startIdx+maxBatchSize, len(twammPoolKeys))
 
 		req := f.ethrpcClient.R().SetContext(ctx)
+		if overrides != nil {
+			req.SetOverrides(overrides)
+		}
+
 		batchQuoteData := make([]struct{ TwammQuoteData }, endIdx-startIdx)
 		for i, poolKey := range twammPoolKeys[startIdx:endIdx] {
 			req.AddCall(&ethrpc.Call{
