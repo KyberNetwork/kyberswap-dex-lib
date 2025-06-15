@@ -9,6 +9,8 @@ const (
 
 	DefaultGas int64 = 400000
 
+	tickSpacing int32 = 1 // hard-coded tick spacing, as its unused
+
 	factoryMethodPools = "pools"
 
 	poolMethodGetAssets   = "getAssets"
@@ -17,15 +19,12 @@ const (
 )
 
 var (
-	ErrInvalidVaults        = errors.New("invalid vaults")
-	ErrInvalidToken         = errors.New("invalid token")
-	ErrInvalidReserve       = errors.New("invalid reserve")
-	ErrInvalidAmountIn      = errors.New("invalid amount in")
-	ErrInvalidAmountOut     = errors.New("invalid amount out")
-	ErrSwapIsPaused         = errors.New("swap is paused")
-	ErrOverflow             = errors.New("math overflow")
-	ErrCurveViolation       = errors.New("curve violation")
-	ErrOperatorNotInstalled = errors.New("operator not installed")
-	ErrDivisionByZero       = errors.New("division by zero")
-	ErrSwapLimitExceeded    = errors.New("swap limit exceed")
+	ErrInvalidToken      = errors.New("invalid token")
+	ErrInvalidAmountIn   = errors.New("invalid amount in")
+	ErrInvalidAmountOut  = errors.New("invalid amount out")
+	ErrSwapIsPaused      = errors.New("swap is paused")
+	ErrOverflow          = errors.New("math overflow")
+	ErrCurveViolation    = errors.New("curve violation")
+	ErrDivisionByZero    = errors.New("division by zero")
+	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 )

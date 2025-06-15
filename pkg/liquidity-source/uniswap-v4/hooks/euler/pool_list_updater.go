@@ -195,17 +195,19 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	}
 
 	poolData := StaticExtra{
-		Vault0:              params.Data.Vault0.Hex(),
-		Vault1:              params.Data.Vault1.Hex(),
-		EulerAccount:        params.Data.EulerAccount.Hex(),
-		EquilibriumReserve0: uint256.MustFromBig(params.Data.EquilibriumReserve0),
-		EquilibriumReserve1: uint256.MustFromBig(params.Data.EquilibriumReserve1),
-		PriceX:              uint256.MustFromBig(params.Data.PriceX),
-		PriceY:              uint256.MustFromBig(params.Data.PriceY),
-		Fee:                 uint256.MustFromBig(params.Data.Fee),
-		ProtocolFee:         uint256.MustFromBig(params.Data.ProtocolFee),
-		ConcentrationX:      uint256.MustFromBig(params.Data.ConcentrationX),
-		ConcentrationY:      uint256.MustFromBig(params.Data.ConcentrationY),
+		Vault0:               params.Data.Vault0.Hex(),
+		Vault1:               params.Data.Vault1.Hex(),
+		EulerAccount:         params.Data.EulerAccount.Hex(),
+		EquilibriumReserve0:  uint256.MustFromBig(params.Data.EquilibriumReserve0),
+		EquilibriumReserve1:  uint256.MustFromBig(params.Data.EquilibriumReserve1),
+		PriceX:               uint256.MustFromBig(params.Data.PriceX),
+		PriceY:               uint256.MustFromBig(params.Data.PriceY),
+		Fee:                  uint256.MustFromBig(params.Data.Fee),
+		ProtocolFee:          uint256.MustFromBig(params.Data.ProtocolFee),
+		ConcentrationX:       uint256.MustFromBig(params.Data.ConcentrationX),
+		ConcentrationY:       uint256.MustFromBig(params.Data.ConcentrationY),
+		ProtocolFeeRecipient: params.Data.ProtocolFeeRecipient,
+		Permit2Address:       common.HexToAddress(d.config.Permit2Address),
 	}
 
 	return poolData, nil

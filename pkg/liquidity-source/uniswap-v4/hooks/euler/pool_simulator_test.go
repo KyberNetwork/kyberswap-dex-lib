@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -18,10 +18,10 @@ func TestCalcAmountOut(t *testing.T) {
 
 	var pool entity.Pool
 	err := json.Unmarshal([]byte(poolStr), &pool)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	s, err := NewPoolSimulator(pool)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	t.Run("swap USDC -> WETH", func(t *testing.T) {
 		amountIn, _ := new(big.Int).SetString("1000000", 10)
@@ -32,7 +32,7 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
-		expectedAmountOut := "365327771994316"
+		expectedAmountOut := "365327771994315"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -41,8 +41,8 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 		})
 
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+		require.Nil(t, err)
+		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
 
 	t.Run("swap WETH -> USDC", func(t *testing.T) {
@@ -54,6 +54,8 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 
+		expectedAmountOut := "833188497022"
+
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
@@ -61,11 +63,11 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 		})
 
-		assert.Nil(t, result)
-		assert.ErrorIs(t, err, ErrSwapLimitExceeded)
+		require.Nil(t, err)
+		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
 
-	t.Run("swap WETH -> USDC with large amount", func(t *testing.T) {
+	t.Run("swap WETH -> USDC : invalid amount out", func(t *testing.T) {
 		amountIn, _ := new(big.Int).SetString("1000000", 10)
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -74,7 +76,25 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 
-		expectedAmountOut := "999593"
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrInvalidAmountOut)
+	})
+
+	t.Run("swap USDC -> WETH : swap limit exceeded", func(t *testing.T) {
+		amountIn, _ := new(big.Int).SetString("1000000000000000", 10)
+
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: amountIn,
+		}
+		tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -83,8 +103,8 @@ func TestCalcAmountOut(t *testing.T) {
 			})
 		})
 
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrSwapLimitExceeded)
 	})
 }
 
@@ -94,55 +114,13 @@ func TestCalcAmountIn(t *testing.T) {
 
 	var pool entity.Pool
 	err := json.Unmarshal([]byte(poolStr), &pool)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	s, err := NewPoolSimulator(pool)
-	assert.Nil(t, err)
-
-	t.Run("swap WETH -> USDC", func(t *testing.T) {
-		amountOut, _ := new(big.Int).SetString("999593", 10)
-
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
-			Amount: amountOut,
-		}
-		tokenIn := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" // WETH
-
-		expectedAmountIn := "1000000"
-
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
-				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
-		})
-
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
-	})
-
-	t.Run("swap WETH -> USDC with large amount", func(t *testing.T) {
-		amountIn, _ := new(big.Int).SetString("1000000000", 10)
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: amountIn,
-		}
-		tokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Nil(t, result)
-		assert.ErrorIs(t, err, ErrSwapLimitExceeded)
-	})
+	require.Nil(t, err)
 
 	t.Run("swap USDC -> WETH", func(t *testing.T) {
-		amountOut, _ := new(big.Int).SetString("1000376", 10)
+		amountOut, _ := new(big.Int).SetString("365327771994315", 10)
 
 		tokenAmountOut := poolpkg.TokenAmount{
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
@@ -159,7 +137,49 @@ func TestCalcAmountIn(t *testing.T) {
 			})
 		})
 
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
+		require.Nil(t, err)
+		require.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
+	})
+
+	t.Run("swap WETH -> USDC", func(t *testing.T) {
+		amountOut, _ := new(big.Int).SetString("833188497022", 10)
+
+		tokenAmountOut := poolpkg.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC
+			Amount: amountOut,
+		}
+		tokenIn := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" // WETH
+
+		expectedAmountIn := "9999999995811266764061"
+
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
+			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+				TokenAmountOut: tokenAmountOut,
+				TokenIn:        tokenIn,
+			})
+		})
+
+		require.Nil(t, err)
+		require.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
+	})
+
+	t.Run("swap WETH -> USDC : swap limit exceeded", func(t *testing.T) {
+		amountIn, _ := new(big.Int).SetString("269725806317064027914", 10)
+
+		tokenAmountOut := poolpkg.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: amountIn,
+		}
+		tokenIn := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
+			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+				TokenAmountOut: tokenAmountOut,
+				TokenIn:        tokenIn,
+			})
+		})
+
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrSwapLimitExceeded)
 	})
 }

@@ -10,44 +10,37 @@ import (
 
 var (
 	thirtySix  = uint256.NewInt(36)
+	e12        = uint256.NewInt(1e12)
 	e36        = new(uint256.Int).Exp(big256.U10, thirtySix)
 	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(big256.U1, 112), big256.U1) // 2^112 - 1
 	e18Int     = int256.NewInt(1e18)                                                   // 1e18
 )
 
-func sqrtCeil(x *uint256.Int) *uint256.Int {
-	if x.IsZero() {
-		return uint256.NewInt(0)
+func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
+	if a.IsZero() {
+		return uint256.NewInt(0), nil
 	}
 
-	var guess, prev, temp uint256.Int
-	guess.Rsh(x, 1)
+	var result uint256.Int
+	result.Sqrt(a)
 
-	for range 1000000 { //  a large enough number to ensure the loop terminates
-		prev.Set(&guess)
-		temp.Div(x, &guess)
-		guess.Add(&guess, &temp)
-		guess.Rsh(&guess, 1)
-
-		if guess.Cmp(&prev) >= 0 {
-			break
+	if roundingUp {
+		var square uint256.Int
+		square.Mul(&result, &result)
+		if square.Cmp(a) < 0 {
+			result.Add(&result, big256.U1)
 		}
 	}
 
-	temp.Mul(&guess, &guess)
-	if temp.Lt(x) {
-		guess.Add(&guess, big256.U1)
-	}
-
-	return &guess
+	return &result, nil
 }
 
-func ceilDiv(a, b *uint256.Int) (*uint256.Int, error) {
+func _CeilDiv(a, b *uint256.Int) (*uint256.Int, error) {
 	if b.IsZero() {
 		return nil, ErrDivisionByZero
 	}
 
-	if a.Sign() == 0 {
+	if a.IsZero() {
 		return uint256.NewInt(0), nil
 	}
 
@@ -57,6 +50,28 @@ func ceilDiv(a, b *uint256.Int) (*uint256.Int, error) {
 	result.Add(&result, big256.U1)
 
 	return &result, nil
+}
+
+func _MulDiv(x, y, denominator *uint256.Int, roundingUp bool) (*uint256.Int, error) {
+	if denominator.IsZero() {
+		return nil, ErrDivisionByZero
+	}
+
+	result, overflow := new(uint256.Int).MulDivOverflow(x, y, denominator)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	if roundingUp {
+		var remainder uint256.Int
+		remainder.Mul(x, y)
+		remainder.Mod(&remainder, denominator)
+		if !remainder.IsZero() {
+			result.Add(result, big256.U1)
+		}
+	}
+
+	return result, nil
 }
 
 // / @dev EulerSwap curve
@@ -82,9 +97,9 @@ func f(x, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 
 	tmp3.Mul(x, big256.BONE)
 
-	v, overflow := tmp2.MulDivOverflow(&tmp1, &tmp2, &tmp3)
-	if overflow {
-		return nil, ErrOverflow
+	v, err := _MulDiv(&tmp1, &tmp2, &tmp3, true)
+	if err != nil {
+		return nil, err
 	}
 
 	tmp1.Sub(py, big256.U1)
@@ -130,16 +145,16 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	// C = Math.mulDiv(1e18 - c, x0 * x0, 1e18, Math.Rounding.Ceil)
 	tmp.Sub(big256.BONE, c)
 	term2.Mul(x0, x0)
-	C, overflow := new(uint256.Int).MulDivOverflow(&tmp, &term2, big256.BONE)
-	if overflow {
-		return nil, ErrOverflow
+	C, err := _MulDiv(&tmp, &term2, big256.BONE, true)
+	if err != nil {
+		return nil, err
 	}
 
 	// fourAC = Math.mulDiv(4 * c, C, 1e18, Math.Rounding.Ceil)
 	tmp.Mul(c, big256.U4)
-	fourAC, overflow := new(uint256.Int).MulDivOverflow(&tmp, C, big256.BONE)
-	if overflow {
-		return nil, ErrOverflow
+	fourAC, err := _MulDiv(&tmp, C, big256.BONE, true)
+	if err != nil {
+		return nil, err
 	}
 
 	var absB uint256.Int
@@ -152,34 +167,40 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		// B^2 cannot be calculated directly at 1e18 scale without overflowing
 		tmp.Mul(&absB, &absB)
 		tmp.Add(&tmp, fourAC)
-		sqrt = sqrtCeil(&tmp)
+		sqrt, err = _Sqrt(&tmp, true)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		// B^2 can be calculated directly at 1e18 scale without overflowing
 		scale := computeScale(&absB)
 
 		tmp.Div(&absB, scale)
-		squaredB, overflow := new(uint256.Int).MulDivOverflow(&tmp, &absB, scale)
-		if overflow {
-			return nil, ErrOverflow
+		squaredB, err := _MulDiv(&tmp, &absB, scale, false)
+		if err != nil {
+			return nil, err
 		}
 
 		tmp.Mul(scale, scale)
 		term2.Div(fourAC, &tmp)
 
 		tmp.Add(squaredB, &term2)
-		sqrt = sqrtCeil(&tmp)
+		sqrt, err = _Sqrt(&tmp, true)
+		if err != nil {
+			return nil, err
+		}
 		sqrt.Mul(sqrt, scale)
 	}
 
-	var x = new(uint256.Int)
+	var x *uint256.Int
 	if B.Sign() <= 0 {
 		// use the regular quadratic formula solution (-b + sqrt(b^2 - 4ac)) / 2a
 		tmp.Add(&absB, sqrt)
 		term2.Mul(c, big256.U2)
 
-		_, overflow = x.MulDivOverflow(&tmp, big256.BONE, &term2)
-		if overflow {
-			return nil, ErrOverflow
+		x, err = _MulDiv(&tmp, big256.BONE, &term2, true)
+		if err != nil {
+			return nil, err
 		}
 	} else {
 		// use the "citardauq" quadratic formula solution 2c / (-b - sqrt(b^2 - 4ac))
@@ -187,7 +208,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		term2.Mul(C, big256.U2)
 
 		var err error
-		x, err = ceilDiv(&term2, &tmp)
+		x, err = _CeilDiv(&term2, &tmp)
 		if err != nil {
 			return nil, err
 		}
