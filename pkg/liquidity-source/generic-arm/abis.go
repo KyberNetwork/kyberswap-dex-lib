@@ -1,4 +1,4 @@
-package lidoarm
+package genericarm
 
 import (
 	"bytes"

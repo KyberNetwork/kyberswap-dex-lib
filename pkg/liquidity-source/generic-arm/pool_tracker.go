@@ -1,4 +1,4 @@
-package lidoarm
+package genericarm
 
 import (
 	"context"
@@ -64,47 +64,47 @@ func (t *PoolTracker) getNewPoolState(
 	var tradeRate0, tradeRate1, priceScale, withdrawsQueued, withdrawsClaimed, reserve0, reserve1 *big.Int
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
-		Target: t.config.LidoArmAddress,
+		Target: t.config.ArmAddress,
 		Method: "traderate0",
 	}, []interface{}{&tradeRate0}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: t.config.LidoArmAddress,
+			Target: t.config.ArmAddress,
 			Method: "traderate1",
 		}, []interface{}{&tradeRate1}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: t.config.LidoArmAddress,
+			Target: t.config.ArmAddress,
 			Method: "PRICE_SCALE",
 		}, []interface{}{&priceScale}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: t.config.LidoArmAddress,
+			Target: t.config.ArmAddress,
 			Method: "withdrawsQueued",
 		}, []interface{}{&withdrawsQueued}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: t.config.LidoArmAddress,
+			Target: t.config.ArmAddress,
 			Method: "withdrawsClaimed",
 		}, []interface{}{&withdrawsClaimed}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: t.config.LidoArmAddress,
+			Target: t.config.ArmAddress,
 			Method: "liquidityAsset",
 		}, []interface{}{&liquidityAsset}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: p.Tokens[0].Address,
 			Method: "balanceOf",
-			Params: []interface{}{common.HexToAddress(t.config.LidoArmAddress)},
+			Params: []interface{}{common.HexToAddress(t.config.ArmAddress)},
 		}, []interface{}{&reserve0}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: p.Tokens[1].Address,
 			Method: "balanceOf",
-			Params: []interface{}{common.HexToAddress(t.config.LidoArmAddress)},
+			Params: []interface{}{common.HexToAddress(t.config.ArmAddress)},
 		}, []interface{}{&reserve1})
-	_, err := calls.Aggregate()
+	_, err := calls.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,

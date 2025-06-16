@@ -1,7 +1,8 @@
-package lidoarm
+package genericarm
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -41,12 +42,12 @@ func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Po
 	var token0, token1 common.Address
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
-		Target: d.config.LidoArmAddress,
+		Target: d.config.ArmAddress,
 		Method: "token0",
 	}, []interface{}{&token0}).
 		AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
-			Target: d.config.LidoArmAddress,
+			Target: d.config.ArmAddress,
 			Method: "token1",
 		}, []interface{}{&token1})
 	_, err := calls.Aggregate()
@@ -56,9 +57,21 @@ func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Po
 		}).Errorf("failed to initPool")
 		return nil, nil, err
 	}
+
+	extraBytes, err := json.Marshal(Extra{
+		SwapTypes: d.config.SwapTypes,
+	})
+
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to marshal extra")
+		return nil, nil, err
+	}
+
 	pools := []entity.Pool{
 		{
-			Address:   d.config.LidoArmAddress,
+			Address:   d.config.ArmAddress,
 			Exchange:  d.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
@@ -73,7 +86,7 @@ func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Po
 					Swappable: true,
 				},
 			},
-			Extra: "{}",
+			Extra: string(extraBytes),
 		},
 	}
 	logger.WithFields(logger.Fields{"pool": pools}).Info("finish fetching pools")

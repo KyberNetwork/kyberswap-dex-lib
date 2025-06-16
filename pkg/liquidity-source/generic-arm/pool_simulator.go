@@ -1,4 +1,4 @@
-package lidoarm
+package genericarm
 
 import (
 	"encoding/json"
@@ -16,12 +16,13 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	TradeRate0       *uint256.Int
-	TradeRate1       *uint256.Int
-	PriceScale       *uint256.Int
-	LiquidityAsset   common.Address
-	WithdrawsQueued  *uint256.Int
-	WithdrawsClaimed *uint256.Int
+	supportedSwapType SwapType
+	TradeRate0        *uint256.Int
+	TradeRate1        *uint256.Int
+	PriceScale        *uint256.Int
+	LiquidityAsset    common.Address
+	WithdrawsQueued   *uint256.Int
+	WithdrawsClaimed  *uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -40,9 +41,10 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		TradeRate0: extra.TradeRate0,
-		TradeRate1: extra.TradeRate1,
-		PriceScale: extra.PriceScale,
+		supportedSwapType: extra.SwapTypes,
+		TradeRate0:        extra.TradeRate0,
+		TradeRate1:        extra.TradeRate1,
+		PriceScale:        extra.PriceScale,
 	}, nil
 }
 
@@ -55,6 +57,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
+	}
+
+	swapType := lo.Ternary(indexIn < indexOut, ZeroToOne, OneToZero)
+
+	if p.supportedSwapType != swapType && p.supportedSwapType != Both {
+		return nil, ErrUnsupportedSwap
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)

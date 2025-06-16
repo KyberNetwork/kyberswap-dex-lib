@@ -1,9 +1,9 @@
-package lidoarm
+package genericarm
 
 import "errors"
 
 const (
-	DexType         = "lidoarm"
+	DexType         = "generic-arm"
 	defaultReserves = "100000000000000000000000"
 
 	defaultGas = 50000
@@ -14,4 +14,5 @@ var (
 	ErrInvalidAmountIn         = errors.New("invalid amount in")
 	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
+	ErrUnsupportedSwap         = errors.New("unsupported swap")
 )
