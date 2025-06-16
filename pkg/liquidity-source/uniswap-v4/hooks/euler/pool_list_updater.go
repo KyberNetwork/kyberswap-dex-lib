@@ -16,12 +16,10 @@ import (
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-type (
-	PoolsListUpdater struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-	}
-)
+type PoolsListUpdater struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
