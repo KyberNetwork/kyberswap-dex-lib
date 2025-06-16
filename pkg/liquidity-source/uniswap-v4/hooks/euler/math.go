@@ -10,8 +10,8 @@ import (
 
 var (
 	e36        = big256.TenPow(36)
-	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(big256.U1, 112), big256.U1) // 2^112 - 1
-	e18Int     = int256.NewInt(1e18)                                                   // 1e18
+	maxUint112 = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(big256.U1, 112), 1) // 2^112 - 1
+	e18Int     = int256.NewInt(1e18)                                                 // 1e18
 )
 
 func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
@@ -43,9 +43,9 @@ func _CeilDiv(a, b *uint256.Int) (*uint256.Int, error) {
 	}
 
 	var result uint256.Int
-	result.Sub(a, big256.U1)
+	result.SubUint64(a, 1)
 	result.Div(&result, b)
-	result.Add(&result, big256.U1)
+	result.AddUint64(&result, 1)
 
 	return &result, nil
 }
@@ -65,7 +65,7 @@ func _MulDiv(x, y, denominator *uint256.Int, roundingUp bool) (*uint256.Int, err
 		remainder.Mul(x, y)
 		remainder.Mod(&remainder, denominator)
 		if !remainder.IsZero() {
-			result.Add(result, big256.U1)
+			result.AddUint64(result, 1)
 		}
 	}
 
@@ -100,7 +100,7 @@ func f(x, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		return nil, err
 	}
 
-	tmp1.Sub(py, big256.U1)
+	tmp1.SubUint64(py, 1)
 	v.Add(v, &tmp1)
 	v.Div(v, py)
 	v.Add(v, y0)
@@ -212,7 +212,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		}
 	}
 
-	x.Add(x, big256.U1)
+	x.AddUint64(x, 1)
 
 	if x.Cmp(x0) >= 0 {
 		return new(uint256.Int).Set(x0), nil
