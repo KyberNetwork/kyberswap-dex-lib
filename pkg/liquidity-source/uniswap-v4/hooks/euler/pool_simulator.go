@@ -74,7 +74,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		priceY:               staticExtra.PriceY,
 		concentrationX:       staticExtra.ConcentrationX,
 		concentrationY:       staticExtra.ConcentrationY,
-		v4Fee:                uint32(new(uint256.Int).Div(staticExtra.Fee, e12).Uint64()),
+		v4Fee:                uint32(staticExtra.Fee.Uint64() / 1e12),
 		permit2Address:       staticExtra.Permit2Address,
 		protocolFeeRecipient: staticExtra.ProtocolFeeRecipient,
 	}
