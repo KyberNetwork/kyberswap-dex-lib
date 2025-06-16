@@ -403,6 +403,7 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
+	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeWUSDM                      = "wusdm"
 	ExchangeWUSDL                      = "wusdl"
 	ExchangeLidoArm                    = "lidoarm"
@@ -797,6 +798,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
+	ExchangeUniswapV4Euler:             {},
 	ExchangeWUSDM:                      {},
 	ExchangeWUSDL:                      {},
 	ExchangeLidoArm:                    {},

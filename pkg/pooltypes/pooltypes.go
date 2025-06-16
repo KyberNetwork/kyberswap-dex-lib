@@ -92,6 +92,7 @@ import (
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
+	uniswapv4euler "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/euler"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -316,6 +317,7 @@ type Types struct {
 	Pmm2                       string
 	UniswapLO                  string
 	GenericArm                 string
+	UniswapV4Euler             string
 }
 
 var (
@@ -483,5 +485,6 @@ var (
 		Pmm2:                       valueobject.ExchangePmm2,
 		UniswapLO:                  uniswaplo.DexType,
 		GenericArm:                 genericarm.DexType,
+		UniswapV4Euler:             uniswapv4euler.DexType,
 	}
 )
