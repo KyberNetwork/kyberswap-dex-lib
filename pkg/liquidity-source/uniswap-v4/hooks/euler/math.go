@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/int256"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 )
 
 var (
@@ -50,28 +51,6 @@ func _CeilDiv(a, b *uint256.Int) (*uint256.Int, error) {
 	return &result, nil
 }
 
-func _MulDiv(x, y, denominator *uint256.Int, roundingUp bool) (*uint256.Int, error) {
-	if denominator.IsZero() {
-		return nil, ErrDivisionByZero
-	}
-
-	result, overflow := new(uint256.Int).MulDivOverflow(x, y, denominator)
-	if overflow {
-		return nil, ErrOverflow
-	}
-
-	if roundingUp {
-		var remainder uint256.Int
-		remainder.Mul(x, y)
-		remainder.Mod(&remainder, denominator)
-		if !remainder.IsZero() {
-			result.AddUint64(result, 1)
-		}
-	}
-
-	return result, nil
-}
-
 // / @dev EulerSwap curve
 // / @notice Computes the output `y` for a given input `x`.
 // / @param x The input reserve value, constrained to 1 <= x <= x0.
@@ -95,7 +74,7 @@ func f(x, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 
 	tmp3.Mul(x, big256.BONE)
 
-	v, err := _MulDiv(&tmp1, &tmp2, &tmp3, true)
+	v, err := v3Utils.MulDivRoundingUp(&tmp1, &tmp2, &tmp3)
 	if err != nil {
 		return nil, err
 	}
@@ -143,14 +122,14 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	// C = Math.mulDiv(1e18 - c, x0 * x0, 1e18, Math.Rounding.Ceil)
 	tmp.Sub(big256.BONE, c)
 	term2.Mul(x0, x0)
-	C, err := _MulDiv(&tmp, &term2, big256.BONE, true)
+	C, err := v3Utils.MulDivRoundingUp(&tmp, &term2, big256.BONE)
 	if err != nil {
 		return nil, err
 	}
 
 	// fourAC = Math.mulDiv(4 * c, C, 1e18, Math.Rounding.Ceil)
 	tmp.Mul(c, big256.U4)
-	fourAC, err := _MulDiv(&tmp, C, big256.BONE, true)
+	fourAC, err := v3Utils.MulDivRoundingUp(&tmp, C, big256.BONE)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +153,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		scale := computeScale(&absB)
 
 		tmp.Div(&absB, scale)
-		squaredB, err := _MulDiv(&tmp, &absB, scale, false)
+		squaredB, err := v3Utils.MulDiv(&tmp, &absB, scale)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +175,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		tmp.Add(&absB, sqrt)
 		term2.Mul(c, big256.U2)
 
-		x, err = _MulDiv(&tmp, big256.BONE, &term2, true)
+		x, err = v3Utils.MulDivRoundingUp(&tmp, big256.BONE, &term2)
 		if err != nil {
 			return nil, err
 		}
