@@ -27,7 +27,7 @@ func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
 		var square uint256.Int
 		square.Mul(&result, &result)
 		if square.Cmp(a) < 0 {
-			result.Add(&result, big256.U1)
+			result.AddUint64(&result, 1)
 		}
 	}
 
