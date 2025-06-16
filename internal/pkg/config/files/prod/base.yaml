@@ -109,6 +109,7 @@ common:
     - "memebox"
     - "native-v3"
     - "infinitypools"
+    - "wusdm"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

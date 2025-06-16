@@ -128,6 +128,7 @@ common:
     - "pmm-2"
     - "mimswap"
     - "native-v3"
+    - "wusdm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

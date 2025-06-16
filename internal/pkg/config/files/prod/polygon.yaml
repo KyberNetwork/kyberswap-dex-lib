@@ -99,6 +99,7 @@ common:
     - "lo1inch"
     - "uniswap-v4"
     - "overnight-usdp"
+    - "wusdm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

@@ -160,6 +160,8 @@ common:
     - "mimswap"
     - "native-v3"
     - "usds-lite-psm"
+    - "wusdm"
+    - "wusdl"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

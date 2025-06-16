@@ -90,6 +90,7 @@ var useApproveMaxFunctionSet = map[string]bool{
 	// ExecutorHelper10
 	l1executor.FunctionSelectorBeefySonic.RawName: true,
 	l1executor.FunctionSelectorNativeV3.RawName:   true,
+	l1executor.FunctionSelectorERC4626.RawName:    true,
 }
 
 // IsApproveMaxExchange returns true if we should track if executor `approveMax` for the provided exchange,
