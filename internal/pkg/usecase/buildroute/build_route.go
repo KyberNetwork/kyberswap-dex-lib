@@ -1109,7 +1109,7 @@ func (uc *BuildRouteUseCase) ValidateReturnAmount(
 // getSlippageBuffer returns the slippage buffer for a given token pair
 // Returns 0 if no buffer is configured or if token group type cannot be determined
 func (uc *BuildRouteUseCase) getSlippageBuffer(tokenIn, tokenOut string) float64 {
-	if uc.config.TokenGroups == nil || uc.config.SlippageBufferConfig == nil {
+	if uc.config.TokenGroups == nil || uc.config.FaultyPoolsConfig.SlippageConfigByGroup == nil {
 		return 0.0
 	}
 
@@ -1118,8 +1118,8 @@ func (uc *BuildRouteUseCase) getSlippageBuffer(tokenIn, tokenOut string) float64
 		TokenOut: tokenOut,
 	})
 
-	if buffer, found := uc.config.SlippageBufferConfig[strings.ToLower(tokenGroupType)]; found {
-		return buffer
+	if slippageCfg, found := uc.config.FaultyPoolsConfig.SlippageConfigByGroup[strings.ToLower(tokenGroupType)]; found {
+		return slippageCfg.Buffer
 	}
 
 	return 0.0

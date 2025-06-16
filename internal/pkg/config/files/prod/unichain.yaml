@@ -332,16 +332,22 @@ useCase:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
       expireTime: 15m
+      slippageConfigByGroup:
+        stable:
+          buffer: 1
+          minThreshold: 50
+        correlated:
+          buffer: 5
+          minThreshold: 100
+        default:
+          buffer: 50
+          minThreshold: 500
     rfqAcceptableSlippageFraction: 1000
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig
     clientRefCode:
       bitgetswap: bitget
-    slippageBufferConfig:
-      stable: 1
-      correlated: 5
-      default: 50
 
   poolFactory:
     chainId: *chainId

@@ -205,8 +205,12 @@ type (
 	}
 
 	FaultyPoolsConfig struct {
-		// Min slippage threshold configured in BPS format, ex: 0.01% -> 1, 0.5% -> 50
-		MinSlippageThreshold float64 `mapstructure:"minSlippageThreshold" json:"minSlippageThreshold"`
+		SlippageConfigByGroup map[string]SlippageGroupConfig `mapstructure:"slippageConfigByGroup" json:"slippageConfigByGroup"`
+	}
+
+	SlippageGroupConfig struct {
+		Buffer       float64 `mapstructure:"buffer" json:"buffer"`
+		MinThreshold float64 `mapstructure:"minThreshold" json:"minThreshold"`
 	}
 )
 

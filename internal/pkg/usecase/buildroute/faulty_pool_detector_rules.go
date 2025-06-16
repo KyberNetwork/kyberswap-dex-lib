@@ -18,8 +18,15 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func isSlippageAboveMinThreshold(estimatedSlippage float64, config FaultyPoolsConfig) bool {
-	return estimatedSlippage > config.MinSlippageThreshold
+// isSlippageAboveMinThreshold checks if the estimated slippage exceeds the configured threshold for a token group
+// Returns true if slippage is too high, indicating a potentially faulty pool
+func isSlippageAboveMinThreshold(estimatedSlippage float64, tokenGroup string, slippageCfg map[string]SlippageGroupConfig) bool {
+	var threshold float64
+	if slippageConfig, ok := slippageCfg[strings.ToLower(tokenGroup)]; ok {
+		threshold = slippageConfig.MinThreshold
+	}
+
+	return estimatedSlippage > threshold
 }
 
 // requests to be tracked should only involve tokens that have been whitelisted or native token

@@ -18,6 +18,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -368,7 +369,14 @@ func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string)
 }
 
 func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.FaultyPoolsConfig) {
-	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.MinSlippageThreshold = faultyPoolsConfig.MinSlippageThreshold
+	slippageConfigByGroup := make(map[string]buildroute.SlippageGroupConfig, len(faultyPoolsConfig.SlippageConfigByGroup))
+	for group, config := range faultyPoolsConfig.SlippageConfigByGroup {
+		slippageConfigByGroup[group] = buildroute.SlippageGroupConfig{
+			Buffer:       config.Buffer,
+			MinThreshold: config.MinThreshold,
+		}
+	}
+	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.SlippageConfigByGroup = slippageConfigByGroup
 }
 
 func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.SafetyQuoteReductionConfig) {

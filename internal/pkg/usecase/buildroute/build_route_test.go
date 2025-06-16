@@ -685,6 +685,12 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
+				},
 				Salt: randomSalt,
 			},
 			result: &dto.BuildRouteResult{
@@ -834,6 +840,12 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -1151,6 +1163,12 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
+				},
 				Salt: randomSalt,
 			},
 			err: nil,
@@ -1221,6 +1239,12 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -1300,20 +1324,29 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0x6b175474e89094c44da98b954eedeac495271d0f": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
 					StableGroup: map[string]bool{
 						"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": true,
 						"0x6b175474e89094c44da98b954eedeac495271d0f": true,
 					},
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0x6b175474e89094c44da98b954eedeac495271d0f": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
 				},
 			},
 			result: &dto.BuildRouteResult{
@@ -1414,6 +1447,12 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0x6b175474e89094c44da98b954eedeac495271d0f": true, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": true},
 				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
+				},
 				Salt: randomSalt,
 			},
 			err: nil,
@@ -1503,6 +1542,12 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -1728,6 +1773,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": false, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": false, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -1850,6 +1915,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -1946,6 +2031,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -2066,21 +2171,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 225, // suggested slippage = 224
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
-					StableGroup: map[string]bool{
-						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
-						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
-					},
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 274, // suggested slippage = 273 so failed_count = 0
+						},
+					},
 				},
 			},
 			err: nil,
@@ -2199,21 +2312,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 40,
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
 					StableGroup: map[string]bool{
 						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
 					},
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 40,
+						},
+					},
 				},
 			},
 			err: nil,
@@ -2323,21 +2444,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 0,
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
 					StableGroup: map[string]bool{
 						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
 					},
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 0,
+						},
+					},
 				},
 			},
 			err: nil,
@@ -2478,21 +2607,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 40,
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
 					StableGroup: map[string]bool{
 						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
 					},
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 40,
+						},
+					},
 				},
 			},
 			err: nil,
@@ -2622,11 +2759,30 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
+				Salt:         randomSalt,
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 40,
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 40,
+						},
+					},
 				},
-				Salt: randomSalt,
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
+				},
 			},
 			err: nil,
 		},
@@ -2727,8 +2883,27 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					MinSlippageThreshold: 40,
-					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 40,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -2822,6 +2997,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": false, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": false, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -2930,20 +3125,29 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			config: Config{
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
-				FaultyPoolsConfig: FaultyPoolsConfig{
-					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": false, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": false, "wlToken1": true},
-				},
-				Salt: randomSalt,
+				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
 					StableGroup: map[string]bool{
 						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
 					},
 				},
-				SlippageBufferConfig: map[string]float64{
-					"stable":     1,
-					"correlated": 5,
-					"default":    50,
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": false, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": false, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
 				},
 			},
 			result: &dto.BuildRouteResult{
@@ -3119,6 +3323,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -3227,6 +3451,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -3342,6 +3586,26 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true, "wlToken1": true, "wlToken2": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
+					},
+				},
+				TokenGroups: &valueobject.TokenGroupConfig{
+					StableGroup:      make(map[string]bool),
+					CorrelatedGroup1: make(map[string]bool),
+					CorrelatedGroup2: make(map[string]bool),
+					CorrelatedGroup3: make(map[string]bool),
 				},
 				Salt: randomSalt,
 			},
@@ -3483,9 +3747,20 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				ChainID:                       valueobject.ChainIDEthereum,
 				RFQAcceptableSlippageFraction: 1000,
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WhitelistedTokenSet: map[string]bool{
-						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
-						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
 					},
 				},
 				FeatureFlags: valueobject.FeatureFlags{
@@ -3545,9 +3820,20 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				ChainID:                       valueobject.ChainIDEthereum,
 				RFQAcceptableSlippageFraction: 1000,
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WhitelistedTokenSet: map[string]bool{
-						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
-						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true,
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+					SlippageConfigByGroup: map[string]SlippageGroupConfig{
+						"stable": {
+							Buffer:       1,
+							MinThreshold: 50,
+						},
+						"correlated": {
+							Buffer:       5,
+							MinThreshold: 100,
+						},
+						"default": {
+							Buffer:       50,
+							MinThreshold: 500,
+						},
 					},
 				},
 			},
@@ -3661,10 +3947,21 @@ func TestBuildRouteUseCase_ValidateReturnAmount(t *testing.T) {
 					"correlated-2": true,
 				},
 			},
-			SlippageBufferConfig: map[string]float64{
-				"stable":     1,
-				"correlated": 5,
-				"default":    50,
+			FaultyPoolsConfig: FaultyPoolsConfig{
+				SlippageConfigByGroup: map[string]SlippageGroupConfig{
+					"stable": {
+						Buffer:       1,
+						MinThreshold: 50,
+					},
+					"correlated": {
+						Buffer:       5,
+						MinThreshold: 100,
+					},
+					"default": {
+						Buffer:       50,
+						MinThreshold: 500,
+					},
+				},
 			},
 		},
 	)

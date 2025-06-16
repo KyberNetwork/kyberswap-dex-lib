@@ -21,7 +21,6 @@ type (
 		Salt                          string                             `mapstructure:"salt"`
 		ClientRefCode                 map[string]string                  `mapstructure:"clientRefCode"`
 		TokenGroups                   *valueobject.TokenGroupConfig      `mapstructure:"tokenGroups"`
-		SlippageBufferConfig          map[string]float64                 `mapstructure:"slippageBufferConfig"`
 	}
 
 	AlphaFeeConfig struct {
@@ -38,9 +37,19 @@ type (
 	}
 
 	FaultyPoolsConfig struct {
-		// Min slippage threshold configured in BPS format, e.g.: 0.01% -> 1, 0.5% -> 50
-		MinSlippageThreshold float64         `mapstructure:"minSlippageThreshold" json:"minSlippageThreshold"`
-		WhitelistedTokenSet  map[string]bool `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
-		ExpireTime           time.Duration   `mapstructure:"expireTime" json:"expireTime"`
+		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
+		ExpireTime          time.Duration   `mapstructure:"expireTime" json:"expireTime"`
+		// SlippageConfig defines slippage settings for different token groups (stable, correlated, default)
+		SlippageConfigByGroup map[string]SlippageGroupConfig `mapstructure:"slippageConfigByGroup" json:"slippageConfigByGroup"`
+	}
+
+	// SlippageGroupConfig defines slippage settings for a specific token pair type
+	SlippageGroupConfig struct {
+		// Buffer is added to actual slippage to protect users from price fluctuations
+		// Example: if actual slippage is 1% (100) and buffer is 0.5% (50), suggested slippage will be 1.5% (150)
+		Buffer float64 `mapstructure:"buffer" json:"buffer"`
+		// MinThreshold is used to identify potential FOT tokens
+		// Example: if threshold is 200 (2%) and actual slippage is 300 (3%), consider it might be a FOT token
+		MinThreshold float64 `mapstructure:"minThreshold" json:"minThreshold"`
 	}
 )

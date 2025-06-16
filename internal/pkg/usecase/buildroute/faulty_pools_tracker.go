@@ -47,7 +47,7 @@ func (uc *BuildRouteUseCase) handleFaultyPools(
 	if isSwapSinglePoolFailed(err) {
 		uc.blockFaultyPool(ctx, routeSummary.Route, err)
 	} else if isFaultyPoolTrackEnable {
-		uc.monitorFaultyPools(ctx, uc.createAMMPoolTrackers(ctx, routeSummary.Route, err, estimatedSlippage))
+		uc.monitorFaultyPools(ctx, uc.createAMMPoolTrackers(ctx, routeSummary, err, estimatedSlippage))
 	}
 }
 
@@ -141,7 +141,7 @@ func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []
 
 func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 	ctx context.Context,
-	route [][]valueobject.Swap,
+	route valueobject.RouteSummary,
 	err error,
 	estimatedSlippage float64,
 ) []routerEntities.FaultyPoolTracker {
@@ -149,15 +149,21 @@ func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 	failedCount := int64(0)
 	clientId := clientid.GetClientIDFromCtx(ctx)
 
+	// Get token group type
+	tokenGroupType, _ := uc.config.TokenGroups.GetTokenGroupType(valueobject.TokenGroupParams{
+		TokenIn:  route.TokenIn,
+		TokenOut: route.TokenOut,
+	})
+
 	// if estimatedSlippage > MinSlippageThreshold, we will consider a pool is faulty, otherwise, we do not encounter it
 	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
-	if isSlippageAboveMinThreshold(estimatedSlippage, uc.config.FaultyPoolsConfig) {
+	if isSlippageAboveMinThreshold(estimatedSlippage, tokenGroupType, uc.config.FaultyPoolsConfig.SlippageConfigByGroup) {
 		failedCount = 1
 	}
 
 	poolTags := make([]string, 0)
 
-	for _, path := range route {
+	for _, path := range route.Route {
 		for _, swap := range path {
 			if uc.isPMMPoolsExceptLimitOrder(swap.PoolType) {
 				continue
