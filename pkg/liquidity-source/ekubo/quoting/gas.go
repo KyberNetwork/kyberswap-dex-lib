@@ -12,5 +12,5 @@ const (
 	GasCostOfUpdatingOracleSnapshot    = 15_000
 	GasCostOfOneVirtualOrderDelta      = 25_000
 	GasCostOfExecutingVirtualOrders    = 15_000
-	GasCostOfAccumulatingMevResistFees = 14_900
+	GasCostOfAccumulatingMevResistFees = 16_400
 )
