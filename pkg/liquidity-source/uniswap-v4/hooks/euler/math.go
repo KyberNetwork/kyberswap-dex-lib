@@ -9,9 +9,7 @@ import (
 )
 
 var (
-	thirtySix  = uint256.NewInt(36)
-	e12        = uint256.NewInt(1e12)
-	e36        = new(uint256.Int).Exp(big256.U10, thirtySix)
+	e36        = big256.TenPow(36)
 	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(big256.U1, 112), big256.U1) // 2^112 - 1
 	e18Int     = int256.NewInt(1e18)                                                   // 1e18
 )
