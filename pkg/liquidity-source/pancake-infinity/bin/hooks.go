@@ -3,6 +3,7 @@ package bin
 import (
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/hooks/brevis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -26,6 +27,8 @@ func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
 	}
 	return hook, ok
 }
+
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangePancakeInfinityBinBrevis}, brevis.BinHookAddresses...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 

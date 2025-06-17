@@ -210,33 +210,34 @@ func getFeeAmountFrom(amountWithFees, feeBips *uint256.Int) *uint256.Int {
 	return totalFee.Div(totalFee, _PRECISION)
 }
 
-func calculateSwapFee(protocolFee, lpFee *uint256.Int) *uint256.Int {
-	fee1 := new(uint256.Int).And(protocolFee, _MASK12)
-	fee2 := new(uint256.Int).And(lpFee, _MASK24)
+func calculateSwapFee(protocolFee, lpFee uint32) uint32 {
+	fee1 := uint64(protocolFee & _MASK12)
+	fee2 := uint64(lpFee & _MASK24)
 
-	numerator := new(uint256.Int).Mul(fee1, fee2)
-	quotient := numerator.Div(numerator, _PIPS_DENOMINATOR)
-	sum := new(uint256.Int).Add(fee1, fee2)
+	numerator := fee1 * fee2
+	quotient := numerator / _PIPS_DENOMINATOR
+	sum := fee1 & fee2
 
-	return sum.Sub(sum, quotient)
+	return uint32(sum - quotient)
 }
 
 func getProtocolFeeAmt(amount, protocolFee, swapFee *uint256.Int) *uint256.Int {
 	if protocolFee.IsZero() || swapFee.IsZero() {
-		return amount.SetUint64(0)
+		return new(uint256.Int)
 	}
 
 	if protocolFee.Eq(swapFee) {
-		return amount
+		return new(uint256.Int).Set(amount)
 	}
 
-	return new(uint256.Int).Div(amount.Mul(amount, protocolFee), swapFee)
+	result, _ := new(uint256.Int).MulDivOverflow(amount, protocolFee, swapFee)
+	return result
 }
 
-func getZeroForOneFee(protocolFee *uint256.Int) *uint256.Int {
-	return new(uint256.Int).And(protocolFee, _MASK12)
+func getZeroForOneFee(protocolFee uint32) *uint256.Int {
+	return new(uint256.Int).SetUint64(uint64(protocolFee & _MASK12))
 }
 
-func getOneForZeroFee(protocolFee *uint256.Int) *uint256.Int {
-	return new(uint256.Int).Rsh(protocolFee, 12)
+func getOneForZeroFee(protocolFee uint32) *uint256.Int {
+	return new(uint256.Int).SetUint64(uint64(protocolFee >> 12))
 }

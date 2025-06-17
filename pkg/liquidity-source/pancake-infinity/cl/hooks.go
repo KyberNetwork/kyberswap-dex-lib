@@ -5,6 +5,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/hooks/brevis"
+	dynamicfee "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/hooks/dynamic-fee"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -30,6 +32,9 @@ func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
 	}
 	return hook, ok
 }
+
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangePancakeInfinityCLBrevis}, brevis.CLHookAddresses...)
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangePancakeInfinityCLDynamicFee}, dynamicfee.CLHookAddress()...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
