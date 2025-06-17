@@ -59,7 +59,8 @@ func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Po
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		SwapTypes: d.config.SwapTypes,
+		SwapType: d.config.SwapType,
+		ArmType:  d.config.ArmType,
 	})
 
 	if err != nil {

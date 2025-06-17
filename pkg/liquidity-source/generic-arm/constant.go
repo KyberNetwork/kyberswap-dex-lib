@@ -15,4 +15,5 @@ var (
 	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrUnsupportedSwap         = errors.New("unsupported swap")
+	ErrUnsupportedArmType      = errors.New("unsupported arm type")
 )

@@ -6,12 +6,18 @@ import (
 )
 
 type SwapType uint8
+type ArmType uint8
 
 const (
 	None SwapType = iota
 	ZeroToOne
 	OneToZero
 	Both
+)
+
+const (
+	Pegged ArmType = iota
+	Pricable
 )
 
 type Extra struct {
@@ -21,5 +27,6 @@ type Extra struct {
 	WithdrawsQueued  *uint256.Int   `json:"wq"`
 	WithdrawsClaimed *uint256.Int   `json:"wc"`
 	LiquidityAsset   common.Address `json:"la"`
-	SwapTypes        SwapType       `json:"swapTypes"`
+	SwapType         SwapType       `json:"swapType"`
+	ArmType          ArmType        `json:"armType"`
 }

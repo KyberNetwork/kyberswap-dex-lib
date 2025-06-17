@@ -3,5 +3,6 @@ package genericarm
 type Config struct {
 	ArmAddress string   `json:"armAddress"`
 	DexID      string   `json:"dexId"`
-	SwapTypes  SwapType `json:"swapTypes"`
+	SwapType   SwapType `json:"swapType"`
+	ArmType    ArmType  `json:"armType"`
 }

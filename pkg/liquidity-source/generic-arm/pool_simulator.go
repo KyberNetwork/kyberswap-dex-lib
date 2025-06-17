@@ -17,6 +17,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	supportedSwapType SwapType
+	armType           ArmType
 	TradeRate0        *uint256.Int
 	TradeRate1        *uint256.Int
 	PriceScale        *uint256.Int
@@ -41,7 +42,8 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		supportedSwapType: extra.SwapTypes,
+		supportedSwapType: extra.SwapType,
+		armType:           extra.ArmType,
 		TradeRate0:        extra.TradeRate0,
 		TradeRate1:        extra.TradeRate1,
 		PriceScale:        extra.PriceScale,
@@ -74,10 +76,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientInputAmount
 	}
 
+	amountOut := new(uint256.Int)
 	price := lo.If(indexIn == 0, p.TradeRate0).
 		Else(p.TradeRate1)
-	amountOut := new(uint256.Int)
-	amountOut.Div(new(uint256.Int).Mul(amountIn, price), p.PriceScale)
+	if p.armType == Pegged {
+		amountOut.Set(amountIn)
+	} else if p.armType == Pricable {
+		amountOut.Div(new(uint256.Int).Mul(amountIn, price), p.PriceScale)
+	} else {
+		return nil, ErrUnsupportedArmType
+	}
 
 	reserveOut := uint256.MustFromBig(p.Pool.Info.Reserves[indexOut])
 	if common.HexToAddress(tokenOut).Cmp(p.LiquidityAsset) == 0 {
