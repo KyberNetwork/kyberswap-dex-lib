@@ -34,6 +34,7 @@ common:
     - "uniswap-v4"
     - "uniswapv3"
     - "velodrome-cl-2"
+    - "sky-psm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

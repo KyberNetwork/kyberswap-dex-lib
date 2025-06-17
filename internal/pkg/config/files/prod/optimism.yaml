@@ -81,6 +81,7 @@ common:
     - "lo1inch"
     - "uniswap-v4"
     - "overnight-usdp"
+    - "sky-psm"
     - "wusdm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
