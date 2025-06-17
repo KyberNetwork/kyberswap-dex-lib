@@ -142,6 +142,8 @@ type (
 		ShrinkAmountInThreshold float64                `mapstructure:"shrinkAmountInThreshold" json:"shrinkAmountInThreshold"`
 
 		EnableNewCacheKeyGenerator bool `mapstructure:"enableNewCacheKeyGenerator" json:"enableNewCacheKeyGenerator"`
+
+		FeatureFlags FeatureFlags `mapstructure:"featureFlags" json:"featureFlags"`
 	}
 
 	SafetyQuoteReductionConfig struct {

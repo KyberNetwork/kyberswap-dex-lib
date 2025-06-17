@@ -250,8 +250,8 @@ func (a *bundledAggregator) findBestBundledRoute(
 			tokenByAddress,
 			priceByAddress,
 			state,
+			a.config.FeatureFlags,
 		)
-		findRouteParams.SkipMergeSwap = !a.config.FeatureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
 		result, err := a.finderEngine.Find(ctx, findRouteParams)
 

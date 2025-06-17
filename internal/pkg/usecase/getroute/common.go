@@ -76,6 +76,7 @@ func ConvertToPathfinderParams(
 	tokenByAddress map[string]*entity.SimplifiedToken,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
+	featureFlags valueobject.FeatureFlags,
 ) finderEntity.FinderParams {
 	gasPriceBI, _ := params.GasPrice.Int(nil)
 
@@ -121,6 +122,8 @@ func ConvertToPathfinderParams(
 		ReturnAMMBestPath:          params.EnableAlphaFee,
 		EnableHillClimbForAlphaFee: params.EnableHillClaimForAlphaFee,
 	}
+
+	findRouteParams.SkipMergeSwap = !featureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
 	return findRouteParams
 }

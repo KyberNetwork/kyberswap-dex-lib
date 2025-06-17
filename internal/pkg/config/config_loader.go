@@ -183,7 +183,6 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setDexUseAEVM(remoteCfg.DexUseAEVM)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
-		cl.setFeatureFlags(remoteCfg.FeatureFlags)
 		cl.setLog(remoteCfg.Log)
 		cl.setFinderOptions(remoteCfg.FinderOptions)
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
@@ -197,6 +196,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setAlphaFeeConfig(remoteCfg.AlphaFeeConfig)
 		cl.setScaleHelperClients(remoteCfg.ScaleHelperClients)
 		cl.setWhitelistedPrices(remoteCfg.WhitelistedPrices)
+		cl.setFeatureFlags(remoteCfg.FeatureFlags)
 		cl.mu.Unlock()
 	}
 
@@ -325,6 +325,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
+	cl.config.UseCase.GetRoute.Cache.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags

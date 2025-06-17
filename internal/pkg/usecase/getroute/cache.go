@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -38,6 +39,8 @@ type cache struct {
 	finderEngine           finderEngine.IPathFinderEngine
 	tokenRepository        ITokenRepository
 	onchainpriceRepository IOnchainPriceRepository
+
+	mu sync.RWMutex
 }
 
 func NewCache(
@@ -110,6 +113,10 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 func (c *cache) ApplyConfig(config Config) {
 	c.keyGenerator.applyConfig(config)
 	c.aggregator.ApplyConfig(config)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.config = config.Cache
 }
 
 func (c *cache) getBestRouteFromCache(ctx context.Context,
@@ -308,6 +315,7 @@ func (c *cache) summarizeSimpleRoute(
 		tokenByAddress,
 		priceByAddress,
 		state,
+		c.config.FeatureFlags,
 	)
 
 	route, err := constructRoute.RefreshRoute(ctx, findRouteParams)
@@ -453,6 +461,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 		tokenMap,
 		priceMap,
 		state,
+		c.config.FeatureFlags,
 	)
 
 	finalizer := c.finderEngine.GetFinalizer()

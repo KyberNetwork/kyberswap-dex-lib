@@ -126,6 +126,7 @@ func (c *correlatedPairs) Aggregate(
 		tokens,
 		onchainPrices,
 		state,
+		c.config.FeatureFlags,
 	)
 
 	var routes finderEntity.BestRoutes
