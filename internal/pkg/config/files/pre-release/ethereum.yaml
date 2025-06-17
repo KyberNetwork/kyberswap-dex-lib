@@ -163,6 +163,7 @@ common:
     - "usds-lite-psm"
     - "wusdm"
     - "wusdl"
+    - "angle-staked-stable"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

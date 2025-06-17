@@ -57,6 +57,9 @@ common:
     - "shadow-legacy"
     - "overnight-usdp"
     - "beefy-sonic"
+    - "wstksc-eth"
+    - "wstksc-btc"
+    - "wstksc-usd"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
