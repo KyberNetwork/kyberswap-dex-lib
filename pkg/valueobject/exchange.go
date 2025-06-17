@@ -406,6 +406,10 @@ const (
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeWUSDM                      = "wusdm"
 	ExchangeWUSDL                      = "wusdl"
+	ExchangeAngleStakedStable          = "angle-staked-stable"
+	ExchangeWstkscETH                  = "wstksc-eth"
+	ExchangeWstkscBTC                  = "wstksc-btc"
+	ExchangeWstkscUSD                  = "wstksc-usd"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -799,6 +803,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4Euler:             {},
 	ExchangeWUSDM:                      {},
 	ExchangeWUSDL:                      {},
+	ExchangeAngleStakedStable:          {},
+	ExchangeWstkscETH:                  {},
+	ExchangeWstkscBTC:                  {},
+	ExchangeWstkscUSD:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
