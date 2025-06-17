@@ -16,6 +16,7 @@ on:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/release' # Merge or fast-forward 'release' to 'main' and release from there
     uses: KyberNetwork/service-framework/.github/workflows/release.yaml@main
     with:
       service: ${{ github.event.repository.name }}
@@ -24,6 +25,7 @@ jobs:
       create_tag: ${{ inputs.create_tag }}
     secrets: inherit
   release_liqIndexer:
+    if: github.ref == 'refs/heads/release' # Merge or fast-forward 'release' to 'main' and release from there
     uses: KyberNetwork/service-framework/.github/workflows/release.yaml@main
     with:
       service: ${{ github.event.repository.name }}-liqindexer
