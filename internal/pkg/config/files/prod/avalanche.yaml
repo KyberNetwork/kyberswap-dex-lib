@@ -78,6 +78,7 @@ common:
     - "dexalot"
     - "lo1inch"
     - "uniswap-v4"
+    - "uniswap-v4-euler"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

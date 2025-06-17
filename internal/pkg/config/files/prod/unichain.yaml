@@ -32,6 +32,7 @@ common:
     - "ucs-finance"
     - "velodrome-v2"
     - "uniswap-v4"
+    - "uniswap-v4-euler"
     - "uniswapv3"
     - "velodrome-cl-2"
     - "sky-psm"
