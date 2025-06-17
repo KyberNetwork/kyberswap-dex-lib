@@ -137,7 +137,7 @@ func (c *correlatedPairs) Aggregate(
 		routes, err = c.twoAdditionHopsFinderEngine.Find(ctx, findRouteParams)
 	}
 
-	if err != nil || routes.GetBestRoute() == nil {
+	if err != nil || routes == nil || routes.GetBestRoute() == nil {
 		return nil, errors.WithMessagef(ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
@@ -223,9 +223,9 @@ func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.A
 	return state, nil
 }
 
-func (a *correlatedPairs) getTokenByAddress(ctx context.Context,
+func (c *correlatedPairs) getTokenByAddress(ctx context.Context,
 	tokenAddresses []string) (map[string]*entity.SimplifiedToken, error) {
-	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
+	tokens, err := c.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
