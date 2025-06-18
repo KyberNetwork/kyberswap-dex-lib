@@ -323,7 +323,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		TokenIn:     tokenInAddress,
 		TokenOut:    tokenOutAddress,
 		Fee:         lo.Ternary(p.isDynamicFee, shared.DYNAMIC_FEE_FLAG, p.lpFee),
-		DynamicFee:  lo.Ternary(p.isDynamicFee, uint32(p.swapFee.Uint64()), p.lpFee),
+		DynamicFee:  lo.Ternary(p.isDynamicFee, uint32(p.swapFee.Uint64()), 0),
 		Parameters:  p.parameters,
 		HookAddress: p.hookAddress,
 		HookData:    []byte{},

@@ -89,7 +89,7 @@ func TestCalcAmountOut(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, out.TokenAmountOut.Amount.String(), tc.expectAmountOut)
+				assert.Equal(t, tc.expectAmountOut, out.TokenAmountOut.Amount.String())
 			}
 		})
 	}
