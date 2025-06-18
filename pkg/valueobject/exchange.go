@@ -15,7 +15,8 @@ const (
 	ExchangeAlienBaseStableSwap        = "alien-base-stableswap"
 	ExchangeAmbient                    = "ambient"
 	ExchangeAmped                      = "amped"
-	ExchangeAngleStakedStable          = "angle-staked-stable"
+	ExchangeAngleStakedStableUSD       = "angle-staked-stable-usd"
+	ExchangeAngleStakedStableEUR       = "angle-staked-stable-eur"
 	ExchangeApeSwap                    = "apeswap"
 	ExchangeArbiDex                    = "arbi-dex"
 	ExchangeArbiDexV3                  = "arbidex-v3"
@@ -426,7 +427,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseStableSwap:        {},
 	ExchangeAmbient:                    {},
 	ExchangeAmped:                      {},
-	ExchangeAngleStakedStable:          {},
+	ExchangeAngleStakedStableUSD:       {},
+	ExchangeAngleStakedStableEUR:       {},
 	ExchangeApeSwap:                    {},
 	ExchangeArbiDex:                    {},
 	ExchangeArbiDexV3:                  {},
