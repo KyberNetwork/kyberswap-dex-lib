@@ -15,6 +15,8 @@ const (
 	ExchangeAlienBaseStableSwap         = "alien-base-stableswap"
 	ExchangeAmbient                     = "ambient"
 	ExchangeAmped                       = "amped"
+	ExchangeAngleStakedStableUSD        = "angle-staked-stable-usd"
+	ExchangeAngleStakedStableEUR        = "angle-staked-stable-eur"
 	ExchangeApeSwap                     = "apeswap"
 	ExchangeArbiDex                     = "arbi-dex"
 	ExchangeArbiDexV3                   = "arbidex-v3"
@@ -102,12 +104,12 @@ const (
 	ExchangeDexalot                     = "dexalot"
 	ExchangeDinoSwap                    = "dinoswap"
 	ExchangeDinosaurEggs                = "dinosaureggs"
-	ExchangeDooarSwapV2                 = "dooarswap-v2"
 	ExchangeDodo                        = "dodo"
 	ExchangeDodoClassical               = "dodo-classical"
 	ExchangeDodoPrivatePool             = "dodo-dpp"
 	ExchangeDodoStablePool              = "dodo-dsp"
 	ExchangeDodoVendingMachine          = "dodo-dvm"
+	ExchangeDooarSwapV2                 = "dooarswap-v2"
 	ExchangeDoveSwapV3                  = "doveswap-v3"
 	ExchangeDyorSwap                    = "dyor-swap"
 	ExchangeDystopia                    = "dystopia"
@@ -364,6 +366,7 @@ const (
 	ExchangeUniswapLO                   = "uniswap-lo"
 	ExchangeUniswapV4                   = "uniswap-v4"
 	ExchangeUniswapV4BunniV2            = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow           = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem                = "uniswap-v4-kem"
 	ExchangeUsd0PP                      = "usd0pp"
@@ -384,6 +387,8 @@ const (
 	ExchangeVodoo                       = "vodoo"
 	ExchangeVooi                        = "vooi"
 	ExchangeWBETH                       = "wbeth"
+	ExchangeWUSDL                       = "wusdl"
+	ExchangeWUSDM                       = "wusdm"
 	ExchangeWagmi                       = "wagmi"
 	ExchangeWagyuSwap                   = "wagyuswap"
 	ExchangeWannaSwap                   = "wannaswap"
@@ -393,6 +398,10 @@ const (
 	ExchangeWombat                      = "wombat"
 	ExchangeWooFiV2                     = "woofi-v2"
 	ExchangeWooFiV3                     = "woofi-v3"
+	ExchangeWstUSR                      = "wstusr"
+	ExchangeWstkscBTC                   = "wstksc-btc"
+	ExchangeWstkscETH                   = "wstksc-eth"
+	ExchangeWstkscUSD                   = "wstksc-usd"
 	ExchangeXLayerSwap                  = "xlayer-swap"
 	ExchangeYetiSwap                    = "yetiswap"
 	ExchangeYuzuSwap                    = "yuzuswap"
@@ -406,13 +415,6 @@ const (
 	ExchangeZkSwapStable                = "zkswap-stable"
 	ExchangeZkSwapV3                    = "zkswap-v3"
 	ExchangeZyberSwapV3                 = "zyberswap-v3"
-	ExchangeUniswapV4Euler              = "uniswap-v4-euler"
-	ExchangeWUSDM                       = "wusdm"
-	ExchangeWUSDL                       = "wusdl"
-	ExchangeAngleStakedStable           = "angle-staked-stable"
-	ExchangeWstkscETH                   = "wstksc-eth"
-	ExchangeWstkscBTC                   = "wstksc-btc"
-	ExchangeWstkscUSD                   = "wstksc-usd"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -428,6 +430,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseStableSwap:         {},
 	ExchangeAmbient:                     {},
 	ExchangeAmped:                       {},
+	ExchangeAngleStakedStableUSD:        {},
+	ExchangeAngleStakedStableEUR:        {},
 	ExchangeApeSwap:                     {},
 	ExchangeArbiDex:                     {},
 	ExchangeArbiDexV3:                   {},
@@ -512,12 +516,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDeltaSwapV1:                 {},
 	ExchangeDinoSwap:                    {},
 	ExchangeDinosaurEggs:                {},
-	ExchangeDooarSwapV2:                 {},
 	ExchangeDodo:                        {},
 	ExchangeDodoClassical:               {},
 	ExchangeDodoPrivatePool:             {},
 	ExchangeDodoStablePool:              {},
 	ExchangeDodoVendingMachine:          {},
+	ExchangeDooarSwapV2:                 {},
 	ExchangeDoveSwapV3:                  {},
 	ExchangeDyorSwap:                    {},
 	ExchangeDystopia:                    {},
@@ -764,6 +768,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniSwapV3:                   {},
 	ExchangeUniswapV4:                   {},
 	ExchangeUniswapV4BunniV2:            {},
+	ExchangeUniswapV4Euler:              {},
 	ExchangeUniswapV4FairFlow:           {},
 	ExchangeUniswapV4Kem:                {},
 	ExchangeUsd0PP:                      {},
@@ -784,6 +789,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVodoo:                       {},
 	ExchangeVooi:                        {},
 	ExchangeWBETH:                       {},
+	ExchangeWUSDL:                       {},
+	ExchangeWUSDM:                       {},
 	ExchangeWagmi:                       {},
 	ExchangeWagyuSwap:                   {},
 	ExchangeWannaSwap:                   {},
@@ -793,6 +800,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                      {},
 	ExchangeWooFiV2:                     {},
 	ExchangeWooFiV3:                     {},
+	ExchangeWstUSR:                      {},
+	ExchangeWstkscBTC:                   {},
+	ExchangeWstkscETH:                   {},
+	ExchangeWstkscUSD:                   {},
 	ExchangeXLayerSwap:                  {},
 	ExchangeYetiSwap:                    {},
 	ExchangeYuzuSwap:                    {},
@@ -806,13 +817,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:                {},
 	ExchangeZkSwapV3:                    {},
 	ExchangeZyberSwapV3:                 {},
-	ExchangeUniswapV4Euler:              {},
-	ExchangeWUSDM:                       {},
-	ExchangeWUSDL:                       {},
-	ExchangeAngleStakedStable:           {},
-	ExchangeWstkscETH:                   {},
-	ExchangeWstkscBTC:                   {},
-	ExchangeWstkscUSD:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
