@@ -90,6 +90,8 @@ var useApproveMaxFunctionSet = map[string]bool{
 	// ExecutorHelper10
 	l1executor.FunctionSelectorBeefySonic.RawName: true,
 	l1executor.FunctionSelectorNativeV3.RawName:   true,
+
+	// ExecutorHelper11
 	l1executor.FunctionSelectorERC4626.RawName:    true,
 
 	// ExecutorHelper12
