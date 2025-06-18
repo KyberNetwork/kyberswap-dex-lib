@@ -92,7 +92,7 @@ var useApproveMaxFunctionSet = map[string]bool{
 	l1executor.FunctionSelectorNativeV3.RawName:   true,
 
 	// ExecutorHelper11
-	l1executor.FunctionSelectorERC4626.RawName:    true,
+	l1executor.FunctionSelectorERC4626.RawName: true,
 
 	// ExecutorHelper12
 	l1executor.FunctionSelectorSkyPSM.RawName: true,

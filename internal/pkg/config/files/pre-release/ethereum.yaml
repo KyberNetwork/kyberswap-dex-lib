@@ -163,7 +163,8 @@ common:
     - "usds-lite-psm"
     - "wusdm"
     - "wusdl"
-    - "angle-staked-stable"
+    - "angle-staked-stable-usd"
+    - "angle-staked-stable-eur"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false
