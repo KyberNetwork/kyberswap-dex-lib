@@ -2,7 +2,7 @@
   "address": "0xa859b22e97f32d4c7b1d9788044697712cb7183d294ed7aa1832799c1739e5cf",
   "exchange": "pancake-infinity-bin",
   "type": "pancake-infinity-bin",
-  "swapFee": 67,
+  "swapFee": 99,
   "timestamp": 1746684889,
   "reserves": [
     "478314867045689967736141",
