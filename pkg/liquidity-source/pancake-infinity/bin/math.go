@@ -216,7 +216,7 @@ func calculateSwapFee(protocolFee, lpFee uint32) uint32 {
 
 	numerator := fee1 * fee2
 	quotient := numerator / _PIPS_DENOMINATOR
-	sum := fee1 & fee2
+	sum := fee1 + fee2
 
 	return uint32(sum - quotient)
 }
