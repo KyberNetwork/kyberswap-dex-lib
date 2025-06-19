@@ -92,9 +92,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		params := common.FromHex(p.Parameters)
 
+		feePct, _ := strconv.ParseFloat(p.BaseFeePct, 64)
+		fee := uint32(feePct * BasisPoint)
+
 		staticExtra := StaticExtra{
 			HasSwapPermissions: shared.HasSwapPermissions(params),
 			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
+			Fee:                fee,
 			Parameters:         p.Parameters,
 			BinStep:            GetBinStep(params),
 			HooksAddress:       common.HexToAddress(p.Hooks),
@@ -102,6 +106,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
 			PoolManagerAddress: common.HexToAddress(u.config.BinPoolManagerAddress),
 			Multicall3Address:  common.HexToAddress(u.config.Multicall3Address),
+			IsDynamicFee:       shared.IsDynamicFee(fee),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

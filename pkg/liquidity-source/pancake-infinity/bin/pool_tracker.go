@@ -13,13 +13,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/hooks/brevis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -122,11 +126,28 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(Extra{
-		ProtocolFee: uint256.MustFromBig(rpcData.Slot0.ProtocolFee),
+	var staticExtra StaticExtra
+	var hookAddress common.Address
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to unmarshal static extra")
+	} else {
+		hookAddress = staticExtra.HooksAddress
+	}
+
+	lpFee := staticExtra.Fee
+	if staticExtra.IsDynamicFee {
+		lpFee = t.GetDynamicFee(ctx, hookAddress)
+	}
+
+	extra := Extra{
+		ProtocolFee: uint32(rpcData.Slot0.ProtocolFee.Uint64()),
+		LpFee:       lpFee,
 		ActiveBinID: uint32(rpcData.Slot0.ActiveId.Int64()),
 		Bins:        bins,
-	})
+	}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -134,7 +155,11 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.SwapFee, _ = rpcData.Slot0.LpFee.Float64()
+	// swap fee includes protocolFee (charged first) and lpFee
+	protocolFee := rpcData.Slot0.ProtocolFee.Uint64()
+	swapFee := lo.Ternary(protocolFee == 0, lpFee, calculateSwapFee(uint32(protocolFee), lpFee))
+
+	p.SwapFee = float64(swapFee)
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
@@ -241,6 +266,25 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 	})
 
 	return bins, newPoolReserves, nil
+}
+
+func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address) uint32 {
+	hook, _ := GetHook(hookAddress)
+
+	switch hook.GetExchange() {
+	case valueobject.ExchangePancakeInfinityBinBrevis:
+		fee, err := brevis.GetFee(ctx, hookAddress, t.ethrpcClient)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("failed to get fee for %s hook %s", hook.GetExchange(), hookAddress.Hex())
+			return shared.MAX_FEE_PIPS
+		}
+		return uint32(fee.Uint64())
+
+	default:
+		return shared.MAX_FEE_PIPS
+	}
 }
 
 func parseTokenDecimal(decimals string) (*big.Float, error) {

@@ -35,9 +35,17 @@ type StaticExtra struct {
 	Permit2Address     common.Address `json:"p2"`
 	VaultAddress       common.Address `json:"vault"`
 	Multicall3Address  common.Address `json:"m3"`
+	IsDynamicFee       bool           `json:"idf"`
 }
 
-type Extra = uniswapv3.Extra
+type Extra struct {
+	Liquidity    *big.Int `json:"liquidity"`
+	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64   `json:"tickSpacing"`
+	Tick         *big.Int `json:"tick"`
+	Ticks        []Tick   `json:"ticks"`
+	DynamicFee   uint32   `json:"df,omitempty"`
+}
 type ExtraTickU256 = uniswapv3.ExtraTickU256
 
 type Slot0Data struct {

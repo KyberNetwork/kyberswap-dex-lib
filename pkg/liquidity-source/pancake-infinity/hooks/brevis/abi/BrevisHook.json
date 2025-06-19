@@ -1,0 +1,15 @@
+[
+  {
+    "inputs": [],
+    "name": "origFee",
+    "outputs": [
+      {
+        "internalType": "uint24",
+        "name": "fee",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
