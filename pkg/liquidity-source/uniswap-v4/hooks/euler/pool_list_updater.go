@@ -2,6 +2,7 @@ package euler
 
 import (
 	"context"
+	"math/big"
 	"strings"
 	"time"
 
@@ -48,7 +49,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	poolAddresses, err := u.listPoolAddresses(ctx, offset)
+	allPoolsLength, err := u.getAllPoolsLength(ctx)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID}).
+			Error("allPoolsLength failed")
+
+		return nil, metadataBytes, err
+	}
+
+	batchSize := u.getBatchSize(allPoolsLength, offset)
+
+	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -66,7 +78,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := u.newMetadata(offset + len(pools))
+	newMetadataBytes, err := u.newMetadata(offset + batchSize)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -88,15 +100,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int) ([]common.Address, error) {
+func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
 	result := []common.Address{}
+
+	startIdx := big.NewInt(int64(offset))
+	endIdx := big.NewInt(int64(offset + batchSize))
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
-		Method: factoryMethodPools,
-		Params: nil,
+		Method: factoryMethodPoolsSlice,
+		Params: []any{startIdx, endIdx},
 	}, []any{&result})
 
 	_, err := req.Aggregate()
@@ -104,7 +119,7 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int) ([
 		return nil, err
 	}
 
-	return result[offset:], nil
+	return result, nil
 }
 
 func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
@@ -211,6 +226,25 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	return poolData, nil
 }
 
+func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
+	var allPoolsLength *big.Int
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodPoolsLength,
+		Params: nil,
+	}, []any{&allPoolsLength})
+
+	if _, err := req.Call(); err != nil {
+		return 0, err
+	}
+
+	return int(allPoolsLength.Int64()), nil
+}
+
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	metadata := uniswapv2.PoolsListUpdaterMetadata{
 		Offset: newOffset,
@@ -235,4 +269,23 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	}
 
 	return metadata.Offset, nil
+}
+
+func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
+	if offset == length {
+		return 0
+	}
+
+	if offset+batchSize >= length {
+		if offset > length {
+			logger.WithFields(logger.Fields{
+				"dex":    u.config.DexID,
+				"offset": offset,
+				"length": length,
+			}).Warn("[getBatchSize] offset is greater than length")
+		}
+		return max(length-offset, 0)
+	}
+
+	return batchSize
 }
