@@ -1,8 +1,6 @@
 package eulerswap
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
 
 	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -10,13 +8,9 @@ import (
 
 var (
 	maxUint112 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 112), bignumber.U1) // 2^112 - 1
-	MaxUint248 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 248), bignumber.U1) // 2^248 - 1
-	maxUint256 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 256), bignumber.U1) // 2^256 - 1
+	maxUint248 = new(uint256.Int).Sub(new(uint256.Int).Lsh(bignumber.U1, 248), bignumber.U1) // 2^248 - 1
 	hundred    = uint256.NewInt(100)
 	sixtyThree = uint256.NewInt(63)
-	ten        = uint256.NewInt(10)
-
-	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 )
 
 func BinarySearch(
