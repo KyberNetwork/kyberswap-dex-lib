@@ -186,11 +186,16 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	exchange := s.GetExchange()
 	return PoolMeta{
-		Fee:             s.fee.Uint64(),
-		FeePrecision:    s.feePrecision.Uint64(),
-		BlockNumber:     s.Pool.Info.BlockNumber,
-		ApprovalAddress: approvalAddressByExchange[s.GetExchange()],
+		Extra: Extra{
+			Fee:          s.fee.Uint64(),
+			FeePrecision: s.feePrecision.Uint64(),
+		},
+		PoolMetaGeneric: PoolMetaGeneric{
+			ApprovalAddress: approvalAddressByExchange[exchange],
+			NoFOT:           noFOTByExchange[exchange],
+		},
 	}
 }
 

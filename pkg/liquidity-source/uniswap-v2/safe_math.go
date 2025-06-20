@@ -48,7 +48,7 @@ func SafeSub(x, y *uint256.Int) *uint256.Int {
 
 func SafeMul(x, y *uint256.Int) *uint256.Int {
 	z := new(uint256.Int).Mul(x, y)
-	if y.CmpUint64(0) == 0 || new(uint256.Int).Div(z, y).Cmp(x) == 0 {
+	if y.Sign() == 0 || new(uint256.Int).Div(z, y).Cmp(x) == 0 {
 		return z
 	}
 

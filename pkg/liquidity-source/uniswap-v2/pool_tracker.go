@@ -21,10 +21,10 @@ type (
 	}
 
 	PoolTracker struct {
-		config             *Config
-		ethrpcClient       *ethrpc.Client
-		logDecoder         ILogDecoder
-		feeTrackerRegistry map[string]IFeeTracker
+		config       *Config
+		ethrpcClient *ethrpc.Client
+		logDecoder   ILogDecoder
+		feeTracker   IFeeTracker
 	}
 
 	GetReservesResult struct {
@@ -40,19 +40,15 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	return &PoolTracker{
+	tracker := &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
 		logDecoder:   NewLogDecoder(),
-		feeTrackerRegistry: map[string]IFeeTracker{
-			FeeTrackerIDMMF:         &MMFFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDMdex:        &MDexFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDShibaswap:   &ShibaswapFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDDefiswap:    &DefiSwapFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerZKSwapFinance: &ZKSwapFinanceFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerMemeswap:      &MemeswapFeeTracker{ethrpcClient: ethrpcClient},
-		},
-	}, nil
+	}
+	if feeTrackerCfg := config.FeeTracker; feeTrackerCfg != nil {
+		tracker.feeTracker = NewGenericFeeTracker(ethrpcClient, feeTrackerCfg)
+	}
+	return tracker, nil
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -118,11 +114,10 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs 
 }
 
 func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, blockNumber *big.Int) (uint64, error) {
-	feeTracker, ok := d.feeTrackerRegistry[d.config.FeeTracker]
-	if !ok {
+	feeTracker := d.feeTracker
+	if feeTracker == nil {
 		return d.config.Fee, nil
 	}
-
 	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress, blockNumber)
 }
 
@@ -154,12 +149,23 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 
 	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
-	getReservesRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
-		Target: poolAddress,
-		Method: pairMethodGetReserves,
-		Params: nil,
-	}, []interface{}{&getReservesResult})
+	if d.config.OldReserveMethods {
+		getReservesRequest.AddCall(&ethrpc.Call{
+			ABI:    uniswapV2PairABI,
+			Target: poolAddress,
+			Method: pairMethodReserve0,
+		}, []any{&getReservesResult.Reserve0}).AddCall(&ethrpc.Call{
+			ABI:    uniswapV2PairABI,
+			Target: poolAddress,
+			Method: pairMethodReserve1,
+		}, []any{&getReservesResult.Reserve1})
+	} else {
+		getReservesRequest.AddCall(&ethrpc.Call{
+			ABI:    uniswapV2PairABI,
+			Target: poolAddress,
+			Method: pairMethodGetReserves,
+		}, []any{&getReservesResult})
+	}
 
 	resp, err := getReservesRequest.TryBlockAndAggregate()
 	if err != nil {
