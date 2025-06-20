@@ -42,8 +42,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Tokens:      lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves:    lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		fee:              uint256.NewInt(staticExtra.Fee),
@@ -188,7 +190,8 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	)
 	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
 
-	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
+	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut),
+		new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
 	kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
 
 	if kAfter.Cmp(kBefore) < 0 {
@@ -232,10 +235,13 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return uniswapv2.PoolMeta{
-		Fee:             s.fee.Uint64(),
-		FeePrecision:    s.feePrecision.Uint64(),
-		BlockNumber:     s.Pool.Info.BlockNumber,
-		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		Extra: uniswapv2.Extra{
+			Fee:          s.fee.Uint64(),
+			FeePrecision: s.feePrecision.Uint64(),
+		},
+		PoolMetaGeneric: uniswapv2.PoolMetaGeneric{
+			ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		},
 	}
 }
 

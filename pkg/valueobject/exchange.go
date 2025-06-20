@@ -207,6 +207,7 @@ const (
 	ExchangeMemeswap                   = "memeswap"
 	ExchangeMerchantMoe                = "merchant-moe"
 	ExchangeMerchantMoeV22             = "merchant-moe-v22"
+	ExchangeMeshSwap                   = "meshswap"
 	ExchangeMetavault                  = "metavault"
 	ExchangeMetavaultV2                = "metavault-v2"
 	ExchangeMetavaultV3                = "metavault-v3"
@@ -612,6 +613,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeswap:                   {},
 	ExchangeMerchantMoe:                {},
 	ExchangeMerchantMoeV22:             {},
+	ExchangeMeshSwap:                   {},
 	ExchangeMetavault:                  {},
 	ExchangeMetavaultV2:                {},
 	ExchangeMetavaultV3:                {},
