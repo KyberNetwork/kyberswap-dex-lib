@@ -58,6 +58,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
+	if offset >= allPoolsLength {
+		logger.WithFields(logger.Fields{
+			"dex_id": dexID,
+			"offset": offset,
+			"length": allPoolsLength,
+		}).Info("Resetting offset to 0 due to factory uninstall pools")
+		offset = 0
+	}
+
 	batchSize := u.getBatchSize(allPoolsLength, offset)
 
 	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
@@ -272,19 +281,12 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 }
 
 func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
-	if offset == length {
+	if offset >= length {
 		return 0
 	}
 
 	if offset+batchSize >= length {
-		if offset > length {
-			logger.WithFields(logger.Fields{
-				"dex":    u.config.DexID,
-				"offset": offset,
-				"length": length,
-			}).Warn("[getBatchSize] offset is greater than length")
-		}
-		return max(length-offset, 0)
+		return length - offset
 	}
 
 	return batchSize
