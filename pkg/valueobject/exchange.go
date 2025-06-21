@@ -230,6 +230,7 @@ const (
 	ExchangeNileV2                     = "nile-v2"
 	ExchangeNomiswap                   = "nomiswap"
 	ExchangeNomiswapStable             = "nomiswap-stable"
+	ExchangeNostrSwap                  = "nostrswap"
 	ExchangeNuri                       = "nuri"
 	ExchangeNuriV2                     = "nuri-v2"
 	ExchangeOETH                       = "oeth"
@@ -628,6 +629,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNileV2:                     {},
 	ExchangeNomiswap:                   {},
 	ExchangeNomiswapStable:             {},
+	ExchangeNostrSwap:                  {},
 	ExchangeNuri:                       {},
 	ExchangeNuriV2:                     {},
 	ExchangeOETH:                       {},
