@@ -36,6 +36,7 @@ var (
 		valueobject.ExchangeBabyDogeSwap: 259957 - defaultGas,
 		valueobject.ExchangeBakerySwap:   111012 - defaultGas,
 		valueobject.ExchangeMeshSwap:     321758 - defaultGas,
+		valueobject.ExchangeNostrSwap:    136498 - defaultGas,
 	}
 	noFOTByExchange = map[string]bool{ // these exchanges don't support FOT
 		valueobject.ExchangeMeshSwap: true,
