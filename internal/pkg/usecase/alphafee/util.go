@@ -112,7 +112,7 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 		alphaFeeTokens[i] = swapReduction.TokenOut
 		alphaFeeAmounts[i] = swapReduction.ReduceAmount
 		alphaFeeAmountUsds[i] = fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd)
-		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 1 {
+		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 0 {
 			logFields["bestAmmRoute"] = bestAmmRoute
 		}
 	}
