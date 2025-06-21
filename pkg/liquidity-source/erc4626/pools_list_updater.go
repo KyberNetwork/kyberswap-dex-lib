@@ -8,7 +8,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -28,7 +30,6 @@ var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	lg := logger.WithFields(logger.Fields{
 		"dexId":   cfg.DexId,
-		"pool":    strings.ToLower(cfg.Vault),
 		"dexType": DexType,
 	})
 
@@ -50,94 +51,84 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	state, err := fetchState(ctx, u.ethrpcClient, u.cfg, nil)
-	if err != nil {
-		u.logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to fetch state")
-
-		return nil, nil, err
+	var errs []error
+	pools := make([]entity.Pool, 0, len(u.cfg.Vaults))
+	for vaultAddr, vaultCfg := range u.cfg.Vaults {
+		pool, err := u.getNewPool(ctx, vaultAddr, vaultCfg)
+		if err != nil {
+			errs = append(errs, errors.WithMessage(err, vaultAddr))
+		} else {
+			pools = append(pools, *pool)
+		}
 	}
 
-	shareToken, assetToken, err := fetchTokens(ctx, u.ethrpcClient, u.cfg)
-	if err != nil {
-		u.logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to fetch tokens")
-
-		return nil, nil, err
+	if len(errs) > 0 {
+		return nil, metadataBytes, errors.Errorf("failed to get new pools: %v", errs)
 	}
 
 	u.initialized = true
 
-	return []entity.Pool{{
-		Address:  strings.ToLower(u.cfg.Vault),
+	return pools, metadataBytes, nil
+}
+
+func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vaultCfg VaultCfg) (*entity.Pool, error) {
+	assetToken, state, err := fetchAssetAndState(ctx, u.ethrpcClient, vaultAddr, vaultCfg, true, nil)
+	if err != nil {
+		u.logger.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetchAssetAndState")
+		return nil, err
+	}
+
+	return &entity.Pool{
+		Address:  strings.ToLower(vaultAddr),
 		Exchange: u.cfg.DexId,
 		Type:     DexType,
 		Reserves: entity.PoolReserves{state.TotalSupply.String(), state.TotalAssets.String()},
 		Tokens: []*entity.PoolToken{
-			{Address: strings.ToLower(shareToken), Swappable: true},
-			{Address: strings.ToLower(assetToken), Swappable: true},
+			{Address: strings.ToLower(vaultAddr), Swappable: true},
+			{Address: hexutil.Encode(assetToken[:]), Swappable: true},
 		},
 		Timestamp:   time.Now().Unix(),
 		BlockNumber: state.blockNumber,
-	}}, metadataBytes, nil
+	}, nil
 }
 
-func fetchTokens(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config) (string, string, error) {
+func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
+	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
 	var assetToken common.Address
-	req := ethrpcClient.NewRequest().
-		SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: cfg.Vault,
-			Method: erc4626MethodAsset,
-		}, []any{&assetToken})
-
-	_, err := req.Call()
-	if err != nil {
-		return "", "", err
-	}
-
-	return cfg.Vault, assetToken.Hex(), nil
-}
-
-func fetchState(
-	ctx context.Context,
-	ethrpcClient *ethrpc.Client,
-	cfg *Config,
-	overrides map[common.Address]gethclient.OverrideAccount,
-) (*PoolState, error) {
-	req := ethrpcClient.NewRequest().SetContext(ctx)
-
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
-
 	var poolState PoolState
 
-	req.AddCall(&ethrpc.Call{
+	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
+	if fetchAsset {
+		req = req.AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: vaultAddr,
+			Method: erc4626MethodAsset,
+		}, []any{&assetToken})
+	}
+	req = req.AddCall(&ethrpc.Call{
 		ABI:    ABI,
-		Target: cfg.Vault,
+		Target: vaultAddr,
 		Method: erc4626MethodTotalSupply,
 	}, []any{&poolState.TotalSupply}).AddCall(&ethrpc.Call{
 		ABI:    ABI,
-		Target: cfg.Vault,
+		Target: vaultAddr,
 		Method: erc4626MethodTotalAssets,
 	}, []any{&poolState.TotalAssets})
 
-	if cfg.SwapTypes == Both || cfg.SwapTypes == Deposit {
+	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Deposit {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
-			Target: cfg.Vault,
+			Target: vaultAddr,
 			Method: erc4626MethodMaxDeposit,
 			Params: []any{eth.AddressZero},
 		}, []any{&poolState.MaxDeposit})
 	}
-	if cfg.SwapTypes == Both || cfg.SwapTypes == Redeem {
+	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Redeem {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
-			Target: cfg.Vault,
+			Target: vaultAddr,
 			Method: erc4626MethodMaxRedeem,
 			Params: []any{eth.AddressZero},
 		}, []any{&poolState.MaxRedeem})
@@ -145,12 +136,11 @@ func fetchState(
 
 	resp, err := req.TryAggregate()
 	if err != nil {
-		return nil, err
+		return assetToken, nil, err
 	}
 
 	if resp.BlockNumber != nil {
 		poolState.blockNumber = resp.BlockNumber.Uint64()
 	}
-
-	return &poolState, nil
+	return assetToken, &poolState, nil
 }
