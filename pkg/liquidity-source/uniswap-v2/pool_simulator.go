@@ -193,7 +193,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 			FeePrecision: s.feePrecision.Uint64(),
 		},
 		PoolMetaGeneric: PoolMetaGeneric{
-			ApprovalAddress: approvalAddressByExchange[exchange],
+			ApprovalAddress: routerAddressByExchange[exchange],
 			NoFOT:           noFOTByExchange[exchange],
 		},
 	}

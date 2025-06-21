@@ -26,10 +26,11 @@ const (
 )
 
 var (
-	approvalAddressByExchange = map[string]string{ // used both as approval and router address
+	routerAddressByExchange = map[string]string{ // used both as router and approval address
 		valueobject.ExchangeBabyDogeSwap: "0xC9a0F685F39d05D835c369036251ee3aEaaF3c47",
 		valueobject.ExchangeBakerySwap:   "0xCDe540d7eAFE93aC5fE6233Bee57E1270D3E330F",
 		valueobject.ExchangeMeshSwap:     "0x10f4A785F458Bc144e3706575924889954946639",
+		valueobject.ExchangeNostrSwap:    "0xe563398EAF00C313074785C2D7192e24A5198282",
 	}
 	extraGasByExchange = map[string]int64{
 		valueobject.ExchangeBabyDogeSwap: 259957 - defaultGas,
