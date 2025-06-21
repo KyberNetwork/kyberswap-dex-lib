@@ -82,9 +82,7 @@ common:
     - "uniswap-v4"
     - "overnight-usdp"
     - "sky-psm"
-    - "wusdm"
-    - "angle-staked-stable-usd"
-    - "angle-staked-stable-eur"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

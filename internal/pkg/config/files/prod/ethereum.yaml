@@ -172,9 +172,7 @@ common:
     - "mimswap"
     - "native-v3"
     - "usds-lite-psm"
-    - "wusdm"
-    - "wusdl"
-    - "angle-staked-stable"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

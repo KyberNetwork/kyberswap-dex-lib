@@ -110,9 +110,7 @@ common:
     - "memebox"
     - "native-v3"
     - "infinitypools"
-    - "wusdm"
-    - "angle-staked-stable-usd"
-    - "angle-staked-stable-eur"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

@@ -161,10 +161,7 @@ common:
     - "mimswap"
     - "native-v3"
     - "usds-lite-psm"
-    - "wusdm"
-    - "wusdl"
-    - "angle-staked-stable-usd"
-    - "angle-staked-stable-eur"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

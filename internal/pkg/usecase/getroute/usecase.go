@@ -204,7 +204,7 @@ func (u *useCase) wrapTokens(query dto.GetRoutesQuery) (dto.GetRoutesQuery, erro
 func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQuery) (*types.AggregateParams, error) {
 	tokenByAddress, err := u.getTokenByAddress(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "getTokenByAddress")
 	}
 
 	tokenIn, ok := tokenByAddress[query.TokenIn]
@@ -220,12 +220,12 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut,
 		u.config.GasTokenAddress)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "getTokensPriceUSD")
 	}
 
 	gasPrice, err := u.getGasPrice(ctx, query.GasPrice)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "getGasPrice")
 	}
 
 	var l1FeeOverhead, l1FeePerPool *big.Int
