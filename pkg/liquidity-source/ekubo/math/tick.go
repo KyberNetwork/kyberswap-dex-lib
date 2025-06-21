@@ -55,9 +55,12 @@ func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *
 		return 0
 	}
 
-	start, _ := startingSqrtRatio.Float64()
-	end, _ := endingSqrtRatio.Float64()
+	start, end := U256ToFloatBaseX128(startingSqrtRatio), U256ToFloatBaseX128(endingSqrtRatio)
 	ticksCrossed := uint32(math.Abs(math.Log(start/end)) / logBaseSqrtTickSize)
 
 	return ticksCrossed / tickSpacing
+}
+
+func ApproximateSqrtRatioToTick(sqrtRatio *big.Int) int32 {
+	return int32(math.Round(math.Log(U256ToFloatBaseX128(sqrtRatio)) / logBaseSqrtTickSize))
 }
