@@ -67,7 +67,7 @@ func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileName
 		logger.Fields{
 			"struct": "UpdateLiquidityScore",
 			"method": "Handle",
-		}).Errorf("update liquidity scores total count %d", count)
+		}).Infof("update liquidity scores total count %d", count)
 
 	return result
 }

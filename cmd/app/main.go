@@ -906,7 +906,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolRepository, err := pool.NewRedisRepository(
 		poolRedisClient.Client,
 		poolServiceClient, cfg.Repository.Pool)
-	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
+	poolRankRepo := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 
 	tokenRepository, err := token.NewGoCacheRepository(
 		token.NewSimplifiedTokenRepository(poolRedisClient.Client, cfg.Repository.Token.Redis,

@@ -634,7 +634,9 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 				tradaDataCount++
 
 				if !gen.hasReserve(pool, poolMap[pool.GetAddress()], tokenI) && !gen.hasReserve(pool, poolMap[pool.GetAddress()], tokenJ) {
-					logger.Infof(ctx, "token has no reserve both direction - direct set tokenI %s tokenJ %s pool %s i %d j %d\n", tokenI, tokenJ, pool.GetAddress(), i, j)
+					if gen.config.LogError {
+						logger.Infof(ctx, "token has no reserve both direction - direct set tokenI %s tokenJ %s pool %s i %d j %d\n", tokenI, tokenJ, pool.GetAddress(), i, j)
+					}
 					zeroPoolScores = append(zeroPoolScores, routerEntity.PoolScore{
 						Key:      gen.keyGenerator.DirectPairKeyWithoutSort(poolrank.SortByLiquidityScoreTvl, tokenI, tokenJ),
 						Pool:     pool.GetAddress(),
@@ -645,7 +647,9 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 
 				if (prices[tokenI] == nil || prices[tokenI].GetSellPriceIfAny() == 0) &&
 					(prices[tokenJ] == nil || prices[tokenJ].GetBuyPriceIfAny() == 0) {
-					logger.Infof(ctx, "debug prices is nil - direct set tokenI %s tokenJ %s pool %s\n", tokenI, tokenJ, pool.GetAddress())
+					if gen.config.LogError {
+						logger.Infof(ctx, "debug prices is nil - direct set tokenI %s tokenJ %s pool %s\n", tokenI, tokenJ, pool.GetAddress())
+					}
 					zeroPoolScores = append(zeroPoolScores, routerEntity.PoolScore{
 						Key:      gen.keyGenerator.DirectPairKeyWithoutSort(poolrank.SortByLiquidityScoreTvl, tokenI, tokenJ),
 						Pool:     pool.GetAddress(),
