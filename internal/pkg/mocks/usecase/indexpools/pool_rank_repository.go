@@ -41,6 +41,20 @@ func (m *MockIPoolRankRepository) EXPECT() *MockIPoolRankRepositoryMockRecorder 
 	return m.recorder
 }
 
+// AddScoreToSortedSets mocks base method.
+func (m *MockIPoolRankRepository) AddScoreToSortedSets(ctx context.Context, scores []entity.PoolScore) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddScoreToSortedSets", ctx, scores)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddScoreToSortedSets indicates an expected call of AddScoreToSortedSets.
+func (mr *MockIPoolRankRepositoryMockRecorder) AddScoreToSortedSets(ctx, scores any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddScoreToSortedSets", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddScoreToSortedSets), ctx, scores)
+}
+
 // AddToSortedSet mocks base method.
 func (m *MockIPoolRankRepository) AddToSortedSet(ctx context.Context, token0, token1 string, isToken0Whitelisted, isToken1Whitelisted bool, key, memberName string, score float64, useGlobal bool) error {
 	m.ctrl.T.Helper()
@@ -53,20 +67,6 @@ func (m *MockIPoolRankRepository) AddToSortedSet(ctx context.Context, token0, to
 func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted, key, memberName, score, useGlobal any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToSortedSet), ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted, key, memberName, score, useGlobal)
-}
-
-// AddToWhitelistSortedSet mocks base method.
-func (m *MockIPoolRankRepository) AddToWhitelistSortedSet(ctx context.Context, scores []entity.PoolScore, sortBy string, count int64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddToWhitelistSortedSet", ctx, scores, sortBy, count)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddToWhitelistSortedSet indicates an expected call of AddToWhitelistSortedSet.
-func (mr *MockIPoolRankRepositoryMockRecorder) AddToWhitelistSortedSet(ctx, scores, sortBy, count any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToWhitelistSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToWhitelistSortedSet), ctx, scores, sortBy, count)
 }
 
 // GetDirectIndexLength mocks base method.

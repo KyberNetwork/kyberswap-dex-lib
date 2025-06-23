@@ -119,7 +119,7 @@ func TestCalculateTVL(t *testing.T) {
 		err := json.Unmarshal([]byte(tc.poolStr), &ent)
 		require.Nil(t, err)
 		t.Run(ent.Address, func(t *testing.T) {
-			tvl, err := CalculatePoolTVL(context.TODO(), &ent, prices)
+			tvl, err := CalculatePoolTVL(context.TODO(), &ent, prices, false)
 			require.Nil(t, err)
 			assert.InDelta(t, tc.tvl, tvl, 0.0001)
 		})

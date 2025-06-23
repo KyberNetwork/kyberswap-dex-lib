@@ -63,10 +63,7 @@ func (job *LiquidityScoreIndexPoolsJob) runScanAndIndex(ctx context.Context) {
 		job.scanAndIndex(
 			ctxutils.NewJobCtx(ctx),
 			mapset.NewThreadUnsafeSet[indexpools.TradesGenerationInput](),
-			job.config.TargetFactorEntropy,
-			job.config.SuccessedFileName,
-			job.config.LiquidityScoreInputFileName,
-		)
+			job.config.TargetFactorEntropy)
 		select {
 		case <-ctx.Done():
 			logger.
@@ -166,15 +163,11 @@ func (u *LiquidityScoreIndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddr
 	}
 
 	ctx := ctxutils.NewJobCtx(msgs[0].Ctx())
-	jobID := ctxutils.GetJobID(ctx)
-	tradeDataFileName := fmt.Sprintf("%s_%s", u.config.SuccessedFileName, jobID)
-	scoresFileName := fmt.Sprintf("%s_%s", u.config.LiquidityScoreInputFileName, jobID)
-	u.scanAndIndex(ctx, poolAddrSet, NON_FILTER_ENTROPY, tradeDataFileName, scoresFileName)
+	u.scanAndIndex(ctx, poolAddrSet, NON_FILTER_ENTROPY)
 }
 
 func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
-	poolAddresses mapset.Set[indexpools.TradesGenerationInput], entropyFactor float64,
-	tradeDataFileName string, scoresFileName string) {
+	poolAddresses mapset.Set[indexpools.TradesGenerationInput], entropyFactor float64) {
 	startTime := time.Now()
 	defer func() {
 		logger.
@@ -186,146 +179,129 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
 			).
 			Info("job done with duration")
 	}()
-	err := job.runScanJob(ctxutils.NewJobCtx(ctx), poolAddresses, tradeDataFileName)
-	if err != nil {
+	tradeFiles := job.runScanJob(ctxutils.NewJobCtx(ctx), poolAddresses)
+	if tradeFiles.IsEmpty() {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
 					"job.name": LiquidityScoreIndexPools,
-					"error":    err,
 				}).
-			Error("job failed in generate trade data step")
+			Error("job failed in generate trade data step len of files is 0")
 	}
 
-	err = job.runCalculationJob(ctx, entropyFactor, tradeDataFileName, scoresFileName)
-	if err != nil {
+	scoreFiles := job.runCalculationJob(ctx, tradeFiles.ToSlice(), entropyFactor)
+	if len(scoreFiles) == 0 {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
 					"job.name": LiquidityScoreIndexPools,
-					"error":    err,
 				}).
-			Error("job failed in liquidity score calculation step")
+			Error("job failed in liquidity score calculation step len of score files is 0")
 	}
 
-	err = job.updatePoolScores.Handle(ctx, scoresFileName)
-	if err != nil {
+	errs := job.updatePoolScores.ProcessScoreFiles(ctx, scoreFiles)
+	if len(errs) != 0 {
 		logger.WithFields(ctx,
 			logger.Fields{
 				"job.name": LiquidityScoreIndexPools,
-				"error":    err,
+				"error":    errs,
 			}).Errorf("update pools for whitelist index failed")
 	}
 
 	// remove scores file name because we have multiple scores files which can increases pod storage
-	err = os.Remove(tradeDataFileName)
-	if err != nil {
-		logger.WithFields(ctx,
-			logger.Fields{
-				"job.name": LiquidityScoreIndexPools,
-				"error":    err,
-			}).Errorf("remove tradeData file with err")
-	}
+	tradeFiles.Each(func(file string) bool {
+		err := os.Remove(file)
+		if err != nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"job.name": LiquidityScoreIndexPools,
+					"error":    err,
+				}).Errorf("remove tradeData file with err")
+		}
+		return false
+	})
 
-	err = os.Remove(scoresFileName)
-	if err != nil {
-		logger.WithFields(ctx,
-			logger.Fields{
-				"job.name": LiquidityScoreIndexPools,
-				"error":    err,
-			}).Errorf("remove scores file with err")
+	for _, file := range scoreFiles {
+		err := os.Remove(file)
+		if err != nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"job.name": LiquidityScoreIndexPools,
+					"error":    err,
+				}).Errorf("remove scores file with err")
+		}
 	}
 }
 
-func (job *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, entropyFactor float64, tradeDataFileName string, scoresFileName string) error {
+func (job *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, tradeDataFileNames []string, entropyFactor float64) []string {
 	// pass a float64 as an params to python job
-	factorParam := strconv.FormatFloat(entropyFactor, 'f', -1, 64)
-	c := exec.Command(job.config.LiquidityScoreCalcScript, factorParam, tradeDataFileName, scoresFileName)
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	c.Stdout = &out
-	c.Stderr = &stderr
+	scoreFileNames := make([]string, 0, len(tradeDataFileNames))
+	for _, tradeFile := range tradeDataFileNames {
+		factorParam := strconv.FormatFloat(NON_FILTER_ENTROPY, 'f', -1, 64)
+		// only apply entropyFactor for whitelist - whitelist pools
+		if tradeFile == indexpools.WHITELIST_FILENAME {
+			factorParam = strconv.FormatFloat(entropyFactor, 'f', -1, 64)
+		}
+		scoreFileName := fmt.Sprintf("%s%s", "Score", tradeFile)
+		c := exec.Command(job.config.LiquidityScoreCalcScript, factorParam, tradeFile, scoreFileName)
+		var out bytes.Buffer
+		var stderr bytes.Buffer
+		c.Stdout = &out
+		c.Stderr = &stderr
 
-	if err := c.Run(); err != nil {
-		return fmt.Errorf("error when execute liquidity calc error %v, output %s", err, stderr.String())
+		if err := c.Run(); err != nil {
+			logger.Errorf(ctx, "error when execute liquidity calc error %v for trade file %s, output %s", err, tradeFile, stderr.String())
+			continue
+		}
+
+		logger.Infof(ctx, "[runCalculationJob - %s] Finish job with output %s", tradeFile, out.String())
+		scoreFileNames = append(scoreFileNames, scoreFileName)
 	}
 
-	logger.Infof(ctx, "[runCalculationJob] Finish job with output %s", out.String())
-
-	return nil
+	return scoreFileNames
 }
 
-func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, poolAddresses mapset.Set[indexpools.TradesGenerationInput], tradeDataFileName string) error {
+func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, poolAddresses mapset.Set[indexpools.TradesGenerationInput]) mapset.Set[string] {
 	// get blacklist index pools from local cache
 	totalBlacklistPools := job.blacklistIndexPoolsUsecase.GetBlacklistIndexPools(ctx)
-	newBlacklistPools := []string{}
 
-	// open file in order to write the output
-	file, err := os.Create(tradeDataFileName)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	var failedBuffer *bufio.Writer
-	if job.config.ExportFailedTrade {
-		failedFile, err := os.Create(job.config.FailedFileName)
-		if err != nil {
-			panic(err)
-		}
-		defer failedFile.Close()
-		failedBuffer = bufio.NewWriter(failedFile)
-	}
-
-	successedBuffer := bufio.NewWriter(file)
-
-	// failedBuffer := bufio.NewWriter(failedFile)
-	output := make(chan indexpools.TradesGenerationOutput, job.config.BatchSize)
-
-	go job.indexUsecase.Handle(ctx, output, totalBlacklistPools, poolAddresses)
-
-	for output := range output {
-		for p, trades := range output.Successed {
-			for pair, values := range trades {
-				jsonStr, err := json.Marshal(values)
-				if err != nil {
-					continue
-				}
-				logger.Debugf(ctx, "Generate trade data success data %s\n", fmt.Sprintf("%s:%s:%s\n", p, pair, jsonStr))
-				successedBuffer.Write([]byte(fmt.Sprintf("%s:%s:%s\n", p, pair, jsonStr)))
-			}
-		}
-
-		for p, errTrades := range output.Failed {
-			for _, values := range errTrades {
-				jsonErr, err := json.Marshal(values)
-				if err != nil {
-					continue
-				}
-				// push logs to grafana
-				if job.config.ExportFailedTrade {
-					failedBuffer.Write([]byte(fmt.Sprintf("%s:%s\n", p, jsonErr)))
-				} else if job.config.LogError {
-					logger.Errorf(ctx, "Generate trade data failed %s:%s", p, jsonErr)
-				}
-			}
-		}
-
-		// update blacklist pools
-		output.Blacklist.Each(func(s string) bool {
-			newBlacklistPools = append(newBlacklistPools, s)
-			return false
-		})
-	}
-	logger.Debugf(ctx, "Generate trade data successfully blacklist len %d\n", len(newBlacklistPools))
+	result := job.indexUsecase.Handle(ctx, totalBlacklistPools, poolAddresses)
+	logger.Debugf(ctx, "Generate trade data successfully blacklist len %d\n", result.Blacklist.Cardinality())
 
 	// update blacklist to local cache
-	job.blacklistIndexPoolsUsecase.AddToBlacklistIndexPools(ctx, newBlacklistPools)
+	job.blacklistIndexPoolsUsecase.AddToBlacklistIndexPools(ctx, result.Blacklist.ToSlice())
+	// update zero liquidity score
+	if len(result.ZeroScorePools) != 0 {
+		err := job.updatePoolScores.SavePoolScore(ctx, result.ZeroScorePools)
+		if err != nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"job.name": LiquidityScoreIndexPools,
+					"error":    err,
+				}).Errorf("update zero pool score failed")
+		}
+		if job.config.ExportZeroScores {
+			zeroScoresFile, err := os.OpenFile("zero_scores.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				logger.WithFields(ctx,
+					logger.Fields{
+						"struct": "TradeDataGenerator",
+						"method": "writeTradeData",
+						"error":  err,
+					}).Errorf("init failed buffer failed")
+			} else {
+				defer zeroScoresFile.Close()
+				zeroScoresBuffer := bufio.NewWriter(zeroScoresFile)
+				for _, score := range result.ZeroScorePools {
+					jsonScore, _ := json.Marshal(score)
+					zeroScoresBuffer.WriteString(string(jsonScore))
+					zeroScoresBuffer.WriteString("\n")
+				}
+				zeroScoresBuffer.Flush()
+			}
 
-	successedBuffer.Flush()
-	if failedBuffer != nil {
-		failedBuffer.Flush()
+		}
 	}
 
-	return nil
+	return result.OutputFileNames
 }

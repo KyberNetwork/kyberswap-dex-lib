@@ -162,6 +162,11 @@ common:
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   logError: &logError false
+  setsNeededTobeIndexed: &setsNeededTobeIndexed
+    whitelist-whitelist: true
+    whitelist-token: false
+    token-whitelist: false
+    direct: false
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: debug
@@ -541,13 +546,18 @@ useCase:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-arbitrum/version/latest
     startBlock: 334152409
   tradeDataGenerator:
+    exportFailedTrade: false
+    failedFileName: "./failed_trade_data.txt"
+    chainName: *chainName
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet
-    chunkSize: 200
+    chunkSize: 1000
     useAEVM: *useAEVM
     dexUseAEVM:
     minDataPointNumber: 6
     maxDataPointNumber: 12
+    setsNeededTobeIndexed: *setsNeededTobeIndexed
+    maxTokensLen: 6
     availableSources: *availableSources
     logError: *logError
   updateLiquidityScore:
@@ -579,10 +589,8 @@ job:
     batchSize: 200
     interval: 1h
     successedFileName: *liquidityTradesDataFileName
-    failedFileName: "./failed_trade_data.txt"
     liquidityScoreInputFileName: *liquidityScoreInputFileName
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
-    exportFailedTrade: false
     targetFactorEntropy: 0.995
     logError: *logError
     poolEvent:
@@ -667,6 +675,7 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    setsNeededTobeIndexed: *setsNeededTobeIndexed
   route:
     redis:
       prefix: *chainName

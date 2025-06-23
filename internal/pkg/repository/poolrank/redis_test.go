@@ -20,6 +20,12 @@ import (
 func wrap(cfg RedisRepositoryConfig) Config {
 	return Config{
 		Redis: cfg,
+		SetsNeededTobeIndexed: map[string]bool{
+			"whitelist-whitelist": true,
+			"token-whitelist":     true,
+			"whitelist-token":     true,
+			"direct":              true,
+		},
 	}
 }
 
@@ -1369,21 +1375,25 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 		scores    []routerEntity.PoolScore
 		err       error
 	}
+	key := "ethereum:liquidityScoreTvl:whitelist"
 	tests := []testInput{
 		{
 			name: "it should save correct data when the old Score set doesn't exist",
 			scores: []routerEntity.PoolScore{
 				{
+					Key:            key,
 					LiquidityScore: 92129,
 					Pool:           "0x764510ab1d39cf300e7abe8f5b8977d18f290628",
 					Level:          2,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 4645,
 					Pool:           "0x99c7550be72f05ec31c446cd536f8a29c89fdb77",
 					Level:          2,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 3392940,
 					Pool:           "bebop_0x6b175474e89094c44da98b954eedeac495271d0f_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Level:          6,
@@ -1394,21 +1404,25 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			name: "it should save correct data and not delete the old score set",
 			oldScores: []routerEntity.PoolScore{
 				{
+					Key:            key,
 					LiquidityScore: 270110,
 					Pool:           "0xc7cbff2a23d0926604f9352f65596e65729b8a17",
 					Level:          4,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 107094,
 					Pool:           "hashflow_v3_mm29_5_0x6b175474e89094c44da98b954eedeac495271d0f_0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Level:          5,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 33868,
 					Pool:           "bebop_0x6b175474e89094c44da98b954eedeac495271d0f_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Level:          6,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 464598,
 					Pool:           "0x99c7550be72f05ec31c446cd536f8a29c89fdb77",
 					Level:          3,
@@ -1416,16 +1430,19 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			},
 			scores: []routerEntity.PoolScore{
 				{
+					Key:            key,
 					LiquidityScore: 92129,
 					Pool:           "0x764510ab1d39cf300e7abe8f5b8977d18f290628",
 					Level:          2,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 4645,
 					Pool:           "0x99c7550be72f05ec31c446cd536f8a29c89fdb77",
 					Level:          2,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 3392940,
 					Pool:           "bebop_0x6b175474e89094c44da98b954eedeac495271d0f_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Level:          6,
@@ -1436,11 +1453,13 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			name: "it should retain old sorted set when new set is empty and return error",
 			oldScores: []routerEntity.PoolScore{
 				{
+					Key:            key,
 					LiquidityScore: 270110,
 					Pool:           "0xc7cbff2a23d0926604f9352f65596e65729b8a17",
 					Level:          4,
 				},
 				{
+					Key:            key,
 					LiquidityScore: 107094,
 					Pool:           "hashflow_v3_mm29_5_0x6b175474e89094c44da98b954eedeac495271d0f_0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Level:          5,
@@ -1449,8 +1468,6 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			err: errors.New("can not add empty list to whitelist sorted set"),
 		},
 	}
-
-	key := "ethereum:liquidityScoreTvl:whitelist"
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1473,9 +1490,9 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 
 			// prepare data
 			for _, score := range test.oldScores {
-				encoded := score.EncodeScore(true)
+				encoded := score.EncodeScore()
 				redisServer.ZAdd(
-					key,
+					score.Key,
 					encoded,
 					score.Pool,
 				)
@@ -1486,7 +1503,7 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, len(sortedSet), len(test.oldScores))
 				for _, score := range test.oldScores {
-					encoded := score.EncodeScore(true)
+					encoded := score.EncodeScore()
 					assert.Equal(t, sortedSet[score.Pool], encoded)
 				}
 			}
@@ -1495,7 +1512,7 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 				Prefix: "ethereum",
 			}))
 
-			err = repo.AddToWhitelistSortedSet(context.TODO(), test.scores, SortByLiquidityScoreTvl, 500)
+			err = repo.AddScoreToSortedSets(context.TODO(), test.scores)
 			if test.err == nil {
 				assert.Nil(t, err)
 			} else {
@@ -1507,13 +1524,13 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 				sortedSet, _ := redisServer.SortedSet(key)
 				newSet := mapset.NewThreadUnsafeSet[string]()
 				for _, score := range test.scores {
-					encoded := score.EncodeScore(true)
+					encoded := score.EncodeScore()
 					newSet.Add(score.Pool)
 					assert.Equal(t, sortedSet[score.Pool], encoded)
 				}
 
 				for _, score := range test.oldScores {
-					encoded := score.EncodeScore(true)
+					encoded := score.EncodeScore()
 					if newSet.ContainsOne(score.Pool) {
 						continue
 					}
@@ -1617,26 +1634,42 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 				}))
 				ctx := context.TODO()
 
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "nonWhitelistB",
-					false, false, SortByTVLNative, "pool1", redisPools[0].ReserveUsd, true)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistA",
-					false, true, SortByTVLNative, "pool3", redisPools[2].ReserveUsd, true)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistA",
-					false, true, SortByAmplifiedTVLNative, "pool3", redisPools[2].AmplifiedTvl, false)
-
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA-nonWhitelistB",
+						Pool:           "pool1",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[0].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA:whitelist",
+						Pool:           "pool3",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistA",
+						Pool:           "pool3",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool2",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool4",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
-				}, SortByLiquidityScoreTvl, options.WhitelistPoolsCount)
+				})
 
 				return repo
 			},
@@ -1644,7 +1677,7 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 			tokenOut:       "whitelistB",
 			amountIn:       10000,
 			sortBy:         SortByLiquidityScoreTvl,
-			expectedResult: []string{"pool3", "pool2"},
+			expectedResult: []string{"pool3", "pool2", "pool4"},
 		},
 		{
 			name: "it should return correct data with related score both tokens is whitelist",
@@ -1731,29 +1764,40 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 				}))
 				ctx := context.TODO()
 
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "nonWhitelistB",
-					false, false, SortByTVLNative, "pool1", redisPools[0].ReserveUsd, true)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistD",
-					false, true, SortByTVLNative, "pool3", redisPools[2].ReserveUsd, false)
-
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA-nonWhitelistB",
+						Pool:           "pool1",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[0].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool2",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool4",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
 					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool5",
 						LiquidityScore: 14056,
 						Level:          3,
 					},
-				}, SortByLiquidityScoreTvl, options.WhitelistPoolsCount)
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistA",
+						Pool:           "pool3",
+						LiquidityScore: 14056,
+						Level:          3,
+					},
+				})
 
 				return repo
 			},
@@ -1857,28 +1901,84 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 				}))
 				ctx := context.TODO()
 
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "nonWhitelistB",
-					false, false, SortByTVLNative, "pool1", redisPools[0].ReserveUsd, true)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistC",
-					false, true, SortByTVLNative, "pool3", redisPools[2].ReserveUsd, false)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistC", "whitelistC",
-					false, true, SortByTVLNative, "pool4", redisPools[3].ReserveUsd, false)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistC", "whitelistA",
-					false, true, SortByTVLNative, "pool6", redisPools[5].ReserveUsd, false)
-
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA-nonWhitelistB",
+						Pool:           "pool1",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[0].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistC:whitelist",
+						Pool:           "pool4",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[3].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistC",
+						Pool:           "pool4",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[3].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool2",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool5",
 						LiquidityScore: 14056,
 						Level:          3,
 					},
-				}, SortByLiquidityScoreTvl, options.WhitelistPoolsCount)
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistC",
+						Pool:           "pool6",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[5].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistC:whitelist",
+						Pool:           "pool6",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[5].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA:whitelist",
+						Pool:           "pool3",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistA",
+						Pool:           "pool3",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistC:whitelist",
+						Pool:           "pool4",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistC",
+						Pool:           "pool4",
+						LiquidityScore: 14056,
+						Level:          4,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+				})
 
 				return repo
 			},
@@ -1886,7 +1986,7 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 			tokenOut:       "nonWhitelistC",
 			amountIn:       50000,
 			sortBy:         SortByLiquidityScoreTvl,
-			expectedResult: []string{"pool3", "pool4", "pool6", "pool2"},
+			expectedResult: []string{"pool3", "pool5", "pool6", "pool2", "pool4"},
 		},
 		{
 			name: "it should return correct data with related score when tokenIn is whitelist, token out is non-whitelist",
@@ -1982,28 +2082,69 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 				}))
 				ctx := context.TODO()
 
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistB",
-					false, true, SortByTVLNative, "pool1", redisPools[0].ReserveUsd, true)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistA", "whitelistC",
-					false, true, SortByTVLNative, "pool3", redisPools[2].ReserveUsd, false)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistC", "whitelistC",
-					false, true, SortByTVLNative, "pool4", redisPools[3].ReserveUsd, false)
-				_ = repo.AddToSortedSet(ctx, "nonWhitelistC", "whitelistA",
-					false, true, SortByTVLNative, "pool6", redisPools[5].ReserveUsd, false)
-
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA:whitelist",
+						Pool:           "pool1",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[0].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistA",
+						Pool:           "pool1",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[0].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistA:whitelist",
+						Pool:           "pool3",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistA",
+						Pool:           "pool3",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[2].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:nonWhitelistC:whitelist",
+						Pool:           "pool4",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[3].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistC",
+						Pool:           "pool4",
+						LiquidityScore: 107143,
+						Level:          5,
+						TvlInUsd:       redisPools[3].ReserveUsd,
+					},
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool2",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						Pool:           "pool5",
 						LiquidityScore: 14056,
 						Level:          3,
 					},
-				}, SortByLiquidityScoreTvl, options.WhitelistPoolsCount)
+					{
+						Key:            "ethereum:liquidityScoreTvl:whitelist:nonWhitelistC",
+						Pool:           "pool6",
+						LiquidityScore: 14056,
+						Level:          3,
+					},
+				})
 
 				return repo
 			},
@@ -2037,8 +2178,14 @@ func TestRedisRepository_FindBestPoolIDsByScore(t *testing.T) {
 
 			repo := test.prepare(db.Client)
 
-			pools, err := repo.findBestPoolIDsByScore(context.Background(), test.tokenIn, test.tokenOut, test.amountIn,
-				options, test.sortBy, nil)
+			pools, err := repo.findBestPoolIDsByScore(
+				context.Background(),
+				test.tokenIn,
+				test.tokenOut,
+				test.amountIn,
+				options,
+				nil,
+			)
 
 			assert.ElementsMatch(t, test.expectedResult, pools)
 			assert.Nil(t, err)
@@ -2104,23 +2251,26 @@ func TestRedisRepository_FindGlobalBestPoolsByScores(t *testing.T) {
 					false, true, SortByTVLNative, "globalPool2", globalPools[1].ReserveUsd, true)
 
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
 						Pool:           "wlPool1",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
 						Pool:           "wlPool2",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
 					{
 						Pool:           "wlPool3",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 20483745,
 						Level:          6,
 					},
-				}, SortByLiquidityScoreTvl, 10)
+				})
 
 				return repo
 			},
@@ -2175,23 +2325,26 @@ func TestRedisRepository_FindGlobalBestPoolsByScores(t *testing.T) {
 					false, true, SortByTVLNative, "globalPool2", globalPools[1].ReserveUsd, true)
 
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
 						Pool:           "wlPool1",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
 						Pool:           "wlPool2",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
 					{
 						Pool:           "wlPool3",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 20483745,
 						Level:          6,
 					},
-				}, SortByLiquidityScoreTvl, 10)
+				})
 
 				return repo
 			},
@@ -2263,23 +2416,26 @@ func TestRedisRepository_FindGlobalBestPoolsByScores(t *testing.T) {
 					false, true, SortByTVLNative, "globalPool3", globalPools[2].ReserveUsd, true)
 
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
 						Pool:           "wlPool1",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
 						Pool:           "wlPool2",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
 					{
 						Pool:           "wlPool3",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 20483745,
 						Level:          6,
 					},
-				}, SortByLiquidityScoreTvl, 10)
+				})
 
 				return repo
 			},
@@ -2334,28 +2490,32 @@ func TestRedisRepository_FindGlobalBestPoolsByScores(t *testing.T) {
 					false, true, SortByTVLNative, "globalPool2", globalPools[1].ReserveUsd, true)
 
 				// Add to pool score set
-				repo.AddToWhitelistSortedSet(ctx, []routerEntity.PoolScore{
+				repo.AddScoreToSortedSets(ctx, []routerEntity.PoolScore{
 					{
 						Pool:           "wlPool1",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 107143,
 						Level:          5,
 					},
 					{
 						Pool:           "wlPool2",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 4535,
 						Level:          2,
 					},
 					{
 						Pool:           "wlPool3",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 20483745,
 						Level:          6,
 					},
 					{
 						Pool:           "wlPool4",
+						Key:            "ethereum:liquidityScoreTvl:whitelist",
 						LiquidityScore: 20483745,
 						Level:          7,
 					},
-				}, SortByLiquidityScoreTvl, 10)
+				})
 
 				return repo
 			},

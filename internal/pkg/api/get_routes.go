@@ -142,7 +142,7 @@ func transformGetRoutesParams(ginCtx *gin.Context, params params.GetRoutesParams
 
 	if params.Index != "" {
 		validIndex := valueobject.IndexType(params.Index)
-		if validIndex != valueobject.Composite && validIndex != valueobject.LiquidityScore && validIndex != valueobject.NativeTvl {
+		if validIndex != valueobject.Composite && validIndex != valueobject.NativeTvl {
 			return dto.GetRoutesQuery{}, errors.WithMessagef(
 				ErrInvalidValue,
 				"index: [%s]",

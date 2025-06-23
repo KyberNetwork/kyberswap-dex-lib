@@ -22,9 +22,18 @@ type TradeDataGeneratorConfig struct {
 	MaxDataPointNumber  int             `mapstructure:"maxDataPointNumber"`
 	AvailableSources    []string        `mapstructure:"availableSources" json:"availableSources"`
 	LogError            bool            `mapstructure:"logError"`
+	MaxGoroutines       int             `mapstructure:"maxGoroutines"`
+	ChainName           string          `mapstructure:"chainName"`
+	ExportFailedTrade   bool            `mapstructure:"exportFailedTrade"`
+	FailedFileName      string          `mapstructure:"failedFileName"`
+	// format will be whitelist-whitelist, token-whitelist, whitelist-token, direct
+	SetsNeededTobeIndexed       map[string]bool `mapstructure:"setsNeededTobeIndexed"`
+	MaxTokensLen                int             `mapstructure:"maxTokensLen"`
+	InvalidPriceImpactThreshold float64         `mapstructure:"invalidPriceImpactThreshold"`
 }
 
 type UpdateLiquidityScoreConfig struct {
 	MeanType            string                          `mapstructure:"meanType" json:"meanType"`
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
+	ChunkSize           int                             `mapstructure:"chunkSize" json:"chunkSize"`
 }

@@ -32,3 +32,31 @@ func (p *OnchainPrice) String() string {
 	s, _ := json.Marshal(p)
 	return string(s)
 }
+
+func (p *OnchainPrice) GetBuyPriceIfAny() float64 {
+	buyPrice := p.USDPrice.Buy
+	if buyPrice == nil {
+		buyPrice = p.USDPrice.Sell
+	}
+
+	if buyPrice == nil {
+		return 0
+	}
+
+	value, _ := buyPrice.Float64()
+	return value
+}
+
+func (p *OnchainPrice) GetSellPriceIfAny() float64 {
+	sellPrice := p.USDPrice.Sell
+	if sellPrice == nil {
+		sellPrice = p.USDPrice.Buy
+	}
+
+	if sellPrice == nil {
+		return 0
+	}
+
+	value, _ := sellPrice.Float64()
+	return value
+}

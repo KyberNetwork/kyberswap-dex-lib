@@ -2,6 +2,7 @@ package business
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -21,6 +22,7 @@ func CalculatePoolTVL(
 	ctx context.Context,
 	p *entity.Pool,
 	nativePriceByToken map[string]*routerEntity.OnchainPrice,
+	partialTvl bool,
 ) (float64, error) {
 	poolTokens := p.Tokens
 
@@ -43,7 +45,11 @@ func CalculatePoolTVL(
 			for i := range poolTokens {
 				midPrice, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
 				if err != nil {
-					logger.Debugf(ctx, "cannot get mid price for token %v %v", poolTokens[i], price)
+					// we need partially calculate tvl if some tokens in a pool have no price in case liquidity score ranking
+					if partialTvl {
+						logger.Errorf(ctx, "cannot get mid price for token %v %v pool %v type %v", poolTokens[i], price, p.Address, p.Type)
+						continue
+					}
 					return 0, err
 				}
 
@@ -55,6 +61,58 @@ func CalculatePoolTVL(
 				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
 				rawNativeWei := new(big.Float).Mul(reserveBF, midPrice)
 				nativeValue, _ := new(big.Float).Quo(rawNativeWei, constant.BoneFloat).Float64()
+
+				logger.Debugf(ctx, "reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
+				reserveNative += nativeValue
+			}
+
+			return reserveNative, nil
+		}
+	}
+}
+
+func CalculatePoolTVLForTokenPair(
+	ctx context.Context,
+	p *entity.Pool,
+	nativePriceByToken map[string]*routerEntity.OnchainPrice,
+	indexes []int,
+) (float64, error) {
+	poolTokens := p.Tokens
+
+	switch p.Type {
+	case limitorder.DexTypeLimitOrder:
+		// Currently, the total of TVL/reserveUsd in the limit order pool will be very small compared with other pools. So it will be filtered in choosing pools process
+		// We will use big hardcode number to push it into eligible pools for findRoute algorithm.
+		// (this is in USD, not native, but it's still ok because we only need this to push LO pools up the ranking)
+		return limitorder.LimitOrderPoolReserveUSD, nil
+
+	case synthetix.DexTypeSynthetix:
+		{
+			// we no longer support Synthetix, will add code here if we ever do
+			return 0, nil
+		}
+
+	default:
+		{
+			var reserveNative = float64(0)
+			for _, i := range indexes {
+				if i < 0 || i >= len(poolTokens) {
+					return 0, errors.New("index is invalid")
+				}
+				midPriceBF, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
+				midPrice, _ := midPriceBF.Float64()
+				if err != nil {
+					return 0, err
+				}
+
+				reserveBF, err := getReserve(ctx, p, i, price.Decimals)
+				reserve, _ := reserveBF.Float64()
+				if err != nil {
+					return 0, err
+				}
+
+				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
+				nativeValue := reserve * midPrice / constant.BoneFloat64
 
 				logger.Debugf(ctx, "reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
 				reserveNative += nativeValue
@@ -108,7 +166,7 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 func getMidPrice(nativePriceByToken map[string]*routerEntity.OnchainPrice, token string) (*big.Float, *routerEntity.OnchainPrice, error) {
 	tokenNativePrice, ok := nativePriceByToken[token]
 	if !ok {
-		return nil, nil, ErrorNoPrice
+		return nil, nil, fmt.Errorf("token has no price %s", token)
 	}
 
 	midPrice := tokenNativePrice.NativePriceRaw.Buy
@@ -116,9 +174,12 @@ func getMidPrice(nativePriceByToken map[string]*routerEntity.OnchainPrice, token
 		midPrice = new(big.Float).Quo(
 			new(big.Float).Add(tokenNativePrice.NativePriceRaw.Buy, tokenNativePrice.NativePriceRaw.Sell),
 			big.NewFloat(2))
+	} else if tokenNativePrice.NativePriceRaw.Sell != nil {
+		// hardly ever getting token with sell price but have no buy price, however we still keep this logic to make code safer.
+		midPrice = tokenNativePrice.NativePriceRaw.Sell
 	}
 	if midPrice == nil {
-		return nil, tokenNativePrice, ErrorNoPrice
+		return nil, tokenNativePrice, fmt.Errorf("token has no price %s", token)
 	}
 	return midPrice, tokenNativePrice, nil
 }

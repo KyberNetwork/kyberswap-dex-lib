@@ -32,6 +32,7 @@ var (
 	Ten            = new(big.Float).SetFloat64(10)
 	tenPowDecimals []*big.Float
 	tenPowInt      []*big.Int
+	BoneFloat64    = 1000000000000000000.0
 )
 
 func TenPowDecimals(decimal uint8) *big.Float {

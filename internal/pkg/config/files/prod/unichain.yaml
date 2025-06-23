@@ -65,6 +65,11 @@ common:
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
   logError: &logError false
+  setsNeededTobeIndexed: &setsNeededTobeIndexed
+    whitelist-whitelist: true
+    whitelist-token: false
+    token-whitelist: false
+    direct: false
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -378,6 +383,8 @@ useCase:
     dexUseAEVM:
     minDataPointNumber: 6
     maxDataPointNumber: 12
+    setsNeededTobeIndexed: *setsNeededTobeIndexed
+    maxTokensLen: 6
     availableSources: *availableSources
     logError: *logError
   updateLiquidityScore:
@@ -492,6 +499,7 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    setsNeededTobeIndexed: *setsNeededTobeIndexed
   route:
     redis:
       prefix: *chainName

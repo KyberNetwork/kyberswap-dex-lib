@@ -182,7 +182,8 @@ func GetPrice(
 	return float64(0)
 }
 
-func ConvertToRouteSummaries(params *types.AggregateParams, routes finderEntity.BestRoutes) *valueobject.RouteSummaries {
+func ConvertToRouteSummaries(params *types.AggregateParams,
+	routes finderEntity.BestRoutes) *valueobject.RouteSummaries {
 	result := &valueobject.RouteSummaries{}
 	bestRoute := routes.GetBestRoute()
 

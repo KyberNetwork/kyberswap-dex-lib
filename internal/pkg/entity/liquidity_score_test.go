@@ -15,22 +15,24 @@ func TestPoolScore_EncodeScore(t *testing.T) {
 	}
 	tests := []testInput{
 		{
-			name: "It should return encoded correctly with level 3",
+			name: "It should return encoded correctly with level 3 with pool has liquidiy score",
 			poolScore: entity.PoolScore{
 				LiquidityScore: 12345,
 				Pool:           "0xabc",
 				Level:          3,
+				TvlInUsd:       100,
 			},
-			expectedScore: 3000000012345,
+			expectedScore: 31000000012345,
 		},
 		{
-			name: "It should return encoded correctly with level 5",
+			name: "It should return encoded correctly with level 5 with pool has liquidiy score",
 			poolScore: entity.PoolScore{
 				LiquidityScore: 12345678,
 				Pool:           "0xabc",
 				Level:          5,
+				TvlInUsd:       100,
 			},
-			expectedScore: 5000012345678,
+			expectedScore: 51000012345678,
 		},
 		{
 			name: "It should return encoded correctly with maximum value of liquidity score",
@@ -38,15 +40,146 @@ func TestPoolScore_EncodeScore(t *testing.T) {
 				LiquidityScore: 999999999999,
 				Pool:           "0xabc",
 				Level:          12,
+				TvlInUsd:       100,
 			},
-			expectedScore: 12999999999999,
+			expectedScore: 121999999999999,
+		},
+		{
+			name: "It should return encoded correctly with tvl above upper bound",
+			poolScore: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e13,
+			},
+			expectedScore: 120913242009132.4202,
+		},
+		{
+			name: "It should return encoded correctly with tvl under upper bound",
+			poolScore: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          2,
+				TvlInUsd:       250,
+			},
+			expectedScore: 20000000000263.15789466759,
+		},
+		{
+			name: "It should return encoded correctly with tvl around half upper bound",
+			poolScore: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          6,
+				TvlInUsd:       1e6,
+			},
+
+			expectedScore: 60000001052630.4709152938,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			encodedScore := test.poolScore.EncodeScore(true)
+			encodedScore := test.poolScore.EncodeScore()
 			assert.Equal(t, test.expectedScore, encodedScore)
+		})
+	}
+}
+
+func TestPoolScore_CompareEncodeScore(t *testing.T) {
+	type testInput struct {
+		name       string
+		poolScoreA entity.PoolScore
+		poolScoreB entity.PoolScore
+		ALessThanB bool
+	}
+	tests := []testInput{
+		{
+			name: "It should return compare between liquidity score correctly with the same level",
+			poolScoreA: entity.PoolScore{
+				LiquidityScore: 12345,
+				Pool:           "0xabc",
+				Level:          3,
+				TvlInUsd:       100,
+			},
+			poolScoreB: entity.PoolScore{
+				LiquidityScore: 123456,
+				Pool:           "0xabc",
+				Level:          3,
+				TvlInUsd:       100,
+			},
+			ALessThanB: true,
+		},
+		{
+			name: "It should return compare between liquidity score correctly with different level",
+			poolScoreA: entity.PoolScore{
+				LiquidityScore: 999999999999,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       100,
+			},
+			poolScoreB: entity.PoolScore{
+				LiquidityScore: 999999999999,
+				Pool:           "0xabc",
+				Level:          9,
+				TvlInUsd:       100,
+			},
+			ALessThanB: false,
+		},
+		{
+			name: "It should return compare between tvl correctly with the same level",
+			poolScoreA: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e13,
+			},
+			poolScoreB: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e14,
+			},
+			ALessThanB: true,
+		},
+		{
+			name: "It should return compare between tvl correctly with different level",
+			poolScoreA: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e13,
+			},
+			poolScoreB: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          6,
+				TvlInUsd:       1e14,
+			},
+			ALessThanB: false,
+		},
+		{
+			name: "It should return compare between tvl and liquidity score correctly with the same level",
+			poolScoreA: entity.PoolScore{
+				LiquidityScore: 999,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e13,
+			},
+			poolScoreB: entity.PoolScore{
+				LiquidityScore: 0.0,
+				Pool:           "0xabc",
+				Level:          12,
+				TvlInUsd:       1e15,
+			},
+			ALessThanB: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			encodedScoreA := test.poolScoreA.EncodeScore()
+			encodedScoreB := test.poolScoreB.EncodeScore()
+			assert.Equal(t, encodedScoreA < encodedScoreB, test.ALessThanB)
 		})
 	}
 }

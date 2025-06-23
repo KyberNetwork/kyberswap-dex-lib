@@ -47,11 +47,6 @@ func (u *RemovePoolIndexUseCase) RemovePoolAddressFromLiqScoreIndexes(ctx contex
 		return err
 	}
 
-	err = u.poolRankRepo.RemoveAddressesFromWhitelistIndex(ctx, poolrank.SortByLiquidityScore, addresses, false)
-	if err != nil {
-		return err
-	}
-
 	return nil
 
 }

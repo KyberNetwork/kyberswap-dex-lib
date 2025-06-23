@@ -135,7 +135,7 @@ func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) 
 
 	for {
 		_ = backoff.RetryE(func() error {
-			if err := r.fetchNativePriceInUSD(ctx); err != nil {
+			if err := r.FetchNativePriceInUSD(ctx); err != nil {
 				logger.Errorf(ctx, "failed to fetch native price in usd: %v", err)
 				return err
 			}
@@ -153,7 +153,7 @@ func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) 
 	}
 }
 
-func (r *ristrettoRepository) fetchNativePriceInUSD(ctx context.Context) error {
+func (r *ristrettoRepository) FetchNativePriceInUSD(ctx context.Context) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] ristrettoRepository.fetchNativePriceInUSD")
 	defer span.End()
 

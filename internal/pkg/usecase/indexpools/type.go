@@ -5,14 +5,32 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 )
 
-type TradesGenerationOutput struct {
-	Successed map[string]map[TradePair][]TradeData
-	Failed    map[string]map[TradePair][]TradeData
+type LiquidityScoreCalcInput struct {
+	TradeData []TradeData `json:"trade_data"`
+	Liquidity float64     `json:"liquidity"`
+}
 
-	Blacklist mapset.Set[string]
+func (i *LiquidityScoreCalcInput) AddTradeData(tradeData TradeData) {
+	i.TradeData = append(i.TradeData, tradeData)
+}
+
+type TradesGenerationOutput struct {
+	Successed map[TradeDataId]*LiquidityScoreCalcInput
+	Failed    map[TradeDataId]*LiquidityScoreCalcInput
+
+	Blacklist      mapset.Set[string]
+	ZeroScorePools []entity.PoolScore
+}
+
+type TradeDataGenerationResult struct {
+	OutputFileNames mapset.Set[string]
+	Blacklist       mapset.Set[string]
+	ZeroScorePools  []entity.PoolScore
 }
 
 type TradesGenerationInput struct {
@@ -20,49 +38,30 @@ type TradesGenerationInput struct {
 	Exchange string
 }
 
-type price struct {
-	buyPrice  float64
-	sellPrice float64
-}
-
-func (p *price) getBuyPrice() float64 {
-	if p.buyPrice == float64(0) {
-		return p.sellPrice
-	}
-
-	return p.buyPrice
-}
-
-func (p *price) getSellPrice() float64 {
-	if p.sellPrice == float64(0) {
-		return p.buyPrice
-	}
-
-	return p.sellPrice
-}
-
-type TradePair struct {
-	tokenIn  string
-	tokenOut string
-}
-
-func (t TradePair) String() string {
-	return fmt.Sprintf("%s-%s", t.tokenIn, t.tokenOut)
+type TradeDataId struct {
+	Pool string
+	Type valueobject.TradeDataType
 }
 
 type TradeData struct {
-	TokenIn      string  `json:"TokenIn"`
-	TokenOut     string  `json:"TokenOut"`
-	PriceImpact  float64 `json:"-"`
-	AmountInUsd  float64 `json:"AmountInUsd"`
-	AmountOutUsd float64 `json:"AmountOutUsd"`
-	Pool         string  `json:"Pool"`
+	/*
+	 * Key value will be the exact key which is sorted set key in Redis
+	 */
+	Key string `json:"key"`
+	// Type in trade data is whitelist-whitelist, token-whitelist, whitelist-token or direct
+	Type         valueobject.TradeDataType `json:"-"`
+	TokenIn      string                    `json:"token_in"`
+	TokenOut     string                    `json:"token_out"`
+	PriceImpact  float64                   `json:"-"`
+	AmountInUsd  float64                   `json:"amount_in_usd"`
+	AmountOutUsd float64                   `json:"amount_out_usd"`
+	Pool         string                    `json:"pool"`
 
 	// debug only fields when swaps error
-	AmountIn   string `json:"AmountIn"`
-	Err        error  `json:"-"`
-	ErrMessage string `json:"error,omitempty"`
-	Dex        string `json:"dex,omitempty"`
+	AmountIn   string `json:"amount_in"`
+	Err        error  `json:"error,omitempty"`
+	ErrMessage string `json:"error_message,omitempty"`
+	Exchange   string `json:"-"`
 }
 
 func (t *TradeData) hasError() bool {

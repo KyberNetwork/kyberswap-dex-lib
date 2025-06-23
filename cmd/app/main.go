@@ -587,7 +587,7 @@ func indexerAction(c *cli.Context) (err error) {
 		cfg.Repository.Token.GoCache,
 	)
 
-	var onchainpriceRepository getroute.IOnchainPriceRepository
+	var onchainpriceRepository indexpools.IOnchainPriceRepository
 	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
 		tokenRepository)
 	if err != nil {
@@ -936,6 +936,11 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
 		cfg.Repository.OnchainPrice.Ristretto)
 	if err != nil {
+		return err
+	}
+	err = onchainpriceRepository.FetchNativePriceInUSD(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "[liqIndexerAction] fail to fetch native price usd from onchain price service")
 		return err
 	}
 	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)

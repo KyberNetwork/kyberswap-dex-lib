@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -31,8 +32,7 @@ type IUpdateL1FeeUseCase interface {
 }
 
 type ITradeGeneratorUsecase interface {
-	Handle(ctx context.Context,
-		output chan<- indexpools.TradesGenerationOutput, indexBlacklistWlPools mapset.Set[string], addresses mapset.Set[indexpools.TradesGenerationInput])
+	Handle(ctx context.Context, indexBlacklistWlPools mapset.Set[string], addresses mapset.Set[indexpools.TradesGenerationInput]) indexpools.TradeDataGenerationResult
 }
 
 type IRemovePoolsFromIndexUseCase interface {
@@ -40,7 +40,8 @@ type IRemovePoolsFromIndexUseCase interface {
 }
 
 type IUpdatePoolScores interface {
-	Handle(ctx context.Context, scoresFileName string) error
+	ProcessScoreFiles(ctx context.Context, scoresFile []string) []error
+	SavePoolScore(ctx context.Context, poolScores []routerEntity.PoolScore) error
 }
 
 type IBlacklistIndexPoolsUsecase interface {

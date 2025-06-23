@@ -212,7 +212,7 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 
 	if nativePriceByToken != nil {
 		var err error
-		tvlNative, err = business.CalculatePoolTVL(ctx, pool, nativePriceByToken)
+		tvlNative, err = business.CalculatePoolTVL(ctx, pool, nativePriceByToken, true)
 		if err != nil {
 			// just reset score here without returning error
 			tvlNative = 0

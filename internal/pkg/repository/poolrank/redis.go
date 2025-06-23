@@ -18,7 +18,7 @@ import (
 type redisRepository struct {
 	redisClient redis.UniversalClient
 
-	keyGenerator *keyGenerator
+	keyGenerator *KeyGenerator
 
 	config Config
 }
@@ -44,11 +44,14 @@ func (r *redisRepository) FindBestPoolIDs(ctx context.Context, tokenIn, tokenOut
 	if index == valueobject.NativeTvl {
 		return r.findBestPoolByTvl(ctx, tokenIn, tokenOut, opt, forcePoolsForToken)
 	} else {
-		sortBy := SortByLiquidityScoreTvl
-		if index == valueobject.LiquidityScore {
-			sortBy = SortByLiquidityScore
-		}
-		return r.findBestPoolIDsByScore(ctx, tokenIn, tokenOut, amountIn, opt, sortBy, forcePoolsForToken)
+		return r.findBestPoolIDsByScore(
+			ctx,
+			tokenIn,
+			tokenOut,
+			amountIn,
+			opt,
+			forcePoolsForToken,
+		)
 	}
 }
 
@@ -58,29 +61,28 @@ func (r *redisRepository) findBestPoolIDsByNativeTvl(
 	opt valueobject.GetBestPoolsOptions,
 	forcePoolsForToken map[string][]string,
 ) ([]string, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDsByNativeTvl")
+	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.findBestPoolIDsByNativeTvl")
 	defer span.End()
 
 	forcePoolsForTokenIn, forcePoolsForTokenOut := forcePoolsForToken[tokenIn], forcePoolsForToken[tokenOut]
 
 	tvlMap := map[string]*redis.ZRangeBy{}
 	if len(forcePoolsForTokenIn) == 0 && len(forcePoolsForTokenOut) == 0 {
-		tvlMap[r.keyGenerator.directPairKey(SortByTVLNative, tokenIn, tokenOut)] = r.zrangeBy(opt.DirectPoolsCount)
-		tvlMap[r.keyGenerator.directPairKey(SortByAmplifiedTVLNative, tokenIn,
+		tvlMap[r.keyGenerator.DirectPairKey(SortByTVLNative, tokenIn, tokenOut)] = r.zrangeBy(opt.DirectPoolsCount)
+		tvlMap[r.keyGenerator.DirectPairKey(SortByAmplifiedTVLNative, tokenIn,
 			tokenOut)] = r.zrangeBy(opt.AmplifiedTvlDirectPoolsCount)
 	}
 
-	tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByTVLNative)] = r.zrangeBy(opt.WhitelistPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByAmplifiedTVLNative)] = r.zrangeBy(opt.AmplifiedTvlWhitelistPoolsCount)
+	tvlMap[r.keyGenerator.WhitelistToWhitelistPairKey(SortByLiquidityScoreTvl)] = r.zrangeBy(opt.WhitelistPoolsCount)
 
 	if len(forcePoolsForTokenIn) == 0 {
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVLNative, tokenIn)] = r.zrangeBy(opt.TokenInPoolsCount)
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTVLNative,
+		tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByTVLNative, tokenIn)] = r.zrangeBy(opt.TokenInPoolsCount)
+		tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByAmplifiedTVLNative,
 			tokenIn)] = r.zrangeBy(opt.AmplifiedTvlTokenInPoolsCount)
 	}
 	if len(forcePoolsForTokenOut) == 0 {
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVLNative, tokenOut)] = r.zrangeBy(opt.TokenOutPoolCount)
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTVLNative,
+		tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByTVLNative, tokenOut)] = r.zrangeBy(opt.TokenOutPoolCount)
+		tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByAmplifiedTVLNative,
 			tokenOut)] = r.zrangeBy(opt.AmplifiedTvlTokenOutPoolCount)
 	}
 
@@ -101,43 +103,64 @@ func (r *redisRepository) zrangeBy(counter int64) *redis.ZRangeBy {
 }
 
 func (r *redisRepository) findBestPoolIDsByScore(ctx context.Context, tokenIn, tokenOut string, amountInUsd float64,
-	opt valueobject.GetBestPoolsOptions, sortBy string, forcePoolsForToken map[string][]string) ([]string, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDsByNativeTvl")
+	opt valueobject.GetBestPoolsOptions, forcePoolsForToken map[string][]string) ([]string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.findBestPoolIDsByScore")
 	defer span.End()
+
+	// encode amount in to find min score
+	score, err := entity.GetMinScore(amountInUsd, opt.AmountInThreshold)
+	if err != nil {
+		return nil, err
+	}
 
 	forcePoolsForTokenIn, forcePoolsForTokenOut := forcePoolsForToken[tokenIn], forcePoolsForToken[tokenOut]
 
 	tvlMap := map[string]*redis.ZRangeBy{}
 	if len(forcePoolsForTokenIn) == 0 && len(forcePoolsForTokenOut) == 0 {
-		tvlMap[r.keyGenerator.directPairKey(SortByTVLNative, tokenIn, tokenOut)] = r.zrangeBy(opt.DirectPoolsCount)
-		tvlMap[r.keyGenerator.directPairKey(SortByAmplifiedTVLNative, tokenIn,
-			tokenOut)] = r.zrangeBy(opt.AmplifiedTvlDirectPoolsCount)
+		if r.config.SetsNeededTobeIndexed[string(valueobject.DIRECT)] {
+			tvlMap[r.keyGenerator.DirectPairKeyWithoutSort(SortByLiquidityScoreTvl, tokenIn, tokenOut)] = &redis.ZRangeBy{
+				Min:   fmt.Sprintf("%f", score),
+				Max:   "+inf",
+				Count: opt.DirectPoolsCount + opt.AmplifiedTvlDirectPoolsCount,
+			}
+		} else {
+			tvlMap[r.keyGenerator.DirectPairKey(SortByTVLNative, tokenIn, tokenOut)] = r.zrangeBy(opt.DirectPoolsCount)
+			tvlMap[r.keyGenerator.DirectPairKey(SortByAmplifiedTVLNative, tokenIn,
+				tokenOut)] = r.zrangeBy(opt.AmplifiedTvlDirectPoolsCount)
+		}
 	}
 
-	// encode amount in to find min score
-	if sortBy == SortByLiquidityScoreTvl {
-		score, err := entity.GetMinScore(amountInUsd, opt.AmountInThreshold)
-		if err != nil {
-			return nil, err
-		}
-		tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByLiquidityScoreTvl)] = &redis.ZRangeBy{
-			Min:   fmt.Sprintf("%f", score),
-			Max:   "+inf",
-			Count: opt.WhitelistPoolsCount,
-		}
-	} else {
-		tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByLiquidityScore)] = r.zrangeBy(opt.WhitelistPoolsCount)
+	tvlMap[r.keyGenerator.WhitelistToWhitelistPairKey(SortByLiquidityScoreTvl)] = &redis.ZRangeBy{
+		Min:   fmt.Sprintf("%f", score),
+		Max:   "+inf",
+		Count: opt.WhitelistPoolsCount,
 	}
 
 	if len(forcePoolsForTokenIn) == 0 {
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVLNative, tokenIn)] = r.zrangeBy(opt.TokenInPoolsCount)
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTVLNative,
-			tokenIn)] = r.zrangeBy(opt.AmplifiedTvlTokenInPoolsCount)
+		if r.config.SetsNeededTobeIndexed[string(valueobject.TOKEN_WHITELIST)] {
+			tvlMap[r.keyGenerator.TokenToWhitelistPairKey(SortByLiquidityScoreTvl, tokenIn)] = &redis.ZRangeBy{
+				Min:   fmt.Sprintf("%f", score),
+				Max:   "+inf",
+				Count: opt.TokenInPoolsCount + opt.AmplifiedTvlTokenInPoolsCount,
+			}
+		} else {
+			tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByTVLNative, tokenIn)] = r.zrangeBy(opt.TokenInPoolsCount)
+			tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByAmplifiedTVLNative,
+				tokenIn)] = r.zrangeBy(opt.AmplifiedTvlTokenInPoolsCount)
+		}
 	}
 	if len(forcePoolsForTokenOut) == 0 {
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVLNative, tokenOut)] = r.zrangeBy(opt.TokenOutPoolCount)
-		tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTVLNative,
-			tokenOut)] = r.zrangeBy(opt.AmplifiedTvlTokenOutPoolCount)
+		if r.config.SetsNeededTobeIndexed[string(valueobject.WHITELIST_TOKEN)] {
+			tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByLiquidityScoreTvl, tokenOut)] = &redis.ZRangeBy{
+				Min:   fmt.Sprintf("%f", score),
+				Max:   "+inf",
+				Count: opt.TokenOutPoolCount + opt.AmplifiedTvlTokenOutPoolCount,
+			}
+		} else {
+			tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByTVLNative, tokenOut)] = r.zrangeBy(opt.TokenOutPoolCount)
+			tvlMap[r.keyGenerator.WhitelistToTokenPairKey(SortByAmplifiedTVLNative,
+				tokenOut)] = r.zrangeBy(opt.AmplifiedTvlTokenOutPoolCount)
+		}
 	}
 
 	poolIDs, err := r.findBestPoolIDs(ctx, tvlMap)
@@ -176,7 +199,7 @@ func (r *redisRepository) findBestPoolIDs(ctx context.Context, params map[string
 
 // FindGlobalBestPools return pools address that has the most TVL among all pairs
 func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int64) ([]string, error) {
-	return r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.globalSortedSetKey(SortByTVLNative), &redis.ZRangeBy{
+	return r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.GlobalSortedSetKey(SortByTVLNative), &redis.ZRangeBy{
 		Min:   "0",
 		Max:   "+inf",
 		Count: poolCount,
@@ -187,7 +210,7 @@ func (r *redisRepository) FindGlobalBestPoolsByScores(ctx context.Context, poolC
 	error) {
 	whiteListSet := mapset.NewThreadUnsafeSet[string]()
 	result := make([]string, 0, poolCount)
-	whitelist, err := r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy),
+	whitelist, err := r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.WhitelistToWhitelistPairKey(sortBy),
 		&redis.ZRangeBy{
 			Min:   "0",
 			Max:   "+inf",
@@ -239,20 +262,20 @@ func (r *redisRepository) AddToSortedSet(
 	_, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			if useGlobal {
-				tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(key), member)
+				tx.ZAdd(ctx, r.keyGenerator.GlobalSortedSetKey(key), member)
 			}
-			tx.ZAdd(ctx, r.keyGenerator.directPairKey(key, token0, token1), member)
+			tx.ZAdd(ctx, r.keyGenerator.DirectPairKey(key, token0, token1), member)
 
 			if isToken0Whitelisted && isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), member)
+				tx.ZAdd(ctx, r.keyGenerator.WhitelistToWhitelistPairKey(key), member)
 			}
 
 			if isToken0Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token1), member)
+				tx.ZAdd(ctx, r.keyGenerator.WhitelistToTokenPairKey(key, token1), member)
 			}
 
 			if isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token0), member)
+				tx.ZAdd(ctx, r.keyGenerator.WhitelistToTokenPairKey(key, token0), member)
 			}
 
 			return nil
@@ -273,20 +296,20 @@ func (r *redisRepository) RemoveFromSortedSet(
 	_, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			if useGlobal {
-				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(key), memberName)
+				tx.ZRem(ctx, r.keyGenerator.GlobalSortedSetKey(key), memberName)
 			}
-			tx.ZRem(ctx, r.keyGenerator.directPairKey(key, token0, token1), memberName)
+			tx.ZRem(ctx, r.keyGenerator.DirectPairKey(key, token0, token1), memberName)
 
 			if isToken0Whitelisted && isToken1Whitelisted {
-				tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), memberName)
+				tx.ZRem(ctx, r.keyGenerator.WhitelistToWhitelistPairKey(key), memberName)
 			}
 
 			if isToken0Whitelisted {
-				tx.ZRem(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token1), memberName)
+				tx.ZRem(ctx, r.keyGenerator.WhitelistToTokenPairKey(key, token1), memberName)
 			}
 
 			if isToken1Whitelisted {
-				tx.ZRem(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token0), memberName)
+				tx.ZRem(ctx, r.keyGenerator.WhitelistToTokenPairKey(key, token0), memberName)
 			}
 
 			return nil
@@ -305,38 +328,50 @@ func (r *redisRepository) RemoveAddressesFromWhitelistIndex(ctx context.Context,
 	if removeFromGlobal {
 		_, err := r.redisClient.Pipelined(
 			ctx, func(tx redis.Pipeliner) error {
-				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(SortByTVLNative), pools)
-				tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools)
+				tx.ZRem(ctx, r.keyGenerator.GlobalSortedSetKey(SortByTVLNative), pools)
+				tx.ZRem(ctx, r.keyGenerator.WhitelistToWhitelistPairKey(key), pools)
 
 				return nil
 			},
 		)
 		return err
 	} else {
-		return r.redisClient.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools).Err()
+		return r.redisClient.ZRem(ctx, r.keyGenerator.WhitelistToWhitelistPairKey(key), pools).Err()
 	}
 }
 
 func (r *redisRepository) GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error) {
-	return r.redisClient.ZCard(ctx, r.keyGenerator.directPairKey(key, token0, token1)).Result()
+	return r.redisClient.ZCard(ctx, r.keyGenerator.DirectPairKey(key, token0, token1)).Result()
 }
 
-func (r *redisRepository) AddToWhitelistSortedSet(ctx context.Context, scores []entity.PoolScore, sortBy string,
-	count int64) error {
+func (r *redisRepository) AddScoreToSortedSets(ctx context.Context, scores []entity.PoolScore) error {
 	if len(scores) == 0 {
 		return errors.New("can not add empty list to whitelist sorted set")
 	}
-	members := []redis.Z{}
-	newPoolSet := mapset.NewThreadUnsafeSet[string]()
-	for _, score := range scores {
-		scoreVal := score.EncodeScore(sortBy == SortByLiquidityScoreTvl)
+	params := map[string][]redis.Z{}
 
-		members = append(members, redis.Z{
+	for _, score := range scores {
+		scoreVal := score.EncodeScore()
+		if params[score.Key] == nil {
+			params[score.Key] = []redis.Z{}
+		}
+
+		params[score.Key] = append(params[score.Key], redis.Z{
 			Score:  scoreVal,
 			Member: score.Pool,
 		})
-		newPoolSet.Add(score.Pool)
+
 	}
 
-	return r.redisClient.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), members...).Err()
+	_, err := r.redisClient.Pipelined(
+		ctx, func(tx redis.Pipeliner) error {
+			for key, members := range params {
+				tx.ZAdd(ctx, key, members...)
+			}
+
+			return nil
+		},
+	)
+
+	return err
 }

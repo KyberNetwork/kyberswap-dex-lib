@@ -92,7 +92,7 @@ func transformGetBundledRoutesParams(ginCtx *gin.Context, params params.GetBundl
 		}
 	}
 
-	if params.Index != "" && params.Index != string(valueobject.Composite) && params.Index != string(valueobject.LiquidityScore) && params.Index != string(valueobject.NativeTvl) {
+	if params.Index != "" && params.Index != string(valueobject.Composite) && params.Index != string(valueobject.NativeTvl) {
 		return dto.GetBundledRoutesQuery{}, errors.WithMessagef(
 			ErrInvalidValue,
 			"index: [%s]",

@@ -41,6 +41,8 @@ type ITokenRepository interface {
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 	RefreshCacheNativePriceInUSD(ctx context.Context)
+	GetNativePriceInUsd(ctx context.Context) (*big.Float, error)
+	FetchNativePriceInUSD(ctx context.Context) error
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/pool_rank_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPoolRankRepository
@@ -60,7 +62,7 @@ type IPoolRankRepository interface {
 	) error
 	RemoveAddressesFromWhitelistIndex(ctx context.Context, key string, pools []string, removeFromGlobal bool) error
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)
-	AddToWhitelistSortedSet(ctx context.Context, scores []routerEntity.PoolScore, sortBy string, count int64) error
+	AddScoreToSortedSets(ctx context.Context, scores []routerEntity.PoolScore) error
 }
 
 type IPoolFactory interface {

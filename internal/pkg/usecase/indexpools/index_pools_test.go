@@ -183,11 +183,11 @@ func mockPoolsTestIndexPools() []*entity.Pool {
 
 func mockPoolsNativeTVL(pools []*entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice) []float64 {
 	ctx := context.TODO()
-	nativeTVL0, _ := business.CalculatePoolTVL(ctx, pools[0], nativePriceByToken)
-	nativeTVL1, _ := business.CalculatePoolTVL(ctx, pools[1], nativePriceByToken)
-	nativeTVL2, _ := business.CalculatePoolTVL(ctx, pools[2], nativePriceByToken)
-	nativeTVL3, _ := business.CalculatePoolTVL(ctx, pools[3], nativePriceByToken)
-	nativeTVL4, _ := business.CalculatePoolTVL(ctx, pools[4], nativePriceByToken)
+	nativeTVL0, _ := business.CalculatePoolTVL(ctx, pools[0], nativePriceByToken, false)
+	nativeTVL1, _ := business.CalculatePoolTVL(ctx, pools[1], nativePriceByToken, false)
+	nativeTVL2, _ := business.CalculatePoolTVL(ctx, pools[2], nativePriceByToken, false)
+	nativeTVL3, _ := business.CalculatePoolTVL(ctx, pools[3], nativePriceByToken, false)
+	nativeTVL4, _ := business.CalculatePoolTVL(ctx, pools[4], nativePriceByToken, false)
 
 	return []float64{
 		nativeTVL0,
@@ -521,7 +521,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					FindByAddresses(gomock.Any(), []string{mockPool.Address}).
 					Return([]*entity.Pool{mockPool}, nil)
 				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
-				mockTvl, _ := business.CalculatePoolTVL(context.TODO(), mockPool, nil)
+				mockTvl, _ := business.CalculatePoolTVL(context.TODO(), mockPool, nil, false)
 				mockPoolRankRepo.EXPECT().
 					AddToSortedSet(
 						gomock.Any(),

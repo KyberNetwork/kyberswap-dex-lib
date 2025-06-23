@@ -9,7 +9,6 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -24,7 +23,8 @@ const (
 )
 
 const (
-	Pool FileHeader = iota
+	Key FileHeader = iota
+	Pool
 	Harmonic
 	Geometric
 	Arithmetic
@@ -38,32 +38,52 @@ func NewUpdatePoolsScore(rankingRepo IPoolRankRepository, config UpdateLiquidity
 	}
 }
 
-func (u *UpdatePoolScores) Handle(ctx context.Context, inputFile string) error {
-	scores, err := u.readLiquidityScores(ctx, inputFile)
-	if err != nil {
-		return err
+func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileNames []string) []error {
+	result := make([]error, 0, 4)
+	scoresChan := make(chan []entity.PoolScore, len(scoresFileNames))
+
+	go func(fileNames []string) []error {
+		for _, name := range scoresFileNames {
+			err := u.readLiquidityScores(ctx, name, scoresChan)
+			if err != nil {
+				result = append(result, err)
+			}
+		}
+		close(scoresChan)
+
+		return result
+
+	}(scoresFileNames)
+
+	count := 0
+	for scores := range scoresChan {
+		err := u.rankingRepo.AddScoreToSortedSets(ctx, scores)
+		if err != nil {
+			result = append(result, err)
+		}
+		count += len(scores)
 	}
+	logger.WithFields(ctx,
+		logger.Fields{
+			"struct": "UpdateLiquidityScore",
+			"method": "Handle",
+		}).Errorf("update liquidity scores total count %d", count)
 
-	if len(scores) == 0 {
-		return nil
-	}
-
-	err = u.rankingRepo.AddToWhitelistSortedSet(ctx, scores, poolrank.SortByLiquidityScoreTvl, u.config.GetBestPoolsOptions.WhitelistPoolsCount)
-	if err != nil {
-		return err
-	}
-
-	return u.rankingRepo.AddToWhitelistSortedSet(ctx, scores, poolrank.SortByLiquidityScore, u.config.GetBestPoolsOptions.WhitelistPoolsCount)
-
+	return result
 }
 
-func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename string) ([]entity.PoolScore, error) {
-	result := []entity.PoolScore{}
+func (u *UpdatePoolScores) SavePoolScore(ctx context.Context, poolScores []entity.PoolScore) error {
+	return u.rankingRepo.AddScoreToSortedSets(ctx, poolScores)
+}
+
+func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename string, scores chan<- []entity.PoolScore) error {
 	input, err := os.Open(filename)
 	if err != nil {
-		return result, err
+		return err
 	}
 	defer input.Close()
+	count := 0
+	errorCount := 0
 
 	reader := csv.NewReader(bufio.NewReader(input))
 	reader.Comma = ','
@@ -79,6 +99,7 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 	}
 
 	_, _ = reader.Read()
+	batch := make([]entity.PoolScore, u.config.ChunkSize)
 	for {
 		record, err := reader.Read()
 		// Stop at EOF.
@@ -87,7 +108,7 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 		}
 
 		if err != nil {
-			return result, err
+			return err
 		}
 		score, err := strconv.ParseFloat(record[scoreHeader], 64)
 		if err != nil {
@@ -97,16 +118,36 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 					"method": "readLiquidityScores",
 					"error":  err,
 				}).Errorf("parse score %s is error", record[scoreHeader])
+			errorCount++
 			continue
 		}
 		level, _ := strconv.ParseInt(record[Level], 10, 8)
 
-		result = append(result, entity.PoolScore{
+		batch = append(batch, entity.PoolScore{
+			Key:            record[Key],
 			Pool:           record[Pool],
 			LiquidityScore: score,
 			Level:          level,
 		})
-	}
 
-	return result, nil
+		if len(batch) == u.config.ChunkSize {
+			count += len(batch)
+			scores <- batch
+			batch = make([]entity.PoolScore, u.config.ChunkSize)
+		}
+	}
+	if len(batch) != 0 {
+		count += len(batch)
+		scores <- batch
+	}
+	logger.WithFields(ctx,
+		logger.Fields{
+			"struct":     "UpdateLiquidityScore",
+			"method":     "readLiquidityScores",
+			"fileName":   filename,
+			"totalCount": count,
+			"errorCount": errorCount,
+		}).Infof("read done")
+
+	return nil
 }

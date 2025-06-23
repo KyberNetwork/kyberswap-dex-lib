@@ -11,6 +11,7 @@ package indexpools
 
 import (
 	context "context"
+	big "math/big"
 	reflect "reflect"
 
 	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -41,6 +42,20 @@ func (m *MockIOnchainPriceRepository) EXPECT() *MockIOnchainPriceRepositoryMockR
 	return m.recorder
 }
 
+// FetchNativePriceInUSD mocks base method.
+func (m *MockIOnchainPriceRepository) FetchNativePriceInUSD(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchNativePriceInUSD", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FetchNativePriceInUSD indicates an expected call of FetchNativePriceInUSD.
+func (mr *MockIOnchainPriceRepositoryMockRecorder) FetchNativePriceInUSD(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchNativePriceInUSD", reflect.TypeOf((*MockIOnchainPriceRepository)(nil).FetchNativePriceInUSD), ctx)
+}
+
 // FindByAddresses mocks base method.
 func (m *MockIOnchainPriceRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
 	m.ctrl.T.Helper()
@@ -54,6 +69,21 @@ func (m *MockIOnchainPriceRepository) FindByAddresses(ctx context.Context, addre
 func (mr *MockIOnchainPriceRepositoryMockRecorder) FindByAddresses(ctx, addresses any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByAddresses", reflect.TypeOf((*MockIOnchainPriceRepository)(nil).FindByAddresses), ctx, addresses)
+}
+
+// GetNativePriceInUsd mocks base method.
+func (m *MockIOnchainPriceRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNativePriceInUsd", ctx)
+	ret0, _ := ret[0].(*big.Float)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNativePriceInUsd indicates an expected call of GetNativePriceInUsd.
+func (mr *MockIOnchainPriceRepositoryMockRecorder) GetNativePriceInUsd(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNativePriceInUsd", reflect.TypeOf((*MockIOnchainPriceRepository)(nil).GetNativePriceInUsd), ctx)
 }
 
 // RefreshCacheNativePriceInUSD mocks base method.
