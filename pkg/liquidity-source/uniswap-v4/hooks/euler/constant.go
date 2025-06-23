@@ -9,8 +9,6 @@ const (
 
 	DefaultGas int64 = 400000
 
-	tickSpacing int32 = 1 // hard-coded tick spacing, as its unused
-
 	factoryMethodPoolsSlice  = "poolsSlice"
 	factoryMethodPoolsLength = "poolsLength"
 

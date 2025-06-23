@@ -32,9 +32,6 @@ type PoolSimulator struct {
 
 	concentrationX, concentrationY *uint256.Int
 
-	vault0, vault1 string
-	eulerAccount   string
-
 	vaults []Vault
 }
 
@@ -66,9 +63,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		vaults:              extra.Vaults,
 		pause:               extra.Pause,
-		vault0:              staticExtra.Vault0,
-		vault1:              staticExtra.Vault1,
-		eulerAccount:        staticExtra.EulerAccount,
 		feeMultiplier:       staticExtra.FeeMultiplier,
 		equilibriumReserve0: staticExtra.EquilibriumReserve0,
 		equilibriumReserve1: staticExtra.EquilibriumReserve1,
@@ -159,17 +153,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolExtra{
-		Vault0:              s.vault0,
-		Vault1:              s.vault1,
-		EulerAccount:        s.eulerAccount,
-		EquilibriumReserve0: s.equilibriumReserve0.ToBig(),
-		EquilibriumReserve1: s.equilibriumReserve1.ToBig(),
-		FeeMultiplier:       s.feeMultiplier.ToBig(),
-		PriceY:              s.priceY.ToBig(),
-		PriceX:              s.priceX.ToBig(),
-		ConcentrationY:      s.concentrationY.ToBig(),
-		ConcentrationX:      s.concentrationX.ToBig(),
-		BlockNumber:         s.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
