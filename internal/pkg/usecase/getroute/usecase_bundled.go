@@ -131,10 +131,16 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 	sources := u.getSources(query.ClientId, query.BotScore, query.IncludedSources, query.ExcludedSources,
 		query.OnlyScalableSources)
 
-	var overridePools []*entity.Pool
-	err = json.Unmarshal(query.OverridePools, &overridePools)
+	var tmpOverridePools, overridePools []*entity.Pool
+	err = json.Unmarshal(query.OverridePools, &tmpOverridePools)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, pool := range tmpOverridePools {
+		if !query.ExcludedPools.Contains(pool.Address) {
+			overridePools = append(overridePools, pool)
+		}
 	}
 
 	index := valueobject.NativeTvl
