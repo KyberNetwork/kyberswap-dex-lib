@@ -58,7 +58,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if offset >= allPoolsLength {
+	if offset == allPoolsLength {
+		return nil, metadataBytes, nil
+	}
+
+	if offset > allPoolsLength {
 		logger.WithFields(logger.Fields{
 			"dex_id": dexID,
 			"offset": offset,
@@ -229,7 +233,6 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		ConcentrationX:       uint256.MustFromBig(params.Data.ConcentrationX),
 		ConcentrationY:       uint256.MustFromBig(params.Data.ConcentrationY),
 		ProtocolFeeRecipient: params.Data.ProtocolFeeRecipient,
-		Permit2Address:       common.HexToAddress(d.config.Permit2Address),
 	}
 
 	return poolData, nil

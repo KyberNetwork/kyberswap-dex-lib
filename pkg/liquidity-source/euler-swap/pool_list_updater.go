@@ -339,8 +339,6 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	}
 
 	poolData := StaticExtra{
-		Vault0:              vault0.Hex(),
-		Vault1:              vault1.Hex(),
 		EulerAccount:        eulerAccount.Hex(),
 		FeeMultiplier:       uint256.MustFromBig(feeMultiplier),
 		EquilibriumReserve0: uint256.MustFromBig(equilibriumReserve0),

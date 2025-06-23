@@ -64,15 +64,5 @@ type TrackerData struct {
 }
 
 type PoolExtra struct {
-	Vault0              string   `json:"vault0"`
-	Vault1              string   `json:"vault1"`
-	EulerAccount        string   `json:"eulerAccount"`
-	EquilibriumReserve0 *big.Int `json:"equilibriumReserve0"`
-	EquilibriumReserve1 *big.Int `json:"equilibriumReserve1"`
-	FeeMultiplier       *big.Int `json:"feeMultiplier"`
-	PriceY              *big.Int `json:"priceY"`
-	PriceX              *big.Int `json:"priceX"`
-	ConcentrationY      *big.Int `json:"concentrationY"`
-	ConcentrationX      *big.Int `json:"concentrationX"`
-	BlockNumber         uint64   `json:"blockNumber"`
+	BlockNumber uint64 `json:"blockNumber"`
 }

@@ -14,7 +14,6 @@ import (
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -22,17 +21,14 @@ type PoolSimulator struct {
 
 	status uint32 // 0 = unactivated, 1 = unlocked, 2 = locked
 
-	fee, protocolFee                         *uint256.Int
 	equilibriumReserve0, equilibriumReserve1 *uint256.Int
 	reserve0, reserve1                       *uint256.Int
-	priceX, priceY                           *uint256.Int
-	concentrationX, concentrationY           *uint256.Int
 
-	vault0, vault1       string
-	eulerAccount         string
+	priceX, priceY                 *uint256.Int
+	concentrationX, concentrationY *uint256.Int
+
+	fee, protocolFee     *uint256.Int
 	protocolFeeRecipient common.Address
-	permit2Address       common.Address
-	v4Fee                uint32
 
 	vaults []Vault
 }
@@ -61,9 +57,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		vaults:               extra.Vaults,
 		status:               extra.Pause,
-		vault0:               staticExtra.Vault0,
-		vault1:               staticExtra.Vault1,
-		eulerAccount:         staticExtra.EulerAccount,
 		fee:                  staticExtra.Fee,
 		protocolFee:          staticExtra.ProtocolFee,
 		equilibriumReserve0:  staticExtra.EquilibriumReserve0,
@@ -74,8 +67,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		priceY:               staticExtra.PriceY,
 		concentrationX:       staticExtra.ConcentrationX,
 		concentrationY:       staticExtra.ConcentrationY,
-		v4Fee:                uint32(staticExtra.Fee.Uint64() / 1e12),
-		permit2Address:       staticExtra.Permit2Address,
 		protocolFeeRecipient: staticExtra.ProtocolFeeRecipient,
 	}
 
@@ -174,22 +165,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	tokenInAddress, tokenOutAddress := eth.AddressZero, eth.AddressZero
-	if !valueobject.IsNative(tokenIn) {
-		tokenInAddress = common.HexToAddress(tokenIn)
-	}
-	if !valueobject.IsNative(tokenOut) {
-		tokenOutAddress = common.HexToAddress(tokenOut)
-	}
-
 	return PoolExtra{
-		Permit2Addr: p.permit2Address,
-		TokenIn:     tokenInAddress,
-		TokenOut:    tokenOutAddress,
-		Fee:         p.v4Fee,
-		TickSpacing: tickSpacing,
-		HookAddress: common.HexToAddress(p.GetAddress()),
-		HookData:    []byte{},
+		BlockNumber: p.Info.BlockNumber,
 	}
 }
 
