@@ -671,7 +671,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 							Key:            key,
 							Pool:           pool.GetAddress(),
 							TvlInUsd:       tvlOfPair,
-							LiquidityScore: DEFAULT_POOL_HAVE_MANY_TOKENS_SCORE,
+							LiquidityScore: gen.config.PoolHasManyTokensDefaultScore,
 						})
 					}
 
@@ -1078,11 +1078,11 @@ func (gen *TradeDataGenerator) generateTradeDataKey(tokenIn, tokenOut string) []
 		result = append(result, gen.keyGenerator.WhitelistToWhitelistPairKey(poolrank.SortByLiquidityScoreTvl))
 	}
 
-	if !isTokenOutWhitelist {
+	if isTokenInWhitelist {
 		result = append(result, gen.keyGenerator.WhitelistToTokenPairKey(poolrank.SortByLiquidityScoreTvl, tokenOut))
 	}
 
-	if !isTokenInWhitelist {
+	if isTokenOutWhitelist {
 		result = append(result, gen.keyGenerator.TokenToWhitelistPairKey(poolrank.SortByLiquidityScoreTvl, tokenIn))
 	}
 

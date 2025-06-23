@@ -170,7 +170,7 @@ common:
   aggregatorTransactionTopic: &aggregatorTransactionTopic "routeSummary"
   liquidityScoreInputFileName: &liquidityScoreInputFileName "./scores.csv"
   liquidityTradesDataFileName: &liquidityTradesDataFileName "./trade_data.txt"
-  logError: &logError false
+  logError: &logError true
   setsNeededTobeIndexed: &setsNeededTobeIndexed
     whitelist-whitelist: true
     whitelist-token: false
@@ -573,6 +573,7 @@ useCase:
     maxTokensLen: 6
     availableSources: *availableSources
     logError: *logError
+    poolHasManyTokensDefaultScore: 1000
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
@@ -619,6 +620,7 @@ job:
       batchRate: 700ms
       batchSize: 100
       retryInterval: 5s
+    exportZeroScores: true
   updateL1Fee:
     interval: 2s
 repository:

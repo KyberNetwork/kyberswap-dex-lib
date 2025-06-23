@@ -469,6 +469,7 @@ useCase:
     maxTokensLen: 6
     availableSources: *availableSources
     logError: *logError
+    poolHasManyTokensDefaultScore: 1000
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions

@@ -27,9 +27,10 @@ type TradeDataGeneratorConfig struct {
 	ExportFailedTrade   bool            `mapstructure:"exportFailedTrade"`
 	FailedFileName      string          `mapstructure:"failedFileName"`
 	// format will be whitelist-whitelist, token-whitelist, whitelist-token, direct
-	SetsNeededTobeIndexed       map[string]bool `mapstructure:"setsNeededTobeIndexed"`
-	MaxTokensLen                int             `mapstructure:"maxTokensLen"`
-	InvalidPriceImpactThreshold float64         `mapstructure:"invalidPriceImpactThreshold"`
+	SetsNeededTobeIndexed         map[string]bool `mapstructure:"setsNeededTobeIndexed"`
+	MaxTokensLen                  int             `mapstructure:"maxTokensLen"`
+	InvalidPriceImpactThreshold   float64         `mapstructure:"invalidPriceImpactThreshold"`
+	PoolHasManyTokensDefaultScore float64         `mapstructure:"poolHasManyTokensDefaultScore"`
 }
 
 type UpdateLiquidityScoreConfig struct {
