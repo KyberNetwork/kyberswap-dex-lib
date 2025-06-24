@@ -16,6 +16,10 @@ const (
 	erc4626MethodMaxRedeem           = "maxRedeem"
 	erc4626MethodEntryFeeBasisPoints = "entryFeeBasisPoints"
 	erc4626MethodExitFeeBasisPoints  = "exitFeeBasisPoints"
+	erc4626MethodMinRedeemRatio      = "minRedeemRatio"
+
+	Bps            = 10000
+	RatioPrecision = 1e18
 )
 
 var (
