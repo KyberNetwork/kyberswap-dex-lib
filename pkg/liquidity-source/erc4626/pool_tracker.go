@@ -4,14 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -62,16 +60,19 @@ func (t *PoolTracker) getNewPoolState(
 	_ poolpkg.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	t.logger.Info("Start updating state.")
+	lg := t.logger.WithFields(logger.Fields{
+		"address": p.Address,
+	})
+	lg.Info("Start updating state.")
 	defer func() {
-		t.logger.Info("Finish updating state.")
+		lg.Info("Finish updating state.")
 	}()
 
 	vaultAddr := p.Tokens[0].Address
 	vaultCfg := t.cfg.Vaults[vaultAddr]
 	_, state, err := fetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 	if err != nil {
-		t.logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to fetch state")
 
@@ -79,25 +80,24 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Gas: Gas{
-			Deposit: vaultCfg.Gas.Deposit,
-			Redeem:  vaultCfg.Gas.Redeem,
-		},
-		MaxDeposit: lo.CoalesceOrEmpty(uint256.MustFromBig(state.MaxDeposit), number.MaxU256),
-		MaxRedeem:  lo.CoalesceOrEmpty(uint256.MustFromBig(state.MaxRedeem), number.MaxU256),
-		SwapTypes:  vaultCfg.SwapTypes,
+		Gas:         Gas(vaultCfg.Gas),
+		SwapTypes:   vaultCfg.SwapTypes,
+		MaxDeposit:  uint256.MustFromBig(state.MaxDeposit),
+		MaxRedeem:   uint256.MustFromBig(state.MaxRedeem),
+		EntryFeeBps: state.EntryFeeBps,
+		ExitFeeBps:  state.ExitFeeBps,
 	})
 	if err != nil {
-		t.logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to marshal extra")
 		return p, err
 	}
 
-	p.Reserves = entity.PoolReserves{state.TotalSupply.String(), state.TotalAssets.String()}
 	p.Timestamp = time.Now().Unix()
-	p.BlockNumber = state.blockNumber
+	p.Reserves = entity.PoolReserves{state.TotalSupply.String(), state.TotalAssets.String()}
 	p.Extra = string(extraBytes)
+	p.BlockNumber = state.blockNumber
 
 	return p, nil
 }

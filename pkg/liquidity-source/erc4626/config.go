@@ -6,6 +6,11 @@ type Config struct {
 }
 
 type VaultCfg struct {
-	Gas       Gas      `json:"gas"`
+	Gas       GasCfg   `json:"gas"`
 	SwapTypes SwapType `json:"swapTypes"`
+}
+
+type GasCfg struct {
+	Deposit uint64 `json:"deposit"`
+	Redeem  uint64 `json:"redeem"`
 }
