@@ -27,6 +27,7 @@ common:
   availableSources: &availableSources
     - "katana-v2"
     - "katana-v3"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

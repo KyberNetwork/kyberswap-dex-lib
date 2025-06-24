@@ -36,6 +36,7 @@ common:
     - "uniswapv3"
     - "velodrome-cl-2"
     - "sky-psm"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

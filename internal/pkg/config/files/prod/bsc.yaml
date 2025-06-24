@@ -89,8 +89,7 @@ common:
     - "pancake-infinity-cl"
     - "pancake-infinity-bin-fairflow"
     - "pancake-infinity-cl-fairflow"
-    - "angle-staked-stable-usd"
-    - "angle-staked-stable-eur"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -675,4 +674,3 @@ aevm:
     routeRandomly: false
   cachedHoldersListTTLSec: 30
   predefinedBalanceSlots:
-

@@ -52,6 +52,7 @@ common:
     - "panda-fun"
     - "brownfi"
     - "native-v3"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

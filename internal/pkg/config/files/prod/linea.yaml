@@ -59,6 +59,7 @@ common:
     - "woofi-v3"
     - "horizon-integral"
     - "overnight-usdp"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

@@ -80,6 +80,7 @@ common:
     - "lo1inch"
     - "uniswap-v4"
     - "uniswap-v4-euler"
+    - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
