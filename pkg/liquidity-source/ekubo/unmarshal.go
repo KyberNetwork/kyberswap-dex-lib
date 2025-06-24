@@ -60,6 +60,16 @@ func unmarshalPool(extraBytes []byte, staticExtra *StaticExtra) (Pool, error) {
 			staticExtra.PoolKey,
 			twammState,
 		)
+	case ExtensionTypeMevResist:
+		baseState, err := unmarshalExtra[pools.BasePoolState](extraBytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing oracle pool state: %w", err)
+		}
+
+		pool = pools.NewMevResistPool(
+			staticExtra.PoolKey,
+			baseState,
+		)
 	default:
 		return nil, fmt.Errorf("unknown pool extension %v, %v", staticExtra.ExtensionType, staticExtra.PoolKey.Config.Extension)
 	}

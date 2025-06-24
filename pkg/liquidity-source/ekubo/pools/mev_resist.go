@@ -48,7 +48,7 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 	poolConfig := &p.key.Config
 	approximateFeeMultiplier := math.Abs(float64(tickAfterSwap-p.lastTick)) / float64(poolConfig.TickSpacing)
 
-	fixedPointAdditionalFee := uint64(math.Min(math.Round(approximateFeeMultiplier*float64(poolConfig.Fee)), float64(math.MaxUint64)))
+	fixedPointAdditionalFee := uint64(min(math.Round(approximateFeeMultiplier*float64(poolConfig.Fee)), math.MaxUint64))
 
 	if !p.swappedThisBlock {
 		quote.Gas += quoting.GasCostOfAccumulatingMevResistFees
@@ -78,5 +78,6 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 		calculatedAmount.Add(calculatedAmount, bf.Sub(bf, inputAmount))
 	}
 
+	quote.SwapInfo.Forward = p.key.Config.Extension
 	return quote, nil
 }
