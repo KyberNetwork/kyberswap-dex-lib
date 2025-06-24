@@ -1,4 +1,4 @@
-package uniswapv2
+package euler
 
 import (
 	"bytes"
@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	uniswapV2PairABI      abi.ABI
-	uniswapV2FactoryABI   abi.ABI
+	poolABI    abi.ABI
+	factoryABI abi.ABI
+	vaultABI   abi.ABI
 )
 
 func init() {
@@ -17,10 +18,13 @@ func init() {
 		data []byte
 	}{
 		{
-			&uniswapV2PairABI, pairABIJson,
+			&poolABI, poolABIJson,
 		},
 		{
-			&uniswapV2FactoryABI, factoryABIJson,
+			&factoryABI, factoryABIJson,
+		},
+		{
+			&vaultABI, vaultABIJson,
 		},
 	}
 

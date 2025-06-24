@@ -2,10 +2,13 @@ package uniswapv2
 
 import (
 	"context"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 )
 
 type (
@@ -18,182 +21,62 @@ type (
 		) (uint64, error)
 	}
 
-	// MDexFeeTracker gets fee from factory contract `getPairFees`
-	MDexFeeTracker struct {
+	// GenericFeeTracker gets fee generically, using {pool} and {factory} as templates for input common.Hash params
+	GenericFeeTracker struct {
 		ethrpcClient *ethrpc.Client
-	}
-
-	// MMFFeeTracker gets fee from pair contract `swapFee`
-	MMFFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// ShibaswapFeeTracker gets fee from pair contract `totalFee`
-	ShibaswapFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// DefiSwapFeeTracker gets fee from factory contract `totalFeeBasisPoint`
-	DefiSwapFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// ZKSwapFinanceFeeTracker gets fee from pair contract `getSwapFee`
-	ZKSwapFinanceFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// MemeswapFeeTracker gets fee from pair contract `getFee`
-	MemeswapFeeTracker struct {
-		ethrpcClient *ethrpc.Client
+		abi          abi.ABI
+		target       string
+		args         []string
 	}
 )
 
-func (t *MDexFeeTracker) GetFee(
+func NewGenericFeeTracker(ethrpcClient *ethrpc.Client, feeTrackerCfg *FeeTrackerCfg) *GenericFeeTracker {
+	return &GenericFeeTracker{
+		ethrpcClient: ethrpcClient,
+		abi: abi.ABI{
+			Methods: map[string]abi.Method{
+				genericMethodFee: {
+					ID: binary.BigEndian.AppendUint32(make([]byte, 0, 4), feeTrackerCfg.Selector),
+					Inputs: lo.RepeatBy(len(feeTrackerCfg.Args), func(int) abi.Argument {
+						return abi.Argument{Type: abi.Type{T: abi.FixedBytesTy, Size: 32}}
+					}),
+					Outputs: abi.Arguments{
+						{Type: abi.Type{T: abi.UintTy, Size: 64}},
+					},
+				},
+			},
+		},
+		target: feeTrackerCfg.Target,
+		args:   feeTrackerCfg.Args,
+	}
+}
+
+func getGenericInput(input, poolAddress, factoryAddress string) string {
+	switch input {
+	case genericTemplatePool:
+		return poolAddress
+	case genericTemplateFactory:
+		return factoryAddress
+	default:
+		return input
+	}
+}
+
+func (t *GenericFeeTracker) GetFee(
 	ctx context.Context,
 	poolAddress string,
 	factoryAddress string,
 	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    mdexFactoryABI,
-		Target: factoryAddress,
-		Method: mdexFactoryMethodGetPairFees,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee.Uint64(), nil
-}
-
-func (t *MMFFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	_ string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee uint32
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    meerkatPairABI,
-		Target: poolAddress,
-		Method: meerkatPairMethodSwapFee,
-		Params: nil,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(fee), nil
-}
-
-func (t *ShibaswapFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	_ string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    shibaswapPairABI,
-		Target: poolAddress,
-		Method: shibaswapPairMethodTotalFee,
-		Params: nil,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee.Uint64(), nil
-}
-
-func (t *DefiSwapFeeTracker) GetFee(
-	ctx context.Context,
-	_ string,
-	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    croDefiSwapFactoryABI,
-		Target: factoryAddress,
-		Method: croDefiSwapFactoryMethodTotalFeeBasisPoint,
-		Params: nil,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee.Uint64(), nil
-}
-
-func (t *ZKSwapFinanceFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee uint16
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    zkSwapFinancePairABI,
-		Target: poolAddress,
-		Method: zkSwapFinancePairMethodGetSwapFee,
-		Params: nil,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return uint64(fee), nil
-}
-
-func (t *MemeswapFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	_ /*factoryAddress*/ string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee uint64
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    memeswapPairABI,
-		Target: poolAddress,
-		Method: memeswapPairMethodGetSwapFee,
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee, nil
+) (fee uint64, err error) {
+	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
+		AddCall(&ethrpc.Call{
+			ABI:    t.abi,
+			Target: getGenericInput(t.target, poolAddress, factoryAddress),
+			Method: genericMethodFee,
+			Params: lo.Map(t.args, func(arg string, _ int) any {
+				return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress))
+			}),
+		}, []any{&fee}).
+		Call()
+	return fee, err
 }

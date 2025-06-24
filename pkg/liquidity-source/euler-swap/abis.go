@@ -4,8 +4,6 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
 )
 
 var (
@@ -36,25 +34,5 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
-	}
-
-	factoryABI.Methods["allPools"] = abi.Method{
-		ID: common.Hex2Bytes("041d1ad0"),
-		Inputs: abi.Arguments{
-			{
-				Name: "start",
-				Type: lo.Must(abi.NewType("uint256", "", nil)),
-			},
-			{
-				Name: "end",
-				Type: lo.Must(abi.NewType("uint256", "", nil)),
-			},
-		},
-		Outputs: abi.Arguments{
-			{
-				Name: "",
-				Type: lo.Must(abi.NewType("address[]", "", nil)),
-			},
-		},
 	}
 }

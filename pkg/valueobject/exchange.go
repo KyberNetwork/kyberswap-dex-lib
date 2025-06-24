@@ -102,16 +102,17 @@ const (
 	ExchangeDexalot                    = "dexalot"
 	ExchangeDinoSwap                   = "dinoswap"
 	ExchangeDinosaurEggs               = "dinosaureggs"
-	ExchangeDooarSwapV2                = "dooarswap-v2"
 	ExchangeDodo                       = "dodo"
 	ExchangeDodoClassical              = "dodo-classical"
 	ExchangeDodoPrivatePool            = "dodo-dpp"
 	ExchangeDodoStablePool             = "dodo-dsp"
 	ExchangeDodoVendingMachine         = "dodo-dvm"
+	ExchangeDooarSwapV2                = "dooarswap-v2"
 	ExchangeDoveSwapV3                 = "doveswap-v3"
 	ExchangeDyorSwap                   = "dyor-swap"
 	ExchangeDystopia                   = "dystopia"
 	ExchangeE3                         = "e3"
+	ExchangeERC4626                    = "erc4626"
 	ExchangeEchoDex                    = "echo-dex"
 	ExchangeEchoDexV3                  = "echo-dex-v3"
 	ExchangeEkubo                      = "ekubo"
@@ -205,6 +206,7 @@ const (
 	ExchangeMemeswap                   = "memeswap"
 	ExchangeMerchantMoe                = "merchant-moe"
 	ExchangeMerchantMoeV22             = "merchant-moe-v22"
+	ExchangeMeshSwap                   = "meshswap"
 	ExchangeMetavault                  = "metavault"
 	ExchangeMetavaultV2                = "metavault-v2"
 	ExchangeMetavaultV3                = "metavault-v3"
@@ -268,6 +270,7 @@ const (
 	ExchangeQuickSwap                  = "quickswap"
 	ExchangeQuickSwapUniV3             = "quickswap-uni-v3"
 	ExchangeQuickSwapV3                = "quickswap-v3"
+	ExchangeQuickSwapV4                = "quickswap-v4"
 	ExchangeRamses                     = "ramses"
 	ExchangeRamsesV2                   = "ramses-v2"
 	ExchangeRenzoEZETH                 = "renzo-ezeth"
@@ -361,6 +364,7 @@ const (
 	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniswapV4                  = "uniswap-v4"
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUsd0PP                     = "usd0pp"
@@ -403,8 +407,6 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeWUSDM                      = "wusdm"
-	ExchangeWUSDL                      = "wusdl"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -504,16 +506,17 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDeltaSwapV1:                {},
 	ExchangeDinoSwap:                   {},
 	ExchangeDinosaurEggs:               {},
-	ExchangeDooarSwapV2:                {},
 	ExchangeDodo:                       {},
 	ExchangeDodoClassical:              {},
 	ExchangeDodoPrivatePool:            {},
 	ExchangeDodoStablePool:             {},
 	ExchangeDodoVendingMachine:         {},
+	ExchangeDooarSwapV2:                {},
 	ExchangeDoveSwapV3:                 {},
 	ExchangeDyorSwap:                   {},
 	ExchangeDystopia:                   {},
 	ExchangeE3:                         {},
+	ExchangeERC4626:                    {},
 	ExchangeEchoDex:                    {},
 	ExchangeEchoDexV3:                  {},
 	ExchangeEkubo:                      {},
@@ -603,6 +606,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeswap:                   {},
 	ExchangeMerchantMoe:                {},
 	ExchangeMerchantMoeV22:             {},
+	ExchangeMeshSwap:                   {},
 	ExchangeMetavault:                  {},
 	ExchangeMetavaultV2:                {},
 	ExchangeMetavaultV3:                {},
@@ -662,6 +666,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeQuickSwap:                  {},
 	ExchangeQuickSwapUniV3:             {},
 	ExchangeQuickSwapV3:                {},
+	ExchangeQuickSwapV4:                {},
 	ExchangeRamses:                     {},
 	ExchangeRamsesV2:                   {},
 	ExchangeRenzoEZETH:                 {},
@@ -753,6 +758,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniSwapV3:                  {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
+	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
 	ExchangeUsd0PP:                     {},
@@ -795,8 +801,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeWUSDM:                      {},
-	ExchangeWUSDL:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

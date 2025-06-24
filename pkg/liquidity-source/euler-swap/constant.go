@@ -1,6 +1,8 @@
 package eulerswap
 
 import (
+	"errors"
+
 	"github.com/holiman/uint256"
 )
 
@@ -11,13 +13,21 @@ const (
 var (
 	defaultGas = Gas{Swap: 400000}
 
-	oneE18         = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18)) // 1e18
-	VIRTUAL_AMOUNT = uint256.NewInt(1e6)                                          // 1e6
+	VIRTUAL_AMOUNT = uint256.NewInt(1e6) // 1e6
+
+	ErrInvalidVaults     = errors.New("invalid vaults")
+	ErrInvalidToken      = errors.New("invalid token")
+	ErrInvalidReserve    = errors.New("invalid reserve")
+	ErrInvalidAmount     = errors.New("invalid amount")
+	ErrSwapIsPaused      = errors.New("swap is paused")
+	ErrOverflow          = errors.New("math overflow")
+	ErrCurveViolation    = errors.New("curve violation")
+	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 )
 
 const (
 	factoryMethodPoolsLength = "poolsLength"
-	factoryMethodAllPools    = "allPools"
+	factoryMethodPoolsSlice  = "poolsSlice"
 
 	poolMethodEulerAccount        = "eulerAccount"
 	poolMethodAsset0              = "asset0"
