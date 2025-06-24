@@ -78,5 +78,6 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 		calculatedAmount.Add(calculatedAmount, bf.Sub(bf, inputAmount))
 	}
 
+	quote.SwapInfo.Forward = p.key.Config.Extension
 	return quote, nil
 }
