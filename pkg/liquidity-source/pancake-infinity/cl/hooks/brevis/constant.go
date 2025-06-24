@@ -11,7 +11,3 @@ var CLHookAddresses = []common.Address{
 	common.HexToAddress("0x0fcf6d110cf96be56d251716e69e37619932edf2"),
 	common.HexToAddress("0xdfdfb2c5a717ab00b370e883021f20c2fbaed277"),
 }
-
-var BinHookAddresses = []common.Address{
-	common.HexToAddress("0x60fbcafab24bc117b6facecd00d3e8f56ca4d5e9"),
-}

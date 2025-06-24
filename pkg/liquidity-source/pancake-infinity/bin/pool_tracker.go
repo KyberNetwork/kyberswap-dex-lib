@@ -17,13 +17,11 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/hooks/brevis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -55,9 +53,9 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	var result FetchRPCResult
 
 	rpcRequests.AddCall(&ethrpc.Call{
-		ABI:    binPoolManagerABI,
+		ABI:    shared.BinPoolManagerABI,
 		Target: t.config.BinPoolManagerAddress,
-		Method: binPoolManagerMethodGetSlot0,
+		Method: shared.BinPoolManagerMethodGetSlot0,
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
@@ -138,7 +136,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	lpFee := staticExtra.Fee
 	if staticExtra.IsDynamicFee {
-		lpFee = t.GetDynamicFee(ctx, hookAddress)
+		lpFee = t.GetDynamicFee(ctx, hookAddress, lpFee)
 	}
 
 	extra := Extra{
@@ -268,23 +266,9 @@ func (t *PoolTracker) getBinsFromSubgraph(ctx context.Context, poolAddress strin
 	return bins, newPoolReserves, nil
 }
 
-func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address) uint32 {
+func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
 	hook, _ := GetHook(hookAddress)
-
-	switch hook.GetExchange() {
-	case valueobject.ExchangePancakeInfinityBinBrevis:
-		fee, err := brevis.GetFee(ctx, hookAddress, t.ethrpcClient)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error": err,
-			}).Errorf("failed to get fee for %s hook %s", hook.GetExchange(), hookAddress.Hex())
-			return shared.MAX_FEE_PIPS
-		}
-		return uint32(fee.Uint64())
-
-	default:
-		return shared.MAX_FEE_PIPS
-	}
+	return hook.GetDynamicFee(ctx, t.ethrpcClient, t.config.BinPoolManagerAddress, hookAddress, lpFee)
 }
 
 func parseTokenDecimal(decimals string) (*big.Float, error) {

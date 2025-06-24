@@ -11,9 +11,6 @@ const (
 
 	graphFirstLimit = 1000
 
-	binPoolManagerMethodGetSlot0 = "getSlot0"
-	binPoolManagerMethodGetBin   = "getBin"
-
 	BasisPoint = 10000
 
 	_OFFSET_BIN_STEP     = 16

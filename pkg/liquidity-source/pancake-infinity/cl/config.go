@@ -11,8 +11,7 @@ type Config struct {
 	CLPoolManagerAddress   string `json:"clPoolManagerAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
-
-	FetchTickFromRPC bool // instead of fetching from subgraph
+	FetchTickFromRPC       bool   `json:"fetchTickFromRPC"` // instead of fetching from subgraph
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
