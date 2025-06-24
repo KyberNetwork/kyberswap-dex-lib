@@ -11,7 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
-	pooldecoder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
 )
 
 type DependencyConfig struct {
@@ -24,7 +24,7 @@ type EventParser struct {
 	Twamm string
 }
 
-var _ = pooldecoder.RegisterFactoryC(DexType, NewEventParser)
+var _ = pooldecode.RegisterFactoryC(DexType, NewEventParser)
 
 func NewEventParser(config *Config) *EventParser {
 	return &EventParser{
