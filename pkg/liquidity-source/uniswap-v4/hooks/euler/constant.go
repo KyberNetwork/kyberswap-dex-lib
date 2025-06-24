@@ -9,13 +9,14 @@ const (
 
 	DefaultGas int64 = 400000
 
-	tickSpacing int32 = 1 // hard-coded tick spacing, as its unused
-
-	factoryMethodPools = "pools"
+	factoryMethodPoolsSlice  = "poolsSlice"
+	factoryMethodPoolsLength = "poolsLength"
 
 	poolMethodGetAssets   = "getAssets"
 	poolMethodGetReserves = "getReserves"
 	poolMethodGetParams   = "getParams"
+
+	batchSize = 100
 )
 
 var (

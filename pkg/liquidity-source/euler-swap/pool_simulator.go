@@ -1,7 +1,6 @@
 package eulerswap
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -33,21 +32,8 @@ type PoolSimulator struct {
 
 	concentrationX, concentrationY *uint256.Int
 
-	vault0, vault1 string
-	eulerAccount   string
-
 	vaults []Vault
 }
-
-var (
-	ErrInvalidVaults  = errors.New("invalid vaults")
-	ErrInvalidToken   = errors.New("invalid token")
-	ErrInvalidReserve = errors.New("invalid reserve")
-	ErrInvalidAmount  = errors.New("invalid amount")
-	ErrSwapIsPaused   = errors.New("swap is paused")
-	ErrOverflow       = errors.New("math overflow")
-	ErrCurveViolation = errors.New("curve violation")
-)
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -77,9 +63,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		vaults:              extra.Vaults,
 		pause:               extra.Pause,
-		vault0:              staticExtra.Vault0,
-		vault1:              staticExtra.Vault1,
-		eulerAccount:        staticExtra.EulerAccount,
 		feeMultiplier:       staticExtra.FeeMultiplier,
 		equilibriumReserve0: staticExtra.EquilibriumReserve0,
 		equilibriumReserve1: staticExtra.EquilibriumReserve1,
@@ -170,17 +153,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolExtra{
-		Vault0:              s.vault0,
-		Vault1:              s.vault1,
-		EulerAccount:        s.eulerAccount,
-		EquilibriumReserve0: s.equilibriumReserve0.ToBig(),
-		EquilibriumReserve1: s.equilibriumReserve1.ToBig(),
-		FeeMultiplier:       s.feeMultiplier.ToBig(),
-		PriceY:              s.priceY.ToBig(),
-		PriceX:              s.priceX.ToBig(),
-		ConcentrationY:      s.concentrationY.ToBig(),
-		ConcentrationX:      s.concentrationX.ToBig(),
-		BlockNumber:         s.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
@@ -246,14 +219,15 @@ func (s *PoolSimulator) computeQuote(exactIn, asset0IsInput bool, reserve0, rese
 		return nil, ErrSwapLimitExceeded
 	}
 
-	quote.Mul(quote, oneE18)
-	quote.Add(quote, new(uint256.Int).Sub(s.feeMultiplier, big256.U1))
+	var tmp uint256.Int
+	quote.Mul(quote, big256.BONE)
+	tmp.Sub(s.feeMultiplier, big256.U1)
+	quote.Add(quote, &tmp)
 	return quote.Div(quote, s.feeMultiplier), nil
 }
 
 func (s *PoolSimulator) calcLimits(asset0IsInput bool, reserve0, reserve1 *uint256.Int) (*uint256.Int, *uint256.Int) {
-	inLimit := new(uint256.Int)
-	outLimit := new(uint256.Int)
+	var inLimit, outLimit, maxWithdraw uint256.Int
 
 	var vaultInIndex, vaultOutIndex int
 	var reserveOut *uint256.Int
@@ -271,28 +245,28 @@ func (s *PoolSimulator) calcLimits(asset0IsInput bool, reserve0, reserve1 *uint2
 	inLimit.Add(s.vaults[vaultInIndex].Debt, s.vaults[vaultInIndex].MaxDeposit)
 
 	outLimit.Set(reserveOut)
-	if s.vaults[vaultOutIndex].Cash.Lt(outLimit) {
+	if s.vaults[vaultOutIndex].Cash.Lt(&outLimit) {
 		outLimit.Set(s.vaults[vaultOutIndex].Cash)
 	}
 
-	maxWithdraw := new(uint256.Int).Set(s.vaults[vaultOutIndex].MaxWithdraw)
-	if s.vaults[vaultOutIndex].TotalBorrows.Gt(maxWithdraw) {
+	maxWithdraw.Set(s.vaults[vaultOutIndex].MaxWithdraw)
+	if s.vaults[vaultOutIndex].TotalBorrows.Gt(&maxWithdraw) {
 		maxWithdraw.SetUint64(0)
 	} else {
-		maxWithdraw.Sub(maxWithdraw, s.vaults[vaultOutIndex].TotalBorrows)
+		maxWithdraw.Sub(&maxWithdraw, s.vaults[vaultOutIndex].TotalBorrows)
 	}
 
 	if maxWithdraw.Gt(s.vaults[vaultOutIndex].Cash) {
 		maxWithdraw.Set(s.vaults[vaultOutIndex].Cash)
 	}
 
-	maxWithdraw.Add(maxWithdraw, s.vaults[vaultOutIndex].EulerAccountAssets)
+	maxWithdraw.Add(&maxWithdraw, s.vaults[vaultOutIndex].EulerAccountAssets)
 
-	if maxWithdraw.Lt(outLimit) {
-		outLimit.Set(maxWithdraw)
+	if maxWithdraw.Lt(&outLimit) {
+		outLimit.Set(&maxWithdraw)
 	}
 
-	return inLimit, outLimit
+	return &inLimit, &outLimit
 }
 
 func (s *PoolSimulator) verify(newReserve0, newReserve1 *uint256.Int) bool {
@@ -344,31 +318,31 @@ func (s *PoolSimulator) verify(newReserve0, newReserve1 *uint256.Int) bool {
 func f(
 	x, px, py, x0, y0, c *uint256.Int,
 ) (*uint256.Int, error) {
-	t1 := new(uint256.Int)
-	t2 := new(uint256.Int)
+	var t1, t2, tmp uint256.Int
 
 	t1.Sub(x0, x)
-
-	t1.Mul(px, t1)
+	t1.Mul(px, &t1)
 
 	t2.Mul(c, x)
+	tmp.Sub(big256.BONE, c)
+	tmp.Mul(&tmp, x0)
+	t2.Add(&t2, &tmp)
 
-	t2.Add(t2, new(uint256.Int).Mul(new(uint256.Int).Sub(oneE18, c), x0))
+	t1.Mul(&t1, &t2)
 
-	t1.Mul(t1, t2)
+	t2.Mul(x, big256.BONE)
 
-	t2.Mul(x, oneE18)
+	tmp.Sub(&t2, big256.U1)
+	t1.Add(&t1, &tmp)
+	t1.Div(&t1, &t2)
 
-	t1.Add(t1, new(uint256.Int).Sub(t2, big256.U1))
-
-	t1.Div(t1, t2)
-
-	if t1.Cmp(MaxUint248) > 0 {
+	if t1.Cmp(maxUint248) > 0 {
 		return nil, ErrOverflow
 	}
 
-	t1.Add(t1, new(uint256.Int).Sub(py, big256.U1))
-	t1.Div(t1, py)
+	tmp.Sub(py, big256.U1)
+	t1.Add(&t1, &tmp)
+	t1.Div(&t1, py)
 
-	return new(uint256.Int).Add(y0, t1), nil
+	return new(uint256.Int).Add(y0, &t1), nil
 }

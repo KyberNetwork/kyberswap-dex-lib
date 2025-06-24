@@ -2,7 +2,6 @@ package erc4626
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -31,7 +30,6 @@ var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	lg := logger.WithFields(logger.Fields{
 		"dexId":   cfg.DexId,
-		"pool":    strings.ToLower(cfg.Vault),
 		"dexType": DexType,
 	})
 
@@ -69,7 +67,9 @@ func (t *PoolTracker) getNewPoolState(
 		t.logger.Info("Finish updating state.")
 	}()
 
-	state, err := fetchState(ctx, t.ethrpcClient, t.cfg, overrides)
+	vaultAddr := p.Tokens[0].Address
+	vaultCfg := t.cfg.Vaults[vaultAddr]
+	_, state, err := fetchAssetAndState(ctx, t.ethrpcClient, vaultAddr, vaultCfg, false, overrides)
 	if err != nil {
 		t.logger.WithFields(logger.Fields{
 			"error": err,
@@ -80,12 +80,12 @@ func (t *PoolTracker) getNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Gas: Gas{
-			Deposit: t.cfg.Gas.Deposit,
-			Redeem:  t.cfg.Gas.Redeem,
+			Deposit: vaultCfg.Gas.Deposit,
+			Redeem:  vaultCfg.Gas.Redeem,
 		},
-		MaxDeposit: lo.Ternary(state.MaxDeposit != nil, uint256.MustFromBig(state.MaxDeposit), number.MaxU256),
-		MaxRedeem:  lo.Ternary(state.MaxRedeem != nil, uint256.MustFromBig(state.MaxRedeem), number.MaxU256),
-		SwapTypes:  t.cfg.SwapTypes,
+		MaxDeposit: lo.CoalesceOrEmpty(uint256.MustFromBig(state.MaxDeposit), number.MaxU256),
+		MaxRedeem:  lo.CoalesceOrEmpty(uint256.MustFromBig(state.MaxRedeem), number.MaxU256),
+		SwapTypes:  vaultCfg.SwapTypes,
 	})
 	if err != nil {
 		t.logger.WithFields(logger.Fields{
@@ -94,7 +94,6 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	p.Type = DexType
 	p.Reserves = entity.PoolReserves{state.TotalSupply.String(), state.TotalAssets.String()}
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = state.blockNumber

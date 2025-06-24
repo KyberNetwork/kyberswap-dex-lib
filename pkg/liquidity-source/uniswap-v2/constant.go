@@ -16,31 +16,30 @@ const (
 
 	pairMethodToken0      = "token0"
 	pairMethodToken1      = "token1"
+	pairMethodReserve0    = "reserve0"
+	pairMethodReserve1    = "reserve1"
 	pairMethodGetReserves = "getReserves"
 
-	meerkatPairMethodSwapFee                   = "swapFee"
-	mdexFactoryMethodGetPairFees               = "getPairFees"
-	shibaswapPairMethodTotalFee                = "totalFee"
-	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
-	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
-	memeswapPairMethodGetSwapFee               = "getFee"
-
-	FeeTrackerIDMMF         = "mmf"
-	FeeTrackerIDMdex        = "mdex"
-	FeeTrackerIDShibaswap   = "shibaswap"
-	FeeTrackerIDDefiswap    = "defiswap"
-	FeeTrackerZKSwapFinance = "zkswap-finance"
-	FeeTrackerMemeswap      = "memeswap"
+	genericMethodFee       = "fee"
+	genericTemplatePool    = "pool"
+	genericTemplateFactory = "factory"
 )
 
 var (
-	approvalAddressByExchange = map[string]string{
+	routerAddressByExchange = map[string]string{ // used both as router and approval address
 		valueobject.ExchangeBabyDogeSwap: "0xC9a0F685F39d05D835c369036251ee3aEaaF3c47",
 		valueobject.ExchangeBakerySwap:   "0xCDe540d7eAFE93aC5fE6233Bee57E1270D3E330F",
+		valueobject.ExchangeMeshSwap:     "0x10f4A785F458Bc144e3706575924889954946639",
+		valueobject.ExchangeNostrSwap:    "0xe563398EAF00C313074785C2D7192e24A5198282",
 	}
 	extraGasByExchange = map[string]int64{
 		valueobject.ExchangeBabyDogeSwap: 259957 - defaultGas,
 		valueobject.ExchangeBakerySwap:   111012 - defaultGas,
+		valueobject.ExchangeMeshSwap:     321758 - defaultGas,
+		valueobject.ExchangeNostrSwap:    136498 - defaultGas,
+	}
+	noFOTByExchange = map[string]bool{ // these exchanges don't support FOT
+		valueobject.ExchangeMeshSwap: true,
 	}
 
 	ErrInvalidToken             = errors.New("invalid token")
