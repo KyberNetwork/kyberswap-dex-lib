@@ -2,6 +2,7 @@ package erc4626
 
 import (
 	"context"
+	"math"
 	"strings"
 	"time"
 
@@ -141,6 +142,7 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			Method: erc4626MethodEntryFeeBasisPoints,
 		}, []any{&poolState.EntryFeeBps})
 	}
+	var minRedeemRatio uint64
 	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Redeem {
 		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
@@ -151,7 +153,11 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: erc4626MethodExitFeeBasisPoints,
-		}, []any{&poolState.ExitFeeBps})
+		}, []any{&poolState.ExitFeeBps}).AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: vaultAddr,
+			Method: erc4626MethodMinRedeemRatio,
+		}, []any{&minRedeemRatio})
 	}
 
 	resp, err := req.TryAggregate()
@@ -164,6 +170,10 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 	}
 	if poolState.MaxRedeem != nil && (poolState.MaxRedeem.Sign() == 0 || poolState.MaxRedeem.Cmp(bignumber.MAX_UINT_256) == 0) {
 		poolState.MaxRedeem = nil
+	}
+	if minRedeemRatio > 0 {
+		poolState.ExitFeeBps = uint64(math.Floor(
+			Bps - (Bps-float64(poolState.ExitFeeBps))*float64(minRedeemRatio)/RatioPrecision))
 	}
 
 	if resp.BlockNumber != nil {

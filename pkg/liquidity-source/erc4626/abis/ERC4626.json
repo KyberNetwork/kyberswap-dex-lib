@@ -77,6 +77,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "minRedeemRatio",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "minRedeemRatio",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
