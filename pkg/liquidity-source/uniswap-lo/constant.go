@@ -92,6 +92,10 @@ type DutchOrder struct {
 	RateWithGasFee        float64         `json:"-"`
 	Rate                  float64         `json:"-"`
 	SwapperTokenInBalance *uint256.Int    `json:"-"`
+	// CanUseUnorderedNonce
+	// if true, it means order is valid since nonce is not used
+	// see: https://github.com/Uniswap/permit2/blob/a7cd186948b44f9096a35035226d7d70b9e24eaf/src/SignatureTransfer.sol#L150
+	CanUseUnorderedNonce bool `json:"-"`
 }
 
 type Input struct {
