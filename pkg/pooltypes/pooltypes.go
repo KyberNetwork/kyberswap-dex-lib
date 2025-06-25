@@ -303,7 +303,6 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
-	EulerSwap                  string
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string

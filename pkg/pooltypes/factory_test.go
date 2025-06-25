@@ -41,7 +41,7 @@ func TestCanCalcAmountIn(t *testing.T) {
 		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
 		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
 		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "dystopia",
-		"ekubo", "euler-swap", "fluid-dex-t1", "hashflow-v3", "iziswap", "limit-order", "liquiditybook-v21",
+		"ekubo", "uniswap-v4-euler", "fluid-dex-t1", "hashflow-v3", "iziswap", "limit-order", "liquiditybook-v21",
 		"maverick-v1", "muteswitch", "pancake-v3", "pearl", "ramses", "ringswap", "sky-psm", "slipstream", "solidly-v2",
 		"solidly-v3", "swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable",
 		"uniswap-v1", "uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
