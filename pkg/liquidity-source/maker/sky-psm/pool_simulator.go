@@ -90,6 +90,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	return p
+}
+
 func (p *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {}
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) interface{} {

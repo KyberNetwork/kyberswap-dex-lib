@@ -230,7 +230,6 @@ const (
 	ExchangeNileV2                     = "nile-v2"
 	ExchangeNomiswap                   = "nomiswap"
 	ExchangeNomiswapStable             = "nomiswap-stable"
-	ExchangeNostrSwap                  = "nostrswap"
 	ExchangeNuri                       = "nuri"
 	ExchangeNuriV2                     = "nuri-v2"
 	ExchangeOETH                       = "oeth"
@@ -242,8 +241,11 @@ const (
 	ExchangePaintSwap                  = "paintswap"
 	ExchangePancake                    = "pancake"
 	ExchangePancakeInfinityBin         = "pancake-infinity-bin"
+	ExchangePancakeInfinityBinBrevis   = "pancake-infinity-bin-brevis"
 	ExchangePancakeInfinityBinFairflow = "pancake-infinity-bin-fairflow"
 	ExchangePancakeInfinityCL          = "pancake-infinity-cl"
+	ExchangePancakeInfinityCLBrevis    = "pancake-infinity-cl-brevis"
+	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
@@ -629,7 +631,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNileV2:                     {},
 	ExchangeNomiswap:                   {},
 	ExchangeNomiswapStable:             {},
-	ExchangeNostrSwap:                  {},
 	ExchangeNuri:                       {},
 	ExchangeNuriV2:                     {},
 	ExchangeOETH:                       {},
@@ -641,8 +642,11 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePaintSwap:                  {},
 	ExchangePancake:                    {},
 	ExchangePancakeInfinityBin:         {},
+	ExchangePancakeInfinityBinBrevis:   {},
 	ExchangePancakeInfinityBinFairflow: {},
 	ExchangePancakeInfinityCL:          {},
+	ExchangePancakeInfinityCLBrevis:    {},
+	ExchangePancakeInfinityCLDynamic:   {},
 	ExchangePancakeInfinityCLFairflow:  {},
 	ExchangePancakeLegacy:              {},
 	ExchangePancakeStable:              {},
