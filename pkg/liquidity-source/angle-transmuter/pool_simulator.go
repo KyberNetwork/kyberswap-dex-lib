@@ -3,6 +3,7 @@ package angletransmuter
 import (
 	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,7 +22,6 @@ type (
 		StableDecimals uint8
 
 		Transmuter TransmuterState
-		OraclePyth map[string]PythState
 		gas        Gas
 	}
 )
@@ -71,6 +71,157 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientInputAmount
 	}
 
-	return nil, nil
+	isMint := indexOut == len(s.Pool.Info.Tokens)-1
+	var oracleValue *uint256.Int
+	minRatio := uint256.NewInt(0)
+	var err error
+	collateral := strings.ToLower(tokenAmountIn.Token)
+	if isMint {
+		oracleValue, err = s._readMint(collateral)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		collateral = strings.ToLower(tokenOut)
+		oracleValue, minRatio, err = s._getBurnOracle(collateral)
+		if err != nil {
+			return nil, err
+		}
+	}
 
+	collatStablecoinIssued := s.Transmuter.Collaterals[collateral].StablecoinsIssued
+	otherStablecoinIssued := new(uint256.Int).Sub(s.Transmuter.TotalStablecoinIssued, collatStablecoinIssued)
+	fees := s.Transmuter.Collaterals[collateral].Fees
+	stablecoinCap := s.Transmuter.Collaterals[collateral].StablecoinCap
+	if isMint {
+		_quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap)
+	} else {
+		_quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued)
+	}
+	return nil, nil
+}
+
+func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint256.Int, error) {
+	var oracleValue *uint256.Int
+	minRatio := newBASE_18()
+	for collat := range s.Transmuter.Collaterals {
+		value, ratio, err := s._readBurn(collat)
+		if err != nil {
+			return nil, nil, err
+		}
+		if strings.EqualFold(collat, collateral) {
+			oracleValue = value
+		}
+		if ratio.Cmp(minRatio) < 0 {
+			minRatio = ratio
+		}
+	}
+	return oracleValue, minRatio, nil
+}
+
+func (s *PoolSimulator) _readMint(collateral string) (*uint256.Int, error) {
+	configOracle := s.Transmuter.Collaterals[collateral].Config
+	if configOracle.OracleType == EXTERNAL {
+		return newBASE_18(), nil
+	}
+	spot, target, err := s._readSpotAndTarget(collateral)
+	if err != nil {
+		return nil, err
+	}
+
+	if target.Cmp(spot) < 0 {
+		spot = target
+	}
+
+	return spot, nil
+}
+
+func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int, error) {
+	configOracle := s.Transmuter.Collaterals[collateral].Config
+	if configOracle.OracleType == EXTERNAL {
+		return newBASE_18(), newBASE_18(), nil
+	}
+
+	spot, target, err := s._readSpotAndTarget(collateral)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ratio, uB := newBASE_18(), newBASE_18()
+	uB.Mul(target, uB.Sub(uB, configOracle.Hyperparameters.BurnRatioDeviation)).Div(uB, BASE_18)
+	if spot.Cmp(uB) < 0 {
+		ratio.Div(spot, target)
+	} else if spot.Cmp(target) < 0 {
+		spot = target
+	}
+	return spot, ratio, nil
+}
+
+func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *uint256.Int, error) {
+	configOracle := s.Transmuter.Collaterals[collateral].Config
+	targetPrice, err := s._read(configOracle.TargetType, configOracle.TargetFeed, newBASE_18())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	oracleValue, err := s._read(configOracle.OracleType, configOracle.OracleFeed, new(uint256.Int).Set(targetPrice))
+	if err != nil {
+		return nil, nil, err
+	}
+	lB, uB := new(uint256.Int), new(uint256.Int)
+	lB.Mul(targetPrice, lB.Sub(BASE_18, configOracle.Hyperparameters.UserDeviation)).Div(lB, BASE_18)
+	uB.Mul(targetPrice, uB.Add(BASE_18, configOracle.Hyperparameters.UserDeviation)).Div(uB, BASE_18)
+	if lB.Cmp(oracleValue) < 0 && uB.Cmp(oracleValue) >= 0 {
+		oracleValue = targetPrice
+	}
+	return oracleValue, targetPrice, nil
+}
+
+func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, baseValue *uint256.Int) (*uint256.Int, error) {
+	price := newBASE_18()
+	switch oracleType {
+	case CHAINLINK_FEEDS:
+		if !oracleFeed.IsChainLink || !oracleFeed.Chainlink.Active {
+			return nil, ErrInvalidOracle
+		}
+		//TODO:
+		return nil, ErrUnimplemented
+	case PYTH:
+		if !oracleFeed.IsPyth || !oracleFeed.Pyth.Active {
+			return nil, ErrInvalidOracle
+		}
+		price = s._quoteAmount(OracleQuoteType(oracleFeed.Pyth.QuoteType), baseValue)
+		for i := range oracleFeed.Pyth.FeedIds {
+			normalizedPrice := oracleFeed.Pyth.PythState[i].Price
+			isNormalizerExpoNeg := oracleFeed.Pyth.PythState[i].Expo.Sign() < 0
+			normalizer := new(uint256.Int).Exp(U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
+
+			if oracleFeed.Pyth.IsMultiplied[i] == 1 && isNormalizerExpoNeg {
+				price.Div(price.Mul(price, normalizedPrice), normalizer)
+			} else if oracleFeed.Pyth.IsMultiplied[i] == 1 && !isNormalizerExpoNeg {
+				price.Mul(price.Mul(price, normalizedPrice), normalizer)
+			} else if oracleFeed.Pyth.IsMultiplied[i] == 0 && isNormalizerExpoNeg {
+				price.Div(price.Mul(price, normalizer), normalizedPrice)
+			} else {
+				price.Div(price, new(uint256.Int).Mul(normalizedPrice, normalizer))
+			}
+		}
+	case STABLE:
+	case NO_ORACLE:
+		price = baseValue
+	case MAX:
+		//TODO:
+		return nil, ErrUnimplemented
+	case MORPHO_ORACLE:
+		//TODO:
+		return nil, ErrUnimplemented
+	}
+	return price, nil
+}
+
+func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint256.Int) *uint256.Int {
+	if quoteType == UNIT {
+		return newBASE_18()
+	}
+	return baseValue
 }

@@ -1,10 +1,9 @@
 package angletransmuter
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -24,10 +23,17 @@ const (
 	UNIT OracleQuoteType = iota
 	TARGET
 )
+const (
+	MintExactInput QuoteType = iota
+	MintExactOutput
+	BurnExactInput
+	BurnExactOutput
+)
 
 type (
 	OracleReadType  uint8
 	OracleQuoteType int
+	QuoteType       uint8
 
 	Gas struct {
 		Swap uint64 `json:"swap,omitempty"`
@@ -43,23 +49,23 @@ type (
 		IsWhitelisted         map[int][]string // TODO: map of what (OracleQuoteType ??????????)
 		XRedemptionCurve      []uint64
 		YRedemptionCurve      []int64
-		TotalStablecoinIssued *big.Int
+		TotalStablecoinIssued *uint256.Int
 	}
 
 	CollateralState struct {
 		Whitelisted       bool
 		WhitelistData     []byte
-		Fee               Fees
-		StablecoinsIssued *big.Int
+		Fees              Fees
+		StablecoinsIssued *uint256.Int
 		Config            Oracle
-		StablecoinCap     *big.Int
+		StablecoinCap     *uint256.Int
 	}
 
 	Fees struct {
-		XFeeMint []uint64
-		XFeeBurn []uint64
-		YFeeMint []int64
-		YFeeBurn []int64
+		XFeeMint []*uint256.Int
+		XFeeBurn []*uint256.Int
+		YFeeMint []*uint256.Int
+		YFeeBurn []*uint256.Int
 	}
 
 	Oracle struct {
@@ -68,9 +74,12 @@ type (
 		ExternalOracle  common.Address
 		OracleFeed      OracleFeed
 		TargetFeed      OracleFeed
-		Hyperparameters string
+		Hyperparameters Hyperparameters
 	}
-
+	Hyperparameters struct {
+		UserDeviation      *uint256.Int
+		BurnRatioDeviation *uint256.Int
+	}
 	OracleFeed struct {
 		IsPyth      bool
 		IsChainLink bool
@@ -86,16 +95,12 @@ type (
 		IsMultiplied []uint8
 		QuoteType    uint8
 		PythState    []PythState
-	}
-
-	PythStateTuple struct {
-		PythState
+		Active       bool
 	}
 	PythState struct {
-		Price       int64    // price from Pyth
-		Conf        uint64   // confidence interval
-		Expo        int32    // exponent
-		PublishTime *big.Int // publish timestamp
+		Price     *uint256.Int
+		Expo      *uint256.Int
+		Timestamp *uint256.Int
 	}
 
 	Chainlink struct {
@@ -104,6 +109,7 @@ type (
 		CircuitChainIsMultiplied []uint8
 		ChainlinkDecimals        []uint8
 		QuoteType                uint8
+		Active                   bool
 	}
 )
 

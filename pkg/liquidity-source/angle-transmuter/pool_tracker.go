@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -30,6 +31,11 @@ type DecodedOracleConfig struct {
 	Hyperparameters []byte
 }
 
+type DecodedHyperparameters struct {
+	UserDeviation      *big.Int
+	BurnRatioDeviation *big.Int
+}
+
 type DecodedIssuedByCollateral struct {
 	StablecoinsFromCollateral *big.Int
 	StablecoinsIssued         *big.Int
@@ -41,6 +47,16 @@ type DecodedPyth struct {
 	StalePeriods []uint32
 	IsMultiplied []uint8
 	QuoteType    uint8
+}
+
+type DecodedPythStateTuple struct {
+	DecodedPythState
+}
+type DecodedPythState struct {
+	Price       int64    // price from Pyth
+	Conf        uint64   // confidence interval
+	Expo        int32    // exponent
+	PublishTime *big.Int // publish timestamp
 }
 
 type DecodedFeeMints struct {
@@ -181,27 +197,49 @@ func (t *PoolTracker) getNewPoolState(
 	for i := range collateralList {
 		transmuterState.XRedemptionCurve = redemptionFees[i].XRedemptionCurve
 		transmuterState.YRedemptionCurve = redemptionFees[i].YRedemptionCurve
-		transmuterState.TotalStablecoinIssued = totalStablecoinIssued
+		transmuterState.TotalStablecoinIssued = uint256.MustFromBig(totalStablecoinIssued)
 		transmuterState.Collaterals[strings.ToLower(collateralList[i].Hex())] = CollateralState{
 			Whitelisted:   isWhitelistedCollateral[i],
 			WhitelistData: collateralWhitelistData[i],
-			Fee: Fees{
-				XFeeMint: feeMints[i].XFeeMint,
-				YFeeMint: feeMints[i].YFeeMint,
-				XFeeBurn: feeBurns[i].XFeeBurn,
-				YFeeBurn: feeBurns[i].YFeeBurn,
+			Fees: Fees{
+				XFeeMint: lo.Map(feeMints[i].XFeeMint, func(item uint64, _ int) *uint256.Int {
+					return uint256.NewInt(item)
+				}),
+				YFeeMint: lo.Map(feeMints[i].YFeeMint, func(item int64, _ int) *uint256.Int {
+					return uint256.NewInt(uint64(item))
+				}),
+				XFeeBurn: lo.Map(feeBurns[i].XFeeBurn, func(item uint64, _ int) *uint256.Int {
+					return uint256.NewInt(item)
+				}),
+				YFeeBurn: lo.Map(feeBurns[i].YFeeBurn, func(item int64, _ int) *uint256.Int {
+					return uint256.NewInt(uint64(item))
+				}),
 			},
-			StablecoinsIssued: issuedByCollateral[i].StablecoinsFromCollateral,
-			StablecoinCap:     stablecoinCap[i],
+			StablecoinsIssued: uint256.MustFromBig(issuedByCollateral[i].StablecoinsFromCollateral),
+			StablecoinCap:     uint256.MustFromBig(stablecoinCap[i]),
 			Config: Oracle{
 				OracleType: OracleReadType(collateralConfigs[i].OracleType),
 				TargetType: OracleReadType(collateralConfigs[i].TargetType),
+				Hyperparameters: func() Hyperparameters {
+					unpacked, err := HyperparametersArgument.Unpack(collateralConfigs[i].Hyperparameters)
+					if err != nil {
+						return Hyperparameters{}
+					}
+					var params DecodedHyperparameters
+					if err := HyperparametersArgument.Copy(&params, unpacked); err != nil {
+						return Hyperparameters{}
+					}
+					return Hyperparameters{
+						UserDeviation:      uint256.MustFromBig(params.UserDeviation),
+						BurnRatioDeviation: uint256.MustFromBig(params.BurnRatioDeviation),
+					}
+				}(),
 				// ExternalOracle: collateralConfigs[i].ExternalOracle, // TODO:
 				OracleFeed: OracleFeed{
 					IsPyth:      OracleReadType(collateralConfigs[i].OracleType) == PYTH,
 					IsChainLink: OracleReadType(collateralConfigs[i].OracleType) == CHAINLINK_FEEDS,
 					IsMorpho:    OracleReadType(collateralConfigs[i].OracleType) == MORPHO_ORACLE,
-					Pyth: lo.If(OracleReadType(collateralConfigs[i].OracleType) == PYTH, func() Pyth {
+					Pyth: lo.Ternary(OracleReadType(collateralConfigs[i].OracleType) == PYTH, func() Pyth {
 						var decodedPyth DecodedPyth
 						unpacked, err := PythArgument.Unpack(collateralConfigs[i].OracleData)
 						if err != nil {
@@ -212,14 +250,13 @@ func (t *PoolTracker) getNewPoolState(
 							return Pyth{}
 						}
 						calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-						pythStates := make([]PythStateTuple, len(decodedPyth.FeedIds))
+						pythStates := make([]DecodedPythStateTuple, len(decodedPyth.FeedIds))
 						for j := range decodedPyth.FeedIds {
 							calls.AddCall(&ethrpc.Call{
 								ABI:    pythABI,
 								Target: decodedPyth.Pyth.Hex(),
 								Method: "getPriceUnsafe",
 								Params: []any{decodedPyth.FeedIds[j]},
-								// Params: []any{common.Hex2Bytes(feedId)},
 							}, []any{&pythStates[j]})
 						}
 						if _, err := calls.Aggregate(); err != nil {
@@ -233,14 +270,19 @@ func (t *PoolTracker) getNewPoolState(
 							StalePeriods: decodedPyth.StalePeriods,
 							IsMultiplied: decodedPyth.IsMultiplied,
 							QuoteType:    decodedPyth.QuoteType,
-							PythState: lo.Map(pythStates, func(item PythStateTuple, _ int) PythState {
-								return item.PythState
+							PythState: lo.Map(pythStates, func(item DecodedPythStateTuple, _ int) PythState {
+								return PythState{
+									Price:     uint256.NewInt(uint64(item.Price)),
+									Expo:      uint256.NewInt(uint64(item.Expo)),
+									Timestamp: uint256.MustFromBig(item.PublishTime),
+								}
 							}),
+							Active: true,
 						}
-					}).Else(func() Pyth {
+					}, func() Pyth {
 						return Pyth{}
 					})(),
-					Chainlink: lo.If(OracleReadType(collateralConfigs[i].OracleType) == CHAINLINK_FEEDS, func() Chainlink {
+					Chainlink: lo.Ternary(OracleReadType(collateralConfigs[i].OracleType) == CHAINLINK_FEEDS, func() Chainlink {
 						var chainlink Chainlink
 						unpacked, err := ChainlinkArgument.Unpack(collateralConfigs[i].OracleData)
 						if err != nil {
@@ -251,7 +293,7 @@ func (t *PoolTracker) getNewPoolState(
 							return Chainlink{}
 						}
 						return chainlink
-					}).Else(func() Chainlink {
+					}, func() Chainlink {
 						return Chainlink{}
 					})(),
 				},
@@ -265,5 +307,4 @@ func (t *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
-
 }
