@@ -21,17 +21,17 @@ const (
 )
 
 var (
-	_ONE                             = uint256.NewInt(1)
-	_MAX_LIQUIDITY_PER_BIN, _        = uint256.FromDecimal("65251743116719673010965625540244653191619923014385985379600384103134737")
-	_PIPS_DENOMINATOR         uint64 = 1_000_000
-	_ONE_E12                         = uint256.NewInt(1e12)
-	_PRECISION                       = uint256.NewInt(1e18) // 1e18
-	_SCALE                           = new(uint256.Int).Lsh(_ONE, _SCALE_OFFSET)
-	_BASIS_POINT_MAX                 = uint256.NewInt(10_000)
-	_POW_U                           = uint256.NewInt(0x100000)
-	_MASK12                   uint32 = 0xfff
-	_MASK16                          = uint256.NewInt(0xffff)
-	_MASK24                   uint32 = 0xffffff
+	_ONE                      = uint256.NewInt(1)
+	_MAX_LIQUIDITY_PER_BIN, _ = uint256.FromDecimal("65251743116719673010965625540244653191619923014385985379600384103134737")
+	_PIPS_DENOMINATOR         = uint64(1_000_000)
+	_ONE_E12                  = uint256.NewInt(1e12)
+	_PRECISION                = uint256.NewInt(1e18) // 1e18
+	_SCALE                    = new(uint256.Int).Lsh(_ONE, _SCALE_OFFSET)
+	_BASIS_POINT_MAX          = uint256.NewInt(10_000)
+	_POW_U                    = uint256.NewInt(0x100000)
+	_MASK12                   = uint32(0xfff)
+	_MASK16                   = uint256.NewInt(0xffff)
+	_MASK24                   = uint32(0xffffff)
 
 	ErrLiquidityOverflow             = errors.New("BinHelper__LiquidityOverflow")
 	ErrMaxLiquidityPerBin            = errors.New("BinPool__MaxLiquidityPerBinExceeded")

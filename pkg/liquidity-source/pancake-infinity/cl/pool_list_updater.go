@@ -108,7 +108,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
 			PoolManagerAddress: common.HexToAddress(u.config.CLPoolManagerAddress),
 			Multicall3Address:  common.HexToAddress(u.config.Multicall3Address),
-			IsDynamicFee:       shared.IsDynamicFee(fee),
 		}
 
 		staticExtraBytes, err := json.Marshal(staticExtra)

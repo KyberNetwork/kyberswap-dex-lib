@@ -33,22 +33,21 @@ type StaticExtra struct {
 	Permit2Address     common.Address `json:"p2"`
 	VaultAddress       common.Address `json:"vault"`
 	Multicall3Address  common.Address `json:"m3"`
-	IsDynamicFee       bool           `json:"idf"`
 }
 
 type Slot0Data struct {
-	ActiveId    *big.Int `json:"activeId"`
-	ProtocolFee *big.Int `json:"protocolFee"`
-	LpFee       *big.Int `json:"lpFee"`
+	ActiveId    uint32 `json:"activeId"`
+	ProtocolFee uint32 `json:"protocolFee"`
+	LpFee       uint32 `json:"lpFee"`
 }
 
 type FetchRPCResult struct {
-	Slot0 Slot0Data `json:"slot0"`
+	Slot0   Slot0Data `json:"slot0"`
+	SwapFee uint64    `json:"swapFee"`
 }
 
 type Extra struct {
 	ProtocolFee uint32 `json:"protocolFee"`
-	LpFee       uint32 `json:"lpFee"`
 	ActiveBinID uint32 `json:"activeBinId"`
 	Bins        []Bin  `json:"bins"`
 }
@@ -60,10 +59,10 @@ type PoolMetaInfo struct {
 	TokenIn     common.Address `json:"tokenIn"`
 	TokenOut    common.Address `json:"tokenOut"`
 	Fee         uint32         `json:"fee"`
-	DynamicFee  uint32         `json:"dynamicFee,omitempty"`
 	Parameters  string         `json:"parameters"`
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
+	SwapFee     uint64         `json:"swapFee"`
 }
 
 type SwapInfo struct {

@@ -30,11 +30,9 @@ type PoolSimulator struct {
 	vault, binPoolManager, permit2, hookAddress common.Address
 	parameters                                  string
 
-	isNative     [2]bool
-	lpFee        uint32
-	protocolFee  uint32
-	swapFee      *uint256.Int
-	isDynamicFee bool
+	isNative         [2]bool
+	fee, protocolFee uint32
+	swapFee          *uint256.Int
 
 	bins     []Bin
 	activeId uint32
@@ -74,7 +72,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		permit2:        staticExtra.Permit2Address,
 		hookAddress:    staticExtra.HooksAddress,
 		parameters:     staticExtra.Parameters,
-		lpFee:          extra.LpFee,
+		fee:            staticExtra.Fee,
 		swapFee:        uint256.NewInt(uint64(entityPool.SwapFee)),
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
@@ -82,7 +80,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		activeId:       extra.ActiveBinID,
 		binStep:        staticExtra.BinStep,
 		isNative:       staticExtra.IsNative,
-		isDynamicFee:   staticExtra.IsDynamicFee,
 	}, nil
 }
 
@@ -322,8 +319,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Permit2Addr: p.permit2,
 		TokenIn:     tokenInAddress,
 		TokenOut:    tokenOutAddress,
-		Fee:         lo.Ternary(p.isDynamicFee, shared.DYNAMIC_FEE_FLAG, p.lpFee),
-		DynamicFee:  lo.Ternary(p.isDynamicFee, uint32(p.swapFee.Uint64()), 0),
+		Fee:         p.fee,
+		SwapFee:     p.swapFee.Uint64(),
 		Parameters:  p.parameters,
 		HookAddress: p.hookAddress,
 		HookData:    []byte{},

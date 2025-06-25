@@ -19,7 +19,7 @@ type Hook interface {
 
 var Hooks = map[common.Address]Hook{}
 
-var _ = RegisterHooks(&BaseHook{valueobject.ExchangePancakeInfinityBinBrevis}, brevis.BinHookAddresses...)
+var _ = RegisterHooks(brevis.NewHook(valueobject.ExchangePancakeInfinityBinBrevis), brevis.BinHookAddresses...)
 
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
 	for _, address := range addresses {

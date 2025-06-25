@@ -35,30 +35,22 @@ type StaticExtra struct {
 	Permit2Address     common.Address `json:"p2"`
 	VaultAddress       common.Address `json:"vault"`
 	Multicall3Address  common.Address `json:"m3"`
-	IsDynamicFee       bool           `json:"idf"`
 }
 
-type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
-	DynamicFee   uint32   `json:"df,omitempty"`
-}
-type ExtraTickU256 = uniswapv3.ExtraTickU256
+type Extra = uniswapv3.Extra
 
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
-	ProtocolFee  *big.Int `json:"protocolFee"`
-	LpFee        *big.Int `json:"lpFee"`
+	ProtocolFee  uint32   `json:"protocolFee"`
+	LpFee        uint32   `json:"lpFee"`
 }
 
 type FetchRPCResult struct {
 	Liquidity   *big.Int  `json:"liquidity"`
 	Slot0       Slot0Data `json:"slot0"`
 	TickSpacing uint64    `json:"tickSpacing"`
+	SwapFee     uint32    `json:"swapFee"`
 }
 
 type Tick = uniswapv3.Tick

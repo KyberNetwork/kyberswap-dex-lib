@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -46,7 +45,9 @@ func NewPoolTracker(
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var staticExtra StaticExtra
-	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
@@ -71,7 +72,19 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+
+	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
+	if shared.IsDynamicFee(staticExtra.Fee) {
+		lpFee = uint64(t.GetDynamicFee(ctx, t.config.CLPoolManagerAddress, staticExtra.HooksAddress, uint32(lpFee)))
+	}
+
+	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
+	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+
+	return result, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -155,29 +168,12 @@ func (t *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	protocolFee, lpFee := rpcData.Slot0.ProtocolFee.Uint64()&0xfff, rpcData.Slot0.LpFee.Uint64()
-
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to unmarshal static extra")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	if staticExtra.IsDynamicFee {
-		lpFee = uint64(t.GetDynamicFee(ctx, t.config.CLPoolManagerAddress, hookAddress, uint32(lpFee)))
-	}
-
 	extra := Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  rpcData.TickSpacing,
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
-		DynamicFee:   lo.Ternary(staticExtra.IsDynamicFee, uint32(lpFee), 0),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -187,8 +183,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
-	p.SwapFee = float64(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+	p.SwapFee = float64(rpcData.SwapFee)
 
 	p.Extra = string(extraBytes)
 

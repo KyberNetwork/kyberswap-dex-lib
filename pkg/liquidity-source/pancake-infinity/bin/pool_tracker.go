@@ -45,6 +45,11 @@ func NewPoolTracker(
 }
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
 	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
 		rpcRequests.SetBlockNumber(big.NewInt(int64(blockNumber)))
@@ -60,6 +65,18 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	lpFee := staticExtra.Fee
+	if shared.IsDynamicFee(staticExtra.Fee) {
+		lpFee = t.GetDynamicFee(ctx, staticExtra.HooksAddress, lpFee)
+	}
+
+	// swap fee includes protocolFee (charged first) and lpFee
+	protocolFee := result.Slot0.ProtocolFee
+	result.SwapFee = lo.Ternary(protocolFee == 0, uint64(lpFee), uint64(calculateSwapFee(protocolFee, lpFee)))
 
 	return &result, err
 }
@@ -124,25 +141,9 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to unmarshal static extra")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	lpFee := staticExtra.Fee
-	if staticExtra.IsDynamicFee {
-		lpFee = t.GetDynamicFee(ctx, hookAddress, lpFee)
-	}
-
 	extra := Extra{
-		ProtocolFee: uint32(rpcData.Slot0.ProtocolFee.Uint64()),
-		LpFee:       lpFee,
-		ActiveBinID: uint32(rpcData.Slot0.ActiveId.Int64()),
+		ProtocolFee: rpcData.Slot0.ProtocolFee,
+		ActiveBinID: rpcData.Slot0.ActiveId,
 		Bins:        bins,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -153,11 +154,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	// swap fee includes protocolFee (charged first) and lpFee
-	protocolFee := rpcData.Slot0.ProtocolFee.Uint64()
-	swapFee := lo.Ternary(protocolFee == 0, lpFee, calculateSwapFee(uint32(protocolFee), lpFee))
-
-	p.SwapFee = float64(swapFee)
+	p.SwapFee = float64(rpcData.SwapFee)
 	p.Reserves = newPoolReserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber

@@ -2,7 +2,6 @@ package dynamicfee
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,29 +17,33 @@ var CLHookAddresses = []common.Address{
 
 var defaultMaxFee uint32 = 5000 // A maximum fee cap of 5%
 
-type DynamicFeeHook struct{}
-
-func (h *DynamicFeeHook) GetExchange() string {
-	return valueobject.ExchangePancakeInfinityCLDynamicFee
+type DynamicFeeHook struct {
+	Exchange valueobject.Exchange
 }
 
-func (h *DynamicFeeHook) GetDynamicFee(ctx context.Context, poolManager, hookAddress string, ethrpcClient *ethrpc.Client, lpFee *big.Int) uint32 {
-	if lpFee != nil && !shared.IsDynamicFee(uint32(lpFee.Uint64())) {
-		return uint32(lpFee.Uint64())
+func NewHook(exchange valueobject.Exchange) *DynamicFeeHook {
+	return &DynamicFeeHook{Exchange: exchange}
+}
+
+func (h *DynamicFeeHook) GetExchange() string {
+	return string(h.Exchange)
+}
+
+func (h *DynamicFeeHook) GetDynamicFee(ctx context.Context, ethrpcClient *ethrpc.Client,
+	clPoolManager string, hookAddress common.Address, lpFee uint32) uint32 {
+	if !shared.IsDynamicFee(lpFee) {
+		return lpFee
 	}
 
 	rpcRequests := ethrpcClient.NewRequest().SetContext(ctx)
 	var result struct {
-		SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-		Tick         *big.Int `json:"tick"`
-		ProtocolFee  *big.Int `json:"protocolFee"`
-		LpFee        *big.Int `json:"lpFee"`
+		LpFee uint32 `json:"lpFee"`
 	}
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    shared.CLPoolManagerABI,
-		Target: poolManager,
+		Target: clPoolManager,
 		Method: shared.CLPoolManagerMethodGetSlot0,
-		Params: []any{common.HexToAddress(hookAddress)},
+		Params: []any{hookAddress},
 	}, []any{&result})
 
 	_, err := rpcRequests.Aggregate()
@@ -48,5 +51,5 @@ func (h *DynamicFeeHook) GetDynamicFee(ctx context.Context, poolManager, hookAdd
 		return defaultMaxFee
 	}
 
-	return uint32(result.LpFee.Uint64())
+	return result.LpFee
 }

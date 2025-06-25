@@ -12,13 +12,24 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type BrevisHook struct{}
-
-func (h *BrevisHook) GetExchange() string {
-	return valueobject.ExchangePancakeInfinityBinBrevis
+var BinHookAddresses = []common.Address{
+	common.HexToAddress("0x60fbcafab24bc117b6facecd00d3e8f56ca4d5e9"),
 }
 
-func (h *BrevisHook) GetDynamicFee(ctx context.Context, hookAddress common.Address, ethrpcClient *ethrpc.Client) uint32 {
+type BrevisHook struct {
+	Exchange valueobject.Exchange
+}
+
+func NewHook(exchange valueobject.Exchange) *BrevisHook {
+	return &BrevisHook{Exchange: exchange}
+}
+
+func (h *BrevisHook) GetExchange() string {
+	return string(h.Exchange)
+}
+
+func (h *BrevisHook) GetDynamicFee(ctx context.Context, ethrpcClient *ethrpc.Client,
+	_ string, hookAddress common.Address, _ uint32) uint32 {
 	hookCaller, err := NewBrevisCaller(hookAddress, ethrpcClient.GetETHClient())
 	if err != nil {
 		return shared.MAX_FEE_PIPS

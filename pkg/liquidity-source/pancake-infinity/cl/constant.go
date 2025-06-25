@@ -16,6 +16,8 @@ const (
 	maxChangedTicks = 10
 
 	_OFFSET_TICK_SPACING = 16
+
+	_MASK12 = 0xfff
 )
 
 var (

@@ -961,17 +961,17 @@
       {
         "internalType": "uint24",
         "name": "activeId",
-        "type": "uint24"
+        "type": "uint32"
       },
       {
         "internalType": "uint24",
         "name": "protocolFee",
-        "type": "uint24"
+        "type": "uint32"
       },
       {
         "internalType": "uint24",
         "name": "lpFee",
-        "type": "uint24"
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
