@@ -13,21 +13,15 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-type (
-	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-		logDecoder   uniswapv2.ILogDecoder
-	}
-)
-
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 func NewPoolTracker(
 	config *Config,
@@ -36,9 +30,10 @@ func NewPoolTracker(
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		logDecoder:   uniswapv2.NewLogDecoder(),
 	}, nil
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
