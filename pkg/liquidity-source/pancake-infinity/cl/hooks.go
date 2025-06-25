@@ -36,7 +36,7 @@ func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
 }
 
 var _ = RegisterHooks(brevis.NewHook(valueobject.ExchangePancakeInfinityCLBrevis), brevis.CLHookAddresses...)
-var _ = RegisterHooks(dynamicfee.NewHook(valueobject.ExchangePancakeInfinityCLDynamicFee), dynamicfee.CLHookAddresses...)
+var _ = RegisterHooks(dynamicfee.NewHook(valueobject.ExchangePancakeInfinityCLDynamic), dynamicfee.CLHookAddresses...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
