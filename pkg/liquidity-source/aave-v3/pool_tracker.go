@@ -2,54 +2,24 @@ package aavev3
 
 import (
 	"context"
-	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
-type (
-	ILogDecoder interface {
-		Decode(logs []types.Log) (ReserveData, *big.Int, error)
-	}
-
-	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-		logDecoder   ILogDecoder
-	}
-
-	GetReserveDataResult struct {
-		Configuration               uint256.Int
-		LiquidityIndex              uint256.Int
-		VariableBorrowIndex         uint256.Int
-		CurrentLiquidityRate        uint256.Int
-		CurrentVariableBorrowRate   uint256.Int
-		CurrentStableBorrowRate     uint256.Int
-		LastUpdateTimestamp         uint64
-		ATokenAddress               [20]byte
-		StableDebtTokenAddress      [20]byte
-		VariableDebtTokenAddress    [20]byte
-		InterestRateStrategyAddress [20]byte
-		Id                          uint8
-	}
-
-	GetATokenBalanceResult struct {
-		Balance *big.Int
-	}
-
-	GetVariableDebtBalanceResult struct {
-		Balance *big.Int
-	}
-)
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
@@ -57,12 +27,10 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	tracker := &PoolTracker{
+	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		logDecoder:   NewLogDecoder(),
-	}
-	return tracker, nil
+	}, nil
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -70,162 +38,109 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	startTime := time.Now()
+	return d.getNewPoolState(ctx, p, params, nil)
+}
 
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	reserveData, blockNumber, err := d.getReserveData(ctx, p.Address, params.Logs)
+	staticExtra := StaticExtra{}
+	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	if err != nil {
-		return p, err
-	}
-
-	if p.BlockNumber > blockNumber.Uint64() {
 		logger.
-			WithFields(
-				logger.Fields{
-					"pool_id":           p.Address,
-					"pool_block_number": p.BlockNumber,
-					"data_block_number": blockNumber.Uint64(),
-				},
-			).
-			Info("skip update: data block number is less than current pool block number")
-		return p, nil
-	}
-
-	// Get AToken and VariableDebtToken balances
-	aTokenBalance, variableDebtBalance, err := d.getTokenBalances(ctx, p.Address, reserveData)
-	if err != nil {
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to unmarshal staticExtra")
 		return p, err
 	}
 
-	logger.
-		WithFields(
-			logger.Fields{
-				"pool_id":          p.Address,
-				"old_reserve":      p.Reserves,
-				"new_reserve":      []string{aTokenBalance.String(), variableDebtBalance.String()},
-				"old_block_number": p.BlockNumber,
-				"new_block_number": blockNumber,
-				"duration_ms":      time.Since(startTime).Milliseconds(),
-			},
-		).
-		Info("Finished getting new pool state")
+	rpcData, err := d.getPoolData(ctx, staticExtra.PoolAddress, p.Tokens[0].Address, p.Tokens[1].Address, overrides)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to getPoolData")
+		return p, err
+	}
 
-	return d.updatePool(p, reserveData, aTokenBalance, variableDebtBalance, blockNumber)
+	newPool, err := d.updatePool(p, rpcData)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"pool_id": p.Address}).
+			Error("failed to updatePool")
+		return p, err
+	}
+
+	return newPool, nil
 }
 
-func (d *PoolTracker) getReserveData(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int, error) {
-	reserveData, blockNumber, err := d.getReserveDataFromLogs(logs)
-	if err != nil {
-		return d.getReserveDataFromRPCNode(ctx, poolAddress)
+func (d *PoolTracker) getPoolData(
+	ctx context.Context,
+	poolAddress,
+	assetToken,
+	aToken string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (RPCData, error) {
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
 	}
 
-	// if reserveData.Configuration.IsZero() {
-	// 	return d.getReserveDataFromRPCNode(ctx, poolAddress)
-	// }
+	var rpcData RPCData
 
-	return reserveData, blockNumber, nil
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetConfiguration,
+		Params: []any{common.HexToAddress(assetToken)},
+	}, []any{&rpcData.Configuration})
+
+	resp, err := req.Aggregate()
+	if err != nil {
+		return RPCData{}, err
+	}
+
+	rpcData.BlockNumber = resp.BlockNumber.Uint64()
+
+	return rpcData, nil
 }
 
-func (d *PoolTracker) getTokenBalances(ctx context.Context, assetAddress string, reserveData ReserveData) (*big.Int, *big.Int, error) {
-	var (
-		aTokenBalance       GetATokenBalanceResult
-		variableDebtBalance GetVariableDebtBalanceResult
-	)
-
-	getBalancesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	// Get AToken total supply (represents total supplied liquidity)
-	getBalancesRequest.AddCall(&ethrpc.Call{
-		ABI: atokenABI,
-		// Target: common.BytesToAddress(reserveData.ATokenAddress[:]).Hex(),
-		Method: atokenMethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&aTokenBalance.Balance})
-
-	// Get VariableDebtToken total supply (represents total borrowed liquidity)
-	getBalancesRequest.AddCall(&ethrpc.Call{
-		ABI: variableDebtTokenABI,
-		// Target: common.BytesToAddress(reserveData.VariableDebtTokenAddress[:]).Hex(),
-		Method: variableDebtTokenMethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&variableDebtBalance.Balance})
-
-	_, err := getBalancesRequest.TryBlockAndAggregate()
+func (d *PoolTracker) updatePool(pool entity.Pool, data RPCData) (entity.Pool, error) {
+	extra := parseConfiguration(data.Configuration.Data.Data)
+	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
-		return nil, nil, err
+		return entity.Pool{}, err
 	}
 
-	return aTokenBalance.Balance, variableDebtBalance.Balance, nil
-}
+	isBlocked := !extra.IsActive && extra.IsFrozen && extra.IsPaused
 
-func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, aTokenBalance, variableDebtBalance, blockNumber *big.Int) (entity.Pool, error) {
-	extra := Extra{
-		// PoolAddress:              d.config.PoolAddress,
-		// 	ATokenAddress:            common.BytesToAddress(reserveData.ATokenAddress[:]).Hex(),
-		// 			VariableDebtTokenAddress: common.BytesToAddress(reserveData.VariableDebtTokenAddress[:]).Hex(),
-		// 			StableDebtTokenAddress:   common.BytesToAddress(reserveData.StableDebtTokenAddress[:]).Hex(),
-		// LiquidityIndex:            reserveData.LiquidityIndex.ToBig(),
-		// VariableBorrowIndex:       reserveData.VariableBorrowIndex.ToBig(),
-		// CurrentLiquidityRate:      reserveData.CurrentLiquidityRate.ToBig(),
-		// CurrentVariableBorrowRate: reserveData.CurrentVariableBorrowRate.ToBig(),
-		// CurrentStableBorrowRate:   reserveData.CurrentStableBorrowRate.ToBig(),
-		// LastUpdateTimestamp: uint64(reserveData.LastUpdateTimestamp),
-	}
+	pool.Reserves = d.calculateReserves(pool, isBlocked)
 
-	extraBytes, err := json.Marshal(extra)
-	if err != nil {
-		return pool, err
-	}
-
-	pool.Reserves = entity.PoolReserves{
-		aTokenBalance.String(),
-		variableDebtBalance.String(),
-	}
-	pool.Extra = string(extraBytes)
-	pool.BlockNumber = blockNumber.Uint64()
+	pool.BlockNumber = data.BlockNumber
 	pool.Timestamp = time.Now().Unix()
+	pool.Extra = string(extraBytes)
 
 	return pool, nil
 }
 
-func (d *PoolTracker) getReserveDataFromRPCNode(ctx context.Context, assetAddress string) (ReserveData, *big.Int, error) {
-	var getReserveDataResult GetReserveDataResult
-
-	getReserveDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	getReserveDataRequest.AddCall(&ethrpc.Call{
-		ABI:    aaveV3PoolABI,
-		Target: d.config.PoolAddress,
-		Method: poolMethodGetReserveData,
-		Params: []interface{}{assetAddress},
-	}, []interface{}{&getReserveDataResult})
-
-	resp, err := getReserveDataRequest.TryBlockAndAggregate()
-	if err != nil {
-		return ReserveData{}, nil, err
+func (d *PoolTracker) calculateReserves(pool entity.Pool, isBlocked bool) entity.PoolReserves {
+	if isBlocked {
+		return entity.PoolReserves{"0", "0"}
 	}
 
-	return ReserveData{
-		// Configuration:               getReserveDataResult.Configuration,
-		// LiquidityIndex:              getReserveDataResult.LiquidityIndex,
-		// VariableBorrowIndex:         getReserveDataResult.VariableBorrowIndex,
-		// CurrentLiquidityRate:        getReserveDataResult.CurrentLiquidityRate,
-		// CurrentVariableBorrowRate:   getReserveDataResult.CurrentVariableBorrowRate,
-		// CurrentStableBorrowRate:     getReserveDataResult.CurrentStableBorrowRate,
-		// LastUpdateTimestamp:         getReserveDataResult.LastUpdateTimestamp,
-		// ATokenAddress:               getReserveDataResult.ATokenAddress,
-		// StableDebtTokenAddress:      getReserveDataResult.StableDebtTokenAddress,
-		// VariableDebtTokenAddress:    getReserveDataResult.VariableDebtTokenAddress,
-		// InterestRateStrategyAddress: getReserveDataResult.InterestRateStrategyAddress,
-		// Id:                          getReserveDataResult.Id,
-	}, resp.BlockNumber, nil
-}
-
-func (d *PoolTracker) getReserveDataFromLogs(logs []types.Log) (ReserveData, *big.Int, error) {
-	if len(logs) == 0 {
-		return ReserveData{}, nil, nil
+	return entity.PoolReserves{
+		strconv.Itoa(max(100*int(pool.Tokens[0].Decimals), defaultReserve)),
+		strconv.Itoa(max(100*int(pool.Tokens[1].Decimals), defaultReserve)),
 	}
-
-	return d.logDecoder.Decode(logs)
 }

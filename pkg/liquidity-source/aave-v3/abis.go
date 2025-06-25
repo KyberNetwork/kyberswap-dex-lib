@@ -7,10 +7,8 @@ import (
 )
 
 var (
-	aaveV3PoolABI        abi.ABI
-	atokenABI            abi.ABI
-	variableDebtTokenABI abi.ABI
-	stableDebtTokenABI   abi.ABI
+	poolABI   abi.ABI
+	aTokenABI abi.ABI
 )
 
 func init() {
@@ -18,10 +16,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&aaveV3PoolABI, aaveV3PoolJSON},
-		{&atokenABI, atokenJSON},
-		{&variableDebtTokenABI, variableDebtTokenJSON},
-		{&stableDebtTokenABI, stableDebtTokenJSON},
+		{&poolABI, poolJson},
+		{&aTokenABI, aTokenJson},
 	}
 
 	for _, b := range builder {

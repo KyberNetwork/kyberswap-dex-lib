@@ -91,7 +91,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	pools, err := u.initPools(ctx, assets)
+	pools, err := u.initPools(ctx, u.config.PoolAddress, assets)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -128,7 +128,7 @@ func (u *PoolsListUpdater) getAssetList(ctx context.Context, totalAssets int) ([
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    aaveV3PoolABI,
+		ABI:    poolABI,
 		Target: u.config.PoolAddress,
 		Method: poolMethodGetReservesList,
 		Params: nil,
@@ -146,7 +146,7 @@ func (u *PoolsListUpdater) getTotalAssets(ctx context.Context) (int, error) {
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
-		ABI:    aaveV3PoolABI,
+		ABI:    poolABI,
 		Target: u.config.PoolAddress,
 		Method: poolMethodGetReservesCount,
 		Params: nil,
@@ -165,7 +165,7 @@ func (u *PoolsListUpdater) getNewAssets(ctx context.Context, offset, count int) 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := offset; i < count; i++ {
 		req.AddCall(&ethrpc.Call{
-			ABI:    aaveV3PoolABI,
+			ABI:    poolABI,
 			Target: u.config.PoolAddress,
 			Method: poolMethodGetReserveAddressById,
 			Params: []any{uint16(i)},
@@ -192,8 +192,19 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	return metadata.Offset, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Address) ([]entity.Pool, error) {
-	reservesData, err := u.getReservesData(ctx, reserves)
+func (u *PoolsListUpdater) initPools(
+	ctx context.Context,
+	pool string,
+	reserves []common.Address,
+) ([]entity.Pool, error) {
+	aTokens, err := u.getATokens(ctx, reserves)
+	if err != nil {
+		return nil, err
+	}
+
+	extraBytes, err := json.Marshal(&StaticExtra{
+		PoolAddress: u.config.PoolAddress,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -201,29 +212,27 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Addr
 	pools := make([]entity.Pool, 0, len(reserves))
 
 	for i, reserve := range reserves {
-		extra, err := u.newExtra(reservesData[i])
-		if err != nil {
-			return nil, err
-		}
+		assetTokenAddr := strings.ToLower(reserve.Hex())
+		aTokenAddr := strings.ToLower(aTokens[i].Hex())
 
-		token := &entity.PoolToken{
-			Address:   strings.ToLower(reserve.Hex()),
+		assetToken := &entity.PoolToken{
+			Address:   assetTokenAddr,
 			Swappable: true,
 		}
 
 		aToken := &entity.PoolToken{
-			Address:   strings.ToLower(reservesData[i].ReserveDataLegacy.ATokenAddress.Hex()),
+			Address:   aTokenAddr,
 			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(reserve.Hex()),
-			Exchange:  u.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens:    []*entity.PoolToken{token, aToken},
-			Extra:     string(extra),
+			Address:     getPoolID(assetTokenAddr, aTokenAddr),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{assetToken, aToken},
+			StaticExtra: string(extraBytes),
 		}
 
 		pools = append(pools, newPool)
@@ -232,25 +241,25 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Addr
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) getReservesData(ctx context.Context, reserves []common.Address) ([]ReserveData, error) {
-	reservesData := make([]ReserveData, len(reserves))
+func (u *PoolsListUpdater) getATokens(ctx context.Context, reserves []common.Address) ([]common.Address, error) {
+	aTokens := make([]common.Address, len(reserves))
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, reserve := range reserves {
 		req.AddCall(&ethrpc.Call{
-			ABI:    aaveV3PoolABI,
+			ABI:    poolABI,
 			Target: u.config.PoolAddress,
-			Method: poolMethodGetReserveData,
+			Method: poolMethodGetReserveAToken,
 			Params: []any{reserve},
-		}, []any{&reservesData[i]})
+		}, []any{&aTokens[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
 
-	return reservesData, nil
+	return aTokens, nil
 }
 
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
@@ -264,21 +273,4 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	}
 
 	return metadataBytes, nil
-}
-
-func (u *PoolsListUpdater) newExtra(reserveData ReserveData) ([]byte, error) {
-	extra := Extra{
-		PoolAddress: u.config.PoolAddress,
-		// VariableDebtTokenAddress:  strings.ToLower(reserveData.VariableDebtTokenAddress.Hex()),
-		// StableDebtTokenAddress:    strings.ToLower(reserveData.StableDebtTokenAddress.Hex()),
-		// LiquidityIndex:            reserveData.LiquidityIndex,
-		// VariableBorrowIndex:       reserveData.VariableBorrowIndex,
-		// CurrentLiquidityRate:      reserveData.CurrentLiquidityRate,
-		// CurrentVariableBorrowRate: reserveData.CurrentVariableBorrowRate,
-		// CurrentStableBorrowRate:   reserveData.CurrentStableBorrowRate,
-		// LastUpdateTimestamp:       reserveData.LastUpdateTimestamp,
-		// Additional fields from configuration can be parsed if needed
-	}
-
-	return json.Marshal(extra)
 }
