@@ -3,15 +3,14 @@ package euler
 import (
 	"math/big"
 
-	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/holiman/uint256"
 )
 
-type Vault = eulerswap.Vault
-type Extra = eulerswap.Extra
-type PoolExtra = eulerswap.PoolExtra
+type PoolExtra struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
 
 type StaticExtra struct {
 	Vault0               string         `json:"v0"`
@@ -26,8 +25,22 @@ type StaticExtra struct {
 	ConcentrationX       *uint256.Int   `json:"cx"`
 	ConcentrationY       *uint256.Int   `json:"cy"`
 	ProtocolFeeRecipient common.Address `json:"pfr"`
+	EVC                  string         `json:"evc"`
 }
 
+type Extra struct {
+	Pause  uint32  `json:"p"`
+	Vaults []Vault `json:"v"`
+}
+
+type Vault struct {
+	Cash               *uint256.Int
+	Debt               *uint256.Int
+	MaxDeposit         *uint256.Int
+	MaxWithdraw        *uint256.Int
+	TotalBorrows       *uint256.Int
+	EulerAccountAssets *uint256.Int
+}
 type SwapInfo struct {
 	NewReserve0 *uint256.Int
 	NewReserve1 *uint256.Int
@@ -35,6 +48,11 @@ type SwapInfo struct {
 	ZeroForOne  bool
 }
 
+type TrackerData struct {
+	Vaults               []VaultRPC
+	Reserves             ReserveRPC
+	IsOperatorAuthorized bool
+}
 type ReserveRPC struct {
 	Reserve0 *big.Int
 	Reserve1 *big.Int
@@ -56,4 +74,16 @@ type ParamsRPC struct {
 		ProtocolFee          *big.Int       `abi:"protocolFee"`
 		ProtocolFeeRecipient common.Address `abi:"protocolFeeRecipient"`
 	}
+}
+
+type VaultRPC struct {
+	Cash                *big.Int
+	Debt                *big.Int
+	MaxDeposit          *big.Int
+	TotalBorrows        *big.Int
+	EulerAccountBalance *big.Int
+	TotalAssets         *big.Int
+	TotalSupply         *big.Int
+	Caps                [2]uint16
+	MaxWithdraw         *big.Int
 }

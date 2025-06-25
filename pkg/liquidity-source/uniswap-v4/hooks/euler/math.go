@@ -10,9 +10,13 @@ import (
 )
 
 var (
+	VIRTUAL_AMOUNT = uint256.NewInt(1e6) // 1e6
+
 	e36        = big256.TenPow(36)
 	maxUint112 = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(big256.U1, 112), 1) // 2^112 - 1
 	e18Int     = int256.NewInt(1e18)                                                 // 1e18
+	hundred    = uint256.NewInt(100)
+	sixtyThree = uint256.NewInt(63)
 )
 
 func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {

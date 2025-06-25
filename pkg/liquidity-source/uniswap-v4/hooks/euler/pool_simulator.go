@@ -79,6 +79,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		tokenOut      = param.TokenOut
 	)
 
+	if p.status != 1 {
+		return nil, ErrSwapIsPaused
+	}
+
 	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
@@ -87,10 +91,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountIn
-	}
-
-	if p.status != 1 {
-		return nil, ErrSwapIsPaused
 	}
 
 	_, amountOut, swapInfo, err := p.swap(true, indexIn == 0, amountIn)
@@ -116,6 +116,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		tokenIn        = param.TokenIn
 	)
 
+	if p.status != 1 {
+		return nil, ErrSwapIsPaused
+	}
+
 	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
@@ -124,10 +128,6 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountOut
-	}
-
-	if p.status != 1 {
-		return nil, ErrSwapIsPaused
 	}
 
 	amountIn, _, swapInfo, err := p.swap(false, indexIn == 0, amountOut)

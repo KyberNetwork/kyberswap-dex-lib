@@ -205,7 +205,10 @@ func (d *PoolsListUpdater) getPoolStaticData(
 	ctx context.Context,
 	poolAddress string,
 ) (StaticExtra, error) {
-	var params ParamsRPC
+	var (
+		params ParamsRPC
+		evc    common.Address
+	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -214,6 +217,13 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		Method: poolMethodGetParams,
 		Params: nil,
 	}, []any{&params})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodEVC,
+		Params: nil,
+	}, []any{&evc})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -233,6 +243,7 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		ConcentrationX:       uint256.MustFromBig(params.Data.ConcentrationX),
 		ConcentrationY:       uint256.MustFromBig(params.Data.ConcentrationY),
 		ProtocolFeeRecipient: params.Data.ProtocolFeeRecipient,
+		EVC:                  evc.Hex(),
 	}
 
 	return poolData, nil
