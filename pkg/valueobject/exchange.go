@@ -241,8 +241,11 @@ const (
 	ExchangePaintSwap                  = "paintswap"
 	ExchangePancake                    = "pancake"
 	ExchangePancakeInfinityBin         = "pancake-infinity-bin"
+	ExchangePancakeInfinityBinBrevis   = "pancake-infinity-bin-brevis"
 	ExchangePancakeInfinityBinFairflow = "pancake-infinity-bin-fairflow"
 	ExchangePancakeInfinityCL          = "pancake-infinity-cl"
+	ExchangePancakeInfinityCLBrevis    = "pancake-infinity-cl-brevis"
+	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
@@ -639,8 +642,11 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePaintSwap:                  {},
 	ExchangePancake:                    {},
 	ExchangePancakeInfinityBin:         {},
+	ExchangePancakeInfinityBinBrevis:   {},
 	ExchangePancakeInfinityBinFairflow: {},
 	ExchangePancakeInfinityCL:          {},
+	ExchangePancakeInfinityCLBrevis:    {},
+	ExchangePancakeInfinityCLDynamic:   {},
 	ExchangePancakeInfinityCLFairflow:  {},
 	ExchangePancakeLegacy:              {},
 	ExchangePancakeStable:              {},

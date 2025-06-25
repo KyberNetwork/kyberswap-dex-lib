@@ -7,6 +7,8 @@ import (
 )
 
 var quoterABI abi.ABI
+var BinPoolManagerABI abi.ABI
+var CLPoolManagerABI abi.ABI
 
 func init() {
 	builder := []struct {
@@ -14,6 +16,8 @@ func init() {
 		data []byte
 	}{
 		{&quoterABI, quoterABIJson},
+		{&BinPoolManagerABI, binPoolManagerABIJson},
+		{&CLPoolManagerABI, clPoolManagerABIJson},
 	}
 
 	for _, b := range builder {

@@ -48,6 +48,7 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 			parameters
 			hooks
 			timestamp
+			baseFeePct
 		}
 	}`)
 

@@ -21,6 +21,9 @@ const (
 
 var (
 	_MASK1 = uint256.NewInt(0x1)
+
+	MAX_FEE_PIPS     uint32 = 1000000 // 100%
+	DYNAMIC_FEE_FLAG uint32 = 0x800000
 )
 
 func hasOffsetEnabled(data []byte, offset int) bool {
@@ -32,4 +35,8 @@ func hasOffsetEnabled(data []byte, offset int) bool {
 
 func HasSwapPermissions(parameters []byte) bool {
 	return hasOffsetEnabled(parameters, HOOKS_BEFORE_SWAP_OFFSET) || hasOffsetEnabled(parameters, HOOKS_AFTER_SWAP_OFFSET)
+}
+
+func IsDynamicFee(fee uint32) bool {
+	return fee == DYNAMIC_FEE_FLAG
 }
