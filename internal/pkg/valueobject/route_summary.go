@@ -50,42 +50,44 @@ type RouteSummary struct {
 	// Route
 	Route [][]Swap `json:"route"`
 
-	// RouteID
+	// RouteID request_id from GET routes request
 	RouteID string `json:"routeID"`
-
+	// Timestamp of the GET routes request
 	Timestamp int64 `json:"timestamp"`
+	// OriginalChecksum of the GET routes request
+	OriginalChecksum uint64 `json:"checksum,string"`
 }
 
-// Only use enough data to avoid "return amount not enough" due to manually modify amount out and swap amount
+// Checksum only uses enough data to avoid "return amount not enough" due to manually modify amount out and swap amount
 func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 	h := xxhash.New()
-	h.WriteString(salt)
-	h.WriteString(rs.TokenIn)
-	h.Write(rs.AmountIn.Bytes())
+	_, _ = h.WriteString(salt)
+	_, _ = h.WriteString(rs.TokenIn)
+	_, _ = h.Write(rs.AmountIn.Bytes())
 
-	h.WriteString(rs.TokenOut)
-	h.Write(rs.AmountOut.Bytes())
+	_, _ = h.WriteString(rs.TokenOut)
+	_, _ = h.Write(rs.AmountOut.Bytes())
 	_, _ = h.Write(binary.LittleEndian.AppendUint64(nil, uint64(rs.Timestamp)))
 
-	h.WriteString(rs.RouteID)
+	_, _ = h.WriteString(rs.RouteID)
 
-	// Add alpha fee to checksum because we want to limit the calls to Redis
-	// incase routeSummary doesn't have alpha fee and the routeSummary hasn't been modified
+	// Add alpha fee to checksum because we want to limit the calls to Redis.
+	// In case routeSummary doesn't have alpha fee and the routeSummary hasn't been modified
 	// checksum validation always return true, and we don't need to retrieve checksum from Redis.
 	if rs.AlphaFee != nil {
 		for _, swapReduction := range rs.AlphaFee.SwapReductions {
-			h.Write(binary.LittleEndian.AppendUint64(nil, uint64(swapReduction.ExecutedId)))
-			h.Write(swapReduction.ReduceAmount.Bytes())
+			_, _ = h.Write(binary.LittleEndian.AppendUint64(nil, uint64(swapReduction.ExecutedId)))
+			_, _ = h.Write(swapReduction.ReduceAmount.Bytes())
 		}
 	}
 
 	for _, path := range rs.Route {
 		for _, swap := range path {
-			h.WriteString(swap.Pool)
-			h.WriteString(swap.TokenIn)
-			h.WriteString(swap.TokenOut)
-			h.Write(swap.SwapAmount.Bytes())
-			h.Write(swap.AmountOut.Bytes())
+			_, _ = h.WriteString(swap.Pool)
+			_, _ = h.WriteString(swap.TokenIn)
+			_, _ = h.WriteString(swap.TokenOut)
+			_, _ = h.Write(swap.SwapAmount.Bytes())
+			_, _ = h.Write(swap.AmountOut.Bytes())
 		}
 	}
 

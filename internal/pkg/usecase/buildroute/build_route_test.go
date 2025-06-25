@@ -107,6 +107,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -118,26 +119,25 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
 					RouteSummary: valueobject.RouteSummary{
-						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-						AmountIn:     big.NewInt(20000),
-						AmountInUSD:  0,
-						TokenOut:     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-						AmountOut:    big.NewInt(0),
-						AmountOutUSD: 0,
-						Gas:          0,
-						GasPrice:     big.NewFloat(100.2),
-						GasUSD:       0,
-						ExtraFee:     valueobject.ExtraFee{},
-						Route:        [][]valueobject.Swap{},
-						Timestamp:    time.Now().Unix(),
+						TokenIn:          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						AmountIn:         big.NewInt(20000),
+						AmountInUSD:      0,
+						TokenOut:         "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+						AmountOut:        big.NewInt(0),
+						AmountOutUSD:     0,
+						Gas:              0,
+						GasPrice:         big.NewFloat(100.2),
+						GasUSD:           0,
+						ExtraFee:         valueobject.ExtraFee{},
+						Route:            [][]valueobject.Swap{},
+						Timestamp:        time.Now().Unix(),
+						OriginalChecksum: 12499967010441707798,
 					},
-					Checksum:          12499967010441707798,
 					SlippageTolerance: 5,
 					Recipient:         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Sender:            sender,
@@ -213,7 +213,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					constant.Zero,
 					nil,
 				)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), big.NewInt(1000), nil)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10),
+					1.5, big.NewInt(1000), nil)
 
 				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
 				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
@@ -222,6 +223,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -233,7 +235,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
@@ -345,7 +346,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					constant.Zero,
 					nil,
 				)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), big.NewInt(996), nil)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10),
+					1.5, big.NewInt(996), nil)
 
 				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
 				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
@@ -354,6 +356,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -365,7 +368,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
@@ -477,7 +479,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					constant.Zero,
 					nil,
 				)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), big.NewInt(9999), nil)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10),
+					1.5, big.NewInt(9999), nil)
 
 				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
 				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
@@ -486,6 +489,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -497,7 +501,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
@@ -633,6 +636,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -644,7 +648,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
@@ -670,10 +673,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:      route,
-					Checksum:          checksum.Hash(),
 					SlippageTolerance: 5,
 					Recipient:         recipient,
 					Sender:            sender,
@@ -779,7 +781,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					amountIn,
 					nil,
 				)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), big.NewInt(9999), nil)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10),
+					1.5, big.NewInt(9999), nil)
 
 				alphaFeeRepository := buildroute.NewMockIAlphaFeeRepository(ctrl)
 				alphaFeeRepository.EXPECT().GetByRouteId(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
@@ -788,6 +791,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 				return NewBuildRouteUseCase(
+					config,
 					tokenRepository,
 					poolRepository,
 					executorBalanceRepository,
@@ -799,7 +803,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					nil,
 					clientDataEncoder,
 					encoder,
-					config,
 				)
 			},
 			command: func() dto.BuildRouteCommand {
@@ -825,10 +828,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					Sender:              sender,
@@ -955,7 +957,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(1234), float64(1.5), big.NewInt(9999), nil).Times(1)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(1234), 1.5, big.NewInt(9999), nil).Times(1)
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -1097,10 +1099,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					Sender:              "0xabc",
@@ -1277,10 +1278,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					Sender:              sender,
 					SlippageTolerance:   1,
 					Recipient:           recipient,
@@ -1289,7 +1289,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Times(1).Return(uint64(185000), float64(0.07912413535198341), big.NewInt(1526105316), nil)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Times(1).Return(uint64(185000),
+					0.07912413535198341, big.NewInt(1526105316), nil)
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -1381,10 +1382,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:      route,
-					Checksum:          checksum.Hash(),
 					Sender:            sender,
 					SlippageTolerance: 5,
 					Recipient:         recipient,
@@ -1484,10 +1484,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					Sender:              sender,
 					SlippageTolerance:   5,
 					Recipient:           recipient,
@@ -1608,6 +1607,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
+				tc.config,
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
@@ -1619,7 +1619,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				nil,
 				clientDataEncoder,
 				encoder,
-				tc.config,
 			)
 
 			result, err := usecase.Handle(context.Background(), tc.command())
@@ -1665,7 +1664,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -1691,10 +1690,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -1718,7 +1716,8 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			},
 			gasEstimator: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(345000), float64(0.07912413535198341), big.NewInt(4488767370609711072), nil).Times(1)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(345000),
+					0.07912413535198341, big.NewInt(4488767370609711072), nil).Times(1)
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -1810,7 +1809,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -1836,10 +1835,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					EnableGasEstimation: false,
@@ -1952,7 +1950,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -1974,10 +1972,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2068,7 +2065,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -2094,10 +2091,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   30,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2210,7 +2206,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -2235,10 +2231,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 							},
 						},
 					}}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   50,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2351,7 +2346,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -2377,10 +2372,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2483,7 +2477,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(1000),
 					Gas:          50,
 					GasPrice:     big.NewFloat(1),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -2527,10 +2521,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   50,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2646,7 +2639,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(1000),
 					Gas:          50,
 					GasPrice:     big.NewFloat(1),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -2690,10 +2683,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   50,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2798,7 +2790,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -2822,10 +2814,11 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 								TokenOut:   "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
 							},
 						},
-					}}
+					},
+					OriginalChecksum: 12345678,
+				}
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            12345678,
 					SlippageTolerance:   50,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2921,7 +2914,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(1000000),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -2947,10 +2940,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   10,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -2965,7 +2957,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					Do(func(arg0, arg1 interface{}) {
 						defer wg.Done()
 					}).
-					Return(uint64(0), float64(0.0), nil, errors.New("swapSinglePool failed at sequence: 0 hop: 1: some error")).
+					Return(uint64(0), 0.0, nil, errors.New("swapSinglePool failed at sequence: 0 hop: 1: some error")).
 					Times(1)
 				return gasEstimator
 			},
@@ -3034,7 +3026,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					AmountOutUSD: float64(1000000),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Timestamp:    time.Now().Unix(),
 					Route: [][]valueobject.Swap{
@@ -3060,10 +3052,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   10,
 					Recipient:           recipient,
 					EnableGasEstimation: true,
@@ -3072,7 +3063,8 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			},
 			gasEstimator: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(345000), float64(0.07912413535198341), big.NewInt(900000), nil).Times(1)
+				gasEstimator.EXPECT().EstimateGasAndPriceUSD(gomock.Any(), gomock.Any()).Return(uint64(345000),
+					0.07912413535198341, big.NewInt(900000), nil).Times(1)
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -3209,6 +3201,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
+				tc.config,
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
@@ -3220,7 +3213,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				nil,
 				clientDataEncoder,
 				encoder,
-				tc.config,
 			)
 
 			result, err := usecase.Handle(context.Background(), tc.command())
@@ -3259,7 +3251,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -3285,10 +3277,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					SlippageTolerance:   5,
 					EnableGasEstimation: true,
 				}
@@ -3370,7 +3361,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -3396,10 +3387,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					EnableGasEstimation: true,
 				}
 			},
@@ -3498,7 +3488,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -3524,10 +3514,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				checksum := crypto.NewChecksum(route, randomSalt)
+				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
-					Checksum:            checksum.Hash(),
 					EnableGasEstimation: true,
 				}
 			},
@@ -3665,6 +3654,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
+				tc.config,
 				tokenRepository,
 				poolRepository,
 				executorBalanceRepository,
@@ -3676,7 +3666,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				tc.rfqHandlerByExchange(ctrl),
 				clientDataEncoder,
 				encoder,
-				tc.config,
 			)
 
 			_, err := usecase.Handle(context.Background(), command)
@@ -3709,7 +3698,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -3781,7 +3770,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 					AmountOutUSD: float64(4488767370609711072),
 					Gas:          345000,
 					GasPrice:     big.NewFloat(100000000),
-					GasUSD:       float64(0.07912413535198341),
+					GasUSD:       0.07912413535198341,
 					ExtraFee:     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -3896,6 +3885,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			publisherRepository.EXPECT().Publish(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
+				tc.config,
 				tokenRepository,
 				nil,
 				executorBalanceRepository,
@@ -3907,7 +3897,6 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				tc.rfqHandlerByExchange(ctrl),
 				clientDataEncoder,
 				encoder,
-				tc.config,
 			)
 
 			_, err := usecase.Handle(context.Background(), tc.command)
@@ -3924,17 +3913,6 @@ func TestBuildRouteUseCase_ValidateReturnAmount(t *testing.T) {
 	t.Parallel()
 
 	uc := NewBuildRouteUseCase(
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
 		Config{
 			ChainID: valueobject.ChainIDEthereum,
 			TokenGroups: &valueobject.TokenGroupConfig{
@@ -3964,6 +3942,17 @@ func TestBuildRouteUseCase_ValidateReturnAmount(t *testing.T) {
 				},
 			},
 		},
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
 	)
 
 	testCases := []struct {

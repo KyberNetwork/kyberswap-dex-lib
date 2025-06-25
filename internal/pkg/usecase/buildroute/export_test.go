@@ -247,11 +247,10 @@ func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			usecase := NewBuildRouteUseCase(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
-				tc.config,
-			)
+			usecase := NewBuildRouteUseCase(tc.config, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			routeSummary, err := usecase.estimateRFQSlippage(context.Background(), tc.routeSummary, tc.slippageTolerance)
+			routeSummary, err := usecase.estimateRFQSlippage(context.Background(), tc.routeSummary,
+				tc.slippageTolerance)
 			if tc.err != nil {
 				assert.Equal(t, tc.err.Error(), err.Error())
 			}

@@ -7,13 +7,13 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	v1 "github.com/KyberNetwork/aggregation-stats/messages/v1"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kutils/klog"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
@@ -23,7 +23,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/google/uuid"
@@ -69,10 +68,12 @@ const (
 )
 
 type BuildRouteUseCase struct {
+	config Config
+
 	tokenRepository           ITokenRepository
 	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
-	onchainpriceRepository    IOnchainPriceRepository
+	onchainPriceRepository    IOnchainPriceRepository
 	alphaFeeRepository        IAlphaFeeRepository
 	publisherRepository       IPublisherRepository
 	gasEstimator              IGasEstimator
@@ -83,13 +84,10 @@ type BuildRouteUseCase struct {
 	encoder              encode.IEncoder
 
 	alphaFeeCalculation *alphafee.AlphaFeeV3Calculation
-
-	config Config
-
-	mu sync.RWMutex
 }
 
 func NewBuildRouteUseCase(
+	config Config,
 	tokenRepository ITokenRepository,
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
@@ -101,7 +99,6 @@ func NewBuildRouteUseCase(
 	rfqHandlerByExchange map[valueobject.Exchange]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	encoder encode.IEncoder,
-	config Config,
 ) *BuildRouteUseCase {
 	alphaFeeCalculation := alphafee.NewAlphaFeeV3Calculation(
 		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, routerpoolpkg.NewCustomFuncs(nil)),
@@ -114,7 +111,7 @@ func NewBuildRouteUseCase(
 		tokenRepository:           tokenRepository,
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
-		onchainpriceRepository:    onchainPriceRepository,
+		onchainPriceRepository:    onchainPriceRepository,
 		alphaFeeRepository:        alphaFeeRepository,
 		publisherRepository:       publisherRepository,
 		gasEstimator:              gasEstimator,
@@ -137,31 +134,32 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// and retrieve it from there.
 	if len(command.RouteSummary.Route) > 0 &&
 		len(command.RouteSummary.Route[0]) > 0 {
-		firstSwapExtra, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
-		if err == nil && (*firstSwapExtra) != nil {
+		firstSwapExtraP, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
+		firstSwapExtra := *firstSwapExtraP
+		if err == nil && firstSwapExtra != nil {
 			if command.RouteSummary.RouteID == "" {
-				command.RouteSummary.RouteID, _ = (*firstSwapExtra)[valueobject.RouteIDInExtra].(string)
+				command.RouteSummary.RouteID, _ = firstSwapExtra[valueobject.RouteIDInExtra].(string)
 			}
 			if command.RouteSummary.Timestamp == 0 {
-				timestampString, _ := (*firstSwapExtra)[valueobject.TimestampInExtra].(string)
-				command.RouteSummary.Timestamp, _ = strconv.ParseInt(timestampString, 10, 64)
+				timestampString, _ := firstSwapExtra[valueobject.TimestampInExtra].(string)
+				command.RouteSummary.Timestamp, _ = kutils.Atoi[int64](timestampString)
 			}
-			if command.Checksum == 0 {
-				checkSumString, _ := (*firstSwapExtra)[valueobject.ChecksumInExtra].(string)
-				command.Checksum, _ = strconv.ParseUint(checkSumString, 10, 64)
+			if command.RouteSummary.OriginalChecksum == 0 {
+				checkSumString, _ := firstSwapExtra[valueobject.ChecksumInExtra].(string)
+				command.RouteSummary.OriginalChecksum, _ = kutils.Atou[uint64](checkSumString)
 			}
 
 			// Need to remove the checksum from the first swap extra to avoid checksum mismatch.
-			delete(*firstSwapExtra, valueobject.ChecksumInExtra)
-			command.RouteSummary.Route[0][0].Extra = *firstSwapExtra
+			delete(firstSwapExtra, valueobject.ChecksumInExtra)
+			command.RouteSummary.Route[0][0].Extra = firstSwapExtra
 		}
 	}
 
-	isValidChecksum := uc.IsValidChecksum(command.RouteSummary, command.Checksum)
+	isValidChecksum := uc.IsValidChecksum(command.RouteSummary)
 	if uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
 		if !isValidChecksum { // the route might have an alphaFee
 			command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
-			isValidChecksum = uc.IsValidChecksum(command.RouteSummary, command.Checksum)
+			isValidChecksum = uc.IsValidChecksum(command.RouteSummary)
 		}
 
 		// If the client modifies the route (checksum is still invalid),
@@ -293,7 +291,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		AmountOut:    routeSummary.AmountOut.String(),
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
 
-		Gas:    strconv.FormatUint(estimatedGas, 10),
+		Gas:    kutils.Utoa(estimatedGas),
 		GasUSD: strconv.FormatFloat(gasInUSD, 'f', -1, 64),
 
 		AdditionalCostUsd:     strconv.FormatFloat(l1FeeUSD, 'f', -1, 64),
@@ -308,8 +306,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 }
 
 func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
-	uc.mu.Lock()
-	defer uc.mu.Unlock()
 	uc.config.FeatureFlags = config.FeatureFlags
 	uc.config.RFQAcceptableSlippageFraction = config.RFQAcceptableSlippageFraction
 
@@ -876,7 +872,7 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
 	defer span.End()
 
-	priceByAddress, err := uc.onchainpriceRepository.FindByAddresses(ctx, addresses)
+	priceByAddress, err := uc.onchainPriceRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
 	}

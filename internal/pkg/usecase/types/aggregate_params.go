@@ -61,7 +61,8 @@ type AggregateParams struct {
 	// ForcePoolsForToken force routing through specific pools for specified tokens
 	ForcePoolsForToken map[string][]string
 
-	ClientId string
+	ClientId            string
+	IsScaleHelperClient bool
 
 	// KyberLimitOrderAllowedSenders is a comma-separated list of addresses used to filter
 	// Kyber private limit orders.
@@ -71,9 +72,7 @@ type AggregateParams struct {
 	EnableAlphaFee bool
 
 	// Flag to enable hill climbing for amm best route
-	EnableHillClaimForAlphaFee bool
-
-	IsScaleHelperClient bool
+	EnableHillClimbForAlphaFee bool
 
 	// PoolIds is a list of pool IDs to be used in the route.
 	// Only pools in this list will be considered,
@@ -96,6 +95,11 @@ type AggregateBundledParams struct {
 
 	// Sources list of liquidity sources to be finding route on
 	Sources []string
+
+	// OnlySinglePath
+	//	- if true: finds single path route only
+	//	- if false: finds single path route and multi path route then return the better one
+	OnlySinglePath bool
 
 	// GasInclude
 	// 	- if true: better route has more (amountOutUSD - gasUSD)
@@ -124,8 +128,6 @@ type AggregateBundledParams struct {
 	// ForcePoolsForToken force routing through specific pools for specified tokens
 	ForcePoolsForToken map[string][]string
 
-	ClientId string
-
 	Pairs []AggregateBundledParamsPair
 
 	OverridePools []*entity.Pool
@@ -133,7 +135,14 @@ type AggregateBundledParams struct {
 	// ExtraWhitelistedTokens list of token addresses are included in whitelisted when finding route
 	ExtraWhitelistedTokens []string
 
+	ClientId            string
+	IsScaleHelperClient bool
+
 	KyberLimitOrderAllowedSenders string
 
-	IsScaleHelperClient bool
+	// Flag to enable alpha fee reduction
+	EnableAlphaFee bool
+
+	// Flag to enable hill climbing for amm best route
+	EnableHillClimbForAlphaFee bool
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -267,7 +267,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		calcAmountOutInstance,
 	)
 
-	finderEngine := finderEngine.NewPathFinderEngine(routeFinder, routeFinalizer)
+	finderEngine := finderengine.NewPathFinderEngine(routeFinder, routeFinalizer)
 
 	// Mock IGasRepository
 	alphaFeeRepository := getroute.NewMockIAlphaFeeRepository(ctrl)
@@ -277,16 +277,6 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		AnyTimes()
 
 	return NewUseCase(
-		poolRankRepository,
-		tokenRepository,
-		onchainpriceRepo,
-		routeCacheRepository,
-		gasRepository,
-		alphaFeeRepository,
-		l1FeeEstimator,
-		poolManager,
-		nil,
-		finderEngine,
 		Config{
 			ChainID:          valueobject.ChainIDEthereum,
 			GasTokenAddress:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -302,6 +292,16 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 
 			SafetyQuoteConfig: &valueobject.SafetyQuoteReductionConfig{},
 		},
+		poolRankRepository,
+		tokenRepository,
+		onchainpriceRepo,
+		routeCacheRepository,
+		gasRepository,
+		alphaFeeRepository,
+		l1FeeEstimator,
+		poolManager,
+		nil,
+		finderEngine,
 	)
 }
 

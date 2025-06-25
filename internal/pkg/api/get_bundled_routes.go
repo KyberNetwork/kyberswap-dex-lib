@@ -61,7 +61,8 @@ func GetBundledRoutes(
 	}
 }
 
-func transformGetBundledRoutesParams(ginCtx *gin.Context, params params.GetBundledRoutesParams) (dto.GetBundledRoutesQuery, error) {
+func transformGetBundledRoutesParams(ginCtx *gin.Context,
+	params params.GetBundledRoutesParams) (dto.GetBundledRoutesQuery, error) {
 	pairs := make([]*dto.GetBundledRoutesQueryPair, 0, len(params.TokensIn))
 	for i, tokenIn := range params.TokensIn {
 		amountIn, ok := new(big.Int).SetString(params.AmountsIn[i], 10)

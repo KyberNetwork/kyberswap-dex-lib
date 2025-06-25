@@ -235,20 +235,20 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.Repository.Token.GoCache,
 	)
 
-	var onchainpriceRepository getroute.IOnchainPriceRepository
+	var onchainPriceRepository getroute.IOnchainPriceRepository
 	grpcRepository, err := onchainprice.NewGRPCRepository(cfg.Repository.OnchainPrice.Grpc, cfg.Common.ChainID,
 		cachedTokenRepository)
 	if err != nil {
 		return err
 	}
 
-	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+	onchainPriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
 		cfg.Repository.OnchainPrice.Ristretto)
 	if err != nil {
 		return err
 	}
 
-	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
+	go onchainPriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
@@ -300,7 +300,7 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsUseCase := getpools.NewGetPoolsUseCase(poolRepository)
 	GetPoolsIncludingBasePools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
 	getTokensUseCase := usecase.NewGetTokens(token.NewFullTokenRepository(poolRedisClient.Client,
-		cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)), onchainpriceRepository)
+		cfg.Repository.Token.Redis, token.NewHTTPClient(cfg.Repository.Token.Http)), onchainPriceRepository)
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache
@@ -359,9 +359,10 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	getRouteUseCase := getroute.NewUseCase(
+		cfg.UseCase.GetRoute,
 		poolRankRepository,
 		cachedTokenRepository,
-		onchainpriceRepository,
+		onchainPriceRepository,
 		routeRepository,
 		gasRepository,
 		alphaFeeRepository,
@@ -369,19 +370,18 @@ func apiAction(c *cli.Context) (err error) {
 		poolManager,
 		aevmClient,
 		finderEngine,
-		cfg.UseCase.GetRoute,
 	)
 	getBundledRouteUseCase := getroute.NewBundledUseCase(
+		cfg.UseCase.GetRoute,
 		poolRankRepository,
 		cachedTokenRepository,
-		onchainpriceRepository,
-		routeRepository,
+		onchainPriceRepository,
 		gasRepository,
+		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
 		poolFactory,
 		finderEngine,
-		cfg.UseCase.GetRoute,
 	)
 
 	rfqHandlerByExchange := make(map[valueobject.Exchange]poolpkg.IPoolRFQ)
@@ -395,15 +395,16 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByExchange[dexId] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient.GetETHClient(), gasRepository, onchainpriceRepository,
+	gasEstimator := buildroute.NewGasEstimator(ethClient.GetETHClient(), gasRepository, onchainPriceRepository,
 		cfg.Common.ChainID,
 		cfg.Common.RouterAddress)
 
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
+		cfg.UseCase.BuildRoute,
 		cachedTokenRepository,
 		poolRepository,
 		executorBalanceRepository,
-		onchainpriceRepository,
+		onchainPriceRepository,
 		alphaFeeRepository,
 		publisherRepository,
 		gasEstimator,
@@ -411,20 +412,19 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByExchange,
 		clientDataEncoder,
 		encoder,
-		cfg.UseCase.BuildRoute,
 	)
 
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
+		customRouteConfig,
 		poolFactory,
 		cachedTokenRepository,
-		onchainpriceRepository,
+		onchainPriceRepository,
 		gasRepository,
 		alphaFeeRepository,
 		l1FeeEstimator,
 		poolManager,
 		poolRepository,
 		customRouteFinderEngine,
-		customRouteConfig,
 	)
 	l1Decoder := &decode.Decoder{}
 	l2Decoder := decode.NewL2Decoder()

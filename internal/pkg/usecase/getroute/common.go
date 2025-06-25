@@ -120,7 +120,7 @@ func ConvertToPathfinderParams(
 		ClientId:                   params.ClientId,
 		OnlySinglePath:             params.OnlySinglePath,
 		ReturnAMMBestPath:          params.EnableAlphaFee,
-		EnableHillClimbForAlphaFee: params.EnableHillClaimForAlphaFee,
+		EnableHillClimbForAlphaFee: params.EnableHillClimbForAlphaFee,
 	}
 
 	findRouteParams.SkipMergeSwap = !featureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient

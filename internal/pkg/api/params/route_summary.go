@@ -38,7 +38,7 @@ type (
 
 	RouteSummaryValidation struct {
 		RouteID   string `json:"routeID"`
-		Checksum  string `json:"checksum"`
+		Checksum  uint64 `json:"checksum,string"`
 		Timestamp int64  `json:"timestamp"`
 	}
 
@@ -50,15 +50,15 @@ type (
 	}
 
 	Swap struct {
-		Pool       string      `json:"pool"`
-		TokenIn    string      `json:"tokenIn"`
-		TokenOut   string      `json:"tokenOut"`
-		SwapAmount string      `json:"swapAmount"`
-		AmountOut  string      `json:"amountOut"`
-		Exchange   string      `json:"exchange"`
-		PoolType   string      `json:"poolType"`
-		PoolExtra  interface{} `json:"poolExtra"`
-		Extra      interface{} `json:"extra"`
+		Pool       string `json:"pool"`
+		TokenIn    string `json:"tokenIn"`
+		TokenOut   string `json:"tokenOut"`
+		SwapAmount string `json:"swapAmount"`
+		AmountOut  string `json:"amountOut"`
+		Exchange   string `json:"exchange"`
+		PoolType   string `json:"poolType"`
+		PoolExtra  any    `json:"poolExtra"`
+		Extra      any    `json:"extra"`
 	}
 
 	ChunkInfo struct {

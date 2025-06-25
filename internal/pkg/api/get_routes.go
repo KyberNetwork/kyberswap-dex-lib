@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -180,13 +179,10 @@ func transformGetRoutesResult(result *dto.GetRoutesResult) *params.GetRoutesResp
 		return nil
 	}
 
-	summary := transformRouteSummary(result.RouteSummary)
-	summary.RouteID = result.RouteSummary.RouteID
-	summary.Checksum = fmt.Sprintf("%d", result.Checksum)
-	summary.Timestamp = result.RouteSummary.Timestamp
+	routeSummary := transformRouteSummary(result.RouteSummary)
 
 	return &params.GetRoutesResponse{
-		RouteSummary:  summary,
+		RouteSummary:  routeSummary,
 		RouterAddress: result.RouterAddress,
 	}
 }
@@ -228,6 +224,12 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 		ExtraFee: transformExtraFee(routeSummary.ExtraFee),
 		Route:    transformRoute(routeSummary.Route),
 		AlphaFee: alphaFee,
+
+		RouteSummaryValidation: params.RouteSummaryValidation{
+			RouteID:   routeSummary.RouteID,
+			Timestamp: routeSummary.Timestamp,
+			Checksum:  routeSummary.OriginalChecksum,
+		},
 	}
 }
 

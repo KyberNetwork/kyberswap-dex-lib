@@ -208,7 +208,6 @@ func buildBuildRouteCommand(
 
 	return dto.BuildRouteCommand{
 		RouteSummary:      *getRoutesResult.RouteSummary,
-		Checksum:          getRoutesResult.Checksum,
 		Recipient:         utils.CleanUpParam(params.To),
 		Permit:            common.FromHex(params.Permit),
 		Deadline:          deadline,

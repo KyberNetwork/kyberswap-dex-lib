@@ -3,6 +3,7 @@ package getroute
 import (
 	"context"
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -14,6 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -24,35 +26,33 @@ type bundledUseCase struct {
 }
 
 func NewBundledUseCase(
+	config Config,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
-	routeCacheRepository IRouteCacheRepository,
+	onchainPriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
+	alphaFeeRepository IAlphaFeeRepository,
 	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	poolFactory IPoolFactory,
 	finderEngine finderEngine.IPathFinderEngine,
-	config Config,
 ) *bundledUseCase {
-	aggregator := NewBundledAggregator(
-		poolRankRepository,
-		tokenRepository,
-		onchainpriceRepository,
-		poolManager,
-		poolFactory,
-		config.Aggregator,
-		finderEngine,
-	)
-
-	uc := &useCase{
+	return &bundledUseCase{useCase: &useCase{
+		config:                 config,
 		tokenRepository:        tokenRepository,
 		gasRepository:          gasRepository,
+		alphaFeeRepository:     alphaFeeRepository,
 		l1FeeEstimator:         l1FeeEstimator,
-		config:                 config,
-		onchainpriceRepository: onchainpriceRepository,
-	}
-	return &bundledUseCase{uc, aggregator}
+		onchainPriceRepository: onchainPriceRepository,
+	}, aggregator: NewBundledAggregator(
+		config.Aggregator,
+		poolRankRepository,
+		tokenRepository,
+		onchainPriceRepository,
+		poolManager,
+		poolFactory,
+		finderEngine,
+	)}
 }
 
 func (u *bundledUseCase) ApplyConfig(config Config) {
@@ -90,18 +90,27 @@ func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQ
 		return nil, err
 	}
 
-	routesSummary, err := u.aggregator.Aggregate(ctx, params)
+	routeSummaries, err := u.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	for i, s := range routesSummary {
-		s.TokenIn = originalTokensIn[i]
-		s.TokenOut = originalTokensOut[i]
+	routeID := requestid.GetRequestIDFromCtx(ctx)
+
+	for i, routeSummary := range routeSummaries {
+		routeID := routeID + "-" + strconv.Itoa(i)
+		// Only save routes including alphaFee
+		if routeSummary.AlphaFee != nil {
+			if err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
+				return nil, err
+			}
+		}
+
+		u.checksumRouteSummary(routeSummary, originalTokensIn[i], originalTokensOut[i], routeID)
 	}
 
 	return &dto.GetBundledRoutesResult{
-		RoutesSummary: routesSummary,
+		RoutesSummary: routeSummaries,
 		RouterAddress: u.config.RouterAddress,
 	}, nil
 }
@@ -158,9 +167,9 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 	}
 
 	return &types.AggregateBundledParams{
-		Pairs:                         pairs,
 		GasToken:                      u.config.GasTokenAddress,
 		Sources:                       sources,
+		OnlySinglePath:                query.OnlySinglePath,
 		GasInclude:                    query.GasInclude,
 		GasPrice:                      gasPrice,
 		L1FeeOverhead:                 l1FeeOverhead,
@@ -169,9 +178,13 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 		Index:                         index,
 		ExcludedPools:                 query.ExcludedPools,
 		ForcePoolsForToken:            u.config.ForcePoolsForTokenByClient[query.ClientId],
-		ClientId:                      query.ClientId,
+		Pairs:                         pairs,
 		OverridePools:                 overridePools,
 		ExtraWhitelistedTokens:        query.ExtraWhitelistedTokens,
+		ClientId:                      query.ClientId,
+		IsScaleHelperClient:           lo.Contains(u.config.ScaleHelperClients, query.ClientId),
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
+		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
+		EnableHillClimbForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 	}, nil
 }

@@ -2,7 +2,6 @@ package getroute
 
 import (
 	"context"
-	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
@@ -18,32 +17,30 @@ import (
 
 // aggregator finds best route within amm liquidity sources
 type aggregator struct {
+	config AggregatorConfig
+
 	poolRankRepository     IPoolRankRepository
 	tokenRepository        ITokenRepository
-	onchainpriceRepository IOnchainPriceRepository
+	onchainPriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
-
-	finderEngine finderEngine.IPathFinderEngine
-
-	config AggregatorConfig
-	mu     sync.RWMutex
+	finderEngine           finderEngine.IPathFinderEngine
 }
 
 func NewAggregator(
+	config AggregatorConfig,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
+	onchainPriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
-	config AggregatorConfig,
 	finderEngine finderEngine.IPathFinderEngine,
 ) *aggregator {
 	return &aggregator{
+		config:                 config,
 		poolRankRepository:     poolRankRepository,
 		tokenRepository:        tokenRepository,
-		onchainpriceRepository: onchainpriceRepository,
+		onchainPriceRepository: onchainPriceRepository,
 		poolManager:            poolManager,
 		finderEngine:           finderEngine,
-		config:                 config,
 	}
 }
 
@@ -73,7 +70,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	// only get price from onchain-price-service if enabled
-	priceByAddress, err := a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+	priceByAddress, err := a.onchainPriceRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +80,6 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 }
 
 func (a *aggregator) ApplyConfig(config Config) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
 	a.config = config.Aggregator
 }
 

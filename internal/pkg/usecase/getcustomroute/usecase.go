@@ -36,6 +36,7 @@ type useCase struct {
 }
 
 func NewCustomRoutesUseCase(
+	config getroute.Config,
 	poolFactory getroute.IPoolFactory,
 	tokenRepository getroute.ITokenRepository,
 	onchainpriceRepository getroute.IOnchainPriceRepository,
@@ -45,7 +46,6 @@ func NewCustomRoutesUseCase(
 	poolManager getroute.IPoolManager,
 	poolRepository getroute.IPoolRepository,
 	finderEngine finderEngine.IPathFinderEngine,
-	config getroute.Config,
 ) *useCase {
 	aggregator := NewCustomAggregator(
 		poolFactory,
@@ -213,7 +213,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 		ClientId:                      query.ClientId,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable && query.EnableAlphaFee,
-		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
+		EnableHillClimbForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 	}, nil
 }
 

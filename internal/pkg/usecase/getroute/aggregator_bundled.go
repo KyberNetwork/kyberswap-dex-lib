@@ -19,35 +19,33 @@ import (
 
 type bundledAggregator struct {
 	*aggregator
-
 	poolFactory IPoolFactory
 }
 
 func NewBundledAggregator(
+	config AggregatorConfig,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
+	onchainPriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	poolFactory IPoolFactory,
-	config AggregatorConfig,
 	finderEngine finderEngine.IPathFinderEngine,
 ) *bundledAggregator {
-	ag := &aggregator{
-		poolRankRepository:     poolRankRepository,
-		tokenRepository:        tokenRepository,
-		onchainpriceRepository: onchainpriceRepository,
-		poolManager:            poolManager,
-		finderEngine:           finderEngine,
-		config:                 config,
-	}
-	return &bundledAggregator{ag, poolFactory}
+	return &bundledAggregator{aggregator: NewAggregator(config,
+		poolRankRepository,
+		tokenRepository,
+		onchainPriceRepository,
+		poolManager,
+		finderEngine,
+	), poolFactory: poolFactory}
 }
 
 func (a *bundledAggregator) ApplyConfig(config Config) {
 	a.aggregator.ApplyConfig(config)
 }
 
-func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error) {
+func (a *bundledAggregator) Aggregate(ctx context.Context,
+	params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] aggregator.AggregateBundled")
 	defer span.End()
 
@@ -74,7 +72,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 	}
 
 	// only get price from onchain-price-service if enabled
-	priceByAddress, err := a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+	priceByAddress, err := a.onchainPriceRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -222,17 +220,20 @@ func (a *bundledAggregator) findBestBundledRoute(
 			AmountIn:                      pair.AmountIn,
 			AmountInUsd:                   pair.AmountInUsd,
 			Sources:                       params.Sources,
+			OnlySinglePath:                params.OnlySinglePath,
 			GasInclude:                    params.GasInclude,
 			GasPrice:                      params.GasPrice,
 			L1FeeOverhead:                 params.L1FeeOverhead,
 			L1FeePerPool:                  params.L1FeePerPool,
 			IsHillClimbEnabled:            params.IsHillClimbEnabled,
+			Index:                         params.Index,
 			ExcludedPools:                 params.ExcludedPools,
 			ForcePoolsForToken:            params.ForcePoolsForToken,
 			ClientId:                      params.ClientId,
-			ExtraFee:                      valueobject.ZeroExtraFee,
-			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
 			IsScaleHelperClient:           params.IsScaleHelperClient,
+			KyberLimitOrderAllowedSenders: params.KyberLimitOrderAllowedSenders,
+			EnableAlphaFee:                params.EnableAlphaFee,
+			EnableHillClimbForAlphaFee:    params.EnableHillClimbForAlphaFee,
 		}
 
 		if lastSwapState != nil {

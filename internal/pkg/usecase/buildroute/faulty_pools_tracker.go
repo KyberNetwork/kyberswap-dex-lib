@@ -258,7 +258,7 @@ func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(routeTimestamp int64) boo
 	return secondElapsed <= valueobject.DefaultDeadline
 }
 
-func (uc *BuildRouteUseCase) IsValidChecksum(route valueobject.RouteSummary, originalChecksum uint64) bool {
+func (uc *BuildRouteUseCase) IsValidChecksum(route valueobject.RouteSummary) bool {
 	checksum := crypto.NewChecksum(route, uc.config.Salt)
-	return checksum.Verify(originalChecksum)
+	return checksum.Verify(route.OriginalChecksum)
 }

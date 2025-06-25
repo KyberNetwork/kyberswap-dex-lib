@@ -3,7 +3,6 @@ package getroute
 import (
 	"context"
 	"slices"
-	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,6 +17,8 @@ import (
 )
 
 type correlatedPairs struct {
+	config Config
+
 	aggregator IAggregator
 
 	oneAdditionHopFinderEngine  finderEngine.IPathFinderEngine
@@ -31,23 +32,22 @@ type correlatedPairs struct {
 
 	// map[token0] -> map[token1] -> poolAddress
 	correlatedPairs map[string]map[string]string
-
-	config Config
-	mu     sync.RWMutex
 }
 
 func NewCorrelatedPairs(
+	config Config,
 	aggregator IAggregator,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
 	onchainPriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	aevmClient aevmclient.Client,
-	config Config,
 ) *correlatedPairs {
 	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, aevmClient)
 
 	return &correlatedPairs{
+		config: config,
+
 		aggregator: aggregator,
 
 		oneAdditionHopFinderEngine:  oneAdditionHopFinderEngine,
@@ -60,7 +60,6 @@ func NewCorrelatedPairs(
 		aevmClient:             aevmClient,
 
 		correlatedPairs: convertCorrelatedPairsMap(config.CorrelatedPairs),
-		config:          config,
 	}
 }
 
@@ -145,9 +144,7 @@ func (c *correlatedPairs) Aggregate(
 }
 
 func (c *correlatedPairs) ApplyConfig(config Config) {
-	c.mu.Lock()
 	c.config = config
-	c.mu.Unlock()
 
 	c.correlatedPairs = convertCorrelatedPairsMap(config.CorrelatedPairs)
 	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, c.aevmClient)

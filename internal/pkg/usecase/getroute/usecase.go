@@ -3,11 +3,10 @@ package getroute
 import (
 	"context"
 	"math/big"
-	"strconv"
-	"sync"
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -39,15 +38,14 @@ type useCase struct {
 	gasRepository          IGasRepository
 	alphaFeeRepository     IAlphaFeeRepository
 	l1FeeEstimator         IL1FeeEstimator
-	onchainpriceRepository IOnchainPriceRepository
-
-	mu sync.RWMutex
+	onchainPriceRepository IOnchainPriceRepository
 }
 
 func NewUseCase(
+	config Config,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	onchainpriceRepository IOnchainPriceRepository,
+	onchainPriceRepository IOnchainPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	alphaFeeRepository IAlphaFeeRepository,
@@ -55,30 +53,29 @@ func NewUseCase(
 	poolManager IPoolManager,
 	aevmClient aevmclient.Client,
 	finderEngine finderEngine.IPathFinderEngine,
-	config Config,
 ) *useCase {
 	aggregator := NewAggregator(
+		config.Aggregator,
 		poolRankRepository,
 		tokenRepository,
-		onchainpriceRepository,
+		onchainPriceRepository,
 		poolManager,
-		config.Aggregator,
 		finderEngine,
 	)
 	correlatedPairsAggregator := NewCorrelatedPairs(
+		config,
 		aggregator,
 		poolRankRepository,
 		tokenRepository,
-		onchainpriceRepository,
+		onchainPriceRepository,
 		poolManager,
 		aevmClient,
-		config,
 	)
 
 	var finalizedAggregator IAggregator
 	if config.Aggregator.FeatureFlags.IsRouteCachedEnable {
 		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache,
-			finderEngine, tokenRepository, onchainpriceRepository)
+			finderEngine, tokenRepository, onchainPriceRepository)
 		finalizedAggregator = aggregatorWithCache
 	} else {
 		finalizedAggregator = correlatedPairsAggregator
@@ -93,7 +90,7 @@ func NewUseCase(
 		gasRepository:          gasRepository,
 		alphaFeeRepository:     alphaFeeRepository,
 		l1FeeEstimator:         l1FeeEstimator,
-		onchainpriceRepository: onchainpriceRepository,
+		onchainPriceRepository: onchainPriceRepository,
 	}
 }
 
@@ -140,42 +137,13 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		}
 	}
 
-	routeSummary.TokenIn = originalTokenIn
-	routeSummary.TokenOut = originalTokenOut
-	routeSummary.Timestamp = time.Now().Unix()
-	routeSummary.RouteID = routeID
-	// Also attach routeID, timestamp & checksum into the first swap's extra data
-	firstSwapExtra, err := util.AnyToStruct[map[string]any](routeSummary.Route[0][0].Extra)
-	if err == nil {
-		if (*firstSwapExtra) == nil {
-			(*firstSwapExtra) = map[string]any{}
-		}
-		(*firstSwapExtra)[valueobject.RouteIDInExtra] = routeID
-		(*firstSwapExtra)[valueobject.TimestampInExtra] = strconv.FormatInt(routeSummary.Timestamp, 10)
-		routeSummary.Route[0][0].Extra = *firstSwapExtra
-	}
-
-	checksum := crypto.NewChecksum(routeSummary, u.config.Salt)
-	if !u.config.FeatureFlags.ReturnAlphaFee {
-		routeSummary.AlphaFee = nil
-	}
-
-	if (*firstSwapExtra) != nil {
-		(*firstSwapExtra)[valueobject.ChecksumInExtra] = strconv.FormatUint(checksum.Hash(), 10)
-		routeSummary.Route[0][0].Extra = *firstSwapExtra
-	}
-
 	return &dto.GetRoutesResult{
-		RouteSummary:  routeSummary,
-		Checksum:      checksum.Hash(),
+		RouteSummary:  u.checksumRouteSummary(routeSummary, originalTokenIn, originalTokenOut, routeID),
 		RouterAddress: u.config.RouterAddress,
 	}, nil
 }
 
 func (u *useCase) ApplyConfig(config Config) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
 	u.config = config
 	if u.aggregator != nil {
 		u.aggregator.ApplyConfig(config)
@@ -275,7 +243,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 		IsScaleHelperClient:           lo.Contains(u.config.ScaleHelperClients, query.ClientId),
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
-		EnableHillClaimForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
+		EnableHillClimbForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 		PoolIds:                       query.PoolIds,
 	}, nil
 }
@@ -297,7 +265,7 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 
 func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64,
 	error) {
-	priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
+	priceByAddress, err := u.onchainPriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -360,4 +328,38 @@ func (u *useCase) getSources(clientId string, botScore int, includedSources, exc
 	}
 
 	return sources.ToSlice()
+}
+
+// checksumRouteSummary sets extra validation metadata fields to the route summary and returns it
+func (u *useCase) checksumRouteSummary(routeSummary *valueobject.RouteSummary, originalTokenIn, originalTokenOut string,
+	routeID string) *valueobject.RouteSummary {
+	routeSummary.TokenIn = originalTokenIn
+	routeSummary.TokenOut = originalTokenOut
+	routeSummary.RouteID = routeID
+	routeSummary.Timestamp = time.Now().Unix()
+
+	// Also attach routeID, timestamp & checksum into the first swap's extra data
+	firstSwapExtraP, err := util.AnyToStruct[map[string]any](routeSummary.Route[0][0].Extra)
+	firstSwapExtra := *firstSwapExtraP
+	if firstSwapExtra == nil && err == nil {
+		firstSwapExtra = map[string]any{}
+	}
+
+	if firstSwapExtra != nil {
+		firstSwapExtra[valueobject.RouteIDInExtra] = routeID
+		firstSwapExtra[valueobject.TimestampInExtra] = kutils.Itoa(routeSummary.Timestamp)
+		routeSummary.Route[0][0].Extra = firstSwapExtra
+	}
+
+	checksum := crypto.NewChecksum(routeSummary, u.config.Salt).Hash()
+	if !u.config.FeatureFlags.ReturnAlphaFee {
+		routeSummary.AlphaFee = nil
+	}
+
+	routeSummary.OriginalChecksum = checksum
+	if firstSwapExtra != nil {
+		firstSwapExtra[valueobject.ChecksumInExtra] = kutils.Utoa(checksum)
+	}
+
+	return routeSummary
 }

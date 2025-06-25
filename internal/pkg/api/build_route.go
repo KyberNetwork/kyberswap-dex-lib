@@ -85,9 +85,6 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 		deadline = nowFunc().Add(valueobject.DefaultDeadline).Unix()
 	}
 
-	permit := common.FromHex(params.Permit)
-	num, _ := strconv.ParseUint(params.RouteSummary.Checksum, 10, 64)
-
 	source := params.Source
 	if ginCtx != nil {
 		normalizedClientIp := strings.ReplaceAll(ginCtx.ClientIP(), ".", "_")
@@ -98,10 +95,9 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 
 	return dto.BuildRouteCommand{
 		RouteSummary:        routeSummary,
-		Checksum:            num,
 		Sender:              params.Sender,
 		Recipient:           params.Recipient,
-		Permit:              permit,
+		Permit:              common.FromHex(params.Permit),
 		Deadline:            deadline,
 		SlippageTolerance:   params.SlippageTolerance,
 		EnableGasEstimation: params.EnableGasEstimation,
@@ -253,11 +249,13 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		GasUSD:   gasUSD,
 		L1FeeUSD: l1FeeUSD,
 
-		ExtraFee:  extraFee,
-		Timestamp: params.Timestamp,
+		ExtraFee: extraFee,
 
-		Route:   route,
-		RouteID: params.RouteID,
+		Route: route,
+
+		RouteID:          params.RouteID,
+		Timestamp:        params.Timestamp,
+		OriginalChecksum: params.Checksum,
 	}, nil
 }
 
