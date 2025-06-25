@@ -86,8 +86,11 @@ common:
     - "uniswap-v4-fairflow"
     - "uniswap-v4-euler"
     - "pancake-infinity-bin"
-    - "pancake-infinity-cl"
+    - "pancake-infinity-bin-brevis"
     - "pancake-infinity-bin-fairflow"
+    - "pancake-infinity-cl"
+    - "pancake-infinity-cl-brevis"
+    - "pancake-infinity-cl-dynamic"
     - "pancake-infinity-cl-fairflow"
     - "erc4626"
   excludedSourcesByClient: &excludedSourcesByClient
