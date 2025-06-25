@@ -78,7 +78,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
 	if shared.IsDynamicFee(staticExtra.Fee) {
-		lpFee = uint64(t.GetDynamicFee(ctx, t.config.CLPoolManagerAddress, staticExtra.HooksAddress, uint32(lpFee)))
+		lpFee = uint64(t.GetDynamicFee(ctx, staticExtra.HooksAddress, uint32(lpFee)))
 	}
 
 	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
@@ -260,10 +260,9 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 	return ticks, nil
 }
 
-func (t *PoolTracker) GetDynamicFee(ctx context.Context, poolManager string,
-	hookAddress common.Address, lpFee uint32) uint32 {
+func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
 	hook, _ := GetHook(hookAddress)
-	return hook.GetDynamicFee(ctx, t.ethrpcClient, poolManager, hookAddress, lpFee)
+	return hook.GetDynamicFee(ctx, t.ethrpcClient, t.config.CLPoolManagerAddress, hookAddress, lpFee)
 }
 
 type rpcTick struct {
