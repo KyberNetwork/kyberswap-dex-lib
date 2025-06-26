@@ -73,7 +73,6 @@ var useApproveMaxFunctionSet = map[string]bool{
 	// ExecutorHelper8
 	l1executor.FunctionSelectorLimitOrderDS.RawName: false,
 	l1executor.FunctionSelectorEtherFieBTC.RawName:  true,
-	l1executor.FunctionSelectorUniswapV4.RawName:    false, // Deprecated
 
 	// ExecutorHelper9
 	l1executor.FunctionSelectorSavingsUSDS.RawName:   false,
