@@ -71,7 +71,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
-	_, err := rpcRequests.Aggregate()
+	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -83,6 +83,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
 	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+
+	logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"exchange":    p.Exchange,
+	}).Infof("fetch RPC data at block %d", resp.BlockNumber.Uint64())
 
 	return result, nil
 }
