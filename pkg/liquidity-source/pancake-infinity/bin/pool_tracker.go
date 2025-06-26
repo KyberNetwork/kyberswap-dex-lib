@@ -56,7 +56,6 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}
 
 	var result FetchRPCResult
-
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    shared.BinPoolManagerABI,
 		Target: t.config.BinPoolManagerAddress,
@@ -64,7 +63,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
-	_, err := rpcRequests.Aggregate()
+	resp, err := rpcRequests.Aggregate()
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +76,11 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	// swap fee includes protocolFee (charged first) and lpFee
 	protocolFee := result.Slot0.ProtocolFee
 	result.SwapFee = lo.Ternary(protocolFee == 0, uint64(lpFee), uint64(calculateSwapFee(protocolFee, lpFee)))
+
+	logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"exchange":    p.Exchange,
+	}).Infof("fetch RPC data at block %d", resp.BlockNumber.Uint64())
 
 	return &result, err
 }
