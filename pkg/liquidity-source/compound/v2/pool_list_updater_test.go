@@ -1,4 +1,4 @@
-package aavev3
+package v2
 
 import (
 	"context"
@@ -9,7 +9,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,18 +24,18 @@ func TestPoolListUpdater(t *testing.T) {
 	client := ethrpc.New("https://ethereum.kyberengineering.io").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
+	graphqlClient := graphqlpkg.NewClient("https://gateway.thegraph.com/api/18edf1db0b785b022d29fa48dc740617/subgraphs/id/3D5iVSy3jiTKSQAT8UjW9in6ZuiDA7WnDiDRBzYVT2yw")
+
 	lister := NewPoolsListUpdater(&Config{
-		DexID:       DexType,
-		PoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
-	}, client)
+		DexID: DexType,
+	}, client, graphqlClient)
 
 	newPools, _, err := lister.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Greater(t, len(newPools), 0)
 
 	tracker, err := NewPoolTracker(&Config{
-		DexID:       DexType,
-		PoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+		DexID: DexType,
 	}, client)
 	require.NoError(t, err)
 

@@ -1,4 +1,4 @@
-package v3
+package v2
 
 import (
 	"context"
@@ -26,22 +26,14 @@ type (
 		LastBlockNumber uint64 `json:"lastBlockNumber"`
 	}
 
-	SubgraphToken struct {
-		Address string `json:"address"`
-	}
-
 	SubgraphMarket struct {
-		ID string `json:"id"`
-	}
-
-	SubgraphBaseToken struct {
-		Market              SubgraphMarket `json:"market"`
-		Token               SubgraphToken  `json:"token"`
-		CreationBlockNumber string         `json:"creationBlockNumber"`
+		ID                  string `json:"id"`
+		UnderlyingAddress   string `json:"underlyingAddress"`
+		CreationBlockNumber string `json:"creationBlockNumber"`
 	}
 
 	SubgraphResponse struct {
-		BaseTokens []SubgraphBaseToken `json:"baseTokens"`
+		Markets []SubgraphMarket `json:"markets"`
 	}
 )
 
@@ -83,7 +75,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if len(subgraphData.BaseTokens) == 0 {
+	if len(subgraphData.Markets) == 0 {
 		return []entity.Pool{}, metadataBytes, nil
 	}
 
@@ -120,15 +112,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (u *PoolsListUpdater) fetchAllData(ctx context.Context, lastBlockNumber uint64) (*SubgraphResponse, error) {
 	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
-	baseTokens(
+	markets(
 		where: { creationBlockNumber_gt: %d }
 	) {
-		market {
-			id
-		}
-		token {
-			address
-		}
+		id
+		underlyingAddress
 		creationBlockNumber
 	}
 }`, lastBlockNumber))
@@ -158,16 +146,16 @@ func (u *PoolsListUpdater) createPoolsFromData(data *SubgraphResponse) ([]entity
 	pools := make([]entity.Pool, 0)
 	var newLastBlockNumber uint64
 
-	for _, baseToken := range data.BaseTokens {
-		pool, err := u.createPool(baseToken.Market, baseToken)
+	for _, market := range data.Markets {
+		pool, err := u.createPool(market.ID, market.UnderlyingAddress)
 		if err != nil {
-			logger.WithFields(logger.Fields{"market_id": baseToken.Market.ID, "err": err}).Error("createPool failed")
+			logger.WithFields(logger.Fields{"market_id": market.ID, "err": err}).Error("createPool failed")
 			continue
 		}
 
 		pools = append(pools, pool)
 
-		if blockNum := parseUint64(baseToken.CreationBlockNumber); blockNum > newLastBlockNumber {
+		if blockNum := parseUint64(market.CreationBlockNumber); blockNum > newLastBlockNumber {
 			newLastBlockNumber = blockNum
 		}
 	}
@@ -175,12 +163,9 @@ func (u *PoolsListUpdater) createPoolsFromData(data *SubgraphResponse) ([]entity
 	return pools, newLastBlockNumber, nil
 }
 
-func (u *PoolsListUpdater) createPool(
-	market SubgraphMarket,
-	baseToken SubgraphBaseToken,
-) (entity.Pool, error) {
-	cTokenAddr := strings.ToLower(market.ID)
-	baseTokenAddr := strings.ToLower(baseToken.Token.Address)
+func (u *PoolsListUpdater) createPool(cToken, baseToken string) (entity.Pool, error) {
+	cTokenAddr := strings.ToLower(cToken)
+	baseTokenAddr := strings.ToLower(baseToken)
 
 	allTokens := []*entity.PoolToken{
 		{

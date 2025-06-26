@@ -211,23 +211,23 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Addr
 		assetTokenAddr := strings.ToLower(reserve.Hex())
 		aTokenAddr := strings.ToLower(aTokens[i].Hex())
 
-		assetToken := &entity.PoolToken{
-			Address:   assetTokenAddr,
-			Swappable: true,
-		}
-
 		aToken := &entity.PoolToken{
 			Address:   aTokenAddr,
 			Swappable: true,
 		}
 
+		assetToken := &entity.PoolToken{
+			Address:   assetTokenAddr,
+			Swappable: true,
+		}
+
 		var newPool = entity.Pool{
-			Address:     getPoolID(assetTokenAddr, aTokenAddr),
+			Address:     aTokenAddr,
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{"0", "0"},
-			Tokens:      []*entity.PoolToken{assetToken, aToken},
+			Tokens:      []*entity.PoolToken{aToken, assetToken},
 			StaticExtra: string(extraBytes),
 		}
 

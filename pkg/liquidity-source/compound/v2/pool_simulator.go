@@ -1,4 +1,4 @@
-package v3
+package v2
 
 import (
 	"fmt"
@@ -47,10 +47,13 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("invalid token")
 	}
 
+	amountOut := new(big.Int).Mul(param.TokenAmountIn.Amount, s.extra.ExchangeRateStored)
+	amountOut.Div(amountOut, bignumber.BONE)
+
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: param.TokenAmountIn.Amount},
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: integer.Zero()},
-		Gas:            lo.Ternary(indexIn == 0, supplyGas, withdrawGas),
+		Gas:            lo.Ternary(indexIn == 0, mintGas, redeemGas),
 	}, nil
 }
 
@@ -58,22 +61,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
-}
-
-func (s *PoolSimulator) CanSwapFrom(address string) []string {
-	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Pool.Info.Tokens[1]})
-	}
-
-	return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Pool.Info.Tokens[0]})
-}
-
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Pool.Info.Tokens[1]})
-	}
-
-	return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Pool.Info.Tokens[0]})
 }
 
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}

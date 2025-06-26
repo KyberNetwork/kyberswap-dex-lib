@@ -2,12 +2,7 @@ package aavev3
 
 import (
 	"math/big"
-	"strings"
 )
-
-func getPoolID(token0, token1 string) string {
-	return strings.Join([]string{DexType, token0, token1}, "_")
-}
 
 func parseConfiguration(configuration *big.Int) Extra {
 	// Bit 56: reserve is active

@@ -57,24 +57,13 @@ func (d *PoolTracker) getNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	staticExtra := StaticExtra{}
-	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	extra, blockNumber, err := d.getPoolExtraData(ctx, p.Address, overrides)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"pool_id": p.Address}).
-			Error("failed to unmarshal staticExtra")
+		logger.WithFields(logger.Fields{"pool_id": p.Address}).Error("failed to getPoolExtraData")
 		return p, err
 	}
 
-	rpcData, err := d.getPoolData(ctx, staticExtra.PoolAddress, p.Tokens[0].Address, p.Tokens[1].Address, overrides)
-	if err != nil {
-		logger.
-			WithFields(logger.Fields{"pool_id": p.Address}).
-			Error("failed to getPoolData")
-		return p, err
-	}
-
-	newPool, err := d.updatePool(p, rpcData)
+	newPool, err := d.updatePool(p, extra, blockNumber)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"pool_id": p.Address}).
@@ -85,49 +74,51 @@ func (d *PoolTracker) getNewPoolState(
 	return newPool, nil
 }
 
-func (d *PoolTracker) getPoolData(
+func (d *PoolTracker) getPoolExtraData(
 	ctx context.Context,
-	poolAddress,
-	assetToken,
-	aToken string,
+	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (RPCData, error) {
+) (Extra, uint64, error) {
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if overrides != nil {
 		req.SetOverrides(overrides)
 	}
 
-	var rpcData RPCData
+	var extra Extra
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
+		ABI:    cometABI,
 		Target: poolAddress,
-		Method: poolMethodGetConfiguration,
-		Params: []any{common.HexToAddress(assetToken)},
-	}, []any{&rpcData.Configuration})
+		Method: cometMethodIsWithdrawPaused,
+		Params: nil,
+	}, []any{&extra.IsWithdrawPaused})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    cometABI,
+		Target: poolAddress,
+		Method: cometMethodIsSupplyPaused,
+		Params: nil,
+	}, []any{&extra.IsSupplyPaused})
 
 	resp, err := req.Aggregate()
 	if err != nil {
-		return RPCData{}, err
+		return Extra{}, 0, err
 	}
 
-	rpcData.BlockNumber = resp.BlockNumber.Uint64()
-
-	return rpcData, nil
+	return extra, resp.BlockNumber.Uint64(), nil
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, data RPCData) (entity.Pool, error) {
-	extra := parseConfiguration(data.Configuration.Data.Data)
+func (d *PoolTracker) updatePool(pool entity.Pool, extra Extra, blockNumber uint64) (entity.Pool, error) {
 	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	isBlocked := !extra.IsActive && extra.IsFrozen && extra.IsPaused
+	isBlocked := extra.IsWithdrawPaused && extra.IsSupplyPaused
 
 	pool.Reserves = d.calculateReserves(pool, isBlocked)
 
-	pool.BlockNumber = data.BlockNumber
+	pool.BlockNumber = blockNumber
 	pool.Timestamp = time.Now().Unix()
 	pool.Extra = string(extraBytes)
 

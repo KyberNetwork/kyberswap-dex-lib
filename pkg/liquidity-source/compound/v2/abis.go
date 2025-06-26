@@ -1,4 +1,4 @@
-package v3
+package v2
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	cometABI abi.ABI
+	cTokenABI abi.ABI
 )
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&cometABI, cometJson},
+		{&cTokenABI, cTokenJson},
 	}
 
 	for _, b := range builder {

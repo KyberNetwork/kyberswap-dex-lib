@@ -19,6 +19,8 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
+	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
@@ -318,6 +320,8 @@ type Types struct {
 	UniswapLO                  string
 	UniswapV4Euler             string
 	AaveV3                     string
+	CompoundV2                 string
+	CompoundV3                 string
 }
 
 var (
@@ -486,5 +490,7 @@ var (
 		UniswapLO:                  uniswaplo.DexType,
 		UniswapV4Euler:             uniswapv4euler.DexType,
 		AaveV3:                     aavev3.DexType,
+		CompoundV2:                 compoundv2.DexType,
+		CompoundV3:                 compoundv3.DexType,
 	}
 )
