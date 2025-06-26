@@ -1,8 +1,8 @@
-package aavev3
+package v3
 
 import (
 	"context"
-	"math/big"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,12 +13,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type (
 	PoolsListUpdater struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
+		config        *Config
+		ethrpcClient  *ethrpc.Client
+		graphqlClient *graphqlpkg.Client
 	}
 
 	PoolsListUpdaterMetadata struct {
@@ -26,15 +28,17 @@ type (
 	}
 )
 
-var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
+var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:       cfg,
-		ethrpcClient: ethrpcClient,
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
@@ -122,61 +126,37 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getAssetList(ctx context.Context, totalAssets int) ([]common.Address, error) {
-	assets := make([]common.Address, totalAssets)
+func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint64) ([]SubgraphPool, error) {
+	limit := uint64(defaultSubgraphLimit)
+	if u.cfg.SubgraphLimit != 0 {
+		limit = u.cfg.SubgraphLimit
+	}
+	var (
+		req = graphqlpkg.NewRequest(fmt.Sprintf(`{
+	pools(
+		where: {
+			timeCreate_gt: %d,
+		}
+		orderBy: timeCreate,
+		orderDirection: asc,
+		first: %d,
+	) {
+		id
+		blockCreate
+		timeCreate
+		base
+		quote
+		poolIdx
+	}
+}`, lastCreateTime, limit))
+		resp SubgraphPoolsResponse
+	)
 
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: u.config.PoolAddress,
-		Method: poolMethodGetReservesList,
-		Params: nil,
-	}, []any{&assets})
-
-	if _, err := req.Call(); err != nil {
+	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 
-	return assets, nil
-}
-
-func (u *PoolsListUpdater) getTotalAssets(ctx context.Context) (int, error) {
-	var reservesCount *big.Int
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: u.config.PoolAddress,
-		Method: poolMethodGetReservesCount,
-		Params: nil,
-	}, []any{&reservesCount})
-
-	if _, err := req.Call(); err != nil {
-		return 0, err
-	}
-
-	return int(reservesCount.Uint64()), nil
-}
-
-func (u *PoolsListUpdater) getNewAssets(ctx context.Context, offset, count int) ([]common.Address, error) {
-	assets := make([]common.Address, count-offset)
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := offset; i < count; i++ {
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: u.config.PoolAddress,
-			Method: poolMethodGetReserveAddressById,
-			Params: []any{uint16(i)},
-		}, []any{&assets[i-offset]})
-	}
-
-	if _, err := req.Aggregate(); err != nil {
-		return nil, err
-	}
-
-	return assets, nil
+	return resp.Pools, nil
 }
 
 func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
@@ -192,7 +172,10 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	return metadata.Offset, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Address) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(
+	ctx context.Context,
+	reserves []common.Address,
+) ([]entity.Pool, error) {
 	aTokens, err := u.getATokens(ctx, reserves)
 	if err != nil {
 		return nil, err

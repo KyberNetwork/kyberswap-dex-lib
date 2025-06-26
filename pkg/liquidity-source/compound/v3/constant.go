@@ -1,7 +1,7 @@
-package aavev3
+package v3
 
 const (
-	DexType = "aave-v3"
+	DexType = "compound-v3"
 
 	supplyGas   int64 = 400000
 	withdrawGas int64 = 350000

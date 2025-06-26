@@ -1,6 +1,7 @@
 package pooltypes
 
 import (
+	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
@@ -316,6 +317,7 @@ type Types struct {
 	Pmm2                       string
 	UniswapLO                  string
 	UniswapV4Euler             string
+	AaveV3                     string
 }
 
 var (
@@ -483,5 +485,6 @@ var (
 		Pmm2:                       valueobject.ExchangePmm2,
 		UniswapLO:                  uniswaplo.DexType,
 		UniswapV4Euler:             uniswapv4euler.DexType,
+		AaveV3:                     aavev3.DexType,
 	}
 )
