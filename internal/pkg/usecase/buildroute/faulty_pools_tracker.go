@@ -46,7 +46,7 @@ func (uc *BuildRouteUseCase) handleFaultyPools(
 	// Handle faulty pools if needed
 	if isSwapSinglePoolFailed(err) {
 		uc.blockFaultyPool(ctx, routeSummary.Route, err)
-	} else if isFaultyPoolTrackEnable {
+	} else if isFaultyPoolTrackEnable && (err == nil || estimatedSlippage > 0) {
 		uc.monitorFaultyPools(ctx, uc.createAMMPoolTrackers(ctx, routeSummary, err, estimatedSlippage))
 	}
 }
@@ -112,17 +112,17 @@ func (uc *BuildRouteUseCase) blockFaultyPool(ctx context.Context, route [][]valu
 }
 
 func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker) {
+	// pool-service will return InvalidArgument error if trackers list is empty
+	if len(trackers) == 0 {
+		return
+	}
+
 	allTokens := mapset.NewThreadUnsafeSet[string]()
 	for _, tracker := range trackers {
 		allTokens.Append(tracker.Tokens...)
 	}
 
 	if !uc.shouldTrackTokens(ctx, allTokens) {
-		return
-	}
-
-	// pool-service will return InvalidArgument error if trackers list is empty
-	if len(trackers) == 0 {
 		return
 	}
 

@@ -21,15 +21,16 @@ var (
 	ErrEstimateGasFailedCode = 4227
 )
 
+const swapSinglePoolErrorPattern = "swapSinglePool failed at sequence:"
+
 func ErrEstimateGasFailed(err error) utils.WrappedError {
 	return utils.NewWrappedError(errors.WithMessage(err, "estimate gas failed"), ErrEstimateGasFailedCode)
 }
 
 func IsSwapSinglePoolFailed(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "swapSinglePool failed")
+	return err != nil && strings.Contains(err.Error(), swapSinglePoolErrorPattern)
 }
 
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/src/contracts/AggregationExecutor.sol#L310-L318
 func ExtractPoolIndexFromError(err error) (sequenceIndex, hopIndex int, ok bool) {
 	if err == nil {
 		return 0, 0, false
@@ -37,31 +38,32 @@ func ExtractPoolIndexFromError(err error) (sequenceIndex, hopIndex int, ok bool)
 
 	msg := err.Error()
 
-	parts := strings.Split(msg, ":")
-	if len(parts) < 3 {
+	pos := strings.Index(msg, swapSinglePoolErrorPattern)
+	if pos == -1 {
 		return 0, 0, false
 	}
 
-	var sequence, hop int
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
+	msg = msg[pos+len(swapSinglePoolErrorPattern):]
 
-		if strings.Contains(part, "sequence ") {
-			seqStr := strings.TrimSpace(strings.Split(part, "sequence ")[1])
-			sequence, err = strconv.Atoi(strings.Fields(seqStr)[0])
-			if err != nil {
-				return 0, 0, false
-			}
-		}
-
-		if strings.Contains(part, "hop ") {
-			hopStr := strings.TrimSpace(strings.Split(part, "hop ")[1])
-			hop, err = strconv.Atoi(hopStr)
-			if err != nil {
-				return 0, 0, false
-			}
-		}
+	hopIdx := strings.Index(msg, "hop:")
+	if hopIdx == -1 {
+		return 0, 0, false
 	}
 
-	return sequence, hop, true
+	seqStr := strings.TrimSpace(msg[:hopIdx])
+
+	hopStr := strings.TrimSpace(msg[hopIdx+len("hop:"):])
+
+	if colonIdx := strings.Index(hopStr, ":"); colonIdx != -1 {
+		hopStr = strings.TrimSpace(hopStr[:colonIdx])
+	}
+
+	seq, err1 := strconv.Atoi(seqStr)
+	hop, err2 := strconv.Atoi(hopStr)
+
+	if err1 != nil || err2 != nil {
+		return 0, 0, false
+	}
+
+	return seq, hop, true
 }

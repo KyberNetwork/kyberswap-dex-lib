@@ -892,6 +892,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 }
 
 func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
+
 	t.Parallel()
 
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
@@ -1415,14 +1416,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-				counters := []routerEntities.FaultyPoolTracker{
-					{Address: "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11", TotalCount: 1, FailedCount: 0, Tokens: []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x6b175474e89094c44da98b954eedeac495271d0f"}},
-				}
-				wg.Add(1)
-				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
-					defer wg.Done()
-				}).Return([]string{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"}, nil).Times(1)
-
 				return poolRepository
 			},
 			tokenRepository: func(ctrl *gomock.Controller) *buildroute.MockITokenRepository {
@@ -1639,8 +1632,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	sender := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756bc2"
-
-	testError := errors.New("test error")
 
 	testCases := []struct {
 		name            string
@@ -1869,25 +1860,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
-				wg.Add(1)
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-				counters := []routerEntities.FaultyPoolTracker{
-					{
-						Address:     "0xabc",
-						TotalCount:  1,
-						FailedCount: 0,
-						Tokens:      []string{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"},
-					},
-					{
-						Address:     "0xabcd",
-						TotalCount:  1,
-						FailedCount: 0,
-						Tokens:      []string{"0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab"},
-					},
-				}
-				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
-					defer wg.Done()
-				}).Return([]string{}, testError).Times(1)
 				return poolRepository
 			},
 			tokenRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockITokenRepository {
@@ -2713,7 +2686,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				// config.IsGasEstimatorEnabled = false so estimate gas in background
 				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
 					defer wg.Done()
-				}).Return(uint64(0), big.NewInt(0), ErrReturnAmountIsNotEnough)
+				}).Return(uint64(0), big.NewInt(100), nil)
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -4092,6 +4065,104 @@ func TestBuildRouteUseCase_ValidateReturnAmount(t *testing.T) {
 				assert.EqualError(t, err, tc.expectedError)
 				assert.Equal(t, tc.expectedSlippage, suggestedSlippage)
 			}
+		})
+	}
+}
+
+func TestExtractPoolIndexFromError(t *testing.T) {
+	tests := []struct {
+		name        string
+		errMsg      string
+		expectedSeq int
+		expectedHop int
+		expectedOk  bool
+	}{
+		{
+			name:        "basic case",
+			errMsg:      "execution reverted: swapSingleSequence failed: Error(swapSinglePool failed at sequence: 0 hop: 1: Error(...))",
+			expectedSeq: 0,
+			expectedHop: 1,
+			expectedOk:  true,
+		},
+		{
+			name:        "double digit values",
+			errMsg:      "execution reverted: swapSingleSequence failed: Error(swapSinglePool failed at sequence: 12 hop: 34: Error(...))",
+			expectedSeq: 12,
+			expectedHop: 34,
+			expectedOk:  true,
+		},
+		{
+			name:        "large numbers",
+			errMsg:      "execution reverted: swapSingleSequence failed: Error(swapSinglePool failed at sequence: 1234 hop: 5678: Error(...))",
+			expectedSeq: 1234,
+			expectedHop: 5678,
+			expectedOk:  true,
+		},
+		{
+			name:        "zero values",
+			errMsg:      "swapSinglePool failed at sequence: 0 hop: 0: some error",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  true,
+		},
+		{
+			name:        "pattern at beginning",
+			errMsg:      "swapSinglePool failed at sequence: 5 hop: 10: other error details",
+			expectedSeq: 5,
+			expectedHop: 10,
+			expectedOk:  true,
+		},
+		{
+			name:        "pattern in middle",
+			errMsg:      "some prefix swapSinglePool failed at sequence: 99 hop: 88: some suffix",
+			expectedSeq: 99,
+			expectedHop: 88,
+			expectedOk:  true,
+		},
+		{
+			name:        "missing sequence",
+			errMsg:      "execution reverted: swapSingleSequence failed: Error(swapSinglePool failed at hop: 5: Error(...))",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  false,
+		},
+		{
+			name:        "missing hop",
+			errMsg:      "execution reverted: swapSingleSequence failed: Error(swapSinglePool failed at sequence: 2: Error(...))",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  false,
+		},
+		{
+			name:        "both missing",
+			errMsg:      "execution reverted: unrelated error message",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  false,
+		},
+		{
+			name:        "invalid sequence number",
+			errMsg:      "swapSinglePool failed at sequence: abc hop: 1: error",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  false,
+		},
+		{
+			name:        "invalid hop number",
+			errMsg:      "swapSinglePool failed at sequence: 1 hop: xyz: error",
+			expectedSeq: 0,
+			expectedHop: 0,
+			expectedOk:  false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := errors.New(tc.errMsg)
+			seq, hop, ok := ExtractPoolIndexFromError(err)
+			assert.Equal(t, tc.expectedSeq, seq)
+			assert.Equal(t, tc.expectedHop, hop)
+			assert.Equal(t, tc.expectedOk, ok)
 		})
 	}
 }
