@@ -1,4 +1,4 @@
-package euler
+package eulerswap
 
 type Config struct {
 	DexID          string `json:"dexID"`

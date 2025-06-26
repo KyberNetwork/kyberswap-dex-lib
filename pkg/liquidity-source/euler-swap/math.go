@@ -1,4 +1,4 @@
-package euler
+package eulerswap
 
 import (
 	"github.com/holiman/uint256"

@@ -1,11 +1,11 @@
-package euler
+package eulerswap
 
 import (
 	"errors"
 )
 
 const (
-	DexType = "uniswap-v4-euler"
+	DexType = "euler-swap"
 
 	DefaultGas int64 = 400000
 

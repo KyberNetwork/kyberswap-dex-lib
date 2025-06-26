@@ -1,4 +1,4 @@
-package euler
+package eulerswap
 
 import _ "embed"
 
