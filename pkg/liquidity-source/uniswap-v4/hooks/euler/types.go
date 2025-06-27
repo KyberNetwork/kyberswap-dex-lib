@@ -11,7 +11,11 @@ import (
 
 type Vault = eulerswap.Vault
 type Extra = eulerswap.Extra
-type PoolExtra = eulerswap.PoolExtra
+
+type PoolExtra struct {
+	BlockNumber uint64       `json:"blockNumber"`
+	Fee         *uint256.Int `json:"f"`
+}
 
 type StaticExtra struct {
 	Vault0               string         `json:"v0"`
