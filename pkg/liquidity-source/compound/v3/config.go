@@ -11,4 +11,5 @@ type Config struct {
 	SubgraphAPI     string                `json:"subgraphAPI"`
 	SubgraphHeaders http.Header           `json:"subgraphHeaders"`
 	SubgraphTimeout durationjson.Duration `json:"subgraphTimeout"`
+	Pairs           map[string]string     `json:"pairs"`
 }
