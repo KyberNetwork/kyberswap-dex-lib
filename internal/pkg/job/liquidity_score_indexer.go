@@ -242,7 +242,7 @@ func (job *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, t
 		if tradeFile == indexpools.WHITELIST_FILENAME {
 			factorParam = strconv.FormatFloat(entropyFactor, 'f', -1, 64)
 		}
-		scoreFileName := fmt.Sprintf("%s%s", "Score", tradeFile)
+		scoreFileName := fmt.Sprintf("%s%s", tradeFile, "-Score")
 		c := exec.Command(job.config.LiquidityScoreCalcScript, factorParam, tradeFile, scoreFileName)
 		var out bytes.Buffer
 		var stderr bytes.Buffer

@@ -389,6 +389,7 @@ useCase:
     availableSources: *availableSources
     logError: *logError
     poolHasManyTokensDefaultScore: 1000
+    filePath: "./data/"
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions

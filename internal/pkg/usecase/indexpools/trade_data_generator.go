@@ -425,7 +425,7 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 
 	var failedBuffer *bufio.Writer
 	if gen.config.ExportFailedTrade {
-		failedFile, err := os.OpenFile(gen.config.FailedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		failedFile, err := os.OpenFile(strings.Join([]string{gen.config.FilePath, filename}, ""), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			logger.WithFields(ctx,
 				logger.Fields{
@@ -446,13 +446,14 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 		logger.Debugf(ctx, "Generate trade data success data %s\n", fmt.Sprintf("%s:%s:%s\n", tradeDataId.Pool, tradeDataId.Type, jsonStr))
 		if tradeDataId.Type == valueobject.WHITELIST_WHITELIST {
 			if whitelistBuffer == nil {
+				whitelistFileName := strings.Join([]string{gen.config.FilePath, WHITELIST_FILENAME}, "")
 				// open single file for whitelist-whitelist set
-				whitelistFile, err := os.OpenFile(WHITELIST_FILENAME, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				whitelistFile, err := os.OpenFile(whitelistFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					return names, err
 				}
 				defer whitelistFile.Close()
-				names.Add(WHITELIST_FILENAME)
+				names.Add(whitelistFileName)
 				whitelistBuffer = bufio.NewWriter(whitelistFile)
 			}
 			whitelistBuffer.WriteString(fmt.Sprintf("%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr))
@@ -460,12 +461,13 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 		}
 
 		if successedBuffer == nil {
-			file, err := os.Create(filename)
+			name := strings.Join([]string{gen.config.FilePath, filename}, "")
+			file, err := os.Create(name)
 			if err != nil {
 				return names, err
 			}
 			defer file.Close()
-			names.Add(filename)
+			names.Add(name)
 			successedBuffer = bufio.NewWriter(file)
 		}
 		successedBuffer.WriteString(fmt.Sprintf("%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr))
