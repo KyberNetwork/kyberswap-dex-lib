@@ -10,6 +10,7 @@ var (
 	poolABI    abi.ABI
 	factoryABI abi.ABI
 	vaultABI   abi.ABI
+	evcABI     abi.ABI
 )
 
 func init() {
@@ -25,6 +26,9 @@ func init() {
 		},
 		{
 			&vaultABI, vaultABIJson,
+		},
+		{
+			&evcABI, evcABIJson,
 		},
 	}
 

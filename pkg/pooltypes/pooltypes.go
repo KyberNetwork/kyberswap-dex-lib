@@ -94,7 +94,6 @@ import (
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
-	uniswapv4euler "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/euler"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -307,7 +306,6 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
-	EulerSwap                  string
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string
@@ -318,7 +316,7 @@ type Types struct {
 	Pmm1                       string
 	Pmm2                       string
 	UniswapLO                  string
-	UniswapV4Euler             string
+	EulerSwap                  string
 	AaveV3                     string
 	CompoundV2                 string
 	CompoundV3                 string
@@ -477,7 +475,6 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
-		EulerSwap:                  eulerswap.DexType,
 		Ekubo:                      ekubo.DexType,
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
@@ -488,7 +485,7 @@ var (
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		UniswapLO:                  uniswaplo.DexType,
-		UniswapV4Euler:             uniswapv4euler.DexType,
+		EulerSwap:                  eulerswap.DexType,
 		AaveV3:                     aavev3.DexType,
 		CompoundV2:                 compoundv2.DexType,
 		CompoundV3:                 compoundv3.DexType,

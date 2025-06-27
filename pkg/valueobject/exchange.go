@@ -30,7 +30,6 @@ const (
 	ExchangeBabySwap                   = "babyswap"
 	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalDex                     = "baldex"
-	ExchangeBalancer                   = "balancer"
 	ExchangeBalancerV1                 = "balancer-v1"
 	ExchangeBalancerV2ComposableStable = "balancer-v2-composable-stable"
 	ExchangeBalancerV2Stable           = "balancer-v2-stable"
@@ -46,7 +45,6 @@ const (
 	ExchangeBebop                      = "bebop"
 	ExchangeBedrockUniETH              = "bedrock-unieth"
 	ExchangeBeefySonic                 = "beefy-sonic"
-	ExchangeBeethovenX                 = "beethovenx"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
 	ExchangeBeethovenXV3Stable         = "beethovenx-v3-stable"
@@ -59,7 +57,6 @@ const (
 	ExchangeBeracaine                  = "beracaine"
 	ExchangeBiSwap                     = "biswap"
 	ExchangeBlade                      = "blade"
-	ExchangeBladeSwap                  = "blade-swap"
 	ExchangeBlastDex                   = "blastdex"
 	ExchangeBlasterSwap                = "blasterswap"
 	ExchangeBlueprint                  = "blueprint"
@@ -362,7 +359,6 @@ const (
 	ExchangeUnchainX                   = "unchainx"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniSwapV1                  = "uniswap-v1"
-	ExchangeUniSwapV2                  = "uniswap-v2"
 	ExchangeUniSwapV3                  = "uniswapv3"
 	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniswapV4                  = "uniswap-v4"
@@ -443,7 +439,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBabySwap:                   {},
 	ExchangeBakerySwap:                 {},
 	ExchangeBalDex:                     {},
-	ExchangeBalancer:                   {},
 	ExchangeBalancerV1:                 {},
 	ExchangeBalancerV2ComposableStable: {},
 	ExchangeBalancerV2Stable:           {},
@@ -458,7 +453,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaso:                       {},
 	ExchangeBedrockUniETH:              {},
 	ExchangeBeefySonic:                 {},
-	ExchangeBeethovenX:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXV3Stable:         {},
@@ -471,7 +465,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeracaine:                  {},
 	ExchangeBiSwap:                     {},
 	ExchangeBlade:                      {},
-	ExchangeBladeSwap:                  {},
 	ExchangeBlastDex:                   {},
 	ExchangeBlasterSwap:                {},
 	ExchangeBlueprint:                  {},
@@ -763,7 +756,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUnchainX:                   {},
 	ExchangeUniSwap:                    {},
 	ExchangeUniSwapV1:                  {},
-	ExchangeUniSwapV2:                  {},
 	ExchangeUniSwapV3:                  {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
