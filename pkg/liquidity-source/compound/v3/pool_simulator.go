@@ -50,7 +50,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: param.TokenAmountIn.Amount},
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: integer.Zero()},
-		Gas:            lo.Ternary(indexIn == 0, supplyGas, withdrawGas),
+		Gas:            lo.Ternary(indexIn == 1, supplyGas, withdrawGas),
 	}, nil
 }
 

@@ -47,13 +47,29 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	amountOut := new(big.Int).Mul(param.TokenAmountIn.Amount, s.extra.ExchangeRateStored)
-	amountOut.Div(amountOut, bignumber.BONE)
+	isMint := indexIn == 1
+	if s.extra.IsMintPaused && isMint {
+		return nil, fmt.Errorf("mint is paused")
+	}
+
+	var amountOut big.Int
+
+	if isMint {
+		// mint: underlying -> cToken
+		// amountOut = amountIn / exchangeRate
+		amountOut.Mul(param.TokenAmountIn.Amount, bignumber.BONE)
+		amountOut.Div(&amountOut, s.extra.ExchangeRateStored)
+	} else {
+		// redeem: cToken -> underlying
+		// amountOut = amountIn * exchangeRate
+		amountOut.Mul(param.TokenAmountIn.Amount, s.extra.ExchangeRateStored)
+		amountOut.Div(&amountOut, bignumber.BONE)
+	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: &amountOut},
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: integer.Zero()},
-		Gas:            lo.Ternary(indexIn == 0, mintGas, redeemGas),
+		Gas:            lo.Ternary(isMint, mintGas, redeemGas),
 	}, nil
 }
 

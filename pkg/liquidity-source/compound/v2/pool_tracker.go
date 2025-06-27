@@ -2,7 +2,6 @@ package v2
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"time"
 
@@ -90,13 +89,19 @@ func (d *PoolTracker) getPoolExtraData(
 	req.AddCall(&ethrpc.Call{
 		ABI:    cTokenABI,
 		Target: poolAddress,
-		Method: CTokenMethodExchangeRateStored,
+		Method: cTokenMethodExchangeRateStored,
 		Params: nil,
 	}, []any{&extra.ExchangeRateStored})
 
+	req.AddCall(&ethrpc.Call{
+		ABI:    comptrollerABI,
+		Target: d.config.Comptroller,
+		Method: comptrollerMethodMintGuardianPaused,
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&extra.IsMintPaused})
+
 	resp, err := req.Aggregate()
 	if err != nil {
-		log.Fatalln(poolAddress)
 		return Extra{}, 0, err
 	}
 

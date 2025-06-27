@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	cTokenABI abi.ABI
+	cTokenABI      abi.ABI
+	comptrollerABI abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&cTokenABI, cTokenJson},
+		{&comptrollerABI, comptrollerJson},
 	}
 
 	for _, b := range builder {

@@ -2,52 +2,39 @@ package v2
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
 	PoolsListUpdater struct {
-		config        *Config
-		ethrpcClient  *ethrpc.Client
-		graphqlClient *graphqlpkg.Client
+		config       *Config
+		ethrpcClient *ethrpc.Client
 	}
 
 	PoolsListUpdaterMetadata struct {
-		LastBlockNumber uint64 `json:"lastBlockNumber"`
-	}
-
-	SubgraphMarket struct {
-		ID                  string `json:"id"`
-		UnderlyingAddress   string `json:"underlyingAddress"`
-		CreationBlockNumber string `json:"creationBlockNumber"`
-	}
-
-	SubgraphResponse struct {
-		Markets []SubgraphMarket `json:"markets"`
+		Offset int `json:"offset"`
 	}
 )
 
-var _ = poollist.RegisterFactoryCEG(DexType, NewPoolsListUpdater)
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-	graphqlClient *graphqlpkg.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:       cfg,
+		ethrpcClient: ethrpcClient,
 	}
 }
 
@@ -59,36 +46,36 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
 
-	lastBlockNumber, err := u.getLastBlockNumber(metadataBytes)
+	offset, err := u.getOffset(metadataBytes)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Warn("getLastBlockNumber failed")
+			Warn("getOffset failed")
 	}
 
-	subgraphData, err := u.fetchAllData(ctx, lastBlockNumber)
+	markets, err := u.getAllMarkets(ctx)
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("fetchAllData failed")
+			WithFields(logger.Fields{"dex_id": dexID}).
+			Error("getAllMarkets failed")
 
 		return nil, metadataBytes, err
 	}
 
-	if len(subgraphData.Markets) == 0 {
+	if offset >= len(markets) {
 		return []entity.Pool{}, metadataBytes, nil
 	}
 
-	pools, newLastBlockNumber, err := u.createPoolsFromData(subgraphData)
+	pools, err := u.initPools(ctx, markets[offset:])
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("createPoolsFromDataAndFindLastBlock failed")
+			Error("initPools failed")
 
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := u.newMetadata(newLastBlockNumber)
+	newMetadataBytes, err := u.newMetadata(offset + len(markets))
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -110,26 +97,47 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) fetchAllData(ctx context.Context, lastBlockNumber uint64) (*SubgraphResponse, error) {
-	req := graphqlpkg.NewRequest(fmt.Sprintf(`{
-	markets(
-		where: { creationBlockNumber_gt: %d }
-	) {
-		id
-		underlyingAddress
-		creationBlockNumber
-	}
-}`, lastBlockNumber))
+func (u *PoolsListUpdater) getAllMarkets(ctx context.Context) ([]common.Address, error) {
+	markets := make([]common.Address, 0)
 
-	var resp SubgraphResponse
-	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    comptrollerABI,
+		Target: u.config.Comptroller,
+		Method: comptrollerMethodGetAllMarkets,
+		Params: nil,
+	}, []any{&markets})
+
+	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
 
-	return &resp, nil
+	return markets, nil
 }
 
-func (u *PoolsListUpdater) getLastBlockNumber(metadataBytes []byte) (uint64, error) {
+func (u *PoolsListUpdater) getUnderlyingTokens(ctx context.Context, markets []common.Address) ([]common.Address, error) {
+	underlyingTokens := make([]common.Address, len(markets))
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	for i, market := range markets {
+		req.AddCall(&ethrpc.Call{
+			ABI:    cTokenABI,
+			Target: market.Hex(),
+			Method: cTokenMethodUnderlying,
+			Params: nil,
+		}, []any{&underlyingTokens[i]})
+	}
+
+	if _, err := req.TryAggregate(); err != nil {
+		return nil, err
+	}
+
+	return underlyingTokens, nil
+}
+
+func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	if len(metadataBytes) == 0 {
 		return 0, nil
 	}
@@ -139,62 +147,55 @@ func (u *PoolsListUpdater) getLastBlockNumber(metadataBytes []byte) (uint64, err
 		return 0, err
 	}
 
-	return metadata.LastBlockNumber, nil
+	return metadata.Offset, nil
 }
 
-func (u *PoolsListUpdater) createPoolsFromData(data *SubgraphResponse) ([]entity.Pool, uint64, error) {
-	pools := make([]entity.Pool, 0)
-	var newLastBlockNumber uint64
-
-	for _, market := range data.Markets {
-		pool, err := u.createPool(market.ID, market.UnderlyingAddress)
-		if err != nil {
-			logger.WithFields(logger.Fields{"market_id": market.ID, "err": err}).Error("createPool failed")
-			continue
-		}
-
-		pools = append(pools, pool)
-
-		if blockNum := parseUint64(market.CreationBlockNumber); blockNum > newLastBlockNumber {
-			newLastBlockNumber = blockNum
-		}
+func (u *PoolsListUpdater) initPools(ctx context.Context, markets []common.Address) ([]entity.Pool, error) {
+	underlyingTokens, err := u.getUnderlyingTokens(ctx, markets)
+	if err != nil {
+		return nil, err
 	}
 
-	return pools, newLastBlockNumber, nil
-}
+	pools := make([]entity.Pool, 0, len(markets))
 
-func (u *PoolsListUpdater) createPool(cToken, baseToken string) (entity.Pool, error) {
-	cTokenAddr := strings.ToLower(cToken)
-	baseTokenAddr := strings.ToLower(baseToken)
+	for i, market := range markets {
+		cTokenAddr := strings.ToLower(market.Hex())
 
-	allTokens := []*entity.PoolToken{
-		{
+		var underlyingTokenAddr string
+		if underlyingTokens[i] == (common.Address{}) {
+			underlyingTokenAddr = strings.ToLower(valueobject.WrappedNativeMap[u.config.ChainID])
+		} else {
+			underlyingTokenAddr = strings.ToLower(underlyingTokens[i].Hex())
+		}
+
+		cToken := &entity.PoolToken{
 			Address:   cTokenAddr,
 			Swappable: true,
-		},
-		{
-			Address:   baseTokenAddr,
+		}
+
+		underlyingToken := &entity.PoolToken{
+			Address:   underlyingTokenAddr,
 			Swappable: true,
-		},
+		}
+
+		var newPool = entity.Pool{
+			Address:   cTokenAddr,
+			Exchange:  u.config.DexID,
+			Type:      DexType,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{"0", "0"},
+			Tokens:    []*entity.PoolToken{cToken, underlyingToken},
+		}
+
+		pools = append(pools, newPool)
 	}
 
-	reserves := []string{"0", "0"}
-
-	newPool := entity.Pool{
-		Address:   cTokenAddr,
-		Exchange:  u.config.DexID,
-		Type:      DexType,
-		Timestamp: time.Now().Unix(),
-		Reserves:  reserves,
-		Tokens:    allTokens,
-	}
-
-	return newPool, nil
+	return pools, nil
 }
 
-func (u *PoolsListUpdater) newMetadata(newLastBlockNumber uint64) ([]byte, error) {
+func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	metadata := PoolsListUpdaterMetadata{
-		LastBlockNumber: newLastBlockNumber,
+		Offset: newOffset,
 	}
 
 	metadataBytes, err := json.Marshal(metadata)
