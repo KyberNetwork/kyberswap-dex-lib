@@ -66,7 +66,7 @@ func (d *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	rpcData, err := d.getPoolData(ctx, staticExtra.PoolAddress, p.Tokens[0].Address, overrides)
+	rpcData, err := d.getPoolData(ctx, staticExtra.AavePoolAddress, p.Tokens[0].Address, overrides)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"pool_id": p.Address}).

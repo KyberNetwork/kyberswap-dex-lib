@@ -129,7 +129,7 @@ func (u *PoolsListUpdater) getAssetList(ctx context.Context, totalAssets int) ([
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: u.config.PoolAddress,
+		Target: u.config.AavePoolAddress,
 		Method: poolMethodGetReservesList,
 		Params: nil,
 	}, []any{&assets})
@@ -147,7 +147,7 @@ func (u *PoolsListUpdater) getTotalAssets(ctx context.Context) (int, error) {
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
-		Target: u.config.PoolAddress,
+		Target: u.config.AavePoolAddress,
 		Method: poolMethodGetReservesCount,
 		Params: nil,
 	}, []any{&reservesCount})
@@ -166,7 +166,7 @@ func (u *PoolsListUpdater) getNewAssets(ctx context.Context, offset, count int) 
 	for i := offset; i < count; i++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
-			Target: u.config.PoolAddress,
+			Target: u.config.AavePoolAddress,
 			Method: poolMethodGetReserveAddressById,
 			Params: []any{uint16(i)},
 		}, []any{&assets[i-offset]})
@@ -199,7 +199,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Addr
 	}
 
 	extraBytes, err := json.Marshal(&StaticExtra{
-		PoolAddress: u.config.PoolAddress,
+		AavePoolAddress: u.config.AavePoolAddress,
 	})
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func (u *PoolsListUpdater) getATokens(ctx context.Context, reserves []common.Add
 	for i, reserve := range reserves {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
-			Target: u.config.PoolAddress,
+			Target: u.config.AavePoolAddress,
 			Method: poolMethodGetReserveAToken,
 			Params: []any{reserve},
 		}, []any{&aTokens[i]})

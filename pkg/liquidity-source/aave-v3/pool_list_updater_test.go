@@ -23,8 +23,8 @@ func TestPoolListUpdater(t *testing.T) {
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	lister := NewPoolsListUpdater(&Config{
-		DexID:       DexType,
-		PoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+		DexID:           DexType,
+		AavePoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
 	}, client)
 
 	newPools, _, err := lister.GetNewPools(context.Background(), nil)
@@ -32,8 +32,8 @@ func TestPoolListUpdater(t *testing.T) {
 	require.Greater(t, len(newPools), 0)
 
 	tracker, err := NewPoolTracker(&Config{
-		DexID:       DexType,
-		PoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+		DexID:           DexType,
+		AavePoolAddress: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
 	}, client)
 	require.NoError(t, err)
 

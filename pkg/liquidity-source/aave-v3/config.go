@@ -1,6 +1,6 @@
 package aavev3
 
 type Config struct {
-	DexID       string `json:"dexID"`
-	PoolAddress string `json:"poolAddress"`
+	DexID           string `json:"dexID"`
+	AavePoolAddress string `json:"aavePoolAddress"`
 }

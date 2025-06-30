@@ -11,7 +11,7 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolAddress string `json:"poolAddress"`
+	AavePoolAddress string `json:"aavePoolAddress"`
 }
 
 type RPCData struct {
@@ -26,8 +26,8 @@ type ReserveConfigurationMap struct {
 }
 
 type SwapInfo struct {
-	IsSupply    bool   `json:"isSupply"`
-	PoolAddress string `json:"poolAddress"`
+	IsSupply        bool   `json:"isSupply"`
+	AavePoolAddress string `json:"aaveV3PoolAddress"`
 }
 
 type PoolMeta struct {

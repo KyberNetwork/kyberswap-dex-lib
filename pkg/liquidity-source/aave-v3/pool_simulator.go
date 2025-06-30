@@ -15,8 +15,8 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	extra       Extra
-	poolAddress string
+	extra           Extra
+	aavePoolAddress string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -43,8 +43,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		extra:       extra,
-		poolAddress: staticExtra.PoolAddress,
+		extra:           extra,
+		aavePoolAddress: staticExtra.AavePoolAddress,
 	}, nil
 }
 
@@ -61,8 +61,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:            lo.Ternary(isSupply, supplyGas, withdrawGas),
 		SwapInfo: &SwapInfo{
-			IsSupply:    isSupply,
-			PoolAddress: s.poolAddress,
+			IsSupply:        isSupply,
+			AavePoolAddress: s.aavePoolAddress,
 		},
 	}, nil
 }
