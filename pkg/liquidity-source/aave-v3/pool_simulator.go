@@ -93,4 +93,6 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 		[]string{}, []string{s.Pool.Info.Tokens[0]})
 }
 
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
+
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}

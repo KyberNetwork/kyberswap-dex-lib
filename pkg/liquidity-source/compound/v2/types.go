@@ -3,8 +3,8 @@ package v2
 import "math/big"
 
 type Extra struct {
-	ExchangeRateStored *big.Int `json:"exchangeRateStored"`
-	IsMintPaused       bool     `json:"isMintPaused"`
+	ExchangeRateStored *big.Int `json:"exchangeRateStored,omitempty"`
+	IsMintPaused       bool     `json:"isMintPaused,omitempty"`
 }
 
 type PoolMeta struct {

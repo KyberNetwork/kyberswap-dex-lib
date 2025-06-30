@@ -79,4 +79,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
+
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
