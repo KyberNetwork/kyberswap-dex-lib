@@ -2,6 +2,7 @@ package aavev3
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"time"
 
@@ -139,7 +140,11 @@ func (d *PoolTracker) calculateReserves(pool entity.Pool, isBlocked bool) entity
 	}
 
 	return entity.PoolReserves{
-		strconv.Itoa(max(100*int(pool.Tokens[0].Decimals), defaultReserve)),
-		strconv.Itoa(max(100*int(pool.Tokens[1].Decimals), defaultReserve)),
+		strconv.Itoa(getReserve(pool.Tokens[0].Decimals)),
+		strconv.Itoa(getReserve(pool.Tokens[1].Decimals)),
 	}
+}
+
+func getReserve(decimals uint8) int {
+	return max(100*int(math.Pow(10, float64(decimals))), defaultReserve)
 }

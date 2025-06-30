@@ -2,6 +2,7 @@ package v2
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"time"
 
@@ -115,8 +116,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, extra Extra, blockNumber uint
 	}
 
 	pool.Reserves = entity.PoolReserves{
-		strconv.Itoa(max(100*int(pool.Tokens[0].Decimals), defaultReserve)),
-		strconv.Itoa(max(100*int(pool.Tokens[1].Decimals), defaultReserve)),
+		strconv.Itoa(getReserve(pool.Tokens[0].Decimals)),
+		strconv.Itoa(getReserve(pool.Tokens[1].Decimals)),
 	}
 
 	pool.BlockNumber = blockNumber
@@ -124,4 +125,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, extra Extra, blockNumber uint
 	pool.Extra = string(extraBytes)
 
 	return pool, nil
+}
+
+func getReserve(decimals uint8) int {
+	return max(100*int(math.Pow(10, float64(decimals))), defaultReserve)
 }
