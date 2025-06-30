@@ -1,10 +1,11 @@
 package uniswaplo
 
 import (
-	"github.com/goccy/go-json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -32,7 +33,8 @@ type PoolSimulator struct {
 }
 
 type PoolMetaInfo struct {
-	ReactorAddress string `json:"reactorAddress"`
+	ReactorAddress  string `json:"reactorAddress"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -223,10 +225,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+		// ReactorAddress for backward compatibility
 		ReactorAddress: p.reactorAddress,
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return p.reactorAddress
 }
 
 func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
