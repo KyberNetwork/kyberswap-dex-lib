@@ -111,6 +111,9 @@ common:
     - "native-v3"
     - "infinitypools"
     - "erc4626"
+    - "aave-v3"
+    - "compound-v2"
+    - "compound-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

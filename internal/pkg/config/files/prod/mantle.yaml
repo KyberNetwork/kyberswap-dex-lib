@@ -46,6 +46,7 @@ common:
     - "ktx"
     - "swapsicle"
     - "erc4626"
+    - "compound-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 10000000

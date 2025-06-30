@@ -37,6 +37,7 @@ common:
     - "velodrome-cl-2"
     - "sky-psm"
     - "erc4626"
+    - "compound-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

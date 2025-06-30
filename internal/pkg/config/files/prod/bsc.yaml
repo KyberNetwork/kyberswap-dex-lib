@@ -93,6 +93,7 @@ common:
     - "pancake-infinity-cl-dynamic"
     - "pancake-infinity-cl-fairflow"
     - "erc4626"
+    - "aave-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

@@ -83,6 +83,8 @@ common:
     - "overnight-usdp"
     - "sky-psm"
     - "erc4626"
+    - "aave-v3"
+    - "compound-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

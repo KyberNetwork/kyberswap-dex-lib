@@ -162,6 +162,9 @@ common:
     - "native-v3"
     - "usds-lite-psm"
     - "erc4626"
+    - "aave-v3"
+    - "compound-v2"
+    - "compound-v3"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false
