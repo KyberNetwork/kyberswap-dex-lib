@@ -86,6 +86,8 @@ type (
 		IsMorpho    bool
 		Pyth        Pyth
 		Chainlink   Chainlink
+		Max         *uint256.Int
+		Morpho      Morpho
 	}
 
 	Pyth struct {
@@ -109,7 +111,28 @@ type (
 		CircuitChainIsMultiplied []uint8
 		ChainlinkDecimals        []uint8
 		QuoteType                uint8
+		Answers                  []*uint256.Int
+		UpdatedAt                []uint64
 		Active                   bool
+	}
+	Morpho struct {
+		Oracle              common.Address
+		NormalizationFactor *uint256.Int
+		Price               *uint256.Int
+		// BaseVault                  common.Address
+		// BaseVaultTotalSupply       *uint256.Int
+		// BaseVaultTotalAssets       *uint256.Int
+		// BaseVaultConversionSample  *uint256.Int
+		// QuoteVault                 common.Address
+		// QuoteVaultTotalSupply      *uint256.Int
+		// QuoteVaultTotalAssets      *uint256.Int
+		// QuoteVaultConversionSample *uint256.Int
+		// BaseFeed1                  common.Address
+		// BaseFeed2                  common.Address
+		// QuoteFeed1                 common.Address
+		// QuoteFeed2                 common.Address
+		// ScaleFactor                *uint256.Int
+		Active bool
 	}
 )
 

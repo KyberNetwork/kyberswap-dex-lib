@@ -9,6 +9,9 @@ import (
 var (
 	transmuterABI abi.ABI
 	pythABI       abi.ABI
+	chainlinkABI  abi.ABI
+	morphoABI     abi.ABI
+	erc4626ABI    abi.ABI
 )
 
 func init() {
@@ -18,6 +21,9 @@ func init() {
 	}{
 		{&transmuterABI, TransmuterJson},
 		{&pythABI, PythJson},
+		{&chainlinkABI, ChainlinkJson},
+		{&morphoABI, MorphoJson},
+		{&erc4626ABI, ERC4626Json},
 	}
 
 	for _, b := range builder {

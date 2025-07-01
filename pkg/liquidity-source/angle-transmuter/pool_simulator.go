@@ -2,6 +2,7 @@ package angletransmuter
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 type (
 	PoolSimulator struct {
 		pool.Pool
+		Tokens         []*entity.PoolToken
 		StableToken    common.Address
 		StableDecimals uint8
 
@@ -46,7 +48,8 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: p.BlockNumber,
 		}},
-		gas: extra.Gas,
+		Tokens: p.Tokens,
+		gas:    extra.Gas,
 	}, nil
 }
 
@@ -93,12 +96,21 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	otherStablecoinIssued := new(uint256.Int).Sub(s.Transmuter.TotalStablecoinIssued, collatStablecoinIssued)
 	fees := s.Transmuter.Collaterals[collateral].Fees
 	stablecoinCap := s.Transmuter.Collaterals[collateral].StablecoinCap
+	var amountOut *uint256.Int
 	if isMint {
-		_quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap)
+		_quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Tokens[indexIn].Decimals)
 	} else {
-		_quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued)
+		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, s.Tokens[indexOut].Decimals)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return nil, nil
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut.ToBig(),
+		},
+	}, nil
 }
 
 func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint256.Int, error) {
@@ -150,7 +162,7 @@ func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int
 	ratio, uB := newBASE_18(), newBASE_18()
 	uB.Mul(target, uB.Sub(uB, configOracle.Hyperparameters.BurnRatioDeviation)).Div(uB, BASE_18)
 	if spot.Cmp(uB) < 0 {
-		ratio.Div(spot, target)
+		ratio.Div(ratio.Mul(ratio, spot), target)
 	} else if spot.Cmp(target) < 0 {
 		spot = target
 	}
@@ -178,19 +190,57 @@ func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *ui
 }
 
 func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, baseValue *uint256.Int) (*uint256.Int, error) {
-	price := newBASE_18()
 	switch oracleType {
 	case CHAINLINK_FEEDS:
 		if !oracleFeed.IsChainLink || !oracleFeed.Chainlink.Active {
 			return nil, ErrInvalidOracle
 		}
-		//TODO:
+		price := s._quoteAmount(OracleQuoteType(oracleFeed.Chainlink.QuoteType), baseValue)
+		for i := range oracleFeed.Chainlink.CircuitChainlink {
+			// price, err = s._readChainlink(oracleFeed, address, price)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// TODO: check staled rate
+			if oracleFeed.Chainlink.CircuitChainIsMultiplied[i] == 1 {
+				// (_quoteAmount * uint256(ratio)) / (10 ** decimals);
+				price.Mul(
+					price,
+					oracleFeed.Chainlink.Answers[i],
+				).Div(
+					price,
+					new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[i]))),
+				)
+				fmt.Println(price)
+			} else {
+				// (_quoteAmount * (10 ** decimals)) / uint256(ratio);
+				price.Mul(
+					price,
+					new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[i]))),
+				).Div(
+					price,
+					oracleFeed.Chainlink.Answers[i],
+				)
+			}
+		}
+		return price, nil
+	case STABLE:
+		return newBASE_18(), nil
+	case NO_ORACLE:
+		return baseValue, nil
+	case WSTETH:
+		return nil, ErrUnimplemented
+	case CBETH:
+		return nil, ErrUnimplemented
+	case RETH:
+		return nil, ErrUnimplemented
+	case SFRXETH:
 		return nil, ErrUnimplemented
 	case PYTH:
 		if !oracleFeed.IsPyth || !oracleFeed.Pyth.Active {
 			return nil, ErrInvalidOracle
 		}
-		price = s._quoteAmount(OracleQuoteType(oracleFeed.Pyth.QuoteType), baseValue)
+		price := s._quoteAmount(OracleQuoteType(oracleFeed.Pyth.QuoteType), baseValue)
 		for i := range oracleFeed.Pyth.FeedIds {
 			normalizedPrice := oracleFeed.Pyth.PythState[i].Price
 			isNormalizerExpoNeg := oracleFeed.Pyth.PythState[i].Expo.Sign() < 0
@@ -206,17 +256,18 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 				price.Div(price, new(uint256.Int).Mul(normalizedPrice, normalizer))
 			}
 		}
-	case STABLE:
-	case NO_ORACLE:
-		price = baseValue
+		return price, nil
 	case MAX:
-		//TODO:
-		return nil, ErrUnimplemented
+		return oracleFeed.Max, nil
 	case MORPHO_ORACLE:
-		//TODO:
-		return nil, ErrUnimplemented
+		if !oracleFeed.IsMorpho || !oracleFeed.Morpho.Active {
+			return nil, ErrInvalidOracle
+		}
+		return new(uint256.Int).Div(oracleFeed.Morpho.Price, oracleFeed.Morpho.NormalizationFactor), nil
+	default:
+		return baseValue, nil
 	}
-	return price, nil
+	return baseValue, nil
 }
 
 func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint256.Int) *uint256.Int {
@@ -225,3 +276,31 @@ func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint2
 	}
 	return baseValue
 }
+
+// func (s *PoolSimulator) _readChainlink(oracleFeed OracleFeed, id common.Address, price *uint256.Int) (*uint256.Int, error) {
+// 	res := new(uint256.Int).Set(price)
+// 	index := lo.IndexOf(oracleFeed.Chainlink.CircuitChainlink, id)
+// 	if index == -1 {
+// 		return nil, ErrInvalidOracle
+// 	}
+// 	if oracleFeed.Chainlink.CircuitChainIsMultiplied[index] == 1 {
+// 		// (_quoteAmount * uint256(ratio)) / (10 ** decimals);
+// 		res.Mul(
+// 			price,
+// 			oracleFeed.Chainlink.Answers[index],
+// 		).Div(
+// 			price,
+// 			new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[index]))),
+// 		)
+// 	} else {
+// 		// (_quoteAmount * (10 ** decimals)) / uint256(ratio);
+// 		res.Mul(
+// 			price,
+// 			new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[index]))),
+// 		).Div(
+// 			price,
+// 			oracleFeed.Chainlink.Answers[index],
+// 		)
+// 	}
+// 	return res, nil
+// }

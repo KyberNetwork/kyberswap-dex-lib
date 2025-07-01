@@ -17,6 +17,7 @@ var (
 	ErrUnsupportedSwap           = errors.New("unsupported swap")
 	ErrInvalidOracle             = errors.New("invalid oracle compared to oracle type")
 	ErrUnimplemented             = errors.New("unimplemented")
+	ErrInvalidChainlinkRate      = errors.New("InvalidChainlinkRate")
 	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
 	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 	ErrInvalidSwap               = errors.New("invalid swap")
@@ -41,4 +42,13 @@ var ChainlinkArgument = abi.Arguments{
 var HyperparametersArgument = abi.Arguments{
 	{Name: "userDeviation", Type: Int128},
 	{Name: "burnRatioDeviation", Type: Int128},
+}
+
+var MaxArgument = abi.Arguments{
+	{Name: "maxValue", Type: Uint256},
+}
+
+var MorphoArgument = abi.Arguments{
+	{Name: "oracle", Type: Address},
+	{Name: "normalizationFactor", Type: Uint256},
 }
