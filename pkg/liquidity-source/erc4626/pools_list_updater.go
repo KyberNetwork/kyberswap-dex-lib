@@ -156,6 +156,10 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		}, []any{&poolState.ExitFeeBps}).AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
+			Method: erc4626MethodGetExitFeeBasisPoints,
+		}, []any{&poolState.ExitFeeBps}).AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: vaultAddr,
 			Method: erc4626MethodMinRedeemRatio,
 		}, []any{&minRedeemRatio})
 	}
