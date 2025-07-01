@@ -135,7 +135,6 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 		cachedRoutes, err = c.routeCacheMigrationRepository.Get(ctx, keys)
 	} else {
 		cachedRoutes, err = c.routeCacheRepository.Get(ctx, keys)
-		logger.Info(ctx, "get cachedRoutes from new redis")
 	}
 
 	if err != nil {

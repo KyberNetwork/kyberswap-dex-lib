@@ -164,8 +164,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 				command.RouteSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
 			} else {
 				command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
-				logger.Info(ctx, "get alphaFee from new redis")
-
 			}
 			isValidChecksum = uc.IsValidChecksum(command.RouteSummary)
 		}
