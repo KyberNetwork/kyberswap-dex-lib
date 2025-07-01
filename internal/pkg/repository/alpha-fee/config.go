@@ -7,7 +7,7 @@ type Config struct {
 }
 
 type RedisRepositoryConfig struct {
-	Prefix    string        `mapstructure:"prefix"`
-	Separator string        `mapstructure:"separator"`
-	TTL       time.Duration `mapstructure:"ttl"`
+	Prefix    string        `mapstructure:"prefix" json:"prefix"`
+	Separator string        `mapstructure:"separator" json:"separator"`
+	TTL       time.Duration `mapstructure:"ttl" json:"ttl"`
 }

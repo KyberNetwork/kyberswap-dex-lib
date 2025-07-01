@@ -31,8 +31,9 @@ import (
 type cache struct {
 	aggregator IAggregator
 
-	routeCacheRepository IRouteCacheRepository
-	poolManager          IPoolManager
+	routeCacheRepository          IRouteCacheRepository
+	routeCacheMigrationRepository IRouteCacheRepository
+	poolManager                   IPoolManager
 
 	config                 valueobject.CacheConfig
 	keyGenerator           *routeKeyGenerator
@@ -46,6 +47,7 @@ type cache struct {
 func NewCache(
 	aggregator IAggregator,
 	routeCacheRepository IRouteCacheRepository,
+	routeCacheMigrationRepository IRouteCacheRepository,
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -53,14 +55,15 @@ func NewCache(
 	onchainpriceRepository IOnchainPriceRepository,
 ) *cache {
 	return &cache{
-		aggregator:             aggregator,
-		routeCacheRepository:   routeCacheRepository,
-		poolManager:            poolManager,
-		config:                 config,
-		keyGenerator:           newCacheKeyGenerator(config),
-		finderEngine:           finderEngine,
-		tokenRepository:        tokenRepository,
-		onchainpriceRepository: onchainpriceRepository,
+		aggregator:                    aggregator,
+		routeCacheRepository:          routeCacheRepository,
+		routeCacheMigrationRepository: routeCacheMigrationRepository,
+		poolManager:                   poolManager,
+		config:                        config,
+		keyGenerator:                  newCacheKeyGenerator(config),
+		finderEngine:                  finderEngine,
+		tokenRepository:               tokenRepository,
+		onchainpriceRepository:        onchainpriceRepository,
 	}
 }
 
@@ -121,8 +124,18 @@ func (c *cache) ApplyConfig(config Config) {
 
 func (c *cache) getBestRouteFromCache(ctx context.Context,
 	params *types.AggregateParams,
-	keys []valueobject.RouteCacheKeyTTL) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRouteWithExtraData, error) {
-	cachedRoutes, err := c.routeCacheRepository.Get(ctx, keys)
+	keys []valueobject.RouteCacheKeyTTL,
+) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRouteWithExtraData, error) {
+	var (
+		cachedRoutes map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRouteWithExtraData
+		err          error
+	)
+
+	if !c.config.FeatureFlags.IsRedisMigrationEnabled {
+		cachedRoutes, err = c.routeCacheMigrationRepository.Get(ctx, keys)
+	} else {
+		cachedRoutes, err = c.routeCacheRepository.Get(ctx, keys)
+	}
 
 	if err != nil {
 		return nil, nil, err
@@ -283,6 +296,14 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject
 		logger.
 			WithFields(ctx, logger.Fields{"error": err}).
 			Error("cache.setRouteToCache failed")
+	}
+
+	if c.routeCacheMigrationRepository != nil {
+		if err := c.routeCacheMigrationRepository.Set(ctx, keys, routes); err != nil {
+			logger.
+				WithFields(ctx, logger.Fields{"error": err}).
+				Error("[Migration] cache.setRouteToCache failed")
+		}
 	}
 }
 

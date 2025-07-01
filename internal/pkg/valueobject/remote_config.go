@@ -65,6 +65,12 @@ type (
 		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAFEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
 		ReturnAlphaFee                    bool `mapstructure:"returnAlphaFee" json:"returnAF"`
+
+		// IsRedisMigrationEnabled controls Redis migration behavior:
+		// - true: Migration in progress - read from new Redis, write to both old and new Redis
+		// - false: Migration rollback - read from old Redis, write to both old and new Redis
+		// Note: Always write to both Redis during migration for safety
+		IsRedisMigrationEnabled bool `mapstructure:"isRedisMigrationEnabled" json:"isRedisMigrationEnabled"`
 	}
 
 	Log struct {

@@ -25,12 +25,13 @@ import (
 type useCase struct {
 	config getroute.Config
 
-	aggregator             IAggregator
-	tokenRepository        getroute.ITokenRepository
-	gasRepository          getroute.IGasRepository
-	alphaFeeRepository     getroute.IAlphaFeeRepository
-	l1FeeEstimator         getroute.IL1FeeEstimator
-	onchainpriceRepository getroute.IOnchainPriceRepository
+	aggregator                  IAggregator
+	tokenRepository             getroute.ITokenRepository
+	gasRepository               getroute.IGasRepository
+	alphaFeeRepository          getroute.IAlphaFeeRepository
+	alphaFeeMigrationRepository getroute.IAlphaFeeRepository
+	l1FeeEstimator              getroute.IL1FeeEstimator
+	onchainpriceRepository      getroute.IOnchainPriceRepository
 
 	mu sync.Mutex
 }
@@ -42,6 +43,7 @@ func NewCustomRoutesUseCase(
 	onchainpriceRepository getroute.IOnchainPriceRepository,
 	gasRepository getroute.IGasRepository,
 	alphaFeeRepository getroute.IAlphaFeeRepository,
+	alphaFeeMigrationRepository getroute.IAlphaFeeRepository,
 	l1FeeEstimator getroute.IL1FeeEstimator,
 	poolManager getroute.IPoolManager,
 	poolRepository getroute.IPoolRepository,
@@ -58,12 +60,13 @@ func NewCustomRoutesUseCase(
 	)
 
 	return &useCase{
-		aggregator:             aggregator,
-		tokenRepository:        tokenRepository,
-		gasRepository:          gasRepository,
-		alphaFeeRepository:     alphaFeeRepository,
-		l1FeeEstimator:         l1FeeEstimator,
-		onchainpriceRepository: onchainpriceRepository,
+		aggregator:                  aggregator,
+		tokenRepository:             tokenRepository,
+		gasRepository:               gasRepository,
+		alphaFeeRepository:          alphaFeeRepository,
+		alphaFeeMigrationRepository: alphaFeeMigrationRepository,
+		l1FeeEstimator:              l1FeeEstimator,
+		onchainpriceRepository:      onchainpriceRepository,
 
 		config: config,
 	}
@@ -101,6 +104,12 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetCustomRoutesQuery) (*
 		err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee)
 		if err != nil {
 			return nil, err
+		}
+
+		if u.alphaFeeMigrationRepository != nil {
+			if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
+				klog.Errorf(ctx, "[Migration] failed to save alphaFee to new redis repository: %v", err)
+			}
 		}
 	}
 

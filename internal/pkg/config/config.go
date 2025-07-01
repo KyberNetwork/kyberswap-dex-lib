@@ -31,6 +31,7 @@ type Config struct {
 	Common         Common                    `mapstructure:"common" json:"common"`
 	Log            *Log                      `mapstructure:"log" json:"log"`
 	Redis          redis.Config              `mapstructure:"redis" json:"redis"`
+	RouterRedis    redis.Config              `mapstructure:"routerRedis" json:"routerRedis"`
 	PregenRedis    redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
 	PoolRedis      redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
 	PoolEventRedis redis.Config              `mapstructure:"poolEventRedis" json:"poolEventRedis"`
