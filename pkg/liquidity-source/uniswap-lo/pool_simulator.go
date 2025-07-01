@@ -1,17 +1,18 @@
 package uniswaplo
 
 import (
-	"github.com/goccy/go-json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {

@@ -80,7 +80,7 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 	}
 
 	var totalSwapFeeAmountScaled18 *uint256.Int
-	if vaultSwapParams.Kind == shared.EXACT_IN {
+	if vaultSwapParams.Kind == shared.ExactIn {
 		totalSwapFeeAmountScaled18, err = math.FixPoint.MulUp(poolSwapParams.AmountGivenScaled18,
 			poolSwapParams.StaticSwapFeePercentage)
 		if err != nil {
@@ -110,7 +110,7 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 	}
 
 	var amountCalculated *uint256.Int
-	if vaultSwapParams.Kind == shared.EXACT_IN {
+	if vaultSwapParams.Kind == shared.ExactIn {
 		if amountCalculated, err = toRawUndoRateRoundDown(
 			amountCalculatedScaled18,
 			v.decimalScalingFactors[poolSwapParams.IndexOut],
@@ -157,7 +157,7 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 }
 
 func (v *Vault) ComputeAmountGivenScaled18(param shared.VaultSwapParams) (*uint256.Int, error) {
-	if param.Kind == shared.EXACT_IN {
+	if param.Kind == shared.ExactIn {
 		return toScaled18ApplyRateRoundDown(param.AmountGivenRaw, v.decimalScalingFactors[param.IndexIn],
 			v.tokenRates[param.IndexIn])
 	}
@@ -199,7 +199,7 @@ func (v *Vault) UpdateLiveBalance(
 	amountGivenRaw *uint256.Int,
 	rounding shared.Rounding,
 ) (newBalanceLiveScaled18 *uint256.Int, err error) {
-	if rounding == shared.ROUND_UP {
+	if rounding == shared.RoundUp {
 		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundUp(amountGivenRaw, v.decimalScalingFactors[index],
 			v.tokenRates[index])
 	} else {

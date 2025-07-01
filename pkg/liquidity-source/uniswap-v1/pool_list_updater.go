@@ -183,7 +183,7 @@ func (u *PoolsListUpdater) listExchanges(ctx context.Context, offset int, batchS
 
 	var exchanges = make([]ExchangeInfo, 0, len(listExchangeResult))
 	for i, isSuccess := range resp.Result {
-		if !isSuccess || listExchangeResult[i] == ZERO_ADDRESS {
+		if !isSuccess || listExchangeResult[i] == ZeroAddress {
 			continue
 		}
 
@@ -212,7 +212,7 @@ func (u *PoolsListUpdater) initPools(exchanges []ExchangeInfo) ([]entity.Pool, e
 
 		var newPool = entity.Pool{
 			Address:   strings.ToLower(exchange.ExchangeAddress.Hex()),
-			Exchange:  string(valueobject.ExchangeUniSwapV1),
+			Exchange:  valueobject.ExchangeUniSwapV1,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},

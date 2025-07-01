@@ -8,7 +8,8 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	balancerv3eclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	balancerv3quantamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/quant-amm"
 	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
 	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
@@ -229,12 +230,13 @@ type Types struct {
 	UniswapV2                  string
 	QuickPerps                 string
 	BalancerV1                 string
-	BalancerV2Weighted         string
-	BalancerV2Stable           string
 	BalancerV2ComposableStable string
+	BalancerV2Stable           string
+	BalancerV2Weighted         string
+	BalancerV3ECLP             string
+	BalancerV3QuantAMM         string
 	BalancerV3Stable           string
 	BalancerV3Weighted         string
-	BalancerV3ECLP             string
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
 	Fulcrom                    string
@@ -394,12 +396,13 @@ var (
 		UniswapV2:                  uniswapv2.DexType,
 		QuickPerps:                 quickperps.DexTypeQuickperps,
 		BalancerV1:                 balancerv1.DexType,
-		BalancerV2Weighted:         balancerv2weighted.DexType,
-		BalancerV2Stable:           balancerv2stable.DexType,
 		BalancerV2ComposableStable: balancerv2composablestable.DexType,
+		BalancerV2Stable:           balancerv2stable.DexType,
+		BalancerV2Weighted:         balancerv2weighted.DexType,
+		BalancerV3ECLP:             balancerv3eclp.DexType,
+		BalancerV3QuantAMM:         balancerv3quantamm.DexType,
 		BalancerV3Stable:           balancerv3stable.DexType,
 		BalancerV3Weighted:         balancerv3weighted.DexType,
-		BalancerV3ECLP:             eclp.DexType,
 		VelocoreV2CPMM:             velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
 		Fulcrom:                    fulcrom.DexTypeFulcrom,
