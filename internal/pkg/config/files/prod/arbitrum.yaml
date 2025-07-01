@@ -183,6 +183,16 @@ log:
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
+routerRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
 redis:
   addresses:
   masterName: ""

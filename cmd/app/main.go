@@ -273,6 +273,7 @@ func apiAction(c *cli.Context) (err error) {
 	// TODO: REMOVE AFTER REDIS MIGRATION IS COMPLETE
 	migrationRedisClient, err := redis.New(&cfg.RouterRedis)
 	if err != nil {
+		logger.Errorf(ctx, "fail to init client to routerRedis")
 		return err
 	}
 
