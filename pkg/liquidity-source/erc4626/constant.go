@@ -9,14 +9,15 @@ import (
 const (
 	DexType = "erc4626"
 
-	erc4626MethodAsset               = "asset"
-	erc4626MethodTotalSupply         = "totalSupply"
-	erc4626MethodTotalAssets         = "totalAssets"
-	erc4626MethodMaxDeposit          = "maxDeposit"
-	erc4626MethodMaxRedeem           = "maxRedeem"
-	erc4626MethodEntryFeeBasisPoints = "entryFeeBasisPoints"
-	erc4626MethodExitFeeBasisPoints  = "exitFeeBasisPoints"
-	erc4626MethodMinRedeemRatio      = "minRedeemRatio"
+	erc4626MethodAsset                 = "asset"
+	erc4626MethodTotalSupply           = "totalSupply"
+	erc4626MethodTotalAssets           = "totalAssets"
+	erc4626MethodMaxDeposit            = "maxDeposit"
+	erc4626MethodMaxRedeem             = "maxRedeem"
+	erc4626MethodEntryFeeBasisPoints   = "entryFeeBasisPoints"
+	erc4626MethodExitFeeBasisPoints    = "exitFeeBasisPoints"
+	erc4626MethodGetExitFeeBasisPoints = "getExitFeeBasisPoints"
+	erc4626MethodMinRedeemRatio        = "minRedeemRatio"
 
 	Bps            = 10000
 	RatioPrecision = 1e18
