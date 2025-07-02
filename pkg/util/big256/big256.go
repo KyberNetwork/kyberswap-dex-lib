@@ -19,13 +19,14 @@ var (
 	U3  = uint256.NewInt(3)
 	U4  = uint256.NewInt(4)
 	U5  = uint256.NewInt(5)
+	U6  = uint256.NewInt(6)
 	U9  = uint256.NewInt(9)
 	U10 = uint256.NewInt(10)
 
 	MinSqrtRatio    = uint256.NewInt(4295128739)
 	MaxSqrtRatio, _ = NewUint256("1461446703485210103287273052203988822378723970342")
 
-	BasisPointUint256 = uint256.NewInt(10000)
+	UBasisPoint = uint256.NewInt(10000)
 )
 
 var BONE = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18))
