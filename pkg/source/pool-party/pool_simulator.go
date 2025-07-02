@@ -72,7 +72,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	amountOut := new(big.Int).Set(param.TokenAmountIn.Amount)
 	amountOut.Mul(amountOut, s.Extra.RateFromETH)
+	amountOut.Mul(amountOut, big.NewInt(int64(s.Extra.BoostPriceBps)))
 	amountOut.Div(amountOut, bignumber.BONE)
+	amountOut.Div(amountOut, bignumber.BasisPoint)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
