@@ -281,3 +281,8 @@ func (p *FullRangePool) NewBlock() {}
 func (p *OraclePool) NewBlock() {
 	p.swappedThisBlock = false
 }
+
+func (p *MevResistPool) NewBlock() {
+	p.swappedThisBlock = false
+	p.lastTick = p.ActiveTick
+}

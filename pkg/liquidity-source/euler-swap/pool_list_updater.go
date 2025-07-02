@@ -15,15 +15,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
-type (
-	PoolsListUpdater struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-	}
-)
+type PoolsListUpdater struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
@@ -45,7 +42,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
 
-	ctx = util.NewContextWithTimestamp(ctx)
+	offset, err := u.getOffset(metadataBytes)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			Warn("getOffset failed")
+	}
 
 	allPoolsLength, err := u.getAllPoolsLength(ctx)
 	if err != nil {
@@ -56,14 +58,20 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	offset, err := u.getOffset(metadataBytes)
-	if err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Warn("getOffset failed")
+	if offset == allPoolsLength {
+		return nil, metadataBytes, nil
 	}
 
-	batchSize := u.getBatchSize(allPoolsLength, u.config.NewPoolLimit, offset)
+	if offset > allPoolsLength {
+		logger.WithFields(logger.Fields{
+			"dex_id": dexID,
+			"offset": offset,
+			"length": allPoolsLength,
+		}).Info("Resetting offset to 0 due to factory uninstall pools")
+		offset = 0
+	}
+
+	batchSize := u.getBatchSize(allPoolsLength, offset)
 
 	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
 	if err != nil {
@@ -97,13 +105,148 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			logger.Fields{
 				"dex_id":      dexID,
 				"pools_len":   len(pools),
-				"offset":      offset,
 				"duration_ms": time.Since(startTime).Milliseconds(),
 			},
 		).
 		Info("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
+}
+
+func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
+	result := []common.Address{}
+
+	startIdx := big.NewInt(int64(offset))
+	endIdx := big.NewInt(int64(offset + batchSize))
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodPoolsSlice,
+		Params: []any{startIdx, endIdx},
+	}, []any{&result})
+
+	_, err := req.Aggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
+	tokensByPool, err := u.listPoolTokens(ctx, poolAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	pools := make([]entity.Pool, 0, len(poolAddresses))
+
+	for i, poolAddress := range poolAddresses {
+		staticPoolData, err := u.getPoolStaticData(ctx, poolAddress.Hex())
+		if err != nil {
+			return nil, err
+		}
+
+		extraBytes, err := json.Marshal(&staticPoolData)
+		if err != nil {
+			return nil, err
+		}
+
+		token0 := &entity.PoolToken{
+			Address:   strings.ToLower(tokensByPool[i][0].Hex()),
+			Swappable: true,
+		}
+
+		token1 := &entity.PoolToken{
+			Address:   strings.ToLower(tokensByPool[i][1].Hex()),
+			Swappable: true,
+		}
+
+		var newPool = entity.Pool{
+			Address:     strings.ToLower(poolAddress.Hex()),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{token0, token1},
+			StaticExtra: string(extraBytes),
+		}
+
+		pools = append(pools, newPool)
+	}
+
+	return pools, nil
+}
+
+func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []common.Address) ([][2]common.Address, error) {
+	var poolTokens = make([][2]common.Address, len(poolAddresses))
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	for i, poolAddress := range poolAddresses {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress.Hex(),
+			Method: poolMethodGetAssets,
+			Params: nil,
+		}, []any{&poolTokens[i]})
+	}
+
+	if _, err := req.Aggregate(); err != nil {
+		return nil, err
+	}
+
+	return poolTokens, nil
+}
+
+func (d *PoolsListUpdater) getPoolStaticData(
+	ctx context.Context,
+	poolAddress string,
+) (StaticExtra, error) {
+	var (
+		params ParamsRPC
+		evc    common.Address
+	)
+
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetParams,
+		Params: nil,
+	}, []any{&params})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodEVC,
+		Params: nil,
+	}, []any{&evc})
+
+	_, err := req.Aggregate()
+	if err != nil {
+		return StaticExtra{}, err
+	}
+
+	poolData := StaticExtra{
+		Vault0:               params.Data.Vault0.Hex(),
+		Vault1:               params.Data.Vault1.Hex(),
+		EulerAccount:         params.Data.EulerAccount.Hex(),
+		EquilibriumReserve0:  uint256.MustFromBig(params.Data.EquilibriumReserve0),
+		EquilibriumReserve1:  uint256.MustFromBig(params.Data.EquilibriumReserve1),
+		PriceX:               uint256.MustFromBig(params.Data.PriceX),
+		PriceY:               uint256.MustFromBig(params.Data.PriceY),
+		Fee:                  uint256.MustFromBig(params.Data.Fee),
+		ProtocolFee:          uint256.MustFromBig(params.Data.ProtocolFee),
+		ConcentrationX:       uint256.MustFromBig(params.Data.ConcentrationX),
+		ConcentrationY:       uint256.MustFromBig(params.Data.ConcentrationY),
+		ProtocolFeeRecipient: params.Data.ProtocolFeeRecipient,
+		EVC:                  evc.Hex(),
+	}
+
+	return poolData, nil
 }
 
 func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
@@ -125,235 +268,6 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	return int(allPoolsLength.Int64()), nil
 }
 
-func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
-	if len(metadataBytes) == 0 {
-		return 0, nil
-	}
-
-	var metadata uniswapv2.PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-		return 0, err
-	}
-
-	return metadata.Offset, nil
-}
-
-func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
-	result := make([]common.Address, batchSize)
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	startIdx := big.NewInt(int64(offset))
-	endIdx := big.NewInt(int64(offset + batchSize))
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: u.config.FactoryAddress,
-		Method: factoryMethodPoolsSlice,
-		Params: []any{startIdx, endIdx},
-	}, []any{&result})
-
-	_, err := req.Aggregate()
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
-	token0List, token1List, err := u.listPoolTokens(ctx, poolAddresses)
-	if err != nil {
-		return nil, err
-	}
-
-	pools := make([]entity.Pool, 0, len(poolAddresses))
-
-	for i, poolAddress := range poolAddresses {
-		staticPoolData, err := u.getPoolStaticData(ctx, poolAddress.Hex())
-		if err != nil {
-			return nil, err
-		}
-
-		extraBytes, err := json.Marshal(&staticPoolData)
-		if err != nil {
-			return nil, err
-		}
-
-		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0List[i].Hex()),
-			Swappable: true,
-		}
-
-		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1List[i].Hex()),
-			Swappable: true,
-		}
-
-		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
-			Exchange:    u.config.DexID,
-			Type:        DexType,
-			Timestamp:   time.Now().Unix(),
-			Reserves:    []string{"0", "0"},
-			Tokens:      []*entity.PoolToken{token0, token1},
-			StaticExtra: string(extraBytes),
-		}
-
-		pools = append(pools, newPool)
-	}
-
-	return pools, nil
-}
-
-func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []common.Address) ([]common.Address, []common.Address, error) {
-	var (
-		listToken0Result = make([]common.Address, len(poolAddresses))
-		listToken1Result = make([]common.Address, len(poolAddresses))
-	)
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	for i, poolAddress := range poolAddresses {
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress.Hex(),
-			Method: poolMethodAsset0,
-			Params: nil,
-		}, []any{&listToken0Result[i]})
-
-		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress.Hex(),
-			Method: poolMethodAsset1,
-			Params: nil,
-		}, []any{&listToken1Result[i]})
-	}
-
-	if _, err := req.Aggregate(); err != nil {
-		return nil, nil, err
-	}
-
-	return listToken0Result, listToken1Result, nil
-}
-
-func (d *PoolsListUpdater) getPoolStaticData(
-	ctx context.Context,
-	poolAddress string,
-) (StaticExtra, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	var (
-		eulerAccount        common.Address
-		vault0              common.Address
-		vault1              common.Address
-		equilibriumReserve0 *big.Int
-		equilibriumReserve1 *big.Int
-		priceX              *big.Int
-		priceY              *big.Int
-		concentrationX      *big.Int
-		concentrationY      *big.Int
-		feeMultiplier       *big.Int
-	)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodEulerAccount,
-		Params: nil,
-	}, []any{&eulerAccount})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodVault0,
-		Params: nil,
-	}, []any{&vault0})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodVault1,
-		Params: nil,
-	}, []any{&vault1})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodVault0,
-		Params: nil,
-	}, []any{&vault0})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodEquilibriumReserve0,
-		Params: nil,
-	}, []any{&equilibriumReserve0})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodEquilibriumReserve1,
-		Params: nil,
-	}, []any{&equilibriumReserve1})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodPriceX,
-		Params: nil,
-	}, []any{&priceX})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodPriceY,
-		Params: nil,
-	}, []any{&priceY})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodConcentrationX,
-		Params: nil,
-	}, []any{&concentrationX})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodConcentrationY,
-		Params: nil,
-	}, []any{&concentrationY})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodFeeMultiplier,
-		Params: nil,
-	}, []any{&feeMultiplier})
-
-	_, err := req.Aggregate()
-	if err != nil {
-		return StaticExtra{}, err
-	}
-
-	poolData := StaticExtra{
-		Vault0:              vault0.Hex(),
-		Vault1:              vault1.Hex(),
-		EulerAccount:        eulerAccount.Hex(),
-		FeeMultiplier:       uint256.MustFromBig(feeMultiplier),
-		EquilibriumReserve0: uint256.MustFromBig(equilibriumReserve0),
-		EquilibriumReserve1: uint256.MustFromBig(equilibriumReserve1),
-		PriceX:              uint256.MustFromBig(priceX),
-		PriceY:              uint256.MustFromBig(priceY),
-		ConcentrationX:      uint256.MustFromBig(concentrationX),
-		ConcentrationY:      uint256.MustFromBig(concentrationY),
-	}
-
-	return poolData, nil
-}
-
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	metadata := uniswapv2.PoolsListUpdaterMetadata{
 		Offset: newOffset,
@@ -367,21 +281,27 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
-	if offset == length {
+func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
+	if len(metadataBytes) == 0 {
+		return 0, nil
+	}
+
+	var metadata uniswapv2.PoolsListUpdaterMetadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		return 0, err
+	}
+
+	return metadata.Offset, nil
+}
+
+func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
+	if offset >= length {
 		return 0
 	}
 
-	if offset+limit >= length {
-		if offset > length {
-			logger.WithFields(logger.Fields{
-				"dex":    u.config.DexID,
-				"offset": offset,
-				"length": length,
-			}).Warn("[getBatchSize] offset is greater than length")
-		}
-		return max(length-offset, 0)
+	if offset+batchSize >= length {
+		return length - offset
 	}
 
-	return limit
+	return batchSize
 }

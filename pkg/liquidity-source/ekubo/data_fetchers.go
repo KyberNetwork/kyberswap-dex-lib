@@ -135,6 +135,8 @@ func (f *dataFetchers) fetchPools(
 				}
 			case ExtensionTypeOracle:
 				pool = pools.NewOraclePool(poolKey, NewOraclePoolState(&data))
+			case ExtensionTypeMevResist:
+				pool = pools.NewMevResistPool(poolKey, NewBasePoolState(&data))
 			default:
 				return nil, fmt.Errorf("unexpected extension type %v", extensionType)
 			}

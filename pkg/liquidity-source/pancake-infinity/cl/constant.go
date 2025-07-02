@@ -4,8 +4,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -14,11 +15,9 @@ const (
 	graphFirstLimit = 1000
 	maxChangedTicks = 10
 
-	clPoolManagerMethodGetLiquidity    = "getLiquidity"
-	clPoolManagerMethodGetSlot0        = "getSlot0"
-	clPoolManagerMethodGetPoolTickInfo = "getPoolTickInfo"
-
 	_OFFSET_TICK_SPACING = 16
+
+	_MASK12 = 0xfff
 )
 
 var (

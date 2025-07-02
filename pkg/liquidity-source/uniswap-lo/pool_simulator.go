@@ -1,10 +1,12 @@
 package uniswaplo
 
 import (
-	"github.com/goccy/go-json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -32,7 +34,8 @@ type PoolSimulator struct {
 }
 
 type PoolMetaInfo struct {
-	ReactorAddress string `json:"reactorAddress"`
+	ReactorAddress  string `json:"reactorAddress"`
+	ApprovalAddress string `json:"approvalAddress"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -115,6 +118,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		FilledOrders: []*DutchOrder{},
 	}
 
+	filledSwappers := make(map[common.Address]struct{})
+
 	// Filling logic, note that this LO only supports full fill
 	// Using greedy algo for simple way approach first,
 	// but we also could use dynamic programming like knapsack algo
@@ -131,6 +136,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			continue
 		}
 
+		// skip filled swappers, we only support take only 1 swapper per batch
+		// using same swapper for multiple orders is not supported, this way will highly having chances led to insufficent permit2 allowance
+		if _, ok := filledSwappers[order.Swapper]; ok {
+			continue
+		}
+
 		// Case 2: Fullfill this order
 		// orderAmount == remainingAmountIn
 		// add user making amount to totalAmountOut
@@ -140,6 +151,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			remainingAmountIn.Sub(remainingAmountIn, orderTakingAmount)
 
 			swapInfo.IsAmountInFulfilled = true
+			filledSwappers[order.Swapper] = struct{}{}
 			continue
 		}
 
@@ -153,6 +165,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 			totalAmountOut.Add(totalAmountOut, order.Input.StartAmount)
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, order)
+			filledSwappers[order.Swapper] = struct{}{}
 			continue
 		}
 	}
@@ -223,10 +236,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMetaInfo{
+		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
+		// ReactorAddress for backward compatibility
 		ReactorAddress: p.reactorAddress,
 	}
+}
+
+func (p *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
+	return p.reactorAddress
 }
 
 func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
