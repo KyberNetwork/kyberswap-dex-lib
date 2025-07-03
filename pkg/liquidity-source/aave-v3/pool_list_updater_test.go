@@ -49,6 +49,8 @@ func TestPoolListUpdater(t *testing.T) {
 			},
 			newPool.Reserves,
 		)
+
+		require.NotEqual(t, "{}", newPool.Extra, newPool.Address)
 	}
 
 }
