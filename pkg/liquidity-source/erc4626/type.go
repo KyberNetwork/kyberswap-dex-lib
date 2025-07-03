@@ -31,7 +31,7 @@ type (
 	}
 
 	SwapInfo struct {
-		Assets *uint256.Int `json:"a"`
+		assets *uint256.Int
 	}
 
 	Meta struct {
