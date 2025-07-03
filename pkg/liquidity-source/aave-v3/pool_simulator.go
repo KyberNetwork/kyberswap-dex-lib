@@ -54,7 +54,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	isSupply := indexIn == 0
+	isSupply := indexIn == 1
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: param.TokenAmountIn.Amount},
@@ -75,21 +75,21 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused || s.extra.IsFrozen,
-			[]string{}, []string{s.Pool.Info.Tokens[1]})
-	}
-
-	return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused,
-		[]string{}, []string{s.Pool.Info.Tokens[0]})
-}
-
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	if s.GetTokenIndex(address) == 0 {
 		return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused,
 			[]string{}, []string{s.Pool.Info.Tokens[1]})
 	}
 
 	return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused || s.extra.IsFrozen,
+		[]string{}, []string{s.Pool.Info.Tokens[0]})
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if s.GetTokenIndex(address) == 0 {
+		return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused || s.extra.IsFrozen,
+			[]string{}, []string{s.Pool.Info.Tokens[1]})
+	}
+
+	return lo.Ternary(!s.extra.IsActive || s.extra.IsPaused,
 		[]string{}, []string{s.Pool.Info.Tokens[0]})
 }
 
