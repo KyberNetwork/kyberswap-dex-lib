@@ -241,7 +241,8 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i, collat := range collateralConfigs {
 		for j, typee := range []OracleReadType{OracleReadType(collat.OracleType), OracleReadType(collat.TargetType)} {
-			if typee == PYTH {
+			switch typee {
+			case PYTH:
 				var decodedPyth DecodedPyth
 				unpacked, err := PythArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
 				if err != nil {
@@ -266,10 +267,10 @@ func (t *PoolTracker) getNewPoolState(
 						ABI:    pythABI,
 						Target: decodedPyth.Pyth.Hex(),
 						Method: "getPriceUnsafe",
-						Params: []any{decodedPyth.FeedIds[j]},
+						Params: []any{decodedPyth.FeedIds[k]},
 					}, []any{&pyths[j][i].RawStates[k]})
 				}
-			} else if typee == CHAINLINK_FEEDS {
+			case CHAINLINK_FEEDS:
 				var chainlink Chainlink
 				unpacked, err := ChainlinkArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
 				if err != nil {
@@ -286,11 +287,11 @@ func (t *PoolTracker) getNewPoolState(
 				for k := range chainlink.CircuitChainlink {
 					calls.AddCall(&ethrpc.Call{
 						ABI:    chainlinkABI,
-						Target: chainlink.CircuitChainlink[j].Hex(),
+						Target: chainlink.CircuitChainlink[k].Hex(),
 						Method: "latestRoundData",
 					}, []any{&chainlinks[j][i].RawStates[k]})
 				}
-			} else if typee == MORPHO_ORACLE {
+			case MORPHO_ORACLE:
 				var decodedMorpho DecodedMorpho
 				unpacked, err := MorphoArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
 				if err != nil {
@@ -312,7 +313,7 @@ func (t *PoolTracker) getNewPoolState(
 					Target: decodedMorpho.Oracle.Hex(),
 					Method: "price",
 				}, []any{&morphos[j][i].RawState})
-			} else if typee == MAX {
+			case MAX:
 				var decodedMax DecodedMax
 				unpacked, err := MaxArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
 				if err != nil {
@@ -419,7 +420,7 @@ func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracle
 			pyths[oracleOrTarget][index].PythState = lo.Map(pyths[oracleOrTarget][index].RawStates, func(item DecodedPythStateTuple, _ int) PythState {
 				return PythState{
 					Price:     uint256.NewInt(uint64(item.Price)),
-					Expo:      uint256.NewInt(uint64(item.Expo)),
+					Expo:      uint256.MustFromBig(big.NewInt(int64(item.Expo))),
 					Timestamp: uint256.MustFromBig(item.PublishTime),
 				}
 			})

@@ -122,7 +122,6 @@ func _quoteFees(
 		BASE_9,
 		currentExposure,
 	)
-	fmt.Println(currentExposure)
 	var lowerExposure, upperExposure, lowerFees, upperFees *uint256.Int
 	amountToNextBreakPoint := new(uint256.Int)
 	for i < n-1 {
@@ -240,7 +239,6 @@ func _quoteFees(
 						),
 						U2,
 					)
-					fmt.Println("---", midFee)
 				} else {
 					baseMinusCurrentSquared := new(uint256.Int)
 					baseMinusCurrentSquared.Exp(baseMinusCurrentSquared.Sub(BASE_9, currentFees), U2)
@@ -266,7 +264,6 @@ func _quoteFees(
 			if err != nil {
 				return nil, err
 			}
-			fmt.Println("---", res, amount, new(uint256.Int).Add(amount, res))
 			return new(uint256.Int).Add(amount, res), nil
 		} else {
 			amountStable.Sub(amountStable, amountToNextBreakPointNormalizer)

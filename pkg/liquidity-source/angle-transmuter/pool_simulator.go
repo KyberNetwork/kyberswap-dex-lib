@@ -2,7 +2,6 @@ package angletransmuter
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -28,7 +27,7 @@ type (
 	}
 )
 
-// var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	tokens := lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) string { return e.Address })
@@ -48,8 +47,9 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: p.BlockNumber,
 		}},
-		Tokens: p.Tokens,
-		gas:    extra.Gas,
+		Tokens:     p.Tokens,
+		gas:        extra.Gas,
+		Transmuter: extra.Transmuter,
 	}, nil
 }
 
@@ -98,18 +98,23 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	stablecoinCap := s.Transmuter.Collaterals[collateral].StablecoinCap
 	var amountOut *uint256.Int
 	if isMint {
-		_quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Tokens[indexIn].Decimals)
+		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Tokens[indexIn].Decimals)
 	} else {
 		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, s.Tokens[indexOut].Decimals)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: big.NewInt(0),
+		},
+		Gas: int64(lo.Ternary(isMint, s.gas.Mint, s.gas.Burn)),
 	}, nil
 }
 
@@ -211,7 +216,6 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 					price,
 					new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[i]))),
 				)
-				fmt.Println(price)
 			} else {
 				// (_quoteAmount * (10 ** decimals)) / uint256(ratio);
 				price.Mul(
@@ -277,30 +281,40 @@ func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint2
 	return baseValue
 }
 
-// func (s *PoolSimulator) _readChainlink(oracleFeed OracleFeed, id common.Address, price *uint256.Int) (*uint256.Int, error) {
-// 	res := new(uint256.Int).Set(price)
-// 	index := lo.IndexOf(oracleFeed.Chainlink.CircuitChainlink, id)
-// 	if index == -1 {
-// 		return nil, ErrInvalidOracle
-// 	}
-// 	if oracleFeed.Chainlink.CircuitChainIsMultiplied[index] == 1 {
-// 		// (_quoteAmount * uint256(ratio)) / (10 ** decimals);
-// 		res.Mul(
-// 			price,
-// 			oracleFeed.Chainlink.Answers[index],
-// 		).Div(
-// 			price,
-// 			new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[index]))),
-// 		)
-// 	} else {
-// 		// (_quoteAmount * (10 ** decimals)) / uint256(ratio);
-// 		res.Mul(
-// 			price,
-// 			new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[index]))),
-// 		).Div(
-// 			price,
-// 			oracleFeed.Chainlink.Answers[index],
-// 		)
-// 	}
-// 	return res, nil
-// }
+func (p *PoolSimulator) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	if !lo.Contains(p.Info.Tokens, address) || len(p.Info.Tokens) < 2 {
+		return nil
+	}
+	if lo.IndexOf(p.Info.Tokens, address) == len(p.Info.Tokens)-1 { // agToken
+		return lo.Subset(p.Info.Tokens, 0, uint(len(p.Info.Tokens)-1))
+	}
+	return []string{p.Info.Tokens[len(p.Info.Tokens)-1]}
+}
+
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+	return nil
+}
+
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[len(p.Info.Tokens)-1]) { // agToken
+		p.Transmuter.Collaterals[params.TokenAmountOut.Token].StablecoinsIssued.Sub(
+			p.Transmuter.Collaterals[params.TokenAmountOut.Token].StablecoinsIssued,
+			uint256.MustFromBig(params.TokenAmountIn.Amount),
+		)
+		p.Transmuter.TotalStablecoinIssued.Sub(
+			p.Transmuter.TotalStablecoinIssued,
+			uint256.MustFromBig(params.TokenAmountIn.Amount),
+		)
+	} else {
+		p.Transmuter.Collaterals[params.TokenAmountIn.Token].StablecoinsIssued.Add(
+			p.Transmuter.Collaterals[params.TokenAmountIn.Token].StablecoinsIssued,
+			uint256.MustFromBig(params.TokenAmountOut.Amount),
+		)
+		p.Transmuter.TotalStablecoinIssued.Add(
+			p.Transmuter.TotalStablecoinIssued,
+			uint256.MustFromBig(params.TokenAmountOut.Amount),
+		)
+	}
+}
