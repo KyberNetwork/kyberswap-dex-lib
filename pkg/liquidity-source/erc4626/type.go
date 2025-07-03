@@ -30,6 +30,10 @@ type (
 		ExitFeeBps  uint64       `json:"rF,omitempty"`
 	}
 
+	SwapInfo struct {
+		Assets *uint256.Int `json:"a"`
+	}
+
 	Meta struct {
 		BlockNumber uint64 `json:"blockNumber"`
 	}
