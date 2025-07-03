@@ -1,4 +1,4 @@
-package eclp
+package quantamm
 
 import (
 	"bytes"

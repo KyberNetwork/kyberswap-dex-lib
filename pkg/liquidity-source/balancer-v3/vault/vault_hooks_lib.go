@@ -25,7 +25,7 @@ func (v *Vault) callAfterSwapHook(
 	amountCalculatedScaled18, amountCalculatedRaw *uint256.Int,
 ) (*uint256.Int, error) {
 	amountInScaled18, amountOutScaled18 := amountCalculatedScaled18, amountGivenScaled18
-	if vaultParamSwap.Kind == shared.EXACT_IN {
+	if vaultParamSwap.Kind == shared.ExactIn {
 		amountInScaled18, amountOutScaled18 = amountGivenScaled18, amountCalculatedScaled18
 	}
 
