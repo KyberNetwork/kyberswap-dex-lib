@@ -1,7 +1,6 @@
 package quantamm
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -58,7 +57,6 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 		idxGiven, idxCalc, computeFn = param.IndexOut, param.IndexIn, math.WeightedMath.ComputeInGivenExactOut
 	}
 	maxTradeSize, _ := math.FixPoint.MulDown(param.BalancesScaled18[idxGiven], p.maxTradeSizeRatio)
-	fmt.Println(param.Kind, param.AmountGivenScaled18, maxTradeSize)
 	if param.AmountGivenScaled18.Cmp(maxTradeSize) > 0 {
 		return nil, ErrMaxTradeSizeRatioExceeded
 	}
@@ -81,7 +79,6 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (*uint256.Int, error
 	}
 
 	maxTradeSize, _ = math.FixPoint.MulDown(param.BalancesScaled18[idxCalc], p.maxTradeSizeRatio)
-	fmt.Println(">", param.Kind, amountCalculated, maxTradeSize)
 	if amountCalculated.Cmp(maxTradeSize) > 0 {
 		return nil, ErrMaxTradeSizeRatioExceeded
 	}
