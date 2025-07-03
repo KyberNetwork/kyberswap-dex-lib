@@ -132,7 +132,9 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 	)
 
 	if !c.config.FeatureFlags.IsRedisMigrationEnabled {
+		span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get route from redis")
 		cachedRoutes, err = c.routeCacheMigrationRepository.Get(ctx, keys)
+		span.End()
 	} else {
 		cachedRoutes, err = c.routeCacheRepository.Get(ctx, keys)
 	}
@@ -299,11 +301,13 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject
 	}
 
 	if c.routeCacheMigrationRepository != nil {
+		span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] set route to redis")
 		if err := c.routeCacheMigrationRepository.Set(ctx, keys, routes); err != nil {
 			logger.
 				WithFields(ctx, logger.Fields{"error": err}).
 				Error("[Migration] cache.setRouteToCache failed")
 		}
+		span.End()
 	}
 }
 
