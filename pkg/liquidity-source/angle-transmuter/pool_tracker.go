@@ -3,11 +3,15 @@ package angletransmuter
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
@@ -216,10 +220,119 @@ func (t *PoolTracker) getNewPoolState(
 		TotalStablecoinIssued: uint256.MustFromBig(totalStablecoinIssued),
 		Collaterals:           make(map[string]CollateralState),
 	}
-	for i := range collateralList {
-		if i == 0 {
-			continue
+
+	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	pyths := [2][]Pyth{
+		make([]Pyth, len(collateralList)), // oracle
+		make([]Pyth, len(collateralList)), // target
+	}
+	chainlinks := [2][]Chainlink{
+		make([]Chainlink, len(collateralList)), // oracle
+		make([]Chainlink, len(collateralList)), // target
+	}
+	morphos := [2][]Morpho{
+		make([]Morpho, len(collateralList)), // oracle
+		make([]Morpho, len(collateralList)), // target
+	}
+	maxes := [2][]*uint256.Int{
+		make([]*uint256.Int, len(collateralList)), // oracle
+		make([]*uint256.Int, len(collateralList)), // target
+	}
+
+	for i, collat := range collateralConfigs {
+		for j, typee := range []OracleReadType{OracleReadType(collat.OracleType), OracleReadType(collat.TargetType)} {
+			if typee == PYTH {
+				var decodedPyth DecodedPyth
+				unpacked, err := PythArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				if err != nil {
+					return p, err
+				}
+				if err := PythArgument.Copy(&decodedPyth, unpacked); err != nil {
+					return p, err
+				}
+				pyths[j][i] = Pyth{
+					Pyth: decodedPyth.Pyth,
+					FeedIds: lo.Map(decodedPyth.FeedIds, func(item [32]byte, _ int) string {
+						return "0x" + hex.EncodeToString(item[:])
+					}),
+					StalePeriods: decodedPyth.StalePeriods,
+					IsMultiplied: decodedPyth.IsMultiplied,
+					QuoteType:    decodedPyth.QuoteType,
+					RawStates:    make([]DecodedPythStateTuple, len(decodedPyth.FeedIds)),
+					Active:       true,
+				}
+				for k := range decodedPyth.FeedIds {
+					calls.AddCall(&ethrpc.Call{
+						ABI:    pythABI,
+						Target: decodedPyth.Pyth.Hex(),
+						Method: "getPriceUnsafe",
+						Params: []any{decodedPyth.FeedIds[j]},
+					}, []any{&pyths[j][i].RawStates[k]})
+				}
+			} else if typee == CHAINLINK_FEEDS {
+				var chainlink Chainlink
+				unpacked, err := ChainlinkArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				if err != nil {
+					return p, err
+				}
+
+				if err := ChainlinkArgument.Copy(&chainlink, unpacked); err != nil {
+					return p, err
+				}
+
+				chainlinks[j][i] = chainlink
+				chainlinks[j][i].RawStates = make([]DecodedChainlink, len(chainlink.CircuitChainlink))
+				chainlinks[j][i].Active = true
+				for k := range chainlink.CircuitChainlink {
+					calls.AddCall(&ethrpc.Call{
+						ABI:    chainlinkABI,
+						Target: chainlink.CircuitChainlink[j].Hex(),
+						Method: "latestRoundData",
+					}, []any{&chainlinks[j][i].RawStates[k]})
+				}
+			} else if typee == MORPHO_ORACLE {
+				var decodedMorpho DecodedMorpho
+				unpacked, err := MorphoArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				if err != nil {
+					return p, err
+				}
+
+				if err := MorphoArgument.Copy(&decodedMorpho, unpacked); err != nil {
+					return p, err
+				}
+
+				morphos[j][i] = Morpho{
+					Oracle:              decodedMorpho.Oracle,
+					NormalizationFactor: uint256.MustFromBig(decodedMorpho.NormalizationFactor),
+					Active:              true,
+				}
+
+				calls.AddCall(&ethrpc.Call{
+					ABI:    morphoABI,
+					Target: decodedMorpho.Oracle.Hex(),
+					Method: "price",
+				}, []any{&morphos[j][i].RawState})
+			} else if typee == MAX {
+				var decodedMax DecodedMax
+				unpacked, err := MaxArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				if err != nil {
+					return p, err
+				}
+
+				if err := MaxArgument.Copy(&decodedMax, unpacked); err != nil {
+					return p, err
+				}
+				maxes[j][i] = uint256.MustFromBig(decodedMax.MaxValue)
+			}
 		}
+	}
+
+	res, err := calls.Aggregate()
+	if err != nil {
+		return p, err
+	}
+
+	for i := range collateralList {
 		transmuterState.Collaterals[strings.ToLower(collateralList[i].Hex())] = CollateralState{
 			Whitelisted:   isWhitelistedCollateral[i],
 			WhitelistData: collateralWhitelistData[i],
@@ -243,8 +356,8 @@ func (t *PoolTracker) getNewPoolState(
 				OracleType: OracleReadType(collateralConfigs[i].OracleType),
 				TargetType: OracleReadType(collateralConfigs[i].TargetType),
 				// ExternalOracle: collateralConfigs[i].ExternalOracle, // TODO:
-				OracleFeed: t.getOracleFeed(ctx, OracleReadType(collateralConfigs[i].OracleType), collateralConfigs[i].OracleData),
-				TargetFeed: t.getOracleFeed(ctx, OracleReadType(collateralConfigs[i].TargetType), collateralConfigs[i].TargetData),
+				OracleFeed: t.getOracleFeed(0, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
+				TargetFeed: t.getOracleFeed(1, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
 				Hyperparameters: func() Hyperparameters {
 					unpacked, err := HyperparametersArgument.Unpack(collateralConfigs[i].Hyperparameters)
 					if err != nil {
@@ -268,223 +381,73 @@ func (t *PoolTracker) getNewPoolState(
 		"address":  p.Address,
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
+	extra := Extra{
+		Transmuter: transmuterState,
+		Gas: Gas{
+			Mint: 400000,
+			Burn: 450000,
+		},
+	}
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		logger.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
+		return p, err
+	}
+	p.BlockNumber = res.BlockNumber.Uint64()
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	tokens := lo.Map(collateralList, func(token common.Address, _ int) *entity.PoolToken {
+		return &entity.PoolToken{
+			Address:   strings.ToLower(token.Hex()),
+			Swappable: true,
+		}
+	})
+	p.Tokens = append(tokens, p.Tokens[len(p.Tokens)-1]) // last one is agToken
+	p.Reserves = lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) string {
+		return abi.MaxUint256.String()
+	})
 	return p, nil
 }
 
-func (t *PoolTracker) getOracleFeed(ctx context.Context, oracleType OracleReadType, oracleData []byte) OracleFeed {
+func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracleConfig DecodedOracleConfig, pyths [2][]Pyth, chainlinks [2][]Chainlink, morphos [2][]Morpho, maxes [2][]*uint256.Int) OracleFeed {
+	oracleType := OracleReadType(lo.Ternary(oracleOrTarget == 0, decodedOracleConfig.OracleType, decodedOracleConfig.TargetType))
 	return OracleFeed{
 		IsPyth:      oracleType == PYTH,
 		IsChainLink: oracleType == CHAINLINK_FEEDS,
 		IsMorpho:    oracleType == MORPHO_ORACLE,
 		Pyth: lo.Ternary(oracleType == PYTH, func() Pyth {
-			var decodedPyth DecodedPyth
-			unpacked, err := PythArgument.Unpack(oracleData)
-			if err != nil {
-				return Pyth{}
-			}
-
-			if err := PythArgument.Copy(&decodedPyth, unpacked); err != nil {
-				return Pyth{}
-			}
-			calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-			pythStates := make([]DecodedPythStateTuple, len(decodedPyth.FeedIds))
-			for j := range decodedPyth.FeedIds {
-				calls.AddCall(&ethrpc.Call{
-					ABI:    pythABI,
-					Target: decodedPyth.Pyth.Hex(),
-					Method: "getPriceUnsafe",
-					Params: []any{decodedPyth.FeedIds[j]},
-				}, []any{&pythStates[j]})
-			}
-			if _, err := calls.Aggregate(); err != nil {
-				return Pyth{}
-			}
-			return Pyth{
-				Pyth: decodedPyth.Pyth,
-				FeedIds: lo.Map(decodedPyth.FeedIds, func(item [32]byte, _ int) string {
-					return "0x" + hex.EncodeToString(item[:])
-				}),
-				StalePeriods: decodedPyth.StalePeriods,
-				IsMultiplied: decodedPyth.IsMultiplied,
-				QuoteType:    decodedPyth.QuoteType,
-				PythState: lo.Map(pythStates, func(item DecodedPythStateTuple, _ int) PythState {
-					return PythState{
-						Price:     uint256.NewInt(uint64(item.Price)),
-						Expo:      uint256.NewInt(uint64(item.Expo)),
-						Timestamp: uint256.MustFromBig(item.PublishTime),
-					}
-				}),
-				Active: true,
-			}
+			pyths[oracleOrTarget][index].PythState = lo.Map(pyths[oracleOrTarget][index].RawStates, func(item DecodedPythStateTuple, _ int) PythState {
+				return PythState{
+					Price:     uint256.NewInt(uint64(item.Price)),
+					Expo:      uint256.NewInt(uint64(item.Expo)),
+					Timestamp: uint256.MustFromBig(item.PublishTime),
+				}
+			})
+			return pyths[oracleOrTarget][index]
 		}, func() Pyth {
 			return Pyth{}
 		})(),
 		Chainlink: lo.Ternary(oracleType == CHAINLINK_FEEDS, func() Chainlink {
-			var chainlink Chainlink
-			unpacked, err := ChainlinkArgument.Unpack(oracleData)
-			if err != nil {
-				return Chainlink{}
-			}
-
-			if err := ChainlinkArgument.Copy(&chainlink, unpacked); err != nil {
-				return Chainlink{}
-			}
-			calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-			chainlinkStates := make([]DecodedChainlink, len(chainlink.CircuitChainlink))
-			for j := range chainlink.CircuitChainlink {
-				calls.AddCall(&ethrpc.Call{
-					ABI:    chainlinkABI,
-					Target: chainlink.CircuitChainlink[j].Hex(),
-					Method: "latestRoundData",
-				}, []any{&chainlinkStates[j]})
-			}
-			if _, err := calls.Aggregate(); err != nil {
-				return Chainlink{}
-			}
-			chainlink.Answers = lo.Map(chainlinkStates, func(item DecodedChainlink, _ int) *uint256.Int {
+			chainlinks[oracleOrTarget][index].Answers = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) *uint256.Int {
 				return uint256.MustFromBig(item.Answer)
 			})
-			chainlink.UpdatedAt = lo.Map(chainlinkStates, func(item DecodedChainlink, _ int) uint64 {
+			chainlinks[oracleOrTarget][index].UpdatedAt = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) uint64 {
 				return item.UpdatedAt.Uint64()
 			})
-			chainlink.Active = true
-			return chainlink
+			return chainlinks[oracleOrTarget][index]
 		}, func() Chainlink {
 			return Chainlink{}
 		})(),
-		Max: lo.Ternary(oracleType == MAX, func() *uint256.Int {
-			var decodedMax DecodedMax
-			unpacked, err := MaxArgument.Unpack(oracleData)
-			if err != nil {
-				return nil
-			}
-
-			if err := MaxArgument.Copy(&decodedMax, unpacked); err != nil {
-				return nil
-			}
-			return uint256.MustFromBig(decodedMax.MaxValue)
-		}, func() *uint256.Int {
-			return nil
-		})(),
 		Morpho: lo.Ternary(oracleType == MORPHO_ORACLE, func() Morpho {
-			var decodedMorpho DecodedMorpho
-			unpacked, err := MorphoArgument.Unpack(oracleData)
-			if err != nil {
-				return Morpho{}
-			}
-
-			if err := MorphoArgument.Copy(&decodedMorpho, unpacked); err != nil {
-				return Morpho{}
-			}
-
-			// calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-			// var baseVault, quoteVault, baseFeed1, baseFeed2, quoteFeed1, quoteFeed2 common.Address
-			// var baseVaultConversionSample, quoteVaultConversionSample, scaleFactor *big.Int
-			// calls.AddCall(&ethrpc.Call{
-			// 	ABI:    morphoABI,
-			// 	Target: decodedMorpho.Oracle.Hex(),
-			// 	Method: "BASE_VAULT",
-			// }, []any{&baseVault}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "QUOTE_VAULT",
-			// 	}, []any{&quoteVault}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "BASE_FEED_1",
-			// 	}, []any{&baseFeed1}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "BASE_FEED_2",
-			// 	}, []any{&baseFeed2}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "QUOTE_FEED_1",
-			// 	}, []any{&quoteFeed1}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "QUOTE_FEED_2",
-			// 	}, []any{&quoteFeed2}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "BASE_VAULT_CONVERSION_SAMPLE",
-			// 	}, []any{&baseVaultConversionSample}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "QUOTE_VAULT_CONVERSION_SAMPLE",
-			// 	}, []any{&quoteVaultConversionSample}).
-			// 	AddCall(&ethrpc.Call{
-			// 		ABI:    morphoABI,
-			// 		Target: decodedMorpho.Oracle.Hex(),
-			// 		Method: "SCALE_FACTOR",
-			// 	}, []any{&scaleFactor})
-			// if _, err := calls.Aggregate(); err != nil {
-			// 	return Morpho{}
-			// }
-
-			// var baseVaultTotalSupply, baseVaultTotalAssets, quoteVaultTotalSupply, quoteVaultTotalAssets *big.Int
-			// calls = t.ethrpcClient.NewRequest().SetContext(ctx)
-			// if !account.IsZeroAddress(baseVault) {
-			// 	calls.AddCall(&ethrpc.Call{
-			// 		ABI:    erc4626ABI,
-			// 		Target: baseVault.Hex(),
-			// 		Method: "totalSupply",
-			// 	}, []any{&baseVaultTotalSupply}).AddCall(&ethrpc.Call{
-			// 		ABI:    erc4626ABI,
-			// 		Target: baseVault.Hex(),
-			// 		Method: "totalAssets",
-			// 	}, []any{&baseVaultTotalAssets})
-			// }
-			// if !account.IsZeroAddress(quoteVault) {
-			// 	calls.AddCall(&ethrpc.Call{
-			// 		ABI:    erc4626ABI,
-			// 		Target: quoteVault.Hex(),
-			// 		Method: "totalSupply",
-			// 	}, []any{&quoteVaultTotalSupply}).AddCall(&ethrpc.Call{
-			// 		ABI:    erc4626ABI,
-			// 		Target: quoteVault.Hex(),
-			// 		Method: "totalAssets",
-			// 	}, []any{&quoteVaultTotalAssets})
-			// }
-			calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-			var price *big.Int
-			calls.AddCall(&ethrpc.Call{
-				ABI:    morphoABI,
-				Target: decodedMorpho.Oracle.Hex(),
-				Method: "price",
-			}, []any{&price})
-
-			if _, err := calls.Aggregate(); err != nil {
-				return Morpho{}
-			}
-			return Morpho{
-				Oracle:              decodedMorpho.Oracle,
-				NormalizationFactor: uint256.MustFromBig(decodedMorpho.NormalizationFactor),
-				Price:               uint256.MustFromBig(price),
-				// BaseVault:                  baseVault,
-				// BaseVaultTotalSupply:       uint256.MustFromBig(baseVaultTotalSupply),
-				// BaseVaultTotalAssets:       uint256.MustFromBig(baseVaultTotalAssets),
-				// QuoteVault:                 quoteVault,
-				// QuoteVaultTotalSupply:      uint256.MustFromBig(quoteVaultTotalSupply),
-				// QuoteVaultTotalAssets:      uint256.MustFromBig(quoteVaultTotalAssets),
-				// BaseFeed1:                  baseFeed1,
-				// BaseFeed2:                  baseFeed2,
-				// QuoteFeed1:                 quoteFeed1,
-				// QuoteFeed2:                 quoteFeed2,
-				// BaseVaultConversionSample:  uint256.MustFromBig(baseVaultConversionSample),
-				// QuoteVaultConversionSample: uint256.MustFromBig(quoteVaultConversionSample),
-				// ScaleFactor:                uint256.MustFromBig(scaleFactor),
-				Active: true,
-			}
+			morphos[oracleOrTarget][index].Price = uint256.MustFromBig(morphos[oracleOrTarget][index].RawState)
+			return morphos[oracleOrTarget][index]
 		}, func() Morpho {
 			return Morpho{}
+		})(),
+		Max: lo.Ternary(oracleType == MAX, func() *uint256.Int {
+			return maxes[oracleOrTarget][index]
+		}, func() *uint256.Int {
+			return nil
 		})(),
 	}
 }
