@@ -356,7 +356,6 @@ func (t *PoolTracker) getNewPoolState(
 			Config: Oracle{
 				OracleType: OracleReadType(collateralConfigs[i].OracleType),
 				TargetType: OracleReadType(collateralConfigs[i].TargetType),
-				// ExternalOracle: collateralConfigs[i].ExternalOracle, // TODO:
 				OracleFeed: t.getOracleFeed(0, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
 				TargetFeed: t.getOracleFeed(1, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
 				Hyperparameters: func() Hyperparameters {

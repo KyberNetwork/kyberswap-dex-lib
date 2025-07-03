@@ -298,7 +298,6 @@ func TestGetBurnOracle(t *testing.T) {
 }
 
 func Test_quoteBurnExactInput(t *testing.T) {
-	// TODO: this case doesn't cover while loop + fee burn ! 0
 	// 0x4d103fff4e73fc78533cde4aa4fe2cce1da044b4fc4d9439d4f0fd997b2f1e02?trace=0.0.1.1.0.1.1
 	p := getPool()
 	amountIn := setUInt("3390079323519859415728")
