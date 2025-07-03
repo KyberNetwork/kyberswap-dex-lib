@@ -186,17 +186,23 @@ func (d *PoolTracker) getPoolData(
 func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber *big.Int) (entity.Pool, error) {
 	var vaults = make([]Vault, len(data.Vaults))
 
+	allBalancesZero := true
+
 	for i := range data.Vaults {
 		totalAssets := uint256.MustFromBig(data.Vaults[i].TotalAssets)
 		totalSupply := uint256.MustFromBig(data.Vaults[i].TotalSupply)
-		eulerAccountShare := uint256.MustFromBig(data.Vaults[i].EulerAccountBalance)
+		eulerAccountBalance := uint256.MustFromBig(data.Vaults[i].EulerAccountBalance)
+
+		if !eulerAccountBalance.IsZero() {
+			allBalancesZero = false
+		}
 
 		vaults[i] = Vault{
 			Cash:               uint256.MustFromBig(data.Vaults[i].Cash),
 			Debt:               uint256.MustFromBig(data.Vaults[i].Debt),
 			MaxDeposit:         uint256.MustFromBig(data.Vaults[i].MaxDeposit),
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
-			EulerAccountAssets: convertToAssets(eulerAccountShare, totalAssets, totalSupply),
+			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
 		}
 	}
@@ -204,7 +210,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 	reserve0 := data.Reserves.Reserve0.String()
 	reserve1 := data.Reserves.Reserve1.String()
 	status := data.Reserves.Status
-	if !data.IsOperatorAuthorized {
+	if !data.IsOperatorAuthorized || allBalancesZero {
 		reserve0 = "0"
 		reserve1 = "0"
 		status = 2 // locked

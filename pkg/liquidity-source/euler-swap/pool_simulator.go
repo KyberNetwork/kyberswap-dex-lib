@@ -166,6 +166,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return PoolExtra{
+		Fee:         p.fee,
 		BlockNumber: p.Info.BlockNumber,
 	}
 }
