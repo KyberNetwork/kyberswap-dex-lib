@@ -139,9 +139,11 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		}
 
 		if u.alphaFeeMigrationRepository != nil {
+			span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] set alpha fee to redis")
 			if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
 				klog.Errorf(ctx, "[Migration] failed to save alphaFee to new redis repository: %v", err)
 			}
+			span.End()
 		}
 	}
 

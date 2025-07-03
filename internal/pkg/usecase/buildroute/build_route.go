@@ -161,7 +161,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
 		if !isValidChecksum { // the route might have an alphaFee
 			if !uc.config.FeatureFlags.IsRedisMigrationEnabled {
+				span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get alpha fee from redis")
 				command.RouteSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
+				span.End()
 			} else {
 				command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
 			}
