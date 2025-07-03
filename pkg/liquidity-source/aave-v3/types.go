@@ -5,9 +5,9 @@ import (
 )
 
 type Extra struct {
-	IsActive bool `json:"isActive"`
-	IsFrozen bool `json:"isFrozen"`
-	IsPaused bool `json:"isPaused"`
+	IsActive bool `json:"isActive,omitempty"`
+	IsFrozen bool `json:"isFrozen,omitempty"`
+	IsPaused bool `json:"isPaused,omitempty"`
 }
 
 type StaticExtra struct {
