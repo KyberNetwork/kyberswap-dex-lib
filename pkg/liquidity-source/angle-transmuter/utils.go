@@ -1,8 +1,6 @@
 package angletransmuter
 
 import (
-	"fmt"
-
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 )
@@ -43,6 +41,7 @@ func _quoteMintExactInput(
 	return amountOut, nil
 }
 
+// nolint
 func _quoteMintExactOutput(
 	oracleValue *uint256.Int,
 	amountOut *uint256.Int,
@@ -63,6 +62,7 @@ func _quoteMintExactOutput(
 	return amountIn, nil
 }
 
+// nolint
 func _quoteBurnExactOutput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
@@ -151,7 +151,6 @@ func _quoteFees(
 				),
 			)
 		}
-		fmt.Print(amountToNextBreakPoint)
 		currentFees, amountFromPrevBreakPoint := new(uint256.Int), new(uint256.Int)
 		if new(uint256.Int).Mul(lowerExposure, BASE_9).Cmp(currentExposure) == 0 {
 			currentFees = lowerFees

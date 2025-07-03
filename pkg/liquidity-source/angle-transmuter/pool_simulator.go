@@ -271,7 +271,6 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 	default:
 		return baseValue, nil
 	}
-	return baseValue, nil
 }
 
 func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint256.Int) *uint256.Int {
