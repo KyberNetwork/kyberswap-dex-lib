@@ -93,7 +93,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenOut,
 			Amount: bignum.ZeroBI,
 		},
-		SwapInfo: assets,
+		SwapInfo: SwapInfo{Assets: assets},
 		Gas:      int64(lo.Ternary(isDeposit, s.gas.Deposit, s.gas.Redeem)),
 	}, nil
 }
@@ -128,7 +128,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenOut,
 			Amount: bignum.ZeroBI,
 		},
-		SwapInfo: assets,
+		SwapInfo: SwapInfo{Assets: assets},
 		Gas:      int64(lo.Ternary(isDeposit, s.gas.Deposit, s.gas.Redeem)),
 	}, nil
 }
@@ -146,7 +146,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if err != nil {
 		return
 	}
-	assetsWithoutFee, _ := params.SwapInfo.(*uint256.Int)
+	assetsWithoutFee := params.SwapInfo.(SwapInfo).Assets
 	if assetsWithoutFee == nil {
 		assetsWithoutFee = uint256.MustFromBig(tokenAmountIn.Amount)
 	}
