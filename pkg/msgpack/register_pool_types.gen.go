@@ -80,6 +80,7 @@ import (
 	pkg_liquiditysource_pancakeinfinity_bin "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/bin"
 	pkg_liquiditysource_pancakeinfinity_cl "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/cl"
 	pkg_liquiditysource_pandafun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pandafun"
+	pkg_liquiditysource_poolparty "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pool-party"
 	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -231,6 +232,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_pancakeinfinity_bin.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_pancakeinfinity_cl.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_pandafun.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_poolparty.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
