@@ -19,7 +19,7 @@ type SubgraphPool struct {
 	ID                    string `json:"id"`
 	TokenAddress          string `json:"tokenAddress"`
 	TokenSymbol           string `json:"tokenSymbol"`
-	TokenDecimals         string `json:"tokenDecimals"`
+	TokenDecimals         int    `json:"tokenDecimals"`
 	IsVisible             bool   `json:"isVisible"`
 	PoolStatus            string `json:"poolStatus"`
 	PublicAmountAvailable string `json:"publicAmountAvailable"`

@@ -76,11 +76,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Swappable: true,
 		}
 
-		tokenDecimals, _ := kutils.Atoi[int](p.TokenDecimals)
 		tokenTarget := entity.PoolToken{
 			Address:   strings.ToLower(p.TokenAddress),
 			Symbol:    p.TokenSymbol,
-			Decimals:  uint8(tokenDecimals),
+			Decimals:  uint8(p.TokenDecimals),
 			Swappable: true,
 		}
 
@@ -124,7 +123,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	logger.Infof("got %v %v pools", len(pools), d.config.DexID)
+	logger.WithFields(logger.Fields{
+		"dex":   d.config.DexID,
+		"pools": len(pools),
+	}).Info("fetched new pools from subgraph")
 
 	return pools, newMetadataBytes, nil
 }
