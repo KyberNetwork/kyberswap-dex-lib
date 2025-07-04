@@ -15,6 +15,7 @@ type RFQParams struct {
 	NetworkID    valueobject.ChainID // blockchain network id
 	RequestID    string              // request id from getRoute
 	PoolID       string              // pool id
+	Origin       string              // original address
 	Sender       string              // swap tx origin
 	Recipient    string              // fund recipient of swap tx
 	RFQSender    string              // RFQ caller (executor)
@@ -28,6 +29,13 @@ type RFQParams struct {
 	PoolExtra    any                 // extra pool metadata
 	SwapInfo     any                 // swap info of the RFQ swap
 	FeeInfo      any                 // generic fee info
+}
+
+func (r *RFQParams) GetOrigin() string {
+	if r.Origin != "" {
+		return r.Origin
+	}
+	return r.Sender
 }
 
 // RFQResult is the result for firm quote operations
