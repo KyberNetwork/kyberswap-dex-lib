@@ -10,3 +10,6 @@ var factoryABIJson []byte
 
 //go:embed abis/EVault.json
 var vaultABIJson []byte
+
+//go:embed abis/EthereumVaultConnector.json
+var evcABIJson []byte

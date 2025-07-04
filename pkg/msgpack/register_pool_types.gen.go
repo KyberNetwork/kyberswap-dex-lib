@@ -6,13 +6,16 @@ package msgpack
 import (
 	"github.com/KyberNetwork/msgpack/v5"
 
+	pkg_liquiditysource_aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_algebra_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	pkg_liquiditysource_balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
 	pkg_liquiditysource_balancerv2_composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	pkg_liquiditysource_balancerv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	pkg_liquiditysource_balancerv2_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	pkg_liquiditysource_balancerv3_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/base"
 	pkg_liquiditysource_balancerv3_eclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	pkg_liquiditysource_balancerv3_quantamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/quant-amm"
 	pkg_liquiditysource_balancerv3_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
 	pkg_liquiditysource_balancerv3_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	pkg_liquiditysource_bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
@@ -22,6 +25,8 @@ import (
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	pkg_liquiditysource_compound_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
+	pkg_liquiditysource_compound_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	pkg_liquiditysource_curve_llamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	pkg_liquiditysource_curve_plain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	pkg_liquiditysource_curve_stablemetang "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -62,7 +67,8 @@ import (
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_maker_skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	pkg_liquiditysource_mantle_meth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
-	pkg_liquiditysource_maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
+	pkg_liquiditysource_maverick_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
+	pkg_liquiditysource_maverick_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
 	pkg_liquiditysource_mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	pkg_liquiditysource_native_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
 	pkg_liquiditysource_native_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v3"
@@ -123,7 +129,6 @@ import (
 	pkg_source_madmex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	pkg_source_makerpsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
 	pkg_source_mantisswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
-	pkg_source_maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	pkg_source_metavault "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	pkg_source_nuriv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	pkg_source_pancakev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
@@ -150,13 +155,16 @@ import (
 )
 
 func init() {
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_aavev3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_stable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_weighted.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_base.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_eclp.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_quantamm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_stable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_weighted.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bancorv21.PoolSimulator{})
@@ -166,6 +174,8 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_llamma.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{})
@@ -206,7 +216,8 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_skypsm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mantle_meth.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_maverickv2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_maverick_v1.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_maverick_v2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_native_v3.PoolSimulator{})
@@ -267,7 +278,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_madmex.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_makerpsm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_mantisswap.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_maverickv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_metavault.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_nuriv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_pancakev3.PoolSimulator{})

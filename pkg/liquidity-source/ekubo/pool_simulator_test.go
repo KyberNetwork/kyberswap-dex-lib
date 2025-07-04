@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -100,29 +101,51 @@ func TestBasePool(t *testing.T) {
 
 	expectedToken0Amount := big.NewInt(2436479431)
 
+	tokenAmountIn := pool.TokenAmount{
+		Token:  token1.Hex(),
+		Amount: big.NewInt(999968),
+	}
 	resExactOut, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  token1.Hex(),
-				Amount: big.NewInt(1000000),
-			},
-			TokenOut: token0.Hex(),
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      token0.Hex(),
 		})
 	})
 	require.NoError(t, err)
-	require.True(t, resExactOut.TokenAmountOut.Amount.Cmp(expectedToken0Amount) == 0)
+	assert.Equal(t, expectedToken0Amount, resExactOut.TokenAmountOut.Amount)
 
 	resExactIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 		return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{
-				Token:  token1.Hex(),
-				Amount: big.NewInt(-1000000),
+				Token:  token0.Hex(),
+				Amount: resExactOut.TokenAmountOut.Amount,
 			},
-			TokenIn: token0.Hex(),
+			TokenIn: token1.Hex(),
 		})
 	})
 	require.NoError(t, err)
-	require.True(t, resExactIn.TokenAmountIn.Amount.Cmp(expectedToken0Amount) == 0)
+	assert.Equal(t, tokenAmountIn.Amount, resExactIn.TokenAmountIn.Amount)
+
+	cloned := poolSim.CloneState()
+	poolSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmountIn,
+		TokenAmountOut: *resExactOut.TokenAmountOut,
+		Fee:            *resExactOut.Fee,
+		SwapInfo:       resExactOut.SwapInfo,
+	})
+	resExactOutAfterUpdate, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      token0.Hex(),
+	})
+	require.NoError(t, err)
+	assert.NotEqual(t, expectedToken0Amount, resExactOutAfterUpdate.TokenAmountOut.Amount)
+
+	resExactOutCloned, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      token0.Hex(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, expectedToken0Amount, resExactOutCloned.TokenAmountOut.Amount)
 }
 
 func TestOraclePool(t *testing.T) {
@@ -143,31 +166,53 @@ func TestOraclePool(t *testing.T) {
 	poolSim, err := NewPoolSimulator(*entityPool)
 	require.NoError(t, err)
 
-	expectedToken0Amount := big.NewInt(999)
+	expectedToken0Amount := big.NewInt(99900)
 
+	tokenAmountIn := pool.TokenAmount{
+		Token:  token1.Hex(),
+		Amount: big.NewInt(100909),
+	}
 	resExactOut, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
 		return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  token1.Hex(),
-				Amount: big.NewInt(1000),
-			},
-			TokenOut: token0.Hex(),
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      token0.Hex(),
 		})
 	})
 	require.NoError(t, err)
-	require.True(t, resExactOut.TokenAmountOut.Amount.Cmp(expectedToken0Amount) == 0)
+	assert.Equal(t, expectedToken0Amount, resExactOut.TokenAmountOut.Amount)
 
 	resExactIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 		return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{
-				Token:  token1.Hex(),
-				Amount: big.NewInt(-1000),
+				Token:  token0.Hex(),
+				Amount: expectedToken0Amount,
 			},
-			TokenIn: token0.Hex(),
+			TokenIn: token1.Hex(),
 		})
 	})
 	require.NoError(t, err)
-	require.True(t, resExactIn.TokenAmountIn.Amount.Cmp(expectedToken0Amount) == 0)
+	assert.Equal(t, tokenAmountIn.Amount, resExactIn.TokenAmountIn.Amount)
+
+	cloned := poolSim.CloneState()
+	poolSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmountIn,
+		TokenAmountOut: *resExactOut.TokenAmountOut,
+		Fee:            *resExactOut.Fee,
+		SwapInfo:       resExactOut.SwapInfo,
+	})
+	resExactOutAfterUpdate, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      token0.Hex(),
+	})
+	require.NoError(t, err)
+	assert.NotEqual(t, expectedToken0Amount, resExactOutAfterUpdate.TokenAmountOut.Amount)
+
+	resExactOutCloned, err := cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      token0.Hex(),
+	})
+	require.NoError(t, err)
+	assert.Equal(t, expectedToken0Amount, resExactOutCloned.TokenAmountOut.Amount)
 }
 
 type PoolSimulatorTestSuite struct {

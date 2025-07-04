@@ -154,6 +154,13 @@ func (p *BasePool) GetState() any {
 	return p.BasePoolState
 }
 
+func (p *BasePool) CloneState() any {
+	cloned := *p
+	clonedBasePoolState := *p.BasePoolState
+	cloned.BasePoolState = &clonedBasePoolState
+	return &cloned
+}
+
 func (p *BasePool) SetSwapState(state any) {
 	p.BasePoolSwapState = state.(*BasePoolSwapState)
 }

@@ -30,8 +30,9 @@ type PoolSimulator struct {
 	vault, binPoolManager, permit2, hookAddress common.Address
 	parameters                                  string
 
-	isNative           [2]bool
-	lpFee, protocolFee *uint256.Int
+	isNative         [2]bool
+	fee, protocolFee uint32
+	swapFee          *uint256.Int
 
 	bins     []Bin
 	activeId uint32
@@ -71,7 +72,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		permit2:        staticExtra.Permit2Address,
 		hookAddress:    staticExtra.HooksAddress,
 		parameters:     staticExtra.Parameters,
-		lpFee:          uint256.NewInt(uint64(entityPool.SwapFee)),
+		fee:            staticExtra.Fee,
+		swapFee:        uint256.NewInt(uint64(entityPool.SwapFee)),
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
 		hook:           hook,
@@ -91,10 +93,7 @@ func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapRe
 		protocolFee = getOneForZeroFee(p.protocolFee)
 	}
 
-	swapFee := p.lpFee
-	if !protocolFee.IsZero() {
-		swapFee = calculateSwapFee(protocolFee, p.lpFee)
-	}
+	swapFee := p.swapFee
 
 	amountsLeft, overflow := uint256.FromBig(amountIn)
 	if overflow {
@@ -320,7 +319,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 		Permit2Addr: p.permit2,
 		TokenIn:     tokenInAddress,
 		TokenOut:    tokenOutAddress,
-		Fee:         uint32(p.lpFee.Uint64()),
+		Fee:         p.fee,
+		SwapFee:     p.swapFee.Uint64(),
 		Parameters:  p.parameters,
 		HookAddress: p.hookAddress,
 		HookData:    []byte{},

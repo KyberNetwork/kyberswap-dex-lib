@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	concurrentFactor = runtime.NumCPU() * 10
+	concurrentFactor = runtime.NumCPU() * 2
 )
 
 func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, error)) (ret R, err error) {

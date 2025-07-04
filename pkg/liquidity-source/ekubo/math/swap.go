@@ -16,7 +16,7 @@ func IsPriceIncreasing(amount *big.Int, isToken1 bool) bool {
 	return (amount.Sign() == -1) != isToken1
 }
 
-func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
+func AmountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
 	result, err := div(
 		new(big.Int).Lsh(afterFee, 64),
 		new(big.Int).Sub(TwoPow64, new(big.Int).SetUint64(fee)),
@@ -33,7 +33,7 @@ func amountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
 	return result, nil
 }
 
-func computeFee(amount *big.Int, fee uint64) *big.Int {
+func ComputeFee(amount *big.Int, fee uint64) *big.Int {
 	result, _ := MulDivOverflow(
 		amount,
 		new(big.Int).SetUint64(fee),
@@ -79,7 +79,7 @@ func ComputeStep(
 	if isExactOut {
 		priceImpactAmount = new(big.Int).Set(amount)
 	} else {
-		fee := computeFee(amount, fee)
+		fee := ComputeFee(amount, fee)
 		priceImpactAmount = fee.Sub(amount, fee)
 	}
 
@@ -115,7 +115,7 @@ func ComputeStep(
 			}
 
 			if isExactOut {
-				includingFee, err := amountBeforeFee(calculatedAmountExcludingFee, fee)
+				includingFee, err := AmountBeforeFee(calculatedAmountExcludingFee, fee)
 				if err != nil {
 					return nil, fmt.Errorf("amount before fee: %w", err)
 				}
@@ -161,7 +161,7 @@ func ComputeStep(
 	}
 
 	if isExactOut {
-		beforeFee, err := amountBeforeFee(calculatedAmountDelta, fee)
+		beforeFee, err := AmountBeforeFee(calculatedAmountDelta, fee)
 		if err != nil {
 			return nil, fmt.Errorf("amount before fee: %w", err)
 		}
@@ -177,7 +177,7 @@ func ComputeStep(
 			FeeAmount:        calculatedAmountDelta.Sub(beforeFee, calculatedAmountDelta),
 		}, nil
 	} else {
-		beforeFee, err := amountBeforeFee(specifiedAmountDelta, fee)
+		beforeFee, err := AmountBeforeFee(specifiedAmountDelta, fee)
 		if err != nil {
 			return nil, fmt.Errorf("amount before fee: %w", err)
 		}

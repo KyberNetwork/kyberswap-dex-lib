@@ -22,19 +22,20 @@ const (
 	ExchangeArenaDex                   = "arenadex"
 	ExchangeArenaDexV2                 = "arenadex-v2"
 	ExchangeAstroSwap                  = "astroswap"
+	ExchangeAtlantis                   = "atlantis"
 	ExchangeAxial                      = "axial"
-	ExchangeBabySwap                   = "babyswap"
-	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBMX                        = "bmx"
 	ExchangeBMXGLP                     = "bmx-glp"
 	ExchangeBabyDogeSwap               = "babydogeswap"
+	ExchangeBabySwap                   = "babyswap"
+	ExchangeBakerySwap                 = "bakeryswap"
 	ExchangeBalDex                     = "baldex"
-	ExchangeBalancer                   = "balancer"
 	ExchangeBalancerV1                 = "balancer-v1"
 	ExchangeBalancerV2ComposableStable = "balancer-v2-composable-stable"
 	ExchangeBalancerV2Stable           = "balancer-v2-stable"
 	ExchangeBalancerV2Weighted         = "balancer-v2-weighted"
 	ExchangeBalancerV3ECLP             = "balancer-v3-eclp"
+	ExchangeBalancerV3QuantAMM         = "balancer-v3-quantamm"
 	ExchangeBalancerV3Stable           = "balancer-v3-stable"
 	ExchangeBalancerV3Weighted         = "balancer-v3-weighted"
 	ExchangeBancorV21                  = "bancor-v21"
@@ -45,7 +46,6 @@ const (
 	ExchangeBebop                      = "bebop"
 	ExchangeBedrockUniETH              = "bedrock-unieth"
 	ExchangeBeefySonic                 = "beefy-sonic"
-	ExchangeBeethovenX                 = "beethovenx"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
 	ExchangeBeethovenXV3Stable         = "beethovenx-v3-stable"
@@ -58,10 +58,10 @@ const (
 	ExchangeBeracaine                  = "beracaine"
 	ExchangeBiSwap                     = "biswap"
 	ExchangeBlade                      = "blade"
-	ExchangeBladeSwap                  = "blade-swap"
 	ExchangeBlastDex                   = "blastdex"
 	ExchangeBlasterSwap                = "blasterswap"
 	ExchangeBlueprint                  = "blueprint"
+	ExchangeBrownfi                    = "brownfi"
 	ExchangeBulla                      = "bulla"
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
@@ -105,10 +105,12 @@ const (
 	ExchangeDodoPrivatePool            = "dodo-dpp"
 	ExchangeDodoStablePool             = "dodo-dsp"
 	ExchangeDodoVendingMachine         = "dodo-dvm"
+	ExchangeDooarSwapV2                = "dooarswap-v2"
 	ExchangeDoveSwapV3                 = "doveswap-v3"
 	ExchangeDyorSwap                   = "dyor-swap"
 	ExchangeDystopia                   = "dystopia"
 	ExchangeE3                         = "e3"
+	ExchangeERC4626                    = "erc4626"
 	ExchangeEchoDex                    = "echo-dex"
 	ExchangeEchoDexV3                  = "echo-dex-v3"
 	ExchangeEkubo                      = "ekubo"
@@ -151,6 +153,7 @@ const (
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
 	ExchangeIZiSwap                    = "iziswap"
+	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
 	ExchangeIntegral                   = "integral"
 	ExchangeIronStable                 = "iron-stable"
@@ -201,6 +204,7 @@ const (
 	ExchangeMemeswap                   = "memeswap"
 	ExchangeMerchantMoe                = "merchant-moe"
 	ExchangeMerchantMoeV22             = "merchant-moe-v22"
+	ExchangeMeshSwap                   = "meshswap"
 	ExchangeMetavault                  = "metavault"
 	ExchangeMetavaultV2                = "metavault-v2"
 	ExchangeMetavaultV3                = "metavault-v3"
@@ -235,14 +239,18 @@ const (
 	ExchangePaintSwap                  = "paintswap"
 	ExchangePancake                    = "pancake"
 	ExchangePancakeInfinityBin         = "pancake-infinity-bin"
+	ExchangePancakeInfinityBinBrevis   = "pancake-infinity-bin-brevis"
 	ExchangePancakeInfinityBinFairflow = "pancake-infinity-bin-fairflow"
 	ExchangePancakeInfinityCL          = "pancake-infinity-cl"
+	ExchangePancakeInfinityCLBrevis    = "pancake-infinity-cl-brevis"
+	ExchangePancakeInfinityCLDynamic   = "pancake-infinity-cl-dynamic"
 	ExchangePancakeInfinityCLFairflow  = "pancake-infinity-cl-fairflow"
 	ExchangePancakeLegacy              = "pancake-legacy"
 	ExchangePancakeStable              = "pancake-stable"
 	ExchangePancakeV3                  = "pancake-v3"
 	ExchangePandaFun                   = "panda-fun"
 	ExchangePangolin                   = "pangolin"
+	ExchangePangolinV3                 = "pangolin-v3"
 	ExchangePantherSwap                = "pantherswap"
 	ExchangePearl                      = "pearl"
 	ExchangePearlV2                    = "pearl-v2"
@@ -263,6 +271,7 @@ const (
 	ExchangeQuickSwap                  = "quickswap"
 	ExchangeQuickSwapUniV3             = "quickswap-uni-v3"
 	ExchangeQuickSwapV3                = "quickswap-v3"
+	ExchangeQuickSwapV4                = "quickswap-v4"
 	ExchangeRamses                     = "ramses"
 	ExchangeRamsesV2                   = "ramses-v2"
 	ExchangeRenzoEZETH                 = "renzo-ezeth"
@@ -350,12 +359,12 @@ const (
 	ExchangeUcsFinance                 = "ucs-finance"
 	ExchangeUnchainX                   = "unchainx"
 	ExchangeUniSwap                    = "uniswap"
-	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniSwapV1                  = "uniswap-v1"
-	ExchangeUniSwapV2                  = "uniswap-v2"
 	ExchangeUniSwapV3                  = "uniswapv3"
+	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniswapV4                  = "uniswap-v4"
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUsd0PP                     = "usd0pp"
@@ -398,8 +407,9 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeInfinityPools              = "infinitypools"
-	ExchangeBrownfi                    = "brownfi"
+	ExchangeAaveV3                     = "aave-v3"
+	ExchangeCompoundV2                 = "compound-v2"
+	ExchangeCompoundV3                 = "compound-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -422,6 +432,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArenaDex:                   {},
 	ExchangeArenaDexV2:                 {},
 	ExchangeAstroSwap:                  {},
+	ExchangeAtlantis:                   {},
 	ExchangeAxial:                      {},
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},
@@ -429,12 +440,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBabySwap:                   {},
 	ExchangeBakerySwap:                 {},
 	ExchangeBalDex:                     {},
-	ExchangeBalancer:                   {},
 	ExchangeBalancerV1:                 {},
 	ExchangeBalancerV2ComposableStable: {},
 	ExchangeBalancerV2Stable:           {},
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV3ECLP:             {},
+	ExchangeBalancerV3QuantAMM:         {},
 	ExchangeBalancerV3Stable:           {},
 	ExchangeBalancerV3Weighted:         {},
 	ExchangeBancorV21:                  {},
@@ -444,7 +455,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaso:                       {},
 	ExchangeBedrockUniETH:              {},
 	ExchangeBeefySonic:                 {},
-	ExchangeBeethovenX:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXV3Stable:         {},
@@ -457,10 +467,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeracaine:                  {},
 	ExchangeBiSwap:                     {},
 	ExchangeBlade:                      {},
-	ExchangeBladeSwap:                  {},
 	ExchangeBlastDex:                   {},
 	ExchangeBlasterSwap:                {},
 	ExchangeBlueprint:                  {},
+	ExchangeBrownfi:                    {},
 	ExchangeBulla:                      {},
 	ExchangeBurrBearComposableStable:   {},
 	ExchangeBurrBearStable:             {},
@@ -502,10 +512,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDodoPrivatePool:            {},
 	ExchangeDodoStablePool:             {},
 	ExchangeDodoVendingMachine:         {},
+	ExchangeDooarSwapV2:                {},
 	ExchangeDoveSwapV3:                 {},
 	ExchangeDyorSwap:                   {},
 	ExchangeDystopia:                   {},
 	ExchangeE3:                         {},
+	ExchangeERC4626:                    {},
 	ExchangeEchoDex:                    {},
 	ExchangeEchoDexV3:                  {},
 	ExchangeEkubo:                      {},
@@ -546,6 +558,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
 	ExchangeIZiSwap:                    {},
+	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
 	ExchangeIntegral:                   {},
 	ExchangeIronStable:                 {},
@@ -594,6 +607,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMemeswap:                   {},
 	ExchangeMerchantMoe:                {},
 	ExchangeMerchantMoeV22:             {},
+	ExchangeMeshSwap:                   {},
 	ExchangeMetavault:                  {},
 	ExchangeMetavaultV2:                {},
 	ExchangeMetavaultV3:                {},
@@ -607,6 +621,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMorpheus:                   {},
 	ExchangeMummyFinance:               {},
 	ExchangeMuteSwitch:                 {},
+	ExchangeNativeV3:                   {},
 	ExchangeNavigator:                  {},
 	ExchangeNearPad:                    {},
 	ExchangeNerve:                      {},
@@ -625,14 +640,18 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePaintSwap:                  {},
 	ExchangePancake:                    {},
 	ExchangePancakeInfinityBin:         {},
+	ExchangePancakeInfinityBinBrevis:   {},
 	ExchangePancakeInfinityBinFairflow: {},
 	ExchangePancakeInfinityCL:          {},
+	ExchangePancakeInfinityCLBrevis:    {},
+	ExchangePancakeInfinityCLDynamic:   {},
 	ExchangePancakeInfinityCLFairflow:  {},
 	ExchangePancakeLegacy:              {},
 	ExchangePancakeStable:              {},
 	ExchangePancakeV3:                  {},
 	ExchangePandaFun:                   {},
 	ExchangePangolin:                   {},
+	ExchangePangolinV3:                 {},
 	ExchangePantherSwap:                {},
 	ExchangePearl:                      {},
 	ExchangePearlV2:                    {},
@@ -651,6 +670,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeQuickSwap:                  {},
 	ExchangeQuickSwapUniV3:             {},
 	ExchangeQuickSwapV3:                {},
+	ExchangeQuickSwapV4:                {},
 	ExchangeRamses:                     {},
 	ExchangeRamsesV2:                   {},
 	ExchangeRenzoEZETH:                 {},
@@ -738,10 +758,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUnchainX:                   {},
 	ExchangeUniSwap:                    {},
 	ExchangeUniSwapV1:                  {},
-	ExchangeUniSwapV2:                  {},
 	ExchangeUniSwapV3:                  {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
+	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
 	ExchangeUsd0PP:                     {},
@@ -784,9 +804,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeInfinityPools:              {},
-	ExchangeBrownfi:                    {},
-	ExchangeNativeV3:                   {},
+	ExchangeAaveV3:                     {},
+	ExchangeCompoundV2:                 {},
+	ExchangeCompoundV3:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

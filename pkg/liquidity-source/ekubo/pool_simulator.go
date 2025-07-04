@@ -136,6 +136,12 @@ func (p *PoolSimulator) quoteWithZeroChecksAndBaseGasCost(amount *big.Int, isTok
 	return quote, nil
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.EkuboPool = p.EkuboPool.CloneState().(EkuboPool)
+	return &cloned
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.SetSwapState(params.SwapInfo.(quoting.SwapInfo).SwapStateAfter)
 }

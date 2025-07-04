@@ -37,7 +37,7 @@ const (
 var (
 	defaultGas = Gas{Exchange: 310000}
 
-	Number_1e36 = big256.TenPowInt(36)
+	Number_1e36 = big256.TenPow(36)
 
 	tenPow18Minus1 = new(uint256.Int).Sub(number.Number_1e18, number.Number_1)
 	tenPow18Div4   = new(uint256.Int).Div(number.Number_1e18, number.Number_4)

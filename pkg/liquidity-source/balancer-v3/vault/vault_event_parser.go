@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
-	pooldecoder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
+	pooldecode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/decode"
 )
 
 type Config struct {
@@ -20,7 +20,7 @@ type EventParser struct {
 	config *Config
 }
 
-var _ = pooldecoder.RegisterFactoryC(Type, NewEventParser)
+var _ = pooldecode.RegisterFactoryC(Type, NewEventParser)
 
 func NewEventParser(config *Config) *EventParser {
 	return &EventParser{

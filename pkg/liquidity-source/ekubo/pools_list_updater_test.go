@@ -29,6 +29,7 @@ var MainnetConfig = Config{
 	Core:             common.HexToAddress("0xe0e0e08A6A4b9Dc7bD67BCB7aadE5cF48157d444"),
 	Oracle:           common.HexToAddress("0x51d02a5948496a67827242eabc5725531342527c"),
 	Twamm:            common.HexToAddress("0xd4279c050da1f5c5b2830558c7a08e57e12b54ec"),
+	MevResist:        common.HexToAddress("0x553a2EFc570c9e104942cEC6aC1c18118e54C091"),
 	BasicDataFetcher: "0x91cB8a896cAF5e60b1F7C4818730543f849B408c",
 	TwammDataFetcher: "0x8C4C1F26A9F26372b88f418A939044773eE5dC01",
 	Router:           "0x9995855C00494d039aB6792f18e368e530DFf931",

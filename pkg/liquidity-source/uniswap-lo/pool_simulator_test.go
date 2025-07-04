@@ -483,12 +483,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
 		extra := Extra{
-			TakeToken0Orders: lo.Map(orders, func(o testorder, _ int) *DutchOrder {
+			TakeToken0Orders: lo.Map(orders, func(o testorder, i int) *DutchOrder {
 				return &DutchOrder{
 					OrderHash:   o.hash,
 					Type:        "Dutch",
 					OrderStatus: OpenOrderStatus,
-					Swapper:     common.HexToAddress("0x0000000000000000000000000000000000000123"),
+					Swapper:     common.HexToAddress(fmt.Sprintf("0x%d", i)),
 					Input: Input{
 						Token:       common.HexToAddress(o.makingToken),
 						StartAmount: uint256.MustFromDecimal(o.makingAmount),

@@ -6,11 +6,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
-type OraclePoolSwapState struct {
-	*FullRangePoolSwapState
-	SwappedThisBlock bool `json:"swappedThisBlock"`
-}
-
+type OraclePoolSwapState = FullRangePoolSwapState
 type OraclePoolState = FullRangePoolState
 
 type OraclePool struct {
@@ -25,11 +21,15 @@ func NewOraclePool(key *PoolKey, state *OraclePoolState) *OraclePool {
 	}
 }
 
-func (p *OraclePool) SetSwapState(state quoting.SwapState) {
-	oracleState := state.(*OraclePoolSwapState)
+func (p *OraclePool) CloneState() any {
+	cloned := *p
+	cloned.FullRangePool = p.FullRangePool.CloneState().(*FullRangePool)
+	return &cloned
+}
 
-	p.FullRangePoolSwapState = oracleState.FullRangePoolSwapState
-	p.swappedThisBlock = oracleState.SwappedThisBlock
+func (p *OraclePool) SetSwapState(state quoting.SwapState) {
+	p.FullRangePoolSwapState = state.(*OraclePoolSwapState)
+	p.swappedThisBlock = true
 }
 
 func (p *OraclePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
@@ -40,13 +40,6 @@ func (p *OraclePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, erro
 
 	if !p.swappedThisBlock {
 		quote.Gas += quoting.GasCostOfUpdatingOracleSnapshot
-	}
-
-	fullRangePoolSwapState := quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
-
-	quote.SwapInfo.SwapStateAfter = &OraclePoolSwapState{
-		FullRangePoolSwapState: fullRangePoolSwapState,
-		SwappedThisBlock:       true,
 	}
 
 	return quote, nil
