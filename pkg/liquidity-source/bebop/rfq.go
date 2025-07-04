@@ -41,13 +41,18 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
+	origin := params.Origin
+	if origin == "" {
+		origin = params.Sender
+	}
+
 	p := QuoteParams{
 		SellTokens:      swapInfo.BaseToken,
 		BuyTokens:       swapInfo.QuoteToken,
 		SellAmounts:     swapInfo.BaseTokenAmount,
 		TakerAddress:    params.RFQSender,
 		ReceiverAddress: params.RFQRecipient,
-		OriginAddress:   params.Sender,
+		OriginAddress:   origin,
 		Source:          params.Source,
 	}
 	result, err := h.client.Quote(ctx, p)

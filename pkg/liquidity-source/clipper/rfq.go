@@ -42,6 +42,11 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
+	senderAddress := params.Origin
+	if senderAddress == "" {
+		senderAddress = params.Sender
+	}
+
 	result, err := h.client.RFQ(ctx, QuoteParams{
 		ChainID:           swapInfo.ChainID,
 		TimeInSeconds:     swapInfo.TimeInSeconds,
@@ -50,7 +55,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		OutputAssetSymbol: swapInfo.OutputAssetSymbol,
 
 		DestinationAddress: params.RFQRecipient,
-		SenderAddress:      params.Sender,
+		SenderAddress:      senderAddress,
 	})
 	if err != nil {
 		return nil, errors.WithMessage(err, "quote failed")
