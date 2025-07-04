@@ -5,38 +5,23 @@ import (
 
 	"github.com/KyberNetwork/int256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 )
 
 type Extra struct {
 	*shared.Extra
-	ECLPParams ECLPParams `json:"eclp"`
+	ECLPParams *ECLPParams `json:"eclp"`
 }
 
 type ECLPParams struct {
-	Params struct {
-		Alpha  *int256.Int `json:"a,omitempty"`
-		Beta   *int256.Int `json:"b,omitempty"`
-		C      *int256.Int `json:"c,omitempty"`
-		S      *int256.Int `json:"s,omitempty"`
-		Lambda *int256.Int `json:"l,omitempty"`
-	} `json:"p,omitempty"`
+	Params math.ECLParams        `json:"p,omitempty"`
+	D      math.ECLDerivedParams `json:"d,omitempty"`
+}
 
-	D struct {
-		TauAlpha struct {
-			X *int256.Int `json:"x,omitempty"`
-			Y *int256.Int `json:"y,omitempty"`
-		} `json:"tA"`
-		TauBeta struct {
-			X *int256.Int `json:"x,omitempty"`
-			Y *int256.Int `json:"y,omitempty"`
-		} `json:"tB"`
-		U   *int256.Int `json:"u,omitempty"`
-		V   *int256.Int `json:"v,omitempty"`
-		W   *int256.Int `json:"w,omitempty"`
-		Z   *int256.Int `json:"z,omitempty"`
-		DSq *int256.Int `json:"DSq,omitempty"`
-	} `json:"d,omitempty"`
+type RpcResult struct {
+	shared.RpcResult
+	ECLPParamsRpc
 }
 
 type ECLPParamsRpc struct {
@@ -65,12 +50,7 @@ type ECLPParamsRpc struct {
 	}
 }
 
-type RpcResult struct {
-	shared.RpcResult
-	ECLPParamsRpc
-}
-
-func (p *ECLPParamsRpc) toInt256() ECLPParams {
+func (p *ECLPParamsRpc) toInt256() *ECLPParams {
 	var result ECLPParams
 
 	result.Params.Alpha = int256.MustFromBig(p.Params.Alpha)
@@ -89,5 +69,5 @@ func (p *ECLPParamsRpc) toInt256() ECLPParams {
 	result.D.Z = int256.MustFromBig(p.D.Z)
 	result.D.DSq = int256.MustFromBig(p.D.DSq)
 
-	return result
+	return &result
 }

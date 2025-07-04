@@ -1,6 +1,7 @@
 package pooltypes
 
 import (
+	aavev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/aave-v3"
 	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
@@ -8,7 +9,8 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	balancerv3eclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	balancerv3quantamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/quant-amm"
 	balancerv3stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
 	balancerv3weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
@@ -18,6 +20,8 @@ import (
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
+	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
 	curvellamma "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/llamma"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
@@ -92,7 +96,6 @@ import (
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
-	uniswapv4euler "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/euler"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -231,12 +234,13 @@ type Types struct {
 	UniswapV2                  string
 	QuickPerps                 string
 	BalancerV1                 string
-	BalancerV2Weighted         string
-	BalancerV2Stable           string
 	BalancerV2ComposableStable string
+	BalancerV2Stable           string
+	BalancerV2Weighted         string
+	BalancerV3ECLP             string
+	BalancerV3QuantAMM         string
 	BalancerV3Stable           string
 	BalancerV3Weighted         string
-	BalancerV3ECLP             string
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
 	Fulcrom                    string
@@ -305,7 +309,6 @@ type Types struct {
 	SkyPSM                     string
 	Honey                      string
 	PandaFun                   string
-	EulerSwap                  string
 	Ekubo                      string
 	ERC4626                    string
 	HyETH                      string
@@ -316,8 +319,11 @@ type Types struct {
 	Pmm1                       string
 	Pmm2                       string
 	UniswapLO                  string
+	EulerSwap                  string
+	AaveV3                     string
+	CompoundV2                 string
+	CompoundV3                 string
 	GenericArm                 string
-	UniswapV4Euler             string
 }
 
 var (
@@ -398,12 +404,13 @@ var (
 		UniswapV2:                  uniswapv2.DexType,
 		QuickPerps:                 quickperps.DexTypeQuickperps,
 		BalancerV1:                 balancerv1.DexType,
-		BalancerV2Weighted:         balancerv2weighted.DexType,
-		BalancerV2Stable:           balancerv2stable.DexType,
 		BalancerV2ComposableStable: balancerv2composablestable.DexType,
+		BalancerV2Stable:           balancerv2stable.DexType,
+		BalancerV2Weighted:         balancerv2weighted.DexType,
+		BalancerV3ECLP:             balancerv3eclp.DexType,
+		BalancerV3QuantAMM:         balancerv3quantamm.DexType,
 		BalancerV3Stable:           balancerv3stable.DexType,
 		BalancerV3Weighted:         balancerv3weighted.DexType,
-		BalancerV3ECLP:             eclp.DexType,
 		VelocoreV2CPMM:             velocorev2cpmm.DexType,
 		VelocoreV2WombatStable:     velocorev2wombatstable.DexType,
 		Fulcrom:                    fulcrom.DexTypeFulcrom,
@@ -473,7 +480,6 @@ var (
 		SkyPSM:                     skypsm.DexType,
 		Honey:                      honey.DexType,
 		PandaFun:                   pandafun.DexType,
-		EulerSwap:                  eulerswap.DexType,
 		Ekubo:                      ekubo.DexType,
 		ERC4626:                    erc4626.DexType,
 		HyETH:                      hyeth.DexType,
@@ -484,7 +490,10 @@ var (
 		Pmm1:                       valueobject.ExchangePmm1,
 		Pmm2:                       valueobject.ExchangePmm2,
 		UniswapLO:                  uniswaplo.DexType,
+		EulerSwap:                  eulerswap.DexType,
+		AaveV3:                     aavev3.DexType,
+		CompoundV2:                 compoundv2.DexType,
+		CompoundV3:                 compoundv3.DexType,
 		GenericArm:                 genericarm.DexType,
-		UniswapV4Euler:             uniswapv4euler.DexType,
 	}
 )

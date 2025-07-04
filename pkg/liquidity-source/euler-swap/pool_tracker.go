@@ -13,20 +13,15 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-type (
-	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-		logDecoder   uniswapv2.ILogDecoder
-	}
-)
-
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 func NewPoolTracker(
 	config *Config,
@@ -35,9 +30,10 @@ func NewPoolTracker(
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		logDecoder:   uniswapv2.NewLogDecoder(),
 	}, nil
 }
+
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
@@ -72,7 +68,8 @@ func (d *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount, staticExtra.Vault0, staticExtra.Vault1, overrides)
+	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount,
+		staticExtra.EVC, staticExtra.Vault0, staticExtra.Vault1, overrides)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"pool_id": p.Address}).
@@ -95,6 +92,7 @@ func (d *PoolTracker) getPoolData(
 	ctx context.Context,
 	poolAddress,
 	eulerAccount,
+	evc,
 	vault0, vault1 string,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (TrackerData, *big.Int, error) {
@@ -104,10 +102,17 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	var (
-		reserves ReserveRPC
-		vaults   = make([]VaultRPC, 2)
+		isOperatorAuthorized bool
+		reserves             ReserveRPC
+		vaults               = make([]VaultRPC, 2)
 	)
 
+	req.AddCall(&ethrpc.Call{
+		ABI:    evcABI,
+		Target: evc,
+		Method: evcMethodIsAccountOperatorAuthorized,
+		Params: []any{common.HexToAddress(eulerAccount), common.HexToAddress(poolAddress)},
+	}, []any{&isOperatorAuthorized})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
@@ -172,41 +177,54 @@ func (d *PoolTracker) getPoolData(
 	}
 
 	return TrackerData{
-		Vaults:   vaults,
-		Reserves: reserves,
+		Vaults:               vaults,
+		Reserves:             reserves,
+		IsOperatorAuthorized: isOperatorAuthorized,
 	}, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber *big.Int) (entity.Pool, error) {
 	var vaults = make([]Vault, len(data.Vaults))
 
+	allBalancesZero := true
+
 	for i := range data.Vaults {
 		totalAssets := uint256.MustFromBig(data.Vaults[i].TotalAssets)
 		totalSupply := uint256.MustFromBig(data.Vaults[i].TotalSupply)
-		eulerAccountShare := uint256.MustFromBig(data.Vaults[i].EulerAccountBalance)
+		eulerAccountBalance := uint256.MustFromBig(data.Vaults[i].EulerAccountBalance)
+
+		if !eulerAccountBalance.IsZero() {
+			allBalancesZero = false
+		}
 
 		vaults[i] = Vault{
 			Cash:               uint256.MustFromBig(data.Vaults[i].Cash),
 			Debt:               uint256.MustFromBig(data.Vaults[i].Debt),
 			MaxDeposit:         uint256.MustFromBig(data.Vaults[i].MaxDeposit),
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
-			EulerAccountAssets: convertToAssets(eulerAccountShare, totalAssets, totalSupply),
+			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
 		}
 	}
 
+	reserve0 := data.Reserves.Reserve0.String()
+	reserve1 := data.Reserves.Reserve1.String()
+	status := data.Reserves.Status
+	if !data.IsOperatorAuthorized || allBalancesZero {
+		reserve0 = "0"
+		reserve1 = "0"
+		status = 2 // locked
+	}
+
 	extraBytes, err := json.Marshal(&Extra{
-		Pause:  data.Reserves.Pause,
+		Pause:  status,
 		Vaults: vaults,
 	})
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
-	pool.Reserves = entity.PoolReserves{
-		data.Reserves.Reserve0.String(),
-		data.Reserves.Reserve1.String(),
-	}
+	pool.Reserves = entity.PoolReserves{reserve0, reserve1}
 
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = time.Now().Unix()
@@ -218,12 +236,12 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 func decodeCap(amountCap *uint256.Int) *uint256.Int {
 	//   10 ** (amountCap & 63) * (amountCap >> 6) / 100
 	if amountCap.IsZero() {
-		return new(uint256.Int).Set(maxUint256)
+		return new(uint256.Int).Set(big256.UMax)
 	}
 
 	var powerBits, tenToPower, multiplier uint256.Int
 	powerBits.And(amountCap, sixtyThree)
-	tenToPower.Exp(ten, &powerBits)
+	tenToPower.Exp(big256.U10, &powerBits)
 	multiplier.Rsh(amountCap, 6)
 
 	amountCap.Mul(&tenToPower, &multiplier)

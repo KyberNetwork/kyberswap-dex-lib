@@ -15,6 +15,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -44,7 +45,9 @@ func NewPoolTracker(
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
 	var staticExtra StaticExtra
-	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
@@ -55,21 +58,33 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}
 
 	rpcRequests.AddCall(&ethrpc.Call{
-		ABI:    clPoolManagerABI,
+		ABI:    shared.CLPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
-		Method: clPoolManagerMethodGetLiquidity,
+		Method: shared.CLPoolManagerMethodGetLiquidity,
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
-		ABI:    clPoolManagerABI,
+		ABI:    shared.CLPoolManagerABI,
 		Target: t.config.CLPoolManagerAddress,
-		Method: clPoolManagerMethodGetSlot0,
+		Method: shared.CLPoolManagerMethodGetSlot0,
 		Params: []any{common.HexToHash(p.Address)},
 	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+
+	protocolFee, lpFee := uint64(result.Slot0.ProtocolFee&_MASK12), uint64(result.Slot0.LpFee)
+	if shared.IsDynamicFee(staticExtra.Fee) {
+		lpFee = uint64(t.GetDynamicFee(ctx, staticExtra.HooksAddress, uint32(lpFee)))
+	}
+
+	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
+	result.SwapFee = uint32(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+
+	return result, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -153,13 +168,14 @@ func (t *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extra := Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  rpcData.TickSpacing,
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
-	})
+	}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -167,9 +183,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	// https://github.com/pancakeswap/infinity-core/blob/6d0b5ee/src/libraries/ProtocolFeeLibrary.sol#L52
-	protocolFee, lpFee := rpcData.Slot0.ProtocolFee.Uint64()&0xfff, rpcData.Slot0.LpFee.Uint64()
-	p.SwapFee = float64(protocolFee + lpFee - (protocolFee * lpFee / 1_000_000))
+	p.SwapFee = float64(rpcData.SwapFee)
 
 	p.Extra = string(extraBytes)
 
@@ -246,6 +260,11 @@ func (t *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 	return ticks, nil
 }
 
+func (t *PoolTracker) GetDynamicFee(ctx context.Context, hookAddress common.Address, lpFee uint32) uint32 {
+	hook, _ := GetHook(hookAddress)
+	return hook.GetDynamicFee(ctx, t.ethrpcClient, t.config.CLPoolManagerAddress, hookAddress, lpFee)
+}
+
 type rpcTick struct {
 	Data struct {
 		LiquidityGross        *big.Int
@@ -286,9 +305,9 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 	rpcTicks := make([]rpcTick, changedTicksCount)
 	for i, tickIdx := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    clPoolManagerABI,
+			ABI:    shared.CLPoolManagerABI,
 			Target: t.config.CLPoolManagerAddress,
-			Method: clPoolManagerMethodGetPoolTickInfo,
+			Method: shared.CLPoolManagerMethodGetPoolTickInfo,
 			Params: []any{common.HexToHash(p.Address), big.NewInt(tickIdx)},
 		}, []any{&rpcTicks[i]})
 	}

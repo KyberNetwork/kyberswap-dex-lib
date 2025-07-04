@@ -38,19 +38,19 @@ type StaticExtra struct {
 }
 
 type Extra = uniswapv3.Extra
-type ExtraTickU256 = uniswapv3.ExtraTickU256
 
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	Tick         *big.Int `json:"tick"`
-	ProtocolFee  *big.Int `json:"protocolFee"`
-	LpFee        *big.Int `json:"lpFee"`
+	ProtocolFee  uint32   `json:"protocolFee"`
+	LpFee        uint32   `json:"lpFee"`
 }
 
 type FetchRPCResult struct {
 	Liquidity   *big.Int  `json:"liquidity"`
 	Slot0       Slot0Data `json:"slot0"`
 	TickSpacing uint64    `json:"tickSpacing"`
+	SwapFee     uint32    `json:"swapFee"`
 }
 
 type Tick = uniswapv3.Tick
@@ -66,4 +66,5 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+	SwapFee     uint64         `json:"swapFee"`
 }

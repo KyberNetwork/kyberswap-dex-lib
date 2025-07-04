@@ -17,15 +17,21 @@ const (
 
 type (
 	Gas struct {
-		Deposit uint64 `json:"deposit,omitempty"`
-		Redeem  uint64 `json:"redeem,omitempty"`
+		Deposit uint64 `json:"d,omitempty"`
+		Redeem  uint64 `json:"r,omitempty"`
 	}
 
 	Extra struct {
-		Gas        Gas          `json:"gas"`
-		SwapTypes  SwapType     `json:"swapTypes"`
-		MaxDeposit *uint256.Int `json:"maxDeposit,omitempty"`
-		MaxRedeem  *uint256.Int `json:"maxRedeem,omitempty"`
+		Gas         Gas          `json:"g"`
+		SwapTypes   SwapType     `json:"sT,omitempty"`
+		MaxDeposit  *uint256.Int `json:"mD,omitempty"`
+		MaxRedeem   *uint256.Int `json:"mR,omitempty"`
+		EntryFeeBps uint64       `json:"dF,omitempty"`
+		ExitFeeBps  uint64       `json:"rF,omitempty"`
+	}
+
+	SwapInfo struct {
+		assets *uint256.Int
 	}
 
 	Meta struct {
@@ -37,12 +43,9 @@ type (
 		TotalAssets *big.Int
 		MaxDeposit  *big.Int
 		MaxRedeem   *big.Int
+		EntryFeeBps uint64
+		ExitFeeBps  uint64
 
 		blockNumber uint64
-	}
-
-	PostSwapState struct {
-		totalSupply *uint256.Int
-		totalAssets *uint256.Int
 	}
 )

@@ -1,146 +1,115 @@
 package uniswapv1
 
 import (
-	"errors"
 	"math/big"
+	"slices"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	ErrInvalidToken             = errors.New("invalid token")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInvalidAmountIn          = errors.New("invalid amount in")
-	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInvalidAmountOut         = errors.New("invalid amount out")
-	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
-	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-)
-
-type (
-	PoolSimulator struct {
-		pool.Pool
-		gas Gas
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+type PoolSimulator struct {
+	pool.Pool
+	reserves []*uint256.Int
+}
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	reserves := make([]*uint256.Int, len(entityPool.Reserves))
+	for i, reserveStr := range entityPool.Reserves {
+		reserve, err := uint256.FromDecimal(reserveStr)
+		if err != nil {
+			return nil, errors.WithMessage(err, "invalid reserve")
+		}
+		reserves[i] = reserve
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		gas: defaultGas,
+		reserves: reserves,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	var (
-		tokenAmountIn = param.TokenAmountIn
-		tokenOut      = param.TokenOut
-	)
-
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
+	if overflow || amountIn.Sign() <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientInputAmount
-	}
-
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
+	reserveIn := s.reserves[indexIn]
+	reserveOut := s.reserves[indexOut]
 
 	amountOut, err := s.getInputPrice(amountIn, reserveIn, reserveOut)
 	if err != nil {
 		return nil, err
-	}
-
-	if amountOut.LtUint64(1) {
+	} else if amountOut.Cmp(reserveOut) > 0 {
+		return nil, ErrInsufficientLiquidity
+	} else if amountOut.Sign() <= 0 {
 		return nil, ErrInsufficientOutputAmount
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas:            s.gas.Swap,
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		Gas:            defaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	var (
-		tokenAmountOut = param.TokenAmountOut
-		tokenIn        = param.TokenIn
-	)
+	tokenAmountOut, tokenIn := param.TokenAmountOut, param.TokenIn
 	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
+	reserveIn, reserveOut := s.reserves[indexIn], s.reserves[indexOut]
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
-	if overflow {
+	if overflow || amountOut.Sign() <= 0 {
 		return nil, ErrInvalidAmountOut
-	}
-
-	if amountOut.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientOutputAmount
-	}
-
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
+	} else if amountOut.Cmp(reserveOut) > 0 {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	amountIn, err := s.getOutputPrice(amountOut, reserveIn, reserveOut)
 	if err != nil {
 		return nil, err
-	}
-
-	if amountIn.Cmp(reserveIn) > 0 {
-		return nil, ErrInsufficientLiquidity
+	} else if amountIn.Sign() <= 0 {
+		return nil, ErrInsufficientInputAmount
 	}
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas:           s.gas.Swap,
+		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		Gas:           defaultGas,
 	}, nil
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -149,8 +118,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	s.reserves[indexIn] = new(uint256.Int).Add(s.reserves[indexIn], uint256.MustFromBig(params.TokenAmountIn.Amount))
+	s.reserves[indexOut] = new(uint256.Int).Sub(s.reserves[indexOut], uint256.MustFromBig(params.TokenAmountOut.Amount))
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
@@ -172,10 +141,6 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 //	denominator: uint256 = (input_reserve * 1000) + input_amount_with_fee
 //	return numerator / denominator
 func (s *PoolSimulator) getInputPrice(inputAmount, inputReserve, outputReserve *uint256.Int) (*uint256.Int, error) {
-	if inputReserve.CmpUint64(0) <= 0 || outputReserve.CmpUint64(0) <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
 	var inputAmountWithFee, numerator, denominator uint256.Int
 
 	inputAmountWithFee.Mul(inputAmount, U997)
@@ -195,10 +160,6 @@ func (s *PoolSimulator) getInputPrice(inputAmount, inputReserve, outputReserve *
 //	denominator: uint256 = (output_reserve - output_amount) * 997
 //	return numerator / denominator + 1
 func (s *PoolSimulator) getOutputPrice(outputAmount, inputReserve, outputReserve *uint256.Int) (*uint256.Int, error) {
-	if inputReserve.CmpUint64(0) <= 0 || outputReserve.CmpUint64(0) <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
 	var numerator, denominator uint256.Int
 
 	numerator.Mul(inputReserve, outputAmount)
@@ -207,7 +168,6 @@ func (s *PoolSimulator) getOutputPrice(outputAmount, inputReserve, outputReserve
 	denominator.Sub(outputReserve, outputAmount)
 	denominator.Mul(&denominator, U997)
 
-	result := new(uint256.Int).Div(&numerator, &denominator)
-
+	result := numerator.Div(&numerator, &denominator)
 	return result.AddUint64(result, 1), nil
 }

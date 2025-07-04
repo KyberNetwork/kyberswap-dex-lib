@@ -9,9 +9,6 @@ const (
 
 	stableSurgeHookMethodGetMaxSurgeFeePercentage    = "getMaxSurgeFeePercentage"
 	stableSurgeHookMethodGetSurgeThresholdPercentage = "getSurgeThresholdPercentage"
-)
 
-var (
-	baseGas   int64 = 237494
-	bufferGas int64 = 120534
+	baseGas = 237494
 )

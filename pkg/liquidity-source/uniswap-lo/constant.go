@@ -68,29 +68,34 @@ type DutchOrdersResponse struct {
 }
 
 type DutchOrder struct {
-	Type           string          `json:"type"`
-	OrderStatus    OrderStatus     `json:"orderStatus"`
-	EncodedOrder   hexutil.Bytes   `json:"encodedOrder"`
-	Signature      hexutil.Bytes   `json:"signature"`
-	Nonce          string          `json:"nonce"`
-	OrderHash      string          `json:"orderHash"`
-	ChainID        int             `json:"chainId"`
-	Swapper        common.Address  `json:"swapper"`
-	Reactor        string          `json:"reactor"`
-	DecayStartTime int             `json:"decayStartTime"`
-	DecayEndTime   int             `json:"decayEndTime"`
-	Deadline       int             `json:"deadline"`
-	Input          Input           `json:"input"`
-	Outputs        []Output        `json:"outputs"`
-	Filler         common.Address  `json:"filler"`
-	QuoteID        string          `json:"quoteId"`
-	TxHash         string          `json:"txHash"`
-	SettledAmounts []SettledAmount `json:"settledAmounts"`
-	Cosignature    string          `json:"cosignature"`
-	CosignerData   CosignerData    `json:"cosignerData"`
-	CreatedAt      uint64          `json:"createdAt"`
-	RateWithGasFee float64         `json:"-"`
-	Rate           float64         `json:"-"`
+	Type                  string          `json:"type"`
+	OrderStatus           OrderStatus     `json:"orderStatus"`
+	EncodedOrder          hexutil.Bytes   `json:"encodedOrder"`
+	Signature             hexutil.Bytes   `json:"signature"`
+	Nonce                 string          `json:"nonce"`
+	OrderHash             string          `json:"orderHash"`
+	ChainID               int             `json:"chainId"`
+	Swapper               common.Address  `json:"swapper"`
+	Reactor               string          `json:"reactor"`
+	DecayStartTime        int             `json:"decayStartTime"`
+	DecayEndTime          int             `json:"decayEndTime"`
+	Deadline              int             `json:"deadline"`
+	Input                 Input           `json:"input"`
+	Outputs               []Output        `json:"outputs"`
+	Filler                common.Address  `json:"filler"`
+	QuoteID               string          `json:"quoteId"`
+	TxHash                string          `json:"txHash"`
+	SettledAmounts        []SettledAmount `json:"settledAmounts"`
+	Cosignature           string          `json:"cosignature"`
+	CosignerData          CosignerData    `json:"cosignerData"`
+	CreatedAt             uint64          `json:"createdAt"`
+	RateWithGasFee        float64         `json:"-"`
+	Rate                  float64         `json:"-"`
+	SwapperTokenInBalance *uint256.Int    `json:"-"`
+	// CanUseUnorderedNonce
+	// if true, it means order is valid since nonce is not used
+	// see: https://github.com/Uniswap/permit2/blob/a7cd186948b44f9096a35035226d7d70b9e24eaf/src/SignatureTransfer.sol#L150
+	CanUseUnorderedNonce bool `json:"-"`
 }
 
 type Input struct {

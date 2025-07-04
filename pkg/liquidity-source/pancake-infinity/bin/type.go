@@ -19,10 +19,12 @@ type SubgraphPool struct {
 	Hooks      string        `json:"hooks"`
 	Parameters string        `json:"parameters"`
 	Timestamp  string        `json:"timestamp"`
+	BaseFeePct string        `json:"baseFeePct"`
 }
 
 type StaticExtra struct {
 	HasSwapPermissions bool           `json:"hsp"`
+	Fee                uint32         `json:"fee"`
 	IsNative           [2]bool        `json:"0x0"`
 	Parameters         string         `json:"params"`
 	BinStep            uint16         `json:"bs"`
@@ -34,19 +36,20 @@ type StaticExtra struct {
 }
 
 type Slot0Data struct {
-	ActiveId    *big.Int `json:"activeId"`
-	ProtocolFee *big.Int `json:"protocolFee"`
-	LpFee       *big.Int `json:"lpFee"`
+	ActiveId    uint32 `json:"activeId"`
+	ProtocolFee uint32 `json:"protocolFee"`
+	LpFee       uint32 `json:"lpFee"`
 }
 
 type FetchRPCResult struct {
-	Slot0 Slot0Data `json:"slot0"`
+	Slot0   Slot0Data `json:"slot0"`
+	SwapFee uint64    `json:"swapFee"`
 }
 
 type Extra struct {
-	ProtocolFee *uint256.Int `json:"protocolFee"`
-	ActiveBinID uint32       `json:"activeBinId"`
-	Bins        []Bin        `json:"bins"`
+	ProtocolFee uint32 `json:"protocolFee"`
+	ActiveBinID uint32 `json:"activeBinId"`
+	Bins        []Bin  `json:"bins"`
 }
 
 type PoolMetaInfo struct {
@@ -59,6 +62,7 @@ type PoolMetaInfo struct {
 	Parameters  string         `json:"parameters"`
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
+	SwapFee     uint64         `json:"swapFee"`
 }
 
 type SwapInfo struct {
