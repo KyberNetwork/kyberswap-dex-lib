@@ -64,6 +64,7 @@ type (
 		IsKyberPrivateLimitOrdersEnabled  bool `mapstructure:"isKyberPrivateLimitOrdersEnabled" json:"isKyberPrivateLimitOrdersEnabled"`
 		IsAlphaFeeReductionEnable         bool `mapstructure:"isAlphaFeeReductionEnable" json:"isAFEnable"`
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
+		IsOnePercentHillClimbEnabled      bool `mapstructure:"isOnePercentHillClimbEnabled" json:"isOnePercentHillClimbEnabled"`
 		ReturnAlphaFee                    bool `mapstructure:"returnAlphaFee" json:"returnAF"`
 
 		// IsRedisMigrationEnabled controls Redis migration behavior:
@@ -110,6 +111,12 @@ type (
 
 		DerivativeHillClimbIteration        int     `mapstructure:"derivativeHillClimbIteration" json:"derivativeHillClimbIteration"`
 		DerivativeHillClimbImproveThreshold float64 `mapstructure:"derivativeHillClimbImproveThreshold" json:"derivativeHillClimbImproveThreshold"`
+
+		OnePercentHillClimbIteration               int     `mapstructure:"onePercentHillClimbIteration" json:"onePercentHillClimbIteration"`
+		OnePercentHillClimbMaxGeneratePathsPerNode uint    `mapstructure:"onePercentHillClimbMaxGeneratePathsPerNode" json:"onePercentHillClimbMaxGeneratePathsPerNode"`
+		OnePercentHillClimbMaxPathToReturn         int     `mapstructure:"onePercentHillClimbMaxPathToReturn" json:"onePercentHillClimbMaxPathToReturn"`
+		OnePercentHillClimbImproveThreshold        float64 `mapstructure:"onePercentHillClimbImproveThreshold" json:"onePercentHillClimbImproveThreshold"`
+		OnePercentHillClimbEnableTracingLog        bool    `mapstructure:"onePercentHillClimbEnableTracingLog" json:"onePercentHillClimbEnableTracingLog"`
 
 		// If true then route finding is performed remotely in AEVM server
 		UseAEVMRemoteFinder bool `mapstructure:"useAEVMRemoteFinder" json:"useAEVMRemoteFinder"`

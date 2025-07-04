@@ -7,6 +7,7 @@ import (
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb/onepercent"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
@@ -291,6 +292,21 @@ func InitializeFinderEngine(
 			baseFinder,
 			int(finderOptions.HillClimbIteration),
 			finderOptions.HillClimbMinPartUSD,
+		)
+	}
+
+	if config.Aggregator.FeatureFlags.IsOnePercentHillClimbEnabled {
+		baseFinder = onepercent.NewOnePercentFinder(
+			baseFinder,
+			config.Aggregator.DexUseAEVM,
+			onepercent.Config{
+				NumIteration:            finderOptions.OnePercentHillClimbIteration,
+				MaxHops:                 finderOptions.MaxHops, // Same with spfaFinder
+				MaxGeneratePathsPerNode: finderOptions.OnePercentHillClimbMaxGeneratePathsPerNode,
+				MaxPathsToReturn:        finderOptions.OnePercentHillClimbMaxPathToReturn,
+				ImproveThreshold:        finderOptions.OnePercentHillClimbImproveThreshold,
+				EnableTracingLog:        finderOptions.OnePercentHillClimbEnableTracingLog,
+			},
 		)
 	}
 

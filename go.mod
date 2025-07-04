@@ -23,7 +23,7 @@ require (
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.14.6
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pathfinder-lib v0.1.24
+	github.com/KyberNetwork/pathfinder-lib v0.1.25
 	github.com/KyberNetwork/pool-service v0.93.6
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.8.0
