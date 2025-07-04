@@ -42,10 +42,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
-	senderAddress := params.Origin
-	if senderAddress == "" {
-		senderAddress = params.Sender
-	}
+	senderAddress := params.GetOrigin()
 
 	result, err := h.client.RFQ(ctx, QuoteParams{
 		ChainID:           swapInfo.ChainID,

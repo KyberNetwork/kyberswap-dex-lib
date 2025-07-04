@@ -43,10 +43,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
-	origin := params.Origin
-	if origin == "" {
-		origin = params.Sender
-	}
+	origin := params.GetOrigin()
 
 	result, err := h.client.Quote(ctx, client.QuoteParams{
 		Origin:    origin,

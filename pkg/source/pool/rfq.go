@@ -31,6 +31,13 @@ type RFQParams struct {
 	FeeInfo      any                 // generic fee info
 }
 
+func (r *RFQParams) GetOrigin() string {
+	if r.Origin != "" {
+		return r.Origin
+	}
+	return r.Sender
+}
+
 // RFQResult is the result for firm quote operations
 type RFQResult struct {
 	NewAmountOut *big.Int

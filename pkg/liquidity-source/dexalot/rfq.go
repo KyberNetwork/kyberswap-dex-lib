@@ -57,10 +57,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			bignumber.Two)
 	}
 
-	userAddress := params.Origin
-	if userAddress == "" {
-		userAddress = params.Sender
-	}
+	userAddress := params.GetOrigin()
 
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),

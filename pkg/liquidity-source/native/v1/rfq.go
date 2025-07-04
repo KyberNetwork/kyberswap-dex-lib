@@ -39,10 +39,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Debugf("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
-	beneficiaryAddress := params.Origin
-	if beneficiaryAddress == "" {
-		beneficiaryAddress = params.Sender
-	}
+	beneficiaryAddress := params.GetOrigin()
 
 	chainName := ChainById(params.NetworkID)
 	result, err := h.client.Quote(ctx, QuoteParams{
