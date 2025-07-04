@@ -27,7 +27,7 @@ type ReserveConfigurationMap struct {
 
 type SwapInfo struct {
 	IsSupply        bool   `json:"isSupply"`
-	AavePoolAddress string `json:"aaveV3PoolAddress"`
+	AavePoolAddress string `json:"aavePoolAddress"`
 }
 
 type PoolMeta struct {
