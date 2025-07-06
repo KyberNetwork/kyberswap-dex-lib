@@ -100,11 +100,7 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 	alphaFeeTokens := make([]string, len(alphaFee.SwapReductions))
 	alphaFeeAmounts := make([]*big.Int, len(alphaFee.SwapReductions))
 	alphaFeeAmountUsds := make([]string, len(alphaFee.SwapReductions))
-	lg := log.Info().
-		Str("routeId", routeId).
-		Strs("alphaFeeTokens", alphaFeeTokens).
-		Interface("alphaFeeAmounts", alphaFeeAmounts).
-		Strs("alphaFeeAmountUsds", alphaFeeAmountUsds)
+	lg := log.Info()
 
 	for i, swapReduction := range alphaFee.SwapReductions {
 		alphaFeeTokens[i] = swapReduction.TokenOut
@@ -119,5 +115,10 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 	if message == "" {
 		message = "route has alpha fee"
 	}
-	lg.Msg(message)
+	lg.
+		Str("routeId", routeId).
+		Strs("alphaFeeTokens", alphaFeeTokens).
+		Interface("alphaFeeAmounts", alphaFeeAmounts).
+		Strs("alphaFeeAmountUsds", alphaFeeAmountUsds).
+		Msg(message)
 }
