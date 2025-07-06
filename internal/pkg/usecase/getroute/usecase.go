@@ -7,13 +7,13 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kutils"
-	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	dexlibValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -141,7 +141,7 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		if u.alphaFeeMigrationRepository != nil {
 			span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] set alpha fee to redis")
 			if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
-				klog.Errorf(ctx, "[Migration] failed to save alphaFee to new redis repository: %v", err)
+				log.Ctx(ctx).Err(err).Msg("[Migration] failed to save alphaFee to new redis repository")
 			}
 			span.End()
 		}
@@ -209,7 +209,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
 		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
+			log.Ctx(ctx).Err(err).Msg("failed to estimate l1 fees")
 		}
 	}
 

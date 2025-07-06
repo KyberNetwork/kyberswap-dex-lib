@@ -93,8 +93,8 @@ func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) 
 
 	gasUsed, returnAmount, err := e.simulateSwap(ctx, callMsg)
 
-	clientid := clientid.GetClientIDFromCtx(ctx)
-	metrics.CountEstimateGas(ctx, err == nil, "allDexes", clientid)
+	clientId := clientid.GetClientIDFromCtx(ctx)
+	metrics.CountEstimateGas(ctx, err == nil, "allDexes", clientId)
 	return gasUsed, returnAmount, err
 }
 

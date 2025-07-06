@@ -9,10 +9,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -104,12 +104,12 @@ func (r *RedisRepository) GetMany(ctx context.Context,
 		}
 		resultStr, ok := rawResult.(string)
 		if !ok {
-			logger.Warn(ctx, "result should be string")
+			log.Ctx(ctx).Warn().Msg("result should be string")
 			continue
 		}
 		result := new(types.ERC20BalanceSlot)
 		if err := json.Unmarshal([]byte(resultStr), result); err != nil {
-			logger.Warn(ctx, "[erc20balanceslot] Get could not unmarshal entity.ERC20BalanceSlot")
+			log.Ctx(ctx).Warn().Msg("[erc20balanceslot] Get could not unmarshal entity.ERC20BalanceSlot")
 			continue
 		}
 		results[common.HexToAddress(result.Token)] = result
@@ -134,8 +134,7 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*types
 			token := strings.ToLower(keyValues[i])
 			balanceSlot := new(types.ERC20BalanceSlot)
 			if err := json.Unmarshal([]byte(keyValues[i+1]), balanceSlot); err != nil {
-				logger.WithFields(ctx,
-					logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
+				log.Ctx(ctx).Warn().Str("token", token).Msg("could not unmarshal entity.ERC20BalanceSlot")
 				continue
 			}
 			result[common.HexToAddress(token)] = balanceSlot

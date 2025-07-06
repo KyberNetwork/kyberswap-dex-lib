@@ -13,10 +13,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var (
@@ -57,7 +57,8 @@ func (*WholeSlotWithFStrategy) Name(_ ProbeStrategyExtraParams) string {
 }
 
 func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
-	logger.Infof(ctx, "[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
+	log.Ctx(ctx).Info().Msgf("[%s] probing balance slot for wallet %s in token %s",
+		p.Name(nil), p.wallet, token)
 
 	blockNumber, err := p.ethClient.BlockNumber(ctx)
 	if err != nil {
@@ -72,10 +73,10 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 	*/
 	sload, err := p.isolateExactOneBalanceSlot(blockNumberHex, token)
 	if err != nil {
-		logger.Debugf(ctx, "could not isolate exact 1 balance slot %s", err)
+		log.Ctx(ctx).Debug().Err(err).Msg("could not isolate exact 1 balance slot")
 		return nil, fmt.Errorf("could not isolate exact 1 balance slot %w", err)
 	}
-	logger.Debugf(ctx, "slot = %s", sload.Slot)
+	log.Ctx(ctx).Debug().Msgf("slot = %s", sload.Slot)
 
 	/*
 		Step 2: Analyze the relationship between the slot value and the output of balanceOf().
@@ -156,7 +157,8 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 
 		balance := p.balanceOfWithOverridedSlot(ctx, blockNumberHex, token, sload, []*big.Int{mid})[0]
 
-		if balance.Cmp(prevBalance) > 0 && p.canTransferAmountWithOverride(ctx, blockNumberHex, token, anotherWallet, balance, sload, mid) {
+		if balance.Cmp(prevBalance) > 0 && p.canTransferAmountWithOverride(ctx, blockNumberHex, token, anotherWallet,
+			balance, sload, mid) {
 			// stop if could not improve
 			if len(largerBalances) > 0 && balance.Cmp(largerBalances[len(largerBalances)-1]) == 0 {
 				break
@@ -244,13 +246,13 @@ func (p *WholeSlotWithFStrategy) balanceOfWithOverridedSlot(ctx context.Context,
 			},
 		)
 		if err != nil {
-			logger.Debugf(ctx, "    could not eth_call: %s", err)
+			log.Ctx(ctx).Debug().Err(err).Msg("    could not eth_call")
 			balances = append(balances, big.NewInt(0))
 			continue
 		}
 		balance := new(big.Int).SetBytes(common.HexToHash(*result).Bytes())
 		balances = append(balances, balance)
-		logger.Debugf(ctx, "slot value = %s, balance = %s", common.BigToHash(value), balance)
+		log.Ctx(ctx).Debug().Msgf("slot value = %s, balance = %s", common.BigToHash(value), balance)
 	}
 	return balances
 }
@@ -279,9 +281,9 @@ func (p *WholeSlotWithFStrategy) canTransferAmountWithOverride(ctx context.Conte
 	)
 	ok := err == nil && common.HexToHash(*result) == common.HexToHash("0x1")
 	if !ok {
-		logger.Debugf(ctx, "err = %v", err)
+		log.Ctx(ctx).Debug().Err(err).Msg("canTransferAmountWithOverride")
 	} else {
-		logger.Debugf(ctx, "result = %s err = %v", *result, err)
+		log.Ctx(ctx).Debug().Err(err).Msgf("result = %s", *result)
 	}
 	return ok
 }

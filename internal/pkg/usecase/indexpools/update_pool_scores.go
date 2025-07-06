@@ -8,8 +8,9 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type MeanType string
@@ -63,11 +64,10 @@ func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileName
 		}
 		count += len(scores)
 	}
-	logger.WithFields(ctx,
-		logger.Fields{
-			"struct": "UpdateLiquidityScore",
-			"method": "Handle",
-		}).Infof("update liquidity scores total count %d", count)
+	log.Ctx(ctx).Info().
+		Str("struct", "UpdateLiquidityScore").
+		Str("method", "Handle").
+		Msgf("update liquidity scores total count %d", count)
 
 	return result
 }
@@ -112,12 +112,10 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 		}
 		score, err := strconv.ParseFloat(record[scoreHeader], 64)
 		if err != nil {
-			logger.WithFields(ctx,
-				logger.Fields{
-					"struct": "UpdateLiquidityScore",
-					"method": "readLiquidityScores",
-					"error":  err,
-				}).Errorf("parse score %s is error", record[scoreHeader])
+			log.Ctx(ctx).Err(err).
+				Str("struct", "UpdateLiquidityScore").
+				Str("method", "readLiquidityScores").
+				Msgf("parse score %s is error", record[scoreHeader])
 			errorCount++
 			continue
 		}
@@ -140,14 +138,13 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 		count += len(batch)
 		scores <- batch
 	}
-	logger.WithFields(ctx,
-		logger.Fields{
-			"struct":     "UpdateLiquidityScore",
-			"method":     "readLiquidityScores",
-			"fileName":   filename,
-			"totalCount": count,
-			"errorCount": errorCount,
-		}).Infof("read done")
+	log.Ctx(ctx).Info().
+		Str("struct", "UpdateLiquidityScore").
+		Str("method", "readLiquidityScores").
+		Str("fileName", filename).
+		Int("totalCount", count).
+		Int("errorCount", errorCount).
+		Msg("read done")
 
 	return nil
 }

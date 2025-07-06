@@ -9,10 +9,10 @@ import (
 	"github.com/dranikpg/gtrs"
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const PoolEvents = "pool_events_stream_consumer"
@@ -72,24 +72,12 @@ func (c *PoolEventsStreamConsumer) Consume(ctx context.Context, handler Handler[
 
 	for msg := range consumerGroup.Chan() {
 		if err := msg.Err; err != nil {
-			logger.WithFields(ctx,
-				logger.Fields{
-					"job.name": PoolEvents,
-					"error":    err,
-					"msg.id":   msg.ID,
-				},
-			).Error("consume failed")
+			log.Ctx(ctx).Err(err).Str("job.name", PoolEvents).Str("msg.id", msg.ID).Msg("consume failed")
 			return err
 		}
 
 		if err := handler(ctx, msg.Data[c.cfg.Key]); err != nil {
-			logger.WithFields(ctx,
-				logger.Fields{
-					"job.name": PoolEvents,
-					"error":    err,
-					"msg.id":   msg.ID,
-				},
-			).Error("handler failed")
+			log.Ctx(ctx).Err(err).Str("job.name", PoolEvents).Str("msg.id", msg.ID).Msg("handler failed")
 		}
 
 		consumerGroup.Ack(msg)

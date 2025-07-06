@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type getRouteEncodeParamsValidator struct {
@@ -154,15 +153,13 @@ func (v *getRouteEncodeParamsValidator) validateTo(ctx context.Context, to strin
 
 func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Context, to string) error {
 	if clientid.GetClientIDFromCtx(ctx) != clientid.KyberSwap {
-		logger.Debug(ctx, "skip blacklist check because it's not a request from kyberswap UI")
+		log.Ctx(ctx).Debug().Msg("skip blacklist check because it's not a request from kyberswap UI")
 		return nil
 	}
 
 	blacklistedWallet, err := v.blackjackRepo.Check(ctx, []string{to})
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
-			Debug("failed to check from blackjack")
+		log.Ctx(ctx).Debug().Err(err).Msg("failed to check from blackjack")
 		return nil
 	}
 

@@ -10,10 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func randomizeHash() common.Hash {
@@ -49,7 +49,7 @@ func (*WholeSlotStrategy) Name(_ ProbeStrategyExtraParams) string {
 // ProbeBalanceSlot For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
 // This approach only works if the ERC20 token's contract reads and writes balances directly from and to a mapping.
 func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
-	logger.Infof(ctx, "probing balance slot for wallet %s in token %s\n", p.wallet, token)
+	log.Ctx(ctx).Info().Msgf("probing balance slot for wallet %s in token %s\n", p.wallet, token)
 
 	/*
 		Step 1: Trace all SLOAD instructions after calling balanceOf(wallet)
@@ -96,7 +96,8 @@ func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.A
 		}
 
 		testValue := randomizeHash()
-		logger.Debugf(ctx, "    probing slot %s with test value %s\n", common.HexToHash(sload.Slot), testValue)
+		log.Ctx(ctx).Debug().Msgf("    probing slot %s with test value %s\n",
+			common.HexToHash(sload.Slot), testValue)
 		result, err := jsonrpc.EthCall(
 			p.rpcClient,
 			&jsonrpc.EthCallCalldataParam{
@@ -117,15 +118,15 @@ func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.A
 		if err != nil {
 			return nil, err
 		}
-		logger.Debugf(ctx, "    result = %+v\n", *result)
+		log.Ctx(ctx).Debug().Msgf("    result = %+v\n", *result)
 		if common.HexToHash(*result) == testValue {
-			logger.Debugf(ctx, "        slot %s is a candidate\n", common.HexToHash(sload.Slot))
+			log.Ctx(ctx).Debug().Msgf("        slot %s is a candidate\n", common.HexToHash(sload.Slot))
 			possibleSlots = append(possibleSlots, common.HexToHash(sload.Slot))
 		}
 	}
 
 	if len(possibleSlots) != 1 {
-		logger.Debugf(ctx, "    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
+		log.Ctx(ctx).Debug().Msgf("    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
 		return nil, errors.New("could not probe")
 	}
 

@@ -12,10 +12,10 @@ import (
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func CalculatePoolTVL(
@@ -47,7 +47,8 @@ func CalculatePoolTVL(
 				if err != nil {
 					// we need partially calculate tvl if some tokens in a pool have no price in case liquidity score ranking
 					if partialTvl {
-						logger.Errorf(ctx, "cannot get mid price for token %v %v pool %v type %v", poolTokens[i], price, p.Address, p.Type)
+						log.Ctx(ctx).Error().Msgf("cannot get mid price for token %v %v pool %v type %v",
+							poolTokens[i], price, p.Address, p.Type)
 						continue
 					}
 					return 0, err
@@ -62,7 +63,7 @@ func CalculatePoolTVL(
 				rawNativeWei := new(big.Float).Mul(reserveBF, midPrice)
 				nativeValue, _ := new(big.Float).Quo(rawNativeWei, constant.BoneFloat).Float64()
 
-				logger.Debugf(ctx, "reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
+				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
 				reserveNative += nativeValue
 			}
 
@@ -114,7 +115,7 @@ func CalculatePoolTVLForTokenPair(
 				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
 				nativeValue := reserve * midPrice / constant.BoneFloat64
 
-				logger.Debugf(ctx, "reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
+				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
 				reserveNative += nativeValue
 			}
 
@@ -129,7 +130,7 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 		// maverick's reserves need to be scaled up/down first
 		reserveRaw, err := maverickv1.ScaleToAmount(number.NewUint256(p.Reserves[i]), decimals)
 		if err != nil {
-			logger.Debugf(ctx, "invalid pool reserve %v %v", p.Address, p.Reserves[i])
+			log.Ctx(ctx).Debug().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
 			return nil, ErrorInvalidReserve
 		}
 
@@ -146,7 +147,7 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 			return big.NewFloat(0), nil
 		}
 		if reserveBF, ok := new(big.Float).SetString(p.Reserves[i]); !ok {
-			logger.Errorf(ctx, "invalid pool reserve %v %v", p.Address, p.Reserves[i])
+			log.Ctx(ctx).Error().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
 			return nil, ErrorInvalidReserve
 		} else {
 			return reserveBF, nil
@@ -154,7 +155,7 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 
 	default:
 		if reserveBF, ok := new(big.Float).SetString(p.Reserves[i]); !ok {
-			logger.Errorf(ctx, "invalid pool reserve %v %v", p.Address, p.Reserves[i])
+			log.Ctx(ctx).Error().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
 			return nil, ErrorInvalidReserve
 		} else {
 			return reserveBF, nil

@@ -7,10 +7,10 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/singleflight"
 
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type HoldersListStrategy struct {
@@ -33,19 +33,19 @@ func (*HoldersListStrategy) Name(_ ProbeStrategyExtraParams) string {
 }
 
 func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
-	logger.Debugf(ctx, "[%s] getting holders list for token %s", p.Name(nil), token)
+	log.Ctx(ctx).Debug().Msgf("[%s] getting holders list for token %s", p.Name(nil), token)
 
 	holdersList, err := p.holdersListRepo.Get(ctx, token)
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
 			// add to watchlist
-			logger.WithFields(ctx, logger.Fields{"token": token}).Debugf("adding token to watchlist")
+			log.Ctx(ctx).Debug().Stringer("token", token).Msg("adding token to watchlist")
 			_, err, _ := p.redisGroup.Do(strings.ToLower(token.String()), func() (interface{}, error) {
 				err := p.watchlistRepo.Notify(ctx, token)
 				return nil, err
 			})
 			if err != nil {
-				logger.WithFields(ctx, logger.Fields{"token": token, "err": err}).Debugf("could not add token to watchlist")
+				log.Ctx(ctx).Debug().Err(err).Stringer("token", token).Msg("could not add token to watchlist")
 			}
 		}
 		return nil, err

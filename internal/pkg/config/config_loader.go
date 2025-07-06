@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
+	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +17,14 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 const (
@@ -69,7 +74,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Println("Read config file failed. ", err)
+		fmt.Println("Read config file failed. ", err)
 
 		configBuffer, err := json.Marshal(c)
 
@@ -106,7 +111,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	)
 	decodeConfigOption := viper.DecodeHook(decoder)
 	if err := viper.Unmarshal(c, decodeConfigOption); err != nil {
-		log.Printf("failed to unmarshal config %v\n", err)
+		fmt.Printf("failed to unmarshal config %v\n", err)
 		return nil, err
 	}
 
@@ -151,21 +156,35 @@ func (cl *ConfigLoader) Initialize() error {
 	cl.mu.Unlock()
 
 	_, _ = klog.InitLogger(cfg.Log.Configuration, klog.LoggerBackendZap)
-
-	prettyJsonCfg, err := json.Marshal(cl.config)
-	if err != nil {
-		return err
+	if env.IsLocalMode() {
+		log.Logger = zerolog.New(zerolog.NewConsoleWriter())
+	} else {
+		log.Logger = zerolog.New(os.Stdout)
 	}
-
-	klog.Infof(context.Background(), "local config: %+v\n", string(prettyJsonCfg))
+	log.Logger = log.Logger.Level(parseLevel(cfg.Log.ConsoleLevel)).With().Timestamp().Caller().Logger()
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
+		return filepath.Base(filepath.Dir(file)) + "/" + filepath.Base(file) + ":" + strconv.Itoa(line)
+	}
+	zerolog.DefaultContextLogger = &log.Logger
+	zerolog.InterfaceMarshalFunc = json.MarshalNoEscape
+	log.Info().Any("local config", cl.config).Send()
 
 	return nil
+}
+
+func parseLevel(levelStr string) zerolog.Level {
+	level, err := zerolog.ParseLevel(levelStr)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+	return level
 }
 
 func (cl *ConfigLoader) Reload(ctx context.Context) error {
 	remoteCfg, err := cl.GetRemoteConfig(ctx)
 	if err != nil {
-		klog.Errorf(ctx, "failed to fetch config from remote: %s\n", err)
+		log.Ctx(ctx).Err(err).Msg("failed to fetch config from remote")
 		return err
 	}
 
@@ -334,9 +353,13 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled
 }
 
-func (cl *ConfigLoader) setLog(log valueobject.Log) {
-	cl.config.Log.Configuration.ConsoleLevel = log.ConsoleLevel
-	_ = klog.SetLogLevel(context.Background(), log.ConsoleLevel)
+func (cl *ConfigLoader) setLog(logCfg valueobject.Log) {
+	if logCfg.ConsoleLevel == "" {
+		return
+	}
+	cl.config.Log.Configuration.ConsoleLevel = logCfg.ConsoleLevel
+	_ = klog.SetLogLevel(context.Background(), logCfg.ConsoleLevel)
+	log.Logger = log.Logger.Level(parseLevel(logCfg.ConsoleLevel))
 }
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
@@ -370,7 +393,8 @@ func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string)
 }
 
 func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.FaultyPoolsConfig) {
-	slippageConfigByGroup := make(map[string]buildroute.SlippageGroupConfig, len(faultyPoolsConfig.SlippageConfigByGroup))
+	slippageConfigByGroup := make(map[string]buildroute.SlippageGroupConfig,
+		len(faultyPoolsConfig.SlippageConfigByGroup))
 	for group, config := range faultyPoolsConfig.SlippageConfigByGroup {
 		slippageConfigByGroup[group] = buildroute.SlippageGroupConfig{
 			Buffer:       config.Buffer,

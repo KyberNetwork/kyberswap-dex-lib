@@ -7,12 +7,12 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type redisRepository struct {
@@ -40,11 +40,11 @@ func (r *redisRepository) findBestPoolByTvl(ctx context.Context, tokenIn, tokenO
 }
 
 func (r *redisRepository) FindBestPoolIDs(ctx context.Context, tokenIn, tokenOut string, amountIn float64,
-	opt valueobject.GetBestPoolsOptions, index valueobject.IndexType, forcePoolsForToken map[string][]string) ([]string, error) {
+	opt valueobject.GetBestPoolsOptions, index valueobject.IndexType, forcePoolsForToken map[string][]string) (poolIds []string, err error) {
 	if index == valueobject.NativeTvl {
-		return r.findBestPoolByTvl(ctx, tokenIn, tokenOut, opt, forcePoolsForToken)
+		poolIds, err = r.findBestPoolByTvl(ctx, tokenIn, tokenOut, opt, forcePoolsForToken)
 	} else {
-		return r.findBestPoolIDsByScore(
+		poolIds, err = r.findBestPoolIDsByScore(
 			ctx,
 			tokenIn,
 			tokenOut,
@@ -53,6 +53,8 @@ func (r *redisRepository) FindBestPoolIDs(ctx context.Context, tokenIn, tokenOut
 			forcePoolsForToken,
 		)
 	}
+	log.Ctx(ctx).Debug().Msgf("FindBestPoolIDs|index=%s|len(poolIds)=%d", index, len(poolIds))
+	return poolIds, err
 }
 
 func (r *redisRepository) findBestPoolIDsByNativeTvl(
@@ -228,11 +230,11 @@ func (r *redisRepository) FindGlobalBestPoolsByScores(ctx context.Context, poolC
 	}
 
 	globalList, err := r.FindGlobalBestPools(ctx, poolCount)
-
 	if err != nil {
-		logger.Errorf(ctx, "failed to get global set %v err: %v\n", err)
+		log.Ctx(ctx).Err(err).Msg("failed to get global set")
 		return result, nil
 	}
+
 	for _, pool := range globalList {
 		if whiteListSet.ContainsOne(pool) {
 			continue

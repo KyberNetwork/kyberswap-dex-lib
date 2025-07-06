@@ -8,13 +8,13 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/pool-service/pkg/message"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/consumer"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type IndexPoolsJob struct {
@@ -55,13 +55,7 @@ func (u *IndexPoolsJob) RunScanJob(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.
-				WithFields(ctx,
-					logger.Fields{
-						"job.name": IndexPools,
-						"error":    ctx.Err(),
-					}).
-				Errorf("job error")
+			log.Ctx(ctx).Err(ctx.Err()).Str("job.name", IndexPools).Msg("job error")
 			return
 		case <-ticker.C:
 			forceScanAllPools := count%u.config.ForceScanAllEveryNth == 0
@@ -75,14 +69,8 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
 	defer func() {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    IndexPools,
-					"duration_ms": time.Since(startTime).Milliseconds()},
-			).
-			Info("job duration")
+		log.Ctx(ctx).Info().Str("job.id", jobID).Str("job.name", IndexPools).Dur("duration_ms",
+			time.Since(startTime)).Msg("job duration")
 	}()
 
 	indexPoolsCmd := dto.IndexPoolsCommand{
@@ -92,44 +80,27 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 		indexPoolsCmd.IgnorePoolsBeforeTimestamp = u.lastScanSuccessTime
 	}
 	indexStartTime := time.Now().Unix()
-	result := u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd)
+	result := lo.FromPtr(u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd))
 
-	var failedCount int
-	if result != nil {
-		failedCount = len(result.FailedPoolAddresses)
-	}
-	if successCount := result.TotalCount - failedCount; successCount > 0 {
+	totalCount := result.TotalCount
+	failedCount := len(result.FailedPoolAddresses)
+	if successCount := totalCount - failedCount; successCount > 0 {
 		metrics.RecordIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), true)
 		metrics.CountIndexPools(ctx, IndexPools, true, successCount)
 	}
 	if failedCount > 0 {
 		metrics.RecordIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), false)
 		metrics.CountIndexPools(ctx, IndexPools, false, failedCount)
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":       jobID,
-					"job.name":     IndexPools,
-					"total_count":  result.TotalCount,
-					"failed_count": failedCount,
-				}).
-			Warn("job done")
+		log.Ctx(ctx).Warn().Str("job.id", jobID).Str("job.name", IndexPools).Int("total_count",
+			totalCount).Int("failed_count", failedCount).Msg("job done")
 		return
 	} else {
 		// only set if no pool failed, and set to start time instead of end time, in case there are pools updated in between
 		u.lastScanSuccessTime = indexStartTime
 	}
 
-	logger.
-		WithFields(ctx,
-			logger.Fields{
-				"job.id":      jobID,
-				"job.name":    IndexPools,
-				"total_count": result.TotalCount,
-				"total_skip":  result.OldPoolCount,
-				"forced":      forceScanAllPools,
-			}).
-		Info("job done")
+	log.Ctx(ctx).Info().Str("job.id", jobID).Str("job.name", IndexPools).Int("total_count",
+		totalCount).Int("total_skip", result.OldPoolCount).Bool("forced", forceScanAllPools).Msg("job done")
 }
 
 func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
@@ -140,17 +111,13 @@ func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
 	defer batcher.Close()
 
 	for {
-		u.poolEventsStreamConsumer.Consume(
+		err := u.poolEventsStreamConsumer.Consume(
 			ctx,
 			func(ctx context.Context, msg *message.EventMessage) error {
 				return u.handleMessage(ctx, msg, batcher)
 			})
 		time.Sleep(u.config.PoolEvent.RetryInterval)
-		logger.WithFields(ctx,
-			logger.Fields{
-				"job.name": consumer.PoolEvents,
-			}).
-			Info("job restarting")
+		log.Ctx(ctx).Info().Err(err).Str("job.name", consumer.PoolEvents).Msg("job restarting")
 	}
 }
 
@@ -170,11 +137,11 @@ func (u *IndexPoolsJob) handleMessage(ctx context.Context,
 		err := json.Unmarshal([]byte(msg.Payload), payload)
 		if err == nil {
 			if err := u.indexPoolsUseCase.RemovePoolFromIndexes(ctx, &payload.PoolEntity); err != nil {
-				logger.Errorf(ctx, "RemovePoolFromIndexes pool %s error %v", &payload.PoolEntity.Address, err)
+				log.Ctx(ctx).Err(err).Str("pool", payload.PoolEntity.Address).Msg("RemovePoolFromIndexes pool failed")
 			}
 		}
+	default:
 	}
-
 	return nil
 }
 
@@ -208,24 +175,11 @@ func (u *IndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddress) {
 	if failedCount > 0 {
 		metrics.RecordIndexPoolsDelay(ctx, consumer.PoolEvents, time.Since(startTime), false)
 		metrics.CountIndexPools(ctx, consumer.PoolEvents, false, failedCount)
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":       jobID,
-					"job.name":     consumer.PoolEvents,
-					"total_count":  len(poolAddresses),
-					"failed_count": failedCount,
-				}).
-			Warn("job done")
+		log.Ctx(ctx).Warn().Str("job.id", jobID).Str("job.name", consumer.PoolEvents).Int("total_count",
+			totalCnt).Int("failed_count", failedCount).Msg("job done")
 		return
 	}
 
-	logger.
-		WithFields(ctx,
-			logger.Fields{
-				"job.id":      jobID,
-				"job.name":    consumer.PoolEvents,
-				"total_count": len(poolAddresses),
-			}).
-		Info("job done")
+	log.Ctx(ctx).Info().Str("job.id", jobID).Str("job.name", consumer.PoolEvents).Int("total_count",
+		totalCnt).Msg("job done")
 }

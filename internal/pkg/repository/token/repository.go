@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/redis/go-redis/v9"
 )
 
 type IToken interface {
@@ -23,7 +24,8 @@ type repository[T IToken] struct {
 	keyTokens   string
 }
 
-func NewSimplifiedTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig, tokenAPI ITokenAPI) *repository[entity.SimplifiedToken] {
+func NewSimplifiedTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig,
+	tokenAPI ITokenAPI) *repository[entity.SimplifiedToken] {
 	return &repository[entity.SimplifiedToken]{
 		redisClient: redisClient,
 		config:      config,
@@ -32,7 +34,8 @@ func NewSimplifiedTokenRepository(redisClient redis.UniversalClient, config Redi
 	}
 }
 
-func NewFullTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig, tokenAPI ITokenAPI) *repository[entity.Token] {
+func NewFullTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig,
+	tokenAPI ITokenAPI) *repository[entity.Token] {
 	return &repository[entity.Token]{
 		redisClient: redisClient,
 		config:      config,
@@ -63,17 +66,13 @@ func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string)
 
 		tokenDataStr, ok := tokenData.(string)
 		if !ok {
-			logger.
-				WithFields(ctx, logger.Fields{"key": addresses[i]}).
-				Warn("invalid token data")
+			log.Ctx(ctx).Warn().Str("key", addresses[i]).Msg("invalid token data")
 			continue
 		}
 
 		token, err := decodeToken[T](ctx, tokenDataStr, addresses[i])
 		if err != nil {
-			logger.
-				WithFields(ctx, logger.Fields{"error": err, "key": addresses[i]}).
-				Warn("decode token data failed")
+			log.Ctx(ctx).Warn().Err(err).Str("key", addresses[i]).Msg("decode token data failed")
 			continue
 		}
 		tokens = append(tokens, token)
@@ -82,7 +81,8 @@ func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string)
 	return tokens, nil
 }
 
-func (r *repository[T]) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID, addresses []string) ([]*routerEntity.TokenInfo, error) {
+func (r *repository[T]) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID,
+	addresses []string) ([]*routerEntity.TokenInfo, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "token.repository.FindTokenInfoByAddress")
 	defer span.End()
 

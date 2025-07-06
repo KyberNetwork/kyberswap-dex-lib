@@ -5,10 +5,11 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyber-trace-go/pkg/constant"
 	"github.com/KyberNetwork/kyber-trace-go/pkg/util/env"
 	"github.com/grafana/pyroscope-go"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 )
@@ -23,11 +24,9 @@ func Pyroscope(ctx context.Context) (cleanUpFn func()) {
 	}
 	pyroscopeServer := os.Getenv(envvar.PYROSCOPEHost)
 	if pyroscopeServer == "" {
-		klog.Errorf(ctx, "Pyroscope|missing env var %s", envvar.PYROSCOPEHost)
+		log.Ctx(ctx).Error().Msgf("Pyroscope|missing env var %s", envvar.PYROSCOPEHost)
 		return func() {}
 	}
-	log := klog.DefaultLogger()
-	_ = log.SetLogLevel("info")
 	serviceName := env.StringFromEnv(constant.EnvKeyOtelServiceName, DefaultServiceName)
 
 	runtime.SetBlockProfileRate(5e4)
@@ -35,7 +34,7 @@ func Pyroscope(ctx context.Context) (cleanUpFn func()) {
 	runtime.SetCPUProfileRate(5e4)
 	profiler, err := pyroscope.Start(pyroscope.Config{
 		ServerAddress: pyroscopeServer,
-		Logger:        log,
+		Logger:        logger{&log.Logger},
 
 		ApplicationName: serviceName,
 		Tags: map[string]string{
@@ -61,14 +60,30 @@ func Pyroscope(ctx context.Context) (cleanUpFn func()) {
 		},
 	})
 	if err != nil {
-		klog.Errorf(ctx, "Pyroscope|failed to start: %v", err)
+		log.Ctx(ctx).Err(err).Msg("Pyroscope|failed to start")
 	}
 	return func() {
 		if profiler == nil {
 			return
 		}
 		if err := profiler.Stop(); err != nil {
-			klog.Errorf(ctx, "Pyroscope|failed to stop: %v", err)
+			log.Ctx(ctx).Err(err).Msg("Pyroscope|failed to stop")
 		}
 	}
+}
+
+type logger struct {
+	*zerolog.Logger
+}
+
+func (l logger) Infof(msg string, args ...any) {
+	l.Info().Msgf(msg, args...)
+}
+
+func (l logger) Debugf(msg string, args ...any) {
+	l.Debug().Msgf(msg, args...)
+}
+
+func (l logger) Errorf(msg string, args ...any) {
+	l.Error().Msgf(msg, args...)
 }

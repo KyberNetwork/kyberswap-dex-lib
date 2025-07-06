@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kutils"
-	"github.com/KyberNetwork/kutils/klog"
 	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -116,9 +116,7 @@ func CountTokenInfoHitLocalCache(ctx context.Context, count int64, isHit bool) {
 
 func Flush() {
 	if err := kybermetric.Flush(context.Background()); err != nil {
-		klog.WithFields(context.Background(), klog.Fields{
-			"error": err,
-		}).Warn("failed to flush VanPT metrics")
+		log.Warn().Err(err).Msg("failed to flush VanPT metrics")
 	}
 }
 

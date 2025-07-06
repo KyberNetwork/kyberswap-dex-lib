@@ -15,6 +15,7 @@ import (
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
@@ -23,7 +24,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var ErrorResponseByError = map[error]ErrorResponse{
@@ -438,9 +438,7 @@ func RespondFailure(c *gin.Context, err error) {
 	response := responseFromErr(err)
 	response.RequestID = requestID
 
-	logger.
-		WithFields(c, logger.Fields{"request.id": requestID, "error": err}).
-		Warn("respond failure")
+	log.Ctx(c).Warn().Err(err).Msg("respond failure")
 
 	c.JSON(
 		response.HTTPStatus,
@@ -516,9 +514,7 @@ func RespondSlippageError(c *gin.Context, err error, suggestedSlippage float64) 
 	}
 	response.RequestID = requestID
 
-	logger.
-		WithFields(c, logger.Fields{"request.id": requestID, "error": err}).
-		Warn("respond slippage error")
+	log.Ctx(c).Warn().Err(err).Msg("respond slippage error")
 
 	c.JSON(
 		response.HTTPStatus,

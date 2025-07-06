@@ -17,11 +17,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	usecasetypes "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var (
@@ -97,7 +97,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 
 			poolSim, err := f.newPool(ctx, *pool, factoryParams, stateRoot)
 			if err != nil {
-				logger.Debugf(ctx, "%+v", err)
+				log.Ctx(ctx).Debug().Err(err).Send()
 				continue
 			}
 			basePoolMap[pool.Address] = poolSim
@@ -110,7 +110,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 			var err error
 			poolSim, err = f.newPool(ctx, *pool, factoryParams, stateRoot)
 			if err != nil {
-				logger.Debugf(ctx, "%+v", err)
+				log.Ctx(ctx).Debug().Err(err).Send()
 				continue
 			}
 		}

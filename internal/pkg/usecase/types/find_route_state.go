@@ -7,9 +7,9 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // FindRouteState enclose the data we need for a findRoute rquest
@@ -200,7 +200,8 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 	} else if a.TrueLen < len(a.Arr) {
 		a.Arr[a.TrueLen] = address
 	} else {
-		logger.Errorf(ctx, "AddressList TrueLen %d is greater than underlying a.Arr's len %d", a.TrueLen, len(a.Arr))
+		log.Ctx(ctx).Error().Msgf("AddressList TrueLen %d is greater than underlying a.Arr's len %d",
+			a.TrueLen, len(a.Arr))
 	}
 
 	a.TrueLen++

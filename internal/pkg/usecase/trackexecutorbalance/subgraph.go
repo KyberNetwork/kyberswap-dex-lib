@@ -6,8 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kutils"
 	"github.com/machinebox/graphql"
-
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/rs/zerolog/log"
 )
 
 func fetchNewExecutorExchangeEvents(
@@ -23,12 +22,12 @@ func fetchNewExecutorExchangeEvents(
 		req := graphql.NewRequest(getExecutorExchangeEventsQuery(executorAddress, fromBlock, toBlock, pageIndex*graphQLPageSize))
 		var res SubgraphExecutorExchangesResponse
 		if err := aggregatorGraphQLClient.Run(ctx, req, &res); err != nil {
-			logger.WithFields(ctx, logger.Fields{
-				"executor":  executorAddress,
-				"fromBlock": fromBlock,
-				"toBlock":   toBlock,
-				"pageIndex": pageIndex,
-			}).Warn("fetch Exchange events from executor")
+			log.Ctx(ctx).Warn().
+				Str("executor", executorAddress).
+				Uint64("fromBlock", fromBlock).
+				Uint64("toBlock", toBlock).
+				Int("pageIndex", pageIndex).
+				Msg("fetch Exchange events from executor")
 			break
 		}
 		exchangeEvents = append(exchangeEvents, res.ExecutorExchanges...)
@@ -38,12 +37,13 @@ func fetchNewExecutorExchangeEvents(
 			lastBlockStr := exchangeEvents[len(exchangeEvents)-1].BlockNumber
 			blockNumber, err := kutils.Atou[uint64](lastBlockStr)
 			if err != nil {
-				logger.WithFields(ctx, logger.Fields{
-					"executor":  executorAddress,
-					"fromBlock": fromBlock,
-					"toBlock":   toBlock,
-					"pageIndex": pageIndex,
-				}).Errorf("failed to convert block number to uint64: %v, %v", lastBlockStr, err)
+				log.Ctx(ctx).Err(err).
+					Str("executor", executorAddress).
+					Uint64("fromBlock", fromBlock).
+					Uint64("toBlock", toBlock).
+					Int("pageIndex", pageIndex).
+					Str("lastBlock", lastBlockStr).
+					Msg("failed to convert block number to uint64")
 				return nil, err
 			}
 
@@ -70,10 +70,10 @@ func fetchNewRouterSwappedEvents(
 		req := graphql.NewRequest(getRouterSwappedEventsQuery(lastBlockNumber, pageIndex*graphQLPageSize))
 		var res SubgraphRouterSwappedResponse
 		if err := aggregatorGraphQLClient.Run(ctx, req, &res); err != nil {
-			logger.WithFields(ctx, logger.Fields{
-				"lastBlockNumber": lastBlockNumber,
-				"pageIndex":       pageIndex,
-			}).Warn("fetch Swapped events from router")
+			log.Ctx(ctx).Warn().
+				Uint64("lastBlockNumber", lastBlockNumber).
+				Int("pageIndex", pageIndex).
+				Msg("fetch Swapped events from router")
 			break
 		}
 		swappedEvents = append(swappedEvents, res.SwappedEvents...)

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/kutils/klog"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+	"github.com/rs/zerolog/log"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -25,7 +24,7 @@ func convertConstructRouteToRouteInfoV2(ctx context.Context, route *common.Const
 		for i, poolAddress := range path.PoolsOrder {
 			pool := simulatorBucket.GetPool(poolAddress)
 			if pool == nil {
-				klog.Errorf(ctx, "pool %s not found in simulator bucket", poolAddress)
+				log.Ctx(ctx).Error().Msgf("pool %s not found in simulator bucket", poolAddress)
 				continue
 			}
 
@@ -101,24 +100,24 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 	alphaFeeTokens := make([]string, len(alphaFee.SwapReductions))
 	alphaFeeAmounts := make([]*big.Int, len(alphaFee.SwapReductions))
 	alphaFeeAmountUsds := make([]string, len(alphaFee.SwapReductions))
-	logFields := logger.Fields{
-		"routeId":            routeId,
-		"alphaFeeTokens":     alphaFeeTokens,
-		"alphaFeeAmounts":    alphaFeeAmounts,
-		"alphaFeeAmountUsds": alphaFeeAmountUsds,
-	}
+	lg := log.Info().
+		Str("routeId", routeId).
+		Strs("alphaFeeTokens", alphaFeeTokens).
+		Interface("alphaFeeAmounts", alphaFeeAmounts).
+		Strs("alphaFeeAmountUsds", alphaFeeAmountUsds)
 
 	for i, swapReduction := range alphaFee.SwapReductions {
 		alphaFeeTokens[i] = swapReduction.TokenOut
 		alphaFeeAmounts[i] = swapReduction.ReduceAmount
 		alphaFeeAmountUsds[i] = fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd)
 		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 0 {
-			logFields["bestAmmRoute"] = bestAmmRoute
+			lg.Stringer("bestAmmRoute", bestAmmRoute)
+			bestAmmRoute = nil
 		}
 	}
 
 	if message == "" {
 		message = "route has alpha fee"
 	}
-	logger.WithFields(logFields).Info(message)
+	lg.Msg(message)
 }

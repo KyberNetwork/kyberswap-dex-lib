@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/KyberNetwork/kutils/klog"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func updateMergeSwapAlphaFee(
@@ -62,10 +61,8 @@ func updateMergeSwapAlphaFee(
 		}
 
 		if !found {
-			klog.WithFields(ctx, logger.Fields{
-				"routeId":       requestid.GetRequestIDFromCtx(ctx),
-				"swapReduction": swapReduction,
-			}).Error("failed to find executed id for swap reduction")
+			log.Ctx(ctx).Error().Any("swapReduction", swapReduction).
+				Msg("failed to find executed id for swap reduction")
 		}
 	}
 

@@ -4,11 +4,12 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/dgraph-io/ristretto"
+	"github.com/rs/zerolog/log"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/dgraph-io/ristretto"
 )
 
 func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
@@ -63,7 +64,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteC
 			continue
 		}
 
-		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Debugf("[route] ristrettoRepository.Get hit local cache")
+		log.Ctx(ctx).Debug().Str("key", cacheKey).Msg("[route] istrettoRepository.Get hit local cache")
 		routes[key] = route
 	}
 
@@ -84,7 +85,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteC
 		}
 		cacheKey := genKey(key, r.config.Prefix)
 		r.cache.SetWithTTL(cacheKey, route, r.config.Route.Cost, r.config.Route.TTL)
-		logger.WithFields(ctx, logger.Fields{"key": cacheKey, "route": route}).Debugf("[route] ristrettoRepository.Get get route from Redis successfully")
+		log.Ctx(ctx).Debug().Str("key", cacheKey).Any("route", route).Msg("[route] ristrettoRepository.Get get route from Redis successfully")
 		routes[key] = route
 	}
 

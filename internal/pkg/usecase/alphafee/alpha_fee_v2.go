@@ -5,19 +5,19 @@ import (
 	"math"
 	"math/big"
 	"runtime/debug"
-
 	"slices"
 
-	"github.com/KyberNetwork/kutils/klog"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/pkg/errors"
 )
 
 type AlphaFeeV2Calculation struct {
@@ -220,7 +220,7 @@ func (c *AlphaFeeV2Calculation) getReductionPerSwap(
 		if r := recover(); r != nil {
 			swapReductions = nil
 			err = errors.WithMessagef(finderCommon.ErrPanicRefreshPath, "%v", r)
-			klog.Warnf(ctx, "alphaFeeV2|refreshPath|%s panicked: %s", currentPool, string(debug.Stack()))
+			log.Ctx(ctx).Warn().Msgf("alphaFeeV2|refreshPath|%s panicked: %s", currentPool, string(debug.Stack()))
 		}
 	}()
 

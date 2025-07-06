@@ -13,12 +13,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -55,7 +56,7 @@ const (
 )
 
 func TestPreloadFromEmbedded(t *testing.T) {
-	logger.SetLogLevel("debug")
+	log.Logger = log.Logger.Level(zerolog.DebugLevel)
 
 	rd, err := miniredis.Run()
 	if err != nil {
@@ -73,7 +74,7 @@ func TestPreloadFromEmbedded(t *testing.T) {
 }
 
 func TestGetBalanceSlot(t *testing.T) {
-	logger.SetLogLevel("debug")
+	log.Logger = log.Logger.Level(zerolog.DebugLevel)
 
 	rd, err := miniredis.Run()
 	if err != nil {
@@ -103,7 +104,8 @@ func TestGetBalanceSlot(t *testing.T) {
 	_, err = c.Get(context.Background(), common.HexToAddress(wetheAddr), nil)
 	require.NoError(t, err)
 
-	bls, err := redisClient.HGetAll(context.Background(), utils.Join(prefix, erc20balanceslot.KeyERC20BalanceSlot)).Result()
+	bls, err := redisClient.HGetAll(context.Background(),
+		utils.Join(prefix, erc20balanceslot.KeyERC20BalanceSlot)).Result()
 	require.NoError(t, err)
 	require.Truef(t, len(bls) == 2, "there must be 2 balance slots")
 	for _, token := range []string{btcbAddr, wetheAddr} {

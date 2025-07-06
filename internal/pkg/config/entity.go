@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -67,8 +67,8 @@ type AEVM struct {
 }
 
 type Log struct {
-	logger.Configuration `mapstructure:",squash"`
-	SentryDSN            string `mapstructure:"sentryDSN" default:""`
+	klog.Configuration `mapstructure:",squash"`
+	SentryDSN          string `mapstructure:"sentryDSN" default:""`
 }
 
 type KeyPairInfo struct {

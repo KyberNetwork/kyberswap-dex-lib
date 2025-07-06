@@ -10,12 +10,12 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Closer interface {
@@ -127,7 +127,7 @@ func (c *LoadBalancingClient) ApplyConfig(cfg Config) {
 		if !oldUrls.Has(url) {
 			client, err := c.makeClientFunc(url)
 			if err != nil {
-				logger.Warnf(context.Background(), "could not make client: %s", err)
+				log.Warn().Err(err).Msg("could not make client")
 				continue
 			}
 			c.clients = append(c.clients, client)
@@ -147,7 +147,7 @@ func (c *LoadBalancingClient) ApplyConfig(cfg Config) {
 				closer.Close()
 			}
 		}
-		logger.Infof(context.Background(), "[AEVMClientUsecase] Closed all unused clients")
+		log.Info().Msg("[AEVMClientUsecase] Closed all unused clients")
 	}()
 }
 
@@ -258,8 +258,8 @@ func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context,
 				return fmt.Errorf("[publishing client] could not StorePreparedPools to client %s: %s",
 					c.cfg.PublishingPoolsURLs[i], err)
 			}
-			logger.Infof(ctx, "[publishing client] StorePreparedPools to client %s took = %s",
-				c.cfg.PublishingPoolsURLs[i], time.Since(start).String())
+			log.Ctx(ctx).Info().Msgf("[publishing client] StorePreparedPools to client %s took = %s",
+				c.cfg.PublishingPoolsURLs[i], time.Since(start))
 			storageIDs[i] = result.StorageID
 			return nil
 		})

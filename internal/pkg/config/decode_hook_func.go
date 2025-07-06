@@ -1,11 +1,11 @@
 package config
 
 import (
-	"log"
 	"math/big"
 	"reflect"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog/log"
 )
 
 func StringToBigIntHookFunc() mapstructure.DecodeHookFunc {
@@ -20,7 +20,7 @@ func StringToBigIntHookFunc() mapstructure.DecodeHookFunc {
 		// Return the parsed value
 		value, _, err := big.ParseFloat(data.(string), 10, 0, big.ToNearestEven)
 		if err != nil {
-			log.Printf("StringToBigIntHookFunc Error when parse float %v", err)
+			log.Err(err).Msg("StringToBigIntHookFunc Error when parse float")
 			return nil, nil
 		}
 		res, _ := value.Int(new(big.Int))

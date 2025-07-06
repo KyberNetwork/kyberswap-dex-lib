@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/backoff"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type ristrettoRepository struct {
@@ -92,14 +92,14 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 
 	uncachedPrices, err := r.grpcRepository.FindByAddresses(ctx, uncachedAddresses)
 	if err != nil {
-		logger.Errorf(ctx, "[onchainprice] ristrettoRepository.FindByAddresses GetUncachedPrices err: %v", err)
+		log.Ctx(ctx).Err(err).Msg("[onchainprice] ristrettoRepository.FindByAddresses GetUncachedPrices")
 		// just return what we have instead of discarding everything
 		return prices, nil
 	}
 
 	nativePriceInUsd, err := r.GetNativePriceInUsd(ctx)
 	if err != nil {
-		logger.Errorf(ctx, "[onchainprice] ristrettoRepository.FindByAddresses GetNativePriceInUsd %v", err)
+		log.Ctx(ctx).Err(err).Msg("[onchainprice] ristrettoRepository.FindByAddresses GetNativePriceInUsd")
 		return prices, nil
 	}
 
@@ -136,7 +136,7 @@ func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) 
 	for {
 		_ = backoff.RetryE(func() error {
 			if err := r.FetchNativePriceInUSD(ctx); err != nil {
-				logger.Errorf(ctx, "failed to fetch native price in usd: %v", err)
+				log.Ctx(ctx).Err(err).Msg("failed to fetch native price in usd")
 				return err
 			}
 
@@ -145,7 +145,7 @@ func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) 
 
 		select {
 		case <-ctx.Done():
-			logger.Infof(ctx, "stop fetching native price in usd with error: %v", ctx.Err())
+			log.Ctx(ctx).Info().Err(ctx.Err()).Msg("stop fetching native price in usd")
 			return
 		case <-ticker.C:
 			continue
@@ -169,7 +169,7 @@ func (r *ristrettoRepository) FetchNativePriceInUSD(ctx context.Context) error {
 	// Set native price in usd to the atomic pointer
 	r.nativeUSDPrice.Store(price)
 
-	logger.Debugf(ctx, "refresh cache with native price in usd: %s", price.String())
+	log.Ctx(ctx).Debug().Msgf("refresh cache with native price in usd: %s", price)
 
 	return nil
 }

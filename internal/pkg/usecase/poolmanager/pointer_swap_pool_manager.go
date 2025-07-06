@@ -18,6 +18,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
@@ -174,7 +174,7 @@ func (p *PointerSwapPoolManager) reloadPoolStates(ctx context.Context) {
 
 		// p.poolCache.Keys() return the list of pool address to maintain
 		if err := p.preparePoolsData(ctx, p.poolCache.Keys()); err != nil {
-			logger.Errorf(ctx, "could not update pool's stateData, error:%s", err)
+			log.Ctx(ctx).Err(err).Msg("could not update pool's stateData")
 		}
 	}
 }
@@ -250,9 +250,9 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 				tokens.Add(common.HexToAddress(token.Address))
 			}
 		}
-		logger.Debugf(ctx, "prepared tokens list from prepared pools took %s", time.Since(start))
+		log.Ctx(ctx).Debug().Msgf("prepared tokens list from prepared pools took %s", time.Since(start))
 		if err := p.balanceSlotsUsecase.PreloadMany(ctx, tokens.ToSlice()); err != nil {
-			logger.Warnf(ctx, "could not PreloadMany: %s", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("could not PreloadMany")
 		}
 		p.balanceSlotsPreloaded.Store(true)
 		p.addressSetsPool.Put(tokens)
@@ -265,7 +265,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 		if err != nil {
 			return fmt.Errorf("could not publish pools: %w", err)
 		}
-		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
+		log.Ctx(ctx).Info().Msgf("published pools took %s storageID=%s", time.Since(start), storageID)
 		p.publishedStorageIDs[writeTo] = storageID
 	}
 	p.states[writeTo].update(pools, common.Hash(stateRoot))
@@ -273,7 +273,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	// swapping pointer
 	p.swapPointer(writeTo)
 
-	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(pools))
+	log.Ctx(ctx).Debug().Msgf("PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(pools))
 	return nil
 }
 
@@ -300,8 +300,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	extraData types.PoolManagerExtraData) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
-		logger.Errorf(ctx,
-			"filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d",
+		log.Ctx(ctx).Error().Msgf("filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d",
 			p.config.BlacklistedPoolSet, len(poolAddresses))
 		return nil, getroute.ErrPoolSetFiltered
 	}
@@ -312,7 +311,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	}
 
 	if len(dex) == 0 {
-		logger.Errorf(ctx, "dex list is empty, error: %v", getroute.ErrPoolSetFiltered)
+		log.Ctx(ctx).Err(getroute.ErrPoolSetFiltered).Msg("dex list is empty")
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -325,6 +324,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	if err != nil {
 		return nil, err
 	}
+	log.Ctx(ctx).Debug().Msgf("getPoolStates|%v pools", len(state.Pools))
 
 	if len(state.Pools) == 0 {
 		return nil, getroute.ErrPoolSetEmpty
@@ -358,7 +358,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 			}
 
 			if p.isPMMStalled(pool) {
-				logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
+				log.Ctx(ctx).Debug().Msgf("stalling PMM pool %s", pool.GetAddress())
 				// refetch again to get the latest data when pmm is stalled
 				poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 				continue
@@ -377,7 +377,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	state.RUnlock()
 
 	if len(pools) == 0 && len(poolsToFetchFromDB) == 0 {
-		logger.Errorf(ctx, "no pools available and no pools to fetch from DB, error: %v", getroute.ErrPoolSetFiltered)
+		log.Ctx(ctx).Err(getroute.ErrPoolSetFiltered).Msg("no pools available and no pools to fetch from DB")
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -399,7 +399,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	defer mempool.ReserveMany(poolEntitiesFromDB...)
 
 	if err != nil {
-		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err : %v", err)
+		log.Ctx(ctx).Err(err).Msg("poolRepository.FindByAddresses failed")
 		return &types.FindRouteState{
 			Pools:                   pools,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits, extraData),
@@ -409,7 +409,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	}
 
 	if len(pools) == 0 && len(poolEntitiesFromDB) == 0 {
-		logger.Errorf(ctx, "no pools available and no pool entities from DB, error: %v", getroute.ErrPoolSetFiltered)
+		log.Ctx(ctx).Error().Msg("no pools available and no pool entities from DB")
 		return nil, getroute.ErrPoolSetFiltered
 	}
 
@@ -427,7 +427,7 @@ func (p *PointerSwapPoolManager) getPoolStates(
 	dbPools := p.poolFactory.NewPools(ctx, poolEntitiesFromDB, stateRoot)
 	for _, pool := range dbPools {
 		if p.isPMMStalled(pool) {
-			logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
+			log.Ctx(ctx).Debug().Msgf("stalling PMM pool %s", pool.GetAddress())
 			continue
 		}
 		if !whitelistDexSet.Has(pool.GetExchange()) { // some PoolSimulator might change Exchange

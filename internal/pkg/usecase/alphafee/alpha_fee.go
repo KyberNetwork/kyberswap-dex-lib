@@ -15,12 +15,12 @@ import (
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var (
@@ -138,7 +138,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 		res, err := c.CalcAmountOut(ctx, pool, tokenAmountIn, toToken, swapLimit)
 
 		if err != nil {
-			logger.Errorf(ctx, "Alpha fee calculation finalize|CalcAmountOut err: %v|%v %s->%s thru %s",
+			log.Ctx(ctx).Error().Msgf("Alpha fee calculation finalize|CalcAmountOut err: %v|%v %s->%s thru %s",
 				err, currentAmountIn, fromToken, toToken, poolId)
 			return nil, ErrInvalidSwap
 		}
@@ -155,7 +155,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 			if currentAmountIn.Sign() < 0 {
 				// return error if amount out of pmm swap isn't enough to cover alpha fee
 				// (this may not happen in reality, but we must have a check here to avoid weird error in calculation)
-				logger.Errorf(ctx, "pmm swap amount %s are not enough to cover alpha fee %s",
+				log.Ctx(ctx).Error().Msgf("pmm swap amount %s are not enough to cover alpha fee %s",
 					pmmTokenAmount.Amount, alphaFee.Amount)
 				return nil, ErrAlphaSwapNotEnoughToCoverAlphaFee
 			}
@@ -171,7 +171,7 @@ func (c *AlphaFeeCalculation) Calculate(ctx context.Context, param AlphaFeeParam
 
 	// final check alpha fee is valid if it still provides better amount than amm amount out
 	if totalAmount.Cmp(ammBestRouteAmountOut) < 0 {
-		logger.Errorf(ctx, "apply alpha fee %s provides less amount than amm amount %s",
+		log.Ctx(ctx).Error().Msgf("apply alpha fee %s provides less amount than amm amount %s",
 			alphaFee.Amount, currentAmountIn)
 		return nil, ErrApplyAlphaFeeYieldLessAmountThanAMM
 	}

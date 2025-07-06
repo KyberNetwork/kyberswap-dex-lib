@@ -6,14 +6,13 @@ import (
 	"math/big"
 	"runtime/debug"
 
-	"github.com/KyberNetwork/kutils/klog"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderFinalizer "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finalizer"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -59,13 +58,13 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	defer func() {
 		if r := recover(); r != nil {
 			route = nil
-			err = errors.WithMessage(ErrPanicFinalizeRoute, fmt.Sprintf("err: %v", r))
+			err = errors.WithMessage(ErrPanicFinalizeRoute, fmt.Sprintf("%v", r))
 
-			logger.WithFields(logger.Fields{
-				"recover":     r,
-				"route.Paths": constructRoute.Paths,
-				"stackTrace":  string(debug.Stack()),
-			}).Error("panic in Finalize route")
+			log.Ctx(ctx).Error().
+				Any("recover", r).
+				Any("route.Paths", constructRoute.Paths).
+				Bytes("stack", debug.Stack()).
+				Msg("panic in Finalize route")
 		}
 	}()
 
@@ -100,7 +99,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			},
 		)
 		if err != nil {
-			logger.WithFields(logger.Fields{"error": err, "routeId": routeId}).Debug("error when calculate alpha fee")
+			log.Ctx(ctx).Debug().Err(err).Str("routeId", routeId).Msg("error when calculate alpha fee")
 		}
 	}
 
@@ -183,21 +182,21 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 					alphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount,
 				)
 				if reducedNextAmountIn.Sign() < 0 {
-					klog.WithFields(ctx, logger.Fields{
-						"pool":            pool.GetAddress(),
-						"amountOut":       res.TokenAmountOut.Amount,
-						"reductionAmount": alphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount,
-						"routeAmountIn":   params.AmountIn,
-						"routeTokenIn":    params.TokenIn,
-						"routeTokenOut":   params.TokenOut,
-					}).Warn("reduction amount is greater than output amount")
+					log.Ctx(ctx).Warn().
+						Str("pool", pool.GetAddress()).
+						Stringer("amountOut", res.TokenAmountOut.Amount).
+						Stringer("reductionAmount", alphaFee.SwapReductions[alphaFeeReductionPointer].ReduceAmount).
+						Stringer("routeAmountIn", params.AmountIn).
+						Str("routeTokenIn", params.TokenIn).
+						Str("routeTokenOut", params.TokenOut).
+						Msg("reduction amount is greater than output amount")
 					reducedNextAmountIn.SetInt64(1)
 				}
 
 				alphaFeeReductionPointer++
 			}
 
-			// Step 2.1.7: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
+			// Step 2.1.7: We need to calculate safety quoting amount and reassign new amount out to next path's amount in
 			reducedNextAmountIn = f.safetyQuoteReduction.Reduce(
 				&dexlibPool.TokenAmount{
 					Token:  res.TokenAmountOut.Token,

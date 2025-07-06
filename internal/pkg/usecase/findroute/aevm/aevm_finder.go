@@ -13,10 +13,10 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/msgpack/v5"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func mustNotError(err error) {
@@ -78,7 +78,8 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 	data.PoolBucket = shallowClonePoolsBucket(data.PoolBucket)
 	// Remove IPoolSimulators which already published under `data.PublishedPoolsStorageID` from `data.PoolBucket`.
 	// The remote IFinder will fill in the removed IPoolSimulators using its published pools.
-	removePublishedPoolsFromPoolsBucket(data.PoolBucket, f.poolsPublisher.PublishedPoolIDs(data.PublishedPoolsStorageID))
+	removePublishedPoolsFromPoolsBucket(data.PoolBucket,
+		f.poolsPublisher.PublishedPoolIDs(data.PublishedPoolsStorageID))
 
 	params, err := findrouteencode.EncodeFindRouteParams(f.baseFinder, &input, &data)
 	if err != nil {
@@ -97,7 +98,7 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 	}
 
 	took := time.Since(start)
-	logger.Infof(ctx, "AEVMFinder.Find() took %s", took.String())
+	log.Ctx(ctx).Info().Msgf("AEVMFinder.Find() took %s", took)
 
 	return *routes, nil
 }

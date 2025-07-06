@@ -14,6 +14,7 @@ import (
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -24,7 +25,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // cache is a decorator for aggregator which handle cache logic
@@ -154,13 +154,10 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 	amountInWithoutDecimal := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	for key, route := range cachedRoutes {
 		if amountInKey, ok := new(big.Float).SetString(key.Key.AmountIn); !ok {
-			logger.
-				WithFields(ctx, logger.Fields{
-					"key":        key.Key,
-					"amountIn":   key.Key.AmountIn,
-					"request_id": requestid.GetRequestIDFromCtx(ctx),
-				}).
-				Info("getBestRouteFromCache Amount in is not a float")
+			log.Ctx(ctx).Info().
+				Stringer("key", key.Key).
+				Str("amountIn", key.Key.AmountIn).
+				Msg("getBestRouteFromCache Amount in is not a float")
 			continue
 		} else {
 			diff := new(big.Float).Sub(amountInKey, amountInWithoutDecimal)
@@ -186,15 +183,11 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	keys []valueobject.RouteCacheKeyTTL) (*valueobject.RouteSummaries, error) {
 	bestKey, bestRoute, err := c.getBestRouteFromCache(ctx, params, keys)
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"key":        keys,
-				"reason":     "get cache failed",
-				"error":      err,
-				"request_id": requestid.GetRequestIDFromCtx(ctx),
-				"client_id":  clientid.GetClientIDFromCtx(ctx),
-			}).
-			Debug("cache missed")
+		log.Ctx(ctx).Debug().Err(err).
+			Any("key", keys).
+			Str("reason", "get cache failed").
+			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+			Msg("cache missed")
 		metrics.CountFindRouteCache(ctx, false, "reason", "getCachedRouteFailed")
 
 		return nil, err
@@ -217,15 +210,11 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 
 	routeSummaries, err := c.summarizeSimpleRouteWithExtraData(ctx, bestRoute, params, tokenByAddress, priceByAddress)
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"key":        bestKey.Key,
-				"reason":     "summarize simple route failed",
-				"error":      err,
-				"request_id": requestid.GetRequestIDFromCtx(ctx),
-				"client_id":  clientid.GetClientIDFromCtx(ctx),
-			}).
-			Debug("cache missed")
+		log.Ctx(ctx).Debug().Err(err).
+			Stringer("key", bestKey.Key).
+			Str("reason", "summarize simple route failed").
+			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+			Msg("cache missed")
 		metrics.CountFindRouteCache(ctx, false, "reason", "summarizeCachedRouteFailed")
 		return nil, err
 	}
@@ -240,15 +229,11 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	priceImpact := routeSummary.GetPriceImpact()
 
 	if priceImpact > c.config.PriceImpactThreshold {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"key":        bestKey.Key,
-				"reason":     "price impact is greater than threshold",
-				"error":      err,
-				"request_id": requestid.GetRequestIDFromCtx(ctx),
-				"client_id":  clientid.GetClientIDFromCtx(ctx),
-			}).
-			Debug("cache missed")
+		log.Ctx(ctx).Debug().Err(err).
+			Stringer("key", bestKey.Key).
+			Str("reason", "price impact is greater than threshold").
+			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+			Msg("cache missed")
 		metrics.CountFindRouteCache(ctx, false, "reason", "priceImpactIsGreaterThanEpsilon")
 
 		// it's meaningless to keep a route which cannot be used
@@ -263,13 +248,10 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 		)
 	}
 
-	logger.
-		WithFields(ctx, logger.Fields{
-			"key":        bestKey.Key,
-			"request_id": requestid.GetRequestIDFromCtx(ctx),
-			"client_id":  clientid.GetClientIDFromCtx(ctx),
-		}).
-		Debug("cache hit")
+	log.Ctx(ctx).Debug().
+		Stringer("key", bestKey.Key).
+		Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+		Msg("cache hit")
 	metrics.CountFindRouteCache(ctx, true)
 
 	return routeSummaries, nil
@@ -295,17 +277,13 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject
 	}
 
 	if err := c.routeCacheRepository.Set(ctx, keys, routes); err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{"error": err}).
-			Error("cache.setRouteToCache failed")
+		log.Ctx(ctx).Err(err).Msg("cache.setRouteToCache failed")
 	}
 
 	if c.routeCacheMigrationRepository != nil {
 		span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] set route to redis")
 		if err := c.routeCacheMigrationRepository.Set(ctx, keys, routes); err != nil {
-			logger.
-				WithFields(ctx, logger.Fields{"error": err}).
-				Error("[Migration] cache.setRouteToCache failed")
+			log.Ctx(ctx).Err(err).Msg("[Migration] cache.setRouteToCache failed")
 		}
 		span.End()
 	}
@@ -454,24 +432,16 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 	// Step 2.1: summarize ammRoute
 	ammConstructRoute, err := c.summarizeSimpleRoute(ctx, simpleRoute.AMMRoute, params, tokenMap, priceMap, state)
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"error":      err,
-				"request_id": requestid.GetRequestIDFromCtx(ctx),
-				"client_id":  clientid.GetClientIDFromCtx(ctx),
-			}).
-			Warnf("summarize ammRoute failed")
+		log.Ctx(ctx).Warn().Err(err).
+			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+			Msg("summarize ammRoute failed")
 		// TODO: count metric
 	}
 	if ammConstructRoute != nil && ammConstructRoute.Cmp(bestConstructRoute, params.GasInclude) > 0 {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"error":           err,
-				"request_id":      requestid.GetRequestIDFromCtx(ctx),
-				"ammAmount":       ammConstructRoute.AmountOut,
-				"bestRouteAmount": bestConstructRoute.AmountOut,
-			}).
-			Infof("cached ammRoute returns better amount than bestRoute")
+		log.Ctx(ctx).Info().Err(err).
+			Stringer("ammAmount", ammConstructRoute.AmountOut).
+			Stringer("bestRouteAmount", bestConstructRoute.AmountOut).
+			Msg("cached ammRoute returns better amount than bestRoute")
 		bestConstructRoute = ammConstructRoute
 	}
 
@@ -498,13 +468,9 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 	// TODO: optimize later do not need to finalize ammRoute, keep ammConstructRoute instead
 	ammRoute, err := finalizer.Finalize(ctx, findRouteParams, ammConstructRoute, nil)
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{
-				"error":      err,
-				"request_id": requestid.GetRequestIDFromCtx(ctx),
-				"client_id":  clientid.GetClientIDFromCtx(ctx),
-			}).
-			Warnf("finalize ammRoute failed")
+		log.Ctx(ctx).Warn().Err(err).
+			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
+			Msg("finalize ammRoute failed")
 	}
 
 	return ConvertToRouteSummaries(params, finderEntity.BestRoutes{route, ammRoute}), nil

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -40,7 +40,7 @@ func (r *Reporter) Report(ctx context.Context, reloadChan chan string) {
 
 			shouldReload, err := r.reloadConfigUseCase.ShouldReload(ctx, getServiceCode(r.cfg.ServiceName, r.cfg.ChainID))
 			if err != nil {
-				logger.Errorf(ctx, "failed to check should reload, err: %v", err)
+				log.Ctx(ctx).Err(err).Msg("failed to check should reload")
 				continue
 			}
 

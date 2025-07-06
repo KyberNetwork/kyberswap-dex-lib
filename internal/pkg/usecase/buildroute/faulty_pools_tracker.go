@@ -2,25 +2,23 @@ package buildroute
 
 import (
 	"context"
-	"fmt"
 	"runtime/debug"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/rs/zerolog/log"
 
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/crypto"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (uc *BuildRouteUseCase) recordMetrics(ctx context.Context, route [][]valueobject.Swap, slippageTolerance float64, err error) {
+func (uc *BuildRouteUseCase) recordMetrics(ctx context.Context, route [][]valueobject.Swap, slippageTolerance float64,
+	err error) {
 	clientId := clientid.GetClientIDFromCtx(ctx)
 	isSuccess := err == nil
 
@@ -52,39 +50,28 @@ func (uc *BuildRouteUseCase) handleFaultyPools(
 }
 
 func (uc *BuildRouteUseCase) blockFaultyPool(ctx context.Context, route [][]valueobject.Swap, err error) {
-	clientId := clientid.GetClientIDFromCtx(ctx)
-	requestId := requestid.GetRequestIDFromCtx(ctx)
+	lg := log.Ctx(ctx).With().Str("clientId", clientid.GetClientIDFromCtx(ctx)).Logger()
 
 	sequence, hop, ok := ExtractPoolIndexFromError(err)
 	if !ok {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestId,
-			"clientId":  clientId,
-			"error":     err.Error(),
-		}).Error("Failed to extract swap error indices")
+		lg.Err(err).Msg("Failed to extract swap error indices")
 		return
 	}
 
 	if sequence < 0 || sequence >= len(route) {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestId,
-			"clientId":  clientId,
-			"sequence":  sequence,
-			"pathLen":   len(route),
-			"error":     err.Error(),
-		}).Error("Invalid sequence index")
+		lg.Err(err).
+			Int("sequence", sequence).
+			Int("pathLen", len(route)).
+			Msg("Invalid sequence index")
 		return
 	}
 
 	if hop < 0 || hop >= len(route[sequence]) {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestId,
-			"clientId":  clientId,
-			"sequence":  sequence,
-			"hop":       hop,
-			"swapLen":   len(route[sequence]),
-			"error":     err.Error(),
-		}).Error("Invalid hop index")
+		lg.Err(err).
+			Int("sequence", sequence).
+			Int("hop", hop).
+			Int("swapLen", len(route[sequence])).
+			Msg("Invalid hop index")
 		return
 	}
 
@@ -96,19 +83,16 @@ func (uc *BuildRouteUseCase) blockFaultyPool(ctx context.Context, route [][]valu
 			ExpiresAt: time.Now().UTC().Add(uc.config.FaultyPoolsConfig.ExpireTime),
 		},
 	}); err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestId,
-			"clientId":  clientId,
-			"pool":      fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool),
-			"error":     err.Error(),
-		}).Error("Failed to add faulty pool")
+		log.Ctx(ctx).Err(err).
+			Str("exchange", string(swap.Exchange)).
+			Str("pool", swap.Pool).
+			Msg("Failed to add faulty pool")
 	}
 
-	logger.WithFields(ctx, logger.Fields{
-		"requestId": requestId,
-		"clientId":  clientId,
-		"pool":      fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool),
-	}).Infof("EstimateGas failed error %s", err)
+	log.Ctx(ctx).Info().Err(err).
+		Str("exchange", string(swap.Exchange)).
+		Str("pool", swap.Pool).
+		Msg("EstimateGas failed")
 }
 
 func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker) {
@@ -128,14 +112,9 @@ func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []
 
 	results, err := uc.poolRepository.TrackFaultyPools(ctx, trackers)
 	if err != nil {
-		logger.WithFields(
-			ctx,
-			logger.Fields{
-				"error":      err,
-				"stacktrace": string(debug.Stack()),
-				"trackPools": results,
-				"requestId":  requestid.GetRequestIDFromCtx(ctx),
-			}).Error("failed to add faulty pools")
+		log.Ctx(ctx).Err(err).Bytes("stack", debug.Stack()).
+			Strs("trackPools", results).
+			Msg("failed to add faulty pools")
 	}
 }
 
@@ -145,10 +124,8 @@ func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 	err error,
 	estimatedSlippage float64,
 ) []routerEntities.FaultyPoolTracker {
-	trackers := []routerEntities.FaultyPoolTracker{}
-	failedCount := int64(0)
-	clientId := clientid.GetClientIDFromCtx(ctx)
-
+	var trackers []routerEntities.FaultyPoolTracker
+	var failedCount int64
 	// Get token group type
 	tokenGroupType, _ := uc.config.TokenGroups.GetTokenGroupType(valueobject.TokenGroupParams{
 		TokenIn:  route.TokenIn,
@@ -157,7 +134,8 @@ func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 
 	// if estimatedSlippage > MinSlippageThreshold, we will consider a pool is faulty, otherwise, we do not encounter it
 	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
-	if isSlippageAboveMinThreshold(estimatedSlippage, tokenGroupType, uc.config.FaultyPoolsConfig.SlippageConfigByGroup) {
+	if isSlippageAboveMinThreshold(estimatedSlippage, tokenGroupType,
+		uc.config.FaultyPoolsConfig.SlippageConfigByGroup) {
 		failedCount = 1
 	}
 
@@ -176,22 +154,22 @@ func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 				Tokens:      []string{swap.TokenIn, swap.TokenOut},
 			})
 
-			poolTags = append(poolTags, fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool))
+			poolTags = append(poolTags, string(swap.Exchange)+":"+swap.Pool)
 		}
 	}
 
 	if err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"requestId": requestid.GetRequestIDFromCtx(ctx),
-			"clientId":  clientId,
-			"pool":      strings.Join(poolTags, ","),
-		}).Infof("EstimateGas failed error %s", err)
+		log.Ctx(ctx).Info().Err(err).
+			Str("clientId", clientid.GetClientIDFromCtx(ctx)).
+			Strs("poolTags", poolTags).
+			Msg("EstimateGas failed")
 	}
 
 	return trackers
 }
 
-func (uc *BuildRouteUseCase) createPMMPoolTrackers(swaps []valueobject.Swap, err error) []routerEntities.FaultyPoolTracker {
+func (uc *BuildRouteUseCase) createPMMPoolTrackers(swaps []valueobject.Swap,
+	err error) []routerEntities.FaultyPoolTracker {
 	failedCount := int64(0)
 	if isPMMFaultyPoolError(err) {
 		failedCount = 1
@@ -237,12 +215,13 @@ func (uc *BuildRouteUseCase) shouldTrackTokens(ctx context.Context, tokens mapse
 	// fetch token info to check if the token is fot token or honeypot
 	tokenInfo, err := uc.tokenRepository.FindTokenInfoByAddress(ctx, unwhiteListTokens)
 	if err != nil {
-		logger.Errorf(ctx, "shouldTrackTokens failed to find token info from token catalog: %v", err)
+		log.Ctx(ctx).Err(err).Msg("shouldTrackTokens failed to find token info from token catalog")
 		return false
 	}
 
 	for _, info := range tokenInfo {
-		logger.Debugf(ctx, "FindTokenInfoByAddress tokenInfo address %s, isFOT %t, isHoneyPot %t", info.Address, info.IsFOT, info.IsHoneypot)
+		log.Ctx(ctx).Debug().Msgf("FindTokenInfoByAddress tokenInfo address %s, isFOT %t, isHoneyPot %t",
+			info.Address, info.IsFOT, info.IsHoneypot)
 		if isInvalid(info) {
 			return false
 		}

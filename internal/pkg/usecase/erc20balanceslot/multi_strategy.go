@@ -8,9 +8,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/rs/zerolog/log"
 
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type MultipleStrategyExtraParams struct {
@@ -83,7 +83,7 @@ func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Ad
 		if err == nil {
 			break
 		}
-		logger.Debugf(ctx, "strategy %s failed: %s", name, err)
+		log.Ctx(ctx).Debug().Err(err).Msgf("strategy %s failed", name)
 	}
 	if len(attempted) == 0 {
 		return nil, fmt.Errorf("there is no more strategies to attempted, already attempted %v", hadAttemptedList)

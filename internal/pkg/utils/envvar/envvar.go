@@ -1,6 +1,8 @@
 package envvar
 
 const (
+	Env = "ENV"
+
 	OTELEnabled        = "OTEL_ENABLED"
 	OTELService        = "OTEL_SERVICE_NAME"
 	OTELEnv            = "OTEL_ENV"

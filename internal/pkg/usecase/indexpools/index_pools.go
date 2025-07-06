@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 	"golang.org/x/exp/maps"
@@ -17,7 +18,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
@@ -112,7 +112,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 
 		chunkPool, failedPoolAddresses, err := u.getChunkPool(ctx, &getChunkPoolCommand)
 		if err != nil {
-			logger.Errorf(ctx, "error get chunk pool: %v", err)
+			log.Ctx(ctx).Err(err).Msg("error get chunk pool")
 			totalFailedPoolAddresses = append(totalFailedPoolAddresses, failedPoolAddresses...)
 			continue
 		}
@@ -127,7 +127,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		// collect prices for all pools' tokens first
 		nativePriceByToken, err = u.getPricesForAllTokens(ctx, pools)
 		if err != nil {
-			logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
+			log.Ctx(ctx).Err(err).Msg("error fetching pool tokens prices")
 			totalFailedPoolAddresses = append(totalFailedPoolAddresses,
 				lo.Map(pools, func(pool *entity.Pool, _ int) string { return pool.Address })...)
 			continue
@@ -177,7 +177,7 @@ func (u *IndexPoolsUseCase) getChunkPool(
 		}
 		chunkPool, err = u.poolRepo.FindByAddresses(ctx, command.PoolAddresses[startIndex:lastIndex])
 		if err != nil {
-			logger.Errorf(ctx, "error get pools by addresses: %v", err)
+			log.Ctx(ctx).Err(err).Msg("error get pools by addresses")
 			failedPoolAddresses = command.PoolAddresses[startIndex:lastIndex]
 		}
 
@@ -189,7 +189,7 @@ func (u *IndexPoolsUseCase) getChunkPool(
 		var newCursor uint64
 		chunkPool, failedPoolAddresses, newCursor, err = u.poolRepo.ScanPools(ctx, command.Cursor, command.ChunkSize)
 		if err != nil {
-			logger.Errorf(ctx, "error get all pools: %v", err)
+			log.Ctx(ctx).Err(err).Msg("error get all pools")
 		}
 
 		command.Cursor = newCursor
@@ -473,7 +473,7 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 	} else {
 		directIndexLength, err := u.poolRankRepo.GetDirectIndexLength(ctx, poolrank.SortByTVLNative, poolIndex.Token0, poolIndex.Token1)
 		if err != nil {
-			logger.Warnf(ctx, "failed to get direct index length %v", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("failed to get direct index length")
 		} else {
 			shouldAddToTvlNativeIndex = directIndexLength < int64(u.config.MaxDirectIndexLenForZeroTvl)
 		}
@@ -482,7 +482,7 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 	if shouldAddToTvlNativeIndex {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByTVLNative, poolIndex.Pool.Address, poolIndex.TvlNative, true); err != nil {
-			logger.Errorf(ctx, "failed to add to sorted set %v", err)
+			log.Ctx(ctx).Err(err).Msg("failed to add to sorted set")
 			return ErrIndexResultFailed
 		}
 	}
@@ -490,7 +490,7 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 	if poolIndex.AmplifiedTvlNative > 0 {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, poolIndex.AmplifiedTvlNative, false); err != nil {
-			logger.Debugf(ctx, "failed to add to sorted set %v", err)
+			log.Ctx(ctx).Debug().Err(err).Msg("failed to add to sorted set")
 			return ErrIndexResultFailed
 		}
 	}
@@ -503,13 +503,13 @@ func (u *IndexPoolsUseCase) removePoolIndex(ctx context.Context, poolIndex *Pool
 
 	if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 		poolrank.SortByTVLNative, poolIndex.Pool.Address, true); err != nil {
-		logger.Errorf(ctx, "removePoolIndex SortByTVLNative %v", err)
+		log.Ctx(ctx).Err(err).Msg("removePoolIndex SortByTVLNative")
 		result = err
 	}
 
 	if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 		poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, false); err != nil {
-		logger.Errorf(ctx, "removePoolIndex SortByAmplifiedTVLNative %v", err)
+		log.Ctx(ctx).Err(err).Msg("removePoolIndex SortByAmplifiedTVLNative")
 		result = err
 	}
 

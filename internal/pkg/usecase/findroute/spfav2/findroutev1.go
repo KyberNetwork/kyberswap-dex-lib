@@ -3,11 +3,12 @@ package spfav2
 import (
 	"context"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func (f *Spfav2Finder) findrouteV1(
@@ -97,9 +98,8 @@ func (f *Spfav2Finder) bestMultiPathRouteV1(
 	for _, amountInPerSplit := range splits {
 		bestPath, err := f.bestPathExactInV1(ctx, input, data, amountInPerSplit, hopsToTokenOut)
 		if err != nil {
-			logger.WithFields(ctx, logger.Fields{"error": err}).
-				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-					input.TokenInAddress, input.TokenOutAddress, amountInPerSplit.Amount, amountInPerSplit.AmountUsd)
+			log.Ctx(ctx).Debug().Err(err).Msgf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+				input.TokenInAddress, input.TokenOutAddress, amountInPerSplit.Amount, amountInPerSplit.AmountUsd)
 		}
 		bestAddedPath, err := common.BestPathAmongAddedPaths(ctx, input, data, amountInPerSplit, bestMultiPathRoute.Paths)
 		if err == nil && bestAddedPath.CompareTo(bestPath, input.GasInclude && data.BuyPriceAvailable(bestAddedPath.Output.Token)) < 0 {

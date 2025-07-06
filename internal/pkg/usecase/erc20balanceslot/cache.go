@@ -10,11 +10,11 @@ import (
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Cache struct {
@@ -49,7 +49,8 @@ func (c *Cache) PreloadMany(ctx context.Context, tokens []common.Address) error 
 		start       = time.Now()
 	)
 	defer func() {
-		logger.Debugf(ctx, "preloaded %v token balance slots from Redis took %s", numInserted, time.Since(start))
+		log.Ctx(ctx).Debug().Msgf("preloaded %v token balance slots from Redis took %s",
+			numInserted, time.Since(start))
 	}()
 
 	var preloadingTokens []common.Address
@@ -121,7 +122,8 @@ func (c *Cache) PreloadFromEmbedded(ctx context.Context) error {
 		}
 		numPreloaded = len(embedded)
 	}
-	logger.Debugf(ctx, "preloaded %v token balance slots from embedded took %s", numPreloaded, time.Since(start))
+	log.Ctx(ctx).Debug().Msgf("preloaded %v token balance slots from embedded took %s",
+		numPreloaded, time.Since(start))
 	return nil
 }
 
@@ -162,7 +164,7 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 		if bl != nil {
 			c.cache.Store(token, bl)
 			if err := c.repo.Put(ctx, bl); err != nil {
-				logger.WithFields(ctx, logger.Fields{"entity": bl}).Errorf("could not store balance slot: %s", err)
+				log.Ctx(ctx).Err(err).Any("entity", bl).Msg("could not store balance slot")
 			}
 		}
 		// err != nil implies bl == nil

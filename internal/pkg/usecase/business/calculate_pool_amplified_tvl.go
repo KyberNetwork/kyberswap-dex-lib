@@ -20,10 +20,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/goccy/go-json"
 	"github.com/izumiFinance/iZiSwap-SDK-go/library/calc"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func CalculatePoolAmplifiedTVL(
@@ -43,7 +43,7 @@ func CalculatePoolAmplifiedTVL(
 		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
 		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
 		if err != nil {
-			logger.Errorf(ctx, "failed to get liquidity and sqrt price for pool %s: %s", p.Address, err)
+			log.Ctx(ctx).Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
 			return 0, false, err
 		}
 
@@ -82,7 +82,7 @@ func CalculatePoolAmplifiedTVL(
 				nativePriceByToken,
 			)
 			if err != nil {
-				logger.Warnf(ctx, "could not CalculateAmplifiedTVL for Ambient pair %s", pair)
+				log.Ctx(ctx).Warn().Msgf("could not CalculateAmplifiedTVL for Ambient pair %s", pair)
 				continue
 			}
 			amplifiedTvl += v
@@ -113,12 +113,12 @@ func calculateAmplifiedTVL(ctx context.Context, token0, token1 string, liquidity
 
 	midPrice0, price0, err := getMidPrice(nativePriceByToken, token0)
 	if err != nil {
-		logger.Debugf(ctx, "cannot get mid price for token0 %v %v", token0, price0)
+		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token0 %v %v", token0, price0)
 		return 0, err
 	}
 	midPrice1, price1, err := getMidPrice(nativePriceByToken, token1)
 	if err != nil {
-		logger.Debugf(ctx, "cannot get mid price for token1 %v %v", token1, price1)
+		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token1 %v %v", token1, price1)
 		return 0, err
 	}
 

@@ -4,27 +4,26 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"slices"
 	"sync/atomic"
 
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
@@ -100,9 +99,8 @@ func main() {
 			},
 		}}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
+	if err := app.Run(os.Args); err != nil {
+		panic(err)
 	}
 }
 
@@ -122,7 +120,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf(c.Context, "failed to validate config, err: %v", err)
+		log.Ctx(c.Context).Err(err).Msg("failed to validate config")
 		panic(err)
 	}
 
@@ -140,13 +138,13 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		jsonrpcURL = cfg.Common.RPC
 	}
 
-	logger.Infof(c.Context, "wallet address: %s JSONRPC URL: %s\n", walletAddr, jsonrpcURL)
+	log.Ctx(c.Context).Info().Msgf("wallet address: %s JSONRPC URL: %s\n", walletAddr, jsonrpcURL)
 
 	retryNotFoundTokens := c.Bool("retry-not-found-tokens")
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(c.Context, "fail to init redis client to pool service")
+		log.Ctx(c.Context).Error().Msg("fail to init redis client to pool service")
 		return err
 	}
 
@@ -155,7 +153,8 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	key := utils.Join(cfg.PoolRedis.Prefix, pool.KeyPools)
 	cursor := uint64(0)
 	for {
-		keyValues, newCursor, err := poolRedisClient.Client.HScan(context.Background(), key, cursor, "", HashKeyReadChunkSize).Result()
+		keyValues, newCursor, err := poolRedisClient.Client.HScan(context.Background(), key, cursor, "",
+			HashKeyReadChunkSize).Result()
 		if err != nil {
 			return err
 		}
@@ -188,7 +187,8 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		slices.SortFunc(pools, func(a, b *dexentity.Pool) int { return cmp.Compare(b.ReserveUsd, a.ReserveUsd) })
 	}
 
-	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
+	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client,
+		cfg.Repository.ERC20BalanceSlot.Redis)
 
 	tokens := make(map[common.Address]struct{})
 	if len(c.StringSlice("tokens")) > 0 {
@@ -196,7 +196,8 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			tokens[common.HexToAddress(token)] = struct{}{}
 		}
 	} else {
-		tokensList := poolRedisClient.Client.HKeys(context.Background(), utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
+		tokensList := poolRedisClient.Client.HKeys(context.Background(),
+			utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
 		for _, token := range tokensList {
 			if common.IsHexAddress(token) {
 				tokens[common.HexToAddress(token)] = struct{}{}
@@ -206,7 +207,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 
 	balanceSlots, err := balanceSlotRepo.GetAll(context.Background())
 	if err != nil {
-		logger.Errorf(c.Context, "could not get balance slots %s", err)
+		log.Ctx(c.Context).Err(err).Msg("could not get balance slots")
 	}
 
 	if c.Bool("skip-existing-tokens") {
@@ -218,7 +219,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			}
 		}
 	}
-	logger.Infof(c.Context, "number of tokens to probe = %v\n", len(tokens))
+	log.Ctx(c.Context).Info().Msgf("number of tokens to probe = %v\n", len(tokens))
 
 	rpcClient, err := rpc.DialHTTP(jsonrpcURL)
 	if err != nil {
@@ -246,9 +247,10 @@ func probeBalanceSlotAction(c *cli.Context) error {
 				}
 				bl, err := probe.ProbeBalanceSlot(context.Background(), token, oldBl, extraParams)
 				if err != nil {
-					logger.Infof(c.Context, "ERROR: %s\n", err)
+					log.Ctx(c.Context).Err(err).Msg("probe.ProbeBalanceSlot")
 				} else {
-					logger.Infof(c.Context, "(%d/%d) %s : %+v\n", numProbed.Add(1), len(tokens), token, bl)
+					log.Ctx(c.Context).Info().Msgf("(%d/%d) %s : %+v\n",
+						numProbed.Add(1), len(tokens), token, bl)
 					if err := balanceSlotRepo.Put(context.Background(), bl); err != nil {
 						return fmt.Errorf("could not PUT: %w", err)
 					}
@@ -294,13 +296,13 @@ func convertToEmbeddedAction(c *cli.Context) error {
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf(c.Context, "failed to validate config, err: %v", err)
+		log.Ctx(c.Context).Err(err).Msg("failed to validate config")
 		panic(err)
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(c.Context, "fail to init redis client to pool service")
+		log.Ctx(c.Context).Error().Msg("fail to init redis client to pool service")
 		return err
 	}
 

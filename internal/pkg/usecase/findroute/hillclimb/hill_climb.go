@@ -6,13 +6,13 @@ import (
 	"math/big"
 
 	clone "github.com/huandu/go-clone/generic"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func (f *HillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Input, data findroute.FinderData, baseRoute *valueobject.Route) (*valueobject.Route, error) {
@@ -43,8 +43,7 @@ func (f *HillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 		}
 
 		if err = tmpRoute.AddPath(ctx, data.PoolBucket, currentRoute.Paths[pathId], data.SwapLimits); err != nil {
-			logger.WithFields(ctx, logger.Fields{"error": err}).
-				Debugf("cannot optimize path from token %v to token %v", input.TokenInAddress, input.TokenOutAddress)
+			log.Ctx(ctx).Debug().Err(err).Msgf("cannot optimize path from token %v to token %v", input.TokenInAddress, input.TokenOutAddress)
 			return currentRoute, nil
 		}
 	}

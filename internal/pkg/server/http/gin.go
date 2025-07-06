@@ -1,10 +1,8 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/KyberNetwork/kutils/klog"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/requestid"
@@ -25,11 +23,13 @@ const (
 	liveAPIPath  = "/api/v1/health/ready"
 )
 
-func GinServer(cfg *HTTPConfig, logCfg klog.Configuration, logBackend klog.LoggerBackend) (*gin.Engine, *gin.RouterGroup, error) {
+func GinServer(cfg *HTTPConfig) (*gin.Engine, *gin.RouterGroup, error) {
 	gin.SetMode(cfg.Mode)
 	gin.EnableJsonDecoderUseNumber()
 
-	server := gin.New()
+	server := gin.New(func(engine *gin.Engine) {
+		engine.ContextWithFallback = true
+	})
 	skipPathSet := getSkipPathSet(cfg.Prefix)
 
 	middlewares := []gin.HandlerFunc{
@@ -70,7 +70,7 @@ func GinServer(cfg *HTTPConfig, logCfg klog.Configuration, logBackend klog.Logge
 	)
 
 	server.Use(middlewares...)
-	server.Use(loggermiddleware.New(skipPathSet, logCfg, logBackend))
+	server.Use(loggermiddleware.New(skipPathSet))
 	server.Use(gin.CustomRecovery(api.RecoveryFunc))
 
 	setCORS(server)
@@ -98,8 +98,8 @@ func setCORS(engine *gin.Engine) {
 func getSkipPathSet(prefix string) map[string]struct{} {
 	skipPathsSet := make(map[string]struct{})
 
-	skipPathsSet[fmt.Sprintf("%s%s", prefix, readyAPIPath)] = struct{}{}
-	skipPathsSet[fmt.Sprintf("%s%s", prefix, liveAPIPath)] = struct{}{}
+	skipPathsSet[prefix+readyAPIPath] = struct{}{}
+	skipPathsSet[prefix+liveAPIPath] = struct{}{}
 
 	return skipPathsSet
 }

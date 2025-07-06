@@ -7,12 +7,12 @@ import (
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type RetryFinder struct {
@@ -43,7 +43,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 		return nil, err
 	}
 	if len(routes) == 0 {
-		logger.Debugf(ctx, "retry finder: extract best base route failed %s", err)
+		log.Ctx(ctx).Debug().Msgf("retry finder: extract best base route failed %s", err)
 		return nil, nil
 	}
 	//clear/ restart.
@@ -61,12 +61,11 @@ func (r *RetryFinder) Find(ctx context.Context,
 			TokenPrice:    input.GasTokenPriceUSD,
 		})
 	if newRoute != nil && newRoute.CompareTo(baseBestRoute, input.GasInclude) > 0 {
-		logger.Debugf(ctx,
-			"retry finder: success retry with better rate baseAmountOut: %s baseAmountOutUsd %s poolAddr %s, and newAmountOut %s newAmountOutUsd %s poolAddr %s",
-			baseBestRoute.Output.Amount.String(),
+		log.Ctx(ctx).Debug().Msgf("retry finder: success retry with better rate baseAmountOut: %s baseAmountOutUsd %f poolAddr %s, and newAmountOut %s newAmountOutUsd %f poolAddr %s",
+			baseBestRoute.Output.Amount,
 			baseBestRoute.Output.AmountUsd,
 			baseBestRoute.ExtractPoolAddresses(),
-			newRoute.Output.Amount.String(),
+			newRoute.Output.Amount,
 			newRoute.Output.AmountUsd,
 			newRoute.ExtractPoolAddresses())
 		routes = append([]*valueobject.Route{newRoute}, routes...)
@@ -103,12 +102,14 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 		for pIndex := 0; pIndex < len(currPath.PoolAddresses); pIndex++ {
 			currPool, avail := data.PoolBucket.GetPool(currPath.PoolAddresses[pIndex])
 			if !avail {
-				logger.Errorf(ctx, "pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
+				log.Ctx(ctx).Error().Msgf("pool is removed from pool bucket, poolAddress: %s",
+					currPath.PoolAddresses[pIndex])
 				return route
 			}
 			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(ctx, currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input, map[string]bool{})
 			if err != nil {
-				logger.Errorf(ctx, "cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
+				log.Ctx(ctx).Error().Msgf("cannot calculate amount out for pool %s, error: %s",
+					currPool.GetAddress(), err)
 				return route
 			}
 
@@ -133,7 +134,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 			var err error
 			newPath, err = valueobject.NewPath(ctx, data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenNativeBuyPrice(currPath.Output.Token), data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
 			if err != nil {
-				logger.Errorf(ctx, "cannot create new path, error: %s", err.Error())
+				log.Ctx(ctx).Error().Msgf("cannot create new path, error: %s", err.Error())
 				newPath = currPath
 			}
 			routeModified = true
@@ -141,13 +142,13 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 			newPath = currPath
 		}
 		if err := newRoute.AddPath(ctx, data.PoolBucket, newPath, data.SwapLimits); err != nil {
-			logger.Debugf(ctx, "could not add Path. Error :%s", err)
+			log.Ctx(ctx).Debug().Msgf("could not add Path. Error :%s", err)
 			return nil
 		}
 
 	}
 	if routeModified {
-		logger.Debugf(ctx, "found better route %v. Old pool %v", newRoute, route)
+		log.Ctx(ctx).Debug().Msgf("found better route %v. Old pool %v", newRoute, route)
 		return newRoute
 	}
 	return nil

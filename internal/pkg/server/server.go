@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/reload"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -33,19 +33,19 @@ func NewServer(httpServer *http.Server,
 		cfg:                  cfg,
 		reloadConfigReporter: reloadConfigReporter,
 		reloadManager:        reloadManager,
-		isRunningProduction:  env.IsProductionMode(cfg.Env),
+		isRunningProduction:  env.IsProductionMode(),
 	}
 }
 
 func (s *server) Run(ctx context.Context) error {
-	logger.WithFields(ctx, logger.Fields{
-		"grpc_addr":    s.cfg.GRPC.Host,
-		"grpc_port":    s.cfg.GRPC.Port,
-		"bind_address": s.cfg.Http.BindAddress,
-		"http_prefix":  s.cfg.Http.Prefix,
-		"http_mode":    s.cfg.Http.Mode,
-		"env":          s.cfg.Env,
-	}).Info("Starting server...")
+	log.Ctx(ctx).Info().
+		Str("grpc_addr", s.cfg.GRPC.Host).
+		Int("grpc_port", s.cfg.GRPC.Port).
+		Str("bind_address", s.cfg.Http.BindAddress).
+		Str("http_prefix", s.cfg.Http.Prefix).
+		Str("http_mode", s.cfg.Http.Mode).
+		Str("env", s.cfg.Env).
+		Msg("Starting server...")
 	return s.run(ctx)
 }
 
@@ -82,7 +82,7 @@ func (s *server) run(ctx context.Context) error {
 			defer cancelFn()
 
 			if err := s.httpServer.Shutdown(ctx); err != nil {
-				logger.Errorf(ctx, "failed to stop server: %w", err)
+				log.Ctx(ctx).Err(err).Msg("failed to stop server")
 			}
 
 			return nil

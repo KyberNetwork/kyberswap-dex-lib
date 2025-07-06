@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -14,7 +15,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type bundledAggregator struct {
@@ -101,11 +101,12 @@ func (a *bundledAggregator) Aggregate(ctx context.Context,
 			}
 			poolSim := poolSims[pool.Address]
 			if poolSim == nil {
-				logger.Errorf(ctx, "could not get pool simulator for pool %v", pool.Address)
+				log.Ctx(ctx).Error().Msgf("could not get pool simulator for pool %v", pool.Address)
 				delete(state.Pools, pool.Address)
 				continue
 			}
-			logger.Debugf(ctx, "overriding pool %v: %v | %v", pool.Address, state.Pools[pool.Address], poolSim)
+			log.Ctx(ctx).Debug().Msgf("overriding pool %v: %v | %v",
+				pool.Address, state.Pools[pool.Address], poolSim)
 			state.Pools[pool.Address] = poolSim
 		}
 
@@ -114,7 +115,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context,
 		for _, newMetaPool := range newMetaPools {
 			addr := newMetaPool.GetAddress()
 			if _, ok := state.Pools[addr]; ok {
-				logger.Debugf(ctx, "overriding meta pool %v | %v", state.Pools[addr], newMetaPool)
+				log.Ctx(ctx).Debug().Msgf("overriding meta pool %v | %v", state.Pools[addr], newMetaPool)
 				state.Pools[addr] = newMetaPool
 			}
 		}
@@ -154,7 +155,7 @@ func (a *bundledAggregator) getStateByBundledAddress(ctx context.Context,
 	}
 
 	if len(filteredPoolIDs) == 0 {
-		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
+		log.Ctx(ctx).Error().Msgf("empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
 			bestPoolIDs, params.ExcludedPools.String())
 		return nil, ErrPoolSetFiltered
 	}
@@ -274,7 +275,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 		route := result.GetBestRoute()
 		finalizeExtra, ok := route.ExtraFinalizerData.(types.FinalizeExtraData)
 		if !ok {
-			logger.Errorf(ctx, "invalid finalizer data %v: %v", pair, route.ExtraFinalizerData)
+			log.Ctx(ctx).Error().Msgf("invalid finalizer data %v: %v", pair, route.ExtraFinalizerData)
 			return nil, ErrInvalidFinalizerExtraData
 		}
 		lastSwapState = &finalizeExtra.StateAfterSwap

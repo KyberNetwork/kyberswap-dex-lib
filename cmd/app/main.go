@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -26,6 +25,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -76,7 +76,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/crypto/keystorage"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
@@ -99,8 +98,8 @@ type IBuildRouteUseCase interface {
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
-	_, _ = maxprocs.Set(maxprocs.Logger(log.Printf), maxprocs.Min(2))
-	// defer Pyroscope(context.Background())()
+	_, _ = maxprocs.Set(maxprocs.Logger(func(msg string, args ...any) { fmt.Printf(msg, args...) }), maxprocs.Min(2))
+	defer Pyroscope(context.Background())()
 
 	app := &cli.App{
 		Flags: []cli.Flag{
@@ -137,9 +136,8 @@ func main() {
 			},
 		}}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
+	if err := app.Run(os.Args); err != nil {
+		panic(err)
 	}
 }
 
@@ -174,20 +172,20 @@ func apiAction(c *cli.Context) (err error) {
 	// reload config with remote config. Ignore error with a warning
 	err = configLoader.Reload(ctx)
 	if err != nil {
-		logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
+		log.Ctx(ctx).Warn().Err(err).Msg("[apiAction] Config could not be reloaded")
 	} else {
-		logger.Info(ctx, "Config reloaded")
+		log.Ctx(ctx).Info().Msg("Config reloaded")
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		log.Ctx(ctx).Err(err).Msg("failed to validate config")
 		panic(err)
 	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn: cfg.Log.SentryDSN,
 	}); err != nil {
-		logger.Errorf(ctx, "sentry.Init error cause by %v", err)
+		log.Ctx(ctx).Err(err).Msg("sentry.Init error")
 		return err
 	}
 
@@ -202,7 +200,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("fail to init redis client to pool service")
 		return err
 	}
 
@@ -211,7 +209,7 @@ func apiAction(c *cli.Context) (err error) {
 		rpc.WithHTTPClient(&http.Client{Transport: otelhttp.NewTransport(nil),
 			Timeout: lo.CoalesceOrEmpty(cfg.Common.RPCTimeout, 100*time.Millisecond)}))
 	if err != nil {
-		logger.Errorf(ctx, "fail to init geth client, err: %v", err)
+		log.Ctx(ctx).Err(err).Msg("fail to init geth client")
 	}
 	gethCli := ethclient.NewClient(rpcClient)
 
@@ -273,7 +271,7 @@ func apiAction(c *cli.Context) (err error) {
 	// TODO: REMOVE AFTER REDIS MIGRATION IS COMPLETE
 	migrationRedisClient, err := redis.New(&cfg.RouterRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init client to routerRedis")
+		log.Ctx(ctx).Error().Msg("fail to init client to routerRedis")
 		return err
 	}
 
@@ -457,7 +455,7 @@ func apiAction(c *cli.Context) (err error) {
 	removePoolIndex := usecase.NewRemovePoolIndexUseCase(poolRankRepository)
 
 	// init services
-	ginServer, router, _ := httppkg.GinServer(cfg.Http, cfg.Log.Configuration, logger.LoggerBackendZap)
+	ginServer, router, _ := httppkg.GinServer(cfg.Http)
 
 	// Only profiling in dev
 	if cfg.Pprof {
@@ -512,7 +510,7 @@ func apiAction(c *cli.Context) (err error) {
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
 		if err != nil {
-			logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("[apiAction] Config could not be reloaded")
 			return nil
 		}
 
@@ -572,9 +570,9 @@ func indexerAction(c *cli.Context) (err error) {
 	// reload config with remote config. Ignore error with a warning
 	err = configLoader.Reload(ctx)
 	if err != nil {
-		logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
+		log.Ctx(ctx).Warn().Err(err).Msg("[indexerAction] Config could not be reloaded")
 	} else {
-		logger.Infoln(ctx, "[indexerAction] Config reloaded")
+		log.Ctx(ctx).Info().Msg("[indexerAction] Config reloaded")
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
@@ -583,19 +581,19 @@ func indexerAction(c *cli.Context) (err error) {
 	// init redis client
 	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client for indexer")
+		log.Ctx(ctx).Error().Msg("fail to init redis client for indexer")
 		return err
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("[indexerAction] fail to init redis client to pool service")
 		return err
 	}
 
 	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("[indexerAction] fail to init redis client to pool service")
 		return err
 	}
 
@@ -673,7 +671,7 @@ func indexerAction(c *cli.Context) (err error) {
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
 		if err != nil {
-			logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("[indexerAction] Config could not be reloaded")
 			return nil
 		}
 		return nil
@@ -748,12 +746,12 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	// init redis client
 	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {
-		logger.Errorf(ctx, "[executorTrackerAction] fail to init redis client for track executor balance")
+		log.Ctx(ctx).Error().Msg("[executorTrackerAction] fail to init redis client for track executor balance")
 		return err
 	}
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[executorTrackerAction] fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("[executorTrackerAction] fail to init redis client to pool service")
 		return err
 	}
 
@@ -906,20 +904,20 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	// reload config with remote config. Ignore error with a warning
 	err = configLoader.Reload(ctx)
 	if err != nil {
-		logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
+		log.Ctx(ctx).Warn().Err(err).Msg("[apiAction] Config could not be reloaded")
 	} else {
-		logger.Info(ctx, "Config reloaded")
+		log.Ctx(ctx).Info().Msg("Config reloaded")
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		log.Ctx(ctx).Err(err).Msg("failed to validate config")
 		panic(err)
 	}
 
 	// init redis client
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[liqIndexerAction] fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("[liqIndexerAction] fail to init redis client to pool service")
 		return err
 	}
 	routerRedisClient, err := redis.New(&cfg.Redis)
@@ -965,7 +963,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	}
 	err = onchainpriceRepository.FetchNativePriceInUSD(ctx)
 	if err != nil {
-		logger.Errorf(ctx, "[liqIndexerAction] fail to fetch native price usd from onchain price service")
+		log.Ctx(ctx).Error().Msg("[liqIndexerAction] fail to fetch native price usd from onchain price service")
 		return err
 	}
 	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
@@ -979,7 +977,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)
 	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
 	if err != nil {
-		logger.Errorf(ctx, "[liqIndexerAction] fail to init redis client to pool service")
+		log.Ctx(ctx).Error().Msg("[liqIndexerAction] fail to init redis client to pool service")
 		return err
 	}
 	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,
@@ -995,7 +993,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
 		if err != nil {
-			logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("[indexerAction] Config could not be reloaded")
 			return nil
 		}
 		return nil
@@ -1058,13 +1056,14 @@ func initializeAEVMComponents(ctx context.Context, cfg *config.Config,
 	balanceSlotsUseCase := erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
 		cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
 	if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
-		logger.Errorf(ctx, "could not preload balance slots %s", err)
+		log.Ctx(ctx).Err(err).Msg("could not preload balance slots")
 		return nil, nil, nil, err
 	}
 
 	serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
 	publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
-	logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
+	log.Ctx(ctx).Info().Msgf("AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v",
+		serverURLs, publishingPoolsURLs)
 	clientPoolSize := runtime.GOMAXPROCS(0)
 	aevmClient, err := aevmclientuc.NewLoadBalancingClient(
 		aevmclientuc.Config{

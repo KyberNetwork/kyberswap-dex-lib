@@ -4,6 +4,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 )
 
 type Environment string
@@ -84,6 +86,10 @@ func ParseBoolFromEnv(envVar string, defaultValue bool) bool {
 	return defaultValue
 }
 
-func IsProductionMode(env string) bool {
-	return Environment(env) == Production
+func IsProductionMode() bool {
+	return Environment(StringFromEnv(envvar.Env, "")) == Production
+}
+
+func IsLocalMode() bool {
+	return StringFromEnv(envvar.Env, "") == ""
 }

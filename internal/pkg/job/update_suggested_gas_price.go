@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type UpdateSuggestedGasPriceJob struct {
@@ -31,13 +32,7 @@ func (j *UpdateSuggestedGasPriceJob) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.
-				WithFields(ctx,
-					logger.Fields{
-						"job.name": UpdateSuggestedGasPrice,
-						"error":    ctx.Err(),
-					}).
-				Errorf("job error")
+			log.Ctx(ctx).Err(ctx.Err()).Str("job.name", UpdateSuggestedGasPrice).Msg("job error")
 			return
 		case <-ticker.C:
 			j.run(ctxutils.NewJobCtx(ctx))
@@ -51,15 +46,11 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 
 	result, err := j.useCase.Handle(ctx)
 	if err != nil {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    UpdateSuggestedGasPrice,
-					"error":       err,
-					"duration_ms": time.Since(startTime).Milliseconds(),
-				}).
-			Error("job failed")
+		log.Ctx(ctx).Err(err).
+			Str("job.id", jobID).
+			Str("job.name", UpdateSuggestedGasPrice).
+			Dur("duration_ms", time.Since(startTime)).
+			Msg("job failed")
 		return
 	}
 
@@ -68,13 +59,10 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 		suggestedGasPrice = result.SuggestedGasPrice.String()
 	}
 
-	logger.
-		WithFields(ctx,
-			logger.Fields{
-				"job.id":              jobID,
-				"job.name":            UpdateSuggestedGasPrice,
-				"suggested_gas_price": suggestedGasPrice,
-				"duration_ms":         time.Since(startTime).Milliseconds(),
-			}).
-		Info("job done")
+	log.Ctx(ctx).Info().
+		Str("job.id", jobID).
+		Str("job.name", UpdateSuggestedGasPrice).
+		Str("suggested_gas_price", suggestedGasPrice).
+		Dur("duration_ms", time.Since(startTime)).
+		Msg("job done")
 }

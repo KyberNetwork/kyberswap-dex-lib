@@ -17,11 +17,11 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type useCase struct {
@@ -66,7 +66,7 @@ func (u *useCase) Handle(ctx context.Context) error {
 
 			err := u.trackExecutor(ctx, executorAddress)
 			if err != nil {
-				logger.Errorf(ctx, "fail to track executor %s, err: %v", executorAddress, err)
+				log.Ctx(ctx).Err(err).Str("executor", executorAddress).Msg("failed to track")
 			}
 		}(executorAddress)
 	}
@@ -82,9 +82,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		return err
 	}
 
-	lg := logger.WithFields(ctx, logger.Fields{
-		"executor": executorAddress,
-	})
+	lg := log.Ctx(ctx).With().Str("executor", executorAddress).Logger()
 
 	for {
 		blockNumber, err := u.executorBalanceRepository.GetLatestProcessedBlockNumber(ctx, executorAddress)
@@ -94,10 +92,10 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 
 		blockNumber = max(blockNumber, u.config.StartBlock)
 
-		lg.WithFields(logger.Fields{
-			"currentBlock": blockNumber,
-			"latestBlock":  blockNumberCheckpoint,
-		}).Info("Start fetch events.")
+		lg.Info().
+			Uint64("currentBlock", blockNumber).
+			Uint64("latestBlock", blockNumberCheckpoint).
+			Msg("Start fetch events.")
 
 		swappedEvents, err := fetchNewRouterSwappedEvents(ctx, u.graphQLClient, blockNumber)
 		if err != nil {
@@ -108,17 +106,18 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 			return nil
 		}
 
-		lg.WithFields(logger.Fields{
-			"currentBlock": blockNumber,
-			"latestBlock":  blockNumberCheckpoint,
-		}).Infof("Fetched %d Swapped events", len(swappedEvents))
+		lg.Info().
+			Uint64("currentBlock", blockNumber).
+			Uint64("latestBlock", blockNumberCheckpoint).
+			Msgf("Fetched %d Swapped events", len(swappedEvents))
 
 		lastBlockNumber, err := kutils.Atou[uint64](swappedEvents[len(swappedEvents)-1].BlockNumber)
 		if err != nil {
 			return fmt.Errorf("failed to convert block number to uint64: %v", err)
 		}
 
-		exchangeEvents, err := fetchNewExecutorExchangeEvents(ctx, u.graphQLClient, executorAddress, blockNumber, lastBlockNumber)
+		exchangeEvents, err := fetchNewExecutorExchangeEvents(ctx, u.graphQLClient, executorAddress, blockNumber,
+			lastBlockNumber)
 		if err != nil {
 			return err
 		}
@@ -129,18 +128,18 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 				return err
 			}
 
-			lg.WithFields(logger.Fields{
-				"currentBlock":          blockNumber,
-				"lastestProcessedBlock": lastBlockNumber,
-			}).Info("No new Exchange events, skip to the next interval")
+			lg.Info().
+				Uint64("currentBlock", blockNumber).
+				Uint64("lastestProcessedBlock", lastBlockNumber).
+				Msg("No new Exchange events, skip to the next interval")
 
 			return nil
 		}
 
-		lg.WithFields(logger.Fields{
-			"currentBlock": blockNumber,
-			"toBlock":      lastBlockNumber,
-		}).Infof("Fetched %d Exchange events", len(exchangeEvents))
+		lg.Info().
+			Uint64("currentBlock", blockNumber).
+			Uint64("toBlock", lastBlockNumber).
+			Msgf("Fetched %d Exchange events", len(exchangeEvents))
 
 		if err := u.trackExecutorBalance(ctx, executorAddress, exchangeEvents); err != nil {
 			return err
@@ -158,10 +157,10 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		if lastBlockNumber >= blockNumberCheckpoint {
 			break
 		} else {
-			logger.WithFields(ctx, logger.Fields{
-				"currentBlock": lastBlockNumber,
-				"latestBlock":  blockNumberCheckpoint,
-			}).Debug("Continue catching up with the latest events")
+			log.Ctx(ctx).Debug().
+				Uint64("currentBlock", lastBlockNumber).
+				Uint64("latestBlock", blockNumberCheckpoint).
+				Msg("Continue catching up with the latest events")
 			time.Sleep(intervalDelay)
 		}
 	}
@@ -186,7 +185,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	})
 
 	if len(candidateTokenOuts) == 0 {
-		logger.Debug(ctx, "No new tokens to track, skip to the next interval")
+		log.Ctx(ctx).Debug().Msg("No new tokens to track, skip to the next interval")
 		return nil
 	}
 
@@ -220,11 +219,11 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 		return !rpcResponse.Result[idx] || tokenBalances[idx] == nil || tokenBalances[idx].Cmp(constants.Zero) == 0
 	})
 
-	logger.WithFields(ctx, logger.Fields{
-		"executor":        executorAddress,
-		"numUpdateTokens": len(updateTokens),
-		"missTokens":      len(missTokens),
-	}).Info("Track tokens that executor has balance")
+	log.Ctx(ctx).Info().
+		Str("executor", executorAddress).
+		Int("numUpdateTokens", len(updateTokens)).
+		Int("missTokens", len(missTokens)).
+		Msg("Track tokens that executor has balance")
 
 	if err := u.executorBalanceRepository.AddToken(ctx, executorAddress, updateTokens); err != nil {
 		return err
@@ -331,10 +330,10 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 		return err
 	}
 
-	logger.WithFields(ctx, logger.Fields{
-		"executor":               executorAddress,
-		"numUpdatePoolApprovals": len(updatePoolApprovals),
-	}).Info("Add pool approvals for executor")
+	log.Ctx(ctx).Info().
+		Str("executor", executorAddress).
+		Int("numUpdatePoolApprovals", len(updatePoolApprovals)).
+		Msg("Add pool approvals for executor")
 
 	return nil
 }

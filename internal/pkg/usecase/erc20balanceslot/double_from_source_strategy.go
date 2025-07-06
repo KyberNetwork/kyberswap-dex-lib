@@ -12,10 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -59,7 +59,7 @@ func (*DoubleFromSourceStrategy) Name(extraParams ProbeStrategyExtraParams) stri
 }
 
 func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
-	logger.Infof(ctx, "[%s] probing balance slot for token %s", p.Name(extraParams), token)
+	log.Ctx(ctx).Info().Msgf("[%s] probing balance slot for token %s", p.Name(extraParams), token)
 
 	_extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams)
 	if !ok || _extraParams == nil {
@@ -101,7 +101,7 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token c
 		nextBalance, nextSource, nextOverrides, err := p.doubleBalance(ctx, blockNumberHex, token, source, srcOverrides)
 		// stop if err while doubling
 		if err != nil {
-			logger.Warnf(ctx, "could not double balance: %s", err)
+			log.Ctx(ctx).Warn().Err(err).Msg("could not double balance")
 			break
 		}
 		// stop if balance stop doubling
@@ -212,7 +212,7 @@ func (p *DoubleFromSourceStrategy) doubleBalance(ctx context.Context, blockNumbe
 		return nil, nil, nil, fmt.Errorf("could not balanceOf() after doubling: %w", err)
 	}
 	balance = new(big.Int).SetBytes(common.HexToHash(*result).Bytes())
-	logger.Debugf(ctx, "balance after doubling = %s", balance)
+	log.Ctx(ctx).Debug().Msgf("balance after doubling = %s", balance)
 
 	// check if transfer success
 	transferCall, _ := abis.ERC20.Pack("transfer", randomizeAddress(), balance)

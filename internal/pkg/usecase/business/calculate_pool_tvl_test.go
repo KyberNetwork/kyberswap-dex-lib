@@ -7,11 +7,12 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func floatRatio(s1, s2 string) *big.Float {
@@ -113,7 +114,7 @@ func TestCalculateTVL(t *testing.T) {
 		},
 	}
 
-	logger.SetLogLevel("debug")
+	log.Logger = log.Logger.Level(zerolog.DebugLevel)
 	for _, tc := range testcases {
 		var ent entity.Pool
 		err := json.Unmarshal([]byte(tc.poolStr), &ent)

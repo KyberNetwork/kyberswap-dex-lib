@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
@@ -108,7 +108,7 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetCustomRoutesQuery) (*
 
 		if u.alphaFeeMigrationRepository != nil {
 			if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
-				klog.Errorf(ctx, "[Migration] failed to save alphaFee to new redis repository: %v", err)
+				log.Ctx(ctx).Err(err).Msg("[Migration] failed to save alphaFee to new redis repository")
 			}
 		}
 	}
@@ -180,7 +180,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetCustomRou
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
 		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
+			log.Ctx(ctx).Err(err).Msg("failed to estimate l1 fees")
 		}
 	}
 

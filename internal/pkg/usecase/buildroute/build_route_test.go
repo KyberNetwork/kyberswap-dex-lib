@@ -4064,6 +4064,7 @@ func TestBuildRouteUseCase_ValidateReturnAmount(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			suggestedSlippage, err := uc.ValidateReturnAmount(
+				context.Background(),
 				tc.tokenIn,
 				tc.tokenOut,
 				tc.returnAmount,

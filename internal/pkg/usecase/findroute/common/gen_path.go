@@ -8,17 +8,16 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type nodeInfo struct {
@@ -232,7 +231,7 @@ func getNextLayerFromToken(
 				// it is ok for prices[tokenTo] to default to zero
 				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input, dexUseAEVM)
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
-					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
+					log.Ctx(ctx).Debug().Err(err).Msg("cannot calculate amountOut")
 					return nil
 				}
 
@@ -323,8 +322,8 @@ func getKthPathAtTokenOut(
 				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
 			if err != nil {
-				logger.WithFields(ctx, logger.Fields{"error": err}).
-					Errorf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", _kthPath, len(_pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
+				log.Ctx(ctx).Err(err).Msgf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", _kthPath,
+					len(_pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
 			} else {
 				intermediateResults[_kthPath] = path
 			}

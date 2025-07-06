@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -108,7 +108,7 @@ func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQ
 
 			if u.alphaFeeMigrationRepository != nil {
 				if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
-					klog.Errorf(ctx, "[Migration] failed to save alphaFee to new redis repository: %v", err)
+					log.Ctx(ctx).Err(err).Msg("[Migration] failed to save alphaFee to new redis repository")
 				}
 			}
 		}
@@ -140,7 +140,7 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 	var l1FeeOverhead, l1FeePerPool *big.Int
 	if valueobject.IsL1FeeEstimateSupported(u.config.ChainID) {
 		if l1FeeOverhead, l1FeePerPool, err = u.l1FeeEstimator.EstimateL1Fees(ctx); err != nil {
-			klog.Errorf(ctx, "failed to estimate l1 fees: %v", err)
+			log.Ctx(ctx).Err(err).Msg("failed to estimate l1 fees")
 		}
 	}
 

@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type ITrackExecutorBalanceUsecase interface {
@@ -35,13 +36,7 @@ func (j *TrackExecutorBalanceJob) Run(ctx context.Context) error {
 		j.run(ctxutils.NewJobCtx(ctx))
 		select {
 		case <-ctx.Done():
-			logger.
-				WithFields(ctx,
-					logger.Fields{
-						"job.name": TrackExecutorBalance,
-						"error":    ctx.Err(),
-					}).
-				Errorf("job error")
+			log.Ctx(ctx).Err(ctx.Err()).Str("job.name", TrackExecutorBalance).Msg("job error")
 			return ctx.Err()
 		case <-ticker.C:
 			continue
@@ -55,23 +50,17 @@ func (j *TrackExecutorBalanceJob) run(ctx context.Context) {
 
 	err := j.trackExecutorBalanceUseCase.Handle(ctx)
 	if err != nil {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    TrackExecutorBalance,
-					"duration_ms": time.Since(startTime).Milliseconds()},
-			).
-			Errorf("[TrackExecutorBalanceJob] error %v", err)
+		log.Ctx(ctx).Err(err).
+			Str("job.id", jobID).
+			Str("job.name", TrackExecutorBalance).
+			Dur("duration_ms", time.Since(startTime)).
+			Msg("job failed")
 		return
 	}
 
-	logger.
-		WithFields(ctx,
-			logger.Fields{
-				"job.id":      jobID,
-				"job.name":    TrackExecutorBalance,
-				"duration_ms": time.Since(startTime).Milliseconds()},
-		).
-		Info("[TrackExecutorBalanceJob] done")
+	log.Ctx(ctx).Info().
+		Str("job.id", jobID).
+		Str("job.name", TrackExecutorBalance).
+		Dur("duration_ms", time.Since(startTime)).
+		Msg("job done")
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 	clone "github.com/huandu/go-clone/generic"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 )
@@ -62,10 +62,10 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.WithFields(logger.Fields{
-				"recover": r,
-				"pool":    pool,
-			}).Error("panic in ClonePool")
+			log.Error().
+				Any("recover", r).
+				Str("pool", poolAddress).
+				Msg("panic in ClonePool")
 
 			// Push metrics
 			metrics.CountClonePoolPanic(context.TODO())
@@ -80,9 +80,9 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 	b.ChangedPools[poolAddress] = pool
 
 	// Note: When we need to clone a curve-meta pool, we should clone its base pool as well (as the code below)
-	//We will omit that adhoc logic here for simplicity -> expect some miscalculation in algorithm
+	// We will omit that adhoc logic here for simplicity -> expect some miscalculation in algorithm
 
-	//if pool.GetType() == pooltypes.PoolTypes.CurveMeta {
+	// if pool.GetType() == pooltypes.PoolTypes.CurveMeta {
 	//	curveMetaPool, ok := pool.(*curveMeta.Pool)
 	//	if !ok {
 	//		return pool
@@ -92,7 +92,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 	//		return pool
 	//	}
 	//	(*curveMetaPool).BasePool = basePool.(curveMeta.ICurveBasePool)
-	//}
+	// }
 	return pool
 }
 

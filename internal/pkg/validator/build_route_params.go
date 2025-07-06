@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
@@ -16,7 +17,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type buildRouteParamsValidator struct {
@@ -253,23 +253,19 @@ func (v *buildRouteParamsValidator) validateWallets(ctx context.Context, wallets
 	}
 
 	if clientid.GetClientIDFromCtx(ctx) != clientid.KyberSwap {
-		logger.Debug(ctx, "skip blacklist check because it's not a request from kyberswap UI")
+		log.Ctx(ctx).Debug().Msg("skip blacklist check because it's not a request from kyberswap UI")
 		return nil
 	}
 
 	checkResult, err := v.blackjackRepo.Check(ctx, wallets)
 	if err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{"error": err.Error()}).
-			Debug("failed to check from blackjack")
+		log.Ctx(ctx).Debug().Err(err).Msg("failed to check from blackjack")
 		return nil
 	}
 
 	for wallet, isBlacklisted := range checkResult {
 		if isBlacklisted {
-			logger.
-				WithFields(ctx, logger.Fields{"wallet": wallet}).
-				Info("blacklisted wallet")
+			log.Ctx(ctx).Info().Str("wallet", wallet).Msg("blacklisted wallet")
 
 			return NewValidationError("wallets", "invalid")
 		}

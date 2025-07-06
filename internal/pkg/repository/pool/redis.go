@@ -9,11 +9,11 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -104,17 +104,13 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 
 		poolDataStr, ok := poolData.(string)
 		if !ok {
-			logger.
-				WithFields(ctx, logger.Fields{"key": addresses[i]}).
-				Warn("invalid pool data")
+			log.Ctx(ctx).Warn().Str("key", addresses[i]).Msg("invalid pool data")
 			continue
 		}
 
 		pool, err := decodePool(addresses[i], poolDataStr)
 		if err != nil {
-			logger.
-				WithFields(ctx, logger.Fields{"error": err, "key": addresses[i]}).
-				Warn("decode pool data failed")
+			log.Ctx(ctx).Warn().Err(err).Str("key", addresses[i]).Msg("decode pool data failed")
 			continue
 		}
 
@@ -141,7 +137,8 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 
 	if cachedData, ok := r.cache.Get(r.faultyPoolCacheKey); ok {
 		if addresses, ok := cachedData.([]string); ok {
-			logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s, return from local cached", cachedData)
+			log.Ctx(ctx).Debug().Msgf("[pool] redisRepository.GetFaultyPools get faulty pools list %s, return from local cached",
+				cachedData)
 			return addresses, nil
 		}
 	}
@@ -163,7 +160,8 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 		}
 		offset += r.config.Redis.MaxFaultyPoolSize
 	}
-	logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s from pool-service", result)
+	log.Ctx(ctx).Debug().Msgf("[pool] redisRepository.GetFaultyPools get faulty pools list %s from pool-service",
+		result)
 	r.cache.SetWithTTL(r.faultyPoolCacheKey, result, 1, r.config.Ristretto.FaultyPools.TTL)
 
 	return result, nil
@@ -188,8 +186,9 @@ func (r *redisRepository) AddToBlacklistIndexPools(ctx context.Context, addresse
 func (r *redisRepository) GetBlacklistIndexPools(ctx context.Context) mapset.Set[string] {
 	result := mapset.NewThreadUnsafeSet[string]()
 	if cachedData, ok := r.cache.Get(r.faultyIndexPoolCacheKey); ok {
-		if addresses, ok := cachedData.([]string); ok {
-			logger.Debugf(ctx, "[pool] redisRepository.GetFaultyIndexPools return from local cached", cachedData)
+		if addresses, ok := cachedData.([]string); ok && len(addresses) > 0 {
+			log.Ctx(ctx).Debug().Strs("addresses", addresses).
+				Msg("[pool] redisRepository.GetFaultyIndexPools return from local cached")
 			result.Append(addresses...)
 		}
 	}
@@ -216,9 +215,7 @@ func (r *redisRepository) ScanPools(ctx context.Context, cursor uint64, count in
 	for i := 0; i < len(poolDataList); i += 2 {
 		pool, err := decodePool(poolDataList[i], poolDataList[i+1])
 		if err != nil {
-			logger.
-				WithFields(ctx, logger.Fields{"error": err, "key": poolDataList[i]}).
-				Warn("decode pool data failed")
+			log.Ctx(ctx).Warn().Err(err).Str("key", poolDataList[i]).Msg("decode pool data failed")
 			failedPoolAddresses = append(failedPoolAddresses, poolDataList[i])
 			continue
 		}

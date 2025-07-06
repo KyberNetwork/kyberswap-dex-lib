@@ -9,11 +9,11 @@ import (
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type correlatedPairs struct {
@@ -168,7 +168,7 @@ func (c *correlatedPairs) findFirstCorrelatedPool(token string) (string, string)
 func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.AggregateParams, tokenMidIn string,
 	tokenMidOut string, additionPoolAddresses []string) (*types.FindRouteState, error) {
 	if len(params.Sources) == 0 {
-		logger.Errorf(ctx, "sources list is empty, returning error: %v", ErrPoolSetFiltered)
+		log.Ctx(ctx).Err(ErrPoolSetFiltered).Msg("sources list is empty, returning error")
 		return nil, ErrPoolSetFiltered
 	}
 
@@ -202,8 +202,7 @@ func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.A
 	}
 
 	if len(filteredPoolIDs) == 0 {
-		logger.Errorf(ctx,
-			"empty filtered pool IDs after excluding pools, returning error: %v, bestPoolIDs: %v, index: %v",
+		log.Ctx(ctx).Error().Msgf("empty filtered pool IDs after excluding pools, returning error: %v, bestPoolIDs: %v, index: %v",
 			ErrPoolSetFiltered, bestPoolIDs, params.Index)
 		return nil, ErrPoolSetFiltered
 	}

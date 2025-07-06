@@ -6,13 +6,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // aggregator finds best route within amm liquidity sources
@@ -123,7 +123,7 @@ func (a *aggregator) findBestRoute(
 func (a *aggregator) getStateByAddress(ctx context.Context, params *types.AggregateParams) (*types.FindRouteState,
 	error) {
 	if len(params.Sources) == 0 {
-		logger.Errorf(ctx, "sources list is empty, error: %v", ErrPoolSetFiltered)
+		log.Ctx(ctx).Err(ErrPoolSetFiltered).Msg("sources list is empty")
 		return nil, ErrPoolSetFiltered
 	}
 	var bestPoolIDs []string
@@ -159,8 +159,8 @@ func (a *aggregator) getStateByAddress(ctx context.Context, params *types.Aggreg
 	}
 
 	if len(filteredPoolIDs) == 0 {
-		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v, returning error: %v",
-			bestPoolIDs, params.ExcludedPools.String(), ErrPoolSetFiltered)
+		log.Ctx(ctx).Err(ErrPoolSetFiltered).Msgf("empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
+			bestPoolIDs, params.ExcludedPools)
 		return nil, ErrPoolSetFiltered
 	}
 

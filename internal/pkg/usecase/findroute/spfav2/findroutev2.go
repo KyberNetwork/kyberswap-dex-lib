@@ -6,12 +6,12 @@ import (
 	"sort"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func (f *Spfav2Finder) findrouteV2(
@@ -70,16 +70,17 @@ func (f *Spfav2Finder) bestRouteV2(
 		numberOfPathToGenerate = f.maxPathsToGenerate
 	}
 
-	logger.Debugf(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-		input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
+	log.Ctx(ctx).Debug().Msgf("manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+		input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath,
+		amountInToGeneratePath.AmountUsd,
 	)
 
 	var errGenPath error
-	paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn, f.dexUseAEVM)
+	paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops,
+		numberOfPathToGenerate, f.maxPathsToReturn, f.dexUseAEVM)
 	if errGenPath != nil {
-		logger.WithFields(ctx, logger.Fields{"error": errGenPath}).
-			Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-				input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd)
+		log.Ctx(ctx).Debug().Err(errGenPath).Msgf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+			input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd)
 		return nil, nil
 	}
 	defer valueobject.ReturnPaths(paths)
@@ -98,9 +99,11 @@ func (f *Spfav2Finder) bestRouteV2(
 	bestSinglePathRoute := f.bestSinglePathRouteV2(ctx, input, data, tokenAmountIn, paths, len(splits))
 
 	// step 3: Find multi-path route
-	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV2(ctx, input, data, paths, amountInToGeneratePath, splits, cmpFunc)
+	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV2(ctx, input, data, paths, amountInToGeneratePath,
+		splits, cmpFunc)
 
-	logger.Debugf(ctx, "bestSinglePathRoute %v, bestMultiPathRoute %v, errFindMultiPathRoute %v", bestSinglePathRoute, bestMultiPathRoute, errFindMultiPathRoute)
+	log.Ctx(ctx).Debug().Msgf("bestSinglePathRoute %v, bestMultiPathRoute %v, errFindMultiPathRoute %v",
+		bestSinglePathRoute, bestMultiPathRoute, errFindMultiPathRoute)
 
 	// step 4: compare and return the best route
 	if bestSinglePathRoute == nil {
@@ -165,7 +168,7 @@ func (f *Spfav2Finder) bestMultiPathRouteV2(
 		for {
 			bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
 			if bestPath == nil {
-				logger.Debug(ctx, "no more paths to try.")
+				log.Ctx(ctx).Debug().Msg("no more paths to try.")
 				return nil, nil
 			}
 
@@ -179,11 +182,11 @@ func (f *Spfav2Finder) bestMultiPathRouteV2(
 
 				count++
 				if count >= 3 {
-					logger.Debug(ctx, "AddPath failed 3 times, no more try.")
+					log.Ctx(ctx).Debug().Msg("AddPath failed 3 times, no more try.")
 					return nil, err
 				}
 
-				logger.Warnf(ctx, "AddPath crash into error, pop next path. Error :%s", err)
+				log.Ctx(ctx).Warn().Msgf("AddPath crash into error, pop next path. Error :%s", err)
 			}
 		}
 

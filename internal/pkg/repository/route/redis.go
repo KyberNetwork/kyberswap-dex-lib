@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type redisRepository struct {
@@ -50,14 +50,14 @@ func (r *redisRepository) Get(ctx context.Context, keys []valueobject.RouteCache
 
 		routeDataStr, ok := data.(string)
 		if !ok {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": redisKeys[i]}).Errorf("data is not a string")
+			log.Ctx(ctx).Error().Str("data", routeDataStr).Str("key", redisKeys[i]).Msg("data is not a string")
 			continue
 		}
 
 		route, err := decodeRoute(routeDataStr)
 
 		if err != nil || route.BestRoute == nil {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": redisKeys[i]}).Errorf("invalid route data in Redis")
+			log.Ctx(ctx).Error().Str("data", routeDataStr).Str("key", redisKeys[i]).Msg("invalid route data in Redis")
 			continue
 		}
 
@@ -79,7 +79,7 @@ func (r *redisRepository) Set(ctx context.Context, keys []valueobject.RouteCache
 		for i, key := range keys {
 			encoded, err := encodeRoute(*routes[i])
 			if err != nil {
-				logger.WithFields(ctx, logger.Fields{"error": err}).Errorf("Encode route error")
+				log.Ctx(ctx).Err(err).Msg("Encode route error")
 				continue
 			}
 			pipe.Set(ctx, genKey(key, r.config.Prefix), encoded, key.TTL)

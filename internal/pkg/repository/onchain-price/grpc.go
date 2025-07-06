@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 	"github.com/KyberNetwork/service-framework/pkg/common"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 	"google.golang.org/grpc/metadata"
@@ -22,7 +23,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type grpcRepository struct {
@@ -100,7 +100,7 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	for _, res := range chunkResults {
 		if res.err != nil {
 			// continue with what we have instead of erroring out
-			logger.Errorf(ctx, "error getting onchain-price for chunk %v", res.err)
+			log.Ctx(ctx).Err(res.err).Msg("error getting onchain-price for chunk")
 			continue
 		}
 		for token, price := range res.prices {
@@ -145,13 +145,13 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 	for _, p := range res.Result.Prices {
 		decimals, ok := decimalsByToken[p.Address]
 		if !ok {
-			logger.Debugf(ctx, "unknown token info %v", p.Address)
+			log.Ctx(ctx).Debug().Msgf("unknown token info %v", p.Address)
 			continue
 		}
 
 		tenPowDecimals := utils.TenPowDecimalsFloat(int(decimals))
 		if tenPowDecimals == nil {
-			logger.Debugf(ctx, "invalid token decimals %v %v", p.Address, decimals)
+			log.Ctx(ctx).Debug().Msgf("invalid token decimals %v %v", p.Address, decimals)
 			continue
 		}
 
@@ -163,7 +163,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 			if detail.Quote == r.nativeTokenAddress {
 				price, ok := new(big.Float).SetString(detail.PriceByQuote)
 				if !ok || price.Sign() < 0 {
-					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
+					log.Ctx(ctx).Debug().Msgf("invalid price %v (%v)", p.Address, detail.PriceByQuote)
 					continue
 				}
 
@@ -178,7 +178,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 			if detail.Quote == r.nativeTokenAddress {
 				price, ok := new(big.Float).SetString(detail.PriceByQuote)
 				if !ok || price.Sign() < 0 {
-					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
+					log.Ctx(ctx).Debug().Msgf("invalid price %v (%v)", p.Address, detail.PriceByQuote)
 					continue
 				}
 
@@ -194,7 +194,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 		if _, ok := prices[addr]; !ok {
 			decimals, ok := decimalsByToken[addr]
 			if !ok {
-				logger.Debugf(ctx, "unknown token info %v", addr)
+				log.Ctx(ctx).Debug().Msgf("unknown token info %v", addr)
 				continue
 			}
 
@@ -212,7 +212,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 		}
 	}
 
-	logger.Debugf(ctx, "fetched prices %v", prices)
+	log.Ctx(ctx).Debug().Msgf("fetched prices %v", prices)
 
 	return prices, nil
 }
@@ -235,11 +235,11 @@ func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, e
 		return nil, fmt.Errorf("[GetNativePriceInUsd] error getting onchain-price usd for native %v", err)
 	}
 
-	logger.Debugf(ctx, "fetched prices %v", res.Price)
+	log.Ctx(ctx).Debug().Msgf("fetched prices %v", res.Price)
 
 	price, ok := new(big.Float).SetString(res.Price)
 	if !ok {
-		logger.Errorf(ctx, "invalid native price in usd %v", res.Price)
+		log.Ctx(ctx).Error().Str("price", res.Price).Msg("invalid native price in usd")
 		return nil, ErrInvalidPrice
 	}
 

@@ -6,9 +6,9 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type redisRepository struct {
@@ -30,7 +30,7 @@ func formatKey(seperator string, args ...string) string {
 func (r *redisRepository) Save(ctx context.Context, routeId string, alphaFee *entity.AlphaFeeV2) error {
 	data, err := encodeAlphaFee(alphaFee)
 	if err != nil {
-		logger.WithFields(ctx, logger.Fields{"error": err}).Errorf("Encode alphaFee error")
+		log.Ctx(ctx).Err(err).Msg("Encode alphaFee error")
 		return err
 	}
 

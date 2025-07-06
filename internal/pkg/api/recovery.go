@@ -4,14 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/rs/zerolog/log"
 )
 
 func RecoveryFunc(c *gin.Context, err any) {
-	logger.
-		WithFields(c, logger.Fields{"err": err}).
-		Error("internal server error")
+	log.Ctx(c).Error().Interface("error", err).Msg("internal server error")
 
 	c.JSON(
 		http.StatusInternalServerError,

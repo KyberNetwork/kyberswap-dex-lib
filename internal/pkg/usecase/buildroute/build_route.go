@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kutils"
-	"github.com/KyberNetwork/kutils/klog"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
@@ -28,6 +27,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
@@ -41,13 +41,11 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/slippage"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var (
@@ -162,7 +160,8 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		if !isValidChecksum { // the route might have an alphaFee
 			if !uc.config.FeatureFlags.IsRedisMigrationEnabled {
 				span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get alpha fee from redis")
-				command.RouteSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
+				command.RouteSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx,
+					command.RouteSummary.RouteID)
 				span.End()
 			} else {
 				command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
@@ -184,6 +183,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		}
 	}
 
+	log.Ctx(ctx).Debug().Msgf("isValidChecksum: %v", isValidChecksum)
 	if !isValidChecksum && uc.config.ValidateChecksumBySource[command.Source] {
 		return nil, ErrInvalidRouteChecksum
 	}
@@ -356,7 +356,7 @@ func (uc *BuildRouteUseCase) rfq(
 			if !found {
 				// This exchange does not have RFQ handler
 				// It means that this swap does not need to be processed via RFQ
-				logger.Debugf(ctx, "no RFQ handler for pool type: %v", swap.Exchange)
+				log.Ctx(ctx).Debug().Msgf("no RFQ handler for pool type: %v", swap.Exchange)
 				continue
 			}
 
@@ -484,7 +484,7 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 
 	estimatedAfterRFQAmountOutFloat64, _ := estimatedAfterRFQAmountOut.Float64()
 	amountOutFloat64, _ := routeSummary.AmountOut.Float64()
-	logger.Debugf(ctx, "afterRFQAmountOut: %v, oldAmountOut %v, estimatedSlippage %.2fbps",
+	log.Ctx(ctx).Debug().Msgf("afterRFQAmountOut: %v, oldAmountOut %v, estimatedSlippage %.2fbps",
 		estimatedAfterRFQAmountOut.String(),
 		routeSummary.AmountOut,
 		(1-estimatedAfterRFQAmountOutFloat64/amountOutFloat64)*float64(valueobject.BasisPoint.Int64()),
@@ -524,7 +524,7 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 	if estimatedAfterRFQAmountOut.Cmp(acceptableRFQAmountOut) < 0 {
 		acceptableRFQAmountOutFloat64, _ := acceptableRFQAmountOut.Float64()
 
-		logger.Errorf(ctx, "afterRFQAmountOut: %v < acceptableRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
+		log.Ctx(ctx).Error().Msgf("afterRFQAmountOut: %v < acceptableRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
 			estimatedAfterRFQAmountOut.String(),
 			acceptableRFQAmountOut,
 			routeSummary.AmountOut,
@@ -551,7 +551,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 
 	defer func() {
 		if r := recover(); r != nil {
-			klog.Errorf(ctx, "panic: %v\n%s", r, string(debug.Stack()))
+			log.Ctx(ctx).Error().Msgf("panic: %v\n%s", r, string(debug.Stack()))
 			err = fmt.Errorf("panic recovered in processRFQs: %v", r)
 		}
 	}()
@@ -579,7 +579,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 	})
 	// Track faulty pools if we got RFQ errors due to market too volatile
 	if isFaultyPoolTrackEnable {
-		go uc.monitorFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), uc.createPMMPoolTrackers(swaps, err))
+		go uc.monitorFaultyPools(kutils.CtxWithoutCancel(ctx), uc.createPMMPoolTrackers(swaps, err))
 	}
 
 	if err != nil {
@@ -632,14 +632,14 @@ func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tok
 		for i, swapReduction := range routeSummary.AlphaFee.SwapReductions {
 			if swapReduction.ExecutedId == executedId {
 				if alphaFeeAsset != swapReduction.TokenOut {
-					logger.WithFields(ctx, logger.Fields{
-						"routeId":               routeSummary.RouteID,
-						"exchange":              swap.Exchange,
-						"partnerAlphaFeeAsset":  alphaFeeAsset,
-						"partnerAlphaFeeAmount": alphaFeeAmt,
-						"alphaFeeTokenOut":      swapReduction.TokenOut,
-						"alphaFeeAmount":        swapReduction.ReduceAmount,
-					}).Warn("partner alpha fee asset is different from alpha fee token out")
+					log.Ctx(ctx).Warn().
+						Str("routeId", routeSummary.RouteID).
+						Str("exchange", string(swap.Exchange)).
+						Str("partnerAlphaFeeAsset", alphaFeeAsset).
+						Stringer("partnerAlphaFeeAmount", alphaFeeAmt).
+						Str("alphaFeeTokenOut", swapReduction.TokenOut).
+						Stringer("alphaFeeAmount", swapReduction.ReduceAmount).
+						Msg("partner alpha fee asset is different from alpha fee token out")
 				}
 
 				routeSummary.AlphaFee.SwapReductions[i].ReduceAmount = alphaFeeAmt
@@ -655,11 +655,11 @@ func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tok
 	}
 
 	if routeSummary.AlphaFee != nil && alphaFeeReduction == nil {
-		logger.WithFields(ctx, logger.Fields{
-			"routeId":        routeSummary.RouteID,
-			"executedId":     executedId,
-			"swapReductions": routeSummary.AlphaFee.SwapReductions,
-		}).Error("fail to find corresponding alphaFeeReduction")
+		log.Ctx(ctx).Error().
+			Str("routeId", routeSummary.RouteID).
+			Int("executedId", executedId).
+			Any("swapReductions", routeSummary.AlphaFee.SwapReductions).
+			Msg("fail to find corresponding alphaFeeReduction")
 	}
 
 	rfqRouteMsg := &v1.RouteSummary{ExecutedId: -1}
@@ -809,7 +809,8 @@ func (uc *BuildRouteUseCase) encode(
 	if isSimulation {
 		encodingData.SetMinAmountOut(bignumber.One)
 	} else {
-		encodingData.SetMinAmountOut(slippage.GetMinAmountOutExactInput(routeSummary.AmountOut, command.SlippageTolerance))
+		encodingData.SetMinAmountOut(slippage.GetMinAmountOutExactInput(routeSummary.AmountOut,
+			command.SlippageTolerance))
 	}
 
 	return encoder.Encode(encodingData.GetData())
@@ -942,12 +943,12 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 		var returnAmount *big.Int
 		gas, gasUSD, returnAmount, err = uc.gasEstimator.EstimateGasAndPriceUSD(ctx, tx)
 		if err == nil {
-			estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
+			estimatedSlippage, err = uc.ValidateReturnAmount(ctx, routeSummary.TokenIn, routeSummary.TokenOut,
 				returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
 		}
 
 		go uc.handleFaultyPools(
-			ctxUtils.NewBackgroundCtxWithReqId(ctx),
+			kutils.CtxWithoutCancel(ctx),
 			routeSummary,
 			command.SlippageTolerance,
 			estimatedSlippage,
@@ -962,7 +963,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 		go func(ctx context.Context) {
 			_, returnAmount, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			if err == nil {
-				estimatedSlippage, err = uc.ValidateReturnAmount(routeSummary.TokenIn, routeSummary.TokenOut,
+				estimatedSlippage, err = uc.ValidateReturnAmount(ctx, routeSummary.TokenIn, routeSummary.TokenOut,
 					returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
 			}
 
@@ -974,7 +975,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 				err,
 				isFaultyPoolTrackEnable,
 			)
-		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
+		}(kutils.CtxWithoutCancel(ctx))
 	}
 
 	// for some L2 chains we'll need to account for L1 fee as well
@@ -1062,7 +1063,7 @@ func (uc *BuildRouteUseCase) consumeRouteMsgDatas(ctx context.Context, rfqRouteM
 	for rfqRouteMsg := range rfqRouteMsgCh {
 		data, err := proto.Marshal(rfqRouteMsg)
 		if err != nil {
-			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message %v", err)
+			log.Ctx(ctx).Err(err).Msgf("ConsumerGroupHandler.ConsumeClaim unable to marshal protobuf message")
 		} else {
 			rfqRouteMsgDatas = append(rfqRouteMsgDatas, data)
 		}
@@ -1072,22 +1073,38 @@ func (uc *BuildRouteUseCase) consumeRouteMsgDatas(ctx context.Context, rfqRouteM
 		err := uc.publisherRepository.PublishMultiple(ctx, uc.config.PublisherConfig.AggregatorTransactionTopic,
 			rfqRouteMsgDatas)
 		if err != nil {
-			logger.Errorf(ctx, "ConsumerGroupHandler.ConsumeClaim unable to push message to kafka %v", err)
+			log.Ctx(ctx).Err(err).Msgf("ConsumerGroupHandler.ConsumeClaim unable to push message to kafka")
 		}
 	}
 }
 
 func (uc *BuildRouteUseCase) ValidateReturnAmount(
+	ctx context.Context,
 	tokenIn, tokenOut string,
 	returnAmount, routeAmountOut *big.Int,
 	slippageTolerance float64,
 ) (float64, error) {
 	if returnAmount == nil || returnAmount.Sign() <= 0 {
 		return 0, errors.New("invalid returnAmount")
+	} else if routeAmountOut == nil || routeAmountOut.Sign() <= 0 {
+		return 0, errors.New("invalid routeAmountOut")
 	}
 
-	if routeAmountOut == nil || routeAmountOut.Sign() <= 0 {
-		return 0, errors.New("invalid routeAmountOut")
+	if cmp := returnAmount.Cmp(routeAmountOut); cmp >= 0 {
+		if cmp > 0 {
+			returnAmountF, _ := returnAmount.Float64()
+			routeAmountOutF, _ := routeAmountOut.Float64()
+			if returnAmountF/routeAmountOutF > 1.01 {
+				log.Ctx(ctx).Info().
+					Stringer("returnAmount", returnAmount).
+					Stringer("routeAmountOut", routeAmountOut).
+					Str("tokenOut", tokenOut).
+					Float64("positiveAmount", returnAmountF-routeAmountOutF).
+					Float64("positiveSlippageBps", (returnAmountF-routeAmountOutF)*1e4/routeAmountOutF).
+					Msg("route has positive slippage")
+			}
+		}
+		return 0, nil
 	}
 
 	minAmountOut := slippage.GetMinAmountOutExactInput(routeAmountOut, slippageTolerance)

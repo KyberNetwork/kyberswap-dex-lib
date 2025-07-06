@@ -8,9 +8,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
@@ -71,11 +71,10 @@ func (u *GetPoolsIncludingBasePools) Handle(ctx context.Context, addresses []str
 				BasePool string `json:"basePool"`
 			}
 			if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
-				logger.WithFields(ctx, logger.Fields{
-					"pool.Address": pool.Address,
-					"pool.Type":    pool.Type,
-					"error":        err,
-				}).Warn("unable to unmarshal staticExtra")
+				log.Ctx(ctx).Warn().Err(err).
+					Str("pool.Address", pool.Address).
+					Str("pool.Type", pool.Type).
+					Msg("unable to unmarshal staticExtra")
 
 				continue
 			}
@@ -94,10 +93,7 @@ func (u *GetPoolsIncludingBasePools) Handle(ctx context.Context, addresses []str
 		if err != nil {
 			// need to log err here for debug
 			// If we fetch curve meta base pools fail, then IPoolSimulator for meta curve will be failed and ignored later, so ignore errors here
-			logger.WithFields(ctx, logger.Fields{
-				"pool.Address": curveMetaBasePoolAddresses,
-				"error":        err,
-			}).Errorf("failed to fetch based pools in pool manager")
+			log.Ctx(ctx).Err(err).Stringer("pool.Address", curveMetaBasePoolAddresses).Msg("failed to fetch based pools in pool manager")
 		} else {
 			filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 		}

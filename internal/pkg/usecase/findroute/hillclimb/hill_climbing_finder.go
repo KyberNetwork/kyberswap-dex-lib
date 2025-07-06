@@ -3,11 +3,12 @@ package hillclimb
 import (
 	"context"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -52,12 +53,12 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 
 	baseBestRoute := extractBestRoute(baseBestRoutes)
 	if baseBestRoute == nil {
-		logger.Info(ctx, "hill climb: extract best base route failed")
+		log.Ctx(ctx).Info().Msg("hill climb: extract best base route failed")
 		return nil, nil
 	}
 
 	if len(baseBestRoute.Paths) == 1 {
-		logger.Debugf(ctx, "hill climb: return baseBestRoute due to lenPaths == 1")
+		log.Ctx(ctx).Debug().Msg("hill climb: return baseBestRoute due to lenPaths == 1")
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 
@@ -65,7 +66,7 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	baseBestRoute = recalculateRoute(ctx, input, data, baseBestRoute)
 	if baseBestRoute == nil {
-		logger.Info(ctx, "hill climb: return nil due to cannot recalculateRoute base")
+		log.Ctx(ctx).Info().Msg("hill climb: return nil due to cannot recalculateRoute base")
 		return nil, nil
 	}
 
@@ -74,7 +75,7 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	hillClimbBestRoute, err := f.optimizeRoute(ctx, input, data, baseBestRoute)
 	if err != nil {
-		logger.Infof(ctx, "hill climb: optimizeRoute failed %s", err)
+		log.Ctx(ctx).Info().Err(err).Msg("hill climb: optimizeRoute failed")
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 
@@ -82,9 +83,8 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	hillClimbBestRoute = recalculateRoute(ctx, input, data, hillClimbBestRoute)
 
-	logger.Debugf(ctx,
-		"successfully using hill climb to optimize route from token %v to token %v", input.TokenInAddress, input.TokenOutAddress,
-	)
+	log.Ctx(ctx).Debug().Msgf("successfully using hill climb to optimize route from token %v to token %v",
+		input.TokenInAddress, input.TokenOutAddress)
 
 	// if the route cannot be optimized or the input is different from the input of base best route
 	if hillClimbBestRoute == nil || hillClimbBestRoute.Input.CompareRaw(&baseBestRoute.Input) != 0 {

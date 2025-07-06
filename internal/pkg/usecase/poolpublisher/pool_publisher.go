@@ -11,8 +11,7 @@ import (
 	dexlibencode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/dustin/go-humanize"
-
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/rs/zerolog/log"
 )
 
 type (
@@ -56,7 +55,8 @@ func (p *PoolsPublisher) Publish(ctx context.Context, pools map[string]poolpkg.I
 	if err != nil {
 		return "", fmt.Errorf("could not EncodePoolSimulatorsMap: %w", err)
 	}
-	logger.Infof(ctx, "publishing %d pools, encoded size = %s, encoding took %s", len(pools), humanize.Bytes(uint64(len(encoded))), time.Since(start).String())
+	log.Ctx(ctx).Info().Msgf("publishing %d pools, encoded size = %s, encoding took %s",
+		len(pools), humanize.Bytes(uint64(len(encoded))), time.Since(start).String())
 
 	start = time.Now()
 	result, err := p.aevmClient.StorePreparedPools(ctx, &types.StorePreparedPoolsParams{
@@ -65,7 +65,7 @@ func (p *PoolsPublisher) Publish(ctx context.Context, pools map[string]poolpkg.I
 	if err != nil {
 		return "", fmt.Errorf("could not StorePreparedPools: %w", err)
 	}
-	logger.Infof(ctx, "done publishing %d pools, took = %s", len(pools), time.Since(start).String())
+	log.Ctx(ctx).Info().Msgf("done publishing %d pools, took = %s", len(pools), time.Since(start).String())
 
 	addrs := make(map[string]struct{})
 	for addr := range pools {

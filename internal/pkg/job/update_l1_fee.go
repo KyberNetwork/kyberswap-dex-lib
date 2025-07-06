@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type UpdateL1FeeJob struct {
@@ -30,13 +31,7 @@ func (j *UpdateL1FeeJob) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.
-				WithFields(ctx,
-					logger.Fields{
-						"job.name": UpdateL1FeeParams,
-						"error":    ctx.Err(),
-					}).
-				Errorf("job error")
+			log.Ctx(ctx).Err(ctx.Err()).Str("job.name", UpdateL1FeeParams).Msg("job error")
 			return
 		case <-ticker.C:
 			j.run(ctxutils.NewJobCtx(ctx))
@@ -50,24 +45,17 @@ func (j *UpdateL1FeeJob) run(ctx context.Context) {
 
 	err := j.useCase.Handle(ctx)
 	if err != nil {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    UpdateL1FeeParams,
-					"error":       err,
-					"duration_ms": time.Since(startTime).Milliseconds(),
-				}).
-			Error("job failed")
+		log.Ctx(ctx).Err(err).
+			Str("job.id", jobID).
+			Str("job.name", UpdateL1FeeParams).
+			Dur("duration_ms", time.Since(startTime)).
+			Msg("job failed")
 		return
 	}
 
-	logger.
-		WithFields(ctx,
-			logger.Fields{
-				"job.id":      jobID,
-				"job.name":    UpdateL1FeeParams,
-				"duration_ms": time.Since(startTime).Milliseconds(),
-			}).
-		Info("job done")
+	log.Ctx(ctx).Info().
+		Str("job.id", jobID).
+		Str("job.name", UpdateL1FeeParams).
+		Dur("duration_ms", time.Since(startTime)).
+		Msg("job done")
 }

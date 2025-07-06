@@ -6,9 +6,9 @@ import (
 	"github.com/KyberNetwork/service-framework/pkg/client"
 	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Redis struct {
@@ -49,33 +49,27 @@ func (s *Redis) FormatKey(args ...interface{}) string {
 }
 
 func logRedisOption(universalClient redis.UniversalClient) {
-	clusterClient, ok := universalClient.(*redis.ClusterClient)
-
-	if ok {
-		logger.WithFieldsNonContext(logger.Fields{
-			"clusterClientOpts.PoolSize":        clusterClient.Options().PoolSize,
-			"clusterClientOpts.MinIdleConns":    clusterClient.Options().MinIdleConns,
-			"clusterClientOpts.PoolTimeout":     clusterClient.Options().PoolTimeout,
-			"clusterClientOpts.ConnMaxIdleTime": clusterClient.Options().ConnMaxIdleTime,
-			"clusterClientOpts.DialTimeout":     clusterClient.Options().DialTimeout,
-			"clusterClientOpts.ReadTimeout":     clusterClient.Options().ReadTimeout,
-			"clusterClientOpts.WriteTimeout":    clusterClient.Options().WriteTimeout,
-		}).Debug("New Redis")
-		return
+	if clusterClient, ok := universalClient.(*redis.ClusterClient); ok {
+		opts := clusterClient.Options()
+		log.Debug().
+			Int("clusterClientOpts.PoolSize", opts.PoolSize).
+			Int("clusterClientOpts.MinIdleConns", opts.MinIdleConns).
+			Dur("clusterClientOpts.PoolTimeout", opts.PoolTimeout).
+			Dur("clusterClientOpts.ConnMaxIdleTime", opts.ConnMaxIdleTime).
+			Dur("clusterClientOpts.DialTimeout", opts.DialTimeout).
+			Dur("clusterClientOpts.ReadTimeout", opts.ReadTimeout).
+			Dur("clusterClientOpts.WriteTimeout", opts.WriteTimeout).
+			Msg("New Redis")
+	} else if cli, ok := universalClient.(*redis.Client); ok {
+		opts := cli.Options()
+		log.Debug().
+			Int("client.PoolSize", opts.PoolSize).
+			Int("client.MinIdleConns", opts.MinIdleConns).
+			Dur("client.PoolTimeout", opts.PoolTimeout).
+			Dur("client.ConnMaxIdleTime", opts.ConnMaxIdleTime).
+			Dur("client.DialTimeout", opts.DialTimeout).
+			Dur("client.ReadTimeout", opts.ReadTimeout).
+			Dur("client.WriteTimeout", opts.WriteTimeout).
+			Msg("New Redis")
 	}
-
-	client, ok := universalClient.(*redis.Client)
-	if ok {
-		logger.WithFieldsNonContext(logger.Fields{
-			"client.PoolSize":        client.Options().PoolSize,
-			"client.MinIdleConns":    client.Options().MinIdleConns,
-			"client.PoolTimeout":     client.Options().PoolTimeout,
-			"client.ConnMaxIdleTime": client.Options().ConnMaxIdleTime,
-			"client.DialTimeout":     client.Options().DialTimeout,
-			"client.ReadTimeout":     client.Options().ReadTimeout,
-			"client.WriteTimeout":    client.Options().WriteTimeout,
-		}).Debug("New Redis")
-		return
-	}
-
 }
