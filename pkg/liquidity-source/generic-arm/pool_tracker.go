@@ -3,7 +3,6 @@ package genericarm
 import (
 	"context"
 	"encoding/json"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -59,66 +58,22 @@ func (t *PoolTracker) getNewPoolState(
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-	var liquidityAsset common.Address
-	var tradeRate0, tradeRate1, priceScale, withdrawsQueued, withdrawsClaimed, reserve0, reserve1 *big.Int
-	calls.AddCall(&ethrpc.Call{
-		ABI:    lidoArmABI,
-		Target: t.config.ArmAddress,
-		Method: "traderate0",
-	}, []interface{}{&tradeRate0}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: t.config.ArmAddress,
-			Method: "traderate1",
-		}, []interface{}{&tradeRate1}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: t.config.ArmAddress,
-			Method: "PRICE_SCALE",
-		}, []interface{}{&priceScale}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: t.config.ArmAddress,
-			Method: "withdrawsQueued",
-		}, []interface{}{&withdrawsQueued}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: t.config.ArmAddress,
-			Method: "withdrawsClaimed",
-		}, []interface{}{&withdrawsClaimed}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: t.config.ArmAddress,
-			Method: "liquidityAsset",
-		}, []interface{}{&liquidityAsset}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: p.Tokens[0].Address,
-			Method: "balanceOf",
-			Params: []interface{}{common.HexToAddress(t.config.ArmAddress)},
-		}, []interface{}{&reserve0}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: p.Tokens[1].Address,
-			Method: "balanceOf",
-			Params: []interface{}{common.HexToAddress(t.config.ArmAddress)},
-		}, []interface{}{&reserve1})
-	_, err := calls.TryAggregate()
+
+	poolState, err := fetchAssetAndState(ctx, t.ethrpcClient, p.Address, t.config.Arms[p.Address])
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to initPool")
 		return p, err
 	}
 
 	extra := Extra{
-		TradeRate0:       uint256.MustFromBig(tradeRate0),
-		TradeRate1:       uint256.MustFromBig(tradeRate1),
-		PriceScale:       uint256.MustFromBig(priceScale),
-		WithdrawsQueued:  uint256.MustFromBig(withdrawsQueued),
-		WithdrawsClaimed: uint256.MustFromBig(withdrawsClaimed),
-		LiquidityAsset:   liquidityAsset,
+		TradeRate0:         uint256.MustFromBig(poolState.TradeRate0),
+		TradeRate1:         uint256.MustFromBig(poolState.TradeRate1),
+		PriceScale:         uint256.MustFromBig(poolState.PriceScale),
+		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
+		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
+		LiquidityAsset:     poolState.LiquidityAsset,
+		SwapTypes:          t.config.Arms[p.Address].SwapTypes,
+		ArmType:            t.config.Arms[p.Address].ArmType,
+		HasWithdrawalQueue: t.config.Arms[p.Address].HasWithdrawalQueue,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -126,8 +81,8 @@ func (t *PoolTracker) getNewPoolState(
 	}
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves{
-		reserve0.String(),
-		reserve1.String(),
+		poolState.Reserve0.String(),
+		poolState.Reserve1.String(),
 	}
 
 	p.Timestamp = time.Now().Unix()

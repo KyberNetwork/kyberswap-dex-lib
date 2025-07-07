@@ -16,14 +16,15 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	supportedSwapType SwapType
-	armType           ArmType
-	TradeRate0        *uint256.Int
-	TradeRate1        *uint256.Int
-	PriceScale        *uint256.Int
-	LiquidityAsset    common.Address
-	WithdrawsQueued   *uint256.Int
-	WithdrawsClaimed  *uint256.Int
+	TradeRate0         *uint256.Int
+	TradeRate1         *uint256.Int
+	PriceScale         *uint256.Int
+	LiquidityAsset     common.Address
+	WithdrawsQueued    *uint256.Int
+	WithdrawsClaimed   *uint256.Int
+	supportedSwapType  SwapType
+	armType            ArmType
+	hasWithdrawalQueue bool
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -42,11 +43,12 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		supportedSwapType: extra.SwapType,
-		armType:           extra.ArmType,
-		TradeRate0:        extra.TradeRate0,
-		TradeRate1:        extra.TradeRate1,
-		PriceScale:        extra.PriceScale,
+		supportedSwapType:  extra.SwapTypes,
+		armType:            extra.ArmType,
+		hasWithdrawalQueue: extra.HasWithdrawalQueue,
+		TradeRate0:         extra.TradeRate0,
+		TradeRate1:         extra.TradeRate1,
+		PriceScale:         extra.PriceScale,
 	}, nil
 }
 
@@ -77,26 +79,26 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	amountOut := new(uint256.Int)
-	price := lo.If(indexIn == 0, p.TradeRate0).
-		Else(p.TradeRate1)
-	if p.armType == Pegged {
+	switch p.armType {
+	case Pegged:
 		amountOut.Set(amountIn)
-	} else if p.armType == Pricable {
+	case Pricable:
+		price := lo.Ternary(indexIn == 0, p.TradeRate0, p.TradeRate1)
 		amountOut.Div(new(uint256.Int).Mul(amountIn, price), p.PriceScale)
-	} else {
+	default:
 		return nil, ErrUnsupportedArmType
 	}
 
 	reserveOut := uint256.MustFromBig(p.Pool.Info.Reserves[indexOut])
-	if common.HexToAddress(tokenOut).Cmp(p.LiquidityAsset) == 0 {
+	if p.hasWithdrawalQueue && common.HexToAddress(tokenOut).Cmp(p.LiquidityAsset) == 0 {
 		//uint256 outstandingWithdrawals = withdrawsQueued - withdrawsClaimed;
 		//amount + outstandingWithdrawals <= IERC20(liquidityAsset).balanceOf(address(this)),
 		reserveOut.Sub(reserveOut, p.WithdrawsQueued).Add(reserveOut, p.WithdrawsClaimed)
 	}
 
-	if amountOut.Cmp(reserveOut) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
+	// if amountOut.Cmp(reserveOut) > 0 {
+	// 	return nil, ErrInsufficientLiquidity
+	// }
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{

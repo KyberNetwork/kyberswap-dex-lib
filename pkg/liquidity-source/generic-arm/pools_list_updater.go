@@ -8,7 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -32,65 +32,65 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (d *PoolsListUpdater) GetNewPools(_ context.Context, _ []byte) ([]entity.Pool, []byte, error) {
+func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
 	if d.hasInitialized {
 		logger.Debug("skip since pool has been initialized")
 		return nil, nil, nil
 	}
+	pools := make([]entity.Pool, 0, len(d.config.Arms))
+	for armAddr, armCfg := range d.config.Arms {
+		pool, err := d.getNewPool(ctx, armAddr, armCfg)
+		if err != nil {
+			return nil, nil, err
+		}
+		pools = append(pools, *pool)
+	}
+	logger.WithFields(logger.Fields{"pool": pools}).Info("finish fetching pools")
+	d.hasInitialized = true
+	return pools, nil, nil
+}
 
-	calls := d.ethrpcClient.NewRequest().SetContext(context.Background())
-	var token0, token1 common.Address
-	calls.AddCall(&ethrpc.Call{
-		ABI:    lidoArmABI,
-		Target: d.config.ArmAddress,
-		Method: "token0",
-	}, []interface{}{&token0}).
-		AddCall(&ethrpc.Call{
-			ABI:    lidoArmABI,
-			Target: d.config.ArmAddress,
-			Method: "token1",
-		}, []interface{}{&token1})
-	_, err := calls.Aggregate()
+func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCfg ArmCfg) (*entity.Pool, error) {
+	poolState, err := fetchAssetAndState(ctx, d.ethrpcClient, armAddr, armCfg)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to initPool")
-		return nil, nil, err
+		return nil, err
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		SwapType: d.config.SwapType,
-		ArmType:  d.config.ArmType,
+		TradeRate0:         uint256.MustFromBig(poolState.TradeRate0),
+		TradeRate1:         uint256.MustFromBig(poolState.TradeRate1),
+		PriceScale:         uint256.MustFromBig(poolState.PriceScale),
+		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
+		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
+		LiquidityAsset:     poolState.LiquidityAsset,
+		SwapTypes:          armCfg.SwapTypes,
+		ArmType:            armCfg.ArmType,
+		HasWithdrawalQueue: armCfg.HasWithdrawalQueue,
 	})
 
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to marshal extra")
-		return nil, nil, err
+		return nil, err
 	}
 
-	pools := []entity.Pool{
-		{
-			Address:   d.config.ArmAddress,
-			Exchange:  d.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens: []*entity.PoolToken{
-				{
-					Address:   strings.ToLower(token0.Hex()),
-					Swappable: true,
-				},
-				{
-					Address:   strings.ToLower(token1.Hex()),
-					Swappable: true,
-				},
+	return &entity.Pool{
+		Address:   armAddr,
+		Exchange:  d.config.DexID,
+		Type:      DexType,
+		Timestamp: time.Now().Unix(),
+		Reserves:  []string{poolState.Reserve0.String(), poolState.Reserve1.String()},
+		Tokens: []*entity.PoolToken{
+			{
+				Address:   strings.ToLower(poolState.Token0.Hex()),
+				Swappable: true,
 			},
-			Extra: string(extraBytes),
+			{
+				Address:   strings.ToLower(poolState.Token1.Hex()),
+				Swappable: true,
+			},
 		},
-	}
-	logger.WithFields(logger.Fields{"pool": pools}).Info("finish fetching pools")
-	d.hasInitialized = true
-	return pools, nil, nil
+		Extra: string(extraBytes),
+	}, nil
 }
