@@ -410,6 +410,7 @@ const (
 	ExchangeAaveV3                     = "aave-v3"
 	ExchangeCompoundV2                 = "compound-v2"
 	ExchangeCompoundV3                 = "compound-v3"
+	ExchangeGenericArm                 = "generic-arm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -807,6 +808,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAaveV3:                     {},
 	ExchangeCompoundV2:                 {},
 	ExchangeCompoundV3:                 {},
+	ExchangeGenericArm:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
