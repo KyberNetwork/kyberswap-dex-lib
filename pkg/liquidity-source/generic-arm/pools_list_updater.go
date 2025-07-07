@@ -63,7 +63,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
 		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
 		LiquidityAsset:     poolState.LiquidityAsset,
-		SwapTypes:          armCfg.SwapTypes,
+		SwapTypes:          armCfg.SwapType,
 		ArmType:            armCfg.ArmType,
 		HasWithdrawalQueue: armCfg.HasWithdrawalQueue,
 	})

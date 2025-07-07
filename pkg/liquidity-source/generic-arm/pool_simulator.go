@@ -96,9 +96,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		reserveOut.Sub(reserveOut, p.WithdrawsQueued).Add(reserveOut, p.WithdrawsClaimed)
 	}
 
-	// if amountOut.Cmp(reserveOut) > 0 {
-	// 	return nil, ErrInsufficientLiquidity
-	// }
+	if amountOut.Cmp(reserveOut) > 0 {
+		return nil, ErrInsufficientLiquidity
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{

@@ -7,7 +7,7 @@ type Config struct {
 
 type ArmCfg struct {
 	Gas                GasCfg   `json:"gas"`
-	SwapTypes          SwapType `json:"swapTypes"`
+	SwapType           SwapType `json:"swapType"`
 	ArmType            ArmType  `json:"armType"`
 	HasWithdrawalQueue bool     `json:"hasWithdrawalQueue"`
 }

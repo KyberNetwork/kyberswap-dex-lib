@@ -71,7 +71,7 @@ func (t *PoolTracker) getNewPoolState(
 		WithdrawsQueued:    uint256.MustFromBig(poolState.WithdrawsQueued),
 		WithdrawsClaimed:   uint256.MustFromBig(poolState.WithdrawsClaimed),
 		LiquidityAsset:     poolState.LiquidityAsset,
-		SwapTypes:          t.config.Arms[p.Address].SwapTypes,
+		SwapTypes:          t.config.Arms[p.Address].SwapType,
 		ArmType:            t.config.Arms[p.Address].ArmType,
 		HasWithdrawalQueue: t.config.Arms[p.Address].HasWithdrawalQueue,
 	}
