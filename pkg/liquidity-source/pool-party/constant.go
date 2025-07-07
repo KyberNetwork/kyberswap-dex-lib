@@ -8,5 +8,5 @@ const (
 	poolStatusCanceled = "CANCELED"
 	poolStatusActive   = "ACTIVE"
 
-	defaultGas = 300_000 // ~200_000 - 400_000 gas from their docs.
+	defaultGas = 2_500_000 // From their docs: ~200_000 - 400_000 gas. But actual simulation shows it's costly.
 )
