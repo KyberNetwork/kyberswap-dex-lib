@@ -11,7 +11,6 @@ var (
 	pythABI       abi.ABI
 	chainlinkABI  abi.ABI
 	morphoABI     abi.ABI
-	erc4626ABI    abi.ABI
 )
 
 func init() {
@@ -23,7 +22,6 @@ func init() {
 		{&pythABI, PythJson},
 		{&chainlinkABI, ChainlinkJson},
 		{&morphoABI, MorphoJson},
-		{&erc4626ABI, ERC4626Json},
 	}
 
 	for _, b := range builder {

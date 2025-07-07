@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
@@ -72,7 +71,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 				}
 			}),
 			Reserves: lo.Map(tokens, func(token common.Address, _ int) string {
-				return abi.MaxUint256.String()
+				return "0"
 			}),
 		},
 	}

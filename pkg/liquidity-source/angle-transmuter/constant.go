@@ -21,6 +21,7 @@ var (
 	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
 	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 	ErrInvalidSwap               = errors.New("invalid swap")
+	ErrMulOverflow               = errors.New("MUL_OVERFLOW")
 )
 
 var PythArgument = abi.Arguments{

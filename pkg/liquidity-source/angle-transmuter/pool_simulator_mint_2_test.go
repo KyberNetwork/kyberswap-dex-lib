@@ -6,7 +6,6 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -16,10 +15,7 @@ func getMintPoolUSD() PoolSimulator {
 		Pool: pool.Pool{Info: pool.PoolInfo{
 			Tokens: []string{"0xbeef01735c132ada46aa9aa4c54623caa92a64cb", "0x0000206329b97db379d5e1bf586bbdb969c63274"},
 		}},
-		Tokens: []*entity.PoolToken{
-			{Address: "0xbeef01735c132ada46aa9aa4c54623caa92a64cb", Decimals: 18},
-			{Address: "0x0000206329b97db379d5e1bf586bbdb969c63274", Decimals: 18},
-		},
+		Decimals: []uint8{18, 18},
 		Transmuter: TransmuterState{
 			TotalStablecoinIssued: setUInt("12394643135438408381545155"),
 			Collaterals: map[string]CollateralState{

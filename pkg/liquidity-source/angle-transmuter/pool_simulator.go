@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -18,7 +17,7 @@ import (
 type (
 	PoolSimulator struct {
 		pool.Pool
-		Tokens         []*entity.PoolToken
+		Decimals       []uint8
 		StableToken    common.Address
 		StableDecimals uint8
 
@@ -47,7 +46,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: p.BlockNumber,
 		}},
-		Tokens:     p.Tokens,
+		Decimals:   lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) uint8 { return e.Decimals }),
 		gas:        extra.Gas,
 		Transmuter: extra.Transmuter,
 	}, nil
@@ -70,7 +69,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
@@ -78,14 +77,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	var oracleValue *uint256.Int
 	minRatio := uint256.NewInt(0)
 	var err error
-	collateral := strings.ToLower(tokenAmountIn.Token)
+	collateral := tokenAmountIn.Token
 	if isMint {
 		oracleValue, err = s._readMint(collateral)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		collateral = strings.ToLower(tokenOut)
+		collateral = tokenOut
 		oracleValue, minRatio, err = s._getBurnOracle(collateral)
 		if err != nil {
 			return nil, err
@@ -98,9 +97,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	stablecoinCap := s.Transmuter.Collaterals[collateral].StablecoinCap
 	var amountOut *uint256.Int
 	if isMint {
-		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Tokens[indexIn].Decimals)
+		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Decimals[indexIn])
 	} else {
-		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, s.Tokens[indexOut].Decimals)
+		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, s.Decimals[indexOut])
 	}
 	if err != nil {
 		return nil, err
@@ -120,7 +119,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint256.Int, error) {
 	var oracleValue *uint256.Int
-	minRatio := newBASE_18()
+	minRatio := newBASE18()
 	for collat := range s.Transmuter.Collaterals {
 		value, ratio, err := s._readBurn(collat)
 		if err != nil {
@@ -139,7 +138,7 @@ func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint25
 func (s *PoolSimulator) _readMint(collateral string) (*uint256.Int, error) {
 	configOracle := s.Transmuter.Collaterals[collateral].Config
 	if configOracle.OracleType == EXTERNAL {
-		return newBASE_18(), nil
+		return newBASE18(), nil
 	}
 	spot, target, err := s._readSpotAndTarget(collateral)
 	if err != nil {
@@ -156,7 +155,7 @@ func (s *PoolSimulator) _readMint(collateral string) (*uint256.Int, error) {
 func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int, error) {
 	configOracle := s.Transmuter.Collaterals[collateral].Config
 	if configOracle.OracleType == EXTERNAL {
-		return newBASE_18(), newBASE_18(), nil
+		return newBASE18(), newBASE18(), nil
 	}
 
 	spot, target, err := s._readSpotAndTarget(collateral)
@@ -164,7 +163,7 @@ func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int
 		return nil, nil, err
 	}
 
-	ratio, uB := newBASE_18(), newBASE_18()
+	ratio, uB := newBASE18(), newBASE18()
 	uB.Mul(target, uB.Sub(uB, configOracle.Hyperparameters.BurnRatioDeviation)).Div(uB, BASE_18)
 	if spot.Cmp(uB) < 0 {
 		ratio.Div(ratio.Mul(ratio, spot), target)
@@ -176,7 +175,7 @@ func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int
 
 func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *uint256.Int, error) {
 	configOracle := s.Transmuter.Collaterals[collateral].Config
-	targetPrice, err := s._read(configOracle.TargetType, configOracle.TargetFeed, newBASE_18())
+	targetPrice, err := s._read(configOracle.TargetType, configOracle.TargetFeed, newBASE18())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -229,7 +228,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 		}
 		return price, nil
 	case STABLE:
-		return newBASE_18(), nil
+		return newBASE18(), nil
 	case NO_ORACLE:
 		return baseValue, nil
 	case WSTETH:
@@ -275,7 +274,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 
 func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint256.Int) *uint256.Int {
 	if quoteType == UNIT {
-		return newBASE_18()
+		return newBASE18()
 	}
 	return baseValue
 }

@@ -3,19 +3,21 @@ package angletransmuter
 import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
-	BASE_9  = uint256.NewInt(1e9)
-	BASE_12 = uint256.NewInt(1e12)
-	BASE_18 = uint256.NewInt(1e18)
+	BASE_9  = big256.TenPow(9)
+	BASE_12 = big256.TenPow(12)
+	BASE_18 = big256.TenPow(18)
 
 	MAX_BURN_FEE = uint256.NewInt(999_000_000)
 	U1           = uint256.NewInt(1)
 	U2           = uint256.NewInt(2)
 	U10          = uint256.NewInt(10)
 
-	newBASE_18 = func() *uint256.Int {
+	newBASE18 = func() *uint256.Int {
 		return new(uint256.Int).Set(BASE_18)
 	}
 )
@@ -35,7 +37,7 @@ func _quoteMintExactInput(
 	if err != nil {
 		return nil, err
 	}
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Cmp(stablecoinCap) > 0 {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
 	return amountOut, nil
@@ -51,7 +53,7 @@ func _quoteMintExactOutput(
 	stablecoinCap *uint256.Int,
 ) (*uint256.Int, error) {
 
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Cmp(stablecoinCap) > 0 {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
 	amountIn, err := _quoteFees(fees, MintExactOutput, amountOut, stablecoinsIssued, otherStablecoinSupply)
@@ -71,7 +73,10 @@ func _quoteBurnExactOutput(
 	stablecoinsIssued *uint256.Int,
 	otherStablecoinSupply *uint256.Int,
 ) (*uint256.Int, error) {
-	amountIn := new(uint256.Int).Div(new(uint256.Int).Mul(amountOut, oracleValue), ratio)
+	amountIn, overflow := new(uint256.Int).MulDivOverflow(amountOut, oracleValue, ratio)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
 	amountIn, err := _quoteFees(fees, BurnExactOutput, amountIn, stablecoinsIssued, otherStablecoinSupply)
 	if err != nil {
 		return nil, err
@@ -92,7 +97,10 @@ func _quoteBurnExactInput(
 	if err != nil {
 		return nil, err
 	}
-	amountOut.Div(amountOut.Mul(amountOut, ratio), oracleValue)
+	_, overflow := amountOut.MulDivOverflow(amountOut, ratio, oracleValue)
+	if overflow {
+		return nil, ErrMulOverflow
+	}
 	convertDecimalTo(amountOut, 18, collatDecimal)
 	return amountOut, nil
 }
@@ -192,7 +200,9 @@ func _quoteFees(
 				return nil, err
 			}
 		} else {
-			amountToNextBreakPointNormalizer, err = _applyFeeBurn(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
+			fee := new(uint256.Int)
+			fee.Add(upperFees, currentFees).Div(fee, U2)
+			amountToNextBreakPointNormalizer, err = _applyFeeBurn(amountToNextBreakPoint, fee)
 			if err != nil {
 				return nil, err
 			}
