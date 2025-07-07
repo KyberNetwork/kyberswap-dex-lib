@@ -21,6 +21,7 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 var (
 	ErrPoolNotAvailable      = errors.New("pool is currently not available")
 	ErrInsufficientLiquidity = errors.New("amount exceeds available tokens")
+	ErrInvalidRateToETH      = errors.New("invalid rate to ETH")
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -70,11 +71,19 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientLiquidity
 	}
 
+	if s.Extra.RateToETH.Sign() == 0 {
+		return nil, ErrInvalidRateToETH
+	}
+
 	amountOut := new(big.Int).Set(param.TokenAmountIn.Amount)
-	amountOut.Mul(amountOut, s.Extra.RateFromETH)
-	amountOut.Mul(amountOut, big.NewInt(int64(s.Extra.BoostPriceBps)))
-	amountOut.Div(amountOut, bignumber.BONE)
-	amountOut.Div(amountOut, bignumber.BasisPoint)
+	amountOut.Mul(amountOut, bignumber.BONE)
+	amountOut.Div(amountOut, s.Extra.RateToETH)
+
+	var boostPrice big.Int
+	boostPrice.Mul(amountOut, big.NewInt(int64(s.Extra.BoostPriceBps)))
+	boostPrice.Div(&boostPrice, bignumber.BasisPoint)
+
+	amountOut.Add(amountOut, &boostPrice)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -94,5 +103,5 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return nil
+	return MetaInfo{Exchange: s.Extra.Exchange}
 }

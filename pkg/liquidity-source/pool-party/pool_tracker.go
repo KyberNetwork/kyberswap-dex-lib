@@ -3,7 +3,6 @@ package poolparty
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"math/big"
 	"time"
 
@@ -49,7 +48,8 @@ func (d *PoolTracker) GetNewPoolState(
 		"dexID":       d.config.DexID,
 	})
 
-	var rateFromETH *big.Int
+	var rateToETH *big.Int
+	var blockNumber big.Int
 	var subgraphPool SubgraphPool
 
 	g := pool.New().WithContext(ctx)
@@ -59,19 +59,23 @@ func (d *PoolTracker) GetNewPoolState(
 		req.AddCall(&ethrpc.Call{
 			ABI:    oneInchOracle,
 			Target: d.config.Oracle,
-			Method: "getRate",
+			Method: "getRateToEth",
 			Params: []any{
-				common.HexToAddress(p.Tokens[0].Address), // srcToken (address)
-				common.HexToAddress(p.Tokens[1].Address), // dstToken (address)
+				common.HexToAddress(p.Tokens[1].Address), // srcToken (address)
 				false,                                    // useSrcWrappers (bool)
 			},
-		}, []any{&rateFromETH})
+		}, []any{&rateToETH})
 
-		if _, err := req.TryAggregate(); err != nil {
+		res, err := req.TryAggregate()
+		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to getRateToETH")
 			return err
+		}
+
+		if res.BlockNumber != nil {
+			blockNumber.Set(res.BlockNumber)
 		}
 
 		return nil
@@ -81,7 +85,7 @@ func (d *PoolTracker) GetNewPoolState(
 		req := graphql.NewRequest(getPoolState(p.Address))
 
 		var res struct {
-			Pool []SubgraphPool `json:"pool"`
+			Pool SubgraphPool `json:"pool"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &res); err != nil {
@@ -91,11 +95,7 @@ func (d *PoolTracker) GetNewPoolState(
 			return err
 		}
 
-		if len(res.Pool) == 0 {
-			l.Error("pool not found in subgraph")
-			return errors.New("pool not found in subgraph")
-		}
-		subgraphPool = res.Pool[0]
+		subgraphPool = res.Pool
 
 		return nil
 	})
@@ -111,14 +111,16 @@ func (d *PoolTracker) GetNewPoolState(
 		PoolStatus:            subgraphPool.PoolStatus,
 		IsVisible:             subgraphPool.IsVisible,
 		BoostPriceBps:         d.config.BoostPriceBps,
-		RateFromETH:           rateFromETH,
+		RateToETH:             rateToETH,
 		PublicAmountAvailable: bignumber.NewBig10(subgraphPool.PublicAmountAvailable),
+		Exchange:              d.config.Exchange,
 	}
 	extraBytes, _ := json.Marshal(extra)
 
 	p.Reserves[1] = subgraphPool.PublicAmountAvailable
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
+	p.BlockNumber = blockNumber.Uint64()
 
 	return p, nil
 }

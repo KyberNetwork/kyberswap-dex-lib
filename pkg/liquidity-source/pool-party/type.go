@@ -1,6 +1,12 @@
 package poolparty
 
-import "math/big"
+import (
+	"math/big"
+)
+
+type MetaInfo struct {
+	Exchange string `mapstructure:"exchange"`
+}
 
 type Metadata struct {
 	LastCreatedAtTimestamp int      `json:"lastCreatedAtTimestamp"`
@@ -11,8 +17,9 @@ type Extra struct {
 	PoolStatus            string   `json:"poolStatus"`
 	IsVisible             bool     `json:"isVisible"`
 	BoostPriceBps         int      `json:"boostPriceBps"`
-	RateFromETH           *big.Int `json:"rateToETH"`
+	RateToETH             *big.Int `json:"rateToETH"` // Rate between 1 src token to ETH
 	PublicAmountAvailable *big.Int `json:"publicAmountAvailable"`
+	Exchange              string   `json:"exchange"`
 }
 
 type SubgraphPool struct {
