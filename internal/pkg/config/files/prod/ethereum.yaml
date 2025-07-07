@@ -176,6 +176,7 @@ common:
     - "aave-v3"
     - "compound-v2"
     - "compound-v3"
+    - "generic-arm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
