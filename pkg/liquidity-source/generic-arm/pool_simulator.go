@@ -25,6 +25,7 @@ type PoolSimulator struct {
 	supportedSwapType  SwapType
 	armType            ArmType
 	hasWithdrawalQueue bool
+	gas                Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -49,6 +50,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		TradeRate0:         extra.TradeRate0,
 		TradeRate1:         extra.TradeRate1,
 		PriceScale:         extra.PriceScale,
+		gas:                extra.Gas,
 	}, nil
 }
 
@@ -109,7 +111,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: big.NewInt(0),
 		},
-		Gas: defaultGas,
+		Gas: int64(lo.Ternary(swapType == ZeroToOne, p.gas.ZeroToOne, p.gas.OneToZero)),
 	}, nil
 }
 

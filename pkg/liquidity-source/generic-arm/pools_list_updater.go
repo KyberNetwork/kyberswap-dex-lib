@@ -57,6 +57,7 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 	}
 
 	extraBytes, err := json.Marshal(Extra{
+		Gas:                Gas(armCfg.Gas),
 		TradeRate0:         uint256.MustFromBig(poolState.TradeRate0),
 		TradeRate1:         uint256.MustFromBig(poolState.TradeRate1),
 		PriceScale:         uint256.MustFromBig(poolState.PriceScale),

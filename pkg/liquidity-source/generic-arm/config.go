@@ -13,6 +13,6 @@ type ArmCfg struct {
 }
 
 type GasCfg struct {
-	Deposit uint64 `json:"deposit"`
-	Redeem  uint64 `json:"redeem"`
+	ZeroToOne uint64 `json:"zeroToOne,omitempty"`
+	OneToZero uint64 `json:"oneToZero,omitempty"`
 }

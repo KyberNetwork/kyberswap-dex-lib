@@ -5,8 +5,6 @@ import "errors"
 const (
 	DexType         = "generic-arm"
 	defaultReserves = "100000000000000000000000"
-
-	defaultGas = 50000
 )
 
 var (
