@@ -51,6 +51,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		ToAddress:          params.RFQRecipient,
 		ExpiryTime:         swapInfo.ExpirySecs,
 		Slippage:           strconv.FormatFloat(float64(params.Slippage)/100, 'f', 2, 64),
+		Version:            "2",
 	})
 	if err != nil {
 		return nil, err
