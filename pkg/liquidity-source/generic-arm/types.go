@@ -32,6 +32,7 @@ type Extra struct {
 	SwapTypes          SwapType       `json:"swapType"`
 	ArmType            ArmType        `json:"armType"`
 	HasWithdrawalQueue bool           `json:"hasWithdrawalQueue"`
+	Gas                Gas            `json:"g"`
 }
 
 type PoolState struct {
@@ -45,4 +46,8 @@ type PoolState struct {
 	Reserve0         *big.Int
 	Reserve1         *big.Int
 	LiquidityAsset   common.Address
+}
+type Gas struct {
+	ZeroToOne uint64 `json:"z2o,omitempty"`
+	OneToZero uint64 `json:"o2z,omitempty"`
 }
