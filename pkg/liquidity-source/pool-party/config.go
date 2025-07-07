@@ -6,5 +6,6 @@ type Config struct {
 	DexID         string              `json:"dexID"`
 	ChainID       valueobject.ChainID `json:"chainID"`
 	Oracle        string              `json:"oracle"`
+	Exchange      string              `json:"exchange"`
 	BoostPriceBps int                 `json:"boostPriceBps"`
 }
