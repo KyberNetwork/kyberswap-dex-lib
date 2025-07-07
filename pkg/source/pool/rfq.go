@@ -15,8 +15,8 @@ type RFQParams struct {
 	NetworkID    valueobject.ChainID // blockchain network id
 	RequestID    string              // request id from getRoute
 	PoolID       string              // pool id
-	Origin       string              // original address
-	Sender       string              // swap tx origin
+	Origin       string              // swap tx tx.origin
+	Sender       string              // swap tx msg.sender
 	Recipient    string              // fund recipient of swap tx
 	RFQSender    string              // RFQ caller (executor)
 	RFQRecipient string              // RFQ fund recipient (executor/next pool/recipient)
