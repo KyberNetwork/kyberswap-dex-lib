@@ -114,6 +114,7 @@ func transformGetBundledRoutesParams(ginCtx *gin.Context,
 		ClientId:               params.ClientId,
 		BotScore:               requestid.ExtractBotScore(ginCtx),
 		Index:                  params.Index,
+		Origin:                 params.Origin,
 	}, nil
 }
 

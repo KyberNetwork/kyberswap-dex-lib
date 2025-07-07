@@ -38,6 +38,9 @@ type GetBundledRoutesParams struct {
 	ExtraWhitelistedTokens string `form:"extraWhitelistedTokens" binding:"max=215"`
 
 	Index string `form:"index"`
+
+	// Origin is the address that will submit the transaction
+	Origin string `form:"origin"`
 }
 
 type GetBundledRoutesResponse struct {

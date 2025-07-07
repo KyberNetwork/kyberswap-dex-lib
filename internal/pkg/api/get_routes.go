@@ -171,6 +171,7 @@ func transformGetRoutesParams(ginCtx *gin.Context, params params.GetRoutesParams
 		BotScore:            requestid.ExtractBotScore(ginCtx),
 		Index:               params.Index,
 		PoolIds:             utils.TransformSliceParams(params.PoolIds),
+		Origin:              params.Origin,
 	}, nil
 }
 

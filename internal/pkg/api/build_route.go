@@ -102,6 +102,7 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 		SlippageTolerance:   params.SlippageTolerance,
 		EnableGasEstimation: params.EnableGasEstimation,
 		Source:              source,
+		Origin:              params.Origin,
 		Referral:            params.Referral,
 	}, nil
 }

@@ -79,6 +79,9 @@ type AggregateParams struct {
 	// even if they are not present in the indexes.
 	// If the list is empty, all pools from the indexes will be used.
 	PoolIds []string
+
+	// Origin is the address that will submit the transaction
+	Origin string
 }
 
 type AggregateBundledParamsPair struct {
@@ -145,4 +148,7 @@ type AggregateBundledParams struct {
 
 	// Flag to enable hill climbing for amm best route
 	EnableHillClimbForAlphaFee bool
+
+	// Origin is the address that will submit the transaction
+	Origin string
 }

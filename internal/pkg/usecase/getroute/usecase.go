@@ -255,6 +255,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
 		EnableHillClimbForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
 		PoolIds:                       query.PoolIds,
+		Origin:                        query.Origin,
 	}, nil
 }
 

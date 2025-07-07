@@ -193,5 +193,6 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 		KyberLimitOrderAllowedSenders: kyberLimitOrderAllowedSenders,
 		EnableAlphaFee:                u.config.Aggregator.FeatureFlags.IsAlphaFeeReductionEnable,
 		EnableHillClimbForAlphaFee:    u.config.Aggregator.FeatureFlags.IsHillClimbEnabledForAMMBestRoute,
+		Origin:                        query.Origin,
 	}, nil
 }

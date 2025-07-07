@@ -56,6 +56,9 @@ type GetRoutesParams struct {
 	// even if they are not present in the indexes.
 	// If the list is empty, all pools from the indexes will be used.
 	PoolIds string `form:"poolIds"`
+
+	// Origin is the address that will submit the transaction
+	Origin string `form:"origin"`
 }
 
 type GetRoutesResponse struct {

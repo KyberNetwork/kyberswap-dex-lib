@@ -4,8 +4,9 @@ type (
 	BuildRouteParams struct {
 		RouteSummary RouteSummary `json:"routeSummary"`
 
-		Sender    string `json:"sender"`    // sender wallet
-		Recipient string `json:"recipient"` // recipient wallet
+		Sender    string `json:"sender"`    // onchain address that directly calls Router.swap()
+		Origin    string `json:"origin"`    // address that submits the transaction
+		Recipient string `json:"recipient"` // address that receives tokenOut
 
 		Permit string `json:"permit"` // allows user to swap without approving token beforehand
 

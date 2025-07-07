@@ -245,7 +245,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
 	go uc.consumeRouteMsgDatas(ctx, rfqRouteMsgCh)
 
-	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary,
+	routeSummary, err = uc.rfq(ctx, command.Sender, command.Origin, command.Recipient, command.Source, command.RouteSummary,
 		rfqRouteMsgCh, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
 
 	if err != nil {
@@ -331,6 +331,7 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 func (uc *BuildRouteUseCase) rfq(
 	ctx context.Context,
 	sender string,
+	origin string,
 	recipient string,
 	source string,
 	routeSummary valueobject.RouteSummary,
@@ -388,6 +389,7 @@ func (uc *BuildRouteUseCase) rfq(
 						RequestID:    routeSummary.RouteID,
 						PoolID:       swap.Pool,
 						Sender:       sender,
+						Origin:       origin,
 						Recipient:    recipient,
 						RFQSender:    executorAddress,
 						RFQRecipient: rfqRecipient,

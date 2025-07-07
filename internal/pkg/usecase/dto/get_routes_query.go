@@ -31,6 +31,7 @@ type GetRoutesQuery struct {
 	Index    string
 
 	PoolIds []string
+	Origin  string
 }
 
 type GetBundledRoutesQueryPair struct {
@@ -58,4 +59,5 @@ type GetBundledRoutesQuery struct {
 	ClientId string
 	BotScore int
 	Index    string
+	Origin   string
 }
