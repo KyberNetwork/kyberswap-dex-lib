@@ -56,12 +56,15 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount,
 			bignumber.Two)
 	}
+
+	userAddress := params.GetOrigin()
+
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),
 		TakerAsset:  swapInfo.BaseTokenOriginal,
 		MakerAsset:  swapInfo.QuoteTokenOriginal,
 		TakerAmount: upscaledTakerAmount.String(),
-		UserAddress: params.Sender,
+		UserAddress: userAddress,
 		Executor:    params.RFQRecipient,
 		Slippage:    params.Slippage,
 		Partner:     params.Source,

@@ -79,8 +79,8 @@ func (u *PoolTracker) getNewPoolState(
 		// uint256 xDecimals,
 		// uint256 yDecimals,
 		// uint256 price
-		pairInfo         = [3]interface{}{uint8(0), uint8(0)}
-		invertedPairInfo = [3]interface{}{uint8(0), uint8(0)}
+		pairInfo         = [3]any{uint8(0), uint8(0)}
+		invertedPairInfo = [3]any{uint8(0), uint8(0)}
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -92,35 +92,48 @@ func (u *PoolTracker) getNewPoolState(
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetPoolStateMethod,
-		Params: []interface{}{token0, token1},
-	}, []interface{}{&poolState})
+		Params: []any{token0, token1},
+	}, []any{&poolState})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerIsPairEnabledMethod,
-		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []interface{}{&isPairEnabled})
+		Params: []any{common.HexToAddress(p.Address)},
+	}, []any{&isPairEnabled})
 
 	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetTokenLimitMaxMultiplierMethod,
-		Params: []interface{}{token0},
-	}, []interface{}{&token0LimitMaxMultiplier})
+		Params: []any{token0},
+	}, []any{&token0LimitMaxMultiplier})
 
 	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetTokenLimitMaxMultiplierMethod,
-		Params: []interface{}{token1},
-	}, []interface{}{&token1LimitMaxMultiplier})
+		Params: []any{token1},
+	}, []any{&token1LimitMaxMultiplier})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
-	// return if pool is disabled
 	if !isPairEnabled {
+		var extraData IntegralPair
+		_ = json.Unmarshal([]byte(p.Extra), &extraData)
+
+		extraData.IsEnabled = false
+		extraBytes, err := json.Marshal(extraData)
+		if err != nil {
+			logger.Errorf("%s: failed to marshal extra data for disabled pool (address: %s, error: %v)", u.config.DexID, p.Address, err)
+			return entity.Pool{}, err
+		}
+
+		p.Extra = string(extraBytes)
+		p.Timestamp = time.Now().Unix()
+		p.Reserves = entity.PoolReserves([]string{"0", "0"})
+
 		return p, nil
 	}
 
@@ -128,15 +141,15 @@ func (u *PoolTracker) getNewPoolState(
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetPairByAddressMethod,
-		Params: []interface{}{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
-	}, []interface{}{&pairInfo})
+		Params: []any{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
+	}, []any{&pairInfo})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetPairByAddressMethod,
-		Params: []interface{}{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
-	}, []interface{}{&invertedPairInfo})
+		Params: []any{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
+	}, []any{&invertedPairInfo})
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch decimals data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
