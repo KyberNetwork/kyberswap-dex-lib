@@ -83,6 +83,12 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Swappable: true,
 		}
 
+		publicAmountAvailableBI := bignumber.NewBig10(p.PublicAmountAvailable)
+		if publicAmountAvailableBI.Sign() <= 0 {
+			publicAmountAvailableBI.SetUint64(0)
+		}
+		p.PublicAmountAvailable = publicAmountAvailableBI.String()
+
 		tokens := []*entity.PoolToken{&tokenNative, &tokenTarget}
 		reserves := []string{"0", p.PublicAmountAvailable}
 
@@ -95,7 +101,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			PoolStatus:            p.PoolStatus,
 			IsVisible:             p.IsVisible,
 			BoostPriceBps:         d.config.BoostPriceBps,
-			PublicAmountAvailable: bignumber.NewBig10(p.PublicAmountAvailable),
+			PublicAmountAvailable: publicAmountAvailableBI,
 		}
 		extraBytes, _ := json.Marshal(extra)
 
