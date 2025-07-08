@@ -400,6 +400,9 @@ useCase:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-berachain/version/latest
     startBlock: 4685682
   tradeDataGenerator:
+    exportFailedTrade: false
+    failedFileName: "./failed_trade_data.txt"
+    chainName: *chainName
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 200
