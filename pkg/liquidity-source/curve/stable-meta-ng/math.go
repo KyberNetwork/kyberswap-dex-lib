@@ -1,6 +1,8 @@
 package stablemetang
 
 import (
+	"fmt"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/holiman/uint256"
@@ -9,11 +11,11 @@ import (
 func (t *PoolSimulator) GetDyUnderlying(
 	i int, j int, _dx *uint256.Int,
 
-	// output
+// output
 	dy *uint256.Int,
 	addLiquidityInfo *BasePoolAddLiquidityInfo, // in case input is a base coin
-	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
-	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
+	metaSwapInfo *MetaPoolSwapInfo,             // the meta swap component
+	withdrawInfo *BasePoolWithdrawInfo,         // in case output is a base coin
 ) error {
 	var baseNCoins = len(t.basePool.GetInfo().Tokens)
 	xp := stableng.XpMem(t.Extra.RateMultipliers, t.Reserves)
@@ -121,5 +123,103 @@ func (t *PoolSimulator) GetDyUnderlying(
 		// output is a meta coins, we're done
 		dy.Set(&metaSwapInfo.AmountOut)
 	}
+	return nil
+}
+
+func (t *PoolSimulator) GetXUnderlying(
+	i int, j int, dy *uint256.Int,
+
+// output
+	dx *uint256.Int,
+	addLiquidityInfo *BasePoolAddLiquidityInfo, // in case input is a base coin
+	metaSwapInfo *MetaPoolSwapInfo,             // the meta swap component
+	withdrawInfo *BasePoolWithdrawInfo,         // in case output is a base coin
+) error {
+	var baseNCoins = len(t.basePool.GetInfo().Tokens)
+
+	var base_i = i - MAX_METAPOOL_COIN_INDEX
+	var base_j = j - MAX_METAPOOL_COIN_INDEX
+
+	input_is_base_coin := base_i >= 0
+	output_is_base_coin := base_j >= 0
+
+	// CASE 1: Swap does not involve Metapool at all. In this case, we kindly ask the user
+	// to use the right pool for their swaps.
+	// Should not happen, but we handle it anyway
+	if input_is_base_coin && output_is_base_coin {
+		// should be rejected at the outer level already
+		return ErrAllBasePoolTokens
+	}
+	if !input_is_base_coin && !output_is_base_coin {
+		// all meta coins, should not happen (should be redirected to GetDx instead)
+		return ErrAllMetaPoolTokens
+	}
+
+	if output_is_base_coin {
+		metaSwapInfo.TokenInIndex = i                        // input is meta coin
+		metaSwapInfo.TokenOutIndex = MAX_METAPOOL_COIN_INDEX // output of meta swap is LPtoken
+	} else {
+		metaSwapInfo.TokenInIndex = MAX_METAPOOL_COIN_INDEX
+		metaSwapInfo.TokenOutIndex = j
+	}
+
+	// CASE 2:
+	//    1. meta token_0 of (unknown amount) > base pool lp_token
+	//    2. base pool lp_token > calc_withdraw_one_coin gives dy amount of (j-1)th base coin
+	// So, need to do the following calculations:
+	//    1. calc_token_amounts on base pool for depositing liquidity on (j-1)th token > lp_tokens.
+	//    2. get_dx on metapool for i = 0, and j = 1 (base lp token) with amt calculated in (1).
+	if output_is_base_coin {
+		baseInputs := make([]uint256.Int, baseNCoins)
+		for k := 0; k < baseNCoins; k++ {
+			baseInputs[k].Clear()
+		}
+		baseInputs[base_j].Set(dy)
+
+		var lpAmountBurnt uint256.Int
+		feeAmounts := make([]uint256.Int, baseNCoins)
+		for k := 0; k < baseNCoins; k++ {
+			feeAmounts[k].Clear()
+		}
+
+		if err := t.basePool.CalculateTokenAmountU256(baseInputs, false, &lpAmountBurnt, feeAmounts); err != nil {
+			return fmt.Errorf("base pool CalculateTokenAmountU256: %w", err)
+		}
+
+		var adminFee uint256.Int
+		if err := t.GetDx(0, 1, &lpAmountBurnt, nil, dx, &adminFee); err != nil {
+			return fmt.Errorf("getDx: %w", err)
+		}
+
+		// update metaSwapInfo
+		metaSwapInfo.AmountIn.Set(dx)
+		metaSwapInfo.AmountOut.Set(&lpAmountBurnt)
+		metaSwapInfo.AdminFee.Set(&adminFee)
+
+		return nil
+	}
+	// CASE 3: Swap in token i-1 from base pool and swap out dy amount of token 0 (j) from metapool.
+	//    1. deposit i-1 token from base pool > receive base pool lp_token
+	//    2. swap base pool lp token > 0th token of the metapool
+	// So, need to do the following calculations:
+	//    1. get_dx on metapool with i = 0, j = 1 > gives how many base lp tokens are required for receiving
+	//       dy amounts of i-1 tokens from the metapool
+	//    2. We have number of lp tokens: how many i-1 base pool coins are needed to mint that many tokens?
+	//       We don't have a method where user inputs lp tokens and it gives number of coins of (i-1)th token
+	//       is needed to mint that many base_lp_tokens. Instead, we will use calc_withdraw_one_coin. That's
+	//       close enough.
+	var lpAmountRequired, adminFee uint256.Int
+	if err := t.GetDx(1, 0, dy, nil, &lpAmountRequired, &adminFee); err != nil {
+		return fmt.Errorf("getDx: %w", err)
+	}
+	if err := t.basePool.CalculateWithdrawOneCoinU256(&lpAmountRequired, base_i, dx, &withdrawInfo.DyFee); err != nil {
+		return fmt.Errorf("base pool CalculateWithdrawOneCoinU256: %w", err)
+	}
+
+	// update metaSwapInfo
+	metaSwapInfo.AmountIn.Set(&lpAmountRequired)
+	metaSwapInfo.AmountOut.Set(dx)
+	metaSwapInfo.AdminFee.Set(&adminFee)
+
 	return nil
 }
