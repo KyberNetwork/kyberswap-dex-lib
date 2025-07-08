@@ -11,11 +11,11 @@ import (
 func (t *PoolSimulator) GetDyUnderlying(
 	i int, j int, _dx *uint256.Int,
 
-// output
+	// output
 	dy *uint256.Int,
 	addLiquidityInfo *BasePoolAddLiquidityInfo, // in case input is a base coin
-	metaSwapInfo *MetaPoolSwapInfo,             // the meta swap component
-	withdrawInfo *BasePoolWithdrawInfo,         // in case output is a base coin
+	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
+	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
 ) error {
 	var baseNCoins = len(t.basePool.GetInfo().Tokens)
 	xp := stableng.XpMem(t.Extra.RateMultipliers, t.Reserves)
@@ -126,14 +126,14 @@ func (t *PoolSimulator) GetDyUnderlying(
 	return nil
 }
 
-func (t *PoolSimulator) GetXUnderlying(
+func (t *PoolSimulator) GetDxUnderlying(
 	i int, j int, dy *uint256.Int,
 
-// output
+	// output
 	dx *uint256.Int,
 	addLiquidityInfo *BasePoolAddLiquidityInfo, // in case input is a base coin
-	metaSwapInfo *MetaPoolSwapInfo,             // the meta swap component
-	withdrawInfo *BasePoolWithdrawInfo,         // in case output is a base coin
+	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
+	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
 ) error {
 	var baseNCoins = len(t.basePool.GetInfo().Tokens)
 
