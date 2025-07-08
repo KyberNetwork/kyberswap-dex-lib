@@ -196,6 +196,12 @@ func (t *PoolSimulator) GetXUnderlying(
 		metaSwapInfo.AmountOut.Set(&lpAmountBurnt)
 		metaSwapInfo.AdminFee.Set(&adminFee)
 
+		// update withdrawInfo
+		withdrawInfo.TokenAmount.Set(&lpAmountBurnt)
+		withdrawInfo.TokenIndex = base_j
+		withdrawInfo.Dy.Set(dy)
+		withdrawInfo.DyFee.Set(&adminFee)
+
 		return nil
 	}
 	// CASE 3: Swap in token i-1 from base pool and swap out dy amount of token 0 (j) from metapool.
@@ -212,7 +218,9 @@ func (t *PoolSimulator) GetXUnderlying(
 	if err := t.GetDx(1, 0, dy, nil, &lpAmountRequired, &adminFee); err != nil {
 		return fmt.Errorf("getDx: %w", err)
 	}
-	if err := t.basePool.CalculateWithdrawOneCoinU256(&lpAmountRequired, base_i, dx, &withdrawInfo.DyFee); err != nil {
+
+	var fee uint256.Int
+	if err := t.basePool.CalculateWithdrawOneCoinU256(&lpAmountRequired, base_i, dx, &fee); err != nil {
 		return fmt.Errorf("base pool CalculateWithdrawOneCoinU256: %w", err)
 	}
 
@@ -220,6 +228,15 @@ func (t *PoolSimulator) GetXUnderlying(
 	metaSwapInfo.AmountIn.Set(&lpAmountRequired)
 	metaSwapInfo.AmountOut.Set(dx)
 	metaSwapInfo.AdminFee.Set(&adminFee)
+
+	// update addLiquidityInfo
+	for k := 0; k < baseNCoins; k++ {
+		addLiquidityInfo.Amounts[k].Clear()
+		addLiquidityInfo.FeeAmounts[k].Clear()
+	}
+	addLiquidityInfo.Amounts[base_i].Set(dx)
+	addLiquidityInfo.FeeAmounts[base_i].Set(&fee)
+	addLiquidityInfo.MintAmount.Set(&lpAmountRequired)
 
 	return nil
 }
