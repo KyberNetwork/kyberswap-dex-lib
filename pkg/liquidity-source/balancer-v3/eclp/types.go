@@ -59,10 +59,14 @@ func (p *ECLPParamsRpc) toInt256() *ECLPParams {
 	result.Params.S = int256.MustFromBig(p.Params.S)
 	result.Params.Lambda = int256.MustFromBig(p.Params.Lambda)
 
-	result.D.TauAlpha.X = int256.MustFromBig(p.D.TauAlpha.X)
-	result.D.TauAlpha.Y = int256.MustFromBig(p.D.TauAlpha.Y)
-	result.D.TauBeta.X = int256.MustFromBig(p.D.TauBeta.X)
-	result.D.TauBeta.Y = int256.MustFromBig(p.D.TauBeta.Y)
+	result.D.TauAlpha = &math.Vector2{
+		X: int256.MustFromBig(p.D.TauAlpha.X),
+		Y: int256.MustFromBig(p.D.TauAlpha.Y),
+	}
+	result.D.TauBeta = &math.Vector2{
+		X: int256.MustFromBig(p.D.TauBeta.X),
+		Y: int256.MustFromBig(p.D.TauBeta.Y),
+	}
 	result.D.U = int256.MustFromBig(p.D.U)
 	result.D.V = int256.MustFromBig(p.D.V)
 	result.D.W = int256.MustFromBig(p.D.W)
