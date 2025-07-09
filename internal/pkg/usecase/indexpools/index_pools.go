@@ -52,6 +52,7 @@ type PoolIndex struct {
 	Token1              string
 	IsToken0Whitelisted bool
 	IsToken1Whitelisted bool
+	HasReserves         bool
 	TvlNative           float64
 	AmplifiedTvlNative  float64
 }
@@ -63,6 +64,7 @@ func NewPoolIndex(pool *entity.Pool, tokenI string, tokenJ string, whitelist map
 		Token1:              tokenJ,
 		IsToken0Whitelisted: whitelist[tokenI],
 		IsToken1Whitelisted: whitelist[tokenJ],
+		HasReserves:         pool.HasReserves(),
 		TvlNative:           tvlNative,
 		AmplifiedTvlNative:  amplifiedTvlNative,
 	}
@@ -138,7 +140,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		mapper := iter.Mapper[*entity.Pool, IndexResult]{MaxGoroutines: u.config.MaxGoroutines}
 
 		indexPoolsResults := mapper.Map(pools, func(pool **entity.Pool) IndexResult {
-			err := u.processIndex(ctx, *pool, nativePriceByToken, u.savePoolIndex)
+			err := u.processIndex(ctx, *pool, nativePriceByToken, u.updatePoolIndex)
 			if err != nil && strings.Contains(err.Error(), ErrIndexResultFailed.Error()) {
 				return INDEX_RESULT_FAIL
 			}
@@ -202,10 +204,6 @@ func (u *IndexPoolsUseCase) getChunkPool(
 }
 
 func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice, handler IndexProcessingHandler) error {
-	if !pool.HasReserves() && !pool.HasAmplifiedTvl() {
-		return nil
-	}
-
 	var (
 		tvlNative, amplifiedTvlNative float64
 	)
@@ -274,10 +272,8 @@ func (u *IndexPoolsUseCase) processMainPoolIndexes(ctx context.Context, pool *en
 				continue
 			}
 
-			if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
-				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
-					result = err
-				}
+			if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
+				result = err
 			}
 		}
 	}
@@ -466,11 +462,12 @@ func (u *IndexPoolsUseCase) getPricesForAllTokens(ctx context.Context, pools []*
 	return prices, nil
 }
 
-func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
+func (u *IndexPoolsUseCase) updatePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
 	var shouldAddToTvlNativeIndex bool
 	if poolIndex.TvlNative > 0 {
 		shouldAddToTvlNativeIndex = true
-	} else {
+	} else if poolIndex.HasReserves {
+		// Only add to directIndex if pool has reserves, but TVL = 0 (due to no prices at the moment).
 		directIndexLength, err := u.poolRankRepo.GetDirectIndexLength(ctx, poolrank.SortByTVLNative, poolIndex.Token0, poolIndex.Token1)
 		if err != nil {
 			log.Ctx(ctx).Warn().Err(err).Msg("failed to get direct index length")
@@ -483,6 +480,14 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByTVLNative, poolIndex.Pool.Address, poolIndex.TvlNative, true); err != nil {
 			log.Ctx(ctx).Err(err).Msg("failed to add to sorted set")
+			return ErrIndexResultFailed
+		}
+	} else if !poolIndex.HasReserves {
+		// Pool has no TVL at all & the direct index has enough pools.
+		// We will remove this pool from the index if it exists (save data size & index slot for other pools).
+		if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
+			poolrank.SortByTVLNative, poolIndex.Pool.Address, true); err != nil {
+			log.Ctx(ctx).Err(err).Msg("failed to remove pool with no TVL from sorted set")
 			return ErrIndexResultFailed
 		}
 	}

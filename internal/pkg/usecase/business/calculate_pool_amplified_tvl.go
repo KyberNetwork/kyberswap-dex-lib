@@ -43,7 +43,7 @@ func CalculatePoolAmplifiedTVL(
 		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
 		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
 		if err != nil {
-			log.Ctx(ctx).Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
+			log.Ctx(ctx).Debug().Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
 			return 0, false, err
 		}
 

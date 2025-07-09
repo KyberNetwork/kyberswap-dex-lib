@@ -345,6 +345,22 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
 				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					false,
+					poolrank.SortByTVLNative, mockPools[2].Address, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					false,
+					poolrank.SortByTVLNative, mockPools[3].Address, true,
+				).Return(nil)
 
 				mockPoolRankRepo.EXPECT().
 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
@@ -456,6 +472,22 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 					false,
 					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					false,
+					poolrank.SortByTVLNative, mockPools[2].Address, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					false,
+					poolrank.SortByTVLNative, mockPools[3].Address, true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().
 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).

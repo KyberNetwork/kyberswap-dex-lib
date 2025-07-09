@@ -43,6 +43,24 @@ func CalculatePoolTVL(
 		{
 			var reserveNative = float64(0)
 			for i := range poolTokens {
+				token := poolTokens[i].Address
+				tokenNativePrice, ok := nativePriceByToken[token]
+
+				if !ok {
+					if partialTvl {
+						continue
+					}
+					return 0, fmt.Errorf("token has no price %s", token)
+				}
+
+				reserveBF, err := getReserve(ctx, p, i, tokenNativePrice.Decimals)
+				if err != nil {
+					return 0, err
+				}
+				if reserveBF.Sign() == 0 {
+					continue
+				}
+
 				midPrice, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
 				if err != nil {
 					// we need partially calculate tvl if some tokens in a pool have no price in case liquidity score ranking
@@ -51,11 +69,6 @@ func CalculatePoolTVL(
 							poolTokens[i], price, p.Address, p.Type)
 						continue
 					}
-					return 0, err
-				}
-
-				reserveBF, err := getReserve(ctx, p, i, price.Decimals)
-				if err != nil {
 					return 0, err
 				}
 
@@ -125,6 +138,10 @@ func CalculatePoolTVLForTokenPair(
 }
 
 func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*big.Float, error) {
+	if i >= len(p.Reserves) {
+		return nil, ErrorInvalidReserve
+	}
+
 	switch p.Type {
 	case maverickv1.DexTypeMaverickV1:
 		// maverick's reserves need to be scaled up/down first
