@@ -898,7 +898,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 }
 
 func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
-
 	t.Parallel()
 
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
@@ -1334,8 +1333,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				Salt:         randomSalt,
 				TokenGroups: &valueobject.TokenGroupConfig{
-					StableGroup: map[string]bool{
-						"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": true,
+					CorrelatedGroup1: map[string]bool{
+						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 						"0x6b175474e89094c44da98b954eedeac495271d0f": true,
 					},
 				},
@@ -1358,7 +1357,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				},
 			},
 			result: &dto.BuildRouteResult{
-				SuggestedSlippage: 615 + 1, // 0.01% buffer for stable
+				SuggestedSlippage: 615 + 5, // 0.05% buffer for correlated
 			},
 			err: ErrEstimateGasFailed(ErrReturnAmountIsNotEnough),
 		},

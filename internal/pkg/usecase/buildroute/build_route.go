@@ -263,7 +263,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	// Estimate gas and slippage using simulation data
 	estimatedGas, gasInUSD, l1FeeUSD, estimatedSlippage, err := uc.simulateSwapAndEstimateGas(ctx, routeSummary,
-		command, executorAddress, isFaultyPoolTrackEnable)
+		tokenInAddress, tokenOutAddress, command, executorAddress, isFaultyPoolTrackEnable)
 	if err != nil {
 		if estimatedSlippage > 0 {
 			return &dto.BuildRouteResult{
@@ -913,6 +913,8 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 	ctx context.Context,
 	routeSummary valueobject.RouteSummary,
+	tokenInAddress string,
+	tokenOutAddress string,
 	command dto.BuildRouteCommand,
 	executorAddress string,
 	isFaultyPoolTrackEnable bool,
@@ -945,7 +947,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 		var returnAmount *big.Int
 		gas, gasUSD, returnAmount, err = uc.gasEstimator.EstimateGasAndPriceUSD(ctx, tx)
 		if err == nil {
-			estimatedSlippage, err = uc.ValidateReturnAmount(ctx, routeSummary.TokenIn, routeSummary.TokenOut,
+			estimatedSlippage, err = uc.ValidateReturnAmount(ctx, tokenInAddress, tokenOutAddress,
 				returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
 		}
 
@@ -965,7 +967,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 		go func(ctx context.Context) {
 			_, returnAmount, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			if err == nil {
-				estimatedSlippage, err = uc.ValidateReturnAmount(ctx, routeSummary.TokenIn, routeSummary.TokenOut,
+				estimatedSlippage, err = uc.ValidateReturnAmount(ctx, tokenInAddress, tokenOutAddress,
 					returnAmount, routeSummary.AmountOut, command.SlippageTolerance)
 			}
 

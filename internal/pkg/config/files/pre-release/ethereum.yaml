@@ -165,6 +165,7 @@ common:
     - "aave-v3"
     - "compound-v2"
     - "compound-v3"
+    - "generic-arm"
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false
