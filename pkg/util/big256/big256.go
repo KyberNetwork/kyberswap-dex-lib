@@ -10,7 +10,7 @@ import (
 
 var (
 	// TwoPow128 2^128
-	TwoPow128 = new(uint256.Int).Lsh(uint256.NewInt(1), 128)
+	TwoPow128 = new(uint256.Int).Lsh(U1, 128)
 	UMax      = new(uint256.Int).SetAllOne()
 
 	U0  = uint256.NewInt(0)
@@ -29,7 +29,7 @@ var (
 	UBasisPoint = uint256.NewInt(10000)
 )
 
-var BONE = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(18))
+var BONE = TenPow(18)
 var BoneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
 var (

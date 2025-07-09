@@ -265,6 +265,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 				})
 				require.Equal(t, tc.expectedRemainingAmount, res.RemainingTokenAmountIn.Amount.String())
 				require.Equal(t, tc.expectedAmountOut, res.TokenAmountOut.Amount.String())
+				t.Logf("estimated gas: %d", res.Gas)
 			} else {
 				require.ErrorContains(t, err, tc.expectedError.Error())
 			}

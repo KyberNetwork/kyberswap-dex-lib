@@ -1,8 +1,8 @@
 package arenabc
 
 import (
+	"math"
 	"math/big"
-	"strings"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -136,11 +136,7 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 }
 
 func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	return lo.Ternary(s.isBuy(tokenIn), "", s.tokenManager)
-}
-
-func (s *PoolSimulator) isBuy(tokenIn string) bool {
-	return strings.EqualFold(tokenIn, s.Info.Tokens[0])
+	return lo.Ternary(tokenIn == s.Info.Tokens[0], "", s.tokenManager)
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
@@ -158,7 +154,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.nativeBalance = swapInfo.nativeBalance
 
 	if swapInfo.IsBuy {
-		if s.isLpTokenThresholdReached() {
+		if s.isLpTokenThresholdReached(s.totalSupply) {
 			s.lpDeployed = true
 		}
 	}
@@ -203,7 +199,6 @@ func (s *PoolSimulator) sell(amount *uint256.Int) (*uint256.Int, *SwapInfo, int6
 
 func (s *PoolSimulator) calculateReward(scaledAmount *uint256.Int) (*uint256.Int, error) {
 	scaledTotalSupply := new(uint256.Int).Div(s.totalSupply, granularityScaler)
-
 	if scaledTotalSupply.IsZero() {
 		return nil, ErrZeroSwap
 	}
@@ -216,7 +211,7 @@ func (s *PoolSimulator) calculateReward(scaledAmount *uint256.Int) (*uint256.Int
 }
 
 func (s *PoolSimulator) buyAndCreateLpIfPossible(nativeAmount *uint256.Int) (*uint256.Int, *SwapInfo, int64, error) {
-	tokenAmount := s.calculatePurchaseAmountParametric(nativeAmount)
+	tokenAmount := s.calculatePurchaseAmount(nativeAmount)
 
 	scaledTokenAmount := new(uint256.Int).Div(tokenAmount, granularityScaler)
 	if scaledTokenAmount.IsZero() {
@@ -226,14 +221,6 @@ func (s *PoolSimulator) buyAndCreateLpIfPossible(nativeAmount *uint256.Int) (*ui
 	cost, _ := s.calculateCost(scaledTokenAmount)
 	fee := getFee(cost, s.protocolFeeBasisPoint, s.creatorFeeBasisPoints, s.referralFeeBasisPoint)
 	totalCost := new(uint256.Int).Add(cost, fee)
-	gas := buyGas
-
-	if s.isLpTokenThresholdReached() {
-		if !s.canDeployLp {
-			return nil, nil, 0, ErrLpDeployNotAllowedRightNow
-		}
-		gas += createLpGas
-	}
 
 	var currentNativeBalance, currentTotalSupply uint256.Int
 	if _, overflow := currentNativeBalance.AddOverflow(s.nativeBalance, totalCost); overflow {
@@ -242,65 +229,53 @@ func (s *PoolSimulator) buyAndCreateLpIfPossible(nativeAmount *uint256.Int) (*ui
 		return nil, nil, 0, ErrTotalSupplyOverflowOrUnderflow
 	}
 
+	tokenAmountTolerance, _ := new(uint256.Int).MulDivOverflow(tokenAmount, swapAmountTolerancePercentage, U100)
+	minTokenAmountOut := new(uint256.Int).Sub(tokenAmount, tokenAmountTolerance)
+	maxTokenAmountOut := new(uint256.Int).Add(tokenAmount, tokenAmountTolerance)
+
+	gas := s.estimateCalculateCostWithFeesGas(tokenAmountTolerance.Sub(maxTokenAmountOut, minTokenAmountOut)) + buyGas
+
+	if s.isLpTokenThresholdReached(&currentTotalSupply) {
+		if !s.canDeployLp {
+			return nil, nil, 0, ErrLpDeployNotAllowedRightNow
+		}
+		gas += createLpGas
+	}
+
 	return tokenAmount, &SwapInfo{
-		TokenManager: s.tokenManager,
-		IsBuy:        true,
-		TokenId:      s.tokenId,
-		SwapAmount:   nativeAmount,
-		fee:          fee,
+		TokenManager:            s.tokenManager,
+		IsBuy:                   true,
+		TokenId:                 s.tokenId,
+		SwapAmount:              nativeAmount,
+		MinScaledTokenAmountOut: minTokenAmountOut.Div(minTokenAmountOut, granularityScaler).Uint64(),
+		MaxScaledTokenAmountOut: maxTokenAmountOut.Div(maxTokenAmountOut, granularityScaler).Uint64(),
+		fee:                     fee,
 		remainingTokenIn: &pool.TokenAmount{
 			Token:  s.Info.Tokens[0],
 			Amount: new(uint256.Int).Sub(nativeAmount, totalCost).ToBig(),
 		},
 		totalSupply:   &currentTotalSupply,
 		nativeBalance: &currentNativeBalance,
-	}, int64(gas), nil
+	}, gas, nil
 }
 
-func (s *PoolSimulator) getMaxTokensForSale() *uint256.Int {
-	var maxSupplyForSale, buyLimit uint256.Int
-	maxSupplyForSale.MulDivOverflow(s.allowedTotalSupply, s.salePercentage, U100)
+func (s *PoolSimulator) calculateCost(scaledAmount *uint256.Int) (*uint256.Int, error) {
+	scaledTotalSupply := new(uint256.Int).Div(s.totalSupply, granularityScaler)
 
-	if !maxSupplyForSale.Lt(s.totalSupply) {
-		buyLimit.Sub(&maxSupplyForSale, s.totalSupply)
-	}
-
-	return &buyLimit
+	return integralCeil(new(uint256.Int).Add(scaledAmount, scaledTotalSupply), scaledTotalSupply, s.a, s.b, s.curveScaler), nil
 }
 
-func (s *PoolSimulator) getMaxNativeTokensOut() *uint256.Int {
-	maxNativeOut := integralFloor(
-		new(uint256.Int).Div(s.totalSupply, granularityScaler),
-		new(uint256.Int),
-		s.a, s.b, s.curveScaler,
-	)
-	fee := getFee(
-		maxNativeOut,
-		s.protocolFeeBasisPoint,
-		s.creatorFeeBasisPoints,
-		s.referralFeeBasisPoint,
-	)
-
-	return new(uint256.Int).Sub(maxNativeOut, fee)
-}
-
-func (s *PoolSimulator) calculateCost(amount *uint256.Int) (*uint256.Int, error) {
-	totalSupply := new(uint256.Int).Div(s.totalSupply, granularityScaler)
-
-	return integralCeil(new(uint256.Int).Add(amount, totalSupply), totalSupply, s.a, s.b, s.curveScaler), nil
-}
-
-func (s *PoolSimulator) isLpTokenThresholdReached() bool {
+func (s *PoolSimulator) isLpTokenThresholdReached(currentTotalSupply *uint256.Int) bool {
 	lhs := new(uint256.Int).Mul(s.allowedTotalSupply, s.salePercentage)
-	rhs := new(uint256.Int).Mul(s.totalSupply, U100)
+	rhs := new(uint256.Int).Mul(currentTotalSupply, U100)
 
 	return lhs.Eq(rhs)
 }
 
-func (s *PoolSimulator) calculatePurchaseAmountParametric(nativeAmount *uint256.Int) *uint256.Int {
-	maxTokensForSaleInWei := s.getMaxTokensForSale()
+func (s *PoolSimulator) calculatePurchaseAmount(nativeAmount *uint256.Int) *uint256.Int {
+	maxTokensForSaleInWei := getBuyLimit(s.totalSupply, s.allowedTotalSupply, s.salePercentage)
 
-	cost := s.calculateCostScaledParametricWithFees(maxTokensForSaleInWei, s.totalSupply)
+	cost := s.calculateCostScaledWithFees(maxTokensForSaleInWei, s.totalSupply)
 
 	if nativeAmount.Gt(cost) {
 		return maxTokensForSaleInWei
@@ -314,7 +289,7 @@ func (s *PoolSimulator) calculatePurchaseAmountParametric(nativeAmount *uint256.
 	for low.Lt(&high) && maxIterations > 0 {
 		mid.Add(&low, &high).Add(&mid, u256.U1).Div(&mid, u256.U2)
 
-		cost.Set(s.calculateCostScaledParametricWithFees(amountInWei.Mul(&mid, granularityScaler), s.totalSupply))
+		cost.Set(s.calculateCostScaledWithFees(amountInWei.Mul(&mid, granularityScaler), s.totalSupply))
 		if cost.Eq(nativeAmount) {
 			return mid.Mul(&mid, u256.BONE)
 		} else if cost.Lt(nativeAmount) {
@@ -329,19 +304,25 @@ func (s *PoolSimulator) calculatePurchaseAmountParametric(nativeAmount *uint256.
 	return low.Mul(&low, u256.BONE)
 }
 
-func (s *PoolSimulator) calculateCostScaledParametricWithFees(amountInWei, supplyInWei *uint256.Int) *uint256.Int {
-	rawCosts := s.calculateCostScaledParametric(amountInWei, supplyInWei)
-	fee := getFee(rawCosts, s.protocolFeeBasisPoint, s.creatorFeeBasisPoints, s.referralFeeBasisPoint)
-
-	return rawCosts.Add(rawCosts, fee)
-}
-
-func (s *PoolSimulator) calculateCostScaledParametric(amountInWei, supplyInWei *uint256.Int) *uint256.Int {
+func (s *PoolSimulator) calculateCostScaledWithFees(amountInWei, supplyInWei *uint256.Int) *uint256.Int {
 	amountInTokens := new(uint256.Int).Div(amountInWei, granularityScaler)
 	supplyInTokens := new(uint256.Int).Div(supplyInWei, granularityScaler)
 
 	upperBound := new(uint256.Int).Add(supplyInTokens, amountInTokens)
 	lowerBound := supplyInTokens
 
-	return integralCeil(upperBound, lowerBound, s.a, s.b, s.curveScaler)
+	rawCosts := integralCeil(upperBound, lowerBound, s.a, s.b, s.curveScaler)
+	fee := getFee(rawCosts, s.protocolFeeBasisPoint, s.creatorFeeBasisPoints, s.referralFeeBasisPoint)
+
+	return rawCosts.Add(rawCosts, fee)
+}
+
+func (s *PoolSimulator) estimateCalculateCostWithFeesGas(acceptableScaledTokenAmountDiff *uint256.Int) int64 {
+	if acceptableScaledTokenAmountDiff.IsZero() {
+		return 1
+	}
+
+	// Executor should perform binary search on the range
+	// [scaledTokenAmount * (1 - swapAmountTolerance/2), scaledTokenAmount * (1 + swapAmountTolerance/2)]
+	return int64(math.Ceil(math.Log2(acceptableScaledTokenAmountDiff.Float64()))) * calculateCostWithFeesGas
 }

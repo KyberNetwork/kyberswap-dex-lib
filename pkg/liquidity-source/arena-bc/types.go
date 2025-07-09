@@ -78,15 +78,16 @@ type MetaInfo struct {
 }
 
 type SwapInfo struct {
-	TokenManager string       `json:"tM"`
-	IsBuy        bool         `json:"iB"`
-	TokenId      *big.Int     `json:"tI"`
-	SwapAmount   *uint256.Int `json:"sA"`
-	MinLimit     *uint256.Int `json:"miL"`
-	MaxLimit     *uint256.Int `json:"maL"`
+	TokenManager            string       `json:"tM"`
+	IsBuy                   bool         `json:"iB"`
+	TokenId                 *big.Int     `json:"tI"`
+	SwapAmount              *uint256.Int `json:"sA,omitempty"`
+	MinScaledTokenAmountOut uint64       `json:"miSA,omitempty"`
+	MaxScaledTokenAmountOut uint64       `json:"maSA,omitempty"`
 
-	fee              *uint256.Int
-	remainingTokenIn *pool.TokenAmount
-	totalSupply      *uint256.Int
-	nativeBalance    *uint256.Int
+	fee               *uint256.Int
+	remainingTokenIn  *pool.TokenAmount
+	remainingTokenOut *pool.TokenAmount
+	totalSupply       *uint256.Int
+	nativeBalance     *uint256.Int
 }

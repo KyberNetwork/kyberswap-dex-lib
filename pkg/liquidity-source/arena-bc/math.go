@@ -43,14 +43,28 @@ func integralFloor(upperBound, lowerBound, a, b, curveScaler *uint256.Int) *uint
 }
 
 func getFee(costs, protocolFeeBasisPoint, creatorFeeBasisPoints, referralFeeBasisPoint *uint256.Int) *uint256.Int {
-	var protocolFee, creatorFee, referralFee, totalFeeAmount uint256.Int
-	protocolFee.Mul(costs, protocolFeeBasisPoint).Add(&protocolFee, U5000).Div(&protocolFee, u256.UBasisPoint)
-	creatorFee.Mul(costs, creatorFeeBasisPoints).Add(&creatorFee, U5000).Div(&creatorFee, u256.UBasisPoint)
-	referralFee.Mul(costs, referralFeeBasisPoint).Add(&referralFee, U5000).Div(&referralFee, u256.UBasisPoint)
-	// no referrer
-	protocolFee.Add(&protocolFee, &referralFee)
-	referralFee.Clear()
-	totalFeeAmount.Add(&protocolFee, &creatorFee)
+	var tempFeeAmount, totalFeeAmount uint256.Int
+
+	// protocolFee
+	tempFeeAmount.Mul(costs, protocolFeeBasisPoint).Add(&tempFeeAmount, U5000).Div(&tempFeeAmount, u256.UBasisPoint)
+	totalFeeAmount.Add(&totalFeeAmount, &tempFeeAmount)
+
+	// creatorFee
+	tempFeeAmount.Mul(costs, creatorFeeBasisPoints).Add(&tempFeeAmount, U5000).Div(&tempFeeAmount, u256.UBasisPoint)
+	totalFeeAmount.Add(&totalFeeAmount, &tempFeeAmount)
+
+	// referralFee
+	tempFeeAmount.Mul(costs, referralFeeBasisPoint).Add(&tempFeeAmount, U5000).Div(&tempFeeAmount, u256.UBasisPoint)
+	totalFeeAmount.Add(&totalFeeAmount, &tempFeeAmount)
 
 	return &totalFeeAmount
+}
+
+func getBuyLimit(totalSupply, allowedTotalSupply, salePercentage *uint256.Int) *uint256.Int {
+	buyLimit, _ := new(uint256.Int).MulDivOverflow(allowedTotalSupply, salePercentage, U100)
+	if !buyLimit.Lt(totalSupply) {
+		buyLimit.Sub(buyLimit, totalSupply)
+	}
+
+	return buyLimit
 }

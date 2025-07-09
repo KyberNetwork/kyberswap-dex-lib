@@ -25,9 +25,10 @@ const (
 const (
 	initialTokenId = 1
 
-	sellGas     = 81197
-	buyGas      = 96799
-	createLpGas = 2475955
+	sellGas                  = 81197
+	buyGas                   = 96799
+	createLpGas              = 2475955
+	calculateCostWithFeesGas = 8000
 )
 
 var (
@@ -35,6 +36,8 @@ var (
 
 	U100  = uint256.NewInt(100)
 	U5000 = uint256.NewInt(5000)
+
+	swapAmountTolerancePercentage = u256.U10
 )
 
 var (
