@@ -136,8 +136,11 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 		}
 	}
 
-	return nil, errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s (%s/%s)",
-		entityPool.Address, entityPool.Exchange, entityPool.Type)
+	if err == nil {
+		err = errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s (%s/%s)",
+			entityPool.Address, entityPool.Exchange, entityPool.Type)
+	}
+	return nil, err
 }
 
 // newAEVMPoolWrapper creates pool simulator from kyberswap-dex-lib-private pkg, including both AEVM and RPC-based pools

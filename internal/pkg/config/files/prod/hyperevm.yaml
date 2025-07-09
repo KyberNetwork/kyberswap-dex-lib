@@ -1,56 +1,46 @@
-env: &env "pre-release"
+env: &env "production"
+pprof: false
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
-  prefix: /zksync
+  prefix: /hyperevm
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 324
-  chainName: &chainName zksync
-  rpc: "https://mainnet.era.zksync.io"
+  chainId: &chainId 999
+  chainName: &chainName hyperevm
+  rpc: "https://hyperliquid.drpc.org"
   rpcTimeout: 100ms
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0xD448a554825F3446424293D660eEDEf36BB7761f"
-  routerAddress: &routerAddress "0x3F95eF3f2eAca871858dbE20A93c01daF6C2e923"
+  executorAddress: &executorAddress "0x6E4141d33021b52C91c28608403db4A0FFB50Ec6"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x5aea5775959fbc2557cc8789bc1bf90a239d9a91: true # WETH
-    0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4: true # USDC
-    0x493257fd37edb34451f62edf8d2a0c418852ba4c: true # USDT
-    0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181: true # BUSD
-    0x8e86e46278518efc1c5ced245cba2c7e3ef11557: true # USD+
+    0x5555555555555555555555555555555555555555: true # WHYPE
+    0x02c6a2fA58cC01A18B8D9E00eA48d65E4dF26c70: true # feUSD
+    0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb: true # USDT0
+    0xca79db4B49f608eF54a5CB813FbEd3a6387bC645: true # USDXL
+    0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34: true # USDe
+    0x0aD339d66BF4AeD5ce31c64Bc37B3244b6394A77: true # USR
+    0xb50A96253aBDF803D85efcDce07Ad8becBc52BD5: true # USDHL
+    0x5748ae796AE46A4F1348a1693de4b50560485562: true # LHYPE
+    0xfFaa4a3D97fE9107Cef8a3F48c069F577Ff76cC1: true # stHYPE
+    0x9FDBdA0A5e284c32744D2f17Ee5c74B284993463: true # UBTC
+    0xBe6727B535545C67d5cAa73dEa54865B92CF7907: true # UETH
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "syncswapv2-classic"
-    - "syncswapv2-stable"
-    - "syncswapv2-aqua"
-    - "velocore"
-    - "muteswitch"
-    - "maverick-v1"
-    - "vesync"
-    - "iziswap"
-    - "uniswapv3"
-    - "ezkalibur"
-    - "wagmi"
-    - "kyberswap"
-    - "pancake"
-    - "spacefi"
-    - "zkswap"
-    - "velocore-v2-wombat-stable"
-    - "fulcrom"
-    - "syncswap"
-    - "pancake-v3"
-    - "zkswap-finance"
-    - "zkera-finance"
-    - "woofi-v2"
-    - "kyberswap-limit-order-v2"
-    - "koi-cl"
-    - "woofi-v3"
-    - "lo1inch"
-    - "hold-fun"
-    - "overnight-usdp"
-    - "erc4626"
+    - hyperswap-v2
+    - kittenswap
+    - manaswap
+    - hybra-v2
+    - woofi-v3
+    - erc4626
+    - hyperswap-v3
+    - hybra-v3
+    - laminar
+    - kittenswap-cl
+    - gliquid
+    - hypercat
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -153,7 +143,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl:
+  httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -198,7 +188,7 @@ useCase:
     routerAddress: *routerAddress
     availableSources: *availableSources
     excludedSourcesByClient: *excludedSourcesByClient
-    defaultPoolsIndex: composite
+    defaultPoolsIndex: nativeTvl
     salt: &salt
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
@@ -342,6 +332,12 @@ useCase:
     validateChecksumBySource:
       'tritium-research': true
     salt: *salt
+    rfq:
+      kyberswap-limit-order-v2:
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
@@ -356,20 +352,13 @@ useCase:
         default:
           buffer: 50
           minThreshold: 500
-    rfq:
-      kyberswap-limit-order-v2:
-        handler: limit-order
-        properties:
-          chainID: *chainId
-          limitOrderHTTPUrl: http://limit-order.pre-release-patch1-cluster.gke.production.internal
     rfqAcceptableSlippageFraction: 1000
-    faultyPoolDetectorDisabled: false
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig
     clientRefCode:
       bitgetswap: bitget
-      
+
   poolFactory:
     chainId: *chainId
   poolManager:
@@ -377,10 +366,9 @@ useCase:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     faultyPoolsRenewalInterval: 5s
-    capacity: 100000
+    capacity: 1000000
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
-    featureFlags:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
@@ -388,15 +376,12 @@ useCase:
     enableRankByNative: false
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
-    subgraphURL: https://zksync-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-zksync
-    startBlock: 22467376
+    subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-hyperevm/version/latest
+    startBlock: 7780399
   tradeDataGenerator:
-    exportFailedTrade: false
-    failedFileName: "./failed_trade_data.txt"
-    chainName: *chainName
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet
-    chunkSize: 1000
+    chunkSize: 200
     useAEVM: *useAEVM
     dexUseAEVM:
     minDataPointNumber: 6
@@ -436,8 +421,10 @@ job:
     batchSize: 200
     interval: 1h
     successedFileName: *liquidityTradesDataFileName
+    failedFileName: "./failed_trade_data.txt"
     liquidityScoreInputFileName: *liquidityScoreInputFileName
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
     targetFactorEntropy: 0.995
     logError: *logError
     poolEvent:
@@ -469,8 +456,8 @@ repository:
       prefix: *chainName
       maxFaultyPoolSize: 500
     ristretto:
-      numCounters: 20000
-      maxCost: 2000
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       faultyPools:
         cost: 1
@@ -480,7 +467,7 @@ repository:
         ttl: 30m
   onchainprice:
     grpc:
-      base_url: onchain-price.pre-release-cluster.gke.production.internal:80
+      base_url: onchain-price.core-cluster.gke.production.internal:80
       timeout: 300ms
       insecure: true
       client_id: router-service
@@ -514,9 +501,6 @@ repository:
         bufferItems: 64
         cost: 1
         ttl: 1800s
-    http:
-      timeout: 5s
-      baseUrl: "http://token-catalog-api.pre-release-cluster.gke.production.internal:80"
   poolRank:
     redis:
       prefix: *chainName

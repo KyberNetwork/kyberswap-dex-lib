@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -15,13 +16,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/backoff"
 )
-
-type ristrettoRepository struct {
-	cache          *ristretto.Cache
-	grpcRepository *grpcRepository
-	config         RistrettoConfig
-	nativeUSDPrice atomic.Pointer[big.Float]
-}
 
 const (
 	CacheKeyNativeUsd = "native-token-usd-price"
@@ -31,7 +25,16 @@ var (
 	zeroBF = big.NewFloat(0)
 
 	ErrNativeUSDPriceNotFoundInCache = errors.New("native usd price not found in cache")
+
+	errLogSampler = &zerolog.BurstSampler{Burst: 2, Period: 15 * time.Second}
 )
+
+type ristrettoRepository struct {
+	cache          *ristretto.Cache
+	grpcRepository *grpcRepository
+	config         RistrettoConfig
+	nativeUSDPrice atomic.Pointer[big.Float]
+}
 
 func NewRistrettoRepository(
 	grpcRepository *grpcRepository,
@@ -59,7 +62,8 @@ func NewRistrettoRepository(
 	return r, nil
 }
 
-func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
+func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice,
+	error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] ristrettoRepository.FindByAddresses")
 	defer span.End()
 
@@ -132,11 +136,12 @@ func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) 
 	// fetch native price in usd every half of TTL to make sure that we always have the latest price available from cache
 	ticker := time.NewTicker(r.config.Price.TTL / 2)
 	defer ticker.Stop()
+	lg := log.Ctx(ctx).Sample(errLogSampler)
 
 	for {
 		_ = backoff.RetryE(func() error {
 			if err := r.FetchNativePriceInUSD(ctx); err != nil {
-				log.Ctx(ctx).Err(err).Msg("failed to fetch native price in usd")
+				lg.Err(err).Msg("failed to fetch native price in usd")
 				return err
 			}
 

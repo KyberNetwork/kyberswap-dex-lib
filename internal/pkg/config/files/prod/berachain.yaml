@@ -34,25 +34,25 @@ common:
     0xFF0a636Dfc44Bb0129b631cDd38D21B613290c98: true # HOLD
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "kodiak-v2"
-    - "beracaine"
-    - "memeswap"
-    - "panda-fun"
-    - "hold-fun"
-    - "kodiak-v3"
-    - "beraswap-weighted"
-    - "beraswap-stable"
-    - "beraswap-composable-stable"
-    - "burrbear-weighted"
-    - "burrbear-stable"
-    - "burrbear-composable-stable"
-    - "bulla"
-    - "wasabi"
-    - "honey"
-    - "panda-fun"
-    - "brownfi"
-    - "native-v3"
-    - "erc4626"
+    - kodiak-v2
+    - beracaine
+    - memeswap
+    - panda-fun
+    - hold-fun
+    - kodiak-v3
+    - beraswap-weighted
+    - beraswap-stable
+    - beraswap-composable-stable
+    - burrbear-weighted
+    - burrbear-stable
+    - burrbear-composable-stable
+    - bulla
+    - wasabi
+    - honey
+    - panda-fun
+    - brownfi
+    - native-v3
+    - erc4626
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

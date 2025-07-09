@@ -25,10 +25,10 @@ common:
     0xa8754b9Fa15fc18BB59458815510E40a12cD2014: true # SLP
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "katana-v2"
-    - "katana-v3"
-    - "erc4626"
-    - "compound-v3"
+    - katana-v2
+    - katana-v3
+    - erc4626
+    - compound-v3
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

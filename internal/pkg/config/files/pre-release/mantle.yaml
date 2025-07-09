@@ -23,30 +23,30 @@ common:
     0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8: true # WMNT
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "merchant-moe"
-    - "fusion-x"
-    - "cleopatra"
-    - "stratum-finance"
-    - "mvm"
-    - "iziswap"
-    - "butter-fi"
-    - "cleopatra-v2"
-    - "agni-finance"
-    - "fusion-x-v3"
-    - "merchant-moe-v22"
-    - "uniswapv3"
-    - "kyberswap-limit-order-v2"
-    - "dodo-classical"
-    - "dodo-dpp"
-    - "dodo-dsp"
-    - "dodo-dvm"
-    - "woofi-v3"
-    - "ondo-usdy"
-    - "clipper"
-    - "ktx"
-    - "swapsicle"
-    - "erc4626"
-    - "compound-v3"
+    - merchant-moe
+    - fusion-x
+    - cleopatra
+    - stratum-finance
+    - mvm
+    - iziswap
+    - butter-fi
+    - cleopatra-v2
+    - agni-finance
+    - fusion-x-v3
+    - merchant-moe-v22
+    - uniswapv3
+    - kyberswap-limit-order-v2
+    - dodo-classical
+    - dodo-dpp
+    - dodo-dsp
+    - dodo-dvm
+    - woofi-v3
+    - ondo-usdy
+    - clipper
+    - ktx
+    - swapsicle
+    - erc4626
+    - compound-v3
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

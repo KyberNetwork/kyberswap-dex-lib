@@ -25,13 +25,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-type grpcRepository struct {
-	chainId            valueobject.ChainID
-	grpcClient         onchainpricev1.OnchainPriceServiceClient
-	tokenRepository    ITokenRepository
-	nativeTokenAddress string
-}
-
 const (
 	MaxTokensPerCall = 100
 )
@@ -40,15 +33,25 @@ var (
 	HeaderXChainId      = "X-Chain-Id"
 	HeaderClientId      = "client_id"
 	HeaderRouterService = "router-service"
+
+	ErrInvalidPrice = errors.New("invalid price")
 )
+
+type grpcRepository struct {
+	chainId            valueobject.ChainID
+	grpcClient         onchainpricev1.OnchainPriceServiceClient
+	tokenRepository    ITokenRepository
+	nativeTokenAddress string
+}
 
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.SimplifiedToken, error)
 }
 
-var (
-	ErrInvalidPrice = errors.New("invalid price")
-)
+type priceAndError struct {
+	prices map[string]*routerEntity.OnchainPrice
+	err    error
+}
 
 func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID,
 	tokenRepository ITokenRepository) (*grpcRepository, error) {
@@ -72,12 +75,8 @@ func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID,
 	}, nil
 }
 
-type priceAndError struct {
-	prices map[string]*routerEntity.OnchainPrice
-	err    error
-}
-
-func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
+func (r *grpcRepository) FindByAddresses(ctx context.Context,
+	addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] grpcRepository.FindByAddresses")
 	defer span.End()
 
@@ -111,7 +110,8 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	return prices, nil
 }
 
-func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
+func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context,
+	addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	if len(addresses) == 0 {
 		return nil, nil
 	}

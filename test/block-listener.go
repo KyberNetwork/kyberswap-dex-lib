@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// client, err := ethclient.Dial("wss://speedy-nodes-nyc.moralis.io/31e7e21cccc77b252959d97b/polygon/mainnet/ws")
-	client, err := ethclient.Dial("wss://polygon-ws.knstats.com/v1/mainnet/geth?appId=dev-dmm-aggregator-backend")
+	client, err := ethclient.Dial("wss://api.hyperliquid.xyz/ws")
 	if err != nil {
 		panic(err)
 	}
