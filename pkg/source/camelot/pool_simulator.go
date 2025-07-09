@@ -2,6 +2,7 @@ package camelot
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
@@ -86,13 +87,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return p._swap1To0(tokenAmountIn, tokenOut)
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[0]) {
-		p.Info.Reserves[0] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount), params.Fee.Amount)
+		newAmtIn := new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount)
+		p.Info.Reserves[0] = newAmtIn.Sub(newAmtIn, params.Fee.Amount)
 		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], params.TokenAmountOut.Amount)
 	} else {
 		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], params.TokenAmountOut.Amount)
-		p.Info.Reserves[1] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountIn.Amount), params.Fee.Amount)
+		newAmtIn := new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountIn.Amount)
+		p.Info.Reserves[1] = newAmtIn.Sub(newAmtIn, params.Fee.Amount)
 	}
 }
 
@@ -116,37 +125,37 @@ func (p *PoolSimulator) _swap0To1(
 ) (*pool.CalcAmountOutResult, error) {
 	amountOut := p.getAmountOut(tokenAmountIn.Amount, tokenAmountIn.Token)
 
-	if amountOut.Cmp(bignumber.ZeroBI) <= 0 {
-		return &pool.CalcAmountOutResult{}, ErrInsufficientOutputAmount
+	if amountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	} else if amountOut.Cmp(p.Info.Reserves[1]) >= 0 {
+		return nil, ErrInsufficientLiquidity
 	}
 
-	if amountOut.Cmp(p.Info.Reserves[1]) >= 0 {
-		return &pool.CalcAmountOutResult{}, ErrInsufficientLiquidity
-	}
-
-	fee := new(big.Int).Div(
-		new(big.Int).Mul(tokenAmountIn.Amount, p.Token0FeePercent),
+	var fee big.Int
+	fee.Div(
+		fee.Mul(tokenAmountIn.Amount, p.Token0FeePercent),
 		p.FeeDenominator,
 	)
 
-	if p.StableSwap && p.Factory != nil && len(p.Factory.FeeTo) > 0 {
-		ownerFeeShare := new(big.Int).Mul(p.FeeDenominator, p.Factory.OwnerFeeShare)
-		ownerFee := new(big.Int).Div(
-			new(big.Int).Mul(new(big.Int).Mul(tokenAmountIn.Amount, ownerFeeShare), p.Token0FeePercent),
-			new(big.Int).Exp(p.FeeDenominator, bignumber.Three, nil),
+	if p.StableSwap && p.Factory != nil && p.Factory.FeeTo != ZeroAddress {
+		var ownerFeeShare, denom big.Int
+		ownerFeeShare.Mul(p.FeeDenominator, p.Factory.OwnerFeeShare)
+		ownerFee := ownerFeeShare.Div(
+			ownerFeeShare.Mul(ownerFeeShare.Mul(tokenAmountIn.Amount, &ownerFeeShare), p.Token0FeePercent),
+			denom.Exp(p.FeeDenominator, bignumber.Three, nil),
 		)
 
-		fee = new(big.Int).Sub(fee, ownerFee)
+		fee.Sub(&fee, ownerFee)
 	}
 
-	balance0Adjusted := new(big.Int).Add(new(big.Int).Sub(p.Info.Reserves[0], fee), tokenAmountIn.Amount)
-	balance1Adjusted := new(big.Int).Sub(p.Info.Reserves[1], amountOut)
+	var balance0Adjusted, balance1Adjusted big.Int
+	balance0Adjusted.Add(balance0Adjusted.Sub(p.Info.Reserves[0], &fee), tokenAmountIn.Amount)
+	balance1Adjusted.Sub(p.Info.Reserves[1], amountOut)
 
 	kBefore := p._k(p.Info.Reserves[0], p.Info.Reserves[1])
-	kAfter := p._k(balance0Adjusted, balance1Adjusted)
-
+	kAfter := p._k(&balance0Adjusted, &balance1Adjusted)
 	if kAfter.Cmp(kBefore) < 0 {
-		return &pool.CalcAmountOutResult{}, ErrInvalidK
+		return nil, ErrInvalidK
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -156,7 +165,7 @@ func (p *PoolSimulator) _swap0To1(
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: fee,
+			Amount: &fee,
 		},
 		Gas: p.gas.Swap,
 	}, nil
@@ -168,38 +177,39 @@ func (p *PoolSimulator) _swap1To0(
 ) (*pool.CalcAmountOutResult, error) {
 	amountOut := p.getAmountOut(tokenAmountIn.Amount, tokenAmountIn.Token)
 
-	if amountOut.Cmp(bignumber.ZeroBI) <= 0 {
-		return &pool.CalcAmountOutResult{}, ErrInsufficientOutputAmount
+	if amountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	} else if amountOut.Cmp(p.Info.Reserves[0]) >= 0 {
+		return nil, ErrInsufficientLiquidity
 	}
 
-	if amountOut.Cmp(p.Info.Reserves[0]) >= 0 {
-		return &pool.CalcAmountOutResult{}, ErrInsufficientLiquidity
-	}
-
-	fee := new(big.Int).Div(
-		new(big.Int).Mul(tokenAmountIn.Amount, p.Token1FeePercent),
+	var fee big.Int
+	fee.Div(
+		fee.Mul(tokenAmountIn.Amount, p.Token1FeePercent),
 		p.FeeDenominator,
 	)
 
-	if p.StableSwap && p.Factory != nil && len(p.Factory.FeeTo) > 0 {
-		ownerFeeShare := new(big.Int).Mul(p.FeeDenominator, p.Factory.OwnerFeeShare)
-		ownerFee := new(big.Int).Div(
-			new(big.Int).Mul(new(big.Int).Mul(tokenAmountIn.Amount, ownerFeeShare), p.Token1FeePercent),
-			new(big.Int).Exp(p.FeeDenominator, bignumber.Three, nil),
+	if p.StableSwap && p.Factory != nil && p.Factory.FeeTo != ZeroAddress {
+		var ownerFeeShare, denom big.Int
+		ownerFeeShare.Mul(p.FeeDenominator, p.Factory.OwnerFeeShare)
+		ownerFee := ownerFeeShare.Div(
+			ownerFeeShare.Mul(ownerFeeShare.Mul(tokenAmountIn.Amount, &ownerFeeShare), p.Token1FeePercent),
+			denom.Exp(p.FeeDenominator, bignumber.Three, nil),
 		)
 
-		fee = new(big.Int).Sub(fee, ownerFee)
+		fee.Sub(&fee, ownerFee)
 	}
 
-	balance0Adjusted := new(big.Int).Sub(p.Info.Reserves[0], amountOut)
-	balance1Adjusted := new(big.Int).Add(new(big.Int).Sub(p.Info.Reserves[1], fee), tokenAmountIn.Amount)
+	var balance0Adjusted, balance1Adjusted big.Int
+	balance0Adjusted.Sub(p.Info.Reserves[0], amountOut)
+	balance1Adjusted.Add(balance1Adjusted.Sub(p.Info.Reserves[1], &fee), tokenAmountIn.Amount)
 
 	kBefore := p._k(p.Info.Reserves[0], p.Info.Reserves[1])
-	kAfter := p._k(balance0Adjusted, balance1Adjusted)
-
+	kAfter := p._k(&balance0Adjusted, &balance1Adjusted)
 	if kAfter.Cmp(kBefore) < 0 {
-		return &pool.CalcAmountOutResult{}, ErrInvalidK
+		return nil, ErrInvalidK
 	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -207,7 +217,7 @@ func (p *PoolSimulator) _swap1To0(
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: fee,
+			Amount: &fee,
 		},
 		Gas: p.gas.Swap,
 	}, nil
@@ -232,15 +242,16 @@ func (p *PoolSimulator) _getAmountOut(
 	_reserve1 *big.Int,
 	feePercent *big.Int,
 ) *big.Int {
+	var tmp, tmp1, tmp2 big.Int
 	if p.StableSwap {
-		amountIn = new(big.Int).Sub(
+		amountIn = tmp.Sub(
 			amountIn,
-			new(big.Int).Div(new(big.Int).Mul(amountIn, feePercent), p.FeeDenominator),
+			tmp.Div(tmp.Mul(amountIn, feePercent), p.FeeDenominator),
 		)
 
 		xy := p._k(_reserve0, _reserve1)
-		_reserve0 = new(big.Int).Div(new(big.Int).Mul(_reserve0, bignumber.BONE), p.PrecisionMultiplier0)
-		_reserve1 = new(big.Int).Div(new(big.Int).Mul(_reserve1, bignumber.BONE), p.PrecisionMultiplier1)
+		_reserve0 = tmp1.Div(tmp1.Mul(_reserve0, bignumber.BONE), p.PrecisionMultiplier0)
+		_reserve1 = tmp2.Div(tmp2.Mul(_reserve1, bignumber.BONE), p.PrecisionMultiplier1)
 
 		var (
 			reserveA       *big.Int
@@ -251,26 +262,26 @@ func (p *PoolSimulator) _getAmountOut(
 		if isSwapFrom0To1 {
 			reserveA = _reserve0
 			reserveB = _reserve1
-			amountIn = new(big.Int).Div(new(big.Int).Mul(amountIn, bignumber.BONE), p.PrecisionMultiplier0)
+			amountIn = amountIn.Div(amountIn.Mul(amountIn, bignumber.BONE), p.PrecisionMultiplier0)
 		} else {
 			reserveA = _reserve1
 			reserveB = _reserve0
-			amountIn = new(big.Int).Div(new(big.Int).Mul(amountIn, bignumber.BONE), p.PrecisionMultiplier1)
+			amountIn = amountIn.Div(amountIn.Mul(amountIn, bignumber.BONE), p.PrecisionMultiplier1)
 		}
 
-		y := new(big.Int).Sub(
+		y := tmp.Sub(
 			reserveB,
 			p._getY(
-				new(big.Int).Add(amountIn, reserveA),
+				amountIn.Add(amountIn, reserveA),
 				xy,
 				reserveB,
 			),
 		)
 
 		if isSwapFrom0To1 {
-			return new(big.Int).Div(new(big.Int).Mul(y, p.PrecisionMultiplier1), bignumber.BONE)
+			return tmp.Div(tmp.Mul(y, p.PrecisionMultiplier1), bignumber.BONE)
 		} else {
-			return new(big.Int).Div(new(big.Int).Mul(y, p.PrecisionMultiplier0), bignumber.BONE)
+			return tmp.Div(tmp.Mul(y, p.PrecisionMultiplier0), bignumber.BONE)
 		}
 	}
 
@@ -287,11 +298,11 @@ func (p *PoolSimulator) _getAmountOut(
 		reserveB = _reserve0
 	}
 
-	amountIn = new(big.Int).Mul(amountIn, new(big.Int).Sub(p.FeeDenominator, feePercent))
-	return new(big.Int).Div(
-		new(big.Int).Mul(amountIn, reserveB),
-		new(big.Int).Add(
-			new(big.Int).Mul(reserveA, p.FeeDenominator),
+	amountIn = tmp.Mul(amountIn, tmp.Sub(p.FeeDenominator, feePercent))
+	return tmp.Div(
+		tmp1.Mul(amountIn, reserveB),
+		tmp2.Add(
+			tmp2.Mul(reserveA, p.FeeDenominator),
 			amountIn,
 		),
 	)
@@ -299,45 +310,43 @@ func (p *PoolSimulator) _getAmountOut(
 
 func (p *PoolSimulator) _k(balance0 *big.Int, balance1 *big.Int) *big.Int {
 	if p.StableSwap {
-		_x := new(big.Int).Div(new(big.Int).Mul(balance0, bignumber.BONE), p.PrecisionMultiplier0)
-		_y := new(big.Int).Div(new(big.Int).Mul(balance1, bignumber.BONE), p.PrecisionMultiplier1)
-		_a := new(big.Int).Div(new(big.Int).Mul(_x, _y), bignumber.BONE)
-		_b := new(big.Int).Add(
-			new(big.Int).Div(new(big.Int).Mul(_x, _x), bignumber.BONE),
-			new(big.Int).Div(new(big.Int).Mul(_y, _y), bignumber.BONE),
+		var _x, _y, _a big.Int
+		_x.Div(_x.Mul(balance0, bignumber.BONE), p.PrecisionMultiplier0)
+		_y.Div(_y.Mul(balance1, bignumber.BONE), p.PrecisionMultiplier1)
+		_a.Div(_a.Mul(&_x, &_y), bignumber.BONE)
+		_b := _x.Add(
+			_x.Div(_x.Mul(&_x, &_x), bignumber.BONE),
+			_y.Div(_y.Mul(&_y, &_y), bignumber.BONE),
 		)
 
-		return new(big.Int).Div(new(big.Int).Mul(_a, _b), bignumber.BONE)
+		return _a.Div(_a.Mul(&_a, _b), bignumber.BONE)
 	}
 
 	return new(big.Int).Mul(balance0, balance1)
 }
 
 func (p *PoolSimulator) _getY(x0 *big.Int, xy *big.Int, y *big.Int) *big.Int {
-	for i := 0; i < 255; i++ {
-		yPrev := y
-		k := _f(x0, y)
+	var yPrev, _y, dy big.Int
+	_y.Set(y)
+	yPrev.Set(&_y)
+	for range 255 {
+		k := _f(x0, &_y)
 
-		if k.Cmp(xy) < 0 {
-			// dy = (xy - k) * 1e18 / _d(x0, y)
-			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(xy, k), bignumber.BONE), _d(x0, y))
-			y = new(big.Int).Add(y, dy)
+		// if k < xy { dy = (xy - k) * 1e18 / _d(x0, y); y+=dy; }
+		// else      { dy = (k - xy) * 1e18 / _d(x0, y); y-=dy; }
+		kGtXy := dy.Sub(xy, k).Sign() > 0
+		dy.Div(dy.Mul(dy.Abs(&dy), bignumber.BONE), _d(x0, &_y))
+		if kGtXy {
+			_y.Add(&_y, &dy)
 		} else {
-			// dy = (k - xy) * 1e18 / _d(x0, y);
-			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(k, xy), bignumber.BONE), _d(x0, y))
-			y = new(big.Int).Sub(y, dy)
+			_y.Sub(&_y, &dy)
 		}
 
-		if y.Cmp(yPrev) > 0 {
-			if new(big.Int).Sub(y, yPrev).Cmp(bignumber.One) <= 0 {
-				return y
-			}
-		} else {
-			if new(big.Int).Sub(yPrev, y).Cmp(bignumber.One) <= 0 {
-				return y
-			}
+		if yPrev.Abs(yPrev.Sub(&yPrev, &_y)).Cmp(bignumber.One) <= 0 {
+			return &_y
 		}
+		yPrev.Set(&_y)
 	}
 
-	return y
+	return &_y
 }
