@@ -150,6 +150,86 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		tokenIndexFrom, tokenIndexTo)
 }
 
+func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := param.TokenIn
+	tokenOut := param.TokenAmountOut.Token
+
+	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
+	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
+
+	// cannot swap between the last meta coin and base pool's coins (because the last coin is LPtoken of base pool)
+	if (tokenIndexFrom == t.NumTokens-1 && tokenIndexTo < 0) || (tokenIndexTo == t.NumTokens-1 && tokenIndexFrom < 0) {
+		return &pool.CalcAmountInResult{}, ErrTokenToUnderlyingNotSupported
+	}
+
+	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+		// this is normal swap at meta pool, reuse the method from stable-ng
+		return t.PoolSimulator.CalcAmountIn(param)
+	}
+
+	// swap between meta coins and base pool's coins
+	var baseInputIndex = t.basePool.GetTokenIndex(tokenIn)
+	var baseOutputIndex = t.basePool.GetTokenIndex(tokenOut)
+	if baseInputIndex >= 0 && baseOutputIndex >= 0 {
+		// if both coins are from base pool, it's better to swap at the base pool directly to save gas
+		return &pool.CalcAmountInResult{}, ErrAllBasePoolTokens
+	}
+
+	var maxCoin = t.NumTokens - 1
+	if tokenIndexFrom < 0 && baseInputIndex >= 0 {
+		tokenIndexFrom = maxCoin + baseInputIndex
+	}
+	if tokenIndexTo < 0 && baseOutputIndex >= 0 {
+		tokenIndexTo = maxCoin + baseOutputIndex
+	}
+
+	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+		// get_dx_underlying
+		var amountIn, amountOut, adminFee uint256.Int
+		var addLiquidityInfo BasePoolAddLiquidityInfo
+		var metaswapInfo MetaPoolSwapInfo
+		var withdrawInfo BasePoolWithdrawInfo
+		amountOut.SetFromBig(param.TokenAmountOut.Amount)
+		err := t.GetDxUnderlying(
+			tokenIndexFrom,
+			tokenIndexTo,
+			&amountOut,
+			&amountIn,
+			&addLiquidityInfo, &metaswapInfo, &withdrawInfo,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !amountIn.IsZero() {
+			swapInfo := SwapInfo{
+				Meta: &metaswapInfo,
+			}
+			if !addLiquidityInfo.MintAmount.IsZero() {
+				swapInfo.AddLiquidity = &addLiquidityInfo
+			}
+			if !withdrawInfo.TokenAmount.IsZero() {
+				swapInfo.Withdraw = &withdrawInfo
+			}
+
+			return &pool.CalcAmountInResult{
+				TokenAmountIn: &pool.TokenAmount{
+					Token:  tokenIn,
+					Amount: amountIn.ToBig(),
+				},
+				Fee: &pool.TokenAmount{
+					Token:  tokenOut,
+					Amount: adminFee.ToBig(),
+				},
+				Gas:      DefaultGasUnderlying,
+				SwapInfo: swapInfo,
+			}, nil
+		}
+	}
+
+	return &pool.CalcAmountInResult{},
+		fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+}
+
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputIndex = t.GetTokenIndex(input.Token)
