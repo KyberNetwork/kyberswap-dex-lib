@@ -136,14 +136,47 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				StaticExtra: "staticExtra3",
 				TotalSupply: "totalSupply3",
 			},
+			{
+				Address:      "address4",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve2"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress3",
+						Symbol:    "poolTokenSymbol3",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra3",
+				StaticExtra: "staticExtra3",
+				TotalSupply: "totalSupply3",
+			},
+		}
+
+		whiteListed := map[string]bool{
+			"poolTokenAddress1": true,
+			"poolTokenAddress2": true,
 		}
 
 		for _, pool := range redisPools {
-			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				true, true, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
+			_ = repo.AddToSortedSet(context.Background(), pool.Tokens[0].Address, pool.Tokens[1].Address,
+				whiteListed[pool.Tokens[0].Address], whiteListed[pool.Tokens[1].Address],
+				SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
-		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress3", 0,
 			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -156,7 +189,171 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				AmplifiedTvlTokenOutPoolCount:   100,
 			}, valueobject.NativeTvl, nil)
 
-		assert.ElementsMatch(t, []string{"address1", "address2", "address3"}, pools)
+		assert.ElementsMatch(t, []string{"address1", "address2", "address3", "address4"}, pools)
+		assert.Nil(t, err)
+	})
+
+	t.Run("it should return correct data when both tokens in pool are in whitelist & onlyDirectPools is true", func(t *testing.T) {
+		// Setup redis server
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis for testing: %v", err.Error())
+		}
+
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to init redis client: %v", err.Error())
+		}
+
+		repo := NewRedisRepository(db.Client, wrap(RedisRepositoryConfig{
+			Prefix: "",
+		}))
+
+		// Prepare data
+		redisPools := []*entity.Pool{
+			{
+				Address:      "address1",
+				ReserveUsd:   100,
+				AmplifiedTvl: 100,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve2"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress2",
+						Symbol:    "poolTokenSymbol2",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra1",
+				StaticExtra: "staticExtra1",
+				TotalSupply: "totalSupply1",
+			},
+			{
+				Address:      "address2",
+				ReserveUsd:   1000,
+				AmplifiedTvl: 1000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve2"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress2",
+						Symbol:    "poolTokenSymbol2",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra2",
+				StaticExtra: "staticExtra2",
+				TotalSupply: "totalSupply2",
+			},
+			{
+				Address:      "address3",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve2"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress2",
+						Symbol:    "poolTokenSymbol2",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra3",
+				StaticExtra: "staticExtra3",
+				TotalSupply: "totalSupply3",
+			},
+			{
+				Address:      "address4",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve2"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress3",
+						Symbol:    "poolTokenSymbol3",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra3",
+				StaticExtra: "staticExtra3",
+				TotalSupply: "totalSupply3",
+			},
+		}
+
+		whiteListed := map[string]bool{
+			"poolTokenAddress1": true,
+			"poolTokenAddress2": true,
+		}
+
+		for _, pool := range redisPools {
+			_ = repo.AddToSortedSet(context.Background(), pool.Tokens[0].Address, pool.Tokens[1].Address,
+				whiteListed[pool.Tokens[0].Address], whiteListed[pool.Tokens[1].Address],
+				SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
+		}
+
+		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress3", 0,
+			valueobject.GetBestPoolsOptions{
+				OnlyDirectPools:     true,
+				DirectPoolsCount:    100,
+				WhitelistPoolsCount: 500,
+				TokenInPoolsCount:   200,
+				TokenOutPoolCount:   200,
+
+				AmplifiedTvlDirectPoolsCount:    50,
+				AmplifiedTvlWhitelistPoolsCount: 200,
+				AmplifiedTvlTokenInPoolsCount:   100,
+				AmplifiedTvlTokenOutPoolCount:   100,
+			}, valueobject.NativeTvl, nil)
+
+		assert.ElementsMatch(t, []string{"address4"}, pools)
 		assert.Nil(t, err)
 	})
 
@@ -266,11 +463,70 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				StaticExtra: "staticExtra3",
 				TotalSupply: "totalSupply3",
 			},
+			{
+				Address:      "address4",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve3, reserve4"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress3",
+						Symbol:    "poolTokenSymbol3",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress4",
+						Symbol:    "poolTokenSymbol4",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra4",
+				StaticExtra: "staticExtra4",
+				TotalSupply: "totalSupply4",
+			},
+			{
+				Address:      "address5",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve4"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress4",
+						Symbol:    "poolTokenSymbol4",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra5",
+				StaticExtra: "staticExtra5",
+				TotalSupply: "totalSupply5",
+			},
+		}
+
+		whiteListed := map[string]bool{
+			"poolTokenAddress1": true,
 		}
 
 		for _, pool := range redisPools {
-			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				true, false, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
+			_ = repo.AddToSortedSet(context.Background(), pool.Tokens[0].Address, pool.Tokens[1].Address,
+				whiteListed[pool.Tokens[0].Address], whiteListed[pool.Tokens[1].Address],
+				SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
 		pools, err := repo.FindBestPoolIDs(context.Background(), "poolTokenAddress1", "poolTokenAddress2", 0,
@@ -397,7 +653,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 		}
 
 		for _, pool := range redisPools {
-			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
+			_ = repo.AddToSortedSet(context.Background(), pool.Tokens[0].Address, pool.Tokens[1].Address,
 				false, true, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
@@ -522,10 +778,64 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 				StaticExtra: "staticExtra3",
 				TotalSupply: "totalSupply3",
 			},
+			{
+				Address:      "address4",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve3, reserve4"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress3",
+						Symbol:    "poolTokenSymbol3",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress4",
+						Symbol:    "poolTokenSymbol4",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra4",
+				StaticExtra: "staticExtra4",
+				TotalSupply: "totalSupply4",
+			},
+			{
+				Address:      "address5",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 10000,
+				SwapFee:      0.3,
+				Exchange:     "",
+				Type:         "uni",
+				Timestamp:    12345,
+				Reserves:     []string{"reserve1, reserve4"},
+				Tokens: []*entity.PoolToken{
+					{
+						Address:   "poolTokenAddress1",
+						Symbol:    "poolTokenSymbol1",
+						Decimals:  18,
+						Swappable: true,
+					},
+					{
+						Address:   "poolTokenAddress4",
+						Symbol:    "poolTokenSymbol4",
+						Decimals:  18,
+						Swappable: true,
+					},
+				},
+				Extra:       "extra5",
+				StaticExtra: "staticExtra5",
+				TotalSupply: "totalSupply5",
+			},
 		}
 
 		for _, pool := range redisPools {
-			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
+			_ = repo.AddToSortedSet(context.Background(), pool.Tokens[0].Address, pool.Tokens[1].Address,
 				false, false, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 

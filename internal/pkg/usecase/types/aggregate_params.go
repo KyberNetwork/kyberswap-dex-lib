@@ -26,6 +26,9 @@ type AggregateParams struct {
 	// Sources list of liquidity sources to be finding route on
 	Sources []string
 
+	// OnlyDirectPools
+	OnlyDirectPools bool
+
 	// OnlySinglePath
 	//	- if true: finds single path route only
 	//	- if false: finds single path route and multi path route then return the better one
@@ -98,6 +101,9 @@ type AggregateBundledParams struct {
 
 	// Sources list of liquidity sources to be finding route on
 	Sources []string
+
+	// OnlyDirectPools
+	OnlyDirectPools bool
 
 	// OnlySinglePath
 	//	- if true: finds single path route only

@@ -129,6 +129,9 @@ func (a *aggregator) getStateByAddress(ctx context.Context, params *types.Aggreg
 	var bestPoolIDs []string
 	var err error
 
+	opt := a.config.GetBestPoolsOptions
+	opt.OnlyDirectPools = params.OnlyDirectPools
+
 	if len(params.PoolIds) > 0 {
 		bestPoolIDs = params.PoolIds
 	} else {
@@ -137,7 +140,7 @@ func (a *aggregator) getStateByAddress(ctx context.Context, params *types.Aggreg
 			params.TokenIn.Address,
 			params.TokenOut.Address,
 			params.AmountInUsd,
-			a.config.GetBestPoolsOptions,
+			opt,
 			params.Index,
 			params.ForcePoolsForToken,
 		)

@@ -6,6 +6,7 @@ type GetRouteEncodeParams struct {
 	AmountIn             string     `form:"amountIn" binding:"required"`
 	Dexes                string     `form:"dexes"`
 	OnlyScalableSources  bool       `form:"onlyScalableSources"`
+	OnlyDirectPools      bool       `form:"onlyDirectPools"`
 	GasInclude           bool       `form:"gasInclude"`
 	GasPrice             string     `form:"gasPrice"`
 	SlippageTolerance    float64    `form:"slippageTolerance"`

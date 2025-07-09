@@ -21,6 +21,9 @@ type GetBundledRoutesParams struct {
 	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
 	OnlyScalableSources bool `form:"onlyScalableSources"`
 
+	// OnlyDirectPools whether to only include direct pools
+	OnlyDirectPools bool `form:"onlyDirectPools"`
+
 	// GasInclude gas is included when finding route
 	GasInclude bool `form:"gasInclude"`
 

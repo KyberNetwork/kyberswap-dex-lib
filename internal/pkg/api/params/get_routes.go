@@ -22,6 +22,9 @@ type GetRoutesParams struct {
 	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
 	OnlyScalableSources bool `form:"onlyScalableSources"`
 
+	// OnlyDirectPools whether to only include direct pools
+	OnlyDirectPools bool `form:"onlyDirectPools"`
+
 	// OnlySinglePath only find & return single path route
 	OnlySinglePath bool `form:"onlySinglePath"`
 

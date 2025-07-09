@@ -17,6 +17,7 @@ type GetRoutesQuery struct {
 	IncludedSources     []string
 	ExcludedSources     []string
 	OnlyScalableSources bool
+	OnlyDirectPools     bool
 
 	OnlySinglePath bool
 	GasInclude     bool
@@ -46,10 +47,10 @@ type GetBundledRoutesQuery struct {
 	IncludedSources     []string
 	ExcludedSources     []string
 	OnlyScalableSources bool
-
-	OnlySinglePath bool
-	GasInclude     bool
-	GasPrice       *big.Float
+	OnlyDirectPools     bool
+	OnlySinglePath      bool
+	GasInclude          bool
+	GasPrice            *big.Float
 
 	ExcludedPools mapset.Set[string]
 

@@ -79,6 +79,7 @@ type (
 	}
 
 	GetBestPoolsOptions struct {
+		OnlyDirectPools                 bool  `mapstructure:"onlyDirectPools" json:"onlyDirectPools"`
 		DirectPoolsCount                int64 `mapstructure:"directPoolsCount" json:"directPoolsCount"`
 		WhitelistPoolsCount             int64 `mapstructure:"whitelistPoolsCount" json:"whitelistPoolsCount"`
 		TokenInPoolsCount               int64 `mapstructure:"tokenInPoolsCount" json:"tokenInPoolsCount"`

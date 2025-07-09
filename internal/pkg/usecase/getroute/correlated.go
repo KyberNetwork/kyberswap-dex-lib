@@ -172,6 +172,9 @@ func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.A
 		return nil, ErrPoolSetFiltered
 	}
 
+	opt := c.config.Aggregator.GetBestPoolsOptions
+	opt.OnlyDirectPools = params.OnlyDirectPools
+
 	var bestPoolIDs []string
 	var err error
 	bestPoolIDs, err = c.poolRankRepository.FindBestPoolIDs(
@@ -179,7 +182,7 @@ func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.A
 		tokenMidIn,
 		tokenMidOut,
 		params.AmountInUsd,
-		c.config.Aggregator.GetBestPoolsOptions,
+		opt,
 		params.Index,
 		params.ForcePoolsForToken,
 	)

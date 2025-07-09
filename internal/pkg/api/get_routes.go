@@ -162,6 +162,7 @@ func transformGetRoutesParams(ginCtx *gin.Context, params params.GetRoutesParams
 		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
 		ExcludedSources:     excludedSources,
 		OnlyScalableSources: params.OnlyScalableSources,
+		OnlyDirectPools:     params.OnlyDirectPools,
 		OnlySinglePath:      params.OnlySinglePath,
 		GasInclude:          params.GasInclude,
 		GasPrice:            gasPrice,

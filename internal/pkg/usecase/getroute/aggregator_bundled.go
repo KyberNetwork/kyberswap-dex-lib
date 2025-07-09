@@ -131,10 +131,14 @@ func (a *bundledAggregator) getStateByBundledAddress(ctx context.Context,
 		return nil, ErrPoolSetFiltered
 	}
 
+	opt := a.config.GetBestPoolsOptions
+	opt.OnlyDirectPools = params.OnlyDirectPools
+
 	var bestPoolIDs []string
 	for _, pair := range params.Pairs {
 		pairPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(ctx, pair.TokenIn, pair.TokenOut, pair.AmountInUsd,
-			a.config.GetBestPoolsOptions, params.Index, params.ForcePoolsForToken)
+			opt, params.Index, params.ForcePoolsForToken,
+		)
 
 		if err != nil {
 			return nil, err
@@ -221,6 +225,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			AmountIn:                      pair.AmountIn,
 			AmountInUsd:                   pair.AmountInUsd,
 			Sources:                       params.Sources,
+			OnlyDirectPools:               params.OnlyDirectPools,
 			OnlySinglePath:                params.OnlySinglePath,
 			GasInclude:                    params.GasInclude,
 			GasPrice:                      params.GasPrice,

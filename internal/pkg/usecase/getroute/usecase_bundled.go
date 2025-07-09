@@ -176,6 +176,7 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context,
 	return &types.AggregateBundledParams{
 		GasToken:                      u.config.GasTokenAddress,
 		Sources:                       sources,
+		OnlyDirectPools:               query.OnlyDirectPools,
 		OnlySinglePath:                query.OnlySinglePath,
 		GasInclude:                    query.GasInclude,
 		GasPrice:                      gasPrice,
