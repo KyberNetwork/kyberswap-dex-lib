@@ -439,7 +439,7 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountIn() {
 			expectedError: ErrSellLimitExceeded,
 		},
 		{
-			name:             "sell LOGICr",
+			name:             "sell LOGIC -> AVAX",
 			pool:             "645",
 			tokenOut:         AVAX,
 			tokenIn:          "0x4341214c67b02d7f94d3cc84ba0f954c59623542",
