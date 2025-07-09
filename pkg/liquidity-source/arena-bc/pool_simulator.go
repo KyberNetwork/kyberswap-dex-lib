@@ -308,14 +308,16 @@ func (s *PoolSimulator) calculateCostWithFees(amount *uint256.Int) *uint256.Int 
 	return rawCosts.Add(rawCosts, fee)
 }
 
-func (s *PoolSimulator) estimateCalculateCostWithFeesGas(acceptableScaledTokenAmountDiff *uint256.Int) int64 {
-	if acceptableScaledTokenAmountDiff.IsZero() {
-		return 1
+func (s *PoolSimulator) estimateCalculateCostWithFeesGas(acceptableTokenAmountDiff *uint256.Int) int64 {
+	acceptableTokenAmountDiff.Div(acceptableTokenAmountDiff, granularityScaler)
+
+	if acceptableTokenAmountDiff.IsZero() {
+		return calculateCostOverheadGas + calculateCostGas
 	}
 
 	// Executor should perform binary search on the range
 	// [scaledTokenAmount * (1 - swapAmountTolerance/2), scaledTokenAmount * (1 + swapAmountTolerance/2)]
-	return int64(math.Ceil(math.Log2(acceptableScaledTokenAmountDiff.Float64()))) * calculateCostWithFeesGas
+	return calculateCostOverheadGas + int64(math.Ceil(math.Log2(acceptableTokenAmountDiff.Float64())))*calculateCostGas
 }
 
 func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -413,13 +415,15 @@ func (s *PoolSimulator) buyAndCreateLpIfPossibleWithAmountOut(tokenAmount *uint2
 	}
 
 	return cost, &SwapInfo{
-		TokenManager:  s.tokenManager,
-		IsBuy:         true,
-		TokenId:       s.tokenId,
-		SwapAmount:    cost,
-		fee:           fee,
-		totalSupply:   &currentTotalSupply,
-		nativeBalance: &currentNativeBalance,
+		TokenManager:            s.tokenManager,
+		IsBuy:                   true,
+		TokenId:                 s.tokenId,
+		SwapAmount:              cost,
+		MinScaledTokenAmountOut: minTokenAmountOut.Div(minTokenAmountOut, granularityScaler).Uint64(),
+		MaxScaledTokenAmountOut: maxTokenAmountOut.Div(maxTokenAmountOut, granularityScaler).Uint64(),
+		fee:                     fee,
+		totalSupply:             &currentTotalSupply,
+		nativeBalance:           &currentNativeBalance,
 	}, gas, nil
 }
 

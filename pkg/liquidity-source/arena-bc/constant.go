@@ -28,7 +28,8 @@ const (
 	sellGas                  = 81197
 	buyGas                   = 96799
 	createLpGas              = 2475955
-	calculateCostWithFeesGas = 8000
+	calculateCostGas         = 4079
+	calculateCostOverheadGas = 25000
 )
 
 var (
