@@ -1,0 +1,198 @@
+diff --git a/internal/pkg/usecase/business/calculate_pool_amplified_tvl.go b/internal/pkg/usecase/business/calculate_pool_amplified_tvl.go
+index 588a5182..5fd4252e 100644
+--- a/internal/pkg/usecase/business/calculate_pool_amplified_tvl.go
++++ b/internal/pkg/usecase/business/calculate_pool_amplified_tvl.go
+@@ -43,7 +43,7 @@ func CalculatePoolAmplifiedTVL(
+ 		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
+ 		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
+ 		if err != nil {
+-			log.Ctx(ctx).Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
++			log.Ctx(ctx).Debug().Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
+ 			return 0, false, err
+ 		}
+ 
+diff --git a/internal/pkg/usecase/business/calculate_pool_tvl.go b/internal/pkg/usecase/business/calculate_pool_tvl.go
+index c00b045f..264b2278 100644
+--- a/internal/pkg/usecase/business/calculate_pool_tvl.go
++++ b/internal/pkg/usecase/business/calculate_pool_tvl.go
+@@ -43,6 +43,24 @@ func CalculatePoolTVL(
+ 		{
+ 			var reserveNative = float64(0)
+ 			for i := range poolTokens {
++				token := poolTokens[i].Address
++				tokenNativePrice, ok := nativePriceByToken[token]
++
++				if !ok {
++					if partialTvl {
++						continue
++					}
++					return 0, fmt.Errorf("token has no price %s", token)
++				}
++
++				reserveBF, err := getReserve(ctx, p, i, tokenNativePrice.Decimals)
++				if err != nil {
++					return 0, err
++				}
++				if reserveBF.Sign() == 0 {
++					continue
++				}
++
+ 				midPrice, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
+ 				if err != nil {
+ 					// we need partially calculate tvl if some tokens in a pool have no price in case liquidity score ranking
+@@ -54,11 +72,6 @@ func CalculatePoolTVL(
+ 					return 0, err
+ 				}
+ 
+-				reserveBF, err := getReserve(ctx, p, i, price.Decimals)
+-				if err != nil {
+-					return 0, err
+-				}
+-
+ 				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
+ 				rawNativeWei := new(big.Float).Mul(reserveBF, midPrice)
+ 				nativeValue, _ := new(big.Float).Quo(rawNativeWei, constant.BoneFloat).Float64()
+@@ -125,6 +138,10 @@ func CalculatePoolTVLForTokenPair(
+ }
+ 
+ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*big.Float, error) {
++	if len(p.Reserves) < i {
++		return nil, ErrorInvalidReserve
++	}
++
+ 	switch p.Type {
+ 	case maverickv1.DexTypeMaverickV1:
+ 		// maverick's reserves need to be scaled up/down first
+diff --git a/internal/pkg/usecase/indexpools/index_pools.go b/internal/pkg/usecase/indexpools/index_pools.go
+index 1e2f7210..c3f5dcd1 100644
+--- a/internal/pkg/usecase/indexpools/index_pools.go
++++ b/internal/pkg/usecase/indexpools/index_pools.go
+@@ -52,6 +52,7 @@ type PoolIndex struct {
+ 	Token1              string
+ 	IsToken0Whitelisted bool
+ 	IsToken1Whitelisted bool
++	HasReserves         bool
+ 	TvlNative           float64
+ 	AmplifiedTvlNative  float64
+ }
+@@ -63,6 +64,7 @@ func NewPoolIndex(pool *entity.Pool, tokenI string, tokenJ string, whitelist map
+ 		Token1:              tokenJ,
+ 		IsToken0Whitelisted: whitelist[tokenI],
+ 		IsToken1Whitelisted: whitelist[tokenJ],
++		HasReserves:         pool.HasReserves(),
+ 		TvlNative:           tvlNative,
+ 		AmplifiedTvlNative:  amplifiedTvlNative,
+ 	}
+@@ -138,7 +140,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
+ 		mapper := iter.Mapper[*entity.Pool, IndexResult]{MaxGoroutines: u.config.MaxGoroutines}
+ 
+ 		indexPoolsResults := mapper.Map(pools, func(pool **entity.Pool) IndexResult {
+-			err := u.processIndex(ctx, *pool, nativePriceByToken, u.savePoolIndex)
++			err := u.processIndex(ctx, *pool, nativePriceByToken, u.updatePoolIndex)
+ 			if err != nil && strings.Contains(err.Error(), ErrIndexResultFailed.Error()) {
+ 				return INDEX_RESULT_FAIL
+ 			}
+@@ -202,10 +204,6 @@ func (u *IndexPoolsUseCase) getChunkPool(
+ }
+ 
+ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice, handler IndexProcessingHandler) error {
+-	if !pool.HasReserves() && !pool.HasAmplifiedTvl() {
+-		return nil
+-	}
+-
+ 	var (
+ 		tvlNative, amplifiedTvlNative float64
+ 	)
+@@ -274,10 +272,8 @@ func (u *IndexPoolsUseCase) processMainPoolIndexes(ctx context.Context, pool *en
+ 				continue
+ 			}
+ 
+-			if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
+-				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
+-					result = err
+-				}
++			if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvl, amplifiedTvl)); err != nil {
++				result = err
+ 			}
+ 		}
+ 	}
+@@ -466,11 +462,12 @@ func (u *IndexPoolsUseCase) getPricesForAllTokens(ctx context.Context, pools []*
+ 	return prices, nil
+ }
+ 
+-func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
++func (u *IndexPoolsUseCase) updatePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
+ 	var shouldAddToTvlNativeIndex bool
+ 	if poolIndex.TvlNative > 0 {
+ 		shouldAddToTvlNativeIndex = true
+-	} else {
++	} else if poolIndex.HasReserves {
++		// Only add to directIndex if pool has reserves, but TVL = 0 (due to no prices at the moment).
+ 		directIndexLength, err := u.poolRankRepo.GetDirectIndexLength(ctx, poolrank.SortByTVLNative, poolIndex.Token0, poolIndex.Token1)
+ 		if err != nil {
+ 			log.Ctx(ctx).Warn().Err(err).Msg("failed to get direct index length")
+@@ -485,6 +482,14 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
+ 			log.Ctx(ctx).Err(err).Msg("failed to add to sorted set")
+ 			return ErrIndexResultFailed
+ 		}
++	} else if !poolIndex.HasReserves {
++		// Pool has no TVL at all & the direct index has enough pools.
++		// We will remove this pool from the index if it exists (save data size & index slot for other pools).
++		if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
++			poolrank.SortByTVLNative, poolIndex.Pool.Address, true); err != nil {
++			log.Ctx(ctx).Err(err).Msg("failed to remove pool with no TVL from sorted set")
++			return ErrIndexResultFailed
++		}
+ 	}
+ 
+ 	if poolIndex.AmplifiedTvlNative > 0 {
+diff --git a/internal/pkg/usecase/indexpools/index_pools_test.go b/internal/pkg/usecase/indexpools/index_pools_test.go
+index 467a6fbe..0d9bbb3d 100644
+--- a/internal/pkg/usecase/indexpools/index_pools_test.go
++++ b/internal/pkg/usecase/indexpools/index_pools_test.go
+@@ -345,6 +345,22 @@ func TestIndexPools_Handle(t *testing.T) {
+ 					false,
+ 					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+ 				).Return(nil)
++				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
++					gomock.Any(),
++					mockTokens[0].Address,
++					mockTokens[1].Address,
++					true,
++					false,
++					poolrank.SortByTVLNative, mockPools[2].Address, true,
++				).Return(nil)
++				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
++					gomock.Any(),
++					mockTokens[0].Address,
++					mockTokens[1].Address,
++					true,
++					false,
++					poolrank.SortByTVLNative, mockPools[3].Address, true,
++				).Return(nil)
+ 
+ 				mockPoolRankRepo.EXPECT().
+ 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
+@@ -457,6 +473,22 @@ func TestIndexPools_Handle(t *testing.T) {
+ 					false,
+ 					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+ 				).Return(nil)
++				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
++					gomock.Any(),
++					mockTokens[0].Address,
++					mockTokens[1].Address,
++					true,
++					false,
++					poolrank.SortByTVLNative, mockPools[2].Address, true,
++				).Return(nil)
++				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
++					gomock.Any(),
++					mockTokens[0].Address,
++					mockTokens[1].Address,
++					true,
++					false,
++					poolrank.SortByTVLNative, mockPools[3].Address, true,
++				).Return(nil)
+ 				mockPoolRankRepo.EXPECT().
+ 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
+ 					Return(int64(0), nil).AnyTimes()
