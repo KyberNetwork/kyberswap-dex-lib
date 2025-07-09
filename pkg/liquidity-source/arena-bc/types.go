@@ -85,9 +85,8 @@ type SwapInfo struct {
 	MinScaledTokenAmountOut uint64       `json:"miSA,omitempty"`
 	MaxScaledTokenAmountOut uint64       `json:"maSA,omitempty"`
 
-	fee               *uint256.Int
-	remainingTokenIn  *pool.TokenAmount
-	remainingTokenOut *pool.TokenAmount
-	totalSupply       *uint256.Int
-	nativeBalance     *uint256.Int
+	fee              *uint256.Int
+	remainingTokenIn *pool.TokenAmount
+	totalSupply      *uint256.Int
+	nativeBalance    *uint256.Int
 }

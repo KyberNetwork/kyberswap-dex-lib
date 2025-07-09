@@ -49,4 +49,7 @@ var (
 	ErrNativeBalanceOverflowOrUnderflow = errors.New("native balance: overflow or underflow")
 	ErrTotalSupplyOverflowOrUnderflow   = errors.New("total supply: overflow or underflow")
 	ErrUnderflow                        = errors.New("underflow")
+	ErrBuyLimitExceeded                 = errors.New("buy limit exceeded")
+	ErrSellLimitExceeded                = errors.New("sell limit exceeded")
+	ErrSupplyMismatchInBuy              = errors.New("supply mismatch in buy")
 )
