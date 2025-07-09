@@ -5,6 +5,7 @@ type Exchange string
 const (
 	Exchange9mmProV2                   = "9mm-pro-v2"
 	Exchange9mmProV3                   = "9mm-pro-v3"
+	ExchangeAaveV3                     = "aave-v3"
 	ExchangeAbstra                     = "abstra"
 	ExchangeAerodrome                  = "aerodrome"
 	ExchangeAerodromeCL                = "aerodrome-cl"
@@ -77,6 +78,8 @@ const (
 	ExchangeCleopatraV2                = "cleopatra-v2"
 	ExchangeClipper                    = "clipper"
 	ExchangeCometh                     = "cometh"
+	ExchangeCompoundV2                 = "compound-v2"
+	ExchangeCompoundV3                 = "compound-v3"
 	ExchangeCrodex                     = "crodex"
 	ExchangeCronaSwap                  = "cronaswap"
 	ExchangeCrowdswapV2                = "crowdswap-v2"
@@ -141,6 +144,8 @@ const (
 	ExchangeFxdx                       = "fxdx"
 	ExchangeGMX                        = "gmx"
 	ExchangeGemKeeper                  = "gemkeeper"
+	ExchangeGenericArm                 = "generic-arm"
+	ExchangeGliquid                    = "gliquid"
 	ExchangeGravity                    = "gravity"
 	ExchangeGyroscope2CLP              = "gyroscope-2clp"
 	ExchangeGyroscope3CLP              = "gyroscope-3clp"
@@ -151,8 +156,13 @@ const (
 	ExchangeHoriza                     = "horiza"
 	ExchangeHorizonDex                 = "horizon-dex"
 	ExchangeHorizonIntegral            = "horizon-integral"
+	ExchangeHybraV2                    = "hybra-v2"
+	ExchangeHybraV3                    = "hybra-v3"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
+	ExchangeHyperCat                   = "hypercat"
+	ExchangeHyperSwapV2                = "hyperswap-v2"
+	ExchangeHyperSwapV3                = "hyperswap-v3"
 	ExchangeIZiSwap                    = "iziswap"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
@@ -166,6 +176,8 @@ const (
 	ExchangeKelpRSETH                  = "kelp-rseth"
 	ExchangeKinetixV2                  = "kinetix-v2"
 	ExchangeKinetixV3                  = "kinetix-v3"
+	ExchangeKittenswap                 = "kittenswap"
+	ExchangeKittenswapCL               = "kittenswap-cl"
 	ExchangeKodiakV2                   = "kodiak-v2"
 	ExchangeKodiakV3                   = "kodiak-v3"
 	ExchangeKoiCL                      = "koi-cl"
@@ -179,6 +191,7 @@ const (
 	ExchangeKyberSwapStatic            = "kyberswap-static"
 	ExchangeKyberswapElastic           = "kyberswap-elastic"
 	ExchangeLO1inch                    = "lo1inch"
+	ExchangeLaminar                    = "laminar"
 	ExchangeLineHubV2                  = "linehub-v2"
 	ExchangeLineHubV3                  = "linehub-v3"
 	ExchangeLiquidusFinance            = "liquidus-finance"
@@ -197,6 +210,7 @@ const (
 	ExchangeMakerLidoStETH             = "lido-steth"
 	ExchangeMakerPSM                   = "maker-psm"
 	ExchangeMakerSavingsDai            = "maker-savingsdai"
+	ExchangeManaSwap                   = "manaswap"
 	ExchangeMantisSwap                 = "mantisswap"
 	ExchangeMantleETH                  = "meth"
 	ExchangeMaverickV1                 = "maverick-v1"
@@ -408,15 +422,12 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeAaveV3                     = "aave-v3"
-	ExchangeCompoundV2                 = "compound-v2"
-	ExchangeCompoundV3                 = "compound-v3"
-	ExchangeGenericArm                 = "generic-arm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
 	Exchange9mmProV2:                   {},
 	Exchange9mmProV3:                   {},
+	ExchangeAaveV3:                     {},
 	ExchangeAbstra:                     {},
 	ExchangeAerodrome:                  {},
 	ExchangeAerodromeCL:                {},
@@ -487,6 +498,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCleopatra:                  {},
 	ExchangeCleopatraV2:                {},
 	ExchangeCometh:                     {},
+	ExchangeCompoundV2:                 {},
+	ExchangeCompoundV3:                 {},
 	ExchangeCrodex:                     {},
 	ExchangeCronaSwap:                  {},
 	ExchangeCrowdswapV2:                {},
@@ -549,6 +562,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeFxdx:                       {},
 	ExchangeGMX:                        {},
 	ExchangeGemKeeper:                  {},
+	ExchangeGenericArm:                 {},
+	ExchangeGliquid:                    {},
 	ExchangeGravity:                    {},
 	ExchangeGyroscope2CLP:              {},
 	ExchangeGyroscope3CLP:              {},
@@ -558,8 +573,13 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoriza:                     {},
 	ExchangeHorizonDex:                 {},
 	ExchangeHorizonIntegral:            {},
+	ExchangeHybraV2:                    {},
+	ExchangeHybraV3:                    {},
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
+	ExchangeHyperCat:                   {},
+	ExchangeHyperSwapV2:                {},
+	ExchangeHyperSwapV3:                {},
 	ExchangeIZiSwap:                    {},
 	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
@@ -573,6 +593,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKelpRSETH:                  {},
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
+	ExchangeKittenswap:                 {},
+	ExchangeKittenswapCL:               {},
 	ExchangeKodiakV2:                   {},
 	ExchangeKodiakV3:                   {},
 	ExchangeKoiCL:                      {},
@@ -584,6 +606,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeKyberSwapStatic:            {},
 	ExchangeKyberswapElastic:           {},
+	ExchangeLaminar:                    {},
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeLiquidusFinance:            {},
@@ -602,6 +625,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMakerLidoStETH:             {},
 	ExchangeMakerPSM:                   {},
 	ExchangeMakerSavingsDai:            {},
+	ExchangeManaSwap:                   {},
 	ExchangeMantisSwap:                 {},
 	ExchangeMantleETH:                  {},
 	ExchangeMaverickV1:                 {},
@@ -807,10 +831,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeAaveV3:                     {},
-	ExchangeCompoundV2:                 {},
-	ExchangeCompoundV3:                 {},
-	ExchangeGenericArm:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

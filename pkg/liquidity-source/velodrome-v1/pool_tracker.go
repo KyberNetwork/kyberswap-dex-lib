@@ -2,7 +2,6 @@ package velodromev1
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
@@ -12,25 +11,18 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
 type (
-	ILogDecoder interface {
-		Decode(logs []types.Log) (ReserveData, uint64, error)
-	}
-
 	PoolTracker struct {
-		config             *Config
-		ethrpcClient       *ethrpc.Client
-		logDecoder         ILogDecoder
-		feeTrackerRegistry map[string]IFeeTracker
+		config       *Config
+		ethrpcClient *ethrpc.Client
+		logDecoder   uniswapv2.ILogDecoder
+		feeTracker   IFeeTracker
 	}
-)
-
-var (
-	ErrFeeTrackerMissing = errors.New("fee tracker missing")
 )
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -39,17 +31,15 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	return &PoolTracker{
+	tracker := &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		//logDecoder:   NewLogDecoder(),
-		feeTrackerRegistry: map[string]IFeeTracker{
-			FeeTrackerIDVelodrome: &VelodromeFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDStratum:   &StratumFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDNuri:      &NuriFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDLyve:      &LyveFeeTracker{ethrpcClient: ethrpcClient},
-		},
-	}, nil
+		logDecoder:   uniswapv2.NewLogDecoder(),
+	}
+	if feeTrackerCfg := config.FeeTracker; feeTrackerCfg != nil {
+		tracker.feeTracker = NewGenericFeeTracker(ethrpcClient, feeTrackerCfg)
+	}
+	return tracker, nil
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -94,7 +84,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(p, reserveData, isPaused, fee, blockNumber)
 }
 
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, uint64, error) {
+func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int,
+	error) {
 	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
 	if err != nil {
 		return d.getReservesFromRPCNode(ctx, poolAddress)
@@ -107,19 +98,17 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs 
 	return reserveData, blockNumber, nil
 }
 
-func (d *PoolTracker) getFactoryData(ctx context.Context, blockNumber uint64) (bool, error) {
-	var (
-		isPaused bool
-	)
+func (d *PoolTracker) getFactoryData(ctx context.Context, blockNumber *big.Int) (bool, error) {
+	var isPaused bool
 
-	getFactoryDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(big.NewInt(int64(blockNumber)))
+	getFactoryDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
 	getFactoryDataRequest.AddCall(&ethrpc.Call{
 		ABI:    pairFactoryABI,
 		Target: d.config.FactoryAddress,
 		Method: pairFactoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 
 	if _, err := getFactoryDataRequest.TryBlockAndAggregate(); err != nil {
 		return false, err
@@ -128,15 +117,13 @@ func (d *PoolTracker) getFactoryData(ctx context.Context, blockNumber uint64) (b
 	return isPaused, nil
 }
 
-func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, isStable bool, blockNumber uint64) (uint64, error) {
-	feeTracker, ok := d.feeTrackerRegistry[d.config.FeeTracker]
-	if !ok {
-		return 0, ErrFeeTrackerMissing
+func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, isStable bool, blockNumber *big.Int) (uint64,
+	error) {
+	feeTracker := d.feeTracker
+	if feeTracker == nil {
+		return d.config.FeePrecision / 100, nil
 	}
-
-	blockNumberBI := new(big.Int).SetUint64(blockNumber)
-
-	return feeTracker.GetFee(ctx, poolAddress, isStable, d.config.FactoryAddress, blockNumberBI)
+	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress, isStable, blockNumber)
 }
 
 func (d *PoolTracker) updatePool(
@@ -144,8 +131,8 @@ func (d *PoolTracker) updatePool(
 	reserveData ReserveData,
 	isPaused bool,
 	fee uint64,
-	blockNumber uint64) (entity.Pool, error) {
-	if pool.BlockNumber > blockNumber {
+	blockNumber *big.Int) (entity.Pool, error) {
+	if pool.BlockNumber > blockNumber.Uint64() {
 		return pool, nil
 	}
 
@@ -163,44 +150,40 @@ func (d *PoolTracker) updatePool(
 		reserveData.Reserve1.String(),
 	}
 	pool.Extra = string(poolExtraBytes)
-	pool.BlockNumber = blockNumber
+	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = time.Now().Unix()
 
 	return pool, nil
 }
 
-func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, uint64, error) {
-	var (
-		getReservesResult GetReservesResult
-	)
+func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
+	var getReservesResult GetReservesResult
 
 	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
-		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := getReservesRequest.TryBlockAndAggregate()
 	if err != nil {
-		return ReserveData{}, 0, err
+		return ReserveData{}, nil, err
 	}
 
 	return ReserveData{
 		Reserve0: getReservesResult.Reserve0,
 		Reserve1: getReservesResult.Reserve1,
-	}, resp.BlockNumber.Uint64(), nil
+	}, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, uint64, error) {
+func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.Int, error) {
 	if len(logs) == 0 {
-		return ReserveData{}, 0, nil
+		return ReserveData{}, nil, nil
 	}
 
 	if d.logDecoder == nil {
-		return ReserveData{}, 0, nil
+		return ReserveData{}, nil, nil
 	}
 
 	return d.logDecoder.Decode(logs)
