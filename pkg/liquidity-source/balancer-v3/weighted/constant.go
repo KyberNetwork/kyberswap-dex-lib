@@ -10,11 +10,10 @@ const (
 	SubgraphPoolType = "WEIGHTED"
 
 	poolMethodGetNormalizedWeights = "getNormalizedWeights"
+
+	baseGas = 213745
 )
 
 var (
 	ErrInvalidToken = errors.New("invalid token")
-
-	baseGas   int64 = 213745
-	bufferGas int64 = 120534
 )

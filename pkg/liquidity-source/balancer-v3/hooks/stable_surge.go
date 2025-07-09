@@ -46,7 +46,7 @@ func (h *StableSurgeHook) getSurgeFeePercentage(params shared.PoolSwapParams) *u
 
 	newBalances := slices.Clone(params.BalancesScaled18)
 
-	if params.Kind == shared.EXACT_IN {
+	if params.Kind == shared.ExactIn {
 		newBalances[params.IndexIn] = new(uint256.Int).Add(newBalances[params.IndexIn], params.AmountGivenScaled18)
 		newBalances[params.IndexOut] = amtCalculatedScaled18.Sub(newBalances[params.IndexOut], amtCalculatedScaled18)
 	} else {

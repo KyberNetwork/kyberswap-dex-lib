@@ -13,7 +13,9 @@ import (
 	pkg_liquiditysource_balancerv2_composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	pkg_liquiditysource_balancerv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	pkg_liquiditysource_balancerv2_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	pkg_liquiditysource_balancerv3_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/base"
 	pkg_liquiditysource_balancerv3_eclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/eclp"
+	pkg_liquiditysource_balancerv3_quantamm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/quant-amm"
 	pkg_liquiditysource_balancerv3_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/stable"
 	pkg_liquiditysource_balancerv3_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/weighted"
 	pkg_liquiditysource_bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
@@ -51,6 +53,7 @@ import (
 	pkg_liquiditysource_fluid_vaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	pkg_liquiditysource_frax_sfrxeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	pkg_liquiditysource_frax_sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
+	pkg_liquiditysource_genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	pkg_liquiditysource_genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	pkg_liquiditysource_gyroscope_2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	pkg_liquiditysource_gyroscope_3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
@@ -160,7 +163,9 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_stable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_weighted.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_base.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_eclp.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_quantamm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_stable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv3_weighted.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_bancorv21.PoolSimulator{})
@@ -198,6 +203,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_vaultt1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_frax_sfrxethconvertor.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_genericarm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_genericsimplerate.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_2clp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_3clp.PoolSimulator{})

@@ -39,6 +39,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Debugf("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
+	beneficiaryAddress := params.GetOrigin()
+
 	chainName := ChainById(params.NetworkID)
 	result, err := h.client.Quote(ctx, QuoteParams{
 		SrcChain:           chainName,
@@ -47,10 +49,11 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		TokenOut:           swapInfo.QuoteToken,
 		AmountWei:          swapInfo.BaseTokenAmount,
 		FromAddress:        params.RFQSender,
-		BeneficiaryAddress: params.Sender,
+		BeneficiaryAddress: beneficiaryAddress,
 		ToAddress:          params.RFQRecipient,
 		ExpiryTime:         swapInfo.ExpirySecs,
 		Slippage:           strconv.FormatFloat(float64(params.Slippage)/100, 'f', 2, 64),
+		Version:            "2",
 	})
 	if err != nil {
 		return nil, err

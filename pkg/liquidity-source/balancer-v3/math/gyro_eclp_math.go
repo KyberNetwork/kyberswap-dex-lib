@@ -20,26 +20,26 @@ type gyroECLPMath struct{}
 
 type (
 	ECLParams struct {
-		Alpha  *int256.Int
-		Beta   *int256.Int
-		C      *int256.Int
-		S      *int256.Int
-		Lambda *int256.Int
+		Alpha  *int256.Int `json:"a,omitempty"`
+		Beta   *int256.Int `json:"b,omitempty"`
+		C      *int256.Int `json:"c,omitempty"`
+		S      *int256.Int `json:"s,omitempty"`
+		Lambda *int256.Int `json:"l,omitempty"`
 	}
 
 	Vector2 struct {
-		X *int256.Int
-		Y *int256.Int
+		X *int256.Int `json:"x,omitempty"`
+		Y *int256.Int `json:"y,omitempty"`
 	}
 
 	ECLDerivedParams struct {
-		TauAlpha *Vector2
-		TauBeta  *Vector2
-		U        *int256.Int
-		V        *int256.Int
-		W        *int256.Int
-		Z        *int256.Int
-		DSq      *int256.Int
+		TauAlpha *Vector2    `json:"tA"`
+		TauBeta  *Vector2    `json:"tB"`
+		U        *int256.Int `json:"u,omitempty"`
+		V        *int256.Int `json:"v,omitempty"`
+		W        *int256.Int `json:"w,omitempty"`
+		Z        *int256.Int `json:"z,omitempty"`
+		DSq      *int256.Int `json:"DSq,omitempty"`
 	}
 
 	qParams struct {
@@ -207,10 +207,11 @@ func (g *gyroECLPMath) CalculateInvariantWithError(
 		return nil, nil, err
 	}
 
+	var tmp int256.Int
 	if sqrt.IsPositive() {
 		errValue, err = math.NewSignedFixedPointCalculator(errValue).
 			Add(i1).
-			DivUpMagU(new(int256.Int).Mul(I2, sqrt)).
+			DivUpMagU(tmp.Mul(I2, sqrt)).
 			Result()
 		if err != nil {
 			return nil, nil, err
@@ -251,9 +252,9 @@ func (g *gyroECLPMath) CalculateInvariantWithError(
 		}
 	}
 	errValue = new(int256.Int).Mul(
-		new(int256.Int).Add(
-			new(int256.Int).Add(
-				new(int256.Int).Quo(
+		tmp.Add(
+			tmp.Add(
+				tmp.Quo(
 					t, i1e38,
 				),
 				errValue,
@@ -305,11 +306,11 @@ func (g *gyroECLPMath) CalculateInvariantWithError(
 		}
 
 		u = new(int256.Int).Quo(
-			new(int256.Int).Mul(
-				new(int256.Int).Mul(
+			tmp.Mul(
+				tmp.Mul(
 					u,
-					new(int256.Int).Quo(
-						new(int256.Int).Mul(params.Lambda, params.Lambda),
+					tmp.Quo(
+						tmp.Mul(params.Lambda, params.Lambda),
 						i1e36,
 					),
 				),

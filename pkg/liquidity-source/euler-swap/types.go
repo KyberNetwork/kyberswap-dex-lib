@@ -9,7 +9,8 @@ import (
 )
 
 type PoolExtra struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	Fee         *uint256.Int `json:"fee"`
+	BlockNumber uint64       `json:"blockNumber"`
 }
 
 type StaticExtra struct {

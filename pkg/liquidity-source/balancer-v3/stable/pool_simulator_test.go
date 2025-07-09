@@ -5,43 +5,28 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/hooks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
+var (
+	entityPool entity.Pool
+	_          = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"},{"address":"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"tA\":\"1000000000000000000000\",\"tS\":\"1000000000000000000000\"},{\"tA\":\"2444444444444444444444\",\"tS\":\"2444444444444444444444\"}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`), &entityPool)
+	poolSim    = lo.Must(NewPoolSimulator(entityPool))
+)
+
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
+
 	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
 		reserves := make([]*big.Int, 2)
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
@@ -53,7 +38,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expectedSwapFee := "20000000000000"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -70,25 +55,7 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
+		s := poolSim
 
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
@@ -117,34 +84,14 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(799999), // less than MINIMUM_TRADE_AMOUNT (1000000)
+			Amount: big.NewInt(799999), // less than MinTradeAmount (1000000)
 		}
 		tokenOut := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -159,34 +106,14 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(840000), // less than MINIMUM_TRADE_AMOUNT (1000000)
+			Amount: big.NewInt(840000), // less than MinTradeAmount (1000000)
 		}
 		tokenOut := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -242,26 +169,6 @@ func TestCalcAmountIn(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountOut := poolpkg.TokenAmount{
 			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
 			Amount: big.NewInt(1e18),
@@ -272,7 +179,7 @@ func TestCalcAmountIn(t *testing.T) {
 		expectedSwapFee := "23594394461425"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
 				TokenAmountOut: tokenAmountOut,
 				TokenIn:        tokenIn,
 			})
@@ -289,26 +196,6 @@ func TestCalcAmountIn(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountOut := poolpkg.TokenAmount{
 			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
 			Amount: big.NewInt(1e18),
@@ -319,7 +206,7 @@ func TestCalcAmountIn(t *testing.T) {
 		expectedSwapFee := "16953880358256"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
 				TokenAmountOut: tokenAmountOut,
 				TokenIn:        tokenIn,
 			})
@@ -336,34 +223,14 @@ func TestCalcAmountIn(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountOut := poolpkg.TokenAmount{
 			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(799999), // less than MINIMUM_TRADE_AMOUNT (1000000)
+			Amount: big.NewInt(799999), // less than MinTradeAmount (1000000)
 		}
 		tokenIn := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
 				TokenAmountOut: tokenAmountOut,
 				TokenIn:        tokenIn,
 			})
@@ -378,34 +245,14 @@ func TestCalcAmountIn(t *testing.T) {
 		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
 		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
 
-		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
-					Reserves: reserves,
-					Tokens: []string{
-						"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-						"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-					},
-				},
-			},
-			vault: vault.New(hooks.NewNoOpHook(), shared.HooksConfig{},
-				[]*uint256.Int{uint256.NewInt(1), uint256.NewInt(1)},
-				[]*uint256.Int{uint256.NewInt(1009108897721464489), uint256.NewInt(1190879275654308905)},
-				[]*uint256.Int{uint256.MustFromDecimal("694069210892948295209"),
-					uint256.MustFromDecimal("2124492373418339554414")}, uint256.NewInt(20000000000000),
-				uint256.NewInt(500000000000000000)),
-			currentAmp: uint256.NewInt(5000000),
-			buffers:    make([]*shared.ExtraBuffer, 2),
-		}
-
 		tokenAmountOut := poolpkg.TokenAmount{
 			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(840000), // less than MINIMUM_TRADE_AMOUNT (1000000)
+			Amount: big.NewInt(840000), // less than MinTradeAmount (1000000)
 		}
 		tokenIn := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
 
 		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
+			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
 				TokenAmountOut: tokenAmountOut,
 				TokenIn:        tokenIn,
 			})

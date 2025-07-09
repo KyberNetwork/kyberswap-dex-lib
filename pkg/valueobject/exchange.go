@@ -36,6 +36,7 @@ const (
 	ExchangeBalancerV2Stable           = "balancer-v2-stable"
 	ExchangeBalancerV2Weighted         = "balancer-v2-weighted"
 	ExchangeBalancerV3ECLP             = "balancer-v3-eclp"
+	ExchangeBalancerV3QuantAMM         = "balancer-v3-quantamm"
 	ExchangeBalancerV3Stable           = "balancer-v3-stable"
 	ExchangeBalancerV3Weighted         = "balancer-v3-weighted"
 	ExchangeBancorV21                  = "bancor-v21"
@@ -410,6 +411,7 @@ const (
 	ExchangeAaveV3                     = "aave-v3"
 	ExchangeCompoundV2                 = "compound-v2"
 	ExchangeCompoundV3                 = "compound-v3"
+	ExchangeGenericArm                 = "generic-arm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -446,6 +448,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancerV2Stable:           {},
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV3ECLP:             {},
+	ExchangeBalancerV3QuantAMM:         {},
 	ExchangeBalancerV3Stable:           {},
 	ExchangeBalancerV3Weighted:         {},
 	ExchangeBancorV21:                  {},
@@ -807,6 +810,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAaveV3:                     {},
 	ExchangeCompoundV2:                 {},
 	ExchangeCompoundV3:                 {},
+	ExchangeGenericArm:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

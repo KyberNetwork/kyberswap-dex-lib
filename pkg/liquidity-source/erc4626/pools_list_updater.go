@@ -156,6 +156,10 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		}, []any{&poolState.ExitFeeBps}).AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
+			Method: erc4626MethodGetExitFeeBasisPoints,
+		}, []any{&poolState.ExitFeeBps}).AddCall(&ethrpc.Call{
+			ABI:    ABI,
+			Target: vaultAddr,
 			Method: erc4626MethodMinRedeemRatio,
 		}, []any{&minRedeemRatio})
 	}
@@ -165,6 +169,12 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		return assetToken, nil, err
 	}
 
+	if poolState.TotalSupply == nil {
+		poolState.TotalSupply = bignumber.ZeroBI
+	}
+	if poolState.TotalAssets == nil {
+		poolState.TotalAssets = bignumber.ZeroBI
+	}
 	if poolState.MaxDeposit != nil && poolState.MaxDeposit.Cmp(bignumber.MAX_UINT_256) == 0 {
 		poolState.MaxDeposit = nil
 	}

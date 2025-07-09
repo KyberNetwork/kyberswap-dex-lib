@@ -5,14 +5,15 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/goccy/go-json"
-
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
@@ -117,6 +118,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		FilledOrders: []*DutchOrder{},
 	}
 
+	filledSwappers := make(map[common.Address]struct{})
+
 	// Filling logic, note that this LO only supports full fill
 	// Using greedy algo for simple way approach first,
 	// but we also could use dynamic programming like knapsack algo
@@ -133,6 +136,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			continue
 		}
 
+		// skip filled swappers, we only support take only 1 swapper per batch
+		// using same swapper for multiple orders is not supported, this way will highly having chances led to insufficent permit2 allowance
+		if _, ok := filledSwappers[order.Swapper]; ok {
+			continue
+		}
+
 		// Case 2: Fullfill this order
 		// orderAmount == remainingAmountIn
 		// add user making amount to totalAmountOut
@@ -142,6 +151,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			remainingAmountIn.Sub(remainingAmountIn, orderTakingAmount)
 
 			swapInfo.IsAmountInFulfilled = true
+			filledSwappers[order.Swapper] = struct{}{}
 			continue
 		}
 
@@ -155,6 +165,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 			totalAmountOut.Add(totalAmountOut, order.Input.StartAmount)
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, order)
+			filledSwappers[order.Swapper] = struct{}{}
 			continue
 		}
 	}

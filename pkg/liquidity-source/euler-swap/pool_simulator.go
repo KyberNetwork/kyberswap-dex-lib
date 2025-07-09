@@ -166,6 +166,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return PoolExtra{
+		Fee:         p.fee,
 		BlockNumber: p.Info.BlockNumber,
 	}
 }
@@ -516,4 +517,24 @@ func depositAssets(
 	}
 
 	return uint256.NewInt(0), &repaid
+}
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if s.GetTokenIndex(address) == 0 {
+		return lo.Ternary(s.vaults[1].EulerAccountAssets.IsZero(),
+			[]string{}, []string{s.Pool.Info.Tokens[1]})
+	}
+
+	return lo.Ternary(s.vaults[0].EulerAccountAssets.IsZero(),
+		[]string{}, []string{s.Pool.Info.Tokens[0]})
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if s.GetTokenIndex(address) == 0 {
+		return lo.Ternary(s.vaults[0].EulerAccountAssets.IsZero(),
+			[]string{}, []string{s.Pool.Info.Tokens[1]})
+	}
+
+	return lo.Ternary(s.vaults[1].EulerAccountAssets.IsZero(),
+		[]string{}, []string{s.Pool.Info.Tokens[0]})
 }

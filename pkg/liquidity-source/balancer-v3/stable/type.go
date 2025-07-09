@@ -19,10 +19,10 @@ type SurgePercentages struct {
 	SurgeThresholdPercentage *uint256.Int `json:"thres,omitempty"`
 }
 
-type AmplificationParameterRpc struct {
-	Value      *big.Int
-	IsUpdating bool
-	Precision  *big.Int
+type RpcResult struct {
+	shared.RpcResult
+	SurgePercentagesRpc
+	AmplificationParameterRpc
 }
 
 type SurgePercentagesRpc struct {
@@ -30,8 +30,8 @@ type SurgePercentagesRpc struct {
 	SurgeThresholdPercentage *big.Int
 }
 
-type RpcResult struct {
-	shared.RpcResult
-	SurgePercentagesRpc
-	AmplificationParameterRpc
+type AmplificationParameterRpc struct {
+	Value      *big.Int
+	IsUpdating bool
+	Precision  *big.Int
 }

@@ -50,5 +50,4 @@ func TestPoolListUpdater(t *testing.T) {
 			newPool.Reserves,
 		)
 	}
-
 }
