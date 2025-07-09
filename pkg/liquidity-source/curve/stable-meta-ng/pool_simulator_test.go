@@ -252,6 +252,9 @@ func TestCalcAmountIn(t *testing.T) {
 		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress)
 		require.Nil(t, err)
 
+		// test util for CalcAmountIn
+		testutil.TestCalcAmountIn(t, p)
+
 		// tokens
 		metaToken := poolEntity.Tokens[0].Address      // mkUSD
 		lpToken := poolEntity.Tokens[1].Address        // PYUSDUSDC
