@@ -1,7 +1,7 @@
 package gmxglp
 
 type Config struct {
-	DexID                   string `json:"-"`
+	DexID                   string `json:"dexID"`
 	RewardRouterAddress     string `json:"rewardRouterAddress"`
 	GlpManagerAddress       string `json:"glpManagerAddress"`
 	StakeGLPAddress         string `json:"stakeGLPAddress"`

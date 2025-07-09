@@ -14,21 +14,11 @@ const (
 	pairFactoryMethodStableFee      = "stableFee"
 	pairFactoryMethodVolatileFee    = "volatileFee"
 	pairFactoryMethodAllPairsLength = "allPairsLength"
-	pairFactoryMethodGetFee         = "getFee"
+	pairMethodMetadata              = "metadata"
+	pairMethodGetReserves           = "getReserves"
 
-	stratumPairFactoryMethodGetFee = "getFee"
-
-	nuriPairFactoryMethodPairFee = "pairFee"
-
-	lyvePairFactoryMethodGetFee = "getFee"
-
-	pairMethodMetadata    = "metadata"
-	pairMethodGetReserves = "getReserves"
-)
-
-const (
-	FeeTrackerIDVelodrome = "velodrome"
-	FeeTrackerIDStratum   = "stratum"
-	FeeTrackerIDNuri      = "nuri"
-	FeeTrackerIDLyve      = "lyve"
+	genericMethodFee        = "fee"
+	genericTemplatePool     = "pool"
+	genericTemplateFactory  = "factory"
+	genericTemplateIsStable = "isStable"
 )

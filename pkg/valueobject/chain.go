@@ -40,6 +40,7 @@ const (
 	ChainIDBerachain       ChainID = 80094
 	ChainIDRonin           ChainID = 2020
 	ChainIDUnichain        ChainID = 130
+	ChainIDHyperEVM        ChainID = 999
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
@@ -70,7 +71,7 @@ var ChainNameMap = map[ChainID]string{
 	ChainIDLineaGoerli:     "linea-goerli",
 	ChainIDLinea:           "linea",
 	ChainIDZKSync:          "zkSync",
-	ChainIDPolygonZkEVM:    "polygon-zkEVM",
+	ChainIDPolygonZkEVM:    "polygon-zkevm",
 	ChainIDBase:            "base",
 	ChainIDScroll:          "scroll",
 	ChainIDBlast:           "blast",
@@ -79,6 +80,7 @@ var ChainNameMap = map[ChainID]string{
 	ChainIDBerachain:       "berachain",
 	ChainIDRonin:           "ronin",
 	ChainIDUnichain:        "unichain",
+	ChainIDHyperEVM:        "hyperevm",
 
 	ChainIDSolana: "solana",
 }
