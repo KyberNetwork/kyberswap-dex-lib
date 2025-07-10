@@ -152,15 +152,38 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if swapInfo.NewReserve0 != nil {
 			p.reserve0.Set(swapInfo.NewReserve0)
 		}
-		if swapInfo.NewReserve0 != nil {
+		if swapInfo.NewReserve1 != nil {
 			p.reserve1.Set(swapInfo.NewReserve1)
 		}
 
-		if swapInfo.ZeroForOne {
-			p.vaults[0].Debt = new(uint256.Int).Sub(p.vaults[0].Debt, swapInfo.DebtRepaid)
-		} else {
-			p.vaults[1].Debt = new(uint256.Int).Sub(p.vaults[1].Debt, swapInfo.DebtRepaid)
+		from, to := 0, 1
+		if !swapInfo.ZeroForOne {
+			from, to = to, from
 		}
+
+		amountOut := new(uint256.Int).Add(swapInfo.WithdrawAmount, swapInfo.BorrowAmount)
+
+		// update state of fromVault
+		if p.vaults[from].MaxDeposit.Gt(swapInfo.DepositAmount) {
+			p.vaults[from].MaxDeposit.Sub(p.vaults[from].MaxDeposit, swapInfo.DepositAmount)
+		} else {
+			p.vaults[from].MaxDeposit.SetUint64(0)
+		}
+
+		p.vaults[from].Debt.Sub(p.vaults[from].Debt, swapInfo.RepayAmount)
+		p.vaults[from].Cash.Add(p.vaults[from].Cash, swapInfo.DepositAmount)
+		p.vaults[from].EulerAccountAssets.Add(p.vaults[from].EulerAccountAssets, amountOut)
+
+		// update state of toVault
+		if p.vaults[to].MaxWithdraw.Gt(swapInfo.WithdrawAmount) {
+			p.vaults[to].MaxWithdraw.Sub(p.vaults[to].MaxWithdraw, swapInfo.WithdrawAmount)
+		} else {
+			p.vaults[to].MaxWithdraw.SetUint64(0)
+		}
+
+		p.vaults[to].TotalBorrows.Add(p.vaults[to].TotalBorrows, swapInfo.BorrowAmount)
+		p.vaults[to].Cash.Sub(p.vaults[to].Cash, amountOut)
+		p.vaults[to].EulerAccountAssets.Sub(p.vaults[to].EulerAccountAssets, amountOut)
 	}
 }
 
@@ -177,6 +200,11 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.reserve1 = p.reserve1.Clone()
 	cloned.vaults = lo.Map(p.vaults, func(item Vault, _ int) Vault {
 		item.Debt = new(uint256.Int).Set(item.Debt)
+		item.EulerAccountAssets = new(uint256.Int).Set(item.EulerAccountAssets)
+		item.TotalBorrows = new(uint256.Int).Set(item.TotalBorrows)
+		item.Cash = new(uint256.Int).Set(item.Cash)
+		item.MaxDeposit = new(uint256.Int).Set(item.MaxDeposit)
+		item.MaxWithdraw = new(uint256.Int).Set(item.MaxWithdraw)
 		return item
 	})
 	return &cloned
@@ -211,19 +239,20 @@ func (p *PoolSimulator) swap(
 		fromVault, toVault = toVault, fromVault
 	}
 
-	if err := withdrawAssets(amountOut, toVault.EulerAccountAssets, toVault.CanBorrow); err != nil {
+	withdrawAmt, borrowAmt, err := withdrawAssets(amountOut, toVault.EulerAccountAssets, toVault.CanBorrow)
+	if err != nil {
 		return nil, nil, SwapInfo{}, err
 	}
 
-	amountInWithoutFee, debtRepaid := depositAssets(amountIn, fromVault.Debt, p.fee, p.protocolFee, p.protocolFeeRecipient)
+	depositAmt, repayAmt := depositAssets(amountIn, fromVault.Debt, p.fee, p.protocolFee, p.protocolFeeRecipient)
 
 	var newReserve0, newReserve1 uint256.Int
 	if isZeroForOne {
-		newReserve0.Add(p.reserve0, amountInWithoutFee)
+		newReserve0.Add(p.reserve0, depositAmt)
 		newReserve1.Sub(p.reserve1, amountOut)
 	} else {
 		newReserve0.Sub(p.reserve0, amountOut)
-		newReserve1.Add(p.reserve1, amountInWithoutFee)
+		newReserve1.Add(p.reserve1, depositAmt)
 	}
 
 	if !p.verify(&newReserve0, &newReserve1) {
@@ -231,10 +260,13 @@ func (p *PoolSimulator) swap(
 	}
 
 	return amountIn, amountOut, SwapInfo{
-		NewReserve0: &newReserve0,
-		NewReserve1: &newReserve1,
-		DebtRepaid:  debtRepaid,
-		ZeroForOne:  isZeroForOne,
+		NewReserve0:    &newReserve0,
+		NewReserve1:    &newReserve1,
+		WithdrawAmount: withdrawAmt,
+		BorrowAmount:   borrowAmt,
+		DepositAmount:  depositAmt,
+		RepayAmount:    repayAmt,
+		ZeroForOne:     isZeroForOne,
 	}, nil
 }
 
@@ -478,12 +510,16 @@ func withdrawAssets(
 	amount,
 	balance *uint256.Int,
 	canBorrow bool,
-) error {
-	if amount.Cmp(balance) <= 0 || canBorrow {
-		return nil
+) (*uint256.Int, *uint256.Int, error) {
+	if amount.Cmp(balance) <= 0 {
+		return amount, uint256.NewInt(0), nil
 	}
 
-	return ErrSwapLimitExceeded
+	if canBorrow {
+		return new(uint256.Int).Set(balance), new(uint256.Int).Sub(amount, balance), nil
+	}
+
+	return nil, nil, ErrSwapLimitExceeded
 }
 
 func depositAssets(

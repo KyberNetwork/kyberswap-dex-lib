@@ -44,10 +44,13 @@ type Vault struct {
 	CanBorrow          bool
 }
 type SwapInfo struct {
-	NewReserve0 *uint256.Int
-	NewReserve1 *uint256.Int
-	DebtRepaid  *uint256.Int
-	ZeroForOne  bool
+	NewReserve0    *uint256.Int
+	NewReserve1    *uint256.Int
+	WithdrawAmount *uint256.Int
+	BorrowAmount   *uint256.Int
+	DepositAmount  *uint256.Int
+	RepayAmount    *uint256.Int
+	ZeroForOne     bool
 }
 
 type TrackerData struct {
