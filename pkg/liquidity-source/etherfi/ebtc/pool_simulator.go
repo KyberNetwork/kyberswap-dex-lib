@@ -133,8 +133,8 @@ func (p *PoolSimulator) erc20Deposit(
 	}
 	if asset.SharePremium > 0 {
 		shares, overflow = shares.MulDivOverflow(
-			shares, uint256.NewInt(utils.BasisPointUint256.Uint64()-uint64(asset.SharePremium)),
-			utils.BasisPointUint256,
+			shares, uint256.NewInt(utils.UBasisPoint.Uint64()-uint64(asset.SharePremium)),
+			utils.UBasisPoint,
 		)
 		if overflow {
 			return nil, ErrMulDivOverflow
