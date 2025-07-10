@@ -29,8 +29,9 @@ const (
 	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 
-	ERC4626MethodTotalAssets = "totalAssets"
-	ERC4626MethodTotalSupply = "totalSupply"
+	ERC4626MethodTotalAssets     = "totalAssets"
+	ERC4626MethodTotalSupply     = "totalSupply"
+	ERC4626MethodConvertToAssets = "convertToAssets"
 )
 
 var (

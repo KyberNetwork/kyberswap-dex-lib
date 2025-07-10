@@ -91,18 +91,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
-	extra.Buffers = lo.Map(res.Buffers, func(v *shared.ExtraBufferRPC, _ int) *shared.ExtraBuffer {
-		if v == nil {
-			return nil
-		}
-		var totalAssets, totalSupply uint256.Int
-		totalAssets.SetFromBig(v.TotalAssets)
-		totalSupply.SetFromBig(v.TotalSupply)
-		return &shared.ExtraBuffer{
-			TotalAssets: totalAssets.AddUint64(&totalAssets, 1),
-			TotalSupply: totalSupply.Add(&totalSupply, shared.DecimalsOffsetPow),
-		}
-	})
+	extra.Buffers = res.Buffers()
 	extra.NormalizedWeights = shared.FromBigs(res.NormalizedWeights)
 
 	extraBytes, err := json.Marshal(extra)
@@ -131,7 +120,6 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 		isPoolPaused         bool
 		isPoolInRecoveryMode bool
 	)
-	rpcRes.Buffers = make([]*shared.ExtraBufferRPC, len(staticExtra.BufferTokens))
 
 	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true)
 	if overrides != nil {
@@ -178,21 +166,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 		Target: poolAddress,
 		Method: poolMethodGetNormalizedWeights,
 	}, []any{&rpcRes.NormalizedWeights})
-
-	for i, token := range staticExtra.BufferTokens {
-		if token != "" {
-			rpcRes.Buffers[i] = &shared.ExtraBufferRPC{}
-			req.AddCall(&ethrpc.Call{
-				ABI:    shared.ERC4626ABI,
-				Target: token,
-				Method: shared.ERC4626MethodTotalAssets,
-			}, []any{&rpcRes.Buffers[i].TotalAssets}).AddCall(&ethrpc.Call{
-				ABI:    shared.ERC4626ABI,
-				Target: token,
-				Method: shared.ERC4626MethodTotalSupply,
-			}, []any{&rpcRes.Buffers[i].TotalSupply})
-		}
-	}
+	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens, t.config.VaultExplorer)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
