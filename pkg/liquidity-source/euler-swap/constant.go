@@ -54,5 +54,4 @@ var (
 	ErrCurveViolation    = errors.New("curve violation")
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
-	ErrAmountTooLarge    = errors.New("amount too large")
 )

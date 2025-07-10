@@ -177,7 +177,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.reserve1 = p.reserve1.Clone()
 	cloned.vaults = lo.Map(p.vaults, func(item Vault, _ int) Vault {
 		item.Debt = new(uint256.Int).Set(item.Debt)
-		item.EulerAccountAssets = new(uint256.Int).Set(item.EulerAccountAssets)
 		return item
 	})
 	return &cloned
