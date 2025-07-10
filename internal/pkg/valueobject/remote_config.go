@@ -117,6 +117,7 @@ type (
 		OnePercentHillClimbMaxGeneratePathsPerNode uint    `mapstructure:"onePercentHillClimbMaxGeneratePathsPerNode" json:"onePercentHillClimbMaxGeneratePathsPerNode"`
 		OnePercentHillClimbMaxPathToReturn         int     `mapstructure:"onePercentHillClimbMaxPathToReturn" json:"onePercentHillClimbMaxPathToReturn"`
 		OnePercentHillClimbImproveThreshold        float64 `mapstructure:"onePercentHillClimbImproveThreshold" json:"onePercentHillClimbImproveThreshold"`
+		OnePercentHillClimbAmountInPriceThreshold  float64 `mapstructure:"onePercentHillClimbAmountInPriceThreshold" json:"onePercentHillClimbAmountInPriceThreshold"`
 		OnePercentHillClimbEnableTracingLog        bool    `mapstructure:"onePercentHillClimbEnableTracingLog" json:"onePercentHillClimbEnableTracingLog"`
 
 		// If true then route finding is performed remotely in AEVM server

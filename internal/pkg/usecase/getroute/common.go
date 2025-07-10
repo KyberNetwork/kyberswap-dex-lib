@@ -305,6 +305,7 @@ func InitializeFinderEngine(
 				MaxGeneratePathsPerNode: finderOptions.OnePercentHillClimbMaxGeneratePathsPerNode,
 				MaxPathsToReturn:        finderOptions.OnePercentHillClimbMaxPathToReturn,
 				ImproveThreshold:        finderOptions.OnePercentHillClimbImproveThreshold,
+				AmountInPriceThreshold:  finderOptions.OnePercentHillClimbAmountInPriceThreshold,
 				EnableTracingLog:        finderOptions.OnePercentHillClimbEnableTracingLog,
 			},
 		)
