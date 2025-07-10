@@ -206,8 +206,16 @@ func (p *PoolSimulator) swap(
 		}
 	}
 
-	vault := lo.Ternary(isZeroForOne, p.vaults[0], p.vaults[1])
-	amountInWithoutFee, debtRepaid := depositAssets(amountIn, vault.Debt, p.fee, p.protocolFee, p.protocolFeeRecipient)
+	fromVault, toVault := p.vaults[0], p.vaults[1]
+	if !isZeroForOne {
+		fromVault, toVault = toVault, fromVault
+	}
+
+	if err := withdrawAssets(amountOut, toVault.EulerAccountAssets, toVault.CanBorrow); err != nil {
+		return nil, nil, SwapInfo{}, err
+	}
+
+	amountInWithoutFee, debtRepaid := depositAssets(amountIn, fromVault.Debt, p.fee, p.protocolFee, p.protocolFeeRecipient)
 
 	var newReserve0, newReserve1 uint256.Int
 	if isZeroForOne {
@@ -466,6 +474,18 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 	}
 }
 
+func withdrawAssets(
+	amount,
+	balance *uint256.Int,
+	canBorrow bool,
+) error {
+	if amount.Cmp(balance) <= 0 || canBorrow {
+		return nil
+	}
+
+	return ErrSwapLimitExceeded
+}
+
 func depositAssets(
 	amount,
 	vaultDebt,
@@ -517,24 +537,4 @@ func depositAssets(
 	}
 
 	return uint256.NewInt(0), &repaid
-}
-
-func (s *PoolSimulator) CanSwapFrom(address string) []string {
-	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.vaults[1].EulerAccountAssets.IsZero(),
-			[]string{}, []string{s.Pool.Info.Tokens[1]})
-	}
-
-	return lo.Ternary(s.vaults[0].EulerAccountAssets.IsZero(),
-		[]string{}, []string{s.Pool.Info.Tokens[0]})
-}
-
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.vaults[0].EulerAccountAssets.IsZero(),
-			[]string{}, []string{s.Pool.Info.Tokens[1]})
-	}
-
-	return lo.Ternary(s.vaults[1].EulerAccountAssets.IsZero(),
-		[]string{}, []string{s.Pool.Info.Tokens[0]})
 }
