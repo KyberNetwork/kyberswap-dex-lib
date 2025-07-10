@@ -339,18 +339,18 @@ func TestSwapEdgeCases(t *testing.T) {
 
 			if tc.expectError {
 				require.NotNil(t, err, "Expected error for: %s", tc.description)
-				t.Logf("✅ Expected error occurred: %v", err)
+				t.Logf("Expected error occurred: %v", err)
 			} else {
 				require.Nil(t, err, "Expected success for: %s", tc.description)
 				require.NotNil(t, result, "Expected result for: %s", tc.description)
 				require.Greater(t, result.TokenAmountOut.Amount.Cmp(big.NewInt(0)), 0, "Expected positive output amount")
-				t.Logf("✅ Success: input=%s, output=%s", tc.amountIn, result.TokenAmountOut.Amount.String())
+				t.Logf("Success: input=%s, output=%s", tc.amountIn, result.TokenAmountOut.Amount.String())
 			}
 		})
 	}
 }
 
-func TestSwapReversibility(t *testing.T) {
+func TestReverseSwap(t *testing.T) {
 	t.Parallel()
 
 	poolStr := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"17271279289973\",\"Debt\":\"19814269629134\",\"MaxDeposit\":\"22900683055346\",\"MaxWithdraw\":\"67500000000000\",\"TotalBorrows\":\"34828037654680\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true},{\"Cash\":\"5674807873177\",\"Debt\":\"0\",\"MaxDeposit\":\"18864221709050\",\"MaxWithdraw\":\"45000000000000\",\"TotalBorrows\":\"25460970417772\",\"EulerAccountAssets\":\"21967163791256\",\"CanBorrow\":false}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
@@ -405,4 +405,66 @@ func TestSwapReversibility(t *testing.T) {
 	require.Greater(t, reverseResult.TokenAmountOut.Amount.Cmp(big.NewInt(0)), 0, "Reverse swap should return positive amount")
 
 	t.Logf("Swap reversibility verified: forward=%s, reverse=%s", forwardResult.TokenAmountOut.Amount.String(), reverseResult.TokenAmountOut.Amount.String())
+}
+
+func TestSwapCanBorrow(t *testing.T) {
+	t.Parallel()
+
+	poolStr := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false},{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
+
+	var pool entity.Pool
+	err := json.Unmarshal([]byte(poolStr), &pool)
+	require.Nil(t, err)
+
+	t.Run("Both vaults with zero balance and canBorrow=false should fail", func(t *testing.T) {
+		poolSim, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
+		amountIn, _ := new(big.Int).SetString("1000000", 10) // 1 USDC
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: amountIn,
+		}
+		tokenOut := "0xdac17f958d2ee523a2206206994597c13d831ec7"
+
+		_, err = testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		require.NotNil(t, err, "Should fail when both vaults have zero balance and canBorrow=false")
+		t.Logf("Expected error for both vaults with zero balance and canBorrow=false: %v", err)
+	})
+
+	poolStr2 := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false},{\"Cash\":\"1000000\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"1000000\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
+
+	var pool2 entity.Pool
+	err = json.Unmarshal([]byte(poolStr2), &pool2)
+	require.Nil(t, err)
+
+	t.Run("From vault with zero balance and canBorrow=false to vault with canBorrow=true should succeed", func(t *testing.T) {
+		poolSim, err := NewPoolSimulator(pool2)
+		require.Nil(t, err)
+
+		amountIn, _ := new(big.Int).SetString("1000000", 10) // 1 USDC
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: amountIn,
+		}
+		tokenOut := "0xdac17f958d2ee523a2206206994597c13d831ec7"
+
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		require.Nil(t, err, "Should succeed when toVault has canBorrow=true")
+		require.NotNil(t, result, "Should return result when toVault has canBorrow=true")
+		require.Greater(t, result.TokenAmountOut.Amount.Cmp(big.NewInt(0)), 0, "Should return positive output amount")
+		t.Logf("Success when toVault has canBorrow=true: input=%s, output=%s", amountIn.String(), result.TokenAmountOut.Amount.String())
+	})
 }
