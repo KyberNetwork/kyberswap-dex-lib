@@ -104,12 +104,13 @@ type PoolPlainOracleExtra struct {
 }
 
 type PoolMetaExtra struct {
-	InitialA     string `json:"initialA"`
-	FutureA      string `json:"futureA"`
-	InitialATime int64  `json:"initialATime"`
-	FutureATime  int64  `json:"futureATime"`
-	SwapFee      string `json:"swapFee"`
-	AdminFee     string `json:"adminFee"`
+	InitialA               string   `json:"initialA"`
+	FutureA                string   `json:"futureA"`
+	InitialATime           int64    `json:"initialATime"`
+	FutureATime            int64    `json:"futureATime"`
+	SwapFee                string   `json:"swapFee"`
+	AdminFee               string   `json:"adminFee"`
+	SnappedRedemptionPrice *big.Int `json:"snappedRedemptionPrice"`
 }
 
 type PoolAaveExtra struct {
