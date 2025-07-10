@@ -105,6 +105,16 @@ func (d *PoolTracker) getPoolData(
 		isOperatorAuthorized bool
 		reserves             ReserveRPC
 		vaults               = make([]VaultRPC, 2)
+		accountLiquidities   = []AccountLiquidityRPC{
+			{
+				CollateralValue: big.NewInt(0),
+				LiabilityValue:  big.NewInt(0),
+			},
+			{
+				CollateralValue: big.NewInt(0),
+				LiabilityValue:  big.NewInt(0),
+			},
+		}
 	)
 
 	req.AddCall(&ethrpc.Call{
@@ -169,15 +179,22 @@ func (d *PoolTracker) getPoolData(
 			Method: vaultMethodBalanceOf,
 			Params: []any{common.HexToAddress(eulerAccount)},
 		}, []any{&vaults[i].EulerAccountBalance})
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: vaultAddress,
+			Method: vaultMethodAccountLiquidity,
+			Params: []any{common.HexToAddress(eulerAccount), false},
+		}, []any{&accountLiquidities[i]})
 	}
 
-	resp, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return TrackerData{}, nil, err
 	}
 
 	return TrackerData{
 		Vaults:               vaults,
+		AccountLiquidities:   accountLiquidities,
 		Reserves:             reserves,
 		IsOperatorAuthorized: isOperatorAuthorized,
 	}, resp.BlockNumber, nil
@@ -204,6 +221,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
 			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
+			CanBorrow:          data.AccountLiquidities[i].CollateralValue.Cmp(data.AccountLiquidities[i].LiabilityValue) > 0,
 		}
 	}
 
