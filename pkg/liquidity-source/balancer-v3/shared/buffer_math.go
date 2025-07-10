@@ -7,11 +7,17 @@ import (
 )
 
 var (
-	WAD            = uint256.NewInt(1e18) // 10**18
-	ErrInvalidRate = errors.New("invalid rate")
+	WAD                   = uint256.NewInt(1e18) // 10**18
+	MINIMUM_WRAP_AMOUNT   = uint256.NewInt(1000)
+	ErrInvalidRate        = errors.New("invalid rate")
+	ErrWrapAmountTooSmall = errors.New("wrap amount too small")
 )
 
 func (b *ExtraBuffer) ConvertToShares(assets *uint256.Int) (*uint256.Int, error) {
+	if assets.Lt(MINIMUM_WRAP_AMOUNT) {
+		return nil, ErrWrapAmountTooSmall
+	}
+
 	if b.Rate == nil || b.Rate.IsZero() {
 		return nil, ErrInvalidRate
 	}
@@ -21,6 +27,10 @@ func (b *ExtraBuffer) ConvertToShares(assets *uint256.Int) (*uint256.Int, error)
 }
 
 func (b *ExtraBuffer) ConvertToAssets(shares *uint256.Int) (*uint256.Int, error) {
+	if shares.Lt(MINIMUM_WRAP_AMOUNT) {
+		return nil, ErrWrapAmountTooSmall
+	}
+
 	if b.Rate == nil || b.Rate.IsZero() {
 		return nil, ErrInvalidRate
 	}
