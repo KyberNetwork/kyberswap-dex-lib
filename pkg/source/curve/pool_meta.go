@@ -222,13 +222,61 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		return entity.Pool{}, err
 	}
 
+	var snappedRedemptionPrice *big.Int
+	// Handle a specific case for the RAI Curve-Meta pool,
+	// since this pool uses a different contract version, leading the "rates"
+	// is calculated using contract data.
+	if p.Address == RAIMetaPool {
+		var redemptionPriceSnapContract common.Address
+		req := d.ethrpcClient.NewRequest().SetContext(ctx)
+		if overrides != nil {
+			req.SetOverrides(overrides)
+		}
+
+		req.AddCall(&ethrpc.Call{
+			ABI:    metaABIV0_2_12,
+			Target: p.Address,
+			Method: poolMethodRedemptionPriceSnap,
+			Params: nil,
+		}, []any{&redemptionPriceSnapContract})
+
+		if _, err := req.TryAggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"poolType":    p.Type,
+				"error":       err,
+			}).Errorf("failed to aggregate RAI pool redemption_price_snap")
+		} else {
+			req = d.ethrpcClient.NewRequest().SetContext(ctx)
+			if overrides != nil {
+				req.SetOverrides(overrides)
+			}
+
+			req.AddCall(&ethrpc.Call{
+				ABI:    redemptionPriceSnap,
+				Target: redemptionPriceSnapContract.String(),
+				Method: oracleMethodSnappedRedemptionPrice,
+				Params: nil,
+			}, []any{&snappedRedemptionPrice})
+
+			if _, err := req.TryAggregate(); err != nil {
+				logger.WithFields(logger.Fields{
+					"poolAddress": p.Address,
+					"poolType":    p.Type,
+					"error":       err,
+				}).Errorf("failed to aggregate RAI snappedRedemptionPrice")
+			}
+		}
+	}
+
 	var extra = PoolMetaExtra{
-		InitialA:     initialA.String(),
-		FutureA:      futureA.String(),
-		InitialATime: initialATime.Int64(),
-		FutureATime:  futureATime.Int64(),
-		SwapFee:      swapFee.String(),
-		AdminFee:     adminFee.String(),
+		InitialA:               initialA.String(),
+		FutureA:                futureA.String(),
+		InitialATime:           initialATime.Int64(),
+		FutureATime:            futureATime.Int64(),
+		SwapFee:                swapFee.String(),
+		AdminFee:               adminFee.String(),
+		SnappedRedemptionPrice: snappedRedemptionPrice,
 	}
 
 	extraBytes, err := json.Marshal(extra)
