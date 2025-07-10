@@ -169,13 +169,6 @@ func TestMergeSwaps(t *testing.T) {
 				})
 			})
 
-			// Debug single swap
-			if singleErr != nil {
-				t.Logf("Single swap failed: %v", singleErr)
-			} else {
-				t.Logf("Single swap succeeded: %s", singleResult.TokenAmountOut.Amount.String())
-			}
-
 			// Chunked swaps (20 chunks)
 			chunkedPool, err := NewPoolSimulator(pool)
 			require.Nil(t, err)
@@ -183,8 +176,6 @@ func TestMergeSwaps(t *testing.T) {
 			chunkAmount := new(big.Int).Div(amountIn, big.NewInt(20))
 			var totalAmountOut *big.Int
 			var chunkedErr error
-
-			t.Logf("Chunk amount: %s", chunkAmount.String())
 
 			for i := 0; i < 20; i++ {
 				chunkTokenAmountIn := poolpkg.TokenAmount{
@@ -201,7 +192,6 @@ func TestMergeSwaps(t *testing.T) {
 
 				if err != nil {
 					chunkedErr = err
-					t.Logf("Chunk %d failed: %v", i+1, err)
 					break
 				}
 
@@ -214,14 +204,8 @@ func TestMergeSwaps(t *testing.T) {
 				} else {
 					totalAmountOut.Add(totalAmountOut, chunkResult.TokenAmountOut.Amount)
 				}
-
-				t.Logf("Chunk %d succeeded: %s (accumulated: %s)",
-					i+1,
-					chunkResult.TokenAmountOut.Amount.String(),
-					totalAmountOut.String())
 			}
 
-			// Assert atomic behavior: both must succeed or both must fail
 			if singleErr != nil {
 				require.NotNil(t, chunkedErr, "Single swap failed but chunked swap succeeded")
 				t.Logf("Both processes failed as expected: %v", singleErr)
