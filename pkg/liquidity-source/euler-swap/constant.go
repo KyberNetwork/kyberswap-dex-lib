@@ -29,15 +29,16 @@ const (
 	poolMethodConcentrationY      = "concentrationY"
 	poolMethodFeeMultiplier       = "feeMultiplier"
 
-	vaultMethodCash            = "cash"
-	vaultMethodDebtOf          = "debtOf"
-	vaultMethodMaxDeposit      = "maxDeposit"
-	vaultMethodCaps            = "caps"
-	vaultMethodTotalBorrows    = "totalBorrows"
-	vaultMethodBalanceOf       = "balanceOf"
-	vaultMethodConvertToAssets = "convertToAssets"
-	vaultMethodTotalAssets     = "totalAssets"
-	vaultMethodTotalSupply     = "totalSupply"
+	vaultMethodCash             = "cash"
+	vaultMethodDebtOf           = "debtOf"
+	vaultMethodMaxDeposit       = "maxDeposit"
+	vaultMethodCaps             = "caps"
+	vaultMethodTotalBorrows     = "totalBorrows"
+	vaultMethodBalanceOf        = "balanceOf"
+	vaultMethodConvertToAssets  = "convertToAssets"
+	vaultMethodTotalAssets      = "totalAssets"
+	vaultMethodTotalSupply      = "totalSupply"
+	vaultMethodAccountLiquidity = "accountLiquidity"
 
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
 
@@ -53,4 +54,5 @@ var (
 	ErrCurveViolation    = errors.New("curve violation")
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
+	ErrAmountTooLarge    = errors.New("amount too large")
 )
