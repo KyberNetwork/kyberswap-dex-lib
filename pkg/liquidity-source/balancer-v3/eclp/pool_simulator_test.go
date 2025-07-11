@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/vault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -28,6 +29,10 @@ func pool1() *base.PoolSimulator {
 
 func pool2() *base.PoolSimulator {
 	return newPool(`{"address":"0x6adda8a09dac8336abf13e70ee8bba1e55c3015f","exchange":"balancer-v3-eclp","type":"balancer-v3-eclp","timestamp":1751868430,"reserves":["5430800174919153651","2791778907"],"tokens":[{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","symbol":"WETH","decimals":18,"swappable":true},{"address":"0xaf88d065e77c8cc2239327c5edb3a432268e5831","symbol":"USDC","decimals":6,"swappable":true}],"extra":"{\"hook\":{},\"fee\":\"2000000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"5682926679552568080\",\"3172111633565964967840\"],\"decs\":[\"1\",\"1000000000000\"],\"rates\":[\"1046425295815117658\",\"1136233111301304408\"],\"buffs\":[{\"rate\":\"1046425295815117656\"},{\"rate\":\"1136233110600910528\"}],\"eclp\":{\"p\":{\"a\":\"2300000000000000000000\",\"b\":\"3450000000000000000000\",\"c\":\"340136034746169\",\"s\":\"999999942153737260\",\"l\":\"15000000000000000000000\"},\"d\":{\"tA\":{\"x\":\"-81754800040802866166495335404043732617\",\"y\":\"57586045794865440326374685805400997563\"},\"tB\":{\"x\":\"60215136492456391650835048577140986617\",\"y\":\"79838194726552068708694627685354335017\"},\"u\":\"48289088472244617795808663907556578\",\"v\":\"79838192152144835849261396367525693446\",\"w\":\"7568757264380743767847482473451543\",\"z\":\"-81754783615942841514788990471890354787\",\"DSq\":\"99999999999999999903719824937248416100\"}}}","staticExtra":"{\"buffs\":[\"0x4ce13a79f45c1be00bdabd38b764ac28c082704e\",\"0x7f6501d3b98ee91f9b9535e4b0ac710fb0f9e0bc\"]}","blockNumber":355102143}`)
+}
+
+func poolAaveBuffered() *base.PoolSimulator {
+	return newPool("{\"address\":\"0x6adda8a09dac8336abf13e70ee8bba1e55c3015f\",\"exchange\":\"balancer-v3-eclp\",\"type\":\"balancer-v3-eclp\",\"timestamp\":1752198134,\"reserves\":[\"2487343948055235912\",\"9964695470\"],\"tokens\":[{\"address\":\"0x82af49447d8a07e3bd95bd0d56f35241523fbab1\",\"symbol\":\"WETH\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xaf88d065e77c8cc2239327c5edb3a432268e5831\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"hook\\\":{},\\\"fee\\\":\\\"2000000000000000\\\",\\\"aggrFee\\\":\\\"500000000000000000\\\",\\\"balsE18\\\":[\\\"2603210576142303686\\\",\\\"11326420907101066582699\\\"],\\\"decs\\\":[\\\"1\\\",\\\"1000000000000\\\"],\\\"rates\\\":[\\\"1046582471305450013\\\",\\\"1136654997756902508\\\"],\\\"buffs\\\":[{\\\"rate\\\":\\\"1046582471305450013\\\"},{\\\"rate\\\":\\\"1136654997756902508\\\"}],\\\"eclp\\\":{\\\"p\\\":{\\\"a\\\":\\\"2300000000000000000000\\\",\\\"b\\\":\\\"3450000000000000000000\\\",\\\"c\\\":\\\"340136034746169\\\",\\\"s\\\":\\\"999999942153737260\\\",\\\"l\\\":\\\"15000000000000000000000\\\"},\\\"d\\\":{\\\"tA\\\":{\\\"x\\\":\\\"-81754800040802866166495335404043732617\\\",\\\"y\\\":\\\"57586045794865440326374685805400997563\\\"},\\\"tB\\\":{\\\"x\\\":\\\"60215136492456391650835048577140986617\\\",\\\"y\\\":\\\"79838194726552068708694627685354335017\\\"},\\\"u\\\":\\\"48289088472244617795808663907556578\\\",\\\"v\\\":\\\"79838192152144835849261396367525693446\\\",\\\"w\\\":\\\"7568757264380743767847482473451543\\\",\\\"z\\\":\\\"-81754783615942841514788990471890354787\\\",\\\"DSq\\\":\\\"99999999999999999903719824937248416100\\\"}}}\",\"staticExtra\":\"{\\\"buffs\\\":[\\\"0x4ce13a79f45c1be00bdabd38b764ac28c082704e\\\",\\\"0x7f6501d3b98ee91f9b9535e4b0ac710fb0f9e0bc\\\"]}\",\"blockNumber\":356416181}")
 }
 
 func TestCalcAmountOut(t *testing.T) {
@@ -56,11 +61,22 @@ func TestCalcAmountOut(t *testing.T) {
 			pool: pool1(),
 			tokenAmountIn: pool.TokenAmount{
 				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				Amount: big.NewInt(1000),
+				Amount: big.NewInt(1000000),
 			},
 			tokenOut:          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			expectedAmountOut: "0",
 			expectedError:     vault.ErrAmountInTooSmall,
+		},
+		{
+			name: "1. 0->1 AmountIn is too small for buffering",
+			pool: pool1(),
+			tokenAmountIn: pool.TokenAmount{
+				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				Amount: big.NewInt(1000),
+			},
+			tokenOut:          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			expectedAmountOut: "0",
+			expectedError:     shared.ErrWrapAmountTooSmall,
 		},
 		{
 			name: "1. 0->1 ErrAssetBoundsExceeded",
@@ -82,6 +98,28 @@ func TestCalcAmountOut(t *testing.T) {
 			},
 			tokenOut:          "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
 			expectedAmountOut: "73258603", // actual simulation gives "72145424" due to buffer imbalance
+			expectedError:     nil,
+		},
+		{
+			name: "aave. 0->1 ok",
+			pool: poolAaveBuffered(),
+			tokenAmountIn: pool.TokenAmount{
+				Token:  "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+				Amount: big.NewInt(100000000000000),
+			},
+			tokenOut:          "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+			expectedAmountOut: "293761", // 293759
+			expectedError:     nil,
+		},
+		{
+			name: "aave. 1->0 ok",
+			pool: poolAaveBuffered(),
+			tokenAmountIn: pool.TokenAmount{
+				Token:  "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+				Amount: big.NewInt(100000000),
+			},
+			tokenOut:          "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+			expectedAmountOut: "33880901758804406", // 33846106954701616
 			expectedError:     nil,
 		},
 	}
