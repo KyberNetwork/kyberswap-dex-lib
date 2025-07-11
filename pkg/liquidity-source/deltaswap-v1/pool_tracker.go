@@ -23,12 +23,6 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-type NomiStableReserve struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
-	BlockTimestampLast uint32
-}
-
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
