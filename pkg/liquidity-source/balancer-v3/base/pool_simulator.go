@@ -87,8 +87,12 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	gas := p.BaseGas()
+	var err error
 	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
-		amountIn = bufferIn.ConvertToShares(amountIn)
+		amountIn, err = bufferIn.ConvertToShares(amountIn)
+		if err != nil {
+			return nil, err
+		}
 		gas += bufferGas
 	}
 
@@ -103,7 +107,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
-		amountOut = bufferOut.ConvertToAssets(amountOut)
+		amountOut, err = bufferOut.ConvertToAssets(amountOut)
+		if err != nil {
+			return nil, err
+		}
 		gas += bufferGas
 	}
 
@@ -137,8 +144,12 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}
 
 	gas := p.BaseGas()
+	var err error
 	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
-		amountOut = bufferOut.ConvertToShares(amountOut)
+		amountOut, err = bufferOut.ConvertToShares(amountOut)
+		if err != nil {
+			return nil, err
+		}
 		gas += bufferGas
 	}
 
@@ -153,7 +164,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}
 
 	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
-		amountIn = bufferIn.ConvertToAssets(amountIn)
+		amountIn, err = bufferIn.ConvertToAssets(amountIn)
+		if err != nil {
+			return nil, err
+		}
 		gas += bufferGas
 	}
 
