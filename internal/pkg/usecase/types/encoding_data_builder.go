@@ -426,10 +426,10 @@ func getAddressToApproveMax(chainID valueobject.ChainID, swap types.EncodingSwap
 	var err error
 
 	if dexValueObject.IsRFQSource(swap.Exchange) &&
+		swap.Exchange != dexValueObject.ExchangeKyberSwapLimitOrderDS &&
 		swap.Exchange != dexValueObject.ExchangeLO1inch {
-		// For RFQ dexes, the approval address should be unmarshalled from extra
-		// so it can be updated from quote result.
-		// LO1inch is an exception, it is RFQ dex without RFQ handler.
+		// For RFQ dexes that are not LOs, the approval address should be unmarshalled from extra
+		// so it can be updated from API quote result.
 		approvalInfo, err = util.AnyToStruct[pool.ApprovalInfo](swap.Extra)
 		if err != nil {
 			return "", err
