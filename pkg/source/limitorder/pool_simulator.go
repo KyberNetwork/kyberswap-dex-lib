@@ -441,8 +441,8 @@ func (p *PoolSimulator) filterOrdersByAllowedSenders(orderIDs []int64, allowedSe
 	})
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return p.contractAddress
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return pool.ApprovalInfo{ApprovalAddress: p.contractAddress}
 }
 
 func newFallbackOrderInfo(order *order) *FilledOrderInfo {
