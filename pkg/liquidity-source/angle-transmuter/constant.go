@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	DexType = "angle-transmuter"
+	DexType        = "angle-transmuter"
+	defaultReserve = "100000000000000000000000000"
 )
 
 var (

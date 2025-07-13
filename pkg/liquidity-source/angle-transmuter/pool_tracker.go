@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
@@ -404,7 +403,7 @@ func (t *PoolTracker) getNewPoolState(
 	})
 	p.Tokens = append(tokens, p.Tokens[len(p.Tokens)-1]) // last one is agToken
 	p.Reserves = lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) string {
-		return abi.MaxUint256.String()
+		return defaultReserve
 	})
 	return p, nil
 }
