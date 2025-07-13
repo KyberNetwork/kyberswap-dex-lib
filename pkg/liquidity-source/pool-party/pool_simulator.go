@@ -99,9 +99,11 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	s.Extra.PublicAmountAvailable.Sub(s.Extra.PublicAmountAvailable, params.TokenAmountOut.Amount)
+	s.Extra.PublicAmountAvailable = new(big.Int).Sub(s.Extra.PublicAmountAvailable, params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{Exchange: s.Extra.Exchange}
 }
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
