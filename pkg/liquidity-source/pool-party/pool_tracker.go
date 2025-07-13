@@ -117,7 +117,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 	extraBytes, _ := json.Marshal(extra)
 
-	p.Reserves[1] = subgraphPool.PublicAmountAvailable
+	if extra.PoolStatus != poolStatusActive || !extra.IsVisible {
+		p.Reserves[0] = "0"
+	} else {
+		p.Reserves[1] = subgraphPool.PublicAmountAvailable
+	}
+
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.BlockNumber = blockNumber.Uint64()
