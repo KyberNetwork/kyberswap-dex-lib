@@ -20,6 +20,12 @@ var cryptoRegistryABIBytes []byte
 //go:embed abi/MetaPool.json
 var metaABIBytes []byte
 
+//go:embed abi/MetaPoolV0.2.12.json
+var metaV0_2_12ABIBytes []byte
+
+//go:embed abi/RedemptionPriceSnap.json
+var redemptionPriceSnapABIBytes []byte
+
 //go:embed abi/Aave.json
 var aaveABIBytes []byte
 

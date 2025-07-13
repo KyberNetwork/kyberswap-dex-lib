@@ -47,6 +47,9 @@ const (
 	poolMethodLastPrices          = "last_prices"
 	poolMethodBasePool            = "base_pool"
 
+	poolMethodRedemptionPriceSnap      = "redemption_price_snap"
+	oracleMethodSnappedRedemptionPrice = "snappedRedemptionPrice"
+
 	aaveMethodOffpegFeeMultiplier = "offpeg_fee_multiplier"
 	oracleMethodLatestAnswer      = "latestAnswer"
 	plainOracleMethodOracle       = "oracle"
@@ -58,6 +61,8 @@ const (
 	addressZero  = "0x0000000000000000000000000000000000000000"
 
 	zeroString = "0"
+
+	RAIMetaPool = "0x618788357d0ebd8a37e763adab3bc575d54c2c7d"
 )
 
 const (

@@ -41,17 +41,22 @@ type Vault struct {
 	MaxWithdraw        *uint256.Int
 	TotalBorrows       *uint256.Int
 	EulerAccountAssets *uint256.Int
+	CanBorrow          bool
 }
 type SwapInfo struct {
-	NewReserve0 *uint256.Int
-	NewReserve1 *uint256.Int
-	DebtRepaid  *uint256.Int
-	ZeroForOne  bool
+	NewReserve0    *uint256.Int
+	NewReserve1    *uint256.Int
+	WithdrawAmount *uint256.Int
+	BorrowAmount   *uint256.Int
+	DepositAmount  *uint256.Int
+	RepayAmount    *uint256.Int
+	ZeroForOne     bool
 }
 
 type TrackerData struct {
 	Vaults               []VaultRPC
 	Reserves             ReserveRPC
+	AccountLiquidities   []AccountLiquidityRPC
 	IsOperatorAuthorized bool
 }
 type ReserveRPC struct {
@@ -87,4 +92,9 @@ type VaultRPC struct {
 	TotalSupply         *big.Int
 	Caps                [2]uint16
 	MaxWithdraw         *big.Int
+}
+
+type AccountLiquidityRPC struct {
+	CollateralValue *big.Int
+	LiabilityValue  *big.Int
 }

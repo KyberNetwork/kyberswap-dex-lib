@@ -2,10 +2,13 @@ package velodromev1
 
 import (
 	"context"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 )
 
 type (
@@ -13,133 +16,74 @@ type (
 		GetFee(
 			ctx context.Context,
 			poolAddress string,
-			isStable bool,
 			factoryAddress string,
+			isStable bool,
 			blockNumber *big.Int,
 		) (uint64, error)
 	}
 
-	// VelodromeFeeTracker gets fee from factory contract `getFee(bool _stable)`
-	VelodromeFeeTracker struct {
+	// GenericFeeTracker gets fee generically, using {pool} and {factory} as templates for input common.Hash params
+	GenericFeeTracker struct {
 		ethrpcClient *ethrpc.Client
-	}
-
-	// StratumFeeTracker gets fee from factory contract `getFee(address pool)`
-	StratumFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// NuriFeeTracker gets fee from factory contract `pairFee(address pool)`
-	NuriFeeTracker struct {
-		ethrpcClient *ethrpc.Client
-	}
-
-	// LyveFeeTracker gets fee from factory contract `getFee(address pool, bool _stable)`
-	LyveFeeTracker struct {
-		ethrpcClient *ethrpc.Client
+		abi          abi.ABI
+		target       string
+		args         []string
 	}
 )
 
-func (t *VelodromeFeeTracker) GetFee(
-	ctx context.Context,
-	_ string,
-	isStable bool,
-	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
-		Target: factoryAddress,
-		Method: pairFactoryMethodGetFee,
-		Params: []interface{}{isStable},
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
+func NewGenericFeeTracker(ethrpcClient *ethrpc.Client, feeTrackerCfg *FeeTrackerCfg) *GenericFeeTracker {
+	return &GenericFeeTracker{
+		ethrpcClient: ethrpcClient,
+		abi: abi.ABI{
+			Methods: map[string]abi.Method{
+				genericMethodFee: {
+					ID: binary.BigEndian.AppendUint32(make([]byte, 0, 4), feeTrackerCfg.Selector),
+					Inputs: lo.RepeatBy(len(feeTrackerCfg.Args), func(int) abi.Argument {
+						return abi.Argument{Type: abi.Type{T: abi.FixedBytesTy, Size: 32}}
+					}),
+					Outputs: abi.Arguments{
+						{Type: abi.Type{T: abi.UintTy, Size: 64}},
+					},
+				},
+			},
+		},
+		target: feeTrackerCfg.Target,
+		args:   feeTrackerCfg.Args,
 	}
-
-	return fee.Uint64(), nil
 }
 
-func (t *StratumFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	isStable bool,
-	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    stratumPairFactoryABI,
-		Target: factoryAddress,
-		Method: stratumPairFactoryMethodGetFee,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
+func getGenericInput(input, poolAddress, factoryAddress string, isStable bool) string {
+	switch input {
+	case genericTemplatePool:
+		return poolAddress
+	case genericTemplateFactory:
+		return factoryAddress
+	case genericTemplateIsStable:
+		if isStable {
+			return "01"
+		}
+		return ""
+	default:
+		return input
 	}
-
-	return fee.Uint64(), nil
 }
 
-func (t *NuriFeeTracker) GetFee(
+func (t *GenericFeeTracker) GetFee(
 	ctx context.Context,
 	poolAddress string,
-	isStable bool,
 	factoryAddress string,
-	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    nuriPairFactoryABI,
-		Target: factoryAddress,
-		Method: nuriPairFactoryMethodPairFee,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee.Uint64(), nil
-}
-
-func (t *LyveFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
 	isStable bool,
-	factoryAddress string,
 	blockNumber *big.Int,
-) (uint64, error) {
-	var fee *big.Int
-
-	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFeeRequest.AddCall(&ethrpc.Call{
-		ABI:    lyvePairFactoryABI,
-		Target: factoryAddress,
-		Method: lyvePairFactoryMethodGetFee,
-		Params: []interface{}{common.HexToAddress(poolAddress), isStable},
-	}, []interface{}{&fee})
-
-	_, err := getFeeRequest.Call()
-	if err != nil {
-		return 0, err
-	}
-
-	return fee.Uint64(), nil
+) (fee uint64, err error) {
+	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
+		AddCall(&ethrpc.Call{
+			ABI:    t.abi,
+			Target: getGenericInput(t.target, poolAddress, factoryAddress, isStable),
+			Method: genericMethodFee,
+			Params: lo.Map(t.args, func(arg string, _ int) any {
+				return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress, isStable))
+			}),
+		}, []any{&fee}).
+		Call()
+	return fee, err
 }

@@ -12,7 +12,7 @@ type SubgraphPool struct {
 
 type SubgraphToken struct {
 	Address              string `json:"address"`
-	CanUseBufferForSwaps bool  `json:"canUseBufferForSwaps"`
+	CanUseBufferForSwaps bool   `json:"canUseBufferForSwaps"`
 	UnderlyingToken      struct {
 		Address string `json:"address"`
 	} `json:"underlyingToken"`

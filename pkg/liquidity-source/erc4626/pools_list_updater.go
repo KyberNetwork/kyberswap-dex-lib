@@ -169,6 +169,12 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 		return assetToken, nil, err
 	}
 
+	if poolState.TotalSupply == nil {
+		poolState.TotalSupply = bignumber.ZeroBI
+	}
+	if poolState.TotalAssets == nil {
+		poolState.TotalAssets = bignumber.ZeroBI
+	}
 	if poolState.MaxDeposit != nil && poolState.MaxDeposit.Cmp(bignumber.MAX_UINT_256) == 0 {
 		poolState.MaxDeposit = nil
 	}

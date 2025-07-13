@@ -93,7 +93,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenOut,
 			Amount: bignum.ZeroBI,
 		},
-		SwapInfo: assets,
+		SwapInfo: SwapInfo{assets: assets},
 		Gas:      int64(lo.Ternary(isDeposit, s.gas.Deposit, s.gas.Redeem)),
 	}, nil
 }
@@ -128,7 +128,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenOut,
 			Amount: bignum.ZeroBI,
 		},
-		SwapInfo: assets,
+		SwapInfo: SwapInfo{assets: assets},
 		Gas:      int64(lo.Ternary(isDeposit, s.gas.Deposit, s.gas.Redeem)),
 	}, nil
 }
@@ -146,7 +146,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if err != nil {
 		return
 	}
-	assetsWithoutFee, _ := params.SwapInfo.(*uint256.Int)
+	assetsWithoutFee := params.SwapInfo.(SwapInfo).assets
 	if assetsWithoutFee == nil {
 		assetsWithoutFee = uint256.MustFromBig(tokenAmountIn.Amount)
 	}
@@ -213,12 +213,12 @@ func deductFee(assets *uint256.Int, feeBps int64) *uint256.Int {
 	if feeBps != 0 {
 		var tmp uint256.Int
 		if feeBps > 0 {
-			if err := v3Utils.MulDivV2(assets, tmp.SubUint64(big256.BasisPointUint256, uint64(feeBps)),
-				big256.BasisPointUint256, &tmp, nil); err == nil {
+			if err := v3Utils.MulDivV2(assets, tmp.SubUint64(big256.UBasisPoint, uint64(feeBps)),
+				big256.UBasisPoint, &tmp, nil); err == nil {
 				assets = &tmp
 			}
-		} else if err := v3Utils.MulDivRoundingUpV2(assets, big256.BasisPointUint256,
-			tmp.SubUint64(big256.BasisPointUint256, uint64(-feeBps)), &tmp); err == nil {
+		} else if err := v3Utils.MulDivRoundingUpV2(assets, big256.UBasisPoint,
+			tmp.SubUint64(big256.UBasisPoint, uint64(-feeBps)), &tmp); err == nil {
 			assets = &tmp
 		}
 	}

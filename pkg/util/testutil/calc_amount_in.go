@@ -31,28 +31,32 @@ func TestCalcAmountIn[TB interface {
 		tokenOuts := poolSim.CanSwapFrom(tokenIn)
 		for _, tokenOut := range tokenOuts {
 			outIdx := poolSim.GetTokenIndex(tokenOut)
-			baseOut, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tokenIn,
-					Amount: bignumber.TenPowInt(4),
-				},
-				TokenOut: tokenOut,
-			})
 			var base float64
-			if err == nil {
-				base, _ = baseOut.TokenAmountOut.Amount.Float64()
+			for _, exp := range []int{3, 4, 6, 9, 13} {
+				baseOut, err := pool.CalcAmountOut(
+					poolSim,
+					pool.TokenAmount{Token: tokenIn, Amount: bignumber.TenPowInt(exp)},
+					tokenOut,
+					nil,
+				)
+				if err == nil {
+					base, _ = baseOut.TokenAmountOut.Amount.Float64()
+					break
+				}
 			}
 			base = max(1, base)
-			maxExp := 5.0
-			if baseOut, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: pool.TokenAmount{
-					Token:  tokenIn,
-					Amount: bignumber.TenPowInt(18),
-				},
-				TokenOut: tokenOut,
-			}); err == nil {
-				maxExp, _ = baseOut.TokenAmountOut.Amount.Float64()
-				maxExp = math.Log10(maxExp/base) - 1
+			maxExp := 1.0
+			for _, exp := range []int{23, 17, 12, 8, 5} {
+				if baseOut, err := pool.CalcAmountOut(
+					poolSim,
+					pool.TokenAmount{Token: tokenIn, Amount: bignumber.TenPowInt(exp)},
+					tokenOut,
+					nil,
+				); err == nil {
+					maxExp, _ = baseOut.TokenAmountOut.Amount.Float64()
+					maxExp = math.Log10(maxExp/base) - 1
+					break
+				}
 			}
 			for range runs {
 				amountOut, _ := big.NewFloat(base * (math.Pow(10, 1+rand.Float64()*maxExp))).Int(nil)

@@ -85,6 +85,15 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		aPrecision = utils.NewBig10(staticExtra.APrecision)
 	}
 
+	rateMultiplier := utils.NewBig10(staticExtra.RateMultiplier)
+	// Handle a specific case for the RAI Curve-Meta pool,
+	// since this pool uses a different contract version, leading the "rates"
+	// is calculated using contract data.
+	if entityPool.Address == curve.RAIMetaPool {
+		rateMultiplier.Set(extraStr.SnappedRedemptionPrice)
+		rateMultiplier.Div(rateMultiplier, utils.TenPowInt(9))
+	}
+
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -97,7 +106,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 			},
 		},
 		basePool:       basePool,
-		RateMultiplier: utils.NewBig10(staticExtra.RateMultiplier),
+		RateMultiplier: rateMultiplier,
 		InitialA:       utils.NewBig10(extraStr.InitialA),
 		FutureA:        utils.NewBig10(extraStr.FutureA),
 		InitialATime:   extraStr.InitialATime,

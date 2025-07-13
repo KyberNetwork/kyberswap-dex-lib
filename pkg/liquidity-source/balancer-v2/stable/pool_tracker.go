@@ -200,9 +200,7 @@ func (t *PoolTracker) queryRPC(
 		scalingFactors                               []*big.Int
 	)
 
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true)
+	req := t.ethrpcClient.R().SetContext(ctx)
 	if overrides != nil {
 		req.SetOverrides(overrides)
 	}

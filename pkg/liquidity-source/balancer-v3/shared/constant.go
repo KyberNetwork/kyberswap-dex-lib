@@ -4,6 +4,21 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type (
+	Rounding int
+	SwapKind int
+)
+
+const (
+	RoundUp Rounding = iota
+	RoundDown
+)
+
+const (
+	ExactIn SwapKind = iota
+	ExactOut
+)
+
 const (
 	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
@@ -14,26 +29,11 @@ const (
 	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 
-	ERC4626MethodTotalAssets = "totalAssets"
-	ERC4626MethodTotalSupply = "totalSupply"
-)
-
-type (
-	Rounding  int
-	TokenType uint8
-	SwapKind  int
-)
-
-const (
-	ROUND_UP Rounding = iota
-	ROUND_DOWN
-
-	EXACT_IN SwapKind = iota
-	EXACT_OUT
+	ERC4626MethodTotalAssets     = "totalAssets"
+	ERC4626MethodTotalSupply     = "totalSupply"
+	ERC4626MethodConvertToAssets = "convertToAssets"
 )
 
 var (
-	MINIMUM_TRADE_AMOUNT = uint256.NewInt(1000000) // to be more general, this value should be queried from the VaultAdmin contract
-
-	DecimalsOffsetPow = uint256.NewInt(1e3) // some buffer has this as 0, but 1e3 is a good value
+	DecimalsOffsetPow = uint256.NewInt(1e3) // some buffer has this as 0, but 1e3 is a good blanket value
 )

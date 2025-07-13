@@ -147,13 +147,11 @@ func (t *PoolTracker) queryRPC(
 		swapFeePercentage         *big.Int
 		protocolSwapFeePercentage = poolpkg.ZeroBI
 		pausedState               PausedState
-		lastInvariant             *big.Int
+		lastInvariant             = poolpkg.ZeroBI
 		totalSupply               *big.Int
 	)
 
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true)
+	req := t.ethrpcClient.R().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,

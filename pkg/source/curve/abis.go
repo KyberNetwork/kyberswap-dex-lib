@@ -7,20 +7,22 @@ import (
 )
 
 var (
-	erc20ABI           abi.ABI
-	addressProviderABI abi.ABI
-	mainRegistryABI    abi.ABI
-	metaPoolFactoryABI abi.ABI
-	cryptoFactoryABI   abi.ABI
-	cryptoRegistryABI  abi.ABI
-	metaABI            abi.ABI
-	aaveABI            abi.ABI
-	plainOracleABI     abi.ABI
-	baseABI            abi.ABI
-	twoABI             abi.ABI
-	tricryptoABI       abi.ABI
-	oracleABI          abi.ABI
-	compoundABI        abi.ABI
+	erc20ABI            abi.ABI
+	addressProviderABI  abi.ABI
+	mainRegistryABI     abi.ABI
+	metaPoolFactoryABI  abi.ABI
+	cryptoFactoryABI    abi.ABI
+	cryptoRegistryABI   abi.ABI
+	metaABI             abi.ABI
+	aaveABI             abi.ABI
+	plainOracleABI      abi.ABI
+	baseABI             abi.ABI
+	twoABI              abi.ABI
+	tricryptoABI        abi.ABI
+	oracleABI           abi.ABI
+	compoundABI         abi.ABI
+	metaABIV0_2_12      abi.ABI
+	redemptionPriceSnap abi.ABI
 )
 
 func init() {
@@ -42,6 +44,8 @@ func init() {
 		{&tricryptoABI, tricryptoABIBytes},
 		{&oracleABI, oracleABIBytes},
 		{&compoundABI, compoundABIBytes},
+		{&metaABIV0_2_12, metaV0_2_12ABIBytes},
+		{&redemptionPriceSnap, redemptionPriceSnapABIBytes},
 	}
 
 	for _, b := range build {

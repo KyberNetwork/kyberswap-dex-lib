@@ -5,6 +5,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 )
 
 type PoolStaticExtra struct {
@@ -35,14 +37,7 @@ type PairMetadata struct {
 	T1   common.Address
 }
 
-type ReserveData struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
-}
-
-func (d ReserveData) IsZero() bool {
-	return d.Reserve0 == nil && d.Reserve1 == nil
-}
+type ReserveData = uniswapv2.ReserveData
 
 type GetReservesResult struct {
 	Reserve0           *big.Int

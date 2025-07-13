@@ -28,14 +28,13 @@ type RpcResult struct {
 	StaticSwapFeePercentage *big.Int
 	AggregateFeePercentageRPC
 	PoolDataRPC
-	Buffers        []*ExtraBufferRPC
+	Buffers        func() []*ExtraBuffer
 	IsPoolDisabled bool
 	BlockNumber    uint64
 }
 
 type ExtraBuffer struct {
-	TotalAssets *uint256.Int `json:"tA,omitempty"`
-	TotalSupply *uint256.Int `json:"tS,omitempty"`
+	Rate *uint256.Int `json:"rate,omitempty"`
 }
 
 type PoolDataRPC struct {
@@ -48,11 +47,6 @@ type PoolDataRPC struct {
 		TokenRates            []*big.Int
 		DecimalScalingFactors []*big.Int
 	}
-}
-
-type ExtraBufferRPC struct {
-	TotalAssets *big.Int
-	TotalSupply *big.Int
 }
 
 type HooksConfig struct {

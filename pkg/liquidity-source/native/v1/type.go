@@ -30,6 +30,8 @@ type QuoteParams struct {
 	ExpiryTime uint `json:"expiry_time,string"`
 	// Number in percent. For example, passing the value 5 means 5%, 0.1 means 0.1% slippage tolerance. By default it's 0.
 	Slippage string `json:"slippage"`
+	// Native quoter version. V2 has time-based risk premium for protection against arbitrage bots.
+	Version string `json:"version"`
 }
 
 func (p *QuoteParams) ToMap() map[string]string {
