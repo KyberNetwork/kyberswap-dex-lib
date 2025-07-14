@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
@@ -306,8 +307,9 @@ func BenchmarkGetDyUnderlying(b *testing.B) {
 }
 
 func TestRAISwap(t *testing.T) {
+	now := time.Now().Unix()
 	poolStr := "{\"address\":\"0x618788357d0ebd8a37e763adab3bc575d54c2c7d\",\"amplifiedTvl\":96473.18024615978,\"exchange\":\"curve\",\"type\":\"curve-meta\",\"timestamp\":1752141285,\"reserves\":[\"25207726126074011679635\",\"20333558078904652962161\",\"0\"],\"tokens\":[{\"address\":\"0x03ab458634910aad20ef5f1c8ee96f1d6ac54919\",\"symbol\":\"RAI\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x6c3f90f043a72fa612cbac8115ee7e52bde6e490\",\"symbol\":\"3Crv\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"initialA\\\":\\\"10000\\\",\\\"futureA\\\":\\\"10000\\\",\\\"initialATime\\\":0,\\\"futureATime\\\":0,\\\"swapFee\\\":\\\"4000000\\\",\\\"adminFee\\\":\\\"5000000000\\\",\\\"snappedRedemptionPrice\\\":3049991316778665711364455710}\",\"staticExtra\":\"{\\\"lpToken\\\":\\\"0x618788357d0ebd8a37e763adab3bc575d54c2c7d\\\",\\\"basePool\\\":\\\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\\\",\\\"rateMultiplier\\\":\\\"1000000000000000000\\\",\\\"aPrecision\\\":\\\"100\\\",\\\"underlyingTokens\\\":[\\\"0x03ab458634910aad20ef5f1c8ee96f1d6ac54919\\\",\\\"0x6b175474e89094c44da98b954eedeac495271d0f\\\",\\\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\\\",\\\"0xdac17f958d2ee523a2206206994597c13d831ec7\\\"],\\\"precisionMultipliers\\\":[\\\"1\\\",\\\"1\\\"],\\\"rates\\\":[\\\"\\\",\\\"\\\"]}\"}"
-	basePoolStr := "{\"address\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"amplifiedTvl\":167594991.2197165,\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1752069985,\"reserves\":[\"75000987250283023485540264\",\"60795598086384\",\"46881473180944\",\"175680474464184526040181476\"],\"tokens\":[{\"address\":\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"symbol\":\"DAI\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true},{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"symbol\":\"USDT\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"5000\\\",\\\"FutureA\\\":\\\"4000\\\",\\\"InitialATime\\\":1751893283,\\\"FutureATime\\\":1752497111,\\\"SwapFee\\\":\\\"1500000\\\",\\\"AdminFee\\\":\\\"10000000000\\\"}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"1\\\",\\\"LpToken\\\":\\\"0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490\\\",\\\"IsNativeCoin\\\":[false,false,false]}\",\"blockNumber\":22882112}"
+	basePoolStr := fmt.Sprintf("{\"address\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"amplifiedTvl\":167594991.2197165,\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1752069985,\"reserves\":[\"75000987250283023485540264\",\"60795598086384\",\"46881473180944\",\"175680474464184526040181476\"],\"tokens\":[{\"address\":\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"symbol\":\"DAI\",\"decimals\":18,\"swappable\":true},{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"symbol\":\"USDC\",\"decimals\":6,\"swappable\":true},{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"symbol\":\"USDT\",\"decimals\":6,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"5000\\\",\\\"FutureA\\\":\\\"4000\\\",\\\"InitialATime\\\":%d,\\\"FutureATime\\\":%d,\\\"SwapFee\\\":\\\"1500000\\\",\\\"AdminFee\\\":\\\"10000000000\\\"}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"1\\\",\\\"LpToken\\\":\\\"0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490\\\",\\\"IsNativeCoin\\\":[false,false,false]}\",\"blockNumber\":22882112}", now, now+2000)
 
 	var basePool entity.Pool
 	_ = json.Unmarshal([]byte(basePoolStr), &basePool)
@@ -337,5 +339,5 @@ func TestRAISwap(t *testing.T) {
 
 	res, err := simulator.CalcAmountOut(params)
 	assert.NoError(t, err)
-	assert.Equal(t, "8056156152972315998", res.TokenAmountOut.Amount.String())
+	assert.Equal(t, "8056187488661470351", res.TokenAmountOut.Amount.String())
 }
