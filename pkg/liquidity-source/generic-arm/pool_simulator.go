@@ -50,6 +50,9 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 		TradeRate0:         extra.TradeRate0,
 		TradeRate1:         extra.TradeRate1,
 		PriceScale:         extra.PriceScale,
+		LiquidityAsset:     extra.LiquidityAsset,
+		WithdrawsQueued:    extra.WithdrawsQueued,
+		WithdrawsClaimed:   extra.WithdrawsClaimed,
 		gas:                extra.Gas,
 	}, nil
 }
