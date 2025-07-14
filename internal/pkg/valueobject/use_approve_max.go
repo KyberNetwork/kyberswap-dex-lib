@@ -94,12 +94,13 @@ var useApproveMaxFunctionSet = map[string]bool{
 	l1executor.FunctionSelectorERC4626.RawName: true,
 
 	// ExecutorHelper12
-	l1executor.FunctionSelectorSkyPSM.RawName:     true,
-	l1executor.FunctionSelectorAaveV3.RawName:     true,
-	l1executor.FunctionSelectorCompoundV2.RawName: true,
-	l1executor.FunctionSelectorCompoundV3.RawName: true,
-	l1executor.FunctionSelectorGenericArm.RawName: true,
-	l1executor.FunctionSelectorArena.RawName:      false,
+	l1executor.FunctionSelectorSkyPSM.RawName:          true,
+	l1executor.FunctionSelectorAaveV3.RawName:          true,
+	l1executor.FunctionSelectorCompoundV2.RawName:      true,
+	l1executor.FunctionSelectorCompoundV3.RawName:      true,
+	l1executor.FunctionSelectorGenericArm.RawName:      true,
+	l1executor.FunctionSelectorArena.RawName:           false,
+	l1executor.FunctionSelectorAngleTransmuter.RawName: true,
 }
 
 // IsApproveMaxExchange returns true if we should track if executor `approveMax` for the provided exchange,

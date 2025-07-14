@@ -166,6 +166,8 @@ common:
     - compound-v2
     - compound-v3
     - generic-arm
+    - angle-transmuter-usd
+    - angle-transmuter-eur
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
     isAEVMEnabled: false

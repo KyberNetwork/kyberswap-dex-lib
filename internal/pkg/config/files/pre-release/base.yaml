@@ -113,6 +113,8 @@ common:
     - erc4626
     - aave-v3
     - compound-v3
+    - angle-transmuter-usd
+    - angle-transmuter-eur
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

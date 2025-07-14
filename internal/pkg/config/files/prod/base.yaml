@@ -114,6 +114,8 @@ common:
     - aave-v3
     - compound-v2
     - compound-v3
+    - angle-transmuter-usd
+    - angle-transmuter-eur
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
