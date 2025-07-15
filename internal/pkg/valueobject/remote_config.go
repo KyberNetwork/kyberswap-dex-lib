@@ -72,6 +72,7 @@ type (
 		// - false: Migration rollback - read from old Redis, write to both old and new Redis
 		// Note: Always write to both Redis during migration for safety
 		IsRedisMigrationEnabled bool `mapstructure:"isRedisMigrationEnabled" json:"isRedisMigrationEnabled"`
+		EnableDoubleWrite       bool `mapstructure:"enableDoubleWrite" json:"enableDoubleWrite"`
 	}
 
 	Log struct {

@@ -15,3 +15,4 @@ var (
 const PRICE_CHUNK_SIZE = 100
 const MAX_AMOUNT_OUT_USD = 10_000_000_000_000
 const WHITELIST_FILENAME = "whitelist-whitelist.txt"
+const WHITELIST_SCORE_FILENAME = "whitelist-whitelist.txt-Score"

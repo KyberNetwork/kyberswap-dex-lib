@@ -971,8 +971,11 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	getPools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, aevmClient, balanceSlotsUseCase)
 	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository,
-		getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
-	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
+		getPools, aevmClient, poolFactory, &cfg.UseCase.TradeDataGenerator)
+	updatePoolScores := indexpools.NewUpdatePoolsScore(
+		poolRankRepo,
+		poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank),
+		&cfg.UseCase.UpdateLiquidityScoreConfig)
 	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
 	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)
 	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
@@ -983,7 +986,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,
 		&cfg.Job.LiquidityScoreIndexPools.PoolEvent.ConsumerConfig)
 	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools,
-		removePoolUsecase, poolEventStreamConsumer, cfg.Job.LiquidityScoreIndexPools)
+		removePoolUsecase, poolEventStreamConsumer, &cfg.Job.LiquidityScoreIndexPools)
 
 	reloadManager := reload.NewManager()
 

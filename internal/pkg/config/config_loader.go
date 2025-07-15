@@ -351,6 +351,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled
 	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
 	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled
+	cl.config.UseCase.UpdateLiquidityScoreConfig.EnableDoubleWrite = featureFlags.EnableDoubleWrite
 }
 
 func (cl *ConfigLoader) setLog(logCfg valueobject.Log) {

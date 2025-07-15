@@ -51,7 +51,7 @@ type TradeDataGenerator struct {
 	maxDataPointNumber int
 	keyGenerator       poolrank.KeyGenerator
 
-	config TradeDataGeneratorConfig
+	config *TradeDataGeneratorConfig
 	mu     sync.RWMutex
 }
 
@@ -61,7 +61,7 @@ func NewTradeDataGenerator(poolRepo IPoolRepository,
 	getPoolsUseCase IGetPoolsIncludingBasePools,
 	client aevmclient.Client,
 	factory IPoolFactory,
-	config TradeDataGeneratorConfig) *TradeDataGenerator {
+	config *TradeDataGeneratorConfig) *TradeDataGenerator {
 	minDataPointNumber := config.MinDataPointNumber
 	if minDataPointNumber == 0 {
 		minDataPointNumber = MIN_DATA_POINT_NUMBER_DEFAULT

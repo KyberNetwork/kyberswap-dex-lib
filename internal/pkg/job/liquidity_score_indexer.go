@@ -30,7 +30,7 @@ type LiquidityScoreIndexPoolsJob struct {
 	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase
 	removePoolUsecase          IRemovePoolIndexUseCase
 	poolEventsStreamConsumer   consumer.Consumer[*message.EventMessage]
-	config                     LiquidityScoreIndexPoolsJobConfig
+	config                     *LiquidityScoreIndexPoolsJobConfig
 }
 
 func NewLiquidityScoreIndexPoolsJob(
@@ -39,7 +39,7 @@ func NewLiquidityScoreIndexPoolsJob(
 	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase,
 	removePoolUsecase IRemovePoolIndexUseCase,
 	streamConsumer consumer.Consumer[*message.EventMessage],
-	config LiquidityScoreIndexPoolsJobConfig) *LiquidityScoreIndexPoolsJob {
+	config *LiquidityScoreIndexPoolsJobConfig) *LiquidityScoreIndexPoolsJob {
 	return &LiquidityScoreIndexPoolsJob{
 		indexUsecase:               indexUseCase,
 		config:                     config,

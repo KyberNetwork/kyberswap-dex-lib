@@ -38,4 +38,6 @@ type UpdateLiquidityScoreConfig struct {
 	MeanType            string                          `mapstructure:"meanType" json:"meanType"`
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
 	ChunkSize           int                             `mapstructure:"chunkSize" json:"chunkSize"`
+	EnableDoubleWrite   bool                            `mapstructure:"enableDoubleWrite" json:"enableDoubleWrite"`
+	FilePath            string                          `mapstructure:"filePath"`
 }

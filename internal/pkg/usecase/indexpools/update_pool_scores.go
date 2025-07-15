@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
@@ -18,9 +19,10 @@ type MeanType string
 type FileHeader int
 
 const (
-	HarmonicMean   MeanType = "harmonic"
-	GeometricMean  MeanType = "geometric"
-	ArithmeticMean MeanType = "arithmetic"
+	HarmonicMean          MeanType = "harmonic"
+	GeometricMean         MeanType = "geometric"
+	ArithmeticMean        MeanType = "arithmetic"
+	WhitelistWhitelistKey          = "liquidityScoreTvl:whitelist"
 )
 
 const (
@@ -32,38 +34,66 @@ const (
 	Level
 )
 
-func NewUpdatePoolsScore(rankingRepo IPoolRankRepository, config UpdateLiquidityScoreConfig) *UpdatePoolScores {
+type ScoreOutput struct {
+	scores           []entity.PoolScore
+	isWhiteListScore bool
+}
+
+func NewUpdatePoolsScore(
+	rankingRepo IPoolRankRepository,
+	backupRankingRepo IPoolRankRepository,
+	config *UpdateLiquidityScoreConfig) *UpdatePoolScores {
 	return &UpdatePoolScores{
-		rankingRepo: rankingRepo,
-		config:      config,
+		rankingRepo:            rankingRepo,
+		backupRankingRepo:      backupRankingRepo,
+		config:                 config,
+		ScoreWhitelistFileName: config.FilePath + WHITELIST_SCORE_FILENAME,
 	}
 }
 
 func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileNames []string) []error {
 	result := make([]error, 0, 4)
-	scoresChan := make(chan []entity.PoolScore, len(scoresFileNames))
+	scoresChan := make(chan ScoreOutput, len(scoresFileNames))
+	errorChan := make(chan error, len(scoresFileNames))
 
-	go func(fileNames []string) []error {
-		for _, name := range scoresFileNames {
+	go func(fileNames []string) {
+		for _, name := range fileNames {
 			err := u.readLiquidityScores(ctx, name, scoresChan)
 			if err != nil {
-				result = append(result, err)
+				errorChan <- err
 			}
 		}
 		close(scoresChan)
-
-		return result
-
+		close(errorChan)
 	}(scoresFileNames)
 
 	count := 0
-	for scores := range scoresChan {
-		err := u.rankingRepo.AddScoreToSortedSets(ctx, scores)
+	// Process scores and collect errors
+	for output := range scoresChan {
+		err := u.rankingRepo.AddScoreToSortedSets(ctx, output.scores)
+		if u.config.EnableDoubleWrite && output.isWhiteListScore {
+			whitelistScores := lo.Filter(output.scores, func(score entity.PoolScore, _ int) bool {
+				if len(score.Key) < len(WhitelistWhitelistKey) {
+					return false
+				}
+				return score.Key[len(score.Key)-len(WhitelistWhitelistKey):] == WhitelistWhitelistKey
+			})
+
+			if len(whitelistScores) != 0 {
+				u.backupRankingRepo.AddScoreToSortedSets(ctx, output.scores)
+			}
+		}
 		if err != nil {
 			result = append(result, err)
 		}
-		count += len(scores)
+		count += len(output.scores)
 	}
+
+	// Collect remaining errors from the goroutine
+	for err := range errorChan {
+		result = append(result, err)
+	}
+
 	log.Ctx(ctx).Info().
 		Str("struct", "UpdateLiquidityScore").
 		Str("method", "Handle").
@@ -76,7 +106,7 @@ func (u *UpdatePoolScores) SavePoolScore(ctx context.Context, poolScores []entit
 	return u.rankingRepo.AddScoreToSortedSets(ctx, poolScores)
 }
 
-func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename string, scores chan<- []entity.PoolScore) error {
+func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename string, scores chan<- ScoreOutput) error {
 	input, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -99,7 +129,7 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 	}
 
 	_, _ = reader.Read()
-	batch := make([]entity.PoolScore, u.config.ChunkSize)
+	batch := make([]entity.PoolScore, 0, u.config.ChunkSize)
 	for {
 		record, err := reader.Read()
 		// Stop at EOF.
@@ -130,13 +160,19 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 
 		if len(batch) == u.config.ChunkSize {
 			count += len(batch)
-			scores <- batch
-			batch = make([]entity.PoolScore, u.config.ChunkSize)
+			scores <- ScoreOutput{
+				scores:           batch,
+				isWhiteListScore: filename == u.ScoreWhitelistFileName,
+			}
+			batch = make([]entity.PoolScore, 0, u.config.ChunkSize)
 		}
 	}
 	if len(batch) != 0 {
 		count += len(batch)
-		scores <- batch
+		scores <- ScoreOutput{
+			scores:           batch,
+			isWhiteListScore: filename == u.ScoreWhitelistFileName,
+		}
 	}
 	log.Ctx(ctx).Info().
 		Str("struct", "UpdateLiquidityScore").
