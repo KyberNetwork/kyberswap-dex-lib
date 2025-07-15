@@ -80,7 +80,7 @@ func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileName
 			})
 
 			if len(whitelistScores) != 0 {
-				u.backupRankingRepo.AddScoreToSortedSets(ctx, output.scores)
+				u.backupRankingRepo.AddScoreToSortedSets(ctx, whitelistScores)
 			}
 		}
 		if err != nil {
