@@ -197,6 +197,8 @@ type (
 		MinDifferentThresholdUSD     float64 `mapstructure:"minDifferentThresholdUSD" json:"minDifferentThresholdUSD"`
 		MinDifferentThresholdBps     int64   `mapstructure:"minDifferentThresholdBps" json:"minDifferentThresholdBps"`
 		DefaultAlphaFeePercentageBps float64 `mapstructure:"defaultAlphaFeePercentageBps" json:"defaultAfPercentageBps"`
+
+		CalculateSurplusMergeSharePools bool `mapstructure:"calculateSurplusMergeSharePools" json:"calculateSurplusMergeSharePools"`
 	}
 
 	CachePoint struct {

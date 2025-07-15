@@ -9,6 +9,7 @@ import (
 
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	dexlibValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	"github.com/stretchr/testify/assert"
@@ -18,22 +19,22 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+const alphaFeeSource = dexlibValueObject.ExchangeKyberPMM
+const lightWeightSource = dexlibValueObject.ExchangeUniswapV4FairFlow
+const nonAlphaFeeSource = dexlibValueObject.ExchangeUniSwapV3
+
+var tokenIDs = []string{"a", "b", "c"}
+var defaultAlphaFeeConfig = valueobject.AlphaFeeConfig{
+	ReductionConfig: valueobject.AlphaFeeReductionConfig{
+		WeightDistributeBySource:    map[string]int{alphaFeeSource: 100, lightWeightSource: 10},
+		ReductionFactorInBps:        map[string]float64{alphaFeeSource: 10000, lightWeightSource: 10000},
+		MaxThresholdPercentageInBps: 8000,
+		MinDifferentThresholdBps:    0,
+		MinDifferentThresholdUSD:    0.001,
+	},
+}
+
 func TestAlphaFeeV3Calculation(t *testing.T) {
-	tokenIDs := []string{"a", "b", "c"}
-
-	const alphaFeeSource = dexlibValueObject.ExchangeKyberPMM
-	const lightWeightSource = dexlibValueObject.ExchangeUniswapV4FairFlow
-	const nonAlphaFeeSource = dexlibValueObject.ExchangeUniSwapV3
-
-	defaultAlphaFeeConfig := valueobject.AlphaFeeConfig{
-		ReductionConfig: valueobject.AlphaFeeReductionConfig{
-			WeightDistributeBySource:    map[string]int{alphaFeeSource: 100, lightWeightSource: 10},
-			ReductionFactorInBps:        map[string]float64{alphaFeeSource: 10000, lightWeightSource: 10000},
-			MaxThresholdPercentageInBps: 8000,
-			MinDifferentThresholdBps:    0,
-			MinDifferentThresholdUSD:    0.001,
-		},
-	}
 
 	pools := map[string]dexlibPool.IPoolSimulator{
 		"tshared_rate_1-1_a_b": test.NewFixRatePoolWithID("tshared_rate_1-1_a_b", "a", "b", 1.0, alphaFeeSource),
@@ -380,4 +381,94 @@ func TestAlphaFeeV3Calculation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAlphaFeeDistributeSharePool(t *testing.T) {
+	alphaFeeV3Calculation := NewAlphaFeeV3Calculation(
+		NewAlphaFeeV2Calculation(defaultAlphaFeeConfig, finderCommon.DefaultCustomFuncs),
+		defaultAlphaFeeConfig,
+		&valueobject.TokenGroupConfig{},
+		finderCommon.DefaultCustomFuncs,
+	)
+
+	prices := map[string]float64{}
+	tokens := map[string]dexlibEntity.SimplifiedToken{}
+
+	for _, tokenID := range tokenIDs {
+		tokens[tokenID] = dexlibEntity.SimplifiedToken{
+			Address:  tokenID,
+			Decimals: 6,
+		}
+		prices[tokenID] = 1.0
+	}
+
+	params := AlphaFeeParams{
+		BestRoute:           &finderCommon.ConstructRoute{AmountOut: bignumber.NewBig("3648389479602297576858906")},
+		BestAmmRoute:        &finderCommon.ConstructRoute{AmountOut: bignumber.NewBig("3200000000000000000000000")},
+		Prices:              prices,
+		Tokens:              tokens,
+		PoolSimulatorBucket: nil,
+	}
+
+	routeInfo := [][]swapInfoV2{
+		{
+			{
+				Pool:      "0x7b9562cdf27965a87fbd129d5f0543b245625581ad50796cdb772017c2cd95c8",
+				TokenIn:   "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+				TokenOut:  "0x4200000000000000000000000000000000000006",
+				AmountIn:  bignumber.NewBig("50000000"),
+				AmountOut: bignumber.NewBig("20432228693874780"),
+				Exchange:  "uniswap-v4-fairflow",
+			},
+			{
+				Pool:      "0x4f99ed5735fbb5b6e01b0539f5e64afa278e8af8",
+				TokenIn:   "0x4200000000000000000000000000000000000006",
+				TokenOut:  "0xdbb2e40d67c1c5c3119f69282f425d3e7764d6db",
+				AmountIn:  bignumber.NewBig("20432228693874780"),
+				AmountOut: bignumber.NewBig("936038302037635699159858"),
+				Exchange:  "uniswapv3",
+			},
+		},
+		{
+			{
+				Pool:      "0xe405ebed3ba364fb6e53fafeb8972f1ac22ab785a25793af355e5750d93ddfaa",
+				TokenIn:   "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+				TokenOut:  "0x4200000000000000000000000000000000000006",
+				AmountIn:  bignumber.NewBig("50000000"),
+				AmountOut: bignumber.NewBig("20434602022465344"),
+				Exchange:  "uniswap-v4-fairflow",
+			},
+			{
+				Pool:      "0x4f99ed5735fbb5b6e01b0539f5e64afa278e8af8",
+				TokenIn:   "0x4200000000000000000000000000000000000006",
+				TokenOut:  "0xdbb2e40d67c1c5c3119f69282f425d3e7764d6db",
+				AmountIn:  bignumber.NewBig("20434602022465344"),
+				AmountOut: bignumber.NewBig("919988874666540745241063"),
+				Exchange:  "uniswapv3",
+			},
+		},
+	}
+
+	// Without config.CalculateSurplusMergeSharePools
+	pathReductions := alphaFeeV3Calculation.getReductionPerPath(
+		context.Background(),
+		params,
+		routeInfo,
+		params.BestAmmRoute.AmountOut,
+	)
+	assert.Equal(t, pathReductions[0].ReduceAmount.String(), "232219453486696201453568")
+	assert.Equal(t, pathReductions[1].ReduceAmount.String(), "216170026115601400856576")
+
+	// Without config.CalculateSurplusMergeSharePools
+	alphaFeeV3Calculation.config.ReductionConfig.CalculateSurplusMergeSharePools = true
+	pathReductions = alphaFeeV3Calculation.getReductionPerPath(
+		context.Background(),
+		params,
+		routeInfo,
+		params.BestAmmRoute.AmountOut,
+	)
+	// The reduction should be equal, however due to floating point precision,
+	// the value is slightly different (4.8 bps in this case).
+	assert.Equal(t, pathReductions[0].ReduceAmount.String(), "224140845698203609202688")
+	assert.Equal(t, pathReductions[1].ReduceAmount.String(), "224248633904094009180160")
 }

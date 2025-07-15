@@ -21,3 +21,9 @@ type swapInfoV2 struct {
 	AmountOut *big.Int
 	Exchange  string
 }
+
+type amountThroughPool struct {
+	TotalAmountIn  *big.Int
+	TotalAmountOut *big.Int
+	Count          int
+}

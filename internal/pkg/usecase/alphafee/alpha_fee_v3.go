@@ -18,6 +18,7 @@ import (
 	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	routerValueObject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -81,7 +82,7 @@ func (c *AlphaFeeV3Calculation) CalculateDefaultAlphaFee(ctx context.Context, pa
 }
 
 func (c *AlphaFeeV3Calculation) getReductionPerPath(
-	_ context.Context,
+	ctx context.Context,
 	param AlphaFeeParams,
 	routeInfo [][]swapInfoV2,
 	ammBestRouteAmountOut *big.Int,
@@ -90,18 +91,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerPath(
 	amountOutDiff.Sub(param.BestRoute.AmountOut, ammBestRouteAmountOut)
 	amountOutDiffF, _ := amountOutDiff.Float64()
 
-	pathExchangeRates := []pathExchangeRate{}
-	for idx, path := range routeInfo {
-		if isPathContainsAlphaFeeSources(path) {
-			pathAmountInF, _ := path[0].AmountIn.Float64()
-			pathAmountOutF, _ := path[len(path)-1].AmountOut.Float64()
-			pathExchangeRates = append(pathExchangeRates, pathExchangeRate{
-				PathIdx:        idx,
-				PathAmountInF:  pathAmountInF,
-				PathAmountOutF: pathAmountOutF,
-			})
-		}
-	}
+	pathExchangeRates := c.getPathExchangeRate(ctx, routeInfo)
 
 	// Path with best rate will be at the start of the slice
 	slices.SortFunc(pathExchangeRates, func(a, b pathExchangeRate) int {
@@ -404,4 +394,90 @@ func (c *AlphaFeeV3Calculation) getWeightDistribute(pool dexlibPool.IPoolSimulat
 	}
 
 	return DefaultWeightDistribute
+}
+
+func (c *AlphaFeeV3Calculation) getPathExchangeRate(
+	ctx context.Context,
+	routeInfo [][]swapInfoV2,
+) []pathExchangeRate {
+	// Some alpha fee paths share a same pool.
+	// Due to slippage, the rate of the first path can be better than the second path,
+	// causing the second path to have smaller/empty surplus.
+	// To avoid this, among alpha fee paths, we will merge the swaps with the same pool,
+	// and calculate the rate of each pool by its average rate among those swaps.
+	var rateSharePools = make(map[string]amountThroughPool)
+
+	if c.config.ReductionConfig.CalculateSurplusMergeSharePools {
+		for _, path := range routeInfo {
+			if isPathContainsAlphaFeeSources(path) {
+				for _, swapInfo := range path {
+					key := swapInfo.Pool + "-" + swapInfo.TokenIn + "-" + swapInfo.TokenOut
+					if _, exist := rateSharePools[key]; !exist {
+						rateSharePools[key] = amountThroughPool{
+							TotalAmountIn:  new(big.Int),
+							TotalAmountOut: new(big.Int),
+							Count:          0,
+						}
+					}
+
+					val := rateSharePools[key]
+					val.TotalAmountIn.Add(val.TotalAmountIn, swapInfo.AmountIn)
+					val.TotalAmountOut.Add(val.TotalAmountOut, swapInfo.AmountOut)
+					val.Count++
+					rateSharePools[key] = val
+				}
+			}
+		}
+	}
+
+	pathExchangeRates := []pathExchangeRate{}
+	for idx, path := range routeInfo {
+		if isPathContainsAlphaFeeSources(path) {
+			pathAmountInF, _ := path[0].AmountIn.Float64()
+			defaultPathAmountOutF, _ := path[len(path)-1].AmountOut.Float64()
+			pathAmountOutF := pathAmountInF
+
+			shouldRecalculatePathAmountOutWithMergePool := c.config.ReductionConfig.CalculateSurplusMergeSharePools &&
+				lo.SomeBy(path, func(swapInfo swapInfoV2) bool {
+					key := swapInfo.Pool + "-" + swapInfo.TokenIn + "-" + swapInfo.TokenOut
+					val, exist := rateSharePools[key]
+					if !exist || val.Count <= 1 {
+						return false
+					}
+					return true
+				})
+
+			if shouldRecalculatePathAmountOutWithMergePool {
+				for _, swapInfo := range path {
+					key := swapInfo.Pool + "-" + swapInfo.TokenIn + "-" + swapInfo.TokenOut
+					ratePool, exist := rateSharePools[key]
+					if !exist {
+						log.Ctx(ctx).Warn().Msgf("alphaFeeV3|getPathExchangeRate|pool %s not found in rateSharePools", key)
+						pathAmountOutF = defaultPathAmountOutF
+						break
+					}
+
+					ratePoolAmountInF, _ := ratePool.TotalAmountIn.Float64()
+					ratePoolAmountOutF, _ := ratePool.TotalAmountOut.Float64()
+					if utils.Float64AlmostEqual(ratePoolAmountOutF, 0) {
+						log.Ctx(ctx).Warn().Msgf("alphaFeeV3|getPathExchangeRate|pool %s has zero amount out", key)
+						pathAmountOutF = defaultPathAmountOutF
+						break
+					}
+
+					pathAmountOutF *= ratePoolAmountOutF / ratePoolAmountInF
+				}
+			} else {
+				pathAmountOutF = defaultPathAmountOutF
+			}
+
+			pathExchangeRates = append(pathExchangeRates, pathExchangeRate{
+				PathIdx:        idx,
+				PathAmountInF:  pathAmountInF,
+				PathAmountOutF: pathAmountOutF,
+			})
+		}
+	}
+
+	return pathExchangeRates
 }
