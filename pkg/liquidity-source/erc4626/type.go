@@ -26,12 +26,8 @@ type (
 		SwapTypes   SwapType     `json:"sT,omitempty"`
 		MaxDeposit  *uint256.Int `json:"mD,omitempty"`
 		MaxRedeem   *uint256.Int `json:"mR,omitempty"`
-		EntryFeeBps uint64       `json:"dF,omitempty"`
-		ExitFeeBps  uint64       `json:"rF,omitempty"`
-	}
-
-	SwapInfo struct {
-		assets *uint256.Int
+		DepositRate *uint256.Int `json:"dR,omitempty"`
+		RedeemRate  *uint256.Int `json:"rR,omitempty"`
 	}
 
 	Meta struct {
@@ -39,12 +35,10 @@ type (
 	}
 
 	PoolState struct {
-		TotalSupply *big.Int
-		TotalAssets *big.Int
 		MaxDeposit  *big.Int
 		MaxRedeem   *big.Int
-		EntryFeeBps uint64
-		ExitFeeBps  uint64
+		DepositRate *big.Int
+		RedeemRate  *big.Int
 
 		blockNumber uint64
 	}
