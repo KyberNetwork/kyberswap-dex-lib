@@ -4,27 +4,26 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
 	DexType = "erc4626"
 
-	erc4626MethodAsset                 = "asset"
-	erc4626MethodTotalSupply           = "totalSupply"
-	erc4626MethodTotalAssets           = "totalAssets"
-	erc4626MethodMaxDeposit            = "maxDeposit"
-	erc4626MethodMaxRedeem             = "maxRedeem"
-	erc4626MethodEntryFeeBasisPoints   = "entryFeeBasisPoints"
-	erc4626MethodExitFeeBasisPoints    = "exitFeeBasisPoints"
-	erc4626MethodGetExitFeeBasisPoints = "getExitFeeBasisPoints"
-	erc4626MethodMinRedeemRatio        = "minRedeemRatio"
-
-	Bps            = 10000
-	RatioPrecision = 1e18
+	erc4626MethodAsset          = "asset"
+	erc4626MethodMaxDeposit     = "maxDeposit"
+	erc4626MethodMaxRedeem      = "maxRedeem"
+	erc4626MethodPreviewDeposit = "previewDeposit"
+	erc4626MethodPreviewRedeem  = "previewRedeem"
 )
 
 var (
 	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
+
+	BiWad = bignumber.BONE
+	UWad  = big256.BONE
 
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrUnsupportedSwap           = errors.New("unsupported swap")
