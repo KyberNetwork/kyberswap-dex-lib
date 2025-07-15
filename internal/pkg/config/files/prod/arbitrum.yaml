@@ -141,6 +141,7 @@ common:
     - aave-v3
     - compound-v3
     - angle-transmuter-usd
+    - pool-party
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000

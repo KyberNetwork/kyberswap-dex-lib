@@ -179,6 +179,7 @@ common:
     - generic-arm
     - angle-transmuter-usd
     - angle-transmuter-eur
+    - pool-party
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
