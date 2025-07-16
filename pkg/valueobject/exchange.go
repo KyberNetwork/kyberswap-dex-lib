@@ -59,6 +59,8 @@ const (
 	ExchangeBeraSwapWeighted           = "beraswap-weighted"
 	ExchangeBeracaine                  = "beracaine"
 	ExchangeBiSwap                     = "biswap"
+	ExchangeBlackholeV2                = "blackhole-v2"
+	ExchangeBlackholeV4                = "blackhole-v4"
 	ExchangeBlade                      = "blade"
 	ExchangeBlastDex                   = "blastdex"
 	ExchangeBlasterSwap                = "blasterswap"
@@ -483,6 +485,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeraSwapWeighted:           {},
 	ExchangeBeracaine:                  {},
 	ExchangeBiSwap:                     {},
+	ExchangeBlackholeV2:                {},
+	ExchangeBlackholeV4:                {},
 	ExchangeBlade:                      {},
 	ExchangeBlastDex:                   {},
 	ExchangeBlasterSwap:                {},
