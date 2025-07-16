@@ -2,17 +2,10 @@ package brownfi
 
 import "math/big"
 
-type Gas struct {
-	Swap int64
-}
-
-type ReserveData struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
-}
-
-func (d ReserveData) IsZero() bool {
-	return d.Reserve0 == nil && d.Reserve1 == nil
+type GetReservesResult struct {
+	Reserve0           *big.Int
+	Reserve1           *big.Int
+	BlockTimestampLast uint32
 }
 
 type Extra struct {
