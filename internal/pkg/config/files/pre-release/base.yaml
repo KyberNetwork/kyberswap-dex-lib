@@ -117,6 +117,7 @@ common:
     - angle-transmuter-usd
     - angle-transmuter-eur
     - pmm-1
+    - native-v2
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -441,6 +442,14 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
+            retry_count: 2
+      native-v2:
+        handler: native-v1
+        properties:
+          http:
+            api_key:
+            base_url: "https://v2.api.native.org/swap-api-v2"
+            timeout: 5s
             retry_count: 2
       bebop:
         handler: bebop
