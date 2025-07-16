@@ -1,30 +1,16 @@
 package brownfi
 
 import (
-	"errors"
 	"math/big"
+	"slices"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-)
-
-var (
-	ErrInvalidToken             = errors.New("invalid token")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInvalidAmountIn          = errors.New("invalid amount in")
-	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInvalidAmountOut         = errors.New("invalid amount out")
-	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
-	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-	ErrInvalidK                 = errors.New("K")
-	ErrOverflow                 = errors.New("overflow")
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
@@ -34,8 +20,6 @@ type (
 		feePrecision *uint256.Int
 		kappa        *uint256.Int
 		oPrice       *uint256.Int
-
-		gas Gas
 	}
 )
 
@@ -53,14 +37,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		fee:          uint256.NewInt(extra.Fee),
 		feePrecision: uint256.NewInt(extra.FeePrecision),
-		kappa:        utils.NewUint256(extra.Kappa),
-		oPrice:       utils.NewUint256(extra.OPrice),
-		gas:          defaultGas,
+		kappa:        bignumber.NewUint256(extra.Kappa),
+		oPrice:       bignumber.NewUint256(extra.OPrice),
 	}, nil
 }
 
@@ -79,7 +62,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidAmountIn
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
@@ -93,22 +76,27 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInvalidReserve
 	}
 
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+	if reserveIn.Sign() <= 0 || reserveOut.Sign() <= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	zeroForOne := lo.Ternary(indexIn == 0, true, false)
-	amountOut := getAmountOut(amountIn, reserveOut, s.kappa, s.oPrice, zeroForOne, s.fee, s.feePrecision)
+	amountOut := getAmountOut(amountIn, reserveOut, s.kappa, s.oPrice, s.fee, s.feePrecision, zeroForOne)
 	if amountOut.Cmp(reserveOut) > 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas: s.gas.Swap,
+		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		Gas:            defaultGas,
 	}, nil
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -128,9 +116,3 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 		BlockNumber:  s.Pool.Info.BlockNumber,
 	}
 }
-
-var (
-	Q128   = new(big.Int).Lsh(big.NewInt(1), 128)
-	q128   = uint256.MustFromBig(Q128)
-	q128x2 = uint256.MustFromBig(new(big.Int).Mul(big.NewInt(2), Q128))
-)

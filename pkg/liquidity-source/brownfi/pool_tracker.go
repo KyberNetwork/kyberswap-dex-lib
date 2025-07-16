@@ -14,18 +14,10 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
-type (
-	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-	}
-
-	GetReservesResult struct {
-		Reserve0           *big.Int
-		Reserve1           *big.Int
-		BlockTimestampLast uint32
-	}
-)
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+}
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
@@ -42,7 +34,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	params pool.GetNewPoolStateParams,
+	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	startTime := time.Now()
 
@@ -56,29 +48,25 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    brownFiV1PairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
-		Params: nil,
-	}, []interface{}{&reserveData})
+	}, []any{&reserveData})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    brownFiV1PairABI,
 		Target: p.Address,
 		Method: "fee",
-		Params: nil,
-	}, []interface{}{&fee})
+	}, []any{&fee})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    brownFiV1PairABI,
 		Target: p.Address,
 		Method: "kappa",
-		Params: nil,
-	}, []interface{}{&kappa})
+	}, []any{&kappa})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    brownFiV1PairABI,
 		Target: p.Address,
 		Method: "fetchOraclePrice",
-		Params: nil,
-	}, []interface{}{&oPrice})
+	}, []any{&oPrice})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
