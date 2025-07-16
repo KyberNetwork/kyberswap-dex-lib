@@ -501,7 +501,7 @@ useCase:
           http:
             base_url: "https://kyberswap.knreserve.com"
             timeout: 5s
-            retry_count: 3
+            retry_count: 2
           rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
       kyberswap-limit-order-v2:
         handler: limit-order
@@ -515,7 +515,7 @@ useCase:
             api_key:
             base_url: "https://api.swaap.finance"
             timeout: 5s
-            retry_count: 3
+            retry_count: 2
       hashflow-v3:
         handler: hashflow-v3
         properties:
@@ -524,7 +524,7 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
-            retry_count: 3
+            retry_count: 2
           excludeMarketMakers:
             - mm22
       native-v2:
@@ -534,7 +534,7 @@ useCase:
             api_key:
             base_url: "https://v2.api.native.org/swap-api-v2"
             timeout: 5s
-            retry_count: 3
+            retry_count: 2
       bebop:
         handler: bebop
         properties:
@@ -543,7 +543,7 @@ useCase:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/ethereum"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       clipper:
         handler: clipper
         properties:
@@ -551,7 +551,7 @@ useCase:
             basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       pmm-1:
         handler: mx-trading
         properties:
@@ -559,7 +559,7 @@ useCase:
           http:
             base_url: "https://lht6f850if.execute-api.ap-southeast-1.amazonaws.com"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       uniswap-v4-kem:
         handler: uniswap-v4-kem
         properties:
@@ -578,7 +578,7 @@ useCase:
           http:
             base_url: "https://kyber-eth.myeth.top"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet

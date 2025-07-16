@@ -397,7 +397,7 @@ useCase:
             api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       hashflow-v3:
         handler: hashflow-v3
         properties:
@@ -406,7 +406,7 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
-            retry_count: 3
+            retry_count: 2
       bebop:
         handler: bebop
         properties:
@@ -415,7 +415,7 @@ useCase:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/optimism"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       clipper:
         handler: clipper
         properties:
@@ -423,7 +423,7 @@ useCase:
             basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       uniswap-v4-kem:
         handler: uniswap-v4-kem
         properties:

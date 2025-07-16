@@ -391,7 +391,7 @@ useCase:
             api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       hashflow-v3:
         handler: hashflow-v3
         properties:
@@ -400,7 +400,7 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
-            retry_count: 3
+            retry_count: 2
       dexalot:
         handler: dexalot
         properties:
@@ -409,7 +409,7 @@ useCase:
             upscale_percent:
             base_url: "https://api.dexalot.com"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       uniswap-v4-kem:
         handler: uniswap-v4-kem
         properties:

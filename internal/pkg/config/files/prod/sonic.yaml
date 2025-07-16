@@ -362,7 +362,7 @@ useCase:
             api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet

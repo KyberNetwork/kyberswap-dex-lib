@@ -354,7 +354,7 @@ useCase:
             api_key:
             base_url: "https://api.swaap.finance"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
       clipper:
         handler: clipper
         properties:
@@ -362,7 +362,7 @@ useCase:
             basic_auth_key:
             base_url: "https://api.clipper.exchange"
             timeout: 10s
-            retry_count: 3
+            retry_count: 2
     rfqAcceptableSlippageFraction: 1000
     faultyPoolDetectorDisabled: false
     publisher:
