@@ -1,28 +1,20 @@
 # kyberswap-dex-lib
 
-## Marshal/unmarshal pool simulator
+## What?
 
-When implementing a new pool simulator, to make it marshal-able and unmarshal-able, we have to notice the following:
+KyberSwap uses this lib to
+1. Fetch pools;
+2. Track latest pool states; and
+3. Simulate expected output for a given input swap amount
 
-* rerun `go generate ./...` to register the new pool simulator struct
-    * Because we might marshal/unmarshal a pool simulator under the `IPoolSimulator` interface. We have to register the underlying struct so we can unmarshal it as `IPoolSimulator`.
+in order to search for the optimal aggregated swapping route.
 
-* pointer aliases
-    * If the pool simulator struct contains pointer aliases, we must use `msgpack:"-"` tag to ignore the aliases and set them inside the `AfterMsgpackUnmarshal()` method. For an example:
-        ```
-        type PoolSimulator struct {
-            vault *Vault
-            vaultUtils *VaultUtils
-        }
-        
-        type VaultUtils struct {
-            vault *Vault `msgpack:"-"`
-        }
+## How to Contribute?
 
-        func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
-            if p.vaultUtils != nil {
-                p.vaultUtils.vault = p.vault
-            }
-            return nil
-        }
-        ```
+Implements 3 things in pkg/liquidity-source (pkg/source contains legacy code using big.Int):
+
+1. PoolsListUpdater: fetches latest pool list incrementally
+2. PoolTracker: tracks latest pool state on new log event or on an interval
+3. PoolSimulator: simulates expected output for a given input swap amount
+  a. It's recommened to use uint256.Int for better performance
+  b. CloneState should also be implemented
