@@ -190,25 +190,24 @@ func TestPoolScore_GetMinScore(t *testing.T) {
 		amountInUsd      float64
 		threshold        float64
 		expectedMinScore float64
-		err              error
 	}
 	tests := []testInput{
 		{
 			name:             "It should return correct min score with least value less than amount in",
 			amountInUsd:      4000,
-			expectedMinScore: 3000000000000,
+			expectedMinScore: 10000000000000,
 			threshold:        0,
 		},
 		{
 			name:             "It should return correct min score with least value less than amount in",
 			amountInUsd:      9999,
-			expectedMinScore: 3000000000000,
+			expectedMinScore: 10000000000000,
 			threshold:        0,
 		},
 		{
 			name:             "It should return correct min score with least value less than amount in",
 			amountInUsd:      10000,
-			expectedMinScore: 4000000000000,
+			expectedMinScore: 20000000000000,
 			threshold:        9000,
 		},
 		{
@@ -220,17 +219,14 @@ func TestPoolScore_GetMinScore(t *testing.T) {
 		{
 			name:             "It should return correct min score when amount in greater than threshold",
 			amountInUsd:      4000,
-			expectedMinScore: 3000000000000,
+			expectedMinScore: 10000000000000,
 			threshold:        3999,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			minScore, err := entity.GetMinScore(test.amountInUsd, test.threshold)
-			if test.err != nil {
-				assert.Equal(t, test.err.Error(), err.Error())
-			}
+			minScore := entity.GetMinScore(test.amountInUsd, test.threshold)
 			assert.Equal(t, test.expectedMinScore, minScore)
 		})
 	}

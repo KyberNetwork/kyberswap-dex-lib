@@ -127,10 +127,7 @@ func (r *redisRepository) findBestPoolIDsByScoreRedisCommands(ctx context.Contex
 	opt valueobject.GetBestPoolsOptions, forcePoolsForToken map[string][]string) (map[string]*redis.ZRangeBy, error) {
 
 	// encode amount in to find min score
-	score, err := entity.GetMinScore(amountInUsd, opt.AmountInThreshold)
-	if err != nil {
-		return nil, err
-	}
+	score := entity.GetMinScore(amountInUsd, opt.AmountInThreshold)
 
 	forcePoolsForTokenIn, forcePoolsForTokenOut := forcePoolsForToken[tokenIn], forcePoolsForToken[tokenOut]
 
@@ -203,6 +200,7 @@ func (r *redisRepository) findBestPoolIDsByScore(ctx context.Context, tokenIn, t
 	if err != nil {
 		return nil, err
 	}
+
 	return append(append(poolIDs, forcePoolsForToken[tokenIn]...), forcePoolsForToken[tokenOut]...), nil
 }
 
