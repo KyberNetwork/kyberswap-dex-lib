@@ -238,16 +238,15 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	res.Timepoints = timepoints
 	res.VolatilityOracle = volatilityOracleData
-	res.SlidingFee = slidingFeeData
 	res.DynamicFee = dynamicFeeData
+	res.SlidingFee = slidingFeeData
 	res.BlockNumber = result.BlockNumber
 
 	return res, nil
 }
 
 func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, plugin string,
-	blockNumber *big.Int) (map[uint16]Timepoint, VolatilityOraclePlugin, DynamicFeeConfig,
-	SlidingFeeConfig, error) {
+	blockNumber *big.Int) (map[uint16]Timepoint, *VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"plugin":      plugin,
@@ -265,38 +264,39 @@ func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, plugin 
 	var sliPost func(resp *ethrpc.Response) error
 	if d.config.UseBasePluginV2 {
 		slidingFeeData, sliPost = d.getSlidingFeeData(req, plugin)
-	} else {
-		slidingFeeData, sliPost = &SlidingFeeConfig{}, func(*ethrpc.Response) error { return nil }
 	}
 
 	resp, err := req.TryAggregate()
-	if err == nil {
-		err = volPost(resp)
-	}
-	if err == nil {
-		err = dynPost(resp)
-	}
-	if err == nil {
-		err = sliPost(resp)
-	}
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to fetch plugin data")
-		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
+		return nil, nil, nil, nil, err
+	}
+	if volPost(resp) != nil {
+		volatilityOracleData = nil // the plugin doesn't use volatility oracle
+	}
+	if dynPost(resp) != nil {
+		dynamicFeeData = nil // the plugin doesn't use dynamic fee
+	}
+	if sliPost != nil {
+		_ = sliPost(resp)
 	}
 
-	var extra ExtraTimepoint
-	_ = json.Unmarshal([]byte(p.Extra), &extra)
-	timepoints, err := d.getTimepoints(ctx, plugin, blockNumber, volatilityOracleData.TimepointIndex, extra.Timepoints)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch timepoints data from plugin")
-		return nil, VolatilityOraclePlugin{}, DynamicFeeConfig{}, SlidingFeeConfig{}, err
+	var timepoints map[uint16]Timepoint
+	if volatilityOracleData != nil {
+		var extra ExtraTimepoint
+		_ = json.Unmarshal([]byte(p.Extra), &extra)
+		if timepoints, err = d.getTimepoints(ctx, plugin, blockNumber, volatilityOracleData.TimepointIndex,
+			extra.Timepoints); err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to fetch timepoints data from plugin")
+			return nil, nil, nil, nil, err
+		}
 	}
 
-	return timepoints, *volatilityOracleData, *dynamicFeeData, *slidingFeeData, nil
+	return timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, nil
 }
 
 func (d *PoolTracker) getVolatilityOracleData(req *ethrpc.Request, pluginAddress string) (*VolatilityOraclePlugin,

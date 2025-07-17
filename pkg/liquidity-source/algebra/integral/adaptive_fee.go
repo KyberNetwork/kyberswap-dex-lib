@@ -4,9 +4,9 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// / @notice Calculates fee based on formula:
-// / baseFee + sigmoid1(volatility) + sigmoid2(volatility)
-// / maximum value capped by baseFee + alpha1 + alpha2
+// @notice Calculates fee based on formula:
+// baseFee + sigmoid1(volatility) + sigmoid2(volatility)
+// maximum value capped by baseFee + alpha1 + alpha2
 func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 	// normalize for 15 sec interval
 	normalizedVolatility := new(uint256.Int).Div(volatility, uFIFTEEN)
@@ -28,9 +28,9 @@ func getFee(volatility *uint256.Int, config *DynamicFeeConfig) uint16 {
 	return uint16(result.Uint64())
 }
 
-// / @notice calculates α / (1 + e^( (β-x) / γ))
-// / that is a sigmoid with a maximum value of α, x-shifted by β, and stretched by γ
-// / @dev returns uint256 for fuzzy testing. Guaranteed that the result is not greater than alpha
+// @notice calculates α / (1 + e^( (β-x) / γ))
+// that is a sigmoid with a maximum value of α, x-shifted by β, and stretched by γ
+// @dev returns uint256 for fuzzy testing. Guaranteed that the result is not greater than alpha
 func sigmoid(x *uint256.Int, gU16 uint16, alpha uint16, beta uint32) *uint256.Int {
 	x.SubUint64(x, uint64(beta))
 	g := uint64(gU16)

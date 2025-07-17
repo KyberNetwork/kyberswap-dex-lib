@@ -75,8 +75,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	timepoints := NewTimepointStorage(extra.Timepoints)
-
 	tickMin := extra.Ticks[0].Index
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
@@ -97,10 +95,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tickMin:            int32(tickMin),
 		tickMax:            int32(tickMax),
 		tickSpacing:        int(extra.TickSpacing),
-		timepoints:         timepoints,
-		volatilityOracle:   &extra.VolatilityOracle,
-		dynamicFee:         &extra.DynamicFee,
-		slidingFee:         &extra.SlidingFee,
+		timepoints:         NewTimepointStorage(extra.Timepoints),
+		volatilityOracle:   extra.VolatilityOracle,
+		dynamicFee:         extra.DynamicFee,
+		slidingFee:         extra.SlidingFee,
 		writeTimePointOnce: new(sync.Once),
 		useBasePluginV2:    staticExtra.UseBasePluginV2,
 	}, nil
@@ -269,15 +267,16 @@ var blockTimestamp = func() uint32 { return uint32(time.Now().Unix()) }
 // By right we should re-update the timepoint every new second, but the difference should be small enough, and
 // new pool should have already been created and used in replacement of this pool.
 func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
-	volatilityOracle := p.volatilityOracle
-	if !volatilityOracle.IsInitialized {
-		return ErrNotInitialized
-	}
-
 	p.writeTimePointOnce.Do(func() {
-		volatilityOracle.LastTimepointTimestamp = blockTimestamp()
-		volatilityOracle.TimepointIndex, _, err = p.timepoints.write(
-			volatilityOracle.TimepointIndex, volatilityOracle.LastTimepointTimestamp, p.globalState.Tick)
+		if volatilityOracle := p.volatilityOracle; volatilityOracle != nil { // plugin uses volatility oracle
+			if !volatilityOracle.IsInitialized {
+				err = ErrNotInitialized
+				return
+			}
+			volatilityOracle.LastTimepointTimestamp = blockTimestamp()
+			volatilityOracle.TimepointIndex, _, err = p.timepoints.write(
+				volatilityOracle.TimepointIndex, volatilityOracle.LastTimepointTimestamp, p.globalState.Tick)
+		}
 		if err != nil || onWrite == nil {
 			return
 		}
@@ -287,14 +286,10 @@ func (p *PoolSimulator) writeTimepoint(onWrite func() error) (err error) {
 }
 
 func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
-	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 {
+	if p.globalState.PluginConfig&BEFORE_SWAP_FLAG == 0 || p.dynamicFee == nil {
 		return 0, 0, nil
 	}
 	return 0, 0, p.writeTimepoint(func() error {
-		volatilityLast, err := p.getAverageVolatilityLast()
-		if err != nil {
-			return err
-		}
 		var newFee uint16
 		if p.dynamicFee.ZeroToOne != 0 || p.dynamicFee.OneToZero != 0 {
 			// https://berascan.com/address/0x2393BcDBB298A4905f9885109B19834c50c8038F#code
@@ -302,6 +297,10 @@ func (p *PoolSimulator) beforeSwapV1(zeroForOne bool) (uint32, uint32, error) {
 		} else if p.dynamicFee.Alpha1 == 0 && p.dynamicFee.Alpha2 == 0 {
 			newFee = p.dynamicFee.BaseFee
 		} else {
+			volatilityLast, err := p.getAverageVolatilityLast()
+			if err != nil {
+				return err
+			}
 			newFee = getFee(volatilityLast, p.dynamicFee)
 		}
 		p.globalState.LastFee = newFee
@@ -363,6 +362,9 @@ func (p *PoolSimulator) getLastTick() int32 {
 }
 
 func (p *PoolSimulator) getAverageVolatilityLast() (*uint256.Int, error) {
+	if p.volatilityOracle == nil {
+		return nil, ErrNotInitialized
+	}
 	currentTimestamp := p.volatilityOracle.LastTimepointTimestamp
 	tick := p.globalState.Tick
 	lastTimepointIndex := p.volatilityOracle.TimepointIndex
@@ -377,7 +379,8 @@ func (p *PoolSimulator) getAverageVolatilityLast() (*uint256.Int, error) {
 }
 
 func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne bool, amountRequired *uint256.Int,
-	limitSqrtPrice *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, int32, *uint256.Int, FeesAmount, int64, error) {
+	limitSqrtPrice *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, int32, *uint256.Int, FeesAmount, int64,
+	error) {
 	if amountRequired.IsZero() {
 		return nil, nil, nil, 0, nil, FeesAmount{}, 0, ErrZeroAmountRequired
 	}

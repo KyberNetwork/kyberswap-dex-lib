@@ -101,9 +101,9 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int
 
 	Timepoints       map[uint16]Timepoint
-	VolatilityOracle VolatilityOraclePlugin
-	SlidingFee       SlidingFeeConfig
-	DynamicFee       DynamicFeeConfig
+	VolatilityOracle *VolatilityOraclePlugin
+	DynamicFee       *DynamicFeeConfig
+	SlidingFee       *SlidingFeeConfig
 	BlockNumber      *big.Int
 }
 
@@ -163,19 +163,19 @@ type Extra struct {
 	Ticks       []v3Entities.Tick `json:"ticks"`
 	TickSpacing int32             `json:"tS"`
 	ExtraTimepoint
-	VolatilityOracle VolatilityOraclePlugin `json:"vo"`
-	DynamicFee       DynamicFeeConfig       `json:"dF"`
-	SlidingFee       SlidingFeeConfig       `json:"sF"`
+	VolatilityOracle *VolatilityOraclePlugin `json:"vo,omitempty"`
+	DynamicFee       *DynamicFeeConfig       `json:"dF,omitempty"`
+	SlidingFee       *SlidingFeeConfig       `json:"sF,omitempty"`
 }
 
 type ExtraTimepoint struct {
-	Timepoints map[uint16]Timepoint `json:"tP"`
+	Timepoints map[uint16]Timepoint `json:"tP,omitempty"`
 }
 
 type VolatilityOraclePlugin struct {
+	IsInitialized          bool   `json:"init,omitempty"`
 	TimepointIndex         uint16 `json:"tpIdx,omitempty"`
 	LastTimepointTimestamp uint32 `json:"lastTs,omitempty"`
-	IsInitialized          bool   `json:"init,omitempty"`
 }
 
 type DynamicFeeConfig struct {
@@ -206,7 +206,7 @@ type SlidingFeeConfigRPC struct {
 }
 
 type StaticExtra struct {
-	UseBasePluginV2 bool `json:"pluginV2"`
+	UseBasePluginV2 bool `json:"pluginV2,omitempty"`
 }
 
 // StateUpdate to be returned instead of updating state when calculating amountOut
