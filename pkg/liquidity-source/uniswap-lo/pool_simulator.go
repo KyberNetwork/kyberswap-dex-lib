@@ -38,8 +38,8 @@ type PoolSimulator struct {
 type PoolMetaInfo struct {
 	ReactorAddress  string `json:"reactorAddress"`
 	ApprovalAddress string `json:"approvalAddress"`
-	Token0          string `json:"token0"`
-	Token1          string `json:"token1"`
+	TokenIn         string `json:"tokenIn"`
+	TokenOut        string `json:"tokenOut"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -270,12 +270,20 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+	// convert to wrapped if is native token
+	if tokenIn == valueobject.WrappedNativeMap[p.chainID] {
+		tokenIn = valueobject.ZeroAddress
+	}
+	if tokenOut == valueobject.WrappedNativeMap[p.chainID] {
+		tokenOut = valueobject.ZeroAddress
+	}
+
 	return PoolMetaInfo{
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 		// ReactorAddress for backward compatibility
 		ReactorAddress: p.reactorAddress,
-		Token0:         p.token0,
-		Token1:         p.token1,
+		TokenIn:        tokenIn,
+		TokenOut:       tokenOut,
 	}
 }
 
