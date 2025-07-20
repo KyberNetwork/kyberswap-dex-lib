@@ -405,7 +405,7 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: ErrCannotFulfillAmountIn,
+			wantErr: ErrNoOrderAvailable,
 		},
 	}
 
