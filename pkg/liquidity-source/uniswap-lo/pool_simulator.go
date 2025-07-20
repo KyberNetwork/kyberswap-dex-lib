@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -31,11 +32,14 @@ type PoolSimulator struct {
 	takeToken1OrdersMapping map[string]int
 
 	reactorAddress string
+	chainID        valueobject.ChainID
 }
 
 type PoolMetaInfo struct {
 	ReactorAddress  string `json:"reactorAddress"`
 	ApprovalAddress string `json:"approvalAddress"`
+	Token0          string `json:"token0"`
+	Token1          string `json:"token1"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -47,14 +51,27 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if numTokens != 2 {
 		return nil, fmt.Errorf("pool's number of tokens should equal 2")
 	}
-	for i := 0; i < numTokens; i += 1 {
-		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-	}
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
+	}
+
+	chainID := staticExtra.ChainID
+	if chainID == 0 {
+		// default to ethereum
+		chainID = valueobject.ChainIDEthereum
+	}
+
+	for i := 0; i < numTokens; i += 1 {
+		// convert to wrapped if is native token
+		if strings.EqualFold(entityPool.Tokens[i].Address, valueobject.ZeroAddress) {
+			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
+		} else {
+			tokens[i] = entityPool.Tokens[i].Address
+		}
+
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	var extra Extra
@@ -85,13 +102,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				// Checked:    false,
 			},
 		},
-		token0:                  staticExtra.Token0,
-		token1:                  staticExtra.Token1,
+		token0:                  tokens[0],
+		token1:                  tokens[1],
 		takeToken0Orders:        extra.TakeToken0Orders,
 		takeToken1Orders:        extra.TakeToken1Orders,
 		takeToken0OrdersMapping: takeToken0OrdersMapping,
 		takeToken1OrdersMapping: takeToken1OrdersMapping,
 		reactorAddress:          staticExtra.ReactorAddress,
+		chainID:                 chainID,
 	}, nil
 }
 
@@ -105,6 +123,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	orders := p.getOrdersBySwapSide(swapSide)
+
+	// Filter orders to only keep those with taking amount <= input amount
+	amountIn := number.SetFromBig(tokenAmountIn.Amount)
+	filteredOrders := make([]*DutchOrder, 0, len(orders))
+	for _, order := range orders {
+		if order.Outputs[0].StartAmount.Cmp(amountIn) <= 0 {
+			filteredOrders = append(filteredOrders, order)
+		}
+	}
+	orders = filteredOrders
+
 	if len(orders) == 0 {
 		return nil, ErrNoOrderAvailable
 	}
@@ -241,6 +270,8 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 		// ReactorAddress for backward compatibility
 		ReactorAddress: p.reactorAddress,
+		Token0:         p.token0,
+		Token1:         p.token1,
 	}
 }
 

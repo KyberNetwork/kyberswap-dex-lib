@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
@@ -134,9 +135,10 @@ type SwapInfo struct {
 }
 
 type StaticExtra struct {
-	Token0         string `json:"token0"`
-	Token1         string `json:"token1"`
-	ReactorAddress string `json:"reactorAddress"`
+	Token0         string              `json:"token0"`
+	Token1         string              `json:"token1"`
+	ReactorAddress string              `json:"reactorAddress"`
+	ChainID        valueobject.ChainID `json:"chainId"`
 }
 
 type Extra struct {
