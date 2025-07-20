@@ -113,6 +113,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+func (p *PoolSimulator) GetFirstLevelOrder(tokenIn string) (*DutchOrder, error) {
+	swapSide := p.getSwapSide(tokenIn)
+	if swapSide == SwapSideUnknown {
+		return nil, ErrTokenInNotSupported
+	}
+
+	orders := p.getOrdersBySwapSide(swapSide)
+	if len(orders) == 0 {
+		return nil, ErrNoOrderAvailable
+	}
+
+	return orders[0], nil
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
