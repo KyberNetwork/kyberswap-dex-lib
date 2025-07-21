@@ -657,7 +657,7 @@ func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tok
 	}
 
 	if routeSummary.AlphaFee != nil && alphaFeeReduction == nil {
-		log.Ctx(ctx).Error().
+		log.Ctx(ctx).Debug().
 			Str("routeId", routeSummary.RouteID).
 			Int("executedId", executedId).
 			Any("swapReductions", routeSummary.AlphaFee.SwapReductions).

@@ -100,12 +100,14 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 	alphaFeeTokens := make([]string, len(alphaFee.SwapReductions))
 	alphaFeeAmounts := make([]*big.Int, len(alphaFee.SwapReductions))
 	alphaFeeAmountUsds := make([]string, len(alphaFee.SwapReductions))
+	executedIds := make([]int, len(alphaFee.SwapReductions))
 	lg := log.Info()
 
 	for i, swapReduction := range alphaFee.SwapReductions {
 		alphaFeeTokens[i] = swapReduction.TokenOut
 		alphaFeeAmounts[i] = swapReduction.ReduceAmount
 		alphaFeeAmountUsds[i] = fmt.Sprintf("%.3f", swapReduction.ReduceAmountUsd)
+		executedIds[i] = swapReduction.ExecutedId
 		if bestAmmRoute != nil && swapReduction.ReduceAmountUsd > 0 {
 			lg.Stringer("bestAmmRoute", bestAmmRoute)
 			bestAmmRoute = nil
@@ -120,5 +122,6 @@ func LogAlphaFeeV2Info(alphaFee *routerEntity.AlphaFeeV2, routeId string, bestAm
 		Strs("alphaFeeTokens", alphaFeeTokens).
 		Interface("alphaFeeAmounts", alphaFeeAmounts).
 		Strs("alphaFeeAmountUsds", alphaFeeAmountUsds).
+		Ints("executedId", executedIds).
 		Msg(message)
 }
