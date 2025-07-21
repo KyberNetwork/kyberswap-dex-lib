@@ -25,6 +25,9 @@ type PoolSimulator struct {
 	token0 string
 	token1 string
 
+	isNativeToken0 bool
+	isNativeToken1 bool
+
 	// extra fields
 	takeToken0Orders []*DutchOrder
 	takeToken1Orders []*DutchOrder
@@ -64,10 +67,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		chainID = valueobject.ChainIDEthereum
 	}
 
+	isNativeToken0 := false
+	isNativeToken1 := false
 	for i := 0; i < numTokens; i += 1 {
 		// convert to wrapped if is native token
 		if strings.EqualFold(entityPool.Tokens[i].Address, valueobject.ZeroAddress) {
 			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
+			if i == 0 {
+				isNativeToken0 = true
+			} else if i == 1 {
+				isNativeToken1 = true
+			}
 		} else {
 			tokens[i] = entityPool.Tokens[i].Address
 		}
@@ -105,6 +115,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		token0:                  tokens[0],
 		token1:                  tokens[1],
+		isNativeToken0:          isNativeToken0,
+		isNativeToken1:          isNativeToken1,
 		takeToken0Orders:        extra.TakeToken0Orders,
 		takeToken1Orders:        extra.TakeToken1Orders,
 		takeToken0OrdersMapping: takeToken0OrdersMapping,
@@ -294,10 +306,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	// convert to wrapped if is native token
-	if tokenIn == valueobject.WrappedNativeMap[p.chainID] {
+	if p.isNativeToken0 && tokenIn == valueobject.WrappedNativeMap[p.chainID] {
 		tokenIn = valueobject.ZeroAddress
 	}
-	if tokenOut == valueobject.WrappedNativeMap[p.chainID] {
+	if p.isNativeToken1 && tokenOut == valueobject.WrappedNativeMap[p.chainID] {
 		tokenOut = valueobject.ZeroAddress
 	}
 
