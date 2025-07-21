@@ -398,6 +398,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-berachain/version/latest
+    poolApprovalSubgraphURL: https://api.studio.thegraph.com/query/34713/executor-approval-berachain/version/latest
     startBlock: 4685682
   tradeDataGenerator:
     exportFailedTrade: false

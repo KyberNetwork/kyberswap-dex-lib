@@ -11,16 +11,18 @@ import (
 )
 
 type RedisRepository struct {
-	redisClient        redis.UniversalClient
-	tokenBalancePrefix string
-	poolApprovalPrefix string
-	blockNumberPrefix  string
+	redisClient                          redis.UniversalClient
+	tokenBalancePrefix                   string
+	poolApprovalPrefix                   string
+	balanceTrackerBlockNumberPrefix      string
+	poolApprovalTrackerBlockNumberPrefix string
 }
 
 const (
-	KeyToken             = "executor-token-balance"
-	KeyPoolApproval      = "executor-pool-approval"
-	KeyLatestBlockNumber = "executor-block-number"
+	KeyToken                          = "executor-token-balance"
+	KeyPoolApproval                   = "executor-pool-approval-v2"
+	KeyBalanceTrackerBlockNumber      = "executor-block-number"
+	KeyPoolApprovalTrackerBlockNumber = "executor-pool-approval-block-number"
 )
 
 func NewRedisRepository(
@@ -30,9 +32,10 @@ func NewRedisRepository(
 	return &RedisRepository{
 		redisClient: redisClient,
 
-		tokenBalancePrefix: utils.Join(config.Prefix, KeyToken),
-		poolApprovalPrefix: utils.Join(config.Prefix, KeyPoolApproval),
-		blockNumberPrefix:  utils.Join(config.Prefix, KeyLatestBlockNumber),
+		tokenBalancePrefix:                   utils.Join(config.Prefix, KeyToken),
+		poolApprovalPrefix:                   utils.Join(config.Prefix, KeyPoolApproval),
+		balanceTrackerBlockNumberPrefix:      utils.Join(config.Prefix, KeyBalanceTrackerBlockNumber),
+		poolApprovalTrackerBlockNumberPrefix: utils.Join(config.Prefix, KeyPoolApprovalTrackerBlockNumber),
 	}
 }
 
@@ -122,8 +125,8 @@ func (r *RedisRepository) CleanUp(ctx context.Context, executorAddress string) e
 	return nil
 }
 
-func (r *RedisRepository) GetLatestProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error) {
-	key := utils.Join(r.blockNumberPrefix, executorAddress)
+func (r *RedisRepository) GetBalanceTrackerProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error) {
+	key := utils.Join(r.balanceTrackerBlockNumberPrefix, executorAddress)
 	blockNumberString, err := r.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -135,8 +138,27 @@ func (r *RedisRepository) GetLatestProcessedBlockNumber(ctx context.Context, exe
 	return strconv.ParseUint(blockNumberString, 10, 64)
 }
 
-func (r *RedisRepository) UpdateLatestProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error {
-	key := utils.Join(r.blockNumberPrefix, executorAddress)
+func (r *RedisRepository) UpdateBalanceTrackerProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error {
+	key := utils.Join(r.balanceTrackerBlockNumberPrefix, executorAddress)
+	_, err := r.redisClient.Set(ctx, key, blockNumber, 0).Result()
+	return err
+}
+
+func (r *RedisRepository) GetPoolApprovalTrackerProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error) {
+	key := utils.Join(r.poolApprovalTrackerBlockNumberPrefix, executorAddress)
+	blockNumberString, err := r.redisClient.Get(ctx, key).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	return strconv.ParseUint(blockNumberString, 10, 64)
+}
+
+func (r *RedisRepository) UpdatePoolApprovalTrackerProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error {
+	key := utils.Join(r.poolApprovalTrackerBlockNumberPrefix, executorAddress)
 	_, err := r.redisClient.Set(ctx, key, blockNumber, 0).Result()
 	return err
 }

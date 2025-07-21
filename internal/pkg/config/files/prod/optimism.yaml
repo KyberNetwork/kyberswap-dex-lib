@@ -476,6 +476,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-optimism/version/latest
+    poolApprovalSubgraphURL: https://api.studio.thegraph.com/query/34713/executor-approval-optimism/version/latest
     startBlock: 135506603
   tradeDataGenerator:
     exportFailedTrade: false

@@ -541,6 +541,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://base-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-base
+    poolApprovalSubgraphURL: https://api.studio.thegraph.com/query/34713/executor-approval-base/version/latest
     startBlock: 29911286
   tradeDataGenerator:
     exportFailedTrade: false

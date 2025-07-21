@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"github.com/machinebox/graphql"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -26,9 +26,8 @@ import (
 
 type useCase struct {
 	ethClient                 *ethrpc.Client
-	graphQLClient             *graphql.Client
-	poolFactory               IPoolFactory
-	poolRepository            IPoolRepository
+	aggregatorGraphQLClient   *graphql.Client
+	poolApprovalGraphQLClient *graphql.Client
 	executorBalanceRepository IExecutorBalanceRepository
 	config                    Config
 	gasTokenAddress           string
@@ -36,21 +35,23 @@ type useCase struct {
 
 func NewUseCase(
 	ethClient *ethrpc.Client,
-	poolFactory IPoolFactory,
-	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
 	config Config,
 ) *useCase {
-	graphQLClient := graphqlPkg.New(graphqlPkg.Config{
-		Url:     config.SubgraphURL,
+	aggregatorGraphQLClient := graphqlPkg.New(graphqlPkg.Config{
+		Url:     config.AggregatorSubgraphURL,
+		Timeout: graphQLRequestTimeout,
+	})
+
+	poolApprovalGraphQLClient := graphqlPkg.New(graphqlPkg.Config{
+		Url:     config.PoolApprovalSubgraphURL,
 		Timeout: graphQLRequestTimeout,
 	})
 
 	return &useCase{
 		ethClient:                 ethClient,
-		graphQLClient:             graphQLClient,
-		poolFactory:               poolFactory,
-		poolRepository:            poolRepository,
+		aggregatorGraphQLClient:   aggregatorGraphQLClient,
+		poolApprovalGraphQLClient: poolApprovalGraphQLClient,
 		executorBalanceRepository: executorBalanceRepository,
 		config:                    config,
 		gasTokenAddress:           valueobject.WrapNativeLower(dexValueObject.NativeAddress, config.ChainID),
@@ -77,95 +78,78 @@ func (u *useCase) Handle(ctx context.Context) error {
 
 func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) error {
 	executorAddress = strings.ToLower(executorAddress)
-	blockNumberCheckpoint, err := fetchLatestEventBlockNumber(ctx, u.graphQLClient, executorAddress)
-	if err != nil {
-		return err
-	}
 
 	lg := log.Ctx(ctx).With().Str("executor", executorAddress).Logger()
 
-	for {
-		blockNumber, err := u.executorBalanceRepository.GetLatestProcessedBlockNumber(ctx, executorAddress)
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Track executor balance.
+	g.Go(func() error {
+		blockNumberCheckpoint, err := fetchLatestEventBlockNumber(ctx, u.aggregatorGraphQLClient, executorAddress)
 		if err != nil {
 			return err
 		}
 
-		blockNumber = max(blockNumber, u.config.StartBlock)
+		for {
+			blockNumber, err := u.executorBalanceRepository.GetBalanceTrackerProcessedBlockNumber(ctx, executorAddress)
+			if err != nil {
+				return err
+			}
 
-		lg.Info().
-			Uint64("currentBlock", blockNumber).
-			Uint64("latestBlock", blockNumberCheckpoint).
-			Msg("Start fetch events.")
+			blockNumber = max(blockNumber, u.config.StartBlock)
 
-		swappedEvents, err := fetchNewRouterSwappedEvents(ctx, u.graphQLClient, blockNumber)
-		if err != nil {
-			return err
-		}
+			lg.Info().
+				Uint64("currentBlock", blockNumber).
+				Uint64("latestBlock", blockNumberCheckpoint).
+				Msg("Start fetch events.")
 
-		if len(swappedEvents) == 0 {
-			return nil
-		}
-
-		lg.Info().
-			Uint64("currentBlock", blockNumber).
-			Uint64("latestBlock", blockNumberCheckpoint).
-			Msgf("Fetched %d Swapped events", len(swappedEvents))
-
-		lastBlockNumber, err := kutils.Atou[uint64](swappedEvents[len(swappedEvents)-1].BlockNumber)
-		if err != nil {
-			return fmt.Errorf("failed to convert block number to uint64: %v", err)
-		}
-
-		exchangeEvents, err := fetchNewExecutorExchangeEvents(ctx, u.graphQLClient, executorAddress, blockNumber,
-			lastBlockNumber)
-		if err != nil {
-			return err
-		}
-
-		if len(exchangeEvents) == 0 {
-			err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
+			exchangeEvents, err := fetchNewExecutorExchangeEvents(ctx, u.aggregatorGraphQLClient, executorAddress, blockNumber)
 			if err != nil {
 				return err
 			}
 
 			lg.Info().
 				Uint64("currentBlock", blockNumber).
-				Uint64("lastestProcessedBlock", lastBlockNumber).
-				Msg("No new Exchange events, skip to the next interval")
+				Uint64("toBlock", blockNumberCheckpoint).
+				Msgf("Fetched %d Exchange events", len(exchangeEvents))
 
-			return nil
+			if len(exchangeEvents) == 0 {
+				return nil
+			}
+
+			lastBlockNumber, err := kutils.Atou[uint64](exchangeEvents[len(exchangeEvents)-1].BlockNumber)
+			if err != nil {
+				return fmt.Errorf("failed to convert block number to uint64: %v", err)
+			}
+
+			if err := u.trackExecutorBalance(ctx, executorAddress, exchangeEvents); err != nil {
+				return err
+			}
+
+			err = u.executorBalanceRepository.UpdateBalanceTrackerProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
+			if err != nil {
+				return err
+			}
+
+			if lastBlockNumber >= blockNumberCheckpoint {
+				break
+			} else {
+				log.Ctx(ctx).Debug().
+					Uint64("currentBlock", lastBlockNumber).
+					Uint64("latestBlock", blockNumberCheckpoint).
+					Msg("Continue catching up with the latest events")
+				time.Sleep(intervalDelay)
+			}
 		}
+		return nil
+	})
 
-		lg.Info().
-			Uint64("currentBlock", blockNumber).
-			Uint64("toBlock", lastBlockNumber).
-			Msgf("Fetched %d Exchange events", len(exchangeEvents))
+	// Track executor pool approval.
+	g.Go(func() error {
+		return u.trackExecutorPoolApproval(ctx, executorAddress)
+	})
 
-		if err := u.trackExecutorBalance(ctx, executorAddress, exchangeEvents); err != nil {
-			return err
-		}
-
-		if err := u.trackExecutorPoolApproval(ctx, executorAddress, swappedEvents, exchangeEvents); err != nil {
-			return err
-		}
-
-		err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
-		if err != nil {
-			return err
-		}
-
-		if lastBlockNumber >= blockNumberCheckpoint {
-			break
-		} else {
-			log.Ctx(ctx).Debug().
-				Uint64("currentBlock", lastBlockNumber).
-				Uint64("latestBlock", blockNumberCheckpoint).
-				Msg("Continue catching up with the latest events")
-			time.Sleep(intervalDelay)
-		}
-	}
-
-	return nil
+	return g.Wait()
 }
 
 func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress string, events []ExchangeEvent) error {
@@ -236,104 +220,44 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	return nil
 }
 
-func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress string,
-	swappedEvents []SwappedEvent, exchangeEvents []ExchangeEvent) error {
-
-	swappedEventByTxHash := lo.KeyBy(swappedEvents, func(event SwappedEvent) string { return event.Tx })
-	pairAddressSet := mapset.NewThreadUnsafeSet[string]()
-
-	for i, event := range exchangeEvents {
-		idParts := strings.Split(event.Id, "-")
-		if len(idParts) != 2 {
-			return fmt.Errorf("invalid event id: %s", event.Id)
-		}
-		logIndex, err := kutils.Atou[uint32](idParts[1])
-		if err != nil {
-			return fmt.Errorf("invalid log index: %s", idParts[1])
-		}
-		exchangeEvents[i].LogIndex = logIndex
-		pairAddressSet.Add(event.Pair)
-	}
-
-	poolEntities, err := u.poolRepository.FindByAddresses(ctx, pairAddressSet.ToSlice())
+func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress string) error {
+	blockNumber, err := u.executorBalanceRepository.GetPoolApprovalTrackerProcessedBlockNumber(ctx, executorAddress)
 	if err != nil {
 		return err
 	}
-	poolSimMap := u.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash{})
+	blockNumber = max(blockNumber, u.config.StartBlock)
+	events := fetchNewPoolApprovalEvents(ctx, u.poolApprovalGraphQLClient, executorAddress, blockNumber)
 
-	// Group Exchange events by tx hash and sort them by log index ascending.
-	exchangeEventsByTxHash := lo.MapValues(
-		lo.GroupBy(exchangeEvents, func(event ExchangeEvent) string { return event.Tx }),
-		func(events []ExchangeEvent, _ string) []ExchangeEvent {
-			slices.SortFunc(events, func(a, b ExchangeEvent) int { return int(a.LogIndex - b.LogIndex) })
-			return events
-		},
-	)
-
-	swapInfoSet := mapset.NewThreadUnsafeSet[SwapInfo]()
-	for txHash, events := range exchangeEventsByTxHash {
-		var (
-			swappedEvent = swappedEventByTxHash[txHash]
-			tokenIn      = u.formatToken(swappedEvent.TokenIn)
-			tokenOut     = u.formatToken(swappedEvent.TokenOut)
-
-			currentTokenIn = tokenIn
-		)
-
-		slices.SortFunc(events, func(a, b ExchangeEvent) int {
-			return int(a.LogIndex - b.LogIndex)
-		})
-
-		for _, event := range events {
-			token := u.formatToken(event.Token)
-
-			swapInfoSet.Add(SwapInfo{
-				Pair:     event.Pair,
-				TokenIn:  currentTokenIn,
-				TokenOut: token,
-			})
-
-			// Check if last swap in a path.
-			if strings.EqualFold(token, tokenOut) {
-				currentTokenIn = tokenIn
-			} else {
-				currentTokenIn = token
-			}
-		}
+	if len(events) == 0 {
+		return nil
 	}
-	swapInfos := swapInfoSet.ToSlice()
 
-	updatePoolApprovalSet := mapset.NewThreadUnsafeSet[dto.PoolApprovalQuery]()
-	for _, swapInfo := range swapInfos {
-		approvalAddress := swapInfo.Pair
-		if sim, ok := poolSimMap[swapInfo.Pair]; ok {
-			exchange := valueobject.Exchange(sim.GetExchange())
-			isApproveMaxExchange, usePoolAsApprovalAddress := valueobject.IsApproveMaxExchange(exchange)
-
-			if !isApproveMaxExchange {
-				continue
-			}
-
-			if !usePoolAsApprovalAddress {
-				approvalAddress = sim.GetApprovalAddress(swapInfo.TokenIn, swapInfo.TokenOut)
-			}
+	approvals := lo.Map(events, func(event PoolApprovalEvent, _ int) dto.PoolApprovalQuery {
+		return dto.PoolApprovalQuery{
+			TokenIn:     event.Token,
+			PoolAddress: event.Spender,
 		}
+	})
 
-		updatePoolApprovalSet.Add(dto.PoolApprovalQuery{
-			TokenIn:     swapInfo.TokenIn,
-			PoolAddress: strings.ToLower(approvalAddress),
-		})
+	if err := u.executorBalanceRepository.ApprovePool(ctx, executorAddress, approvals); err != nil {
+		return err
 	}
-	updatePoolApprovals := updatePoolApprovalSet.ToSlice()
 
-	if err := u.executorBalanceRepository.ApprovePool(ctx, executorAddress, updatePoolApprovals); err != nil {
+	lastBlockNumber, err := kutils.Atou[uint64](events[len(events)-1].BlockNumber)
+	if err != nil {
+		return err
+	}
+
+	if err := u.executorBalanceRepository.UpdatePoolApprovalTrackerProcessedBlockNumber(ctx, executorAddress, lastBlockNumber); err != nil {
 		return err
 	}
 
 	log.Ctx(ctx).Info().
 		Str("executor", executorAddress).
-		Int("numUpdatePoolApprovals", len(updatePoolApprovals)).
-		Msg("Add pool approvals for executor")
+		Uint64("currentBlock", blockNumber).
+		Uint64("toBlock", lastBlockNumber).
+		Int("numApprovals", len(approvals)).
+		Msg("Track pool approvals for executor")
 
 	return nil
 }

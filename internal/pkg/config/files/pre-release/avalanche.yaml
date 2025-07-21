@@ -474,6 +474,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-avalanche/version/latest
+    poolApprovalSubgraphURL: https://api.studio.thegraph.com/query/34713/executor-approval-avalanche/version/latest
     startBlock: 62026909
   tradeDataGenerator:
     exportFailedTrade: false

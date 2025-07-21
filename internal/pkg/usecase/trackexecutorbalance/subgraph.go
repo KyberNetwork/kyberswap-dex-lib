@@ -14,18 +14,16 @@ func fetchNewExecutorExchangeEvents(
 	aggregatorGraphQLClient *graphql.Client,
 	executorAddress string,
 	fromBlock uint64,
-	toBlock uint64,
 ) ([]ExchangeEvent, error) {
 	var exchangeEvents []ExchangeEvent
 	var pageIndex int
 	for {
-		req := graphql.NewRequest(getExecutorExchangeEventsQuery(executorAddress, fromBlock, toBlock, pageIndex*graphQLPageSize))
+		req := graphql.NewRequest(getExecutorExchangeEventsQuery(executorAddress, fromBlock, pageIndex*graphQLPageSize))
 		var res SubgraphExecutorExchangesResponse
 		if err := aggregatorGraphQLClient.Run(ctx, req, &res); err != nil {
 			log.Ctx(ctx).Warn().
 				Str("executor", executorAddress).
 				Uint64("fromBlock", fromBlock).
-				Uint64("toBlock", toBlock).
 				Int("pageIndex", pageIndex).
 				Msg("fetch Exchange events from executor")
 			break
@@ -34,21 +32,7 @@ func fetchNewExecutorExchangeEvents(
 
 		pageIndex += 1
 		if pageIndex*graphQLPageSize > graphQLMaxOffset {
-			lastBlockStr := exchangeEvents[len(exchangeEvents)-1].BlockNumber
-			blockNumber, err := kutils.Atou[uint64](lastBlockStr)
-			if err != nil {
-				log.Ctx(ctx).Err(err).
-					Str("executor", executorAddress).
-					Uint64("fromBlock", fromBlock).
-					Uint64("toBlock", toBlock).
-					Int("pageIndex", pageIndex).
-					Str("lastBlock", lastBlockStr).
-					Msg("failed to convert block number to uint64")
-				return nil, err
-			}
-
-			pageIndex = 0
-			fromBlock = blockNumber + 1
+			break
 		}
 
 		if len(res.ExecutorExchanges) < graphQLPageSize {
@@ -59,36 +43,38 @@ func fetchNewExecutorExchangeEvents(
 	return exchangeEvents, nil
 }
 
-func fetchNewRouterSwappedEvents(
+func fetchNewPoolApprovalEvents(
 	ctx context.Context,
-	aggregatorGraphQLClient *graphql.Client,
-	lastBlockNumber uint64,
-) ([]SwappedEvent, error) {
-	var swappedEvents []SwappedEvent
+	poolApprovalGraphQLClient *graphql.Client,
+	executorAddress string,
+	fromBlock uint64,
+) []PoolApprovalEvent {
+	var poolApprovalEvents []PoolApprovalEvent
 	var pageIndex int
 	for {
-		req := graphql.NewRequest(getRouterSwappedEventsQuery(lastBlockNumber, pageIndex*graphQLPageSize))
-		var res SubgraphRouterSwappedResponse
-		if err := aggregatorGraphQLClient.Run(ctx, req, &res); err != nil {
+		req := graphql.NewRequest(getPoolApprovalEventsQuery(executorAddress, fromBlock, pageIndex*graphQLPageSize))
+		var res SubgraphPoolApprovalsResponse
+		if err := poolApprovalGraphQLClient.Run(ctx, req, &res); err != nil {
 			log.Ctx(ctx).Warn().
-				Uint64("lastBlockNumber", lastBlockNumber).
+				Str("executor", executorAddress).
+				Uint64("fromBlock", fromBlock).
 				Int("pageIndex", pageIndex).
-				Msg("fetch Swapped events from router")
+				Msg("fetch Pool Approval events from executor")
 			break
 		}
-		swappedEvents = append(swappedEvents, res.SwappedEvents...)
-
-		if len(res.SwappedEvents) < graphQLPageSize {
-			break
-		}
+		poolApprovalEvents = append(poolApprovalEvents, res.PoolApprovals...)
 
 		pageIndex += 1
 		if pageIndex*graphQLPageSize > graphQLMaxOffset {
 			break
 		}
+
+		if len(res.PoolApprovals) < graphQLPageSize {
+			break
+		}
 	}
 
-	return swappedEvents, nil
+	return poolApprovalEvents
 }
 
 func fetchLatestEventBlockNumber(
@@ -109,7 +95,7 @@ func fetchLatestEventBlockNumber(
 	return kutils.Atou[uint64](res.ExecutorExchanges[0].BlockNumber)
 }
 
-func getExecutorExchangeEventsQuery(executorAddress string, fromBlock, toBlock uint64, offset int) string {
+func getExecutorExchangeEventsQuery(executorAddress string, fromBlock uint64, offset int) string {
 	// Intentionally use `blockNumber_gte` instead of `blockNumber_gt`,
 	// to cover case event logs of a single block number spread between multiple graphQL pages.
 	return fmt.Sprintf(`{
@@ -117,7 +103,6 @@ func getExecutorExchangeEventsQuery(executorAddress string, fromBlock, toBlock u
 			where: {
 				executor: "%s"
 				blockNumber_gte: %d
-				blockNumber_lte: %d
 			}
 			first: %d
 			skip: %d
@@ -131,7 +116,7 @@ func getExecutorExchangeEventsQuery(executorAddress string, fromBlock, toBlock u
 			token
 			blockNumber
 		}
-	}`, executorAddress, fromBlock, toBlock, graphQLPageSize, offset)
+	}`, executorAddress, fromBlock, graphQLPageSize, offset)
 }
 
 func getExecutorExchangeLatestEventQuery(executorAddress string) string {
@@ -152,10 +137,13 @@ func getExecutorExchangeLatestEventQuery(executorAddress string) string {
 	}`, executorAddress)
 }
 
-func getRouterSwappedEventsQuery(lastBlockNumber uint64, offset int) string {
+func getPoolApprovalEventsQuery(executorAddress string, fromBlock uint64, offset int) string {
+	// Intentionally use `blockNumber_gte` instead of `blockNumber_gt`,
+	// to cover case event logs of a single block number spread between multiple graphQL pages.
 	return fmt.Sprintf(`{
-		routerSwappeds(
+		executorApprovals(
 			where: {
+				executor: "%s"
 				blockNumber_gte: %d
 			}
 			first: %d
@@ -163,10 +151,10 @@ func getRouterSwappedEventsQuery(lastBlockNumber uint64, offset int) string {
 			orderBy: blockNumber
 			orderDirection: asc
 		) {
-			tx
-			tokenIn
-			tokenOut
+			id
+			token
+			spender
 			blockNumber
 		}
-	}`, lastBlockNumber, graphQLPageSize, offset)
+	}`, executorAddress, fromBlock, graphQLPageSize, offset)
 }

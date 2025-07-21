@@ -390,6 +390,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://mantle-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-mantle
+    poolApprovalSubgraphURL:
     startBlock: 22467376
   tradeDataGenerator:
     exportFailedTrade: false

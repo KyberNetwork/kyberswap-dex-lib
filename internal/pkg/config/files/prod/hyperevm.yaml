@@ -377,6 +377,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-hyperevm/version/latest
+    poolApprovalSubgraphURL:
     startBlock: 7780399
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet

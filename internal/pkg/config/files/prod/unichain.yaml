@@ -386,6 +386,7 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.studio.thegraph.com/query/101985/kyberswap-aggregator-unichain/version/latest
+    poolApprovalSubgraphURL: https://api.studio.thegraph.com/query/34713/executor-approval-unichain/version/latest
     startBlock: 15857030
   tradeDataGenerator:
     exportFailedTrade: false

@@ -749,36 +749,27 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		log.Ctx(ctx).Error().Msg("[executorTrackerAction] fail to init redis client for track executor balance")
 		return err
 	}
-	poolRedisClient, err := redis.New(&cfg.PoolRedis)
-	if err != nil {
-		log.Ctx(ctx).Error().Msg("[executorTrackerAction] fail to init redis client to pool service")
-		return err
-	}
 
 	// init repository
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil, nil)
 	executorBalanceRepository := executorbalance.NewRedisRepository(
 		routerRedisClient.Client,
 		executorbalance.Config{
 			Prefix: cfg.Redis.Prefix,
 		},
 	)
-	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
-	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 
 	// init use case
 	trackExecutorAddresses := []string{cfg.Encoder.ExecutorAddress}
 
 	trackExecutorBalanceUseCase := trackexecutor.NewUseCase(
 		ethClient,
-		poolFactory,
-		poolRepository,
 		executorBalanceRepository,
 		trackexecutor.Config{
-			ChainID:           cfg.Common.ChainID,
-			SubgraphURL:       cfg.UseCase.TrackExecutor.SubgraphURL,
-			StartBlock:        cfg.UseCase.TrackExecutor.StartBlock,
-			ExecutorAddresses: trackExecutorAddresses,
+			ChainID:                 cfg.Common.ChainID,
+			AggregatorSubgraphURL:   cfg.UseCase.TrackExecutor.SubgraphURL,
+			PoolApprovalSubgraphURL: cfg.UseCase.TrackExecutor.PoolApprovalSubgraphURL,
+			StartBlock:              cfg.UseCase.TrackExecutor.StartBlock,
+			ExecutorAddresses:       trackExecutorAddresses,
 		},
 	)
 

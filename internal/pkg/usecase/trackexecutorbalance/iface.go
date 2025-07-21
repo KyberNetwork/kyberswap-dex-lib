@@ -27,11 +27,11 @@ type IExecutorBalanceRepository interface {
 	// ApprovePool saves the info that `executor` approves `pool` to spend `token` on its behalf.
 	ApprovePool(ctx context.Context, executorAddress string, data []dto.PoolApprovalQuery) error
 
-	// GetLatestProcessedBlockNumber returns the latest processed block number when tracking executor.
-	GetLatestProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error)
+	GetBalanceTrackerProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error)
+	UpdateBalanceTrackerProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error
 
-	// UpdateLatestProcessedBlockNumber saves the latest processed block number when tracking executor.
-	UpdateLatestProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error
+	GetPoolApprovalTrackerProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error)
+	UpdatePoolApprovalTrackerProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error
 }
 
 type IPoolFactory interface {

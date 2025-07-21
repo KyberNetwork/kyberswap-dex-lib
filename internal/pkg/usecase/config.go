@@ -26,7 +26,8 @@ type Config struct {
 
 type (
 	TrackExecutorConfig struct {
-		SubgraphURL string `mapstructure:"subgraphURL"`
-		StartBlock  uint64 `mapstructure:"startBlock"`
+		SubgraphURL             string `mapstructure:"subgraphURL"`
+		PoolApprovalSubgraphURL string `mapstructure:"poolApprovalSubgraphURL"`
+		StartBlock              uint64 `mapstructure:"startBlock"`
 	}
 )

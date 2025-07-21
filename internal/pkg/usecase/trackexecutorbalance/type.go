@@ -8,6 +8,10 @@ type SubgraphRouterSwappedResponse struct {
 	SwappedEvents []SwappedEvent `json:"routerSwappeds"`
 }
 
+type SubgraphPoolApprovalsResponse struct {
+	PoolApprovals []PoolApprovalEvent `json:"executorApprovals"`
+}
+
 type ExchangeEvent struct {
 	Executor    string `json:"executor"`
 	Tx          string `json:"tx"`
@@ -17,6 +21,13 @@ type ExchangeEvent struct {
 	BlockNumber string `json:"blockNumber"`
 
 	LogIndex uint32
+}
+
+type PoolApprovalEvent struct {
+	Executor    string `json:"executor"`
+	Token       string `json:"token"`
+	Spender     string `json:"spender"`
+	BlockNumber string `json:"blockNumber"`
 }
 
 type SwappedEvent struct {
