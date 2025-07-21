@@ -71,7 +71,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	isNativeToken1 := false
 	for i := 0; i < numTokens; i += 1 {
 		// convert to wrapped if is native token
-		if strings.EqualFold(entityPool.Tokens[i].Address, valueobject.ZeroAddress) {
+		if entityPool.Tokens[i].Address == valueobject.ZeroAddress {
 			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
 			if i == 0 {
 				isNativeToken0 = true
@@ -306,10 +306,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	// convert to wrapped if is native token
-	if p.isNativeToken0 && tokenIn == valueobject.WrappedNativeMap[p.chainID] {
+	if p.isNativeToken0 && strings.EqualFold(tokenIn, valueobject.WrappedNativeMap[p.chainID]) {
 		tokenIn = valueobject.ZeroAddress
 	}
-	if p.isNativeToken1 && tokenOut == valueobject.WrappedNativeMap[p.chainID] {
+	if p.isNativeToken1 && strings.EqualFold(tokenOut, valueobject.WrappedNativeMap[p.chainID]) {
 		tokenOut = valueobject.ZeroAddress
 	}
 
