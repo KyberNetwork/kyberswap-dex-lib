@@ -146,6 +146,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	orders := p.getOrdersBySwapSide(swapSide)
 
+	if len(orders) == 0 {
+		return nil, ErrNoOrderAvailable
+	}
+
 	// Filter orders to only keep those with taking amount <= input amount
 	amountIn := number.SetFromBig(tokenAmountIn.Amount)
 	filteredOrders := make([]*DutchOrder, 0, len(orders))
@@ -156,8 +160,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	orders = filteredOrders
 
+	// if after filtering, no order is available, return error that cannot fulfill amount in
 	if len(orders) == 0 {
-		return nil, ErrNoOrderAvailable
+		return nil, ErrCannotFulfillAmountIn
 	}
 
 	totalAmountOut := number.Set(number.Zero)
