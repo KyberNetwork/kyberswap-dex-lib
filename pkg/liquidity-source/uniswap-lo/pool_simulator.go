@@ -138,6 +138,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	orders := p.getOrdersBySwapSide(swapSide)
 
+	// Filter orders to only keep those with taking amount <= input amount
+	amountIn := number.SetFromBig(tokenAmountIn.Amount)
+	filteredOrders := make([]*DutchOrder, 0, len(orders))
+	for _, order := range orders {
+		if order.Outputs[0].StartAmount.Cmp(amountIn) <= 0 {
+			filteredOrders = append(filteredOrders, order)
+		}
+	}
+	orders = filteredOrders
+
 	if len(orders) == 0 {
 		return nil, ErrNoOrderAvailable
 	}
