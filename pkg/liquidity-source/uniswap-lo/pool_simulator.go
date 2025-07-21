@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -113,7 +114,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) GetFirstLevelOrder(tokenIn string) (*DutchOrder, error) {
+func (p *PoolSimulator) GetMinimumAmountInToTake(tokenIn string) (*big.Int, error) {
 	swapSide := p.getSwapSide(tokenIn)
 	if swapSide == SwapSideUnknown {
 		return nil, ErrTokenInNotSupported
@@ -124,7 +125,14 @@ func (p *PoolSimulator) GetFirstLevelOrder(tokenIn string) (*DutchOrder, error) 
 		return nil, ErrNoOrderAvailable
 	}
 
-	return orders[0], nil
+	var minAmountIn *uint256.Int
+	for _, order := range orders {
+		if minAmountIn == nil || minAmountIn.Cmp(order.Outputs[0].StartAmount) > 0 {
+			minAmountIn = order.Outputs[0].StartAmount
+		}
+	}
+
+	return minAmountIn.ToBig(), nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
