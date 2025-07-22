@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -68,8 +69,21 @@ func (d *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	vaults := []VaultInfo{
+		{
+			VaultAddress: staticExtra.Vault0,
+			AssetAddress: p.Tokens[0].Address,
+			QuoteAmount:  bignumber.TenPowInt(int64(p.Tokens[0].Decimals)),
+		},
+		{
+			VaultAddress: staticExtra.Vault1,
+			AssetAddress: p.Tokens[1].Address,
+			QuoteAmount:  bignumber.TenPowInt(int64(p.Tokens[1].Decimals)),
+		},
+	}
+
 	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount,
-		staticExtra.EVC, staticExtra.Vault0, staticExtra.Vault1, overrides)
+		staticExtra.EVC, vaults, overrides)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"pool_id": p.Address}).
@@ -92,8 +106,8 @@ func (d *PoolTracker) getPoolData(
 	ctx context.Context,
 	poolAddress,
 	eulerAccount,
-	evc,
-	vault0, vault1 string,
+	evc string,
+	vaultList []VaultInfo,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (TrackerData, *big.Int, error) {
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -105,7 +119,11 @@ func (d *PoolTracker) getPoolData(
 		isOperatorAuthorized bool
 		reserves             ReserveRPC
 		vaults               = make([]VaultRPC, 2)
-		accountLiquidities   = []AccountLiquidityRPC{
+		oracles              = make([]common.Address, 2)
+		unitOfAccounts       = make([]common.Address, 2)
+		ltv                  = make([]uint16, 2)
+
+		accountLiquidities = []AccountLiquidityRPC{
 			{
 				CollateralValue: big.NewInt(0),
 				LiabilityValue:  big.NewInt(0),
@@ -130,61 +148,79 @@ func (d *PoolTracker) getPoolData(
 		Params: nil,
 	}, []any{&reserves})
 
-	for i, vaultAddress := range []string{vault0, vault1} {
+	for i, v := range vaultList {
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodCash,
 			Params: nil,
 		}, []any{&vaults[i].Cash})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodDebtOf,
 			Params: []any{common.HexToAddress(eulerAccount)},
 		}, []any{&vaults[i].Debt})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodMaxDeposit,
 			Params: []any{common.HexToAddress(eulerAccount)},
 		}, []any{&vaults[i].MaxDeposit})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodCaps,
 			Params: nil,
 		}, []any{&vaults[i].Caps})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodTotalBorrows,
 			Params: nil,
 		}, []any{&vaults[i].TotalBorrows})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodTotalAssets,
 			Params: nil,
 		}, []any{&vaults[i].TotalAssets})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodTotalSupply,
 			Params: nil,
 		}, []any{&vaults[i].TotalSupply})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodBalanceOf,
 			Params: []any{common.HexToAddress(eulerAccount)},
 		}, []any{&vaults[i].EulerAccountBalance})
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
-			Target: vaultAddress,
+			Target: v.VaultAddress,
 			Method: vaultMethodAccountLiquidity,
 			Params: []any{common.HexToAddress(eulerAccount), false},
 		}, []any{&accountLiquidities[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: v.VaultAddress,
+			Method: vaultMethodOracle,
+			Params: nil,
+		}, []any{&oracles[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: v.VaultAddress,
+			Method: vaultMethodUnitOfAccount,
+			Params: nil,
+		}, []any{&unitOfAccounts[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: v.VaultAddress,
+			Method: vaultMethodLTVBorrow,
+			Params: []any{common.HexToAddress(vaultList[1-i].VaultAddress)},
+		}, []any{&ltv[i]})
 	}
 
 	resp, err := req.TryBlockAndAggregate()
@@ -192,9 +228,62 @@ func (d *PoolTracker) getPoolData(
 		return TrackerData{}, nil, err
 	}
 
+	getQuotesCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		getQuotesCalls.SetOverrides(overrides)
+	}
+
+	getQuotesCalls.SetBlockNumber(resp.BlockNumber)
+
+	var (
+		assetQuotes = make([][2]*big.Int, len(vaultList))
+		shareQuotes = make([][2]*big.Int, len(vaultList))
+	)
+
+	for i, v := range vaultList {
+		if oracles[i].Cmp(common.Address{}) == 0 {
+			continue
+		}
+
+		getQuotesCalls.AddCall(&ethrpc.Call{
+			ABI:    routerABI,
+			Target: oracles[i].Hex(),
+			Method: routerMethodGetQuotes,
+			Params: []any{v.QuoteAmount, common.HexToAddress(v.AssetAddress), unitOfAccounts[i]},
+		}, []any{&assetQuotes[i]})
+
+		getQuotesCalls.AddCall(&ethrpc.Call{
+			ABI:    routerABI,
+			Target: oracles[i].Hex(),
+			Method: routerMethodGetQuotes,
+			Params: []any{v.QuoteAmount, common.HexToAddress(v.VaultAddress), unitOfAccounts[i]},
+		}, []any{&shareQuotes[i]})
+	}
+
+	resp, err = getQuotesCalls.TryBlockAndAggregate()
+	if err != nil {
+		return TrackerData{}, nil, err
+	}
+
+	var (
+		assetPrices = []*big.Int{big.NewInt(0), big.NewInt(0)}
+		sharePrices = []*big.Int{big.NewInt(0), big.NewInt(0)}
+	)
+	for i, v := range vaultList {
+		if assetQuotes[i][1] != nil {
+			assetPrices[i].Div(assetQuotes[i][1], v.QuoteAmount) // second output is ask price
+		}
+		if shareQuotes[i][1] != nil {
+			sharePrices[i].Div(shareQuotes[i][1], v.QuoteAmount) // second output is ask price
+		}
+	}
+
 	return TrackerData{
 		Vaults:               vaults,
+		AssetPrices:          assetPrices,
+		SharePrices:          sharePrices,
 		AccountLiquidities:   accountLiquidities,
+		LTV:                  ltv,
 		Reserves:             reserves,
 		IsOperatorAuthorized: isOperatorAuthorized,
 	}, resp.BlockNumber, nil
@@ -221,8 +310,19 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
 			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
-			CanBorrow:          data.AccountLiquidities[i].CollateralValue.Cmp(data.AccountLiquidities[i].LiabilityValue) > 0,
+			CollateralValue:    uint256.MustFromBig(data.AccountLiquidities[i].CollateralValue),
+			LiabilityValue:     uint256.MustFromBig(data.AccountLiquidities[i].LiabilityValue),
+			AssetPrice:         uint256.MustFromBig(data.AssetPrices[i]),
+			SharePrice:         uint256.MustFromBig(data.SharePrices[i]),
+			TotalAssets:        uint256.MustFromBig(data.Vaults[i].TotalAssets),
+			TotalSupply:        uint256.MustFromBig(data.Vaults[i].TotalSupply),
+			LTV:                uint256.NewInt(uint64(data.LTV[i])),
 		}
+	}
+
+	sharePrices := make([]*uint256.Int, len(data.SharePrices))
+	for i := range data.SharePrices {
+		sharePrices[i] = uint256.MustFromBig(data.SharePrices[i])
 	}
 
 	reserve0 := data.Reserves.Reserve0.String()
@@ -263,7 +363,7 @@ func decodeCap(amountCap *uint256.Int) *uint256.Int {
 	multiplier.Rsh(amountCap, 6)
 
 	amountCap.Mul(&tenToPower, &multiplier)
-	return amountCap.Div(amountCap, hundred)
+	return amountCap.Div(amountCap, big256.U100)
 }
 
 func convertToAssets(shares, totalAssets, totalSupply *uint256.Int) *uint256.Int {

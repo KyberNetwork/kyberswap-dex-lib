@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/holiman/uint256"
 )
@@ -81,7 +82,7 @@ var (
 	AMultiplier = uint256.MustFromDecimal("10000")
 	MinGamma    = uint256.MustFromDecimal("10000000000")
 	MaxGamma    = uint256.MustFromDecimal("50000000000000000")
-	MinA        = number.Div(number.Mul(U_27, AMultiplier), uint256.NewInt(100)) // 27 = NCoins ** NCoins, NCoins = 3
+	MinA        = number.Div(number.Mul(U_27, AMultiplier), u256.U100) // 27 = NCoins ** NCoins, NCoins = 3
 	MaxA        = number.Mul(number.Mul(U_27, AMultiplier), uint256.NewInt(1000))
 	MinD        = uint256.MustFromDecimal("100000000000000000")
 	MaxD        = uint256.MustFromDecimal("1000000000000000000000000000000000")

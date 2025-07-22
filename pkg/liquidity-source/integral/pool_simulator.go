@@ -55,7 +55,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-
 	tokens := p.GetTokens()
 	if len(tokens) < 2 {
 		return nil, ErrTokenNotFound

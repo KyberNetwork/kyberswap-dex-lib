@@ -61,12 +61,12 @@ func getFee(costs, protocolFeeBasisPoint, creatorFeeBasisPoints, referralFeeBasi
 }
 
 func getMaxTokensForSale(allowedTotalSupply, salePercentage *uint256.Int) *uint256.Int {
-	maxTokensForSale, _ := new(uint256.Int).MulDivOverflow(allowedTotalSupply, salePercentage, U100)
+	maxTokensForSale, _ := new(uint256.Int).MulDivOverflow(allowedTotalSupply, salePercentage, u256.U100)
 	return maxTokensForSale
 }
 
 func getBuyLimit(totalSupply, allowedTotalSupply, salePercentage *uint256.Int) *uint256.Int {
-	buyLimit, _ := new(uint256.Int).MulDivOverflow(allowedTotalSupply, salePercentage, U100)
+	buyLimit, _ := new(uint256.Int).MulDivOverflow(allowedTotalSupply, salePercentage, u256.U100)
 	if !buyLimit.Lt(totalSupply) {
 		buyLimit.Sub(buyLimit, totalSupply)
 	}

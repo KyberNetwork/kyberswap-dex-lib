@@ -14,7 +14,6 @@ const (
 
 var (
 	Number_20   = uint256.NewInt(20)
-	Number_100  = uint256.NewInt(100)
 	Number_1000 = uint256.NewInt(1000)
 )
 

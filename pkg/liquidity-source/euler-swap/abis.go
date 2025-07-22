@@ -11,6 +11,7 @@ var (
 	factoryABI abi.ABI
 	vaultABI   abi.ABI
 	evcABI     abi.ABI
+	routerABI  abi.ABI
 )
 
 func init() {
@@ -29,6 +30,9 @@ func init() {
 		},
 		{
 			&evcABI, evcABIJson,
+		},
+		{
+			&routerABI, routerABIJson,
 		},
 	}
 

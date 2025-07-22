@@ -2,6 +2,8 @@ package nomiswapstable
 
 import (
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func getAmountOut(
@@ -30,7 +32,7 @@ func getExactQuote(
 	amountOut = uint256.NewInt(0)
 	fee := uint256.NewInt(0)
 
-	if amountIn.Cmp(Zero) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return amountOut, fee
 	}
 
@@ -47,19 +49,19 @@ func getExactQuote(
 
 func getY(x, d, A *uint256.Int) *uint256.Int {
 	// N_A = A * 4
-	N_A := new(uint256.Int).Mul(A, Four)
+	N_A := new(uint256.Int).Mul(A, u256.U4)
 
 	// c = (D * D) / (x * 2)
 	var c = new(uint256.Int).Div(
 		new(uint256.Int).Mul(d, d),
-		new(uint256.Int).Mul(x, Two),
+		new(uint256.Int).Mul(x, u256.U2),
 	)
 
 	// c = (c * D) / ((N_A * 2) / A_PRECISION)
 	c = new(uint256.Int).Div(
 		new(uint256.Int).Mul(c, d),
 		new(uint256.Int).Div(
-			new(uint256.Int).Mul(N_A, Two),
+			new(uint256.Int).Mul(N_A, u256.U2),
 			A_PRECISION,
 		),
 	)
@@ -77,11 +79,11 @@ func getY(x, d, A *uint256.Int) *uint256.Int {
 		yPrev = y
 		//y = (y * y + c) / (y * 2 + b - d);
 		num := new(uint256.Int).Add(new(uint256.Int).Mul(y, y), c)
-		den := new(uint256.Int).Sub(new(uint256.Int).Add(new(uint256.Int).Mul(y, Two), b), d)
+		den := new(uint256.Int).Sub(new(uint256.Int).Add(new(uint256.Int).Mul(y, u256.U2), b), d)
 
 		y = new(uint256.Int).Div(num, den)
-		if new(uint256.Int).Mod(num, den).Cmp(Zero) != 0 {
-			y.Add(y, One)
+		if new(uint256.Int).Mod(num, den).Sign() != 0 {
+			y.Add(y, u256.U1)
 		}
 		if within1(y, yPrev) {
 			break
@@ -101,8 +103,8 @@ func calAmountAfterFee(amountIn, swapFee *uint256.Int) (*uint256.Int, *uint256.I
 func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
 	var computed = uint256.NewInt(0)
 	var s = new(uint256.Int).Add(xp0, xp1)
-	N_A := new(uint256.Int).Mul(A, Four)
-	if s.Cmp(Zero) == 0 {
+	N_A := new(uint256.Int).Mul(A, u256.U4)
+	if s.Sign() == 0 {
 		return computed
 	}
 	var prevD *uint256.Int
@@ -113,7 +115,7 @@ func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(
 					new(uint256.Int).Div(
-						new(uint256.Int).Mul(d, d), xp0), d), xp1), Four)
+						new(uint256.Int).Mul(d, d), xp0), d), xp1), u256.U4)
 		prevD = d
 
 		// D = (((N_A * s) / A_PRECISION + 2 * dP) * D) / ((N_A / A_PRECISION - 1) * D + 3 * dP);
@@ -121,14 +123,14 @@ func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
 			new(uint256.Int).Mul(
 				new(uint256.Int).Add(
 					new(uint256.Int).Div(new(uint256.Int).Mul(N_A, s), A_PRECISION),
-					new(uint256.Int).Mul(Two, dp),
+					new(uint256.Int).Mul(u256.U2, dp),
 				), d),
 			new(uint256.Int).Add(
 				new(uint256.Int).Mul(
-					new(uint256.Int).Sub(new(uint256.Int).Div(N_A, A_PRECISION), One),
+					new(uint256.Int).Sub(new(uint256.Int).Div(N_A, A_PRECISION), u256.U1),
 					d,
 				),
-				new(uint256.Int).Mul(Three, dp),
+				new(uint256.Int).Mul(u256.U3, dp),
 			),
 		)
 		if within1(d, prevD) {
@@ -143,9 +145,9 @@ func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
 }
 
 func within1(a, b *uint256.Int) bool {
-	if a.Cmp(b) > 0 {
-		return new(uint256.Int).Sub(a, b).Cmp(One) <= 0
+	if a.Gt(b) {
+		return new(uint256.Int).Sub(a, b).Cmp(u256.U1) <= 0
 	}
 
-	return new(uint256.Int).Sub(b, a).Cmp(One) < 0
+	return new(uint256.Int).Sub(b, a).Cmp(u256.U1) < 0
 }

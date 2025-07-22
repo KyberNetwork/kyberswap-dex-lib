@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -106,7 +107,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// https://berascan.com/address/0x8fe54a1fb9d97ab6f02ad9e0931e9ab788f5d942#codeL597
 		// redeem polFeeCollectorFeeShares will reduce the amount of vaultsMaxRedeems
 		availableRedeemAmount := new(uint256.Int).Sub(p.vaultsMaxRedeems[assetIndex], polFeeCollectorFeeShares)
-		availableRedeemAmount.Sub(availableRedeemAmount, availableRedeemAmount.Div(availableRedeemAmount, U100))
+		availableRedeemAmount.Sub(availableRedeemAmount, availableRedeemAmount.Div(availableRedeemAmount, u256.U100))
 		if assetIndex >= len(p.vaultsMaxRedeems) || availableRedeemAmount.Cmp(shares) <= 0 {
 			return nil, ErrMaxRedeemAmountExceeded
 		}
@@ -127,28 +128,28 @@ func (p *PoolSimulator) convertToShares(assets *uint256.Int, assetIndex int) (sh
 	share = new(uint256.Int)
 	if p.vaultsDecimals[assetIndex] >= p.assetsDecimals[assetIndex] {
 		exponent = p.vaultsDecimals[assetIndex] - p.assetsDecimals[assetIndex]
-		share.Mul(assets, share.Exp(U10, uint256.NewInt(uint64(exponent))))
+		share.Mul(assets, share.Exp(u256.U10, uint256.NewInt(uint64(exponent))))
 	} else {
 		exponent = p.assetsDecimals[assetIndex] - p.vaultsDecimals[assetIndex]
-		share.Div(assets, share.Exp(U10, uint256.NewInt(uint64(exponent))))
+		share.Div(assets, share.Exp(u256.U10, uint256.NewInt(uint64(exponent))))
 	}
 	return
 }
 
 func (p *PoolSimulator) getHoneyMintedFromShares(shares *uint256.Int,
 	assetIndex int) (honeyAmount, feeReceiverFeeShares, polFeeCollectorFeeShares *uint256.Int) {
-	honeyAmount, _ = new(uint256.Int).MulDivOverflow(shares, p.mintRates[assetIndex], U1e18)
+	honeyAmount, _ = new(uint256.Int).MulDivOverflow(shares, p.mintRates[assetIndex], u256.BONE)
 	feeReceiverFeeShares = new(uint256.Int).Sub(shares, honeyAmount)
-	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, U1e18)
+	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, u256.BONE)
 	feeReceiverFeeShares.Sub(feeReceiverFeeShares, polFeeCollectorFeeShares)
 	return
 }
 
 func (p *PoolSimulator) getSharesRedeemedFromHoney(amountIn *uint256.Int,
 	assetIndex int) (shares, feeReceiverFeeShares, polFeeCollectorFeeShares *uint256.Int) {
-	shares, _ = new(uint256.Int).MulDivOverflow(amountIn, p.redeemRates[assetIndex], U1e18)
+	shares, _ = new(uint256.Int).MulDivOverflow(amountIn, p.redeemRates[assetIndex], u256.BONE)
 	feeReceiverFeeShares = new(uint256.Int).Sub(amountIn, shares)
-	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, U1e18)
+	polFeeCollectorFeeShares, _ = new(uint256.Int).MulDivOverflow(feeReceiverFeeShares, p.polFeeCollectorFeeRate, u256.BONE)
 	feeReceiverFeeShares.Sub(feeReceiverFeeShares, polFeeCollectorFeeShares)
 	return
 }
@@ -158,10 +159,10 @@ func (p *PoolSimulator) convertToAssets(shares *uint256.Int, assetIndex int) (as
 	assets = new(uint256.Int)
 	if p.vaultsDecimals[assetIndex] >= p.assetsDecimals[assetIndex] {
 		exponent = p.vaultsDecimals[assetIndex] - p.assetsDecimals[assetIndex]
-		assets.Div(shares, assets.Exp(U10, uint256.NewInt(uint64(exponent))))
+		assets.Div(shares, assets.Exp(u256.U10, uint256.NewInt(uint64(exponent))))
 	} else {
 		exponent = p.assetsDecimals[assetIndex] - p.vaultsDecimals[assetIndex]
-		assets.Mul(shares, assets.Exp(U10, uint256.NewInt(uint64(exponent))))
+		assets.Mul(shares, assets.Exp(u256.U10, uint256.NewInt(uint64(exponent))))
 	}
 	return
 }
