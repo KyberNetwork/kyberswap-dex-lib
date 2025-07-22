@@ -380,11 +380,14 @@ useCase:
     poolApprovalSubgraphURL:
     startBlock: 7780399
   tradeDataGenerator:
+    exportFailedTrade: false
+    failedFileName: "./failed_trade_data.txt"
+    chainName: *chainName
     whitelistedTokenSet: *whitelistedTokenSet
     blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 200
     useAEVM: *useAEVM
-    dexUseAEVM:
+    dexUseAEVM: 
     minDataPointNumber: 6
     maxDataPointNumber: 12
     setsNeededTobeIndexed: *setsNeededTobeIndexed

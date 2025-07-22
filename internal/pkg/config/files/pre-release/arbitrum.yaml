@@ -589,7 +589,7 @@ useCase:
     blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 1000
     useAEVM: *useAEVM
-    dexUseAEVM:
+    dexUseAEVM: *dexUseAEVM
     minDataPointNumber: 6
     maxDataPointNumber: 12
     setsNeededTobeIndexed: *setsNeededTobeIndexed
