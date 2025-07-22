@@ -46,19 +46,19 @@ type PriceInfo struct {
 }
 
 type Vault struct {
-	Cash               *uint256.Int `json:"c"`
-	Debt               *uint256.Int `json:"d"`
-	MaxDeposit         *uint256.Int `json:"md"`
-	MaxWithdraw        *uint256.Int `json:"mw"`
-	TotalBorrows       *uint256.Int `json:"tb"`
-	EulerAccountAssets *uint256.Int `json:"ea"`
-	CollateralValue    *uint256.Int `json:"cv"`
-	LiabilityValue     *uint256.Int `json:"lv"`
-	AssetPrice         *uint256.Int `json:"ap"`
-	SharePrice         *uint256.Int `json:"sp"`
-	TotalAssets        *uint256.Int `json:"ta"`
-	TotalSupply        *uint256.Int `json:"ts"`
-	LTV                *uint256.Int `json:"ltv"`
+	Cash               *uint256.Int
+	Debt               *uint256.Int
+	MaxDeposit         *uint256.Int
+	MaxWithdraw        *uint256.Int
+	TotalBorrows       *uint256.Int
+	EulerAccountAssets *uint256.Int
+	CollateralValue    *uint256.Int
+	LiabilityValue     *uint256.Int
+	AssetPrice         *uint256.Int
+	SharePrice         *uint256.Int
+	TotalAssets        *uint256.Int
+	TotalSupply        *uint256.Int
+	LTV                *uint256.Int
 }
 type SwapInfo struct {
 	NewReserve0        *uint256.Int
