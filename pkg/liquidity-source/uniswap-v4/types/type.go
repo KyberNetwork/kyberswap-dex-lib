@@ -1,4 +1,4 @@
-package uniswapv4
+package uniswapv4types
 
 import (
 	"math/big"
@@ -62,4 +62,9 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+}
+
+type AegisStaticExtra struct {
+	StaticExtra
+	FeeManagerAddress common.Address `json:"fM"`
 }

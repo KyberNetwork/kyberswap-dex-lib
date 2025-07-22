@@ -13,6 +13,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv4types "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/types"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -97,7 +98,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		staticExtra := StaticExtra{
+		staticExtra := uniswapv4types.StaticExtra{
 			IsNative:               [2]bool{p.Token0.ID == EmptyAddress, p.Token1.ID == EmptyAddress},
 			Fee:                    fee,
 			TickSpacing:            tickSpacing,
@@ -150,12 +151,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]SubgraphPool,
+func (u *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp int, first int) ([]uniswapv4types.SubgraphPool,
 	error) {
 	req := graphqlpkg.NewRequest(getPoolsListQuery(lastCreatedAtTimestamp, first))
 
 	var response struct {
-		Pools []SubgraphPool `json:"pools"`
+		Pools []uniswapv4types.SubgraphPool `json:"pools"`
 	}
 
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {

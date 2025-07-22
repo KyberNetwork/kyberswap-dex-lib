@@ -16,7 +16,9 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/aegis"
 	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
+	uniswapv4types "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/types"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -46,11 +48,11 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
-	var staticExtra StaticExtra
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*uniswapv4types.FetchRPCResult, error) {
+	var staticExtra uniswapv4types.StaticExtra
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 
-	result := &FetchRPCResult{
+	result := &uniswapv4types.FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
 	}
 	rpcRequests := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -97,7 +99,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	var (
-		rpcData   *FetchRPCResult
+		rpcData   *uniswapv4types.FetchRPCResult
 		poolTicks []ticklens.TickResp
 	)
 
@@ -144,7 +146,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	var ticks []Tick
+	var ticks []uniswapv4types.Tick
 	for _, tickResp := range poolTicks {
 		tick, err := transformTickRespToTick(tickResp)
 		if err != nil {
@@ -157,7 +159,7 @@ func (t *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := json.Marshal(uniswapv4types.Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  uint64(rpcData.TickSpacing),
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
@@ -173,7 +175,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 
-	var staticExtra StaticExtra
+	var staticExtra uniswapv4types.StaticExtra
 	var hookAddress common.Address
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		l.WithFields(logger.Fields{
@@ -188,6 +190,13 @@ func (t *PoolTracker) GetNewPoolState(
 	case valueobject.ExchangeUniswapV4BunniV2:
 		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
 			p.Reserves = reserves
+		}
+	case valueobject.ExchangeUniswapV4Aegis:
+		if err := aegis.TrackFee(ctx, hookAddress, p.Address, t.ethrpcClient)(&p); err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to track aegis fee")
+			return entity.Pool{}, err
 		}
 	default:
 		var reserve0, reserve1 big.Int
@@ -283,7 +292,7 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 		"dexID":       t.config.DexID,
 	})
 
-	var extra Extra
+	var extra uniswapv4types.Extra
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return nil, errors.New("failed to unmarshal pool extra")
 	}
@@ -357,23 +366,23 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 	return combined, nil
 }
 
-func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
+func transformTickRespToTick(tickResp ticklens.TickResp) (uniswapv4types.Tick, error) {
 	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {
-		return Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
+		return uniswapv4types.Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
 	}
 
 	liquidityNet, ok := new(big.Int).SetString(tickResp.LiquidityNet, 10)
 	if !ok {
-		return Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
+		return uniswapv4types.Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
 	}
 
 	tickIdx, err := strconv.Atoi(tickResp.TickIdx)
 	if err != nil {
-		return Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", tickResp.TickIdx)
+		return uniswapv4types.Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", tickResp.TickIdx)
 	}
 
-	return Tick{
+	return uniswapv4types.Tick{
 		Index:          tickIdx,
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,

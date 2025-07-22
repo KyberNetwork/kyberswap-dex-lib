@@ -29,7 +29,8 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 	t, err := template.New("poolsListQuery").Parse(`{
 		pools(
 			where: {
-				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
+				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }},
+				id: "0x410723c1949069324d0f6013dba28829c4a0562f7c81d0f7cb79ded668691e1f"
 			},
 			first: {{ .First }},
 			skip: {{ .Skip }},
