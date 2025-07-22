@@ -34,29 +34,51 @@ type Extra struct {
 	Vaults []Vault `json:"v"`
 }
 
+type VaultInfo struct {
+	VaultAddress string
+	AssetAddress string
+	QuoteAmount  *big.Int
+}
+
+type PriceInfo struct {
+	Vault *big.Int
+	Asset *big.Int
+}
+
 type Vault struct {
-	Cash               *uint256.Int
-	Debt               *uint256.Int
-	MaxDeposit         *uint256.Int
-	MaxWithdraw        *uint256.Int
-	TotalBorrows       *uint256.Int
-	EulerAccountAssets *uint256.Int
-	CanBorrow          bool
+	Cash               *uint256.Int `json:"c"`
+	Debt               *uint256.Int `json:"d"`
+	MaxDeposit         *uint256.Int `json:"md"`
+	MaxWithdraw        *uint256.Int `json:"mw"`
+	TotalBorrows       *uint256.Int `json:"tb"`
+	EulerAccountAssets *uint256.Int `json:"ea"`
+	CollateralValue    *uint256.Int `json:"cv"`
+	LiabilityValue     *uint256.Int `json:"lv"`
+	AssetPrice         *uint256.Int `json:"ap"`
+	SharePrice         *uint256.Int `json:"sp"`
+	TotalAssets        *uint256.Int `json:"ta"`
+	TotalSupply        *uint256.Int `json:"ts"`
+	LTV                *uint256.Int `json:"ltv"`
 }
 type SwapInfo struct {
-	NewReserve0    *uint256.Int
-	NewReserve1    *uint256.Int
-	WithdrawAmount *uint256.Int
-	BorrowAmount   *uint256.Int
-	DepositAmount  *uint256.Int
-	RepayAmount    *uint256.Int
-	ZeroForOne     bool
+	NewReserve0        *uint256.Int
+	NewReserve1        *uint256.Int
+	NewLiabilityValue  *uint256.Int
+	NewCollateralValue *uint256.Int
+	WithdrawAmount     *uint256.Int
+	BorrowAmount       *uint256.Int
+	DepositAmount      *uint256.Int
+	RepayAmount        *uint256.Int
+	ZeroForOne         bool
 }
 
 type TrackerData struct {
 	Vaults               []VaultRPC
 	Reserves             ReserveRPC
 	AccountLiquidities   []AccountLiquidityRPC
+	AssetPrices          []*big.Int
+	SharePrices          []*big.Int
+	LTV                  []uint16
 	IsOperatorAuthorized bool
 }
 type ReserveRPC struct {

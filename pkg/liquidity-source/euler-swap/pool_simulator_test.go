@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -22,6 +23,17 @@ func TestCalcAmountOut(t *testing.T) {
 
 	s, err := NewPoolSimulator(pool)
 	require.Nil(t, err)
+
+	// adhocs due to changing data structure
+	for i := range s.vaults {
+		s.vaults[i].LiabilityValue = uint256.NewInt(0)
+		s.vaults[i].CollateralValue = uint256.NewInt(0)
+		s.vaults[i].LTV = uint256.NewInt(0)
+		s.vaults[i].AssetPrice = uint256.NewInt(0)
+		s.vaults[i].SharePrice = uint256.NewInt(0)
+		s.vaults[i].TotalAssets = uint256.NewInt(0)
+		s.vaults[i].TotalSupply = uint256.NewInt(0)
+	}
 
 	t.Run("swap USDC -> WETH", func(t *testing.T) {
 		amountIn, _ := new(big.Int).SetString("1000000", 10)
@@ -119,6 +131,17 @@ func TestCalcAmountIn(t *testing.T) {
 	s, err := NewPoolSimulator(pool)
 	require.Nil(t, err)
 
+	// adhocs due to changing data structure
+	for i := range s.vaults {
+		s.vaults[i].LiabilityValue = uint256.NewInt(0)
+		s.vaults[i].CollateralValue = uint256.NewInt(0)
+		s.vaults[i].LTV = uint256.NewInt(0)
+		s.vaults[i].AssetPrice = uint256.NewInt(0)
+		s.vaults[i].SharePrice = uint256.NewInt(0)
+		s.vaults[i].TotalAssets = uint256.NewInt(0)
+		s.vaults[i].TotalSupply = uint256.NewInt(0)
+	}
+
 	testutil.TestCalcAmountIn(t, s)
 }
 
@@ -155,6 +178,17 @@ func TestMergeSwaps(t *testing.T) {
 			singlePool, err := NewPoolSimulator(pool)
 			require.Nil(t, err)
 
+			// adhocs due to changing data structure
+			for i := range singlePool.vaults {
+				singlePool.vaults[i].LiabilityValue = uint256.NewInt(0)
+				singlePool.vaults[i].CollateralValue = uint256.NewInt(0)
+				singlePool.vaults[i].LTV = uint256.NewInt(0)
+				singlePool.vaults[i].AssetPrice = uint256.NewInt(0)
+				singlePool.vaults[i].SharePrice = uint256.NewInt(0)
+				singlePool.vaults[i].TotalAssets = uint256.NewInt(0)
+				singlePool.vaults[i].TotalSupply = uint256.NewInt(0)
+			}
+
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{
 				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -172,6 +206,17 @@ func TestMergeSwaps(t *testing.T) {
 			// Chunked swaps (20 chunks)
 			chunkedPool, err := NewPoolSimulator(pool)
 			require.Nil(t, err)
+
+			// adhocs due to changing data structure
+			for i := range chunkedPool.vaults {
+				chunkedPool.vaults[i].LiabilityValue = uint256.NewInt(0)
+				chunkedPool.vaults[i].CollateralValue = uint256.NewInt(0)
+				chunkedPool.vaults[i].LTV = uint256.NewInt(0)
+				chunkedPool.vaults[i].AssetPrice = uint256.NewInt(0)
+				chunkedPool.vaults[i].SharePrice = uint256.NewInt(0)
+				chunkedPool.vaults[i].TotalAssets = uint256.NewInt(0)
+				chunkedPool.vaults[i].TotalSupply = uint256.NewInt(0)
+			}
 
 			chunkAmount := new(big.Int).Div(amountIn, big.NewInt(20))
 			var totalAmountOut *big.Int
@@ -307,6 +352,17 @@ func TestSwapEdgeCases(t *testing.T) {
 			poolSim, err := NewPoolSimulator(pool)
 			require.Nil(t, err)
 
+			// adhocs due to changing data structure
+			for i := range poolSim.vaults {
+				poolSim.vaults[i].LiabilityValue = uint256.NewInt(0)
+				poolSim.vaults[i].CollateralValue = uint256.NewInt(0)
+				poolSim.vaults[i].LTV = uint256.NewInt(0)
+				poolSim.vaults[i].AssetPrice = uint256.NewInt(0)
+				poolSim.vaults[i].SharePrice = uint256.NewInt(0)
+				poolSim.vaults[i].TotalAssets = uint256.NewInt(0)
+				poolSim.vaults[i].TotalSupply = uint256.NewInt(0)
+			}
+
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{
 				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -343,8 +399,19 @@ func TestReverseSwap(t *testing.T) {
 	err := json.Unmarshal([]byte(poolStr), &pool)
 	require.Nil(t, err)
 
-	poolSim, err := NewPoolSimulator(pool)
+	s, err := NewPoolSimulator(pool)
 	require.Nil(t, err)
+
+	// adhocs due to changing data structure
+	for i := range s.vaults {
+		s.vaults[i].LiabilityValue = uint256.NewInt(0)
+		s.vaults[i].CollateralValue = uint256.NewInt(0)
+		s.vaults[i].LTV = uint256.NewInt(0)
+		s.vaults[i].AssetPrice = uint256.NewInt(0)
+		s.vaults[i].SharePrice = uint256.NewInt(0)
+		s.vaults[i].TotalAssets = uint256.NewInt(0)
+		s.vaults[i].TotalSupply = uint256.NewInt(0)
+	}
 
 	// Forward swap: USDC -> USDT
 	amountIn, _ := new(big.Int).SetString("1000000000", 10) // 1000 USDC
@@ -355,7 +422,7 @@ func TestReverseSwap(t *testing.T) {
 	tokenOut := "0xdac17f958d2ee523a2206206994597c13d831ec7"
 
 	forwardResult, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-		return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
 			TokenOut:      tokenOut,
 		})
@@ -364,7 +431,7 @@ func TestReverseSwap(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, forwardResult)
 
-	poolSim.UpdateBalance(poolpkg.UpdateBalanceParams{
+	s.UpdateBalance(poolpkg.UpdateBalanceParams{
 		SwapInfo: forwardResult.SwapInfo,
 	})
 
@@ -376,7 +443,7 @@ func TestReverseSwap(t *testing.T) {
 	reverseTokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 
 	reverseResult, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-		return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: reverseTokenAmountIn,
 			TokenOut:      reverseTokenOut,
 		})
@@ -394,7 +461,7 @@ func TestReverseSwap(t *testing.T) {
 func TestSwapCanBorrow(t *testing.T) {
 	t.Parallel()
 
-	poolStr := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false},{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
+	poolStr := `{"address":"0xec078526b7a841c3f8fcd13ecc8efc0f1e25a8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1753191616,"reserves":["68185365","9189936696438807"],"tokens":[{"address":"0x078d782b760474a361dda0af3839290b0ef57ad6","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x4200000000000000000000000000000000000006","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"7271394737276\",\"Debt\":\"0\",\"MaxDeposit\":\"101559795392750\",\"MaxWithdraw\":\"135000000000000\",\"TotalBorrows\":\"41168809869973\",\"EulerAccountAssets\":\"48786\",\"CollateralValue\":\"0\",\"LiabilityValue\":\"0\",\"AssetPrice\":\"999929680000\",\"SharePrice\":\"1009022921518\",\"TotalAssets\":\"48440204607249\",\"TotalSupply\":\"48003664977701\",\"LTV\":\"8400\"},{\"Cash\":\"1091578060036730433752\",\"Debt\":\"0\",\"MaxDeposit\":\"14202793488426118406190\",\"MaxWithdraw\":\"18000000000000000000000\",\"TotalBorrows\":\"4705628451537151160057\",\"EulerAccountAssets\":\"0\",\"CollateralValue\":\"40977358269523200\",\"LiabilityValue\":\"0\",\"AssetPrice\":\"3682\",\"SharePrice\":\"3702\",\"TotalAssets\":\"5797206511573881593809\",\"TotalSupply\":\"5766033809403791449234\",\"LTV\":\"8400\"}]}","staticExtra":"{\"v0\":\"0x6eAe95ee783e4D862867C4e0E4c3f4B95AA682Ba\",\"v1\":\"0x1f3134C3f3f8AdD904B9635acBeFC0eA0D0E1ffC\",\"ea\":\"0x3e4Ab57CD1Aef2DE5D2d3b889d6f2Fc82b5Dc733\",\"f\":\"1000000000000000\",\"pf\":\"0\",\"er0\":\"43361827\",\"er1\":\"18427910303646597\",\"px\":\"1000000000000000000\",\"py\":\"2441675542\",\"cx\":\"900000000000000000\",\"cy\":\"900000000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x2A1176964F5D7caE5406B627Bf6166664FE83c60\"}","blockNumber":22443256}`
 
 	var pool entity.Pool
 	err := json.Unmarshal([]byte(poolStr), &pool)
@@ -406,38 +473,10 @@ func TestSwapCanBorrow(t *testing.T) {
 
 		amountIn, _ := new(big.Int).SetString("1000000", 10) // 1 USDC
 		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Token:  "0x078d782b760474a361dda0af3839290b0ef57ad6",
 			Amount: amountIn,
 		}
-		tokenOut := "0xdac17f958d2ee523a2206206994597c13d831ec7"
-
-		_, err = testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		require.NotNil(t, err, "Should fail when both vaults have zero balance and canBorrow=false")
-		t.Logf("Expected error for both vaults with zero balance and canBorrow=false: %v", err)
-	})
-
-	poolStr2 := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"0\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"0\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":false},{\"Cash\":\"1000000\",\"Debt\":\"0\",\"MaxDeposit\":\"10000000000000\",\"MaxWithdraw\":\"1000000\",\"TotalBorrows\":\"0\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
-
-	var pool2 entity.Pool
-	err = json.Unmarshal([]byte(poolStr2), &pool2)
-	require.Nil(t, err)
-
-	t.Run("From vault with zero balance and canBorrow=false to vault with canBorrow=true should succeed", func(t *testing.T) {
-		poolSim, err := NewPoolSimulator(pool2)
-		require.Nil(t, err)
-
-		amountIn, _ := new(big.Int).SetString("1000000", 10) // 1 USDC
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Amount: amountIn,
-		}
-		tokenOut := "0xdac17f958d2ee523a2206206994597c13d831ec7"
+		tokenOut := "0x4200000000000000000000000000000000000006"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -446,9 +485,35 @@ func TestSwapCanBorrow(t *testing.T) {
 			})
 		})
 
-		require.Nil(t, err, "Should succeed when toVault has canBorrow=true")
-		require.NotNil(t, result, "Should return result when toVault has canBorrow=true")
-		require.Greater(t, result.TokenAmountOut.Amount.Cmp(big.NewInt(0)), 0, "Should return positive output amount")
-		t.Logf("Success when toVault has canBorrow=true: input=%s, output=%s", amountIn.String(), result.TokenAmountOut.Amount.String())
+		require.Nil(t, result)
+		require.NotNil(t, err, "Should fail when collateralValue < liabilityValue")
+	})
+
+	var pool2 entity.Pool
+	err = json.Unmarshal([]byte(poolStr), &pool2)
+	require.Nil(t, err)
+
+	t.Run("From vault with zero balance and canBorrow=false to vault with canBorrow=true should succeed", func(t *testing.T) {
+		poolSim, err := NewPoolSimulator(pool2)
+		require.Nil(t, err)
+
+		amountIn, _ := new(big.Int).SetString("1000000000", 10) // 1000 USDC
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0x4200000000000000000000000000000000000006",
+			Amount: amountIn,
+		}
+		tokenOut := "0x078d782b760474a361dda0af3839290b0ef57ad6"
+
+		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+
+		require.Nil(t, err)
+		require.NotNil(t, result)
+		require.Greater(t, result.TokenAmountOut.Amount.Sign(), 0)
+		t.Logf("input=%s, output=%s", amountIn.String(), result.TokenAmountOut.Amount.String())
 	})
 }
