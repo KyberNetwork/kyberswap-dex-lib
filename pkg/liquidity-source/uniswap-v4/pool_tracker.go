@@ -16,14 +16,13 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -47,8 +46,23 @@ func NewPoolTracker(
 }
 
 func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*FetchRPCResult, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       t.config.DexID,
+	})
+
 	var staticExtra StaticExtra
-	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	var hookAddress common.Address
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to unmarshal static extra")
+	} else {
+		hookAddress = staticExtra.HooksAddress
+	}
+
+	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p}
+	hook, _ := GetHook(hookAddress, hookParam)
 
 	result := &FetchRPCResult{
 		TickSpacing: staticExtra.TickSpacing,
@@ -62,17 +76,37 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getLiquidity",
-		Params: []interface{}{eth.StringToBytes32(p.Address)},
-	}, []interface{}{&result.Liquidity})
+		Params: []any{eth.StringToBytes32(p.Address)},
+	}, []any{&result.Liquidity})
 
 	rpcRequests.AddCall(&ethrpc.Call{
 		ABI:    stateViewABI,
 		Target: t.config.StateViewAddress,
 		Method: "getSlot0",
-		Params: []interface{}{eth.StringToBytes32(p.Address)},
-	}, []interface{}{&result.Slot0})
+		Params: []any{eth.StringToBytes32(p.Address)},
+	}, []any{&result.Slot0})
 
 	_, err := rpcRequests.Aggregate()
+	if err != nil {
+		return result, err
+	}
+
+	if result.Reserves, err = hook.GetReserves(ctx, hookParam); err != nil {
+		return nil, err
+	}
+	if result.Reserves == nil { // default implementation is to estimate from liquidity and sqrtPriceX96
+		var reserve0, reserve1 big.Int
+		if result.Slot0.SqrtPriceX96.Sign() != 0 { // reserve0 = liquidity / sqrtPriceX96 * Q96
+			reserve0.Mul(result.Liquidity, Q96)
+			reserve0.Div(&reserve0, result.Slot0.SqrtPriceX96)
+		}
+		// reserve1 = liquidity * sqrtPriceX96 / Q96
+		reserve1.Mul(result.Liquidity, result.Slot0.SqrtPriceX96)
+		reserve1.Div(&reserve1, Q96)
+		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
+	}
+
+	result.HookExtra, err = hook.Track(ctx, hookParam)
 	return result, err
 }
 
@@ -85,7 +119,6 @@ func (t *PoolTracker) GetNewPoolState(
 		"poolAddress": p.Address,
 		"dexID":       t.config.DexID,
 	})
-
 	l.Info("Start getting new state of univ4 pool")
 
 	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
@@ -158,11 +191,14 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  uint64(rpcData.TickSpacing),
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Extra: &uniswapv3.Extra{
+			Liquidity:    rpcData.Liquidity,
+			TickSpacing:  uint64(rpcData.TickSpacing),
+			SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
+			Tick:         rpcData.Slot0.Tick,
+			Ticks:        ticks,
+		},
+		HookExtra: rpcData.HookExtra,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -172,42 +208,10 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to unmarshal static extra")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	hook, _ := GetHook(hookAddress)
-	switch hook.GetExchange() {
-	case valueobject.ExchangeUniswapV4BunniV2:
-		if reserves, err := bunniv2.GetCustomReserves(ctx, p, t.ethrpcClient); err == nil {
-			p.Reserves = reserves
-		}
-	default:
-		var reserve0, reserve1 big.Int
-		if rpcData.Slot0.SqrtPriceX96.Sign() != 0 {
-			// reserve0 = liquidity / sqrtPriceX96 * Q96
-			reserve0.Mul(rpcData.Liquidity, Q96)
-			reserve0.Div(&reserve0, rpcData.Slot0.SqrtPriceX96)
-		}
-
-		// reserve1 = liquidity * sqrtPriceX96 / Q96
-		reserve1.Mul(rpcData.Liquidity, rpcData.Slot0.SqrtPriceX96)
-		reserve1.Div(&reserve1, Q96)
-
-		p.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
-	}
-
+	p.Reserves = rpcData.Reserves
 	p.BlockNumber = blockNumber
 
 	l.Infof("Finish updating state of pool")
-
 	return p, nil
 }
 
@@ -305,8 +309,8 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 			ABI:    stateViewABI,
 			Target: t.config.StateViewAddress,
 			Method: "getTickInfo",
-			Params: []interface{}{eth.StringToBytes32(p.Address), big.NewInt(tickIdx)},
-		}, []interface{}{&stateViewTicks[i]})
+			Params: []any{eth.StringToBytes32(p.Address), big.NewInt(tickIdx)},
+		}, []any{&stateViewTicks[i]})
 	}
 
 	resp, err := rpcRequest.Aggregate()

@@ -37,6 +37,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
+	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra)
+}
+
+func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
+	extra *ExtraTickU256) (*PoolSimulator, error) {
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}

@@ -1,11 +1,20 @@
 package uniswapv4
 
 import (
+	"context"
+	"math/big"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/common"
 
-	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+type FeeAmount = constants.FeeAmount
+
+const FeeMax = constants.FeeMax
 
 // HookOption represents different hook operation types
 type HookOption int
@@ -44,26 +53,45 @@ func HasSwapPermissions(address common.Address) bool {
 
 type Hook interface {
 	GetExchange() string
+	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
+	Track(context.Context, *HookParam) (string, error)
+	BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount)
+	AfterSwap() (hookFeeAmt *big.Int)
 }
 
-var Hooks = map[common.Address]Hook{}
+type HookParam struct {
+	Cfg       *Config
+	RpcClient *ethrpc.Client
+	Pool      *entity.Pool
+	HookExtra string
+}
+
+type HookFactory func(param *HookParam) Hook
+
+var HookFactories = map[common.Address]HookFactory{}
 
 func RegisterHooks(hook Hook, addresses ...common.Address) bool {
+	return RegisterHooksFactory(func(*HookParam) Hook {
+		return hook
+	}, addresses...)
+}
+
+func RegisterHooksFactory(factory HookFactory, addresses ...common.Address) bool {
 	for _, address := range addresses {
-		Hooks[address] = hook
+		HookFactories[address] = factory
 	}
 	return true
 }
 
-func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
-	hook, ok = Hooks[hookAddress]
-	if hook == nil {
+func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) {
+	hookFactory, ok := HookFactories[hookAddress]
+	if hookFactory == nil {
 		hook = (*BaseHook)(nil)
+	} else {
+		hook = hookFactory(param)
 	}
 	return hook, ok
 }
-
-var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddresses...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
@@ -72,4 +100,20 @@ func (h *BaseHook) GetExchange() string {
 		return string(h.Exchange)
 	}
 	return DexType
+}
+
+func (h *BaseHook) GetReserves(context.Context, *HookParam) (entity.PoolReserves, error) {
+	return nil, nil
+}
+
+func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
+	return "", nil
+}
+
+func (h *BaseHook) BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount) {
+	return nil, 0
+}
+
+func (h *BaseHook) AfterSwap() (hookFeeAmt *big.Int) {
+	return nil
 }

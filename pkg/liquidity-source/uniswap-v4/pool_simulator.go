@@ -3,9 +3,11 @@ package uniswapv4
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
@@ -27,19 +29,23 @@ type PoolSimulator struct {
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+	var extra ExtraU256
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	hook, ok := GetHook(staticExtra.HooksAddress)
+	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{Pool: &entityPool, HookExtra: extra.HookExtra})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
 	}
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
 	}
 	if entityPool.Tokens[0].Address > entityPool.Tokens[1].Address {
 		// restore original order after V3Pool constructor forced sorting
@@ -57,6 +63,39 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
+}
+
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	poolSim := p.PoolSimulator
+	if p.hook == nil {
+		return poolSim.CalcAmountOut(param)
+	}
+
+	hookFee, swapFee := p.hook.BeforeSwap()
+
+	if swapFee >= constants.FeeMax {
+		return nil, errors.New("swap disabled")
+	} else if swapFee > 0 && swapFee != p.V3Pool.Fee {
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
+		cloned.V3Pool.Fee = swapFee
+		poolSim = &cloned
+	}
+
+	result, err := poolSim.CalcAmountOut(param)
+	if err != nil {
+		return nil, err
+	}
+	if hookFee != nil {
+		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
+	}
+
+	hookFee = p.hook.AfterSwap()
+	if hookFee != nil {
+		result.TokenAmountOut.Amount.Add(result.TokenAmountOut.Amount, hookFee)
+	}
+	return result, err
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {

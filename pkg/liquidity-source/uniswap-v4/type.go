@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
 
@@ -34,8 +35,15 @@ type StaticExtra struct {
 	Multicall3Address      common.Address `json:"mc3"`
 }
 
-type Extra = uniswapv3.Extra
-type ExtraTickU256 = uniswapv3.ExtraTickU256
+type Extra struct {
+	*uniswapv3.Extra
+	HookExtra string `json:"hX,omitempty"`
+}
+
+type ExtraU256 struct {
+	*uniswapv3.ExtraTickU256
+	HookExtra string `json:"hX,omitempty"`
+}
 
 type Slot0Data struct {
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
@@ -45,9 +53,11 @@ type Slot0Data struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity   *big.Int  `json:"liquidity"`
-	Slot0       Slot0Data `json:"slot0"`
-	TickSpacing int32     `json:"tickSpacing"`
+	Liquidity   *big.Int            `json:"l"`
+	Slot0       Slot0Data           `json:"s0"`
+	TickSpacing int32               `json:"tS"`
+	Reserves    entity.PoolReserves `json:"rs"`
+	HookExtra   string              `json:"hX,omitempty"`
 }
 
 type Tick = uniswapv3.Tick
