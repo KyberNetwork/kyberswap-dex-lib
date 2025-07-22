@@ -1,12 +1,14 @@
 package shared
 
-import "errors"
+import (
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+)
 
 var (
-	ErrUnsupportedHook   = errors.New("unsupported hook")
+	ErrUnsupportedHook   = errors.WithMessage(pool.ErrUnsupported, "unsupported hook")
 	ErrUninitializedPool = errors.New("pool is uninitialized")
 	ErrInvalidToken      = errors.New("invalid token")
-	ErrInvalidReserve    = errors.New("invalid reserve")
 	ErrInvalidAmountIn   = errors.New("invalid amount in")
-	ErrInvalidParameters = errors.New("invalid parameters")
 )

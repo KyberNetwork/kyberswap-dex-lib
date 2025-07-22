@@ -1,5 +1,9 @@
 package uniswapv4
 
+import (
+	"time"
+)
+
 type Config struct {
 	ChainID                int    `json:"chainID"`
 	DexID                  string `json:"dexID"`
@@ -10,6 +14,8 @@ type Config struct {
 	StateViewAddress       string `json:"stateViewAddress"`
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
+
+	TimeThresholdByPool map[string]time.Duration `json:"timeThreshold"` // blocks swap after any event
 
 	FetchTickFromStateView bool // instead of fetching from subgraph
 }
