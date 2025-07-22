@@ -9,6 +9,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/aegis"
+	uniswapv4types "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -20,14 +22,14 @@ var (
 
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
-	staticExtra StaticExtra
+	staticExtra uniswapv4types.StaticExtra
 	hook        Hook
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	var staticExtra StaticExtra
+	var staticExtra uniswapv4types.StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
@@ -37,6 +39,16 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
+	switch hook.GetExchange() {
+	case valueobject.ExchangeUniswapV4Aegis:
+		var extraAegis aegis.ExtraAegis
+		if err := json.Unmarshal([]byte(entityPool.Extra), &extraAegis); err != nil {
+			return nil, fmt.Errorf("unmarshal static extra: %w", err)
+		}
+
+		entityPool.SwapFee = float64(extraAegis.DynamicFee)
+	default:
+	}
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
 	if err != nil {
 		return nil, err
@@ -78,7 +90,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	var priceLimit v3Utils.Uint160
 	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 
-	return PoolMetaInfo{
+	return uniswapv4types.PoolMetaInfo{
 		Router:      p.staticExtra.UniversalRouterAddress,
 		Permit2Addr: p.staticExtra.Permit2Address,
 		TokenIn:     tokenInAddress,

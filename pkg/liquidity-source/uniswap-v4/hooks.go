@@ -1,9 +1,14 @@
 package uniswapv4
 
 import (
+	"context"
+
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/aegis"
 	bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -44,6 +49,8 @@ func HasSwapPermissions(address common.Address) bool {
 
 type Hook interface {
 	GetExchange() string
+	GetDynamicFee(ctx context.Context, ethrpcClient *ethrpc.Client,
+		clPoolManager string, hookAddress common.Address, lpFee uint32) uint32
 }
 
 var Hooks = map[common.Address]Hook{}
@@ -64,6 +71,7 @@ func GetHook(hookAddress common.Address) (hook Hook, ok bool) {
 }
 
 var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4BunniV2}, bunniv2.HookAddresses...)
+var _ = RegisterHooks(&BaseHook{valueobject.ExchangeUniswapV4Aegis}, aegis.HookAddresses...)
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
@@ -72,4 +80,8 @@ func (h *BaseHook) GetExchange() string {
 		return string(h.Exchange)
 	}
 	return DexType
+}
+
+func (h *BaseHook) GetDynamicFee(_ context.Context, _ *ethrpc.Client, _ string, _ common.Address, _ uint32) uint32 {
+	return shared.MAX_FEE_PIPS
 }
