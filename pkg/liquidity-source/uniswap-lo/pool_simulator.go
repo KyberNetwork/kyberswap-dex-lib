@@ -10,10 +10,12 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -23,6 +25,9 @@ type PoolSimulator struct {
 	token0 string
 	token1 string
 
+	isNativeToken0 bool
+	isNativeToken1 bool
+
 	// extra fields
 	takeToken0Orders []*DutchOrder
 	takeToken1Orders []*DutchOrder
@@ -31,11 +36,14 @@ type PoolSimulator struct {
 	takeToken1OrdersMapping map[string]int
 
 	reactorAddress string
+	chainID        valueobject.ChainID
 }
 
 type PoolMetaInfo struct {
 	ReactorAddress  string `json:"reactorAddress"`
 	ApprovalAddress string `json:"approvalAddress"`
+	TokenIn         string `json:"tokenIn"`
+	TokenOut        string `json:"tokenOut"`
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -47,14 +55,34 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if numTokens != 2 {
 		return nil, fmt.Errorf("pool's number of tokens should equal 2")
 	}
-	for i := 0; i < numTokens; i += 1 {
-		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-	}
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
+	}
+
+	chainID := staticExtra.ChainID
+	if chainID == 0 {
+		// default to ethereum
+		chainID = valueobject.ChainIDEthereum
+	}
+
+	isNativeToken0 := false
+	isNativeToken1 := false
+	for i := 0; i < numTokens; i += 1 {
+		// convert to wrapped if is native token
+		if entityPool.Tokens[i].Address == valueobject.ZeroAddress {
+			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
+			if i == 0 {
+				isNativeToken0 = true
+			} else if i == 1 {
+				isNativeToken1 = true
+			}
+		} else {
+			tokens[i] = entityPool.Tokens[i].Address
+		}
+
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	var extra Extra
@@ -85,14 +113,38 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				// Checked:    false,
 			},
 		},
-		token0:                  staticExtra.Token0,
-		token1:                  staticExtra.Token1,
+		token0:                  tokens[0],
+		token1:                  tokens[1],
+		isNativeToken0:          isNativeToken0,
+		isNativeToken1:          isNativeToken1,
 		takeToken0Orders:        extra.TakeToken0Orders,
 		takeToken1Orders:        extra.TakeToken1Orders,
 		takeToken0OrdersMapping: takeToken0OrdersMapping,
 		takeToken1OrdersMapping: takeToken1OrdersMapping,
 		reactorAddress:          staticExtra.ReactorAddress,
+		chainID:                 chainID,
 	}, nil
+}
+
+func (p *PoolSimulator) GetMinimumAmountInToTake(tokenIn string) (*big.Int, error) {
+	swapSide := p.getSwapSide(tokenIn)
+	if swapSide == SwapSideUnknown {
+		return nil, ErrTokenInNotSupported
+	}
+
+	orders := p.getOrdersBySwapSide(swapSide)
+	if len(orders) == 0 {
+		return nil, ErrNoOrderAvailable
+	}
+
+	var minAmountIn *uint256.Int
+	for _, order := range orders {
+		if minAmountIn == nil || minAmountIn.Cmp(order.Outputs[0].StartAmount) > 0 {
+			minAmountIn = order.Outputs[0].StartAmount
+		}
+	}
+
+	return minAmountIn.ToBig(), nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -105,8 +157,24 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	orders := p.getOrdersBySwapSide(swapSide)
+
 	if len(orders) == 0 {
 		return nil, ErrNoOrderAvailable
+	}
+
+	// Filter orders to only keep those with taking amount <= input amount
+	amountIn := number.SetFromBig(tokenAmountIn.Amount)
+	filteredOrders := make([]*DutchOrder, 0, len(orders))
+	for _, order := range orders {
+		if order.Outputs[0].StartAmount.Cmp(amountIn) <= 0 {
+			filteredOrders = append(filteredOrders, order)
+		}
+	}
+	orders = filteredOrders
+
+	// if after filtering, no order is available, return error that cannot fulfill amount in
+	if len(orders) == 0 {
+		return nil, ErrCannotFulfillAmountIn
 	}
 
 	totalAmountOut := number.Set(number.Zero)
@@ -237,10 +305,20 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+	// convert to native if is wrapped token and p.isNativeToken = true
+	if p.isNativeToken0 && strings.EqualFold(tokenIn, valueobject.WrappedNativeMap[p.chainID]) {
+		tokenIn = valueobject.ZeroAddress
+	}
+	if p.isNativeToken1 && strings.EqualFold(tokenOut, valueobject.WrappedNativeMap[p.chainID]) {
+		tokenOut = valueobject.ZeroAddress
+	}
+
 	return PoolMetaInfo{
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 		// ReactorAddress for backward compatibility
 		ReactorAddress: p.reactorAddress,
+		TokenIn:        tokenIn,
+		TokenOut:       tokenOut,
 	}
 }
 
