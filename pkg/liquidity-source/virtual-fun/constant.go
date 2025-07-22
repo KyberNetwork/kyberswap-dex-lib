@@ -2,16 +2,12 @@ package virtualfun
 
 import (
 	"errors"
-
-	"github.com/holiman/uint256"
 )
 
 var (
 	defaultGas = Gas{Swap: 250000}
 
 	bondingCurveApplicationGas int64 = 5_000_000
-
-	U100 = uint256.NewInt(100)
 )
 
 const (

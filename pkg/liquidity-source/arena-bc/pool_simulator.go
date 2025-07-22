@@ -213,7 +213,7 @@ func (s *PoolSimulator) buyAndCreateLpIfPossible(nativeAmount *uint256.Int) (*ui
 		return nil, nil, 0, ErrTotalSupplyOverflowOrUnderflow
 	}
 
-	tokenAmountTolerance, _ := new(uint256.Int).MulDivOverflow(tokenAmount, swapAmountTolerancePercentage, U100)
+	tokenAmountTolerance, _ := new(uint256.Int).MulDivOverflow(tokenAmount, swapAmountTolerancePercentage, u256.U100)
 	minTokenAmountOut := new(uint256.Int).Sub(tokenAmount, tokenAmountTolerance)
 	maxTokenAmountOut := new(uint256.Int).Add(tokenAmount, tokenAmountTolerance)
 
@@ -261,7 +261,7 @@ func (s *PoolSimulator) calculateCost(scaledAmount *uint256.Int) *uint256.Int {
 
 func (s *PoolSimulator) isLpTokenThresholdReached(currentTotalSupply *uint256.Int) bool {
 	lhs := new(uint256.Int).Mul(s.allowedTotalSupply, s.salePercentage)
-	rhs := new(uint256.Int).Mul(currentTotalSupply, U100)
+	rhs := new(uint256.Int).Mul(currentTotalSupply, u256.U100)
 
 	return lhs.Eq(rhs)
 }
@@ -394,7 +394,7 @@ func (s *PoolSimulator) buyAndCreateLpIfPossibleWithAmountOut(tokenAmount *uint2
 		return nil, nil, 0, ErrTotalSupplyOverflowOrUnderflow
 	}
 
-	tokenAmountTolerance, _ := new(uint256.Int).MulDivOverflow(tokenAmount, swapAmountTolerancePercentage, U100)
+	tokenAmountTolerance, _ := new(uint256.Int).MulDivOverflow(tokenAmount, swapAmountTolerancePercentage, u256.U100)
 	minTokenAmountOut := new(uint256.Int).Sub(tokenAmount, tokenAmountTolerance)
 	maxTokenAmountOut := new(uint256.Int).Add(tokenAmount, tokenAmountTolerance)
 

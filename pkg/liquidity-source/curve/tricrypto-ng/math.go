@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -670,7 +671,7 @@ func newton_y(
 	if temp.Cmp(convergenceLimit) > 0 {
 		convergenceLimit = temp
 	}
-	if uint256.NewInt(100).Cmp(convergenceLimit) > 0 {
+	if u256.U100.Cmp(convergenceLimit) > 0 {
 		convergenceLimit.SetUint64(100)
 	}
 

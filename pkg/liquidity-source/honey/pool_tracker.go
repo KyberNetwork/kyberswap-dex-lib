@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
@@ -220,11 +221,11 @@ func (t *PoolTracker) getNewPoolState(
 	p.Tokens = p.Tokens[:min(1, len(p.Tokens))]
 	var shares, exp uint256.Int
 	for i := range registeredAssets {
-		shares.MulDivOverflow(extra.VaultsMaxRedeems[i], extra.RedeemRates[i], U1e18)
+		shares.MulDivOverflow(extra.VaultsMaxRedeems[i], extra.RedeemRates[i], u256.BONE)
 		if vaultsDecimals[i] >= assetsDecimals[i] {
-			shares.Div(&shares, exp.Exp(U10, exp.SetUint64(uint64(vaultsDecimals[i]-assetsDecimals[i]))))
+			shares.Div(&shares, exp.Exp(u256.U10, exp.SetUint64(uint64(vaultsDecimals[i]-assetsDecimals[i]))))
 		} else {
-			shares.Mul(&shares, exp.Exp(U10, exp.SetUint64(uint64(assetsDecimals[i]-vaultsDecimals[i]))))
+			shares.Mul(&shares, exp.Exp(u256.U10, exp.SetUint64(uint64(assetsDecimals[i]-vaultsDecimals[i]))))
 		}
 		p.Reserves = append(p.Reserves, shares.String())
 		p.Tokens = append(p.Tokens, &entity.PoolToken{
