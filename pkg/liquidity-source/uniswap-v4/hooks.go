@@ -60,10 +60,11 @@ type Hook interface {
 }
 
 type HookParam struct {
-	Cfg       *Config
-	RpcClient *ethrpc.Client
-	Pool      *entity.Pool
-	HookExtra string
+	Cfg         *Config
+	RpcClient   *ethrpc.Client
+	Pool        *entity.Pool
+	HookExtra   string
+	HookAddress common.Address
 }
 
 type HookFactory func(param *HookParam) Hook

@@ -320,11 +320,6 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 		}
 	}
 
-	sharePrices := make([]*uint256.Int, len(data.SharePrices))
-	for i := range data.SharePrices {
-		sharePrices[i] = uint256.MustFromBig(data.SharePrices[i])
-	}
-
 	reserve0 := data.Reserves.Reserve0.String()
 	reserve1 := data.Reserves.Reserve1.String()
 	status := data.Reserves.Status
