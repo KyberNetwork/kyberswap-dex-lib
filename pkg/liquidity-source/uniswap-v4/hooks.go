@@ -55,14 +55,20 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount)
-	AfterSwap() (hookFeeAmt *big.Int)
+	BeforeSwap(*SwapParam) (hookFeeAmt *big.Int, swapFee FeeAmount)
+	AfterSwap(*SwapParam) (hookFeeAmt *big.Int)
+}
+
+type SwapParam struct {
+	ZeroForOne      bool
+	AmountSpecified *big.Int
+	AmountOut       *big.Int
 }
 
 type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
-	Pool        *entity.Pool
+	Pool        entity.Pool
 	HookExtra   string
 	HookAddress common.Address
 }
@@ -115,10 +121,10 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount) {
+func (h *BaseHook) BeforeSwap(params *SwapParam) (hookFeeAmt *big.Int, swapFee FeeAmount) {
 	return nil, 0
 }
 
-func (h *BaseHook) AfterSwap() (hookFeeAmt *big.Int) {
+func (h *BaseHook) AfterSwap(params *SwapParam) (hookFeeAmt *big.Int) {
 	return nil
 }

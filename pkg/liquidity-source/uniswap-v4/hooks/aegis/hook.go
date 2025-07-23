@@ -16,7 +16,8 @@ import (
 )
 
 type Hook struct {
-	*uniswapv4.BaseHook
+	uniswapv4.Hook
+
 	hook       common.Address
 	swapFee    uniswapv4.FeeAmount
 	hookFeeAmt *big.Int
@@ -44,8 +45,8 @@ type ManualFeeRPC struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Aegis},
-		hook:     param.HookAddress,
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Aegis},
+		hook: param.HookAddress,
 	}
 
 	if param.HookExtra != "" {
@@ -127,10 +128,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap() (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
+func (h *Hook) BeforeSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
 	return h.hookFeeAmt, h.swapFee
 }
 
-func (h *Hook) AfterSwap() (hookFeeAmt *big.Int) {
+func (h *Hook) AfterSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
 	return nil
 }

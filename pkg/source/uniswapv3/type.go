@@ -21,7 +21,7 @@ type SwapInfo struct {
 	RemainingAmountIn     *v3Utils.Int256  `json:"rAI,omitempty"`
 	NextStateSqrtRatioX96 *v3Utils.Uint160 `json:"nSqrtRx96"`
 	nextStateLiquidity    *v3Utils.Uint128
-	nextStateTickCurrent  int
+	NextStateTickCurrent  int
 }
 
 type Metadata struct {

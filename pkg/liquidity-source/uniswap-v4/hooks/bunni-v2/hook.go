@@ -2,6 +2,7 @@ package bunniv2
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,7 +23,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4BunniV2},
 	}
 	if param.RpcClient == nil {
-		hook.hubCallerErr = ErrNilRpcClient
+		hook.hubCallerErr = errors.New("rpc client is nil")
 	} else {
 		hook.hubCaller, hook.hubCallerErr = NewBunniV2HubContractCaller(HubAddress, param.RpcClient.GetETHClient())
 	}

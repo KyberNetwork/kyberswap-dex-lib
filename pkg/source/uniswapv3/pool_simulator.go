@@ -31,6 +31,78 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
 
+func NewUniswapV3Pool(chainID valueobject.ChainID, entityPool entity.Pool) (*v3Entities.Pool, error) {
+	var extra ExtraTickU256
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if extra.Tick == nil {
+		return nil, ErrTickNil
+	}
+
+	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address),
+		uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, "")
+	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address),
+		uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, "")
+
+	tokens := make([]string, 2)
+	reserves := make([]*big.Int, 2)
+	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
+		tokens[0] = entityPool.Tokens[0].Address
+		reserves[0] = NewBig10(entityPool.Reserves[0])
+		tokens[1] = entityPool.Tokens[1].Address
+		reserves[1] = NewBig10(entityPool.Reserves[1])
+	}
+
+	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
+
+	// Ticks are sorted from the pool service, so we don't have to do it again here
+	// Purpose: to improve the latency
+	for _, t := range extra.Ticks {
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if t.LiquidityGross.IsZero() {
+			continue
+		}
+
+		v3Ticks = append(v3Ticks, v3Entities.Tick{
+			Index:          t.Index,
+			LiquidityGross: t.LiquidityGross,
+			LiquidityNet:   t.LiquidityNet,
+		})
+	}
+
+	// if the tick list is empty, the pool should be ignored
+	if len(v3Ticks) == 0 {
+		return nil, ErrV3TicksEmpty
+	}
+
+	tickSpacing := int(extra.TickSpacing)
+	// For some pools that not yet initialized tickSpacing in their extra,
+	// we will get the tickSpacing through feeTier mapping.
+	if tickSpacing == 0 {
+		feeTier := constants.FeeAmount(entityPool.SwapFee)
+		if _, ok := constants.TickSpacings[feeTier]; !ok {
+			return nil, ErrInvalidFeeTier
+		}
+		tickSpacing = constants.TickSpacings[feeTier]
+	}
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
+	if err != nil {
+		return nil, err
+	}
+
+	return v3Entities.NewPoolV2(
+		token0,
+		token1,
+		constants.FeeAmount(entityPool.SwapFee),
+		extra.SqrtPriceX96,
+		extra.Liquidity,
+		*extra.Tick,
+		ticks,
+	)
+}
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -178,7 +250,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
 			nextStateLiquidity:    newPoolState.Liquidity,
-			nextStateTickCurrent:  newPoolState.TickCurrent,
+			NextStateTickCurrent:  newPoolState.TickCurrent,
 		},
 	}, nil
 }
@@ -234,7 +306,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			nextStateLiquidity:    amountOutResult.Liquidity,
-			nextStateTickCurrent:  amountOutResult.CurrentTick,
+			NextStateTickCurrent:  amountOutResult.CurrentTick,
 		},
 	}, nil
 }
@@ -256,7 +328,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	p.V3Pool.SqrtRatioX96 = si.NextStateSqrtRatioX96
 	p.V3Pool.Liquidity = si.nextStateLiquidity
-	p.V3Pool.TickCurrent = si.nextStateTickCurrent
+	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
