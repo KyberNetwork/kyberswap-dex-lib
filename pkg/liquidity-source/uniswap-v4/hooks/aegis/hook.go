@@ -17,8 +17,9 @@ import (
 
 type Hook struct {
 	*uniswapv4.BaseHook
-	hook  common.Address
-	extra string
+	hook       common.Address
+	swapFee    uniswapv4.FeeAmount
+	hookFeeAmt *big.Int
 }
 
 type AegisExtra struct {
@@ -45,7 +46,14 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	hook := &Hook{
 		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Aegis},
 		hook:     param.HookAddress,
-		extra:    param.HookExtra,
+	}
+
+	if param.HookExtra != "" {
+		var extra AegisExtra
+		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
+			hook.swapFee = uniswapv4.FeeAmount(extra.DynamicFee)
+			hook.hookFeeAmt = big.NewInt(int64(extra.PoolPOLShare))
+		}
 	}
 	return hook
 }, HookAddresses...)
@@ -120,11 +128,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 }
 
 func (h *Hook) BeforeSwap() (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
-	var extra AegisExtra
-	if err := json.Unmarshal([]byte(h.extra), &extra); err != nil {
-		return nil, 0
-	}
-	return big.NewInt(int64(extra.PoolPOLShare)), uniswapv4.FeeAmount(extra.DynamicFee)
+	return h.hookFeeAmt, h.swapFee
 }
 
 func (h *Hook) AfterSwap() (hookFeeAmt *big.Int) {
