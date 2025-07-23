@@ -38,6 +38,7 @@ common:
     - sky-psm
     - erc4626
     - compound-v3
+    - uniswap-v4-aegis
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
