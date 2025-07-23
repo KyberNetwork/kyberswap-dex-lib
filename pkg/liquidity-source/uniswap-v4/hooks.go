@@ -55,7 +55,7 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount)
+	BeforeSwap(amountIn *big.Int) (hookFeeAmt *big.Int, swapFee FeeAmount)
 	AfterSwap() (hookFeeAmt *big.Int)
 }
 
@@ -115,7 +115,7 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap() (hookFeeAmt *big.Int, swapFee FeeAmount) {
+func (h *BaseHook) BeforeSwap(amountIn *big.Int) (hookFeeAmt *big.Int, swapFee FeeAmount) {
 	return nil, 0
 }
 
