@@ -28,10 +28,15 @@ func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryPara
 	if factoryMap[poolType] != nil {
 		panic(poolType + " pool factory already registered")
 	}
-	factoryMap[poolType] = func(factoryParams FactoryParams) (IPoolSimulator, error) {
-		pool, err := factory(factoryParams)
-		return pool, errors.WithMessagef(err, "failed to init pool %s (%s/%s)",
-			factoryParams.EntityPool.Address, factoryParams.EntityPool.Exchange, poolType)
+	factoryMap[poolType] = func(factoryParams FactoryParams) (pool IPoolSimulator, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = errors.Errorf("panic: %v", r)
+			}
+			err = errors.WithMessagef(err, "failed to init pool %s (%s/%s)",
+				factoryParams.EntityPool.Address, factoryParams.EntityPool.Exchange, poolType)
+		}()
+		return factory(factoryParams)
 	}
 	var p P
 	if _, ok := any(p).(IPoolExactOutSimulator); ok {
