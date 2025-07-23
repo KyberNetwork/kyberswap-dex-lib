@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
@@ -244,7 +245,7 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 	if temp.Cmp(convergenceLimit) > 0 {
 		convergenceLimit = temp
 	}
-	if uint256.NewInt(100).Cmp(convergenceLimit) > 0 {
+	if u256.U100.Cmp(convergenceLimit) > 0 {
 		convergenceLimit = uint256.NewInt(100)
 	}
 

@@ -35,7 +35,6 @@ const (
 var (
 	granularityScaler = u256.TenPow(18)
 
-	U100  = uint256.NewInt(100)
 	U5000 = uint256.NewInt(5000)
 
 	swapAmountTolerancePercentage = u256.U10

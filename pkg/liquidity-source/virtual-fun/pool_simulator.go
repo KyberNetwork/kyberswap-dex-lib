@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -273,7 +274,7 @@ func (s *PoolSimulator) sell(amountIn *uint256.Int) (*uint256.Int, *uint256.Int)
 
 	txFee := new(uint256.Int).Div(
 		new(uint256.Int).Mul(fee, amountOut),
-		U100,
+		u256.U100,
 	)
 
 	amountOutAfterFee := new(uint256.Int).Sub(amountOut, txFee)
@@ -286,7 +287,7 @@ func (s *PoolSimulator) buy(amountIn *uint256.Int) (*uint256.Int, *uint256.Int) 
 
 	txFee := new(uint256.Int).Div(
 		new(uint256.Int).Mul(fee, amountIn),
-		U100,
+		u256.U100,
 	)
 
 	amountInAfterFee := new(uint256.Int).Sub(amountIn, txFee)
@@ -324,8 +325,8 @@ func (s *PoolSimulator) sellExactOut(amountOut *uint256.Int) (amountIn, amountOu
 	}()
 
 	amountOutBeforeFee = new(uint256.Int).Div(
-		new(uint256.Int).Mul(amountOut, U100),
-		new(uint256.Int).Sub(U100, s.sellTax),
+		new(uint256.Int).Mul(amountOut, u256.U100),
+		new(uint256.Int).Sub(u256.U100, s.sellTax),
 	)
 
 	newReserveB := new(uint256.Int).Sub(s.reserveB, amountOutBeforeFee)
@@ -351,8 +352,8 @@ func (s *PoolSimulator) buyExactOut(amountOut *uint256.Int) (amountInBeforeFee *
 	amountIn := new(uint256.Int).Sub(newReserveB, s.reserveB)
 
 	amountInBeforeFee = new(uint256.Int).Div(
-		new(uint256.Int).Mul(amountIn, U100),
-		new(uint256.Int).Sub(U100, s.buyTax),
+		new(uint256.Int).Mul(amountIn, u256.U100),
+		new(uint256.Int).Sub(u256.U100, s.buyTax),
 	)
 
 	return

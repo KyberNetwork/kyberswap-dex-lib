@@ -2,6 +2,8 @@ package eulerswap
 
 import (
 	"errors"
+
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -39,8 +41,14 @@ const (
 	vaultMethodTotalAssets      = "totalAssets"
 	vaultMethodTotalSupply      = "totalSupply"
 	vaultMethodAccountLiquidity = "accountLiquidity"
+	vaultMethodUnitOfAccount    = "unitOfAccount"
+	vaultMethodOracle           = "oracle"
+	vaultMethodLTVBorrow        = "LTVBorrow"
 
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
+	evcMethodGetCollaterals              = "getCollaterals"
+
+	routerMethodGetQuotes = "getQuotes"
 
 	batchSize = 100
 )
@@ -54,4 +62,8 @@ var (
 	ErrCurveViolation    = errors.New("curve violation")
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
+
+	CONFIG_SCALE = uint256.NewInt(1e4)
+
+	bufferSwapLimit = uint256.NewInt(85) // 85%
 )

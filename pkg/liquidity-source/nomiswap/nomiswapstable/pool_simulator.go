@@ -70,7 +70,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		p.A,
 	)
 
-	if amountOut.Cmp(Zero) <= 0 {
+	if amountOut.Sign() <= 0 {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut is %d", amountOut.Uint64())
 	}
 

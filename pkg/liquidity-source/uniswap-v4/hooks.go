@@ -63,8 +63,8 @@ type HookParam struct {
 	Cfg         *Config
 	RpcClient   *ethrpc.Client
 	Pool        *entity.Pool
-	HookAddress common.Address
 	HookExtra   string
+	HookAddress common.Address
 }
 
 type HookFactory func(param *HookParam) Hook

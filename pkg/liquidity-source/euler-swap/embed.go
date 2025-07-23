@@ -13,3 +13,6 @@ var vaultABIJson []byte
 
 //go:embed abis/EthereumVaultConnector.json
 var evcABIJson []byte
+
+//go:embed abis/EulerRouter.json
+var routerABIJson []byte

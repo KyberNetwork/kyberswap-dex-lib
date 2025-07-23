@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -348,8 +349,8 @@ func calcEMA(last, emaLast, emaWeight *uint256.Int) *uint256.Int {
 	var weight, result, temp uint256.Int
 	weight.SetUint64(min(100, emaWeight.Uint64()))
 
-	result.Mul(last, &weight).Div(&result, Number_100)
-	temp.Sub(Number_100, &weight).Mul(emaLast, &temp).Div(&temp, Number_100)
+	result.Mul(last, &weight).Div(&result, u256.U100)
+	temp.Sub(u256.U100, &weight).Mul(emaLast, &temp).Div(&temp, u256.U100)
 	result.Add(&result, &temp)
 
 	return &result
