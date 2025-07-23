@@ -117,6 +117,7 @@ common:
     - angle-transmuter-usd
     - angle-transmuter-eur
     - pmm-1
+    - pmm-2
     - native-v2
   excludedSourcesByClient: &excludedSourcesByClient
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -140,8 +141,11 @@ common:
       reductionFactorInBps:
         kyber-pmm: 5000
         pmm-1: 5000
+        pmm-2: 5000
         uniswap-v4-fairflow: 9000
         uniswap-v4-kem: 9000
+      surplusAllowanceUsd:
+      surplusAllowanceUsdByPool:
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
       minDifferentThresholdBps: 20
@@ -499,6 +503,13 @@ useCase:
           maxAmountInFactor: 1.2
           expiry: 180000000000 # 3m
           signerPrivateKey:
+      pmm-2:
+        handler: onebit
+        properties:
+          http:
+            base_url: "https://kyber-base.myeth.top"
+            timeout: 10s
+            retry_count: 2
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
