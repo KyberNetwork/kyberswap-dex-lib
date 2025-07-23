@@ -21,7 +21,11 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	hook := &Hook{
 		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4BunniV2},
 	}
-	hook.hubCaller, hook.hubCallerErr = NewBunniV2HubContractCaller(HubAddress, param.RpcClient.GetETHClient())
+	if param.RpcClient == nil {
+		hook.hubCallerErr = ErrNilRpcClient
+	} else {
+		hook.hubCaller, hook.hubCallerErr = NewBunniV2HubContractCaller(HubAddress, param.RpcClient.GetETHClient())
+	}
 	return hook
 }, HookAddresses...)
 
