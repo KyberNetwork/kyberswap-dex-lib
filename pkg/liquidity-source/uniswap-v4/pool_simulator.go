@@ -43,6 +43,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, shared.ErrUnsupportedHook
 	}
 
+	if shared.IsDynamicFee(uint32(entityPool.SwapFee)) {
+		entityPool.SwapFee = 0
+	}
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256)
 	if err != nil {
 		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
@@ -53,7 +56,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		v3Pool.Token0, v3Pool.Token1 = v3Pool.Token1, v3Pool.Token0
 	}
 	v3PoolSimulator.Gas = defaultGas
-
 	return &PoolSimulator{
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,

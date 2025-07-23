@@ -1,0 +1,807 @@
+[
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "_governance",
+              "type": "address"
+          },
+          {
+              "internalType": "uint256",
+              "name": "_dailyBudget",
+              "type": "uint256"
+          }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "uint24",
+              "name": "value",
+              "type": "uint24"
+          },
+          {
+              "internalType": "uint24",
+              "name": "min",
+              "type": "uint24"
+          },
+          {
+              "internalType": "uint24",
+              "name": "max",
+              "type": "uint24"
+          }
+      ],
+      "name": "InvalidFeeRange",
+      "type": "error"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "uint256",
+              "name": "value",
+              "type": "uint256"
+          },
+          {
+              "internalType": "uint256",
+              "name": "min",
+              "type": "uint256"
+          },
+          {
+              "internalType": "uint256",
+              "name": "max",
+              "type": "uint256"
+          }
+      ],
+      "name": "ParameterOutOfRange",
+      "type": "error"
+  },
+  {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+  },
+  {
+      "inputs": [],
+      "name": "ZeroValue",
+      "type": "error"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "factor",
+              "type": "uint32"
+          }
+      ],
+      "name": "BaseFeeFactorSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "stepPpm",
+              "type": "uint32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "updateIntervalSecs",
+              "type": "uint32"
+          }
+      ],
+      "name": "BaseFeeParamsSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "decayWindow",
+              "type": "uint32"
+          }
+      ],
+      "name": "CapBudgetDecayWindowSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "newBudget",
+              "type": "uint32"
+          }
+      ],
+      "name": "DailyBudgetSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "decayWindow",
+              "type": "uint32"
+          }
+      ],
+      "name": "GlobalDecayWindowSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint24",
+              "name": "manualFee",
+              "type": "uint24"
+          }
+      ],
+      "name": "ManualFeeSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint24",
+              "name": "maxBaseFeePpm",
+              "type": "uint24"
+          }
+      ],
+      "name": "MaxBaseFeeSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint24",
+              "name": "minBaseFeePpm",
+              "type": "uint24"
+          }
+      ],
+      "name": "MinBaseFeeSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "address",
+              "name": "user",
+              "type": "address"
+          },
+          {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+          }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "newBudget",
+              "type": "uint32"
+          }
+      ],
+      "name": "PoolDailyBudgetSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "polSharePpm",
+              "type": "uint256"
+          }
+      ],
+      "name": "PoolPOLShareChanged",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint32",
+              "name": "decayPeriod",
+              "type": "uint32"
+          }
+      ],
+      "name": "SurgeDecayPeriodSet",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint24",
+              "name": "multiplier",
+              "type": "uint24"
+          }
+      ],
+      "name": "SurgeFeeMultiplierSet",
+      "type": "event"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "clearManualFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getBaseFeeFactor",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getBaseFeeStepPpm",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getBaseFeeUpdateIntervalSeconds",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getCapBudgetDecayWindow",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getDailyBudgetPpm",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "getDefaultDailyBudgetPpm",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getDefaultMaxTicksPerBlock",
+      "outputs": [
+          {
+              "internalType": "uint24",
+              "name": "",
+              "type": "uint24"
+          }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getManualFee",
+      "outputs": [
+          {
+              "internalType": "uint24",
+              "name": "manualFee",
+              "type": "uint24"
+          },
+          {
+              "internalType": "bool",
+              "name": "isSet",
+              "type": "bool"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getMaxBaseFee",
+      "outputs": [
+          {
+              "internalType": "uint24",
+              "name": "",
+              "type": "uint24"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getMinBaseFee",
+      "outputs": [
+          {
+              "internalType": "uint24",
+              "name": "",
+              "type": "uint24"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getPoolPOLShare",
+      "outputs": [
+          {
+              "internalType": "uint256",
+              "name": "poolSpecificPolShare",
+              "type": "uint256"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getSurgeDecayPeriodSeconds",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getSurgeFeeMultiplierPpm",
+      "outputs": [
+          {
+              "internalType": "uint24",
+              "name": "",
+              "type": "uint24"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+          {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "factor",
+              "type": "uint32"
+          }
+      ],
+      "name": "setBaseFeeFactor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "stepPpm",
+              "type": "uint32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "updateIntervalSecs",
+              "type": "uint32"
+          }
+      ],
+      "name": "setBaseFeeParams",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "newCapBudgetDecayWindow",
+              "type": "uint32"
+          }
+      ],
+      "name": "setCapBudgetDecayWindow",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "uint32",
+              "name": "newCapBudgetDailyPpm",
+              "type": "uint32"
+          }
+      ],
+      "name": "setDailyBudgetPpm",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "uint32",
+              "name": "newCapBudgetDecayWindow",
+              "type": "uint32"
+          }
+      ],
+      "name": "setDecayWindow",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint24",
+              "name": "manualFee",
+              "type": "uint24"
+          }
+      ],
+      "name": "setManualFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint24",
+              "name": "newMaxFee",
+              "type": "uint24"
+          }
+      ],
+      "name": "setMaxBaseFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint24",
+              "name": "newMinFee",
+              "type": "uint24"
+          }
+      ],
+      "name": "setMinBaseFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "newBudget",
+              "type": "uint32"
+          }
+      ],
+      "name": "setPoolDailyBudgetPpm",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint256",
+              "name": "newPolSharePpm",
+              "type": "uint256"
+          }
+      ],
+      "name": "setPoolPOLShare",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint32",
+              "name": "newSurgeDecayPeriodSeconds",
+              "type": "uint32"
+          }
+      ],
+      "name": "setSurgeDecayPeriodSeconds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "uint24",
+              "name": "multiplier",
+              "type": "uint24"
+          }
+      ],
+      "name": "setSurgeFeeMultiplierPpm",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+          }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  }
+]
