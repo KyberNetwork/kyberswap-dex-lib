@@ -100,6 +100,7 @@ import (
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	pkg_liquiditysource_uniswapv4_hooks_aegis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/aegis"
 	pkg_liquiditysource_uniswapv4_hooks_bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
+	pkg_liquiditysource_uniswapv4_hooks_zorav4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/zora-v4"
 	pkg_liquiditysource_uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	pkg_liquiditysource_usd0pp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	pkg_liquiditysource_velocorev2_cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -255,6 +256,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4_hooks_aegis.Hook{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4_hooks_bunniv2.Hook{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4_hooks_zorav4.Hook{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_usd0pp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_cpmm.PoolSimulator{})
