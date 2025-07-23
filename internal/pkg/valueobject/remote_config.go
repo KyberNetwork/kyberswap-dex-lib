@@ -184,8 +184,10 @@ type (
 	}
 
 	AlphaFeeReductionConfig struct {
-		ReductionFactorInBps  map[string]float64 `mapstructure:"reductionFactorInBps" json:"afFactorInBps"`
-		ReductionFactorByPool map[string]float64 `mapstructure:"reductionFactorByPool" json:"afFactorByPool"`
+		ReductionFactorInBps      map[string]float64 `mapstructure:"reductionFactorInBps" json:"afFactorInBps"`
+		ReductionFactorByPool     map[string]float64 `mapstructure:"reductionFactorByPool" json:"afFactorByPool"`
+		SurplusAllowanceUsd       map[string]float64 `mapstructure:"surplusAllowanceUsd" json:"spAllowanceUsd"`
+		SurplusAllowanceUsdByPool map[string]float64 `mapstructure:"surplusAllowanceUsdByPool" json:"spAllowanceUsdByPool"`
 
 		WeightDistributeBySource     map[string]int `mapstructure:"weightDistributeBySource" json:"weightDistributeBySource"`
 		WeightDistributeByPool       map[string]int `mapstructure:"weightDistributeByPool" json:"weightDistributeByPool"`

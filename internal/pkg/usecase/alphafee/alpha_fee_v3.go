@@ -77,7 +77,8 @@ func (c *AlphaFeeV3Calculation) Calculate(ctx context.Context, param AlphaFeePar
 	}, nil
 }
 
-func (c *AlphaFeeV3Calculation) CalculateDefaultAlphaFee(ctx context.Context, param DefaultAlphaFeeParams) (*routerEntity.AlphaFeeV2, error) {
+func (c *AlphaFeeV3Calculation) CalculateDefaultAlphaFee(ctx context.Context,
+	param DefaultAlphaFeeParams) (*routerEntity.AlphaFeeV2, error) {
 	return c.v2Calculation.CalculateDefaultAlphaFee(ctx, param)
 }
 
@@ -165,7 +166,8 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 		if r := recover(); r != nil {
 			swapReductions = nil
 			err = errors.WithMessagef(finderCommon.ErrPanicRefreshPath, "%v", r)
-			log.Ctx(ctx).Warn().Msgf("alphaFeeV3|refreshPath|%s panicked: %s", currentPool, string(debug.Stack()))
+			log.Ctx(ctx).Warn().
+				Str("pool", currentPool).Bytes("stack", debug.Stack()).Msg("alphaFeeV3|refreshPath panicked")
 		}
 	}()
 
@@ -189,7 +191,8 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 
 			for _, swapInfo := range pathInfo {
 				if privo.IsAlphaFeeSource(swapInfo.Exchange) {
-					weight := c.getWeightDistribute(simulatorBucket.GetPool(swapInfo.Pool), swapInfo.TokenIn, swapInfo.TokenOut)
+					weight := c.getWeightDistribute(simulatorBucket.GetPool(swapInfo.Pool), swapInfo.TokenIn,
+						swapInfo.TokenOut)
 					totalWeight += float64(weight)
 				}
 			}
@@ -200,8 +203,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 		// Even if the path does not contain alpha fee sources,
 		// we still need to refresh the path amount out,
 		// to update the pool state in simulatorBucket for the next path.
-		var currentAmountIn big.Int
-		currentAmountIn.Set(path.AmountIn)
+		currentAmountIn := path.AmountIn
 		for i, poolId := range path.PoolsOrder {
 			fromToken := path.TokensOrder[i]
 			toToken := path.TokensOrder[i+1]
@@ -210,7 +212,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 			swapLimit := simulatorBucket.GetPoolSwapLimit(poolId)
 			currentPool = pool.GetExchange() + "/" + poolId // For tracking panic refresh path
 
-			tokenAmountIn := dexlibPool.TokenAmount{Token: fromToken, Amount: &currentAmountIn}
+			tokenAmountIn := dexlibPool.TokenAmount{Token: fromToken, Amount: currentAmountIn}
 			res, err := c.CalcAmountOut(ctx, pool, tokenAmountIn, toToken, swapLimit)
 			if err != nil {
 				return nil, err
@@ -218,41 +220,49 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 				return nil, finderCommon.ErrCalcAmountOutEmpty
 			}
 
-			var currentAmountOut big.Int
-			currentAmountOut.Set(res.TokenAmountOut.Amount)
+			currentAmountOut := res.TokenAmountOut.Amount
 
 			if shouldTakeAlphaFeeInPath && privo.IsAlphaFeeSource(pool.GetExchange()) {
 				currentAmountOutF, _ := currentAmountOut.Float64()
-
-				// https://www.notion.so/kybernetwork/Alpha-Fee-Phase-3-20026751887e809b9d53f6937378078c
-				weight := c.getWeightDistribute(pool, fromToken, toToken)
-				reductionFactor := c.getReductionFactor(pool)
-				surplusRate := 1 - math.Exp(math.Log(1-pathSurplusRate)*float64(weight)/totalWeight)
-				poolSurplus := currentAmountOutF * surplusRate
-				reducedAmountF := poolSurplus * reductionFactor / basisPointFloat
-
-				currentAmountOutF -= reducedAmountF
-				new(big.Float).SetFloat64(currentAmountOutF).Int(&currentAmountOut)
-
-				reducedAmount := new(big.Int).Sub(res.TokenAmountOut.Amount, &currentAmountOut)
-				reducedAmountUsd := c.GetFairPrice(
+				currentAmountOutUsd := c.GetFairPrice(
 					ctx, fromToken, toToken,
 					param.Prices[fromToken], param.Prices[toToken],
 					param.Tokens[fromToken].Decimals, param.Tokens[toToken].Decimals,
-					&currentAmountIn, &currentAmountOut, reducedAmount,
+					currentAmountIn, currentAmountOut, currentAmountOut,
 				)
 
+				// https://www.notion.so/kybernetwork/Alpha-Fee-Phase-3-20026751887e809b9d53f6937378078c
+				weight := c.getWeightDistribute(pool, fromToken, toToken)
+				surplusRate := 1 - math.Exp(math.Log(1-pathSurplusRate)*float64(weight)/totalWeight)
+				poolSurplus := currentAmountOutF * surplusRate
+
+				reductionFactor := c.getReductionFactor(pool)
+				reduceAmountF := poolSurplus * reductionFactor / basisPointFloat
+				reduceAmountUsd := currentAmountOutUsd * reduceAmountF / currentAmountOutF
+
+				if surplusAllowanceUsd := c.getSurplusAllowanceUsd(pool); surplusAllowanceUsd > 0 {
+					minReduceAmountUsd := reduceAmountUsd*basisPointFloat/reductionFactor - surplusAllowanceUsd
+					if reduceAmountUsd < minReduceAmountUsd {
+						reduceAmountUsd = minReduceAmountUsd
+						reduceAmountF = currentAmountOutF * reduceAmountUsd / currentAmountOutUsd
+					}
+				}
+
+				var reduceAmountBF big.Float
+				reduceAmount, _ := reduceAmountBF.SetFloat64(reduceAmountF).Int(nil)
 				swapReductions = append(swapReductions, routerEntity.AlphaFeeV2SwapReduction{
 					ExecutedId:      executedId,
 					PoolAddress:     poolId,
 					TokenIn:         fromToken,
 					TokenOut:        toToken,
-					ReduceAmount:    reducedAmount,
-					ReduceAmountUsd: reducedAmountUsd,
+					ReduceAmount:    reduceAmount,
+					ReduceAmountUsd: reduceAmountUsd,
 				})
+
+				currentAmountOut.Sub(currentAmountOut, reduceAmount)
 			}
 
-			// No need to BackupPool here, since if we fails,
+			// No need to BackupPool here, since if we fail,
 			// we stop the process and return the error.
 			pool = simulatorBucket.ClonePoolById(ctx, poolId)
 			swapLimit = simulatorBucket.CloneSwapLimitById(ctx, poolId)
@@ -266,7 +276,7 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
-			currentAmountIn.Set(&currentAmountOut)
+			currentAmountIn = currentAmountOut
 			executedId++
 		}
 	}
@@ -274,7 +284,8 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 	return swapReductions, nil
 }
 
-func (c *AlphaFeeV3Calculation) notMuchBetter(bestRoute, bestAMMRoute *finderCommon.ConstructRoute, gasIncluded bool) bool {
+func (c *AlphaFeeV3Calculation) notMuchBetter(bestRoute, bestAMMRoute *finderCommon.ConstructRoute,
+	gasIncluded bool) bool {
 	if bestPrice, ammPrice := bestRoute.AmountOutPrice, bestAMMRoute.AmountOutPrice; bestPrice != 0 || ammPrice != 0 {
 		if gasIncluded {
 			bestPrice -= bestRoute.GasFeePrice + bestRoute.L1GasFeePrice
@@ -299,19 +310,19 @@ func (c *AlphaFeeV3Calculation) getAMMBestRouteAmountOut(_ context.Context, para
 		ammBestRouteAmountOut.Set(param.BestAmmRoute.AmountOut)
 	}
 
-	// If the AMM best route is unavailable, or if it returns an exceedingly small amount,
-	// we set the AMM best route to `maxReducedAmountOut`, which is a portion of the bestRoute.AmountOut.
-	var maxReducedAmountOut big.Int
-	maxReducedAmountOut.Div(
-		maxReducedAmountOut.Mul(
+	// If the AMM best route is unavailable, or if it returns an exceedingly tiny amount,
+	// we set the AMM best route to `maxReduceAmountOut`, which is a portion of the bestRoute.AmountOut.
+	var maxReduceAmountOut big.Int
+	maxReduceAmountOut.Div(
+		maxReduceAmountOut.Mul(
 			param.BestRoute.AmountOut,
-			maxReducedAmountOut.SetInt64(c.config.ReductionConfig.MaxThresholdPercentageInBps),
+			maxReduceAmountOut.SetInt64(c.config.ReductionConfig.MaxThresholdPercentageInBps),
 		),
 		valueobject.BasisPoint,
 	)
 
-	if ammBestRouteAmountOut.Cmp(&maxReducedAmountOut) < 0 {
-		ammBestRouteAmountOut.Set(&maxReducedAmountOut)
+	if ammBestRouteAmountOut.Cmp(&maxReduceAmountOut) < 0 {
+		ammBestRouteAmountOut.Set(&maxReduceAmountOut)
 	}
 
 	return ammBestRouteAmountOut
@@ -322,14 +333,14 @@ func (c *AlphaFeeV3Calculation) GetFairPrice(
 	tokenIn, tokenOut string,
 	tokenInPrice, tokenOutPrice float64,
 	tokenInDecimals, tokenOutDecimals uint8,
-	amountIn, amountOut, alphaFeeAmount *big.Int,
+	amountIn, amountOut, specifiedAmount *big.Int,
 ) float64 {
 	isTokenInWhitelistPrices := c.config.WhitelistPrices[tokenIn]
 	isTokenOutWhitelistPrice := c.config.WhitelistPrices[tokenOut]
 
 	if isTokenOutWhitelistPrice || !isTokenInWhitelistPrices {
 		return finderUtil.CalcAmountPrice(
-			alphaFeeAmount,
+			specifiedAmount,
 			tokenOutDecimals,
 			tokenOutPrice,
 		)
@@ -342,26 +353,30 @@ func (c *AlphaFeeV3Calculation) GetFairPrice(
 	tokenOutFairPrice := tokenInPrice * amountInF / amountOutF
 
 	return finderUtil.CalcAmountPrice(
-		alphaFeeAmount,
+		specifiedAmount,
 		tokenOutDecimals,
 		tokenOutFairPrice,
 	)
 }
 
+// getReductionFactor returns the reduction factor of a surplus for a given pool.
 func (c *AlphaFeeV3Calculation) getReductionFactor(pool dexlibPool.IPoolSimulator) float64 {
-	if c.config.ReductionConfig.ReductionFactorByPool != nil {
-		if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]; ok {
-			return sourceReductionFactorF
-		}
+	if reductionFactor, ok := c.config.ReductionConfig.ReductionFactorByPool[pool.GetAddress()]; ok {
+		return reductionFactor
+	} else if reductionFactor, ok = c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]; ok {
+		return reductionFactor
 	}
-
-	if c.config.ReductionConfig.ReductionFactorInBps != nil {
-		if sourceReductionFactorF, ok := c.config.ReductionConfig.ReductionFactorInBps[pool.GetExchange()]; ok {
-			return sourceReductionFactorF
-		}
-	}
-
 	return DefaultReductionFactor
+}
+
+// getSurplusAllowanceUsd returns the maximum surplus allowance in USD of a pool. Negative value means no limit.
+func (c *AlphaFeeV3Calculation) getSurplusAllowanceUsd(pool dexlibPool.IPoolSimulator) float64 {
+	if surplusAllowanceUsd, ok := c.config.ReductionConfig.SurplusAllowanceUsdByPool[pool.GetAddress()]; ok {
+		return surplusAllowanceUsd
+	} else if surplusAllowanceUsd, ok = c.config.ReductionConfig.SurplusAllowanceUsd[pool.GetExchange()]; ok {
+		return surplusAllowanceUsd
+	}
+	return -1
 }
 
 func (c *AlphaFeeV3Calculation) getWeightDistribute(pool dexlibPool.IPoolSimulator, tokenIn, tokenOut string) int {
@@ -430,7 +445,7 @@ func (c *AlphaFeeV3Calculation) getPathExchangeRate(
 		}
 	}
 
-	pathExchangeRates := []pathExchangeRate{}
+	var pathExchangeRates []pathExchangeRate
 	for idx, path := range routeInfo {
 		if isPathContainsAlphaFeeSources(path) {
 			pathAmountInF, _ := path[0].AmountIn.Float64()
@@ -452,7 +467,8 @@ func (c *AlphaFeeV3Calculation) getPathExchangeRate(
 					key := swapInfo.Pool + "-" + swapInfo.TokenIn + "-" + swapInfo.TokenOut
 					ratePool, exist := rateSharePools[key]
 					if !exist {
-						log.Ctx(ctx).Warn().Msgf("alphaFeeV3|getPathExchangeRate|pool %s not found in rateSharePools", key)
+						log.Ctx(ctx).Warn().
+							Str("key", key).Msg("alphaFeeV3|getPathExchangeRate|key not found in rateSharePools")
 						pathAmountOutF = defaultPathAmountOutF
 						break
 					}
@@ -460,7 +476,8 @@ func (c *AlphaFeeV3Calculation) getPathExchangeRate(
 					ratePoolAmountInF, _ := ratePool.TotalAmountIn.Float64()
 					ratePoolAmountOutF, _ := ratePool.TotalAmountOut.Float64()
 					if utils.Float64AlmostEqual(ratePoolAmountOutF, 0) {
-						log.Ctx(ctx).Warn().Msgf("alphaFeeV3|getPathExchangeRate|pool %s has zero amount out", key)
+						log.Ctx(ctx).Warn().
+							Str("key", key).Msg("alphaFeeV3|getPathExchangeRate|key has zero amount out")
 						pathAmountOutF = defaultPathAmountOutF
 						break
 					}

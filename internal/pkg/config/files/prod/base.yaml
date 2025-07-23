@@ -142,6 +142,8 @@ common:
         pmm-1: 5000
         uniswap-v4-fairflow: 9000
         uniswap-v4-kem: 9000
+      surplusAllowanceUsd:
+      surplusAllowanceUsdByPool:
       maxThresholdPercentageInBps: 8000
       minDifferentThresholdUSD: 0.005
       minDifferentThresholdBps: 20
@@ -298,6 +300,8 @@ useCase:
         useAEVMRemoteFinder: &useAEVMRemoteFinder false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
+      featureFlags:
+        isAlphaFeeReductionEnable:
     cache:
       defaultTtl: 15s
       ttlByAmount:
@@ -511,7 +515,7 @@ useCase:
           buffer: 50
           minThreshold: 500
     rfqAcceptableSlippageFraction: 1000
-    faultyPoolDetectorDisabled: false
+    faultyPoolDetectorDisabled:
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig

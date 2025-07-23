@@ -206,6 +206,8 @@ useCase:
         useAEVMRemoteFinder: false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
+      featureFlags:
+        isAlphaFeeReductionEnable:
     cache:
       defaultTtl: 15s
       ttlByAmount:
@@ -364,7 +366,7 @@ useCase:
             timeout: 10s
             retry_count: 2
     rfqAcceptableSlippageFraction: 1000
-    faultyPoolDetectorDisabled: false
+    faultyPoolDetectorDisabled:
     publisher:
       aggregatorTransactionTopic: *aggregatorTransactionTopic
     alphaFeeConfig: *alphaFeeConfig

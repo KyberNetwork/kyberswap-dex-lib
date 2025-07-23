@@ -323,6 +323,60 @@ func TestAlphaFeeV3Calculation(t *testing.T) {
 			},
 			expectedError: nil,
 		},
+
+		{
+			name: "[surplusAllowance] applies per-exchange and per-pool surplusAllowance correctly",
+			bestRoute: &finderCommon.ConstructRoute{
+				AmountIn:       big.NewInt(1_000_000_000),
+				AmountOut:      big.NewInt(900_000_000),
+				AmountOutPrice: 900,
+				Paths: []*finderCommon.ConstructPath{
+					{
+						AmountIn:    big.NewInt(1_000_000_000),
+						AmountOut:   big.NewInt(900_000_000),
+						PoolsOrder:  []string{"t1_rate0.9_a_b"},
+						TokensOrder: []string{"a", "b"},
+					},
+				},
+			},
+			bestAmmRoute: &finderCommon.ConstructRoute{
+				AmountIn:       big.NewInt(1_000_000_000),
+				AmountOut:      big.NewInt(890_000_000),
+				AmountOutPrice: 890,
+			},
+			config: valueobject.AlphaFeeConfig{
+				ReductionConfig: valueobject.AlphaFeeReductionConfig{
+					SurplusAllowanceUsd: map[string]float64{
+						alphaFeeSource: 50,
+					},
+					SurplusAllowanceUsdByPool: map[string]float64{
+						"t1_rate0.9_a_b": 0.9,
+					},
+					ReductionFactorInBps: map[string]float64{
+						alphaFeeSource: 9000, // 9M
+					},
+					WeightDistributeBySource: map[string]int{
+						alphaFeeSource: 100,
+					},
+					MaxThresholdPercentageInBps: 8000,
+					MinDifferentThresholdBps:    0,
+					MinDifferentThresholdUSD:    0.001,
+				},
+			},
+			expectedAlphaFee: &routerEntity.AlphaFeeV2{
+				AMMAmount: big.NewInt(890_000_000),
+				SwapReductions: []routerEntity.AlphaFeeV2SwapReduction{
+					{
+						ExecutedId:   0,
+						PoolAddress:  "t1_rate0.9_a_b",
+						TokenIn:      "a",
+						TokenOut:     "b",
+						ReduceAmount: big.NewInt(9_100_000), // 10M - 900k
+					},
+				},
+			},
+			expectedError: nil,
+		},
 	}
 
 	for _, tt := range tests {
