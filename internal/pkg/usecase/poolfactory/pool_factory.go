@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"sync"
+	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
@@ -11,15 +12,16 @@ import (
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	_ "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	usecasetypes "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -27,6 +29,8 @@ import (
 
 var (
 	ErrPoolTypeFactoryNotFound = errors.New("pool type factory not found")
+
+	errLogSampler = &zerolog.BurstSampler{Burst: 2, Period: 15 * time.Second}
 )
 
 type PoolFactory struct {
@@ -123,11 +127,14 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
 	stateRoot common.Hash) (pool poolpkg.IPoolSimulator, err error) {
+	lg := log.Ctx(ctx).Sample(errLogSampler)
 	factoryParams.EntityPool = entityPool
 
 	if poolFactory := poolpkg.Factory(entityPool.Type); poolFactory != nil {
 		if pool, err = poolFactory(factoryParams); err == nil {
 			return pool, nil
+		} else if !errors.Is(err, poolpkg.ErrUnsupported) {
+			lg.Err(err).Msg("failed to create dex-lib pool")
 		}
 	}
 
@@ -140,6 +147,7 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 	if err == nil {
 		err = errors.WithMessagef(ErrPoolTypeFactoryNotFound, "%s (%s/%s)",
 			entityPool.Address, entityPool.Exchange, entityPool.Type)
+		lg.Err(err).Msg("failed to create dex-lib pool")
 	}
 	return nil, err
 }
