@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
@@ -15,11 +16,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+var (
+	FeeMax = big.NewInt(int64(constants.FeeMax))
+)
+
 type Hook struct {
 	*uniswapv4.BaseHook
-	hook       common.Address
-	swapFee    uniswapv4.FeeAmount
-	hookFeeAmt *big.Int
+	hook        common.Address
+	swapFee     uniswapv4.FeeAmount
+	protocolFee *big.Int
 }
 
 type AegisExtra struct {
@@ -52,7 +57,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		var extra AegisExtra
 		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
 			hook.swapFee = uniswapv4.FeeAmount(extra.DynamicFee)
-			hook.hookFeeAmt = big.NewInt(int64(extra.PoolPOLShare))
+			hook.protocolFee = big.NewInt(int64(extra.PoolPOLShare))
 		}
 	}
 	return hook
@@ -127,8 +132,11 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap() (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
-	return h.hookFeeAmt, h.swapFee
+func (h *Hook) BeforeSwap(amountIn *big.Int) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
+	hookFeeAmt = new(big.Int)
+	hookFeeAmt.Mul(amountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+	hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+	return hookFeeAmt, h.swapFee
 }
 
 func (h *Hook) AfterSwap() (hookFeeAmt *big.Int) {

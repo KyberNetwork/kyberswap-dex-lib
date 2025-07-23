@@ -73,8 +73,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return poolSim.CalcAmountOut(param)
 	}
 
-	hookFee, swapFee := p.hook.BeforeSwap()
-
+	hookFee, swapFee := p.hook.BeforeSwap(param.TokenAmountIn.Amount)
 	if swapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
 	} else if swapFee > 0 && swapFee != p.V3Pool.Fee {
@@ -83,14 +82,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		cloned.V3Pool = &clonedV3Pool
 		cloned.V3Pool.Fee = swapFee
 		poolSim = &cloned
+		if hookFee != nil {
+			param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, hookFee)
+		}
 	}
 
 	result, err := poolSim.CalcAmountOut(param)
 	if err != nil {
 		return nil, err
-	}
-	if hookFee != nil {
-		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
 	}
 
 	hookFee = p.hook.AfterSwap()
