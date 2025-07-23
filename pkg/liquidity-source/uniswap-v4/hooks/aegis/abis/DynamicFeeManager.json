@@ -1,0 +1,313 @@
+[
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "contractOwner",
+              "type": "address"
+          },
+          {
+              "internalType": "contract IPoolPolicyManager",
+              "name": "_policyManager",
+              "type": "address"
+          },
+          {
+              "internalType": "address",
+              "name": "oracleAddress",
+              "type": "address"
+          },
+          {
+              "internalType": "address",
+              "name": "hookAddress",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+  },
+  {
+      "inputs": [],
+      "name": "NotInitialized",
+      "type": "error"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "caller",
+              "type": "address"
+          }
+      ],
+      "name": "UnauthorizedCaller",
+      "type": "error"
+  },
+  {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "AlreadyInitialized",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "inCap",
+              "type": "bool"
+          }
+      ],
+      "name": "CapToggled",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "baseFeePpm",
+              "type": "uint256"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "surgeFeePpm",
+              "type": "uint256"
+          },
+          {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "inCapEvent",
+              "type": "bool"
+          },
+          {
+              "indexed": false,
+              "internalType": "uint40",
+              "name": "timestamp",
+              "type": "uint40"
+          }
+      ],
+      "name": "FeeStateChanged",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "address",
+              "name": "user",
+              "type": "address"
+          },
+          {
+              "indexed": true,
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+          }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+  },
+  {
+      "anonymous": false,
+      "inputs": [
+          {
+              "indexed": true,
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "PoolInitialized",
+      "type": "event"
+  },
+  {
+      "inputs": [],
+      "name": "authorizedHook",
+      "outputs": [
+          {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "baseFeeFromCap",
+      "outputs": [
+          {
+              "internalType": "uint32",
+              "name": "",
+              "type": "uint32"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "getFeeState",
+      "outputs": [
+          {
+              "internalType": "uint256",
+              "name": "baseFee",
+              "type": "uint256"
+          },
+          {
+              "internalType": "uint256",
+              "name": "surgeFee",
+              "type": "uint256"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "int24",
+              "name": "",
+              "type": "int24"
+          }
+      ],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          }
+      ],
+      "name": "isCAPEventActive",
+      "outputs": [
+          {
+              "internalType": "bool",
+              "name": "",
+              "type": "bool"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "PoolId",
+              "name": "poolId",
+              "type": "bytes32"
+          },
+          {
+              "internalType": "bool",
+              "name": "tickWasCapped",
+              "type": "bool"
+          }
+      ],
+      "name": "notifyOracleUpdate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "oracle",
+      "outputs": [
+          {
+              "internalType": "contract TruncGeoOracleMulti",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+          {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [],
+      "name": "policyManager",
+      "outputs": [
+          {
+              "internalType": "contract IPoolPolicyManager",
+              "name": "",
+              "type": "address"
+          }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+  },
+  {
+      "inputs": [
+          {
+              "internalType": "address",
+              "name": "newOwner",
+              "type": "address"
+          }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+  }
+]
