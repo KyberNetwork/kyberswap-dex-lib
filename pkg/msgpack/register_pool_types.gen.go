@@ -98,6 +98,7 @@ import (
 	pkg_liquiditysource_uniswaplo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-lo"
 	pkg_liquiditysource_uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	pkg_liquiditysource_uniswapv4_hooks_aegis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/aegis"
 	pkg_liquiditysource_uniswapv4_hooks_bunniv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2"
 	pkg_liquiditysource_uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	pkg_liquiditysource_usd0pp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
@@ -252,6 +253,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswaplo.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4_hooks_aegis.Hook{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4_hooks_bunniv2.Hook{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv4.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_usd0pp.PoolSimulator{})

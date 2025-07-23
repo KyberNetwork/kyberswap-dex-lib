@@ -89,6 +89,10 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 	if hookFactory == nil {
 		hook = (*BaseHook)(nil)
 	} else {
+		if param == nil {
+			param = &HookParam{}
+		}
+		param.HookAddress = hookAddress
 		hook = hookFactory(param)
 	}
 	return hook, ok
