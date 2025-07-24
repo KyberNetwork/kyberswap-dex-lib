@@ -114,7 +114,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	hookFee = p.hook.AfterSwap(swapParam)
 	if hookFee != nil {
-		result.TokenAmountOut.Amount.Add(result.TokenAmountOut.Amount, hookFee)
+		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
 	}
 
 	return result, err
