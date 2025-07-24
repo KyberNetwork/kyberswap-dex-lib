@@ -80,7 +80,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	swapParam := &SwapParam{
-		IsExactIn:  true,
+		ExactIn:    true,
 		ZeroForOne: p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
 		AmountIn:   param.TokenAmountIn.Amount,
 	}

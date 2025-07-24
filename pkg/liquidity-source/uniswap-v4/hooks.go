@@ -62,7 +62,7 @@ type Hook interface {
 
 type SwapParam struct {
 	ZeroForOne bool
-	IsExactIn  bool
+	ExactIn    bool
 	AmountIn   *big.Int
 	AmountOut  *big.Int
 }
