@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -41,7 +40,6 @@ type IRemovePoolsFromIndexUseCase interface {
 
 type IUpdatePoolScores interface {
 	ProcessScoreFiles(ctx context.Context, scoresFile []string) []error
-	SavePoolScore(ctx context.Context, poolScores []routerEntity.PoolScore) error
 }
 
 type IBlacklistIndexPoolsUsecase interface {

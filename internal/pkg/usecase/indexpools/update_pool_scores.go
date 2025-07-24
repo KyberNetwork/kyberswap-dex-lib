@@ -102,10 +102,6 @@ func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileName
 	return result
 }
 
-func (u *UpdatePoolScores) SavePoolScore(ctx context.Context, poolScores []entity.PoolScore) error {
-	return u.rankingRepo.AddScoreToSortedSets(ctx, poolScores)
-}
-
 func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename string, scores chan<- ScoreOutput) error {
 	input, err := os.Open(filename)
 	if err != nil {

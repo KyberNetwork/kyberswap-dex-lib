@@ -699,7 +699,7 @@ func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
 				WhitelistedTokenSet:         map[string]bool{"token1": true, "token2": true, "token3": true, "token4": true, "token5": true, "token6": true},
 				InvalidPriceImpactThreshold: 10.0,
 			}
-			generator := NewTradeDataGenerator(nil, nil, nil, nil, nil, nil, &config)
+			generator := NewTradeDataGenerator(nil, nil, nil, nil, nil, nil, nil, &config)
 			poolSimulator := test.prepare(ctrl, config)
 
 			result := generator.generateTradeData(context.TODO(), test.tokenIn, test.tokenOut, tokens, prices, poolSimulator, nil, valueobject.WHITELIST_WHITELIST)

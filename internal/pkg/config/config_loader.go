@@ -350,7 +350,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
 	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled
 	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
-	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled
+	cl.config.UseCase.TradeDataGenerator.UseAEVM = (featureFlags.IsAEVMEnabled || featureFlags.IsRPCPoolEnabled) && !featureFlags.IgnoreAEVM
 	cl.config.UseCase.UpdateLiquidityScoreConfig.EnableDoubleWrite = featureFlags.EnableDoubleWrite
 }
 

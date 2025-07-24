@@ -50,6 +50,7 @@ type TradeDataGenerator struct {
 	minDataPointNumber int
 	maxDataPointNumber int
 	keyGenerator       poolrank.KeyGenerator
+	poolRankRepo       IPoolRankRepository
 
 	config *TradeDataGeneratorConfig
 	mu     sync.RWMutex
@@ -58,6 +59,7 @@ type TradeDataGenerator struct {
 func NewTradeDataGenerator(poolRepo IPoolRepository,
 	onchainPriceRepo IOnchainPriceRepository,
 	tokenRepo ITokenRepository,
+	poolRankRepo IPoolRankRepository,
 	getPoolsUseCase IGetPoolsIncludingBasePools,
 	client aevmclient.Client,
 	factory IPoolFactory,
@@ -77,6 +79,7 @@ func NewTradeDataGenerator(poolRepo IPoolRepository,
 		poolRepo:           poolRepo,
 		onchainPriceRepo:   onchainPriceRepo,
 		tokenRepo:          tokenRepo,
+		poolRankRepo:       poolRankRepo,
 		getPoolsUseCase:    getPoolsUseCase,
 		aevmClient:         client,
 		poolFactory:        factory,
@@ -258,7 +261,6 @@ func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
 	return TradeDataGenerationResult{
 		Blacklist:       rfqResult.Blacklist.Union(allPoolResult.Blacklist),
 		OutputFileNames: rfqResult.OutputFileNames.Union(allPoolResult.OutputFileNames),
-		ZeroScorePools:  append(rfqResult.ZeroScorePools, allPoolResult.ZeroScorePools...),
 	}
 }
 
@@ -334,19 +336,15 @@ func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 					Str("struct", "TradeDataGenerator").
 					Str("method", "rfqBatch").
 					Msg("writeTradeData failed")
-				return alreadyProceed, TradeDataGenerationResult{
-					Blacklist:       blacklistPools,
-					OutputFileNames: fileNames,
-					ZeroScorePools:  zeroPoolScores,
-				}
 			}
 		}
 	}
 
+	gen.saveZeroScore(ctx, zeroPoolScores)
+
 	return alreadyProceed, TradeDataGenerationResult{
 		Blacklist:       blacklistPools,
 		OutputFileNames: fileNameResults,
-		ZeroScorePools:  zeroPoolScores,
 	}
 
 }
@@ -359,7 +357,6 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 	addresses = lo.Filter(addresses, poolAddressFilter)
 	fileNames := mapset.NewThreadUnsafeSet[string]()
 	blacklistPools := mapset.NewThreadUnsafeSet[string]()
-	var zeroPoolScores []routerEntity.PoolScore
 	seenBasePools := mapset.NewThreadUnsafeSet[string]()
 
 	// no need to calculate swap limit for AMM dexes
@@ -388,14 +385,13 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 				fileNames = fileNames.Union(files)
 			}
 			blacklistPools = blacklistPools.Union(result.Blacklist)
-			zeroPoolScores = append(zeroPoolScores, result.ZeroScorePools...)
+			gen.saveZeroScore(ctx, result.ZeroScorePools)
 		}
 	}
 
 	return TradeDataGenerationResult{
 		Blacklist:       blacklistPools,
 		OutputFileNames: fileNames,
-		ZeroScorePools:  zeroPoolScores,
 	}
 
 }
@@ -551,7 +547,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 	// when we proceed rfq dexes, we must calculate swap limits
 	// However swap limit can only be calculated by fetch all pools belong to a single source set
 	// So this is a little tricky, when we proceed rfq pools, we must pack all pools belong to 1 source in a single chunk, otherwise swap limit is calculated not correctly
-	poolInterfaces := gen.poolFactory.NewPools(ctx, totalPools, common.Hash(stateRoot))
+	poolInterfaces := gen.poolFactory.NewPoolsIgnoreAEVM(ctx, totalPools, common.Hash(stateRoot), gen.config.UseAEVM)
 	swapLimits := gen.poolFactory.NewSwapLimit(calculateSwapLimit(poolInterfaces), types.PoolManagerExtraData{})
 
 	// record pools that has swap errors, format: <pool:[]LiquidityScoreCalcInput>
@@ -666,17 +662,29 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 				}
 
 				if gen.config.UseAEVM && gen.config.DexUseAEVM[pool.GetExchange()] {
-					wg.Add(1)
-					go func(ctx context.Context,
-						tokenIn, tokenOut string,
-						tokens map[string]*entity.SimplifiedToken,
-						prices map[string]*routerEntity.OnchainPrice,
-						pool poolpkg.IPoolSimulator) {
-						defer wg.Done()
-						trade := gen.generateTradeData(ctx, tokenI, tokenJ, tokens, prices, pool,
-							swapLimits[pool.GetType()], tradeDataTypes[0])
-						tradeChan <- trade
-					}(ctx, tokenI, tokenJ, tokens, prices, pool)
+					if tvlNative >= MIN_TVL_USD_AEVM_POOL_THRESHOLD {
+						keys := gen.generateTradeDataKey(tokenI, tokenJ)
+						for _, k := range keys {
+							zeroPoolScores = append(zeroPoolScores, routerEntity.PoolScore{
+								Key:            k,
+								Pool:           pool.GetAddress(),
+								TvlInUsd:       tvlNative,
+								LiquidityScore: DEFAULT_AEVM_POOL_SCORE,
+							})
+						}
+					} else {
+						wg.Add(1)
+						go func(ctx context.Context,
+							tokenIn, tokenOut string,
+							tokens map[string]*entity.SimplifiedToken,
+							prices map[string]*routerEntity.OnchainPrice,
+							pool poolpkg.IPoolSimulator) {
+							defer wg.Done()
+							trade := gen.generateTradeData(ctx, tokenI, tokenJ, tokens, prices, pool,
+								swapLimits[pool.GetType()], tradeDataTypes[0])
+							tradeChan <- trade
+						}(ctx, tokenI, tokenJ, tokens, prices, pool)
+					}
 					continue
 				}
 
@@ -1140,4 +1148,37 @@ func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Cont
 
 	return result
 
+}
+
+func (gen *TradeDataGenerator) saveZeroScore(ctx context.Context, zeroScorePools []routerEntity.PoolScore) {
+	// update zero liquidity score
+	if len(zeroScorePools) != 0 {
+		err := gen.poolRankRepo.AddScoreToSortedSets(ctx, zeroScorePools)
+		if err != nil {
+			log.Ctx(ctx).Err(err).
+				Str("struct", "TradeDataGenerator").
+				Str("method", "saveZeroScore").
+				Msg("update zero pool score failed")
+		}
+		// for debug supporting only
+		if gen.config.ExportZeroScores {
+			zeroScoresFile, err := os.OpenFile("zero_scores.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				log.Ctx(ctx).Err(err).
+					Str("struct", "TradeDataGenerator").
+					Str("method", "writeTradeData").
+					Msg("init failed buffer failed")
+			} else {
+				defer func() { _ = zeroScoresFile.Close() }()
+				zeroScoresBuffer := bufio.NewWriter(zeroScoresFile)
+				for _, score := range zeroScorePools {
+					jsonScore, _ := json.Marshal(score)
+					_, _ = zeroScoresBuffer.WriteString(string(jsonScore))
+					_, _ = zeroScoresBuffer.WriteString("\n")
+				}
+				_ = zeroScoresBuffer.Flush()
+			}
+
+		}
+	}
 }

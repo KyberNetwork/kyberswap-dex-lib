@@ -68,6 +68,7 @@ type IPoolRankRepository interface {
 type IPoolFactory interface {
 	NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
+	NewPoolsIgnoreAEVM(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash, ignoreAEVM bool) []poolpkg.IPoolSimulator
 	NewSwapLimit(limits map[string]map[string]*big.Int, poolManagerExtraData types.PoolManagerExtraData) map[string]poolpkg.SwapLimit
 }
 

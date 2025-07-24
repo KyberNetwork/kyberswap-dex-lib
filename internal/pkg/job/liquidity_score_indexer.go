@@ -1,13 +1,13 @@
 package job
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/kutils"
@@ -215,7 +215,8 @@ func (j *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, tra
 	for _, tradeFile := range tradeDataFileNames {
 		factorParam := strconv.FormatFloat(NON_FILTER_ENTROPY, 'f', -1, 64)
 		// only apply entropyFactor for whitelist - whitelist pools
-		if tradeFile == indexpools.WHITELIST_FILENAME {
+		id := strings.LastIndex(tradeFile, "/")
+		if tradeFile[id+1:] == indexpools.WHITELIST_FILENAME {
 			factorParam = strconv.FormatFloat(entropyFactor, 'f', -1, 64)
 		}
 		scoreFileName := fmt.Sprintf("%s%s", tradeFile, "-Score")
@@ -257,34 +258,6 @@ func (j *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context,
 
 	// update blacklist to local cache
 	j.blacklistIndexPoolsUsecase.AddToBlacklistIndexPools(ctx, result.Blacklist.ToSlice())
-	// update zero liquidity score
-	if len(result.ZeroScorePools) != 0 {
-		err := j.updatePoolScores.SavePoolScore(ctx, result.ZeroScorePools)
-		if err != nil {
-			log.Ctx(ctx).Err(err).
-				Str("job.name", LiquidityScoreIndexPools).
-				Msg("update zero pool score failed")
-		}
-		if j.config.ExportZeroScores {
-			zeroScoresFile, err := os.OpenFile("zero_scores.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				log.Ctx(ctx).Err(err).
-					Str("struct", "TradeDataGenerator").
-					Str("method", "writeTradeData").
-					Msg("init failed buffer failed")
-			} else {
-				defer func() { _ = zeroScoresFile.Close() }()
-				zeroScoresBuffer := bufio.NewWriter(zeroScoresFile)
-				for _, score := range result.ZeroScorePools {
-					jsonScore, _ := json.Marshal(score)
-					_, _ = zeroScoresBuffer.WriteString(string(jsonScore))
-					_, _ = zeroScoresBuffer.WriteString("\n")
-				}
-				_ = zeroScoresBuffer.Flush()
-			}
-
-		}
-	}
 
 	return result.OutputFileNames
 }

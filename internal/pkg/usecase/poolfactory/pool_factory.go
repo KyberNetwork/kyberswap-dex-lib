@@ -69,7 +69,19 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool,
 	poolSims := make([]poolpkg.IPoolSimulator, 0, len(pools))
 	f.newPools(ctx, pools, stateRoot, func(pool poolpkg.IPoolSimulator) {
 		poolSims = append(poolSims, pool)
-	})
+	}, false)
+	return poolSims
+}
+
+func (f *PoolFactory) NewPoolsIgnoreAEVM(ctx context.Context, pools []*entity.Pool,
+	stateRoot common.Hash, ignoreAEVM bool) []poolpkg.IPoolSimulator {
+	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPools")
+	defer span.End()
+
+	poolSims := make([]poolpkg.IPoolSimulator, 0, len(pools))
+	f.newPools(ctx, pools, stateRoot, func(pool poolpkg.IPoolSimulator) {
+		poolSims = append(poolSims, pool)
+	}, ignoreAEVM)
 	return poolSims
 }
 
@@ -81,12 +93,12 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(pools))
 	f.newPools(ctx, pools, stateRoot, func(pool poolpkg.IPoolSimulator) {
 		poolByAddress[pool.GetAddress()] = pool
-	})
+	}, false)
 	return poolByAddress
 }
 
 func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
-	stateRoot common.Hash, yieldPool func(poolpkg.IPoolSimulator)) {
+	stateRoot common.Hash, yieldPool func(poolpkg.IPoolSimulator), ignoreAEVM bool) {
 	basePoolMap := make(map[string]poolpkg.IPoolSimulator)
 	factoryParams := poolpkg.FactoryParams{
 		BasePoolMap: basePoolMap,
@@ -100,7 +112,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 				continue
 			}
 
-			poolSim, err := f.newPool(ctx, *pool, factoryParams, stateRoot)
+			poolSim, err := f.newPool(ctx, *pool, factoryParams, stateRoot, false)
 			if err != nil {
 				log.Ctx(ctx).Debug().Err(err).Send()
 				continue
@@ -113,7 +125,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 		poolSim, ok := basePoolMap[pool.Address]
 		if !ok {
 			var err error
-			poolSim, err = f.newPool(ctx, *pool, factoryParams, stateRoot)
+			poolSim, err = f.newPool(ctx, *pool, factoryParams, stateRoot, ignoreAEVM)
 			if err != nil {
 				log.Ctx(ctx).Debug().Err(err).Send()
 				continue
@@ -126,7 +138,7 @@ func (f *PoolFactory) newPools(ctx context.Context, pools []*entity.Pool,
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, factoryParams poolpkg.FactoryParams,
-	stateRoot common.Hash) (pool poolpkg.IPoolSimulator, err error) {
+	stateRoot common.Hash, ignoreAEVM bool) (pool poolpkg.IPoolSimulator, err error) {
 	lg := log.Ctx(ctx).Sample(errLogSampler)
 	factoryParams.EntityPool = entityPool
 
@@ -140,7 +152,7 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 
 	if f.config.UseAEVM && f.config.DexUseAEVM[entityPool.Type] {
 		if aevmPoolFactory := aevmpool.Factory(entityPool.Type); aevmPoolFactory != nil {
-			return f.newAEVMPoolWrapper(ctx, entityPool, aevmPoolFactory, stateRoot)
+			return f.newAEVMPoolWrapper(ctx, entityPool, aevmPoolFactory, stateRoot, ignoreAEVM)
 		}
 	}
 
@@ -154,11 +166,11 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 
 // newAEVMPoolWrapper creates pool simulator from kyberswap-dex-lib-private pkg, including both AEVM and RPC-based pools
 func (f *PoolFactory) newAEVMPoolWrapper(ctx context.Context, entityPool entity.Pool, poolFactory aevmpool.FactoryFn,
-	stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
+	stateRoot common.Hash, ignoreAEVM bool) (*aevmpoolwrapper.PoolWrapper, error) {
 	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
 	var balanceSlots = make(map[common.Address]*types.ERC20BalanceSlot)
-	if f.balanceSlotsUseCase != nil { // only get slots if aevm is enabled
+	if f.balanceSlotsUseCase != nil && !ignoreAEVM { // only get slots if aevm is enabled
 		balanceSlots = f.getBalanceSlots(ctx, &entityPool)
 	}
 	aevmPool, err := poolFactory(aevmpool.FactoryParams{

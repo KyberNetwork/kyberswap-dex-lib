@@ -524,6 +524,7 @@ useCase:
     logError: *logError
     poolHasManyTokensDefaultScore: 1000
     filePath: &scoreFilePath "./data/"
+    exportZeroScores: false
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions

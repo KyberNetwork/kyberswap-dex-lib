@@ -30,7 +30,6 @@ type TradesGenerationOutput struct {
 type TradeDataGenerationResult struct {
 	OutputFileNames mapset.Set[string]
 	Blacklist       mapset.Set[string]
-	ZeroScorePools  []entity.PoolScore
 }
 
 type TradesGenerationInput struct {

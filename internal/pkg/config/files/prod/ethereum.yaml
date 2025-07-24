@@ -662,6 +662,7 @@ useCase:
     logError: *logError
     poolHasManyTokensDefaultScore: 1000
     filePath: &scoreFilePath "./data/"
+    exportZeroScores: false
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
@@ -699,7 +700,6 @@ job:
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     targetFactorEntropy: 0.995
     logError: *logError
-    exportZeroScores: true
     poolEvent:
       consumerConfig:
         prefix: *chainName

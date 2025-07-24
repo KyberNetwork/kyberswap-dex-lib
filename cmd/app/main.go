@@ -962,7 +962,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	getPools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, aevmClient, balanceSlotsUseCase)
 	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository,
-		getPools, aevmClient, poolFactory, &cfg.UseCase.TradeDataGenerator)
+		poolRankRepo, getPools, aevmClient, poolFactory, &cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(
 		poolRankRepo,
 		poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank),

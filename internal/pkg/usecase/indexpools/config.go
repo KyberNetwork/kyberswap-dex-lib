@@ -32,6 +32,7 @@ type TradeDataGeneratorConfig struct {
 	InvalidPriceImpactThreshold   float64         `mapstructure:"invalidPriceImpactThreshold"`
 	PoolHasManyTokensDefaultScore float64         `mapstructure:"poolHasManyTokensDefaultScore"`
 	FilePath                      string          `mapstructure:"filePath"`
+	ExportZeroScores              bool            `mapstructure:"exportZeroScores"`
 }
 
 type UpdateLiquidityScoreConfig struct {

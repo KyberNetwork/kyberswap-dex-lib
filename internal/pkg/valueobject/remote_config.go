@@ -73,6 +73,7 @@ type (
 		// Note: Always write to both Redis during migration for safety
 		IsRedisMigrationEnabled bool `mapstructure:"isRedisMigrationEnabled" json:"isRedisMigrationEnabled"`
 		EnableDoubleWrite       bool `mapstructure:"enableDoubleWrite" json:"enableDoubleWrite"`
+		IgnoreAEVM              bool `mapstructure:"ignoreAEVM" json:"ignoreAEVM"`
 	}
 
 	Log struct {
