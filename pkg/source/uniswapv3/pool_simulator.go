@@ -178,7 +178,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		SwapInfo: SwapInfo{
 			NextStateSqrtRatioX96: newPoolState.SqrtRatioX96,
 			nextStateLiquidity:    newPoolState.Liquidity,
-			nextStateTickCurrent:  newPoolState.TickCurrent,
+			NextStateTickCurrent:  newPoolState.TickCurrent,
 		},
 	}, nil
 }
@@ -234,7 +234,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
 			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
 			nextStateLiquidity:    amountOutResult.Liquidity,
-			nextStateTickCurrent:  amountOutResult.CurrentTick,
+			NextStateTickCurrent:  amountOutResult.CurrentTick,
 		},
 	}, nil
 }
@@ -256,7 +256,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	p.V3Pool.SqrtRatioX96 = si.NextStateSqrtRatioX96
 	p.V3Pool.Liquidity = si.nextStateLiquidity
-	p.V3Pool.TickCurrent = si.nextStateTickCurrent
+	p.V3Pool.TickCurrent = si.NextStateTickCurrent
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {

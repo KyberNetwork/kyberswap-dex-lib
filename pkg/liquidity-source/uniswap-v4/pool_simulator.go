@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -38,7 +39,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{Pool: &entityPool, HookExtra: extra.HookExtra})
+	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
+		Cfg:       &Config{ChainID: int(chainID)},
+		Pool:      &entityPool,
+		HookExtra: extra.HookExtra,
+	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
 	}
@@ -46,6 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if shared.IsDynamicFee(uint32(entityPool.SwapFee)) {
 		entityPool.SwapFee = 0
 	}
+
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256)
 	if err != nil {
 		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
@@ -73,7 +79,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return poolSim.CalcAmountOut(param)
 	}
 
-	hookFee, swapFee := p.hook.BeforeSwap()
+	swapParam := &SwapParam{
+		ExactIn:    true,
+		ZeroForOne: p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
+		AmountIn:   param.TokenAmountIn.Amount,
+	}
+
+	hookFee, swapFee, err := p.hook.BeforeSwap(swapParam)
+	if err != nil {
+		return nil, err
+	}
+
+	if hookFee != nil {
+		amountIn := new(big.Int).Sub(param.TokenAmountIn.Amount, hookFee)
+		param.TokenAmountIn.Amount = amountIn
+	}
 
 	if swapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
@@ -89,20 +109,23 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if err != nil {
 		return nil, err
 	}
+
+	swapParam.AmountOut = result.TokenAmountOut.Amount
+
+	hookFee = p.hook.AfterSwap(swapParam)
 	if hookFee != nil {
 		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
 	}
 
-	hookFee = p.hook.AfterSwap()
-	if hookFee != nil {
-		result.TokenAmountOut.Amount.Add(result.TokenAmountOut.Amount, hookFee)
-	}
 	return result, err
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
+	if cloned.hook != nil {
+		cloned.hook = p.hook.CloneState()
+	}
 	return &cloned
 }
 
