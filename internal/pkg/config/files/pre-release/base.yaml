@@ -107,6 +107,7 @@ common:
     - uniswap-v4-kem
     - uniswap-v4-fairflow
     - uniswap-v4-euler
+    - uniswap-v4-clanker
     - memebox
     - native-v3
     - infinitypools

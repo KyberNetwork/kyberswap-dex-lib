@@ -132,6 +132,7 @@ common:
     - lo1inch
     - etherfi-ebtc
     - uniswap-v4
+    - uniswap-v4-clanker
     - sky-psm
     - overnight-usdp
     - pmm-2

@@ -11,7 +11,7 @@ require (
 	github.com/IBM/sarama v1.45.1
 	github.com/KyberNetwork/aevm v1.2.4-0.20250522103952-5e23055eb42c
 	github.com/KyberNetwork/aggregation-stats v0.2.0
-	github.com/KyberNetwork/aggregator-encoding v0.55.0
+	github.com/KyberNetwork/aggregator-encoding v0.55.1-0.20250724113604-0caccdd01bde
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
@@ -19,8 +19,8 @@ require (
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.3.8
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.113.0
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.14.7
+	github.com/KyberNetwork/kyberswap-dex-lib v0.113.1
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.14.9-0.20250724112256-0981e8888dbb
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pathfinder-lib v0.1.26
@@ -74,7 +74,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/mock v0.5.2
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
-	golang.org/x/sync v0.15.0
+	golang.org/x/sync v0.16.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.5
@@ -197,12 +197,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/arch v0.14.0 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/mod v0.26.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/tools v0.35.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

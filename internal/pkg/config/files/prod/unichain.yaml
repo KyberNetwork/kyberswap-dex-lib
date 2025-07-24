@@ -33,12 +33,13 @@ common:
     - velodrome-v2
     - uniswap-v4
     - uniswap-v4-euler
+    - uniswap-v4-aegis
+    - uniswap-v4-clanker
     - uniswapv3
     - velodrome-cl-2
     - sky-psm
     - erc4626
     - compound-v3
-    - uniswap-v4-aegis
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
