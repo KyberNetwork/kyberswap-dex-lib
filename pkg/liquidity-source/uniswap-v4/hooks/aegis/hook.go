@@ -128,8 +128,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount) {
-	return h.hookFeeAmt, h.swapFee
+func (h *Hook) BeforeSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount, err error) {
+	return h.hookFeeAmt, h.swapFee, nil
 }
 
 func (h *Hook) AfterSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {

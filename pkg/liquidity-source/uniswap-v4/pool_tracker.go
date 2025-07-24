@@ -61,7 +61,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		hookAddress = staticExtra.HooksAddress
 	}
 
-	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: *p}
+	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p}
 	hook, _ := GetHook(hookAddress, hookParam)
 
 	result := &FetchRPCResult{

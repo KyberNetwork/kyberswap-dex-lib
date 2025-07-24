@@ -5,11 +5,17 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 var (
-	MILLION         = big.NewInt(1_000_000)
-	FEE_DENOMINATOR = MILLION // Uniswap 100% fee
+	MILLION                = big.NewInt(1_000_000)
+	FEE_DENOMINATOR        = MILLION // Uniswap 100% fee
+	PROTOCOL_FEE_NUMERATOR = big.NewInt(200_000)
+
+	BPS_DENOMINATOR         = uint256.NewInt(10_000)
+	FEE_CONTROL_DENOMINATOR = uint256.NewInt(10_000_000_000)
+	maxUint24               = uint64(1<<24 - 1)
 
 	ClankerAddressByChain = map[valueobject.ChainID]common.Address{
 		valueobject.ChainIDBase:        common.HexToAddress("0xE85A59c628F7d27878ACeB4bf3b35733630083a9"),

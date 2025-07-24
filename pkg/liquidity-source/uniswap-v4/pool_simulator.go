@@ -41,7 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
 		Cfg:       &Config{ChainID: int(chainID)},
-		Pool:      entityPool,
+		Pool:      &entityPool,
 		HookExtra: extra.HookExtra,
 	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
@@ -80,11 +80,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	swapParam := &SwapParam{
-		ZeroForOne:      p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
-		AmountSpecified: param.TokenAmountIn.Amount,
+		IsExactIn:  true,
+		ZeroForOne: p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
+		AmountIn:   param.TokenAmountIn.Amount,
 	}
 
-	hookFee, swapFee := p.hook.BeforeSwap(swapParam)
+	hookFee, swapFee, err := p.hook.BeforeSwap(swapParam)
+	if err != nil {
+		return nil, err
+	}
 
 	amountIn := new(big.Int).Sub(param.TokenAmountIn.Amount, hookFee)
 	param.TokenAmountIn.Amount = amountIn
@@ -104,10 +108,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	// if hookFee != nil {
-	// 	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
-	// }
-
 	swapParam.AmountOut = result.TokenAmountOut.Amount
 
 	hookFee = p.hook.AfterSwap(swapParam)
@@ -121,6 +121,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
+	if cloned.hook != nil {
+		cloned.hook = p.hook.CloneState()
+	}
 	return &cloned
 }
 
