@@ -82,9 +82,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		cloned.V3Pool = &clonedV3Pool
 		cloned.V3Pool.Fee = swapFee
 		poolSim = &cloned
-		if hookFee != nil {
-			param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, hookFee)
-		}
+	}
+
+	if hookFee != nil {
+		param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, hookFee)
 	}
 
 	result, err := poolSim.CalcAmountOut(param)
