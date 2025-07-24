@@ -112,8 +112,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		hookParam := &HookParam{Cfg: u.config, RpcClient: u.ethrpcClient}
-		hook, _ := GetHook(staticExtra.HooksAddress, hookParam)
+		hook, _ := GetHook(staticExtra.HooksAddress, &HookParam{Cfg: u.config})
 		pool := entity.Pool{
 			Address:     p.ID,
 			SwapFee:     float64(fee),
