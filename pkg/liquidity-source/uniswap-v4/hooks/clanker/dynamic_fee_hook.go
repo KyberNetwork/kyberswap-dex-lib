@@ -100,11 +100,6 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 			return nil
 		}
 
-		if !extra.ClankerTracked {
-			hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
-				param.RpcClient.GetETHClient())
-		}
-
 		hook.clankerIsToken0 = extra.ClankerIsToken0
 		hook.protocolFee = extra.ProtocolFee
 		hook.poolFVars = extra.PoolFVars
@@ -116,6 +111,11 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		cloned.SwapFee = 0
 
 		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
+	}
+
+	if param.RpcClient != nil {
+		hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
+			param.RpcClient.GetETHClient())
 	}
 
 	return hook

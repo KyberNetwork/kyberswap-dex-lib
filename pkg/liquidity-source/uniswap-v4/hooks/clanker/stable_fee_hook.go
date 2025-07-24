@@ -63,8 +63,10 @@ func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 
 	}
 
-	hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
-		param.RpcClient.GetETHClient())
+	if param.RpcClient != nil {
+		hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
+			param.RpcClient.GetETHClient())
+	}
 
 	return hook
 }
