@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -73,30 +74,44 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return poolSim.CalcAmountOut(param)
 	}
 
-	hookFee, swapFee := p.hook.BeforeSwap(param.TokenAmountIn.Amount)
-	if swapFee >= constants.FeeMax {
+	beforeSwapHookParams := &BeforeSwapHookParams{
+		ExactIn:   true,
+		ZeroToOne: strings.EqualFold(p.V3Pool.Token0.Address.Hex(), param.TokenAmountIn.Token),
+		Amount:    param.TokenAmountIn.Amount,
+	}
+	swapHookResult := p.hook.BeforeSwap(beforeSwapHookParams)
+
+	if swapHookResult.SwapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
-	} else if swapFee > 0 && swapFee != p.V3Pool.Fee {
+	} else if swapHookResult.SwapFee > 0 && swapHookResult.SwapFee != p.V3Pool.Fee {
 		cloned := *poolSim
 		clonedV3Pool := *poolSim.V3Pool
 		cloned.V3Pool = &clonedV3Pool
-		cloned.V3Pool.Fee = swapFee
+		cloned.V3Pool.Fee = swapHookResult.SwapFee
 		poolSim = &cloned
 	}
 
-	if hookFee != nil {
-		param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, hookFee)
-	}
+	// beforeSwap -> amountToSwap += hookDeltaSpecified;
+	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
+	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
+	param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
 
 	result, err := poolSim.CalcAmountOut(param)
 	if err != nil {
 		return nil, err
 	}
 
-	hookFee = p.hook.AfterSwap()
-	if hookFee != nil {
-		result.TokenAmountOut.Amount.Add(result.TokenAmountOut.Amount, hookFee)
-	}
+	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
+		BeforeSwapHookParams: beforeSwapHookParams,
+		AmountIn:             param.TokenAmountIn.Amount,
+		AmountOut:            result.TokenAmountOut.Amount,
+	})
+
+	// afterSwap -> swapDelta = swapDelta - hookDelta;
+	// for the case of calcAmountOut (exactIn), amountOut supposed to be Positive, then turn to be TokenAmountOut.Sub
+	// for the case of calcAmountIn (exactOut), amountIn supposed to be Negative, then turn to be TokenAmountIn.Add
+	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific).Sub(result.TokenAmountOut.Amount, hookFee)
+
 	return result, err
 }
 
