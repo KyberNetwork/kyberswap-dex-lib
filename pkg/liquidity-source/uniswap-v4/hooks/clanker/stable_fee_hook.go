@@ -60,7 +60,6 @@ func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		if extra.ClankerFee != nil {
 			hook.clankerFee = uniswapv4.FeeAmount(extra.ClankerFee.Uint64())
 		}
-
 	}
 
 	if param.RpcClient != nil {

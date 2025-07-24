@@ -90,8 +90,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, err
 	}
 
-	amountIn := new(big.Int).Sub(param.TokenAmountIn.Amount, hookFee)
-	param.TokenAmountIn.Amount = amountIn
+	if hookFee != nil {
+		amountIn := new(big.Int).Sub(param.TokenAmountIn.Amount, hookFee)
+		param.TokenAmountIn.Amount = amountIn
+	}
 
 	if swapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
