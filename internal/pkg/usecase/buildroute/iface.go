@@ -44,7 +44,7 @@ type IGasEstimator interface {
 }
 
 type IL1FeeCalculator interface {
-	CalculateL1Fee(ctx context.Context, routeSummary valueobject.RouteSummary, encodedSwapData string) (*big.Int, error)
+	CalculateL1Fee(ctx context.Context, routeSummary *valueobject.RouteSummary, encodedSwapData string) (*big.Int, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository

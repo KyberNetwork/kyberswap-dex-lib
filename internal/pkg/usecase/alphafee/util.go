@@ -46,7 +46,7 @@ func convertConstructRouteToRouteInfoV2(ctx context.Context, route *common.Const
 	return routeInfoV2
 }
 
-func convertRouteSummaryToRouteInfoV2(ctx context.Context, routeSummary valueobject.RouteSummary) [][]swapInfoV2 {
+func convertRouteSummaryToRouteInfoV2(_ context.Context, routeSummary *valueobject.RouteSummary) [][]swapInfoV2 {
 	routeInfoV2 := make([][]swapInfoV2, len(routeSummary.Route))
 	for pathIdx, path := range routeSummary.Route {
 		pathInfoV2 := make([]swapInfoV2, len(path))

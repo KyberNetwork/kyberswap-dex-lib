@@ -283,7 +283,7 @@ func TestGetRoutesParamsValidator_validateChargeFeeBy(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		chargeFeeBy string
+		chargeFeeBy valueobject.ChargeFeeBy
 		feeAmount   string
 		err         error
 	}{

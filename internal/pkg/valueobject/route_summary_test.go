@@ -15,7 +15,7 @@ import (
 // if we use json, benchmarks result as below
 // BenchmarkSHA256-8           8376           2864960 ns/op         1723102 B/op      12597 allocs/op
 func BenchmarkRouteSummaryChecksum(b *testing.B) {
-	routeSummary := RouteSummary{
+	routeSummary := &RouteSummary{
 		TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 		AmountIn:     big.NewInt(50000000),
 		AmountInUSD:  0.000000036766171242625,

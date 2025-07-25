@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -133,19 +132,8 @@ func (u *useCase) ApplyConfig(config Config) {
 
 // wrapTokens wraps tokens in query and returns the query
 func (u *useCase) wrapTokens(query dto.GetCustomRoutesQuery) (dto.GetCustomRoutesQuery, error) {
-	wrappedTokenIn, err := eth.ConvertEtherToWETH(query.TokenIn, u.config.ChainID)
-	if err != nil {
-		return dto.GetCustomRoutesQuery{}, err
-	}
-
-	wrappedTokenOut, err := eth.ConvertEtherToWETH(query.TokenOut, u.config.ChainID)
-	if err != nil {
-		return dto.GetCustomRoutesQuery{}, err
-	}
-
-	query.TokenIn = wrappedTokenIn
-	query.TokenOut = wrappedTokenOut
-
+	query.TokenIn = valueobject.WrapNativeLower(query.TokenIn, u.config.ChainID)
+	query.TokenOut = valueobject.WrapNativeLower(query.TokenOut, u.config.ChainID)
 	return query, nil
 }
 

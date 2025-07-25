@@ -1,25 +1,29 @@
 package params
 
+import (
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+)
+
 type GetRouteEncodeParams struct {
-	TokenIn              string     `form:"tokenIn" binding:"required"`
-	TokenOut             string     `form:"tokenOut" binding:"required"`
-	AmountIn             string     `form:"amountIn" binding:"required"`
-	Dexes                string     `form:"dexes"`
-	OnlyScalableSources  bool       `form:"onlyScalableSources"`
-	OnlyDirectPools      bool       `form:"onlyDirectPools"`
-	GasInclude           bool       `form:"gasInclude"`
-	GasPrice             string     `form:"gasPrice"`
-	SlippageTolerance    float64    `form:"slippageTolerance"`
-	ChargeFeeBy          string     `form:"chargeFeeBy"`
-	FeeReceiver          string     `form:"feeReceiver"`
-	IsInBps              bool       `form:"isInBps"`
-	FeeAmount            string     `form:"feeAmount"`
-	Deadline             int64      `form:"deadline"`
-	To                   string     `form:"to"`
-	ClientData           ClientData `form:"clientData"`
-	Referral             string     `form:"referral"`
-	Permit               string     `form:"permit"`
-	IgnoreCappedSlippage bool       `form:"ignoreCappedSlippage,default=false"`
+	TokenIn              string                  `form:"tokenIn" binding:"required"`
+	TokenOut             string                  `form:"tokenOut" binding:"required"`
+	AmountIn             string                  `form:"amountIn" binding:"required"`
+	Dexes                string                  `form:"dexes"`
+	OnlyScalableSources  bool                    `form:"onlyScalableSources"`
+	OnlyDirectPools      bool                    `form:"onlyDirectPools"`
+	GasInclude           bool                    `form:"gasInclude"`
+	GasPrice             string                  `form:"gasPrice"`
+	SlippageTolerance    float64                 `form:"slippageTolerance"`
+	ChargeFeeBy          valueobject.ChargeFeeBy `form:"chargeFeeBy"`
+	FeeReceiver          string                  `form:"feeReceiver"`
+	IsInBps              bool                    `form:"isInBps"`
+	FeeAmount            string                  `form:"feeAmount"`
+	Deadline             int64                   `form:"deadline"`
+	To                   string                  `form:"to"`
+	ClientData           ClientData              `form:"clientData"`
+	Referral             string                  `form:"referral"`
+	Permit               string                  `form:"permit"`
+	IgnoreCappedSlippage bool                    `form:"ignoreCappedSlippage,default=false"`
 }
 
 type ClientData struct {

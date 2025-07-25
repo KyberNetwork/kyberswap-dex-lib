@@ -1,13 +1,17 @@
 package valueobject
 
-type ChargeFeeBy string
-
-const (
-	ChargeFeeByCurrencyIn  = "currency_in"
-	ChargeFeeByCurrencyOut = "currency_out"
+import (
+	encodeValueObject "github.com/KyberNetwork/aggregator-encoding/pkg/constant/valueobject"
 )
 
-var ChargeFeeByValues = []string{
+type ChargeFeeBy = encodeValueObject.ChargeFeeBy
+
+const (
+	ChargeFeeByCurrencyIn  = encodeValueObject.ChargeFeeByCurrencyIn
+	ChargeFeeByCurrencyOut = encodeValueObject.ChargeFeeByCurrencyOut
+)
+
+var ChargeFeeByValues = []ChargeFeeBy{
 	ChargeFeeByCurrencyIn,
 	ChargeFeeByCurrencyOut,
 }

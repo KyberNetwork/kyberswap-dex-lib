@@ -92,7 +92,7 @@ func (v *getRouteEncodeParamsValidator) ApplyConfig(config GetRouteEncodeParamsC
 
 func (v *getRouteEncodeParamsValidator) validateAmountIn(amountInParams string) error {
 	amountInBi, ok := new(big.Int).SetString(amountInParams, 10)
-	if !ok || amountInBi.Cmp(constant.Zero) <= 0 {
+	if !ok || amountInBi.Sign() <= 0 {
 		return NewValidationError("amountIn", "invalid")
 	}
 
@@ -170,7 +170,7 @@ func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Conte
 	return nil
 }
 
-func (v *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy string, feeAmount string) error {
+func (v *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy valueobject.ChargeFeeBy, feeAmount string) error {
 	if len(feeAmount) == 0 {
 		return nil
 	}

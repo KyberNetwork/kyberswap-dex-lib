@@ -50,7 +50,7 @@ type AlphaFeeParams struct {
 }
 
 type DefaultAlphaFeeParams struct {
-	RouteSummary routerValueObject.RouteSummary
+	RouteSummary *routerValueObject.RouteSummary
 }
 
 type SwapInfo struct {
@@ -372,7 +372,7 @@ func (c *AlphaFeeCalculation) CalculateDefaultAlphaFee(_ context.Context,
 	}, nil
 }
 
-func (c *AlphaFeeCalculation) convertRouteSummaryToPathInfo(route routerValueObject.RouteSummary) []PathInfo {
+func (c *AlphaFeeCalculation) convertRouteSummaryToPathInfo(route *routerValueObject.RouteSummary) []PathInfo {
 	result := make([]PathInfo, 0, len(route.Route))
 	for _, path := range route.Route {
 		swaps := make([]SwapInfo, 0, len(path))

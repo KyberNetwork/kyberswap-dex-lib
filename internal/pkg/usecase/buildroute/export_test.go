@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -46,14 +47,14 @@ func ConvertTransactionToMsg(tx UnsignedTransaction, routerAddress string) ether
 func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 	testCases := []struct {
 		name              string
-		routeSummary      valueobject.RouteSummary
+		routeSummary      *valueobject.RouteSummary
 		slippageTolerance float64
 		config            Config
 		err               error
 	}{
 		{
 			name: "route summary must not be changed",
-			routeSummary: valueobject.RouteSummary{
+			routeSummary: &valueobject.RouteSummary{
 				TokenIn:   "0x5947bb275c521040051d82396192181b413227a3",
 				AmountIn:  bignumber.NewBig("856037931697362767875"),
 				TokenOut:  "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
@@ -149,7 +150,7 @@ func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 		},
 		{
 			name: "route summary must not be changed",
-			routeSummary: valueobject.RouteSummary{
+			routeSummary: &valueobject.RouteSummary{
 				TokenIn:   "0x5947bb275c521040051d82396192181b413227a3",
 				AmountIn:  bignumber.NewBig("381"), // 1 + 17 + 11 + 83 + 269
 				TokenOut:  "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
@@ -249,8 +250,11 @@ func TestBuildRouteUseCase_EstimateRFQSlippage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			usecase := NewBuildRouteUseCase(tc.config, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 
-			routeSummary, err := usecase.estimateRFQSlippage(context.Background(), tc.routeSummary,
-				tc.slippageTolerance)
+			routeSummary, err := usecase.estimateRFQSlippage(context.Background(), dto.BuildRouteCommand{
+				RouteSummary:      tc.routeSummary,
+				OriginalAmountOut: tc.routeSummary.AmountOut,
+				SlippageTolerance: tc.slippageTolerance,
+			})
 			if tc.err != nil {
 				assert.Equal(t, tc.err.Error(), err.Error())
 			}

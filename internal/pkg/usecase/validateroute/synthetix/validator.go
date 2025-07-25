@@ -101,7 +101,7 @@ func Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulat
 				return err
 			}
 			tokenAmountOut := calcAmountOutResult.TokenAmountOut
-			if tokenAmountOut == nil || tokenAmountOut.Amount == nil || tokenAmountOut.Amount.Cmp(constant.Zero) <= 0 {
+			if tokenAmountOut == nil || tokenAmountOut.Amount == nil || tokenAmountOut.Amount.Sign() <= 0 {
 				return err
 			}
 
@@ -112,7 +112,7 @@ func Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulat
 					return err
 				}
 
-				if synthetixTradeVolume != nil && synthetixTradeVolume.Cmp(constant.Zero) > 0 {
+				if synthetixTradeVolume != nil && synthetixTradeVolume.Sign() > 0 {
 					totalVolume.Add(totalVolume, synthetixTradeVolume)
 				}
 			}

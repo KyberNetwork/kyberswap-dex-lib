@@ -3,6 +3,7 @@ package buildroute
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/big"
 	"runtime/debug"
 	"strconv"
@@ -41,7 +42,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/slippage"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -132,71 +132,71 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// Some clients may omit the routeID in the request.
 	// As a fallback, we attach the routeID during the first swap
 	// and retrieve it from there.
-	if len(command.RouteSummary.Route) > 0 &&
-		len(command.RouteSummary.Route[0]) > 0 {
-		firstSwapExtraP, err := util.AnyToStruct[map[string]any](command.RouteSummary.Route[0][0].Extra)
+	routeSummary := command.RouteSummary
+	if len(routeSummary.Route) > 0 && len(routeSummary.Route[0]) > 0 {
+		firstSwapExtraP, err := util.AnyToStruct[map[string]any](routeSummary.Route[0][0].Extra)
 		firstSwapExtra := *firstSwapExtraP
 		if err == nil && firstSwapExtra != nil {
-			if command.RouteSummary.RouteID == "" {
-				command.RouteSummary.RouteID, _ = firstSwapExtra[valueobject.RouteIDInExtra].(string)
+			if routeSummary.RouteID == "" {
+				routeSummary.RouteID, _ = firstSwapExtra[valueobject.RouteIDInExtra].(string)
 			}
-			if command.RouteSummary.Timestamp == 0 {
+			if routeSummary.Timestamp == 0 {
 				timestampString, _ := firstSwapExtra[valueobject.TimestampInExtra].(string)
-				command.RouteSummary.Timestamp, _ = kutils.Atoi[int64](timestampString)
+				routeSummary.Timestamp, _ = kutils.Atoi[int64](timestampString)
 			}
-			if command.RouteSummary.OriginalChecksum == 0 {
+			if routeSummary.OriginalChecksum == 0 {
 				checkSumString, _ := firstSwapExtra[valueobject.ChecksumInExtra].(string)
-				command.RouteSummary.OriginalChecksum, _ = kutils.Atou[uint64](checkSumString)
+				routeSummary.OriginalChecksum, _ = kutils.Atou[uint64](checkSumString)
 			}
 
 			// Need to remove the checksum from the first swap extra to avoid checksum mismatch.
 			delete(firstSwapExtra, valueobject.ChecksumInExtra)
-			command.RouteSummary.Route[0][0].Extra = firstSwapExtra
+			routeSummary.Route[0][0].Extra = firstSwapExtra
 		}
 	}
 
-	isValidChecksum := uc.IsValidChecksum(command.RouteSummary)
+	isValidChecksum := uc.IsValidChecksum(routeSummary)
 	if uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
 		if !isValidChecksum { // the route might have an alphaFee
 			if !uc.config.FeatureFlags.IsRedisMigrationEnabled {
 				span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get alpha fee from redis")
-				command.RouteSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx,
-					command.RouteSummary.RouteID)
+				routeSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx, routeSummary.RouteID)
 				span.End()
 			} else {
-				command.RouteSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, command.RouteSummary.RouteID)
+				routeSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, routeSummary.RouteID)
 			}
-			isValidChecksum = uc.IsValidChecksum(command.RouteSummary)
+			isValidChecksum = uc.IsValidChecksum(routeSummary)
 		}
 
 		// If the client modifies the route (checksum is still invalid),
 		// we apply the default alpha fee.
-		if !isValidChecksum && command.RouteSummary.AlphaFee == nil {
-			command.RouteSummary.AlphaFee, _ = uc.alphaFeeCalculation.CalculateDefaultAlphaFee(
+		if !isValidChecksum && routeSummary.AlphaFee == nil {
+			routeSummary.AlphaFee, _ = uc.alphaFeeCalculation.CalculateDefaultAlphaFee(
 				ctx, alphafee.DefaultAlphaFeeParams{
-					RouteSummary: command.RouteSummary,
+					RouteSummary: routeSummary,
 				})
-			if command.RouteSummary.AlphaFee != nil {
-				alphafee.LogAlphaFeeV2Info(command.RouteSummary.AlphaFee, command.RouteSummary.RouteID, nil,
+			if routeSummary.AlphaFee != nil {
+				alphafee.LogAlphaFeeV2Info(routeSummary.AlphaFee, routeSummary.RouteID, nil,
 					"apply default alpha fee")
 			}
 		}
 	}
 
 	log.Ctx(ctx).Debug().Msgf("isValidChecksum: %v", isValidChecksum)
-	if !isValidChecksum && uc.config.ValidateChecksumBySource[command.Source] {
+	source := command.Source
+	if !isValidChecksum && uc.config.ValidateChecksumBySource[source] {
 		return nil, ErrInvalidRouteChecksum
 	}
 
 	// Notice: must check route summary to track faulty pools at the beginning of the handle func to avoid route modification during execution
 	var isFaultyPoolTrackEnable bool
 	if isValidChecksum && uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
-		isFaultyPoolTrackEnable = uc.IsValidToTrackFaultyPools(command.RouteSummary.Timestamp)
+		isFaultyPoolTrackEnable = uc.IsValidToTrackFaultyPools(routeSummary.Timestamp)
 	}
 
-	executorAddress := strings.ToLower(uc.encoder.GetExecutorAddress(command.Source))
+	executorAddress := strings.ToLower(uc.encoder.GetExecutorAddress(source))
 
-	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, command.RouteSummary)
+	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, routeSummary)
 	if err != nil {
 		return nil, err
 	}
@@ -207,18 +207,11 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if requestID == "" {
 		requestID = uuid.New().String()
 	}
-	routeSummary.RouteID = routeSummary.RouteID + ":" + requestID
-	command.RouteSummary = routeSummary
+	routeSummary.RouteID += ":" + requestID
 
 	// Prepare tokens and prices data
-	tokenInAddress, err := eth.ConvertEtherToWETH(routeSummary.TokenIn, uc.config.ChainID)
-	if err != nil {
-		return nil, err
-	}
-	tokenOutAddress, err := eth.ConvertEtherToWETH(routeSummary.TokenOut, uc.config.ChainID)
-	if err != nil {
-		return nil, err
-	}
+	tokenInAddress := valueobject.WrapNativeLower(routeSummary.TokenIn, uc.config.ChainID)
+	tokenOutAddress := valueobject.WrapNativeLower(routeSummary.TokenOut, uc.config.ChainID)
 
 	addresses := uc.getRouteAndAlphaTokens(ctx, tokenInAddress, tokenOutAddress, routeSummary)
 	tokens, err := uc.getTokens(ctx, addresses)
@@ -228,8 +221,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	if tokens[tokenInAddress] == nil {
 		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenIn: [%s]", tokenInAddress)
-	}
-	if tokens[tokenOutAddress] == nil {
+	} else if tokens[tokenOutAddress] == nil {
 		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
 	}
 
@@ -245,9 +237,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// TODO: refactor convert routeSummary to rfqRouteMsg later for more understanding
 	go uc.consumeRouteMsgDatas(ctx, rfqRouteMsgCh)
 
-	routeSummary, err = uc.rfq(ctx, command.Sender, command.Origin, command.Recipient, command.Source, command.RouteSummary,
-		rfqRouteMsgCh, isFaultyPoolTrackEnable, command.SlippageTolerance, tokens, prices)
-
+	routeSummary, err = uc.rfq(ctx, command, rfqRouteMsgCh, isFaultyPoolTrackEnable, tokens, prices)
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
@@ -261,6 +251,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
+	command.RouteSummary = routeSummary
 	// Estimate gas and slippage using simulation data
 	estimatedGas, gasInUSD, l1FeeUSD, estimatedSlippage, err := uc.simulateSwapAndEstimateGas(ctx, routeSummary,
 		tokenInAddress, tokenOutAddress, command, executorAddress, isFaultyPoolTrackEnable)
@@ -273,7 +264,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	encodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress, false)
+	encodedData, err := uc.encode(ctx, command, uc.encoder, executorAddress, false)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +277,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	// Set transaction value if token in is ETH
 	transactionValue := constant.Zero
-	if eth.IsEther(routeSummary.TokenIn) {
+	if valueobject.IsNative(routeSummary.TokenIn) {
 		transactionValue = routeSummary.AmountIn
 	}
 
@@ -330,27 +321,22 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 
 func (uc *BuildRouteUseCase) rfq(
 	ctx context.Context,
-	sender string,
-	origin string,
-	recipient string,
-	source string,
-	routeSummary valueobject.RouteSummary,
+	command dto.BuildRouteCommand,
 	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
-	slippageTolerance float64,
 	tokens map[string]*entity.SimplifiedToken,
 	prices map[string]float64,
-) (valueobject.RouteSummary, error) {
+) (*valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
 	defer span.End()
 	defer close(rfqRouteMsgs)
 
+	routeSummary, slippageTolerance, source := command.RouteSummary, command.SlippageTolerance, command.Source
+	sender, recipient, origin := command.Sender, command.Recipient, command.Origin
 	executorAddress := uc.encoder.GetExecutorAddress(source)
 
 	rfqParamsByExchange := make(map[valueobject.Exchange][]valueobject.IndexedRFQParams)
-
-	totalSwap := 0
-	alphaFeeReductionPointer := 0
+	var totalSwap, alphaFeeReductionPointer int
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
 			_, found := uc.rfqHandlerByExchange[swap.Exchange]
@@ -445,59 +431,54 @@ func (uc *BuildRouteUseCase) rfq(
 		return routeSummary, errors.WithMessage(err, "rfq failed")
 	}
 
-	return uc.estimateRFQSlippage(ctx, routeSummary, slippageTolerance)
+	return uc.estimateRFQSlippage(ctx, command)
 }
 
 // Currently, we do not recalculate amountIn and amountOut for each swap after RFQ.
 // estimateRFQSlippage estimates routeSummary.amountOut after RFQ and compares with acceptableRFQAmountOut.
 func (uc *BuildRouteUseCase) estimateRFQSlippage(
 	ctx context.Context,
-	routeSummary valueobject.RouteSummary,
-	slippageTolerance float64,
-) (valueobject.RouteSummary, error) {
+	command dto.BuildRouteCommand,
+) (*valueobject.RouteSummary, error) {
+	routeSummary := command.RouteSummary
 	// Estimate new amount out after RFQ
-	var estimatedAfterRFQAmountOutBF big.Float
+	var estimatedAfterRFQAmountOutF float64
 	for _, path := range routeSummary.Route {
-		var (
-			estimatedAmountOutBF big.Float
-			previousAmountOutBF  big.Float
-		)
+		var nextAmountOutF float64
 		for _, swap := range path {
-			amountInBF := new(big.Float).SetInt(swap.SwapAmount)
-			estimatedAmountInBF := new(big.Float)
-			if previousAmountOutBF.Sign() == 0 || previousAmountOutBF.Cmp(amountInBF) > 0 {
-				estimatedAmountInBF.Set(amountInBF)
-			} else {
-				estimatedAmountInBF.Set(&previousAmountOutBF)
+			amountInF, _ := swap.SwapAmount.Float64()
+			estimatedAmountInF := amountInF
+			if nextAmountOutF > 0 && amountInF > nextAmountOutF {
+				estimatedAmountInF = nextAmountOutF
 			}
 
-			// estimatedAmountOutBF = amountOut * estimatedAmountInBF / amountInBF
-			estimatedAmountOutBF.SetInt(swap.AmountOut).
-				Mul(&estimatedAmountOutBF, estimatedAmountInBF).
-				Quo(&estimatedAmountOutBF, amountInBF)
-
-			previousAmountOutBF.Set(&estimatedAmountOutBF)
+			amountOutF, _ := swap.AmountOut.Float64()
+			nextAmountOutF = amountOutF * estimatedAmountInF / amountInF
 		}
 
-		estimatedAfterRFQAmountOutBF.Add(&estimatedAfterRFQAmountOutBF, &estimatedAmountOutBF)
+		estimatedAfterRFQAmountOutF += nextAmountOutF
 	}
+	estimatedAfterRFQAmountOutF = math.Ceil(estimatedAfterRFQAmountOutF)
+	estimatedAfterRFQAmountOut, _ := big.NewFloat(estimatedAfterRFQAmountOutF).Int(nil)
 
-	estimatedAfterRFQAmountOut := utils.CeilBigFloat(&estimatedAfterRFQAmountOutBF)
-
-	estimatedAfterRFQAmountOutFloat64, _ := estimatedAfterRFQAmountOut.Float64()
-	amountOutFloat64, _ := routeSummary.AmountOut.Float64()
-	log.Ctx(ctx).Debug().Msgf("afterRFQAmountOut: %v, oldAmountOut %v, estimatedSlippage %.2fbps",
-		estimatedAfterRFQAmountOut.String(),
-		routeSummary.AmountOut,
-		(1-estimatedAfterRFQAmountOutFloat64/amountOutFloat64)*float64(valueobject.BasisPoint.Int64()),
-	)
+	amountOut := lo.CoalesceOrEmpty(command.OriginalAmountOut, routeSummary.AmountOut)
+	if amountOut == nil {
+		return nil, errors.New("OriginalAmountOut is nil")
+	}
+	amountOutF, _ := amountOut.Float64()
+	log.Ctx(ctx).Debug().
+		Stringer("afterRFQAmountOut", estimatedAfterRFQAmountOut).
+		Stringer("amountOut", amountOut).
+		Float64("estimatedSlippage", (1-estimatedAfterRFQAmountOutF/amountOutF)*slippage.BasisPoint).
+		Msg("estimateRFQSlippage")
 
 	// acceptableRFQAmountOut = routeSummary.AmountOut * (1 - rfqAcceptableSlippageFraction * slippageTolerance)
 	// = routeSummary.AmountOut - routeSummary.AmountOut * rfqAcceptableSlippageFraction * slippageTolerance
-	reducedAmountOutWithSlippageTolerance := new(big.Int).Div(
-		new(big.Int).Mul(
-			routeSummary.AmountOut,
-			big.NewInt(int64(slippageTolerance)),
+	var tmp, tmp2 big.Int
+	reducedAmountOutWithSlippageTolerance := tmp.Div(
+		tmp.Mul(
+			amountOut,
+			tmp.SetInt64(int64(command.SlippageTolerance)),
 		),
 		valueobject.BasisPoint,
 	)
@@ -505,16 +486,16 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 	// If not configured, the RFQ acceptable slippage is 0,
 	// leading the acceptableRFQAmountOut = routeSummary.AmountOut,
 	// which is the old behavior.
-	reducedAmountOutWithRFQSlippageFraction := new(big.Int).Div(
-		new(big.Int).Mul(
+	reducedAmountOutWithRFQSlippageFraction := tmp2.Div(
+		tmp2.Mul(
 			reducedAmountOutWithSlippageTolerance,
-			big.NewInt(uc.config.RFQAcceptableSlippageFraction),
+			tmp2.SetInt64(uc.config.RFQAcceptableSlippageFraction),
 		),
 		valueobject.BasisPoint,
 	)
 
-	acceptableRFQAmountOut := new(big.Int).Sub(
-		routeSummary.AmountOut,
+	acceptableRFQAmountOut := tmp2.Sub(
+		amountOut,
 		reducedAmountOutWithRFQSlippageFraction,
 	)
 
@@ -529,8 +510,8 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 		log.Ctx(ctx).Error().Msgf("afterRFQAmountOut: %v < acceptableRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
 			estimatedAfterRFQAmountOut.String(),
 			acceptableRFQAmountOut,
-			routeSummary.AmountOut,
-			100*estimatedAfterRFQAmountOutFloat64/acceptableRFQAmountOutFloat64)
+			amountOut,
+			100*estimatedAfterRFQAmountOutF/acceptableRFQAmountOutFloat64)
 
 		return routeSummary, ErrQuotedAmountSmallerThanEstimated
 	}
@@ -541,7 +522,7 @@ func (uc *BuildRouteUseCase) estimateRFQSlippage(
 func (uc *BuildRouteUseCase) processRFQs(
 	ctx context.Context,
 	exchange valueobject.Exchange,
-	routeSummary valueobject.RouteSummary,
+	routeSummary *valueobject.RouteSummary,
 	rfqRouteMsgs chan *v1.RouteSummary,
 	isFaultyPoolTrackEnable bool,
 	tokens map[string]*entity.SimplifiedToken,
@@ -607,7 +588,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 }
 
 func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tokens map[string]*entity.SimplifiedToken,
-	prices map[string]float64, routeSummary valueobject.RouteSummary, pathIdx, swapIdx, executedId int,
+	prices map[string]float64, routeSummary *valueobject.RouteSummary, pathIdx, swapIdx, executedId int,
 	rfqRouteMsgs chan *v1.RouteSummary) {
 	extraWithAlphaFee, ok := extra.(WithAlphaFee)
 	if !ok {
@@ -677,7 +658,7 @@ func (uc *BuildRouteUseCase) extractAlphaFee(ctx context.Context, extra any, tok
 }
 
 // TODO refactor later for other rfqs
-func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobject.RouteSummary,
+func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary *valueobject.RouteSummary,
 	swap valueobject.Swap, alphaFeeReduction *routerEntity.AlphaFeeV2SwapReduction,
 	extra any, rfqRouteMsg *v1.RouteSummary) {
 	// General information
@@ -764,44 +745,33 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary valueobjec
 	}
 }
 
-// updateRouteSummary updates AmountInUSD/AmountOutUSD in command.RouteSummary
-// and returns updated command
-// We need these values, and they should be calculated in backend side because some services such as campaign or data
-// need them for their business.
+// updateRouteSummary updates AmountOut and AmountInUSD/AmountOutUSD in routeSummary and returns updated routeSummary.
+// We need these values to be calculated from backend side for services such as campaign or data
 func (uc *BuildRouteUseCase) updateRouteSummary(
-	routeSummary valueobject.RouteSummary,
+	routeSummary *valueobject.RouteSummary,
 	tokenIn, tokenOut string,
 	tokens map[string]*entity.SimplifiedToken,
-	prices map[string]float64) (valueobject.RouteSummary, error) {
-
+	prices map[string]float64) (*valueobject.RouteSummary, error) {
 	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokens[tokenIn].Decimals, prices[tokenIn])
 	amountOutUSD := business.CalcAmountUSD(routeSummary.AmountOut, tokens[tokenOut].Decimals, prices[tokenOut])
-
 	routeSummary.AmountInUSD, _ = amountInUSD.Float64()
 	routeSummary.AmountOutUSD, _ = amountOutUSD.Float64()
-
 	return routeSummary, nil
 }
 
-func (uc *BuildRouteUseCase) encode(
-	ctx context.Context,
-	command dto.BuildRouteCommand,
-	routeSummary valueobject.RouteSummary,
-	encoder encode.IEncoder,
-	executorAddress string,
-	isSimulation bool,
-) (string, error) {
+func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteCommand, encoder encode.IEncoder,
+	executorAddress string, isSimulation bool) (string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.encode")
 	defer span.End()
 
-	clientData, err := uc.encodeClientData(ctx, command, routeSummary)
+	clientData, err := uc.encodeClientData(ctx, command)
 	if err != nil {
 		return "", err
 	}
 
 	encodingData := types.NewEncodingDataBuilder(
 		ctx, uc.config.ChainID, uc.executorBalanceRepository, uc.config.FeatureFlags).
-		SetRoute(&routeSummary, executorAddress, command.Recipient).
+		SetRoute(command, executorAddress).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetClientID(command.Source).
 		SetClientData(clientData).
@@ -811,7 +781,7 @@ func (uc *BuildRouteUseCase) encode(
 	if isSimulation {
 		encodingData.SetMinAmountOut(bignumber.One)
 	} else {
-		encodingData.SetMinAmountOut(slippage.GetMinAmountOutExactInput(routeSummary.AmountOut,
+		encodingData.SetMinAmountOut(slippage.GetMinAmountOutExactInput(command.RouteSummary.AmountOut,
 			command.SlippageTolerance))
 	}
 
@@ -819,13 +789,13 @@ func (uc *BuildRouteUseCase) encode(
 }
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
-func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand,
-	routeSummary valueobject.RouteSummary) ([]byte, error) {
+func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand) ([]byte, error) {
 	flags, err := clientdata.ConvertFlagsToBitInteger(encodeTypes.Flags{})
 	if err != nil {
 		return nil, err
 	}
 
+	routeSummary := command.RouteSummary
 	return uc.clientDataEncoder.Encode(ctx, encodeTypes.ClientData{
 		Source:       command.Source,
 		AmountInUSD:  strconv.FormatFloat(routeSummary.AmountInUSD, 'f', -1, 64),
@@ -841,7 +811,7 @@ func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 
 func (uc *BuildRouteUseCase) getRouteAndAlphaTokens(_ context.Context,
 	tokenIn string, tokenOut string,
-	routeSummary valueobject.RouteSummary) []string {
+	routeSummary *valueobject.RouteSummary) []string {
 	addresses := mapset.NewThreadUnsafeSet(tokenIn, tokenOut)
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
@@ -912,7 +882,7 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context,
 // simulateSwap simulates the swap transaction to get actual returnAmount and gasUsed
 func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 	ctx context.Context,
-	routeSummary valueobject.RouteSummary,
+	routeSummary *valueobject.RouteSummary,
 	tokenInAddress string,
 	tokenOutAddress string,
 	command dto.BuildRouteCommand,
@@ -923,7 +893,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 	defer span.End()
 
 	// Generate encoded data for simulation
-	simulationEncodedData, err := uc.encode(ctx, command, routeSummary, uc.encoder, executorAddress, true)
+	simulationEncodedData, err := uc.encode(ctx, command, uc.encoder, executorAddress, true)
 	if err != nil {
 		return 0, 0.0, 0, 0, err
 	}
@@ -931,7 +901,7 @@ func (uc *BuildRouteUseCase) simulateSwapAndEstimateGas(
 	tx := UnsignedTransaction{
 		command.Sender,
 		simulationEncodedData,
-		lo.Ternary(eth.IsEther(routeSummary.TokenIn), routeSummary.AmountIn, constant.Zero),
+		lo.Ternary(valueobject.IsNative(routeSummary.TokenIn), routeSummary.AmountIn, constant.Zero),
 		nil,
 	}
 
@@ -1001,7 +971,7 @@ func (uc *BuildRouteUseCase) isFaultyPoolTrackingEnabled(command dto.BuildRouteC
 		!utils.IsEmptyString(command.Sender)
 }
 
-func (uc *BuildRouteUseCase) calculateL1FeeInUSD(ctx context.Context, routeSummary valueobject.RouteSummary,
+func (uc *BuildRouteUseCase) calculateL1FeeInUSD(ctx context.Context, routeSummary *valueobject.RouteSummary,
 	encodedData string) (float64, error) {
 	// Using the estimated L1 fee because we haven't implemented Brotli compression for Arbitrum yet.
 	if uc.config.ChainID == valueobject.ChainIDArbitrumOne {
@@ -1043,8 +1013,8 @@ func (uc *BuildRouteUseCase) calculateL1FeeInUSD(ctx context.Context, routeSumma
 func (uc *BuildRouteUseCase) checkToKeepDustTokenOut(
 	ctx context.Context,
 	executorAddress string,
-	routeSummary valueobject.RouteSummary,
-) (valueobject.RouteSummary, error) {
+	routeSummary *valueobject.RouteSummary,
+) (*valueobject.RouteSummary, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.checkToKeepDustTokenOut")
 	defer span.End()
 

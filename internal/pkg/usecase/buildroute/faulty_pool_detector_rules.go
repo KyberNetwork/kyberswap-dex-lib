@@ -14,7 +14,6 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -31,7 +30,7 @@ func isSlippageAboveMinThreshold(estimatedSlippage float64, tokenGroup string, s
 
 // requests to be tracked should only involve tokens that have been whitelisted or native token
 func isTokenWhiteList(token string, config FaultyPoolsConfig, chainID valueobject.ChainID) bool {
-	if eth.IsEther(token) || eth.IsWETH(token, chainID) {
+	if valueobject.IsNative(token) || valueobject.IsWrappedNative(token, chainID) {
 		return true
 	}
 

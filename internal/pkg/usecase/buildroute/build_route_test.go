@@ -33,7 +33,7 @@ type dummyL1FeeCalculator struct{}
 
 var randomSalt = "randomSalt"
 
-func (d *dummyL1FeeCalculator) CalculateL1Fee(_ context.Context, _ valueobject.RouteSummary, _ string) (*big.Int, error) {
+func (d *dummyL1FeeCalculator) CalculateL1Fee(_ context.Context, _ *valueobject.RouteSummary, _ string) (*big.Int, error) {
 	return nil, nil
 }
 
@@ -124,7 +124,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:         big.NewInt(20000),
 						AmountInUSD:      0,
@@ -241,7 +241,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -375,7 +375,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -509,7 +509,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			},
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -656,7 +656,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 			},
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(20000),
 					AmountInUSD:  0,
@@ -812,7 +812,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				)
 			},
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      valueobject.EtherAddress,
 					AmountIn:     amountIn,
 					AmountInUSD:  0,
@@ -917,7 +917,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should return correct result and run estimate Gas when there is no error, feature flag is on",
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -1000,7 +1000,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should return correct result and disable run estimate Gas when there is no error, feature flag is on",
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -1081,7 +1081,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 		{
 			name: "it should return correct result and run estimate Gas in goroutine when there is no error because feature flag is on but disable estimateGas",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(20000),
 					AmountInUSD:  0,
@@ -1184,7 +1184,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			name: "it should return error when EnableGasEstimation is true and sender is empty, feature flag is on",
 			command: func() dto.BuildRouteCommand {
 				return dto.BuildRouteCommand{
-					RouteSummary: valueobject.RouteSummary{
+					RouteSummary: &valueobject.RouteSummary{
 						TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 						AmountIn:     big.NewInt(20000),
 						AmountInUSD:  0,
@@ -1260,7 +1260,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 		{
 			name: "it should count faulty pools when estimate gas error is return amount not enough, feature flag is on",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 					AmountIn:     big.NewInt(500000),
 					AmountInUSD:  0.00000000192722,
@@ -1364,7 +1364,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 		{
 			name: "it should not count faulty pools when estimate gas error is some error, feature flag is on",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 					AmountIn:     big.NewInt(500000),
 					AmountInUSD:  0.00000000192722,
@@ -1458,7 +1458,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 		{
 			name: "it should not count faulty pools and still call estimate gas, feature flag is off",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
 					AmountIn:     big.NewInt(500000),
 					AmountInUSD:  0.5,
@@ -1652,7 +1652,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and increase total count (failed count is 0) on Redis, check FOT on whitelist tokens",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -1797,7 +1797,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result although increase total count on Redis failed, route contains all whitelist tokens, no need to check fot tokens",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -1920,7 +1920,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and not increase total count on Redis when feature flag is off",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -2035,7 +2035,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result, but increase total count only (failed count = 0) because slippage below min threshold",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -2176,7 +2176,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and increase total count on Redis because slippage above min threshold",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -2316,7 +2316,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and not increase total count on Redis because token out is FOT token",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -2447,7 +2447,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and only increase total count in AMM dexes",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(1002),
 					AmountInUSD:  float64(1000),
@@ -2609,7 +2609,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return correct result and not increase total count because some tokens is honeypot tokens",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(1002),
 					AmountInUSD:  float64(1000),
@@ -2760,7 +2760,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "it should return not count faulty pools on Redis because checksum is not correct",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -2884,7 +2884,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "swapSinglePool failed at sequence: 0 hop: 1 then call AddFaultyPools to pool-service",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(1000000),
 					AmountInUSD:  float64(1000000),
@@ -2996,7 +2996,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 		{
 			name: "return amount is not enough due to low slippage tolerance",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(1000000),
 					AmountInUSD:  float64(1000000),
@@ -3222,7 +3222,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 		{
 			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with kyber-pmm failed",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -3332,7 +3332,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 		{
 			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with native-v1 failed",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -3459,7 +3459,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 		{
 			name: "it should return correct result and increase total count (failed count is 0) on Redis when rfq firm has no error",
 			command: func() dto.BuildRouteCommand {
-				route := valueobject.RouteSummary{
+				route := &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -3670,7 +3670,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 		{
 			name: "it should not return error when rfq slippage is acceptable",
 			command: dto.BuildRouteCommand{
-				RouteSummary: valueobject.RouteSummary{
+				RouteSummary: &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),
@@ -3742,7 +3742,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 		{
 			name: "it should return error when rfq slippage is not acceptable",
 			command: dto.BuildRouteCommand{
-				RouteSummary: valueobject.RouteSummary{
+				RouteSummary: &valueobject.RouteSummary{
 					TokenIn:      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					AmountIn:     big.NewInt(2000000000000000000),
 					AmountInUSD:  float64(2000000000000000000),

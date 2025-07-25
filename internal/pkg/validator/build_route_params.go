@@ -136,7 +136,7 @@ func (v *buildRouteParamsValidator) validateTokenOut(tokenOut string) error {
 	return nil
 }
 
-func (v *buildRouteParamsValidator) validateChargeFeeBy(chargeFeeBy string, feeAmount string) error {
+func (v *buildRouteParamsValidator) validateChargeFeeBy(chargeFeeBy valueobject.ChargeFeeBy, feeAmount string) error {
 	if len(feeAmount) == 0 || feeAmount == "0" {
 		return nil
 	}

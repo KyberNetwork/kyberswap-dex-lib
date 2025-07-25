@@ -1,14 +1,18 @@
 package dto
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type BuildRouteCommand struct {
-	RouteSummary valueobject.RouteSummary
+	RouteSummary      *valueobject.RouteSummary
+	OriginalAmountOut *big.Int
 
 	Sender    string
 	Recipient string
+	Origin    string
 
 	Permit []byte
 
@@ -17,6 +21,5 @@ type BuildRouteCommand struct {
 	EnableGasEstimation bool
 
 	Source   string
-	Origin   string
 	Referral string
 }

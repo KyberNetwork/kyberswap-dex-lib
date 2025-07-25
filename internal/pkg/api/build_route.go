@@ -94,7 +94,8 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 	}
 
 	return dto.BuildRouteCommand{
-		RouteSummary:        routeSummary,
+		RouteSummary:        &routeSummary,
+		OriginalAmountOut:   routeSummary.GetTotalAmountOut(cfg.ChainID),
 		Sender:              params.Sender,
 		Recipient:           params.Recipient,
 		Permit:              common.FromHex(params.Permit),
@@ -286,7 +287,7 @@ func transformExtraFeeParams(params params.ExtraFee) (valueobject.ExtraFee, erro
 	}
 	return valueobject.ExtraFee{
 		FeeAmount:   feeAmount,
-		ChargeFeeBy: valueobject.ChargeFeeBy(params.ChargeFeeBy),
+		ChargeFeeBy: params.ChargeFeeBy,
 		IsInBps:     params.IsInBps,
 		FeeReceiver: utils.TransformSliceParams(params.FeeReceiver),
 	}, nil

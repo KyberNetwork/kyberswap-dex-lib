@@ -6,9 +6,10 @@ import (
 	"math/big"
 
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
+	"github.com/pkg/errors"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/pkg/errors"
 )
 
 func (c *AlphaFeeV2Calculation) calculateDefaultAlphaFeeNonMergeRoute(ctx context.Context, param DefaultAlphaFeeParams, alphaFee *big.Int) (*routerEntity.AlphaFeeV2, error) {
@@ -140,7 +141,7 @@ func (c *AlphaFeeV2Calculation) calculateDefaultAlphaFeeMergeRoute(_ context.Con
 	}, nil
 }
 
-func isValidReduction(route valueobject.RouteSummary, reduceBps int, alphaFee *big.Int) (bool, []routerEntity.AlphaFeeV2SwapReduction) {
+func isValidReduction(route *valueobject.RouteSummary, reduceBps int, alphaFee *big.Int) (bool, []routerEntity.AlphaFeeV2SwapReduction) {
 	reduceBpsF := float64(reduceBps) / 10000.0
 
 	amountOutBeforeReduction := make(map[string]*big.Int)
@@ -237,7 +238,7 @@ func calculateAmountByRatio(numerator, denominator, amount *big.Int) *big.Int {
 	return newAmount
 }
 
-func isMergeSwapRoute(route valueobject.RouteSummary) bool {
+func isMergeSwapRoute(route *valueobject.RouteSummary) bool {
 	if len(route.Route) == 0 {
 		return false
 	}

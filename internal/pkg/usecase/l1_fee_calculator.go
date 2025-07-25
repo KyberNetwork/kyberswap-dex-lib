@@ -39,7 +39,7 @@ func NewL1FeeCalculator(
 
 func (c *L1FeeCalculator) CalculateL1Fee(
 	ctx context.Context,
-	routeSummary valueobject.RouteSummary,
+	routeSummary *valueobject.RouteSummary,
 	encodedSwapData string,
 ) (*big.Int, error) {
 	if !valueobject.IsL1FeeEstimateSupported(c.chainID) {
@@ -75,7 +75,7 @@ func (c *L1FeeCalculator) CalculateL1Fee(
 	return nil, nil
 }
 
-func (c *L1FeeCalculator) getUnsignedTx(routeSummary valueobject.RouteSummary, encodedSwapData string) (*types.Transaction, error) {
+func (c *L1FeeCalculator) getUnsignedTx(routeSummary *valueobject.RouteSummary, encodedSwapData string) (*types.Transaction, error) {
 	encodedData, err := hexutil.Decode(encodedSwapData)
 	if err != nil {
 		return nil, err

@@ -660,8 +660,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: "10000",
 								AmountOut:  "9999",
 								Exchange:   "Exchange",
@@ -678,7 +678,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 				Permit:            "0x1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
 			command: dto.BuildRouteCommand{
-				RouteSummary: valueobject.RouteSummary{
+				RouteSummary: &valueobject.RouteSummary{
 					TokenIn:      "0xc7198437980c041c805a1edcba50c1ce5db95118",
 					AmountIn:     big.NewInt(10000),
 					AmountInUSD:  10000.1,
@@ -698,8 +698,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: big.NewInt(10000),
 								AmountOut:  big.NewInt(9999),
 								Exchange:   "Exchange",
@@ -709,6 +709,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						},
 					},
 				},
+				OriginalAmountOut: big.NewInt(9999),
 				Deadline:          1665561367,
 				SlippageTolerance: 850,
 				Recipient:         "0xeeeee79b0fead91f3e65f86e8915cb59c1a4c664",
@@ -744,8 +745,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: "10000",
 								AmountOut:  "9999",
 								Exchange:   "Exchange",
@@ -763,7 +764,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 				Permit:            "0x1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 			},
 			command: dto.BuildRouteCommand{
-				RouteSummary: valueobject.RouteSummary{
+				RouteSummary: &valueobject.RouteSummary{
 					TokenIn:      "0xc7198437980c041c805a1edcba50c1ce5db95118",
 					AmountIn:     big.NewInt(10000),
 					AmountInUSD:  10000.1,
@@ -783,8 +784,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: big.NewInt(10000),
 								AmountOut:  big.NewInt(9999),
 								Exchange:   "Exchange",
@@ -794,6 +795,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						},
 					},
 				},
+				OriginalAmountOut: big.NewInt(9999),
 				Deadline:          1665561367,
 				SlippageTolerance: 850,
 				Recipient:         "0xeeeee79b0fead91f3e65f86e8915cb59c1a4c664",
@@ -830,8 +832,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: "10000",
 								AmountOut:  "9999",
 								Exchange:   "Exchange",
@@ -848,7 +850,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 				Sender:            "sender",
 			},
 			command: dto.BuildRouteCommand{
-				RouteSummary: valueobject.RouteSummary{
+				RouteSummary: &valueobject.RouteSummary{
 					TokenIn:      "0xc7198437980c041c805a1edcba50c1ce5db95118",
 					AmountIn:     big.NewInt(10000),
 					AmountInUSD:  10000.1,
@@ -868,8 +870,8 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						{
 							{
 								Pool:       "Pool",
-								TokenIn:    "TokenIn",
-								TokenOut:   "TokenOut",
+								TokenIn:    "0xc7198437980c041c805a1edcba50c1ce5db95118",
+								TokenOut:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 								SwapAmount: big.NewInt(10000),
 								AmountOut:  big.NewInt(9999),
 								Exchange:   "Exchange",
@@ -879,6 +881,7 @@ func Test_transformBuildRouteParams(t *testing.T) {
 						},
 					},
 				},
+				OriginalAmountOut: big.NewInt(9999),
 				Deadline:          1665561367,
 				SlippageTolerance: 850,
 				Recipient:         "0xeeeee79b0fead91f3e65f86e8915cb59c1a4c664",

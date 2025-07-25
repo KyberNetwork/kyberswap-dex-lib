@@ -122,7 +122,7 @@ func transformGetRoutesParams(ginCtx *gin.Context, params params.GetRoutesParams
 
 		extraFee = valueobject.ExtraFee{
 			FeeAmount:   feeAmountsBigInt,
-			ChargeFeeBy: valueobject.ChargeFeeBy(params.ChargeFeeBy),
+			ChargeFeeBy: params.ChargeFeeBy,
 			IsInBps:     params.IsInBps,
 			FeeReceiver: feeReceivers,
 		}
@@ -240,7 +240,7 @@ func transformExtraFee(extraFee valueobject.ExtraFee) params.ExtraFee {
 		FeeAmount: strings.Join(lo.Map(extraFee.FeeAmount, func(item *big.Int, index int) string {
 			return item.String()
 		}), ","),
-		ChargeFeeBy: string(extraFee.ChargeFeeBy),
+		ChargeFeeBy: extraFee.ChargeFeeBy,
 		FeeReceiver: strings.Join(extraFee.FeeReceiver, ","),
 		IsInBps:     extraFee.IsInBps,
 	}

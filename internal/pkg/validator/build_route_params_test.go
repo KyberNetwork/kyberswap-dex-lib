@@ -320,7 +320,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{
+			paramsValidator := buildRouteParamsValidator{
 				nowFunc: func() time.Time {
 					return time.Now().Add(20 * time.Minute)
 				},
@@ -332,7 +332,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 				),
 			}
 
-			err := validator.Validate(context.Background(), tc.params)
+			err := paramsValidator.Validate(context.Background(), tc.params)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -371,9 +371,9 @@ func TestBuildRouteParamsValidator_validateRoute(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateRoute(tc.route)
+			err := paramsValidator.validateRoute(tc.route)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -417,9 +417,9 @@ func TestBuildRouteParamsValidator_validateTokenIn(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateTokenIn(tc.tokenIn, tc.tokenOut)
+			err := paramsValidator.validateTokenIn(tc.tokenIn, tc.tokenOut)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -453,9 +453,9 @@ func TestBuildRouteParamsValidator_validateTokenOut(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateTokenOut(tc.tokenOut)
+			err := paramsValidator.validateTokenOut(tc.tokenOut)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -467,7 +467,7 @@ func TestBuildRouteParamsValidator_validateChargeFeeBy(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		chargeFeeBy string
+		chargeFeeBy valueobject.ChargeFeeBy
 		feeAmount   string
 		err         error
 	}{
@@ -493,9 +493,9 @@ func TestBuildRouteParamsValidator_validateChargeFeeBy(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateChargeFeeBy(tc.chargeFeeBy, tc.feeAmount)
+			err := paramsValidator.validateChargeFeeBy(tc.chargeFeeBy, tc.feeAmount)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -534,9 +534,9 @@ func TestBuildRouteParamsValidator_validateFeeReceiver(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateFeeReceiver(tc.feeReceiver)
+			err := paramsValidator.validateFeeReceiver(tc.feeReceiver)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -585,7 +585,7 @@ func TestBuildRouteParamsValidator_validateSender(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{
+			paramsValidator := buildRouteParamsValidator{
 				config: BuildRouteParamsConfig{
 					FeatureFlags: valueobject.FeatureFlags{
 						ShouldValidateSender: tc.shouldValidateSender,
@@ -593,7 +593,7 @@ func TestBuildRouteParamsValidator_validateSender(t *testing.T) {
 				},
 			}
 
-			err := validator.validateSender(tc.sender, &[]string{})
+			err := paramsValidator.validateSender(tc.sender, &[]string{})
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -632,9 +632,9 @@ func TestBuildRouteParamsValidator_validateRecipient(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateRecipient(tc.recipient)
+			err := paramsValidator.validateRecipient(tc.recipient)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -668,9 +668,9 @@ func TestBuildRouteParamsValidator_validateFeeAmount(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validateFeeAmount(tc.feeAmount)
+			err := paramsValidator.validateFeeAmount(tc.feeAmount)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -699,13 +699,13 @@ func TestBuildRouteParamsValidator_validateDeadline(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{
+			paramsValidator := buildRouteParamsValidator{
 				nowFunc: func() time.Time {
 					return time.Unix(1665560167, 0)
 				},
 			}
 
-			err := validator.validateDeadline(tc.deadline)
+			err := paramsValidator.validateDeadline(tc.deadline)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -841,9 +841,9 @@ func TestBuildRouteParamsValidator_validatePermit(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			paramsValidator := buildRouteParamsValidator{}
 
-			err := validator.validatePermit(tc.permit)
+			err := paramsValidator.validatePermit(tc.permit)
 
 			assert.Equal(t, tc.err, err)
 		})

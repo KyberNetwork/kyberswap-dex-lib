@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -97,7 +96,7 @@ func (v *getRoutesParamsValidator) validateAmountIn(amountInParams string) error
 		return NewValidationError("amountIn", "invalid")
 	}
 
-	if amountIn.Cmp(constant.Zero) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return NewValidationError("amountIn", "invalid")
 	}
 
@@ -128,7 +127,7 @@ func (v *getRoutesParamsValidator) validateFeeAmount(feeAmount string) error {
 	return nil
 }
 
-func (v *getRoutesParamsValidator) validateChargeFeeBy(chargeFeeBy string, feeAmount string) error {
+func (v *getRoutesParamsValidator) validateChargeFeeBy(chargeFeeBy valueobject.ChargeFeeBy, feeAmount string) error {
 	if len(feeAmount) == 0 {
 		return nil
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
@@ -130,7 +129,7 @@ func (r *Route) AddPath(ctx context.Context, poolBucket *PoolBucket, p *Path, sw
 			)
 			return fErr
 		}
-		if calcAmountOutResult.TokenAmountOut == nil || calcAmountOutResult.TokenAmountOut.Amount.Cmp(constant.Zero) <= 0 {
+		if calcAmountOutResult.TokenAmountOut == nil || calcAmountOutResult.TokenAmountOut.Amount.Sign() <= 0 {
 			fErr = errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Route.AddPath] CalcAmountOut returns nil or invalid amountOut | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], tokenAmountOut: [%v]", pool.GetAddress(), pool.GetExchange(), currentAmount.Token, currentAmount.Amount, p.Tokens[i+1].Address, calcAmountOutResult.TokenAmountOut,

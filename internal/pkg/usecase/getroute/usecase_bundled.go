@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -71,19 +70,8 @@ func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQ
 	for i, pair := range query.Pairs {
 		originalTokensIn[i] = pair.TokenIn
 		originalTokensOut[i] = pair.TokenOut
-
-		wrappedTokenIn, err := eth.ConvertEtherToWETH(pair.TokenIn, u.config.ChainID)
-		if err != nil {
-			return nil, err
-		}
-
-		wrappedTokenOut, err := eth.ConvertEtherToWETH(pair.TokenOut, u.config.ChainID)
-		if err != nil {
-			return nil, err
-		}
-
-		pair.TokenIn = wrappedTokenIn
-		pair.TokenOut = wrappedTokenOut
+		pair.TokenIn = valueobject.WrapNativeLower(pair.TokenIn, u.config.ChainID)
+		pair.TokenOut = valueobject.WrapNativeLower(pair.TokenOut, u.config.ChainID)
 	}
 
 	params, err := u.getAggregateBundledParams(ctx, query)

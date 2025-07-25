@@ -4,11 +4,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -84,7 +82,7 @@ func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *typ
 
 	// Step 2: calculate amountOut after fee
 	amountOutAfterFee := business.CalcAmountOutAfterFee(routeSummary.AmountOut, params.ExtraFee)
-	if amountOutAfterFee.Cmp(constant.Zero) < 0 {
+	if amountOutAfterFee.Sign() < 0 {
 		return nil, ErrFeeAmountIsGreaterThanAmountOut
 	}
 

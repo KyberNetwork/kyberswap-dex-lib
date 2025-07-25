@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -23,13 +24,9 @@ import (
 )
 
 // GetRouteEncode [GET /route/encode] Find best route with encode
-func GetRouteEncode(
-	validator IGetRouteEncodeParamsValidator,
-	getRoutesUseCase IGetRoutesUseCase,
-	buildRoutesUseCase IBuildRouteUseCase,
-	getTokensUseCase IGetTokensUseCase,
-	nowFunc func() time.Time,
-) func(ginCtx *gin.Context) {
+func GetRouteEncode(cfg buildroute.Config, validator IGetRouteEncodeParamsValidator,
+	getRoutesUseCase IGetRoutesUseCase, buildRoutesUseCase IBuildRouteUseCase, getTokensUseCase IGetTokensUseCase,
+	nowFunc func() time.Time) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetRouteEncode")
 		defer span.End()
@@ -76,7 +73,7 @@ func GetRouteEncode(
 			return
 		}
 
-		buildRouteCommand, err := buildBuildRouteCommand(queryParams, getRoutesResult, nowFunc)
+		buildRouteCommand, err := buildBuildRouteCommand(queryParams, getRoutesResult, cfg, nowFunc)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -164,7 +161,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 
 		extraFee = valueobject.ExtraFee{
 			FeeAmount:   feeAmountsBigInt,
-			ChargeFeeBy: valueobject.ChargeFeeBy(params.ChargeFeeBy),
+			ChargeFeeBy: params.ChargeFeeBy,
 			IsInBps:     params.IsInBps,
 			FeeReceiver: feeReceivers,
 		}
@@ -197,18 +194,16 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 	}, nil
 }
 
-func buildBuildRouteCommand(
-	params params.GetRouteEncodeParams,
-	getRoutesResult *dto.GetRoutesResult,
-	nowFunc func() time.Time,
-) (dto.BuildRouteCommand, error) {
+func buildBuildRouteCommand(params params.GetRouteEncodeParams, getRoutesResult *dto.GetRoutesResult,
+	cfg buildroute.Config, nowFunc func() time.Time) (dto.BuildRouteCommand, error) {
 	deadline := params.Deadline
 	if params.Deadline == 0 {
 		deadline = nowFunc().Add(valueobject.DefaultDeadline).Unix()
 	}
 
 	return dto.BuildRouteCommand{
-		RouteSummary:      *getRoutesResult.RouteSummary,
+		RouteSummary:      getRoutesResult.RouteSummary,
+		OriginalAmountOut: getRoutesResult.RouteSummary.GetTotalAmountOut(cfg.ChainID),
 		Recipient:         utils.CleanUpParam(params.To),
 		Permit:            common.FromHex(params.Permit),
 		Deadline:          deadline,

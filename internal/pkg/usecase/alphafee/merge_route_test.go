@@ -600,7 +600,7 @@ func TestCalculateDefaultAlphaFeeNonMergeRoute(t *testing.T) {
 	}
 
 	param := DefaultAlphaFeeParams{
-		RouteSummary: routeSummary,
+		RouteSummary: &routeSummary,
 	}
 
 	calc := AlphaFeeV2Calculation{
@@ -874,7 +874,7 @@ func TestCalculateDefaultAlphaFeeMergeRoute(t *testing.T) {
 	}
 
 	param := DefaultAlphaFeeParams{
-		RouteSummary: routeSummary,
+		RouteSummary: &routeSummary,
 	}
 
 	calc := AlphaFeeV2Calculation{

@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -82,11 +81,8 @@ func (b *EncodingDataBuilder) SetReferral(ref string) *EncodingDataBuilder {
 	return b
 }
 
-func (b *EncodingDataBuilder) SetRoute(
-	routeSummary *valueobject.RouteSummary,
-	executorAddress string,
-	recipient string,
-) *EncodingDataBuilder {
+func (b *EncodingDataBuilder) SetRoute(command dto.BuildRouteCommand, executorAddress string) *EncodingDataBuilder {
+	routeSummary := command.RouteSummary
 	encodingMode := getEncodingMode(routeSummary.TokenIn, routeSummary.Route)
 	encodingRoute := transformRoute(routeSummary.Route)
 
@@ -105,13 +101,14 @@ func (b *EncodingDataBuilder) SetRoute(
 
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
+	b.data.TotalAmountOut = command.OriginalAmountOut
 	b.data.ExtraFee = encodeValueObject.ExtraFee{
 		FeeAmount:   routeSummary.ExtraFee.FeeAmount,
-		ChargeFeeBy: encodeValueObject.ChargeFeeBy(routeSummary.ExtraFee.ChargeFeeBy),
+		ChargeFeeBy: routeSummary.ExtraFee.ChargeFeeBy,
 		IsInBps:     routeSummary.ExtraFee.IsInBps,
 		FeeReceiver: routeSummary.ExtraFee.FeeReceiver,
 	}
-	b.data.Recipient = recipient
+	b.data.Recipient = command.Recipient
 	b.data.Route = encodingRoute
 	b.data.EncodingMode = encodingMode
 	b.data.Flags = getEncodingFlags(encodingMode, routeSummary.ExtraFee)
@@ -394,7 +391,7 @@ func getCollectAmount(
 // - tokenIn is not native token
 // - the first pool of each path should be able to receive the token before calling swap
 func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
-	if eth.IsEther(tokenIn) {
+	if valueobject.IsNative(tokenIn) {
 		return false
 	}
 

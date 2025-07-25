@@ -1,5 +1,9 @@
 package params
 
+import (
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+)
+
 type GetRoutesParams struct {
 	// TokenIn address of token to be swapped
 	TokenIn string `form:"tokenIn"`
@@ -38,7 +42,7 @@ type GetRoutesParams struct {
 	FeeAmount string `form:"feeAmount"`
 
 	// ChargeFeeBy custom fee will be charged on currency in or currency out
-	ChargeFeeBy string `form:"chargeFeeBy"`
+	ChargeFeeBy valueobject.ChargeFeeBy `form:"chargeFeeBy"`
 
 	// IsInBps is true when FeeAmount is in bip base
 	IsInBps bool `form:"isInBps"`

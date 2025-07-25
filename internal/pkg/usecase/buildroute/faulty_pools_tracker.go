@@ -33,7 +33,7 @@ func (uc *BuildRouteUseCase) recordMetrics(ctx context.Context, route [][]valueo
 
 func (uc *BuildRouteUseCase) handleFaultyPools(
 	ctx context.Context,
-	routeSummary valueobject.RouteSummary,
+	routeSummary *valueobject.RouteSummary,
 	originalSlippage float64,
 	estimatedSlippage float64,
 	err error,
@@ -120,7 +120,7 @@ func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []
 
 func (uc *BuildRouteUseCase) createAMMPoolTrackers(
 	ctx context.Context,
-	route valueobject.RouteSummary,
+	route *valueobject.RouteSummary,
 	err error,
 	estimatedSlippage float64,
 ) []routerEntities.FaultyPoolTracker {
@@ -237,7 +237,7 @@ func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(routeTimestamp int64) boo
 	return secondElapsed <= valueobject.DefaultDeadline
 }
 
-func (uc *BuildRouteUseCase) IsValidChecksum(route valueobject.RouteSummary) bool {
+func (uc *BuildRouteUseCase) IsValidChecksum(route *valueobject.RouteSummary) bool {
 	checksum := crypto.NewChecksum(route, uc.config.Salt)
 	return checksum.Verify(route.OriginalChecksum)
 }

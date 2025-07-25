@@ -1,5 +1,9 @@
 package params
 
+import (
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+)
+
 type (
 	RouteSummary struct {
 		TokenIn     string `json:"tokenIn"`
@@ -43,10 +47,10 @@ type (
 	}
 
 	ExtraFee struct {
-		FeeAmount   string `json:"feeAmount"`
-		ChargeFeeBy string `json:"chargeFeeBy"`
-		IsInBps     bool   `json:"isInBps"`
-		FeeReceiver string `json:"feeReceiver"`
+		FeeAmount   string                  `json:"feeAmount"`
+		ChargeFeeBy valueobject.ChargeFeeBy `json:"chargeFeeBy"`
+		IsInBps     bool                    `json:"isInBps"`
+		FeeReceiver string                  `json:"feeReceiver"`
 	}
 
 	Swap struct {

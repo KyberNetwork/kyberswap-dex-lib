@@ -3,7 +3,9 @@ package valueobject
 import (
 	"encoding/binary"
 	"math/big"
+	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/cespare/xxhash/v2"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -59,7 +61,7 @@ type RouteSummary struct {
 }
 
 // Checksum only uses enough data to avoid "return amount not enough" due to manually modify amount out and swap amount
-func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
+func (rs *RouteSummary) Checksum(salt string) *xxhash.Digest {
 	h := xxhash.New()
 	_, _ = h.WriteString(salt)
 	_, _ = h.WriteString(rs.TokenIn)
@@ -94,7 +96,20 @@ func (rs RouteSummary) Checksum(salt string) *xxhash.Digest {
 	return h
 }
 
-func (rs RouteSummary) GetPriceImpact() float64 {
+// GetTotalAmountOut returns total amount out before fee
+func (rs *RouteSummary) GetTotalAmountOut(chainID ChainID) *big.Int {
+	var totalAmountOut big.Int
+	tokenOut := valueobject.WrapNativeLower(rs.TokenOut, chainID)
+	for _, path := range rs.Route {
+		lastSwap := path[len(path)-1]
+		if strings.EqualFold(lastSwap.TokenOut, tokenOut) {
+			totalAmountOut.Add(&totalAmountOut, lastSwap.AmountOut)
+		}
+	}
+	return &totalAmountOut
+}
+
+func (rs *RouteSummary) GetPriceImpact() float64 {
 	return (rs.AmountInUSD - rs.AmountOutUSD) / rs.AmountInUSD
 }
 

@@ -465,6 +465,7 @@ func apiAction(c *cli.Context) (err error) {
 	router.GET(
 		"/route/encode",
 		api.GetRouteEncode(
+			cfg.UseCase.BuildRoute,
 			getRouteEncodeParamsValidator,
 			getRouteUseCase,
 			buildRouteUseCase,
