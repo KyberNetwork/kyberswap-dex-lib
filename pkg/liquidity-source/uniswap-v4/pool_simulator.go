@@ -2,7 +2,6 @@ package uniswapv4
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -39,7 +38,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, fmt.Errorf("unmarshal static extra: %w", err)
 	}
 
-	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{Pool: &entityPool, HookExtra: extra.HookExtra})
+	hook, ok := GetHook(staticExtra.HooksAddress, &HookParam{
+		Cfg:       &Config{ChainID: int(chainID)},
+		Pool:      &entityPool,
+		HookExtra: extra.HookExtra,
+	})
 	if !ok && HasSwapPermissions(staticExtra.HooksAddress) {
 		return nil, shared.ErrUnsupportedHook
 	}
@@ -47,6 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if shared.IsDynamicFee(uint32(entityPool.SwapFee)) {
 		entityPool.SwapFee = 0
 	}
+
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256)
 	if err != nil {
 		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
@@ -75,11 +79,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	beforeSwapHookParams := &BeforeSwapHookParams{
-		ExactIn:   true,
-		ZeroToOne: strings.EqualFold(p.V3Pool.Token0.Address.Hex(), param.TokenAmountIn.Token),
-		Amount:    param.TokenAmountIn.Amount,
+		ExactIn:         true,
+		ZeroForOne:      p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
+		AmountSpecified: param.TokenAmountIn.Amount,
 	}
-	swapHookResult := p.hook.BeforeSwap(beforeSwapHookParams)
+	swapHookResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
+	if err != nil {
+		return nil, err
+	}
+
+	// beforeSwap -> amountToSwap += hookDeltaSpecified;
+	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
+	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
+	param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
 
 	if swapHookResult.SwapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
@@ -91,16 +103,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		poolSim = &cloned
 	}
 
-	// beforeSwap -> amountToSwap += hookDeltaSpecified;
-	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
-	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
-	param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
-
 	result, err := poolSim.CalcAmountOut(param)
 	if err != nil {
 		return nil, err
 	}
-
 	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
 		BeforeSwapHookParams: beforeSwapHookParams,
 		AmountIn:             param.TokenAmountIn.Amount,
@@ -111,13 +117,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// for the case of calcAmountOut (exactIn), amountOut supposed to be Positive, then turn to be TokenAmountOut.Sub
 	// for the case of calcAmountIn (exactOut), amountIn supposed to be Negative, then turn to be TokenAmountIn.Add
 	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific).Sub(result.TokenAmountOut.Amount, hookFee)
-
 	return result, err
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
+	if cloned.hook != nil {
+		cloned.hook = p.hook.CloneState()
+	}
 	return &cloned
 }
 

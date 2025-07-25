@@ -387,6 +387,7 @@ const (
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
+	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeVVS                        = "vvs"
@@ -801,6 +802,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
+	ExchangeUniswapV4Clanker:           {},
 	ExchangeUsd0PP:                     {},
 	ExchangeUsdsLitePsm:                {},
 	ExchangeVVS:                        {},
@@ -875,9 +877,11 @@ func IsRFQSource(exchange Exchange) bool {
 // SingleSwapSourceSet is a set of exchanges that
 // only allow a single swap in a route.
 var SingleSwapSourceSet = map[Exchange]struct{}{
-	ExchangeBebop:         {},
-	ExchangeClipper:       {},
-	ExchangeOvernightUsdp: {},
+	ExchangeBebop:          {},
+	ExchangeClipper:        {},
+	ExchangeOvernightUsdp:  {},
+	ExchangeUniswapV4Euler: {},
+	ExchangeEulerSwap:      {},
 }
 
 func IsSingleSwapSource(exchange Exchange) bool {

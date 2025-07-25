@@ -21,7 +21,7 @@ var (
 )
 
 type Hook struct {
-	*uniswapv4.BaseHook
+	uniswapv4.Hook
 	hook        common.Address
 	swapFee     uniswapv4.FeeAmount
 	protocolFee *big.Int
@@ -49,8 +49,8 @@ type ManualFeeRPC struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Aegis},
-		hook:     param.HookAddress,
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Aegis},
+		hook: param.HookAddress,
 	}
 
 	if param.HookExtra != "" {
@@ -132,18 +132,18 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) *uniswapv4.BeforeSwapHookResult {
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
 	return &uniswapv4.BeforeSwapHookResult{
 		SwapFee: h.swapFee,
 		DeltaSpecific: lo.Ternary(swapHookParams.ExactIn, func() *big.Int {
 			hookFeeAmt := new(big.Int)
-			hookFeeAmt.Mul(swapHookParams.Amount, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+			hookFeeAmt.Mul(swapHookParams.AmountSpecified, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
 			hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
 			return hookFeeAmt
 		}(), new(big.Int),
 		),
 		DeltaUnSpecific: new(big.Int),
-	}
+	}, nil
 }
 
 func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {

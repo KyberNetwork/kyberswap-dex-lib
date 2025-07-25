@@ -13,9 +13,9 @@ import (
 )
 
 type BeforeSwapHookParams struct {
-	ExactIn   bool
-	ZeroToOne bool
-	Amount    *big.Int
+	ExactIn         bool
+	ZeroForOne      bool
+	AmountSpecified *big.Int
 }
 
 type BeforeSwapHookResult struct {
@@ -73,8 +73,9 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(swapHookParams *BeforeSwapHookParams) *BeforeSwapHookResult
+	BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error)
 	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int)
+	CloneState() Hook
 }
 
 type HookParam struct {
@@ -118,6 +119,10 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
+func (h *BaseHook) CloneState() Hook {
+	return h
+}
+
 func (h *BaseHook) GetExchange() string {
 	if h != nil {
 		return string(h.Exchange)
@@ -133,12 +138,12 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) *BeforeSwapHookResult {
+func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
 	return &BeforeSwapHookResult{
 		SwapFee:         0,
 		DeltaSpecific:   new(big.Int),
 		DeltaUnSpecific: new(big.Int),
-	}
+	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int) {
