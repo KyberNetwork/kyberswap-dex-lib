@@ -283,6 +283,7 @@ const (
 	ExchangePoolParty                  = "pool-party"
 	ExchangePotatoSwap                 = "potato-swap"
 	ExchangePrimeETH                   = "primeeth"
+	ExchangeProjectX                   = "projectx"
 	ExchangePufferPufETH               = "puffer-pufeth"
 	ExchangePunkSwap                   = "punkswap"
 	ExchangeQuickPerps                 = "quickperps"
@@ -702,6 +703,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePoolParty:                  {},
 	ExchangePotatoSwap:                 {},
 	ExchangePrimeETH:                   {},
+	ExchangeProjectX:                   {},
 	ExchangePufferPufETH:               {},
 	ExchangePunkSwap:                   {},
 	ExchangeQuickPerps:                 {},

@@ -97,14 +97,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		staticExtra := StaticExtra{
 			HasSwapPermissions: shared.HasSwapPermissions(params),
-			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
 			Fee:                fee,
+			IsNative:           [2]bool{p.TokenX.ID == valueobject.ZeroAddress, p.TokenY.ID == valueobject.ZeroAddress},
 			Parameters:         p.Parameters,
 			BinStep:            GetBinStep(params),
+			PoolManagerAddress: common.HexToAddress(u.config.BinPoolManagerAddress),
 			HooksAddress:       common.HexToAddress(p.Hooks),
 			Permit2Address:     common.HexToAddress(u.config.Permit2Address),
 			VaultAddress:       common.HexToAddress(u.config.VaultAddress),
-			PoolManagerAddress: common.HexToAddress(u.config.BinPoolManagerAddress),
 			Multicall3Address:  common.HexToAddress(u.config.Multicall3Address),
 		}
 
