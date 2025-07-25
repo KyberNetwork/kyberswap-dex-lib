@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -325,33 +325,35 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.SwapParam) (hookFeeAmt *bi
 	// to overwrite swap fee of pool
 	swapFee = uniswapv4.FeeAmount(lpFee)
 
-	if !swappingForClanker {
+	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return big.NewInt(0), swapFee, nil
 	}
 
-	var scaledProtocolFee, fee big.Int
-
+	fee, scaledProtocolFee := new(big.Int), new(big.Int)
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	fee.Add(MILLION, h.protocolFee)
-	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
-	fee.Mul(params.AmountIn, &scaledProtocolFee)
-	fee.Div(&fee, bignumber.BONE)
-
-	return &fee, swapFee, nil
+	if params.ExactIn && swappingForClanker {
+		fee.Add(MILLION, h.protocolFee)
+	} else if !params.ExactIn && !swappingForClanker {
+		fee.Sub(MILLION, h.protocolFee)
+	}
+	scaledProtocolFee.Div(scaledProtocolFee, fee)
+	fee.Mul(params.AmountIn, scaledProtocolFee)
+	fee.Div(fee, bignumber.BONE)
+	return fee, swapFee, nil
 }
 
 func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
-
-	if swappingForClanker {
-		return big.NewInt(0)
+	delta := new(big.Int)
+	if params.ExactIn && !swappingForClanker {
+		delta.Mul(params.AmountOut, h.protocolFee)
+		delta.Div(delta, FEE_DENOMINATOR)
+	} else if !params.ExactIn && swappingForClanker {
+		delta.Mul(params.AmountIn, h.protocolFee)
+		delta.Div(delta, FEE_DENOMINATOR)
 	}
 
-	var delta big.Int
-	delta.Mul(params.AmountOut, h.protocolFee)
-	delta.Div(&delta, FEE_DENOMINATOR)
-
-	return &delta
+	return delta
 }
 
 func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
