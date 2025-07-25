@@ -130,7 +130,7 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	if !swappingForClanker {
+	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapHookResult{
 			DeltaSpecific:   new(big.Int),
 			DeltaUnSpecific: new(big.Int),
@@ -141,7 +141,11 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uni
 	var scaledProtocolFee, fee big.Int
 
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	fee.Add(MILLION, h.protocolFee)
+	if params.ExactIn && swappingForClanker {
+		fee.Add(MILLION, h.protocolFee)
+	} else { // !params.ExactIn && !swappingForClanker
+		fee.Sub(MILLION, h.protocolFee)
+	}
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
@@ -156,12 +160,16 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uni
 func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	if swappingForClanker {
+	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
 		return big.NewInt(0)
 	}
 
 	var delta big.Int
-	delta.Mul(params.AmountOut, h.protocolFee)
+	if params.ExactIn && !swappingForClanker {
+		delta.Mul(params.AmountOut, h.protocolFee)
+	} else { // !params.ExactIn && swappingForClanker
+		delta.Mul(params.AmountIn, h.protocolFee)
+	}
 	delta.Div(&delta, FEE_DENOMINATOR)
 
 	return &delta
