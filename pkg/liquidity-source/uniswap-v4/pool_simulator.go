@@ -91,7 +91,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// beforeSwap -> amountToSwap += hookDeltaSpecified;
 	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
 	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
-	param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
+	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
+		param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
+	}
 
 	if swapHookResult.SwapFee >= constants.FeeMax {
 		return nil, errors.New("swap disabled")
@@ -116,7 +118,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// afterSwap -> swapDelta = swapDelta - hookDelta;
 	// for the case of calcAmountOut (exactIn), amountOut supposed to be Positive, then turn to be TokenAmountOut.Sub
 	// for the case of calcAmountIn (exactOut), amountIn supposed to be Negative, then turn to be TokenAmountIn.Add
-	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific).Sub(result.TokenAmountOut.Amount, hookFee)
+	if swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
+		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific)
+	}
+	if hookFee != nil {
+		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
+	}
 	return result, err
 }
 
