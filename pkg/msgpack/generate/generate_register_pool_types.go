@@ -14,8 +14,10 @@ import (
 
 var (
 	structNameByFileName = map[string]string{
-		"pool_simulator.go": "PoolSimulator",
-		"hook.go":           "Hook",
+		"pool_simulator.go":   "PoolSimulator",
+		"hook.go":             "Hook",
+		"dynamic_fee_hook.go": "DynamicFeeHook",
+		"static_fee_hook.go":  "StaticFeeHook",
 	}
 )
 
@@ -71,8 +73,15 @@ func emitImports(outFileBuf io.Writer, dir string, pkgNames, importPaths []strin
 	emitf(outFileBuf, "import (\n")
 	emitf(outFileBuf, "\t\"github.com/KyberNetwork/msgpack/v5\"\n")
 	emitf(outFileBuf, "\n")
+
+	// deduplicate imports
+	seen := make(map[string]bool)
 	for i, dexName := range pkgNames {
-		emitf(outFileBuf, "\t%s \"%s\"\n", dexName, importPaths[i])
+		importPath := importPaths[i]
+		if !seen[importPath] {
+			emitf(outFileBuf, "\t%s \"%s\"\n", dexName, importPath)
+			seen[importPath] = true
+		}
 	}
 	emitf(outFileBuf, ")\n")
 }
