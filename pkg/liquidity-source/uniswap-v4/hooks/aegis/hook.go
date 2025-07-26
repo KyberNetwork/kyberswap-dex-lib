@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
@@ -15,12 +16,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+var (
+	FeeMax = big.NewInt(int64(constants.FeeMax))
+)
+
 type Hook struct {
 	uniswapv4.Hook
-
-	hook       common.Address
-	swapFee    uniswapv4.FeeAmount
-	hookFeeAmt *big.Int
+	hook        common.Address
+	swapFee     uniswapv4.FeeAmount
+	protocolFee *big.Int
 }
 
 type AegisExtra struct {
@@ -53,7 +57,7 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 		var extra AegisExtra
 		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
 			hook.swapFee = uniswapv4.FeeAmount(extra.DynamicFee)
-			hook.hookFeeAmt = big.NewInt(int64(extra.PoolPOLShare))
+			hook.protocolFee = big.NewInt(int64(extra.PoolPOLShare))
 		}
 	}
 	return hook
@@ -128,10 +132,26 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount, err error) {
-	return h.hookFeeAmt, h.swapFee, nil
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+	return &uniswapv4.BeforeSwapHookResult{
+		SwapFee: h.swapFee,
+		DeltaSpecific: lo.Ternary(swapHookParams.ExactIn, func() *big.Int {
+			hookFeeAmt := new(big.Int)
+			hookFeeAmt.Mul(swapHookParams.AmountSpecified, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+			hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+			return hookFeeAmt
+		}(), new(big.Int),
+		),
+		DeltaUnSpecific: new(big.Int),
+	}, nil
 }
 
-func (h *Hook) AfterSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
-	return nil
+func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
+	return lo.Ternary(!swapHookParams.ExactIn, func() *big.Int {
+		hookFeeAmt = new(big.Int)
+		hookFeeAmt.Mul(swapHookParams.AmountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+		return hookFeeAmt
+	}(), new(big.Int),
+	)
 }

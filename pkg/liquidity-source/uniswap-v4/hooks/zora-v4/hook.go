@@ -23,9 +23,9 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) AfterSwap(_ *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
+func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
 	// The main logic is to convert remaining fees to payout currency
 	// for market rewards. It doesn't modify the amountOut and only for
 	// their dex internal purposes. So empty implementation here.
-	return nil
+	return new(big.Int)
 }
