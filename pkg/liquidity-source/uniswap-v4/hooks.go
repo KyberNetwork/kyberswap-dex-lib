@@ -12,6 +12,24 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+type BeforeSwapHookParams struct {
+	ExactIn         bool
+	ZeroForOne      bool
+	AmountSpecified *big.Int
+}
+
+type BeforeSwapHookResult struct {
+	DeltaSpecific   *big.Int
+	DeltaUnSpecific *big.Int
+	SwapFee         FeeAmount
+}
+
+type AfterSwapHookParams struct {
+	*BeforeSwapHookParams
+	AmountIn  *big.Int
+	AmountOut *big.Int
+}
+
 type FeeAmount = constants.FeeAmount
 
 const FeeMax = constants.FeeMax
@@ -55,16 +73,9 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(*SwapParam) (hookFeeAmt *big.Int, swapFee FeeAmount, err error)
-	AfterSwap(*SwapParam) (hookFeeAmt *big.Int)
+	BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error)
+	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int)
 	CloneState() Hook
-}
-
-type SwapParam struct {
-	ZeroForOne bool
-	ExactIn    bool
-	AmountIn   *big.Int
-	AmountOut  *big.Int
 }
 
 type HookParam struct {
@@ -127,10 +138,14 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(params *SwapParam) (hookFeeAmt *big.Int, swapFee FeeAmount, err error) {
-	return nil, 0, nil
+func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
+	return &BeforeSwapHookResult{
+		SwapFee:         0,
+		DeltaSpecific:   new(big.Int),
+		DeltaUnSpecific: new(big.Int),
+	}, nil
 }
 
-func (h *BaseHook) AfterSwap(params *SwapParam) (hookFeeAmt *big.Int) {
-	return nil
+func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int) {
+	return new(big.Int)
 }

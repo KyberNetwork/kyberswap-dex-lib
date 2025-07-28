@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -127,33 +127,49 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	return string(extraBytes), nil
 }
 
-func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount, err error) {
+func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	if !swappingForClanker {
-		return big.NewInt(0), h.clankerFee, nil
+	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
+		return &uniswapv4.BeforeSwapHookResult{
+			DeltaSpecific:   new(big.Int),
+			DeltaUnSpecific: new(big.Int),
+			SwapFee:         h.clankerFee,
+		}, nil
 	}
 
 	var scaledProtocolFee, fee big.Int
 
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	fee.Add(MILLION, h.protocolFee)
+	if params.ExactIn && swappingForClanker {
+		fee.Add(MILLION, h.protocolFee)
+	} else { // !params.ExactIn && !swappingForClanker
+		fee.Sub(MILLION, h.protocolFee)
+	}
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
-	fee.Mul(params.AmountIn, &scaledProtocolFee)
+	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
 
-	return &fee, h.pairedFee, nil
+	return &uniswapv4.BeforeSwapHookResult{
+		DeltaSpecific:   &fee,
+		DeltaUnSpecific: new(big.Int),
+		SwapFee:         h.pairedFee,
+	}, nil
 }
 
-func (h *StaticFeeHook) AfterSwap(params *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
+func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	if swappingForClanker {
+	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
 		return big.NewInt(0)
 	}
 
 	var delta big.Int
-	delta.Mul(params.AmountOut, h.protocolFee)
+	if params.ExactIn && !swappingForClanker {
+		delta.Mul(params.AmountOut, h.protocolFee)
+	} else { // !params.ExactIn && swappingForClanker
+		delta.Mul(params.AmountIn, h.protocolFee)
+	}
 	delta.Div(&delta, FEE_DENOMINATOR)
 
 	return &delta

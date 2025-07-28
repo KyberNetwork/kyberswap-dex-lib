@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -213,7 +213,7 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	return string(extraBytes), nil
 }
 
-func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne bool) (uint64, error) {
+func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne, exactIn bool) (uint64, error) {
 	tickBefore := int64(h.poolSim.V3Pool.TickCurrent)
 
 	var approxLPFee uint64
@@ -266,7 +266,7 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne 
 	// overwrite new LPFee to simulate swap with this swapFee
 	h.poolSim.V3Pool.Fee = constants.FeeAmount(approxLPFee)
 
-	tickAfter, err := h.getTicks(amountIn, zeroForOne)
+	tickAfter, err := h.getTicks(amountIn, zeroForOne, exactIn)
 	if err != nil {
 		return 0, err
 	}
@@ -305,16 +305,16 @@ func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
 	return fee.Uint64()
 }
 
-func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.SwapParam) (hookFeeAmt *big.Int, swapFee uniswapv4.FeeAmount, err error) {
+func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
 	if h.poolSim == nil {
-		return nil, 0, ErrPoolSimIsNil
+		return nil, ErrPoolSimIsNil
 	}
 
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	volAccumulator, err := h.getVolatilityAccumulator(params.AmountIn, params.ZeroForOne)
+	volAccumulator, err := h.getVolatilityAccumulator(params.AmountSpecified, params.ZeroForOne, params.ExactIn)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	lpFee := h.getLpFee(volAccumulator)
@@ -323,34 +323,54 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.SwapParam) (hookFeeAmt *bi
 	h.setProtocolFee(lpFee)
 
 	// to overwrite swap fee of pool
-	swapFee = uniswapv4.FeeAmount(lpFee)
+	swapFee := uniswapv4.FeeAmount(lpFee)
 
-	if !swappingForClanker {
-		return big.NewInt(0), swapFee, nil
+	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
+		return &uniswapv4.BeforeSwapHookResult{
+			DeltaSpecific:   new(big.Int),
+			DeltaUnSpecific: new(big.Int),
+			SwapFee:         swapFee,
+		}, nil
 	}
 
 	var scaledProtocolFee, fee big.Int
 
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	fee.Add(MILLION, h.protocolFee)
+	if params.ExactIn && swappingForClanker {
+		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L297
+		fee.Add(MILLION, h.protocolFee)
+	} else { // !params.ExactIn && !swappingForClanker
+		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L297
+		fee.Sub(MILLION, h.protocolFee)
+	}
+
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
-	fee.Mul(params.AmountIn, &scaledProtocolFee)
+	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
 
-	return &fee, swapFee, nil
+	return &uniswapv4.BeforeSwapHookResult{
+		DeltaSpecific:   &fee,
+		DeltaUnSpecific: new(big.Int),
+		SwapFee:         swapFee,
+	}, nil
 }
 
-func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.SwapParam) (hookFeeAmt *big.Int) {
+func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
-	if swappingForClanker {
+	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
 		return big.NewInt(0)
 	}
 
 	var delta big.Int
-	delta.Mul(params.AmountOut, h.protocolFee)
+	if params.ExactIn && !swappingForClanker {
+		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L349
+		delta.Mul(params.AmountOut, h.protocolFee)
+	} else { // !params.ExactIn && swappingForClanker
+		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L365
+		delta.Mul(params.AmountIn, h.protocolFee)
+	}
 	delta.Div(&delta, FEE_DENOMINATOR)
-
 	return &delta
 }
 
@@ -358,41 +378,73 @@ func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookP
 	return nil, nil
 }
 
-func (h *DynamicFeeHook) simulateSwap(zeroForOne bool, amountIn *big.Int) (uniswapv3.SwapInfo, error) {
-	var scaledProtocolFee, fee big.Int
+func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exactIn bool) (swapInfo uniswapv3.SwapInfo, err error) {
+	swappingForClanker := zeroForOne != h.clankerIsToken0
 
-	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
-	fee.Add(MILLION, h.protocolFee)
-	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
-	fee.Mul(amountIn, &scaledProtocolFee)
-	fee.Div(&fee, bignumber.BONE)
+	var amountForSim *big.Int
 
-	amountInForSim := scaledProtocolFee.Add(amountIn, &fee)
+	if exactIn && !swappingForClanker || !exactIn && swappingForClanker {
+		amountForSim = amountSpecified
+	} else {
+		var scaledProtocolFee, fee big.Int
+
+		scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
+
+		if exactIn && swappingForClanker {
+			fee.Add(MILLION, h.protocolFee)
+		} else { // !exactIn && !swappingForClanker
+			fee.Sub(MILLION, h.protocolFee)
+		}
+
+		scaledProtocolFee.Div(&scaledProtocolFee, &fee)
+		fee.Mul(amountSpecified, &scaledProtocolFee)
+		fee.Div(&fee, bignumber.BONE)
+
+		amountForSim = new(big.Int).Add(amountSpecified, &fee)
+	}
 
 	tokenIn, tokenOut := h.poolSim.Pool.GetTokens()[0], h.poolSim.Pool.GetTokens()[1]
 	if !zeroForOne {
 		tokenIn, tokenOut = tokenOut, tokenIn
 	}
 
-	result, err := h.poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: amountInForSim,
-		},
-		TokenOut: tokenOut,
-	})
+	if exactIn {
+		var result *pool.CalcAmountOutResult
+		result, err = h.poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountForSim,
+			},
+			TokenOut: tokenOut,
+		})
+		if err != nil {
+			return uniswapv3.SwapInfo{}, err
+		}
 
+		swapInfo = result.SwapInfo.(uniswapv3.SwapInfo)
+
+		return
+	}
+
+	var result *pool.CalcAmountInResult
+	result, err = h.poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountForSim,
+		},
+		TokenIn: tokenIn,
+	})
 	if err != nil {
 		return uniswapv3.SwapInfo{}, err
 	}
 
-	swapInfo := result.SwapInfo.(uniswapv3.SwapInfo)
+	swapInfo = result.SwapInfo.(uniswapv3.SwapInfo)
 
-	return swapInfo, nil
+	return
 }
 
-func (h *DynamicFeeHook) getTicks(amountIn *big.Int, zeroForOne bool) (int64, error) {
-	swapInfo, err := h.simulateSwap(zeroForOne, amountIn)
+func (h *DynamicFeeHook) getTicks(amountSpecified *big.Int, zeroForOne, exactIn bool) (int64, error) {
+	swapInfo, err := h.simulateSwap(amountSpecified, zeroForOne, exactIn)
 	if err != nil {
 		return 0, err
 	}
