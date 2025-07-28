@@ -18,9 +18,6 @@ var (
 	_token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // USDC
 	_token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" // wETH
 
-	_xDecimals uint64 = 18
-	_yDecimals uint64 = 6
-
 	_reserve0, _ = new(big.Int).SetString("30396549939591301240", 10)
 	_reserve1, _ = new(big.Int).SetString("33321339599", 10)
 
@@ -43,10 +40,8 @@ var (
 
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
-	extraBytes, err := json.Marshal(IntegralPair{
+	extraBytes, err := json.Marshal(Extra{
 		IsEnabled:      true,
-		X_Decimals:     _xDecimals,
-		Y_Decimals:     _yDecimals,
 		SwapFee:        _swapFee,
 		Price:          _price,
 		InvertedPrice:  _invertedPrice,
@@ -64,8 +59,8 @@ func TestCalcAmountOut(t *testing.T) {
 			_reserve1.String(),
 		},
 		Tokens: []*entity.PoolToken{
-			{Address: _token0},
-			{Address: _token1},
+			{Address: _token0, Decimals: 18, Swappable: true},
+			{Address: _token1, Decimals: 6, Swappable: true},
 		},
 		Extra: string(extraBytes),
 	}
@@ -138,10 +133,8 @@ func TestCalcAmountOut(t *testing.T) {
 
 	// Test for disabled pool
 	t.Run("5. should return error when pool is disabled", func(t *testing.T) {
-		disabledExtraBytes, err := json.Marshal(IntegralPair{
+		disabledExtraBytes, err := json.Marshal(Extra{
 			IsEnabled:      false,
-			X_Decimals:     _xDecimals,
-			Y_Decimals:     _yDecimals,
 			SwapFee:        _swapFee,
 			Price:          _price,
 			InvertedPrice:  _invertedPrice,
@@ -180,10 +173,8 @@ func TestCalcAmountOut(t *testing.T) {
 
 func TestUpdateBalance(t *testing.T) {
 	t.Parallel()
-	extraBytes, err := json.Marshal(IntegralPair{
+	extraBytes, err := json.Marshal(Extra{
 		IsEnabled:      true,
-		X_Decimals:     _xDecimals,
-		Y_Decimals:     _yDecimals,
 		SwapFee:        _swapFee,
 		Price:          _price,
 		Token0LimitMin: _token0LimitMin,
