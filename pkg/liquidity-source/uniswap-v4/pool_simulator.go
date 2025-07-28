@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -78,9 +79,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return poolSim.CalcAmountOut(param)
 	}
 
+	tokenIn := param.TokenAmountIn.Token
+
 	beforeSwapHookParams := &BeforeSwapHookParams{
 		ExactIn:         true,
-		ZeroForOne:      p.Pool.GetTokenIndex(param.TokenAmountIn.Token) == 0,
+		ZeroForOne:      p.Pool.GetTokenIndex(tokenIn) == 0,
 		AmountSpecified: param.TokenAmountIn.Amount,
 	}
 	swapHookResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
@@ -91,8 +94,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	// beforeSwap -> amountToSwap += hookDeltaSpecified;
 	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
 	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
+	var amountIn *big.Int
 	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
-		param.TokenAmountIn.Amount.Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
+		amountIn = new(big.Int).Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
+	} else {
+		amountIn = param.TokenAmountIn.Amount
 	}
 
 	if swapHookResult.SwapFee >= constants.FeeMax {
@@ -105,13 +111,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		poolSim = &cloned
 	}
 
-	result, err := poolSim.CalcAmountOut(param)
+	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		},
+		TokenOut: param.TokenOut,
+	})
 	if err != nil {
 		return nil, err
 	}
 	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
 		BeforeSwapHookParams: beforeSwapHookParams,
-		AmountIn:             param.TokenAmountIn.Amount,
+		AmountIn:             amountIn,
 		AmountOut:            result.TokenAmountOut.Amount,
 	})
 
