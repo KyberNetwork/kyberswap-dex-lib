@@ -60,27 +60,18 @@ func (u *PoolTracker) getNewPoolState(
 	logger.Infof("%s: Start getting new state of pool (address: %s)", u.config.DexID, p.Address)
 
 	var (
-		token0LimitMaxMultiplier = ZERO
-		token1LimitMaxMultiplier = ZERO
+		poolState PoolState
 
-		poolState = [6]*big.Int{ZERO, ZERO, ZERO, ZERO, ZERO, ZERO}
-		// uint256 price,
-		// uint256 fee,
-		// uint256 limitMin0,
-		// uint256 limitMax0,
-		// uint256 limitMin1,
-		// uint256 limitMax1
+		token0LimitMaxMultiplier *big.Int
+		token1LimitMaxMultiplier *big.Int
 
 		token0 = common.HexToAddress(p.Tokens[0].Address)
 		token1 = common.HexToAddress(p.Tokens[1].Address)
 
 		isPairEnabled bool
 
-		// uint256 xDecimals,
-		// uint256 yDecimals,
-		// uint256 price
-		pairInfo         = [3]any{uint8(0), uint8(0)}
-		invertedPairInfo = [3]any{uint8(0), uint8(0)}
+		pairInfo         PriceByPair
+		invertedPairInfo PriceByPair
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -102,29 +93,31 @@ func (u *PoolTracker) getNewPoolState(
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&isPairEnabled})
 
-	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetTokenLimitMaxMultiplierMethod,
 		Params: []any{token0},
 	}, []any{&token0LimitMaxMultiplier})
 
-	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerGetTokenLimitMaxMultiplierMethod,
 		Params: []any{token1},
 	}, []any{&token1LimitMaxMultiplier})
 
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if _, err := rpcRequest.Aggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	if !isPairEnabled {
-		var extraData IntegralPair
-		_ = json.Unmarshal([]byte(p.Extra), &extraData)
+		var extra Extra
+		_ = json.Unmarshal([]byte(p.Extra), &extra)
 
-		extraData.IsEnabled = false
-		extraBytes, err := json.Marshal(extraData)
+		extra.IsEnabled = false
+		extraBytes, err := json.Marshal(extra)
 		if err != nil {
 			logger.Errorf("%s: failed to marshal extra data for disabled pool (address: %s, error: %v)", u.config.DexID, p.Address, err)
 			return entity.Pool{}, err
@@ -132,7 +125,7 @@ func (u *PoolTracker) getNewPoolState(
 
 		p.Extra = string(extraBytes)
 		p.Timestamp = time.Now().Unix()
-		p.Reserves = entity.PoolReserves([]string{"0", "0"})
+		p.Reserves = []string{"0", "0"}
 
 		return p, nil
 	}
@@ -152,66 +145,44 @@ func (u *PoolTracker) getNewPoolState(
 	}, []any{&invertedPairInfo})
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch decimals data (address: %s, error: %v)", u.config.DexID, p.Address, err)
-		return entity.Pool{}, err
+		return p, err
 	}
 
-	xDecimals := pairInfo[0].(uint8)
-	yDecimals := pairInfo[1].(uint8)
-
-	invertedPrice, price := ZERO, ZERO
-	if pairInfo[2] != nil {
-		price = pairInfo[2].(*big.Int)
+	extra := Extra{
+		RelayerAddress:           u.config.RelayerAddress,
+		IsEnabled:                isPairEnabled,
+		SwapFee:                  number.SetFromBig(poolState.Fee),
+		Price:                    number.SetFromBig(pairInfo.Price),
+		InvertedPrice:            number.SetFromBig(invertedPairInfo.Price),
+		Token0LimitMin:           number.SetFromBig(poolState.LimitMin0),
+		Token0LimitMax:           number.SetFromBig(poolState.LimitMax0),
+		Token1LimitMin:           number.SetFromBig(poolState.LimitMin1),
+		Token1LimitMax:           number.SetFromBig(poolState.LimitMax1),
+		Token0LimitMaxMultiplier: number.SetFromBig(token0LimitMaxMultiplier),
+		Token1LimitMaxMultiplier: number.SetFromBig(token1LimitMaxMultiplier),
 	}
-
-	if invertedPairInfo[2] != nil {
-		invertedPrice = invertedPairInfo[2].(*big.Int)
-	}
-
-	var extraData IntegralPair
-	_ = json.Unmarshal([]byte(p.Extra), &extraData)
-
-	extraData.Price = number.SetFromBig(price)
-	extraData.InvertedPrice = number.SetFromBig(invertedPrice)
-	extraData.SwapFee = number.SetFromBig(poolState[1])
-	extraData.Token0LimitMin = number.SetFromBig(poolState[2])
-	extraData.Token0LimitMax = number.SetFromBig(poolState[3])
-	extraData.Token1LimitMin = number.SetFromBig(poolState[4])
-	extraData.Token1LimitMax = number.SetFromBig(poolState[5])
-	extraData.X_Decimals = uint64(xDecimals)
-	extraData.Y_Decimals = uint64(yDecimals)
-	extraData.IsEnabled = isPairEnabled
-
-	var reserve0, reserve1 string
-	if token0LimitMaxMultiplier.Cmp(ZERO) != 0 {
-		reserve0 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				extraData.Token0LimitMax,
-				precision,
-			),
-			uint256.MustFromBig(token0LimitMaxMultiplier),
-		).String()
-	}
-
-	if token1LimitMaxMultiplier.Cmp(ZERO) != 0 {
-		reserve1 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				extraData.Token1LimitMax,
-				precision,
-			),
-			uint256.MustFromBig(token1LimitMaxMultiplier),
-		).String()
-	}
-
-	extraBytes, err := json.Marshal(extraData)
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.Errorf("%s: failed to marshal extra data (address: %s, error: %v)", u.config.DexID, p.Address, err)
-		return entity.Pool{}, err
+		return p, err
+	}
+
+	reserve0 := new(uint256.Int).Set(extra.Token0LimitMax)
+	reserve1 := new(uint256.Int).Set(extra.Token1LimitMax)
+
+	if token0LimitMaxMultiplier.Sign() != 0 {
+		reserve0, _ = new(uint256.Int).MulDivOverflow(extra.Token0LimitMax, precision, extra.Token0LimitMaxMultiplier)
+	}
+	if token1LimitMaxMultiplier.Sign() != 0 {
+		reserve1, _ = new(uint256.Int).MulDivOverflow(extra.Token1LimitMax, precision, extra.Token1LimitMaxMultiplier)
 	}
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves([]string{reserve0, reserve1})
-	p.SwapFee = float64(poolState[1].Uint64()) / precision.Float64()
+	p.Reserves = []string{reserve0.String(), reserve1.String()}
+
+	fee, _ := poolState.Fee.Float64()
+	p.SwapFee = fee / precision.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
 
