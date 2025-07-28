@@ -2,37 +2,36 @@ package integral
 
 import (
 	"errors"
-	"math/big"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+)
 
-	"github.com/holiman/uint256"
+const (
+	DexTypeIntegral = "integral"
+
+	pairToken0Method = "token0"
+	pairToken1Method = "token1"
+
+	factoryAllPairsMethod       = "allPairs"
+	factoryAllPairsLengthMethod = "allPairsLength"
+
+	relayerFactoryMethod                    = "factory"
+	relayerIsPairEnabledMethod              = "isPairEnabled"
+	relayerGetPoolStateMethod               = "getPoolState"
+	relayerGetPairByAddressMethod           = "getPriceByPairAddress"
+	relayerGetTokenLimitMaxMultiplierMethod = "getTokenLimitMaxMultiplier"
 )
 
 var (
-	DexTypeIntegral = "integral"
-	ZERO            = big.NewInt(0)
-	defaultGas      = Gas{Swap: 400000}
-	precision       = uint256.NewInt(1e18)
+	defaultGas = Gas{Swap: 400000}
 
-	// errors
+	precision = u256.TenPow(18)
+)
+
+var (
 	ErrTokenNotFound  = errors.New("tokens not found")
 	ErrInvalidTokenIn = errors.New("invalid tokenIn")
 
 	ErrTR03 = errors.New("TR03")
 	ErrTR3A = errors.New("TR3A")
 	ErrTR05 = errors.New("TR05")
-
-	// pair methods
-	pairToken0Method = "token0"
-	pairToken1Method = "token1"
-
-	// factory methods
-	factoryAllPairsMethod       = "allPairs"
-	factoryAllPairsLengthMethod = "allPairsLength"
-
-	// relayer methods
-	relayerFactoryMethod                    = "factory"
-	relayerIsPairEnabledMethod              = "isPairEnabled"
-	relayerGetPoolStateMethod               = "getPoolState"
-	relayerGetPairByAddressMethod           = "getPriceByPairAddress"
-	relayerGetTokenLimitMaxMultiplierMethod = "getTokenLimitMaxMultiplier"
 )

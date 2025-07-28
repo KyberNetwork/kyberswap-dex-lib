@@ -57,7 +57,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 		panic(err)
 	}
 
-	var pair IntegralPair
+	var pair Extra
 	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
 		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
@@ -65,8 +65,6 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	require.NotNil(ts.Suite.T(), pair)
 
 	require.NotEqual(ts.Suite.T(), number.Zero, pair.Price)
-	require.NotEqual(ts.Suite.T(), 0, pair.X_Decimals)
-	require.NotEqual(ts.Suite.T(), 0, pair.Y_Decimals)
 
 	require.Equal(ts.Suite.T(), 2, len(pool.Reserves))
 	require.NotEqual(ts.Suite.T(), "", pool.Reserves[0])

@@ -10,23 +10,22 @@ type Gas struct {
 	Swap int64
 }
 
-type IntegralPair struct {
-	RelayerAddress string
+type Extra struct {
+	RelayerAddress string `json:"relayerAddress"`
 
-	IsEnabled bool
+	IsEnabled bool `json:"isEnabled"`
 
-	X_Decimals uint64
-	Y_Decimals uint64
+	Price         *uint256.Int `json:"price"`
+	InvertedPrice *uint256.Int `json:"invertedPrice"`
+	SwapFee       *uint256.Int `json:"swapFee"`
 
-	Price         *uint256.Int // Token X -> Y
-	InvertedPrice *uint256.Int // Token Y -> X
-	SwapFee       *uint256.Int
+	Token0LimitMin *uint256.Int `json:"t0LiMi"`
+	Token0LimitMax *uint256.Int `json:"t0LiMa"`
+	Token1LimitMin *uint256.Int `json:"t1LiMi"`
+	Token1LimitMax *uint256.Int `json:"t1LiMa"`
 
-	Token0LimitMin *uint256.Int
-	Token0LimitMax *uint256.Int
-
-	Token1LimitMin *uint256.Int
-	Token1LimitMax *uint256.Int
+	Token0LimitMaxMultiplier *uint256.Int `json:"t0LiMaMu"`
+	Token1LimitMaxMultiplier *uint256.Int `json:"t1LiMaMu"`
 }
 
 type SwapInfo struct {
@@ -37,4 +36,19 @@ type SwapInfo struct {
 
 type MetaInfo struct {
 	ApprovalAddress string `json:"approvalAddress,omitempty"`
+}
+
+type PoolState struct {
+	Price     *big.Int `json:"price"`
+	Fee       *big.Int `json:"fee"`
+	LimitMin0 *big.Int `json:"limitMin0"`
+	LimitMax0 *big.Int `json:"limitMax0"`
+	LimitMin1 *big.Int `json:"limitMin1"`
+	LimitMax1 *big.Int `json:"limitMax1"`
+}
+
+type PriceByPair struct {
+	XDecimals uint8
+	YDecimals uint8
+	Price     *big.Int
 }

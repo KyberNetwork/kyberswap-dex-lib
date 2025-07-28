@@ -2,6 +2,7 @@ package integral
 
 import (
 	"fmt"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -17,15 +18,17 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	IntegralPair
-	gas Gas
+	Extra
+	XDecimals uint8
+	YDecimals uint8
+	gas       Gas
 }
 
 var _ = pool.RegisterFactory0(DexTypeIntegral, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var pair IntegralPair
-	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
+	var extra Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal Extra: %v", err)
 	}
 
@@ -49,8 +52,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
-		IntegralPair: pair,
-		gas:          defaultGas,
+		Extra:     extra,
+		XDecimals: entityPool.Tokens[0].Decimals,
+		YDecimals: entityPool.Tokens[1].Decimals,
+		gas:       defaultGas,
 	}, nil
 }
 
@@ -122,7 +127,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if s, ok := params.SwapInfo.(SwapInfo); ok {
 			newToken0LimitMax := new(big.Int).Div(
 				new(big.Int).Mul(
-					t.IntegralPair.Token0LimitMax.ToBig(),
+					t.Extra.Token0LimitMax.ToBig(),
 					s.NewReserve0,
 				),
 				t.Info.Reserves[0],
@@ -130,7 +135,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 			newToken1LimitMax := new(big.Int).Div(
 				new(big.Int).Mul(
-					t.IntegralPair.Token1LimitMax.ToBig(),
+					t.Extra.Token1LimitMax.ToBig(),
 					s.NewReserve1,
 				),
 				t.Info.Reserves[1],
@@ -139,20 +144,20 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			t.Info.Reserves[0] = s.NewReserve0
 			t.Info.Reserves[1] = s.NewReserve1
 
-			t.IntegralPair.Token0LimitMax = uint256.MustFromBig(newToken0LimitMax)
-			t.IntegralPair.Token1LimitMax = uint256.MustFromBig(newToken1LimitMax)
+			t.Extra.Token0LimitMax = uint256.MustFromBig(newToken0LimitMax)
+			t.Extra.Token1LimitMax = uint256.MustFromBig(newToken1LimitMax)
 		}
 	}
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275
 func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	if !p.IntegralPair.IsEnabled {
+	if !p.Extra.IsEnabled {
 		return nil, nil, nil, ErrTR05
 	}
 
 	tokens := p.GetTokens()
-	fee := number.SafeDiv(number.SafeMul(amountIn, p.IntegralPair.SwapFee), precision)
+	fee := number.SafeDiv(number.SafeMul(amountIn, p.Extra.SwapFee), precision)
 
 	inverted := tokens[1] == tokenIn
 
@@ -168,19 +173,19 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L520
 func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 	if token == p.GetTokens()[0] {
-		if amount.Lt(p.IntegralPair.Token0LimitMin) {
+		if amount.Lt(p.Extra.Token0LimitMin) {
 			return ErrTR03
 		}
 
-		if amount.Gt(p.IntegralPair.Token0LimitMax) {
+		if amount.Gt(p.Extra.Token0LimitMax) {
 			return ErrTR3A
 		}
 	} else if token == p.GetTokens()[1] {
-		if amount.Lt(p.IntegralPair.Token1LimitMin) {
+		if amount.Lt(p.Extra.Token1LimitMin) {
 			return ErrTR03
 		}
 
-		if amount.Gt(p.IntegralPair.Token1LimitMax) {
+		if amount.Gt(p.Extra.Token1LimitMax) {
 			return ErrTR3A
 		}
 	}
@@ -190,7 +195,7 @@ func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L324
 func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {
-	decimalsConverter := getDecimalsConverter(p.IntegralPair.X_Decimals, p.IntegralPair.Y_Decimals, inverted)
+	decimalsConverter := getDecimalsConverter(p.XDecimals, p.YDecimals, inverted)
 
 	if inverted {
 		return number.SafeDiv(number.SafeMul(amountIn, p.InvertedPrice), decimalsConverter)
@@ -200,15 +205,13 @@ func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int)
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L334
-func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsConverter *uint256.Int) {
-	var exponent uint64
+func getDecimalsConverter(xDecimals, yDecimals uint8, inverted bool) *uint256.Int {
+	var exponent uint8
 	if inverted {
 		exponent = 18 + (yDecimals - xDecimals)
 	} else {
 		exponent = 18 + (xDecimals - yDecimals)
 	}
 
-	decimalsConverter = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(exponent))
-
-	return
+	return new(uint256.Int).Set(u256.TenPow(exponent))
 }

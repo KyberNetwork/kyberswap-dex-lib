@@ -62,8 +62,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
 		Method: relayerFactoryMethod,
-		Params: nil,
-	}, []interface{}{&factory}).Call(); err != nil {
+	}, []any{&factory}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("%s: failed to get factory address", u.config.DexID)
@@ -76,8 +75,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		ABI:    factoryABI,
 		Target: factory.Hex(),
 		Method: factoryAllPairsLengthMethod,
-		Params: nil,
-	}, []interface{}{&pairsLength}).Call(); err != nil {
+	}, []any{&pairsLength}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("%s: failed to get number of pools from factory", u.config.DexID)
@@ -102,8 +100,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			ABI:    factoryABI,
 			Target: factory.Hex(),
 			Method: factoryAllPairsMethod,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressReq.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -161,15 +159,11 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			ABI:    pairABI,
 			Target: poolAddressHex,
 			Method: pairToken0Method,
-			Params: nil,
-		}, []interface{}{&pairs[i].token0})
-
-		rpcRequest.AddCall(&ethrpc.Call{
+		}, []any{&pairs[i].token0}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: poolAddressHex,
 			Method: pairToken1Method,
-			Params: nil,
-		}, []interface{}{&pairs[i].token1})
+		}, []any{&pairs[i].token1})
 
 		pairs[i].poolAddress = strings.ToLower(poolAddressHex)
 	}
@@ -179,7 +173,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 		return nil, err
 	}
 
-	extra, _ := json.Marshal(&IntegralPair{
+	extra, _ := json.Marshal(&Extra{
 		RelayerAddress: u.config.RelayerAddress,
 	})
 
@@ -187,14 +181,12 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 
 	for _, pair := range pairs {
 		newPool := entity.Pool{
-			Address:      pair.poolAddress,
-			ReserveUsd:   0,
-			AmplifiedTvl: 0,
-			SwapFee:      0,
-			Exchange:     u.config.DexID,
-			Type:         DexTypeIntegral,
-			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{"0", "0"},
+			Address:   pair.poolAddress,
+			SwapFee:   0,
+			Exchange:  u.config.DexID,
+			Type:      DexTypeIntegral,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   strings.ToLower(pair.token0.Hex()),
