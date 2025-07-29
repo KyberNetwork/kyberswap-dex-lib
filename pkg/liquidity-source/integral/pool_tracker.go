@@ -181,25 +181,13 @@ func (u *PoolTracker) getNewPoolState(
 	extraData.Y_Decimals = uint64(yDecimals)
 	extraData.IsEnabled = isPairEnabled
 
-	var reserve0, reserve1 string
-	if token0LimitMaxMultiplier.Cmp(ZERO) != 0 {
-		reserve0 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				extraData.Token0LimitMax,
-				precision,
-			),
-			uint256.MustFromBig(token0LimitMaxMultiplier),
-		).String()
+	var reserve0, reserve1 uint256.Int
+	if token0LimitMaxMultiplier.Sign() != 0 {
+		reserve0.MulDivOverflow(extraData.Token0LimitMax, precision, uint256.MustFromBig(token0LimitMaxMultiplier))
 	}
 
-	if token1LimitMaxMultiplier.Cmp(ZERO) != 0 {
-		reserve1 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				extraData.Token1LimitMax,
-				precision,
-			),
-			uint256.MustFromBig(token1LimitMaxMultiplier),
-		).String()
+	if token1LimitMaxMultiplier.Sign() != 0 {
+		reserve1.MulDivOverflow(extraData.Token1LimitMax, precision, uint256.MustFromBig(token1LimitMaxMultiplier))
 	}
 
 	extraBytes, err := json.Marshal(extraData)
@@ -210,7 +198,7 @@ func (u *PoolTracker) getNewPoolState(
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves([]string{reserve0, reserve1})
+	p.Reserves = entity.PoolReserves([]string{reserve0.String(), reserve1.String()})
 	p.SwapFee = float64(poolState[1].Uint64()) / precision.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)

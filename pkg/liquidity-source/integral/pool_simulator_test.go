@@ -237,3 +237,28 @@ func TestUpdateBalance(t *testing.T) {
 	assert.Equal(t, expectedReserve0, poolSimulator.Info.Reserves[0])
 	assert.Equal(t, expectedReserve1, poolSimulator.Info.Reserves[1])
 }
+
+func Test_Swap(t *testing.T) {
+	poolData := `{"address":"0x048f0e7ea2cfd522a4a058d1b1bdd574a0486c46","amplifiedTvl":328894.00941281446,"swapFee":0.00055,"exchange":"integral","type":"integral","timestamp":1753780903,"reserves":["68413898577131772204","11750992972"],"tokens":[{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"RelayerAddress\":\"0xd17b3c9784510E33cD5B87b490E79253BcD81e2E\",\"IsEnabled\":true,\"X_Decimals\":18,\"Y_Decimals\":6,\"Price\":\"3869921886152462517797\",\"InvertedPrice\":\"257824167646322\",\"SwapFee\":\"550000000000000\",\"Token0LimitMin\":\"1200000000000000000\",\"Token0LimitMax\":\"64993203648275183594\",\"Token1LimitMin\":\"5000000000\",\"Token1LimitMax\":\"11163443324\"}"}`
+
+	pool := entity.Pool{}
+	err := json.Unmarshal([]byte(poolData), &pool)
+	require.Nil(t, err)
+
+	amountIn := big.NewInt(10000000000)
+
+	poolSim, err := NewPoolSimulator(pool)
+	require.Nil(t, err)
+
+	result, err := poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{
+			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			Amount: amountIn,
+		},
+		TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+	})
+	require.Nil(t, err)
+
+	singleSwapAmountOut := result.TokenAmountOut.Amount
+	t.Logf("Single swap amount out: %s", singleSwapAmountOut.String())
+}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -117,33 +118,7 @@ func (t *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 	return lo.Ternary(valueobject.IsNative(tokenIn), "", t.GetAddress())
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if params.SwapInfo != nil {
-		if s, ok := params.SwapInfo.(SwapInfo); ok {
-			newToken0LimitMax := new(big.Int).Div(
-				new(big.Int).Mul(
-					t.IntegralPair.Token0LimitMax.ToBig(),
-					s.NewReserve0,
-				),
-				t.Info.Reserves[0],
-			)
-
-			newToken1LimitMax := new(big.Int).Div(
-				new(big.Int).Mul(
-					t.IntegralPair.Token1LimitMax.ToBig(),
-					s.NewReserve1,
-				),
-				t.Info.Reserves[1],
-			)
-
-			t.Info.Reserves[0] = s.NewReserve0
-			t.Info.Reserves[1] = s.NewReserve1
-
-			t.IntegralPair.Token0LimitMax = uint256.MustFromBig(newToken0LimitMax)
-			t.IntegralPair.Token1LimitMax = uint256.MustFromBig(newToken1LimitMax)
-		}
-	}
-}
+func (t *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275
 func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
@@ -208,7 +183,7 @@ func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsC
 		exponent = 18 + (xDecimals - yDecimals)
 	}
 
-	decimalsConverter = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(exponent))
+	decimalsConverter = new(uint256.Int).Exp(u256.U10, uint256.NewInt(exponent))
 
 	return
 }
