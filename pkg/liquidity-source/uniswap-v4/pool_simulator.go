@@ -2,7 +2,9 @@ package uniswapv4
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/few"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -25,6 +28,7 @@ type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
 	staticExtra StaticExtra
 	hook        Hook
+	chainID     valueobject.ChainID
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -66,17 +70,82 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		chainID:       chainID,
 	}, nil
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	tokenIndex := p.GetTokenIndex(address)
+	var canWrapToFew bool
+	var fewInfo few.TokenInfo
+
+	if tokenIndex == -1 {
+		fewInfo, canWrapToFew = few.CanWrapToFew(p.chainID, address)
+		if !canWrapToFew {
+			return nil
+		}
+		fewTokenIndex := p.GetTokenIndex(fewInfo.FewTokenAddress)
+		if fewTokenIndex == -1 {
+			return nil
+		}
+	}
+
+	result := map[string]struct{}{}
+	for _, token := range p.Info.Tokens {
+		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && token != fewInfo.FewTokenAddress) {
+			result[token] = struct{}{}
+
+			fewInfo, isFewToken := few.IsFewToken(p.chainID, token)
+			if isFewToken && fewInfo.UnwrapTokenAddress != address {
+				result[fewInfo.UnwrapTokenAddress] = struct{}{}
+			}
+		}
+	}
+
+	return slices.Collect(maps.Keys(result))
 }
 
 func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *pool.CalcAmountOutResult, err error) {
+	originalTokenIn := param.TokenAmountIn.Token
+	originalTokenOut := param.TokenOut
+	wrapFewAdditionalGas := int64(0)
+
+	defer func() {
+		if result.TokenAmountOut != nil {
+			result.TokenAmountOut.Token = originalTokenOut
+		}
+		if result.RemainingTokenAmountIn != nil {
+			result.RemainingTokenAmountIn.Token = originalTokenIn
+		}
+
+		result.Gas += wrapFewAdditionalGas
+	}()
+
+	// Wrap/unwrap FEW token if needed.
+	// Assume that if the token is not in the pool, it is a FEW token.
+	if p.GetTokenIndex(param.TokenAmountIn.Token) == -1 {
+		fewInfo, _ := few.CanWrapToFew(p.chainID, param.TokenAmountIn.Token)
+		param.TokenAmountIn.Token = fewInfo.FewTokenAddress
+		wrapFewAdditionalGas += p.Gas.BaseGas
+	}
+	if p.GetTokenIndex(param.TokenOut) == -1 {
+		fewInfo, _ := few.CanWrapToFew(p.chainID, param.TokenOut)
+		param.TokenOut = fewInfo.FewTokenAddress
+		wrapFewAdditionalGas += p.Gas.BaseGas
+	}
+
 	poolSim := p.PoolSimulator
 	if p.hook == nil {
-		return poolSim.CalcAmountOut(param)
+		result, err = poolSim.CalcAmountOut(param)
+		return
 	}
 
 	tokenIn := param.TokenAmountIn.Token
@@ -111,7 +180,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		poolSim = &cloned
 	}
 
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn,
@@ -151,25 +220,60 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // GetMetaInfo
 // adapt from https://github.com/KyberNetwork/kyberswap-dex-lib-private/blob/c1877a8c19759faeb7d82b6902ed335f0657ce3e/pkg/liquidity-source/uniswap-v4/pool_simulator.go#L201
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
-	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {
-		tokenInAddress = common.HexToAddress(tokenIn)
+	tokenInAfterWrapFew := tokenIn
+	tokenOutBeforeUnwrapFew := tokenOut
+
+	var wrapFewMetadata few.WrapFewMetadata
+	tokenInIndex := p.GetTokenIndex(tokenIn)
+	if tokenInIndex == -1 {
+		wrapFewMetadata.ShouldWrapTokenInToFew = true
+		fewInfo, _ := few.CanWrapToFew(p.chainID, tokenIn)
+		tokenInAfterWrapFew = fewInfo.FewTokenAddress
+		wrapFewMetadata.WrapTokenInInfo = few.WrapFewInfo{
+			TokenIn:     tokenIn,
+			TokenOut:    fewInfo.FewTokenAddress,
+			Hook:        fewInfo.HookAddress,
+			PoolAddress: fewInfo.PoolAddress,
+			TickSpacing: fewInfo.TickSpacing,
+			Fee:         fewInfo.Fee,
+		}
 	}
-	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOut)] {
-		tokenOutAddress = common.HexToAddress(tokenOut)
+
+	tokenOutIndex := p.GetTokenIndex(tokenOut)
+	if tokenOutIndex == -1 {
+		wrapFewMetadata.ShouldUnwrapTokenOutFromFew = true
+		fewInfo, _ := few.CanWrapToFew(p.chainID, tokenOut)
+		tokenOutBeforeUnwrapFew = fewInfo.FewTokenAddress
+		wrapFewMetadata.UnwrapTokenOutInfo = few.WrapFewInfo{
+			TokenIn:     fewInfo.FewTokenAddress,
+			TokenOut:    tokenOut,
+			Hook:        fewInfo.HookAddress,
+			PoolAddress: fewInfo.PoolAddress,
+			TickSpacing: fewInfo.TickSpacing,
+			Fee:         fewInfo.Fee,
+		}
+	}
+
+	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenInAfterWrapFew)] {
+		tokenInAddress = common.HexToAddress(tokenInAfterWrapFew)
+	}
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOutBeforeUnwrapFew)] {
+		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrapFew)
 	}
 	var priceLimit v3Utils.Uint160
 	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
-		Router:      p.staticExtra.UniversalRouterAddress,
-		Permit2Addr: p.staticExtra.Permit2Address,
-		TokenIn:     tokenInAddress,
-		TokenOut:    tokenOutAddress,
-		Fee:         p.staticExtra.Fee,
-		TickSpacing: p.staticExtra.TickSpacing,
-		HookAddress: p.staticExtra.HooksAddress,
-		HookData:    []byte{},
-		PriceLimit:  &priceLimit,
+		Router:          p.staticExtra.UniversalRouterAddress,
+		Permit2Addr:     p.staticExtra.Permit2Address,
+		TokenIn:         tokenInAddress,
+		TokenOut:        tokenOutAddress,
+		Fee:             p.staticExtra.Fee,
+		TickSpacing:     p.staticExtra.TickSpacing,
+		HookAddress:     p.staticExtra.HooksAddress,
+		HookData:        []byte{},
+		PriceLimit:      &priceLimit,
+		WrapFewMetadata: wrapFewMetadata,
 	}
 }

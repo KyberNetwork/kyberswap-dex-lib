@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/few"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
 
@@ -72,4 +73,6 @@ type PoolMetaInfo struct {
 	HookAddress common.Address `json:"hookAddress"`
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
+
+	few.WrapFewMetadata `json:"wrapFewMetadata,omitempty"`
 }

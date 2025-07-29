@@ -30,6 +30,10 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 		pools(
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
+				id_in: [
+					"0x9c03436d98a853a141f730558f1cd0e7fa0e405a8e80e7fac92751ad97a0aed5",
+					"0x8f484d0af27622d51f2fd103d8d279ac4990e0849579bcf1fcd3e63369a6eb49"
+				]
 			},
 			first: {{ .First }},
 			skip: {{ .Skip }},
