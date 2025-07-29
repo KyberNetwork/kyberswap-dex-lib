@@ -66,6 +66,7 @@ const (
 	ExchangeBlasterSwap                = "blasterswap"
 	ExchangeBlueprint                  = "blueprint"
 	ExchangeBrownfi                    = "brownfi"
+	ExchangeBrownfiV2                  = "brownfi-v2"
 	ExchangeBulla                      = "bulla"
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
@@ -496,6 +497,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlasterSwap:                {},
 	ExchangeBlueprint:                  {},
 	ExchangeBrownfi:                    {},
+	ExchangeBrownfiV2:                  {},
 	ExchangeBulla:                      {},
 	ExchangeBurrBearComposableStable:   {},
 	ExchangeBurrBearStable:             {},
