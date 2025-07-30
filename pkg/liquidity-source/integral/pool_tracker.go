@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,7 +22,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexTypeIntegral, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,
@@ -78,14 +77,6 @@ func (u *PoolTracker) getNewPoolState(
 	if overrides != nil {
 		rpcRequest.SetOverrides(overrides)
 	}
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetPoolStateMethod,
-		Params: []any{token0, token1},
-	}, []any{&poolState})
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
@@ -93,21 +84,7 @@ func (u *PoolTracker) getNewPoolState(
 		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&isPairEnabled})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetTokenLimitMaxMultiplierMethod,
-		Params: []any{token0},
-	}, []any{&token0LimitMaxMultiplier})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetTokenLimitMaxMultiplierMethod,
-		Params: []any{token1},
-	}, []any{&token1LimitMaxMultiplier})
-
-	if _, err := rpcRequest.Aggregate(); err != nil {
+	if _, err := rpcRequest.Call(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return p, err
 	}
@@ -130,22 +107,43 @@ func (u *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetPairByAddressMethod,
-		Params: []any{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
-	}, []any{&pairInfo})
+	rpcRequest.SetRequireSuccess(true).
+		AddCall(&ethrpc.Call{
+			ABI:    relayerABI,
+			Target: u.config.RelayerAddress,
+			Method: relayerGetPoolStateMethod,
+			Params: []any{token0, token1},
+		}, []any{&poolState}).
+		AddCall(&ethrpc.Call{
+			ABI:    relayerABI,
+			Target: u.config.RelayerAddress,
+			Method: relayerGetTokenLimitMaxMultiplierMethod,
+			Params: []any{token0},
+		}, []any{&token0LimitMaxMultiplier}).
+		AddCall(&ethrpc.Call{
+			ABI:    relayerABI,
+			Target: u.config.RelayerAddress,
+			Method: relayerGetTokenLimitMaxMultiplierMethod,
+			Params: []any{token1},
+		}, []any{&token1LimitMaxMultiplier}).
+		AddCall(&ethrpc.Call{
+			ABI:    relayerABI,
+			Target: u.config.RelayerAddress,
+			Method: relayerGetPairByAddressMethod,
+			Params: []any{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
+		}, []any{&pairInfo}).
+		AddCall(&ethrpc.Call{
+			ABI:    relayerABI,
+			Target: u.config.RelayerAddress,
+			Method: relayerGetPairByAddressMethod,
+			Params: []any{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
+		}, []any{&invertedPairInfo})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetPairByAddressMethod,
-		Params: []any{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
-	}, []any{&invertedPairInfo})
-	if _, err := rpcRequest.TryAggregate(); err != nil {
+	if resp, err := rpcRequest.TryBlockAndAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch decimals data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return p, err
+	} else if resp.BlockNumber != nil {
+		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
 	extra := Extra{
@@ -155,9 +153,7 @@ func (u *PoolTracker) getNewPoolState(
 		Price:                    number.SetFromBig(pairInfo.Price),
 		InvertedPrice:            number.SetFromBig(invertedPairInfo.Price),
 		Token0LimitMin:           number.SetFromBig(poolState.LimitMin0),
-		Token0LimitMax:           number.SetFromBig(poolState.LimitMax0),
 		Token1LimitMin:           number.SetFromBig(poolState.LimitMin1),
-		Token1LimitMax:           number.SetFromBig(poolState.LimitMax1),
 		Token0LimitMaxMultiplier: number.SetFromBig(token0LimitMaxMultiplier),
 		Token1LimitMaxMultiplier: number.SetFromBig(token1LimitMaxMultiplier),
 	}
@@ -167,19 +163,9 @@ func (u *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	reserve0 := new(uint256.Int).Set(extra.Token0LimitMax)
-	reserve1 := new(uint256.Int).Set(extra.Token1LimitMax)
-
-	if token0LimitMaxMultiplier.Sign() != 0 {
-		reserve0, _ = new(uint256.Int).MulDivOverflow(extra.Token0LimitMax, precision, extra.Token0LimitMaxMultiplier)
-	}
-	if token1LimitMaxMultiplier.Sign() != 0 {
-		reserve1, _ = new(uint256.Int).MulDivOverflow(extra.Token1LimitMax, precision, extra.Token1LimitMaxMultiplier)
-	}
-
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = []string{reserve0.String(), reserve1.String()}
+	p.Reserves = []string{poolState.LimitMax0.String(), poolState.LimitMax1.String()}
 
 	fee, _ := poolState.Fee.Float64()
 	p.SwapFee = fee / precision.Float64()

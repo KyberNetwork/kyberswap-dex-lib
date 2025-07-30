@@ -11,27 +11,22 @@ type Gas struct {
 }
 
 type Extra struct {
+	IsEnabled      bool   `json:"isEnabled"`
 	RelayerAddress string `json:"relayerAddress"`
 
-	IsEnabled bool `json:"isEnabled"`
+	Price         *uint256.Int `json:"price,omitempty"`
+	InvertedPrice *uint256.Int `json:"invertedPrice,omitempty"`
+	SwapFee       *uint256.Int `json:"swapFee,omitempty"`
 
-	Price         *uint256.Int `json:"price"`
-	InvertedPrice *uint256.Int `json:"invertedPrice"`
-	SwapFee       *uint256.Int `json:"swapFee"`
+	Token0LimitMin *uint256.Int `json:"t0LiMi,omitempty"`
+	Token1LimitMin *uint256.Int `json:"t1LiMi,omitempty"`
 
-	Token0LimitMin *uint256.Int `json:"t0LiMi"`
-	Token0LimitMax *uint256.Int `json:"t0LiMa"`
-	Token1LimitMin *uint256.Int `json:"t1LiMi"`
-	Token1LimitMax *uint256.Int `json:"t1LiMa"`
-
-	Token0LimitMaxMultiplier *uint256.Int `json:"t0LiMaMu"`
-	Token1LimitMaxMultiplier *uint256.Int `json:"t1LiMaMu"`
+	Token0LimitMaxMultiplier *uint256.Int `json:"t0LiMaMu,omitempty"`
+	Token1LimitMaxMultiplier *uint256.Int `json:"t1LiMaMu,omitempty"`
 }
 
 type SwapInfo struct {
-	RelayerAddress string   `json:"relayerAddress"`
-	NewReserve0    *big.Int `json:"-"`
-	NewReserve1    *big.Int `json:"-"`
+	RelayerAddress string `json:"relayerAddress"`
 }
 
 type MetaInfo struct {
@@ -39,12 +34,12 @@ type MetaInfo struct {
 }
 
 type PoolState struct {
-	Price     *big.Int `json:"price"`
-	Fee       *big.Int `json:"fee"`
-	LimitMin0 *big.Int `json:"limitMin0"`
-	LimitMax0 *big.Int `json:"limitMax0"`
-	LimitMin1 *big.Int `json:"limitMin1"`
-	LimitMax1 *big.Int `json:"limitMax1"`
+	Price     *big.Int
+	Fee       *big.Int
+	LimitMin0 *big.Int
+	LimitMax0 *big.Int
+	LimitMin1 *big.Int
+	LimitMax1 *big.Int
 }
 
 type PriceByPair struct {

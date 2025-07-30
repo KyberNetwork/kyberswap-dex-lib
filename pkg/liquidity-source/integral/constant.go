@@ -2,11 +2,12 @@ package integral
 
 import (
 	"errors"
+
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
-	DexTypeIntegral = "integral"
+	DexType = "integral"
 
 	pairToken0Method = "token0"
 	pairToken1Method = "token1"

@@ -402,7 +402,7 @@ var (
 		LiquidityBookV21:           liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:           liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                    smardex.DexTypeSmardex,
-		Integral:                   integral.DexTypeIntegral,
+		Integral:                   integral.DexType,
 		Fxdx:                       fxdx.DexTypeFxdx,
 		UniswapV1:                  uniswapv1.DexType,
 		UniswapV2:                  uniswapv2.DexType,

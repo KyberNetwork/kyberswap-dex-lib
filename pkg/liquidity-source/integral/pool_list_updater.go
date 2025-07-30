@@ -26,7 +26,7 @@ type (
 	}
 )
 
-var _ = poollist.RegisterFactoryCE(DexTypeIntegral, NewPoolListUpdater)
+var _ = poollist.RegisterFactoryCE(DexType, NewPoolListUpdater)
 
 func NewPoolListUpdater(config *Config, client *ethrpc.Client) *PoolListUpdater {
 	return &PoolListUpdater{
@@ -184,7 +184,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			Address:   pair.poolAddress,
 			SwapFee:   0,
 			Exchange:  u.config.DexID,
-			Type:      DexTypeIntegral,
+			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
