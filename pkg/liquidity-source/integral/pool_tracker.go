@@ -22,7 +22,7 @@ type PoolTracker struct {
 	ethrpcClient *ethrpc.Client
 }
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE(DexTypeIntegral, NewPoolTracker)
 
 func NewPoolTracker(
 	config *Config,

@@ -26,7 +26,7 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	ts.client = rpcClient
 
 	config := Config{
-		DexID:          DexType,
+		DexID:          DexTypeIntegral,
 		RelayerAddress: "0x3c6951fdb433b5b8442e7aa126d50fbfb54b5f42",
 		PoolPagingSize: 1000,
 	}
