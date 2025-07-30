@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DexType = "integral"
+	DexTypeIntegral = "integral"
 
 	pairToken0Method = "token0"
 	pairToken1Method = "token1"
