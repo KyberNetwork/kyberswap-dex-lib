@@ -64,7 +64,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	var (
 		dsFeeInfoTuple          [2]interface{} // dsFee, dsFeeThreshold uint8
-		reservesResult          uniswapv2.GetReservesResult
+		reservesResult          uniswapv2.ReserveData
 		tradeLiquidityEMAParams [3]interface{} // tradeLiquidityEMA, lastTradeLiquiditySum uint112, lastTradeBlockNumber uint32
 		liquidityEMA            [2]interface{} // liquidityEMA uint112, lastLiquidityBlockNumber uint32
 	)

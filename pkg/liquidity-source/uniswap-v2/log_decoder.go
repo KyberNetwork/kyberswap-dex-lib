@@ -6,6 +6,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+type ILogDecoder interface {
+	Decode(logs []types.Log) (ReserveData, *big.Int, error)
+}
+
 type LogDecoder struct{}
 
 func NewLogDecoder() *LogDecoder {

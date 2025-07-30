@@ -11,8 +11,6 @@ var (
 const (
 	pairFactoryMethodIsPaused       = "isPaused"
 	pairFactoryMethodAllPairs       = "allPairs"
-	pairFactoryMethodStableFee      = "stableFee"
-	pairFactoryMethodVolatileFee    = "volatileFee"
 	pairFactoryMethodAllPairsLength = "allPairsLength"
 	pairMethodMetadata              = "metadata"
 	pairMethodGetReserves           = "getReserves"
