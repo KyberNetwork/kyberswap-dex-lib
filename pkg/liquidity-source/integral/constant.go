@@ -29,8 +29,8 @@ var (
 )
 
 var (
-	ErrTokenNotFound  = errors.New("tokens not found")
-	ErrInvalidTokenIn = errors.New("invalid tokenIn")
+	ErrTokenNotFound = errors.New("tokens not found")
+	ErrNoSwapLimit   = errors.New("no swap limit")
 
 	ErrTR03 = errors.New("TR03")
 	ErrTR3A = errors.New("TR3A")
