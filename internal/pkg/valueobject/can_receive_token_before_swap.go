@@ -9,19 +9,34 @@ import (
 var (
 	// `canReceiveTokenBeforeSwapFunctionSet` defines functions for pools that can receive token before calling swap
 	canReceiveTokenBeforeSwapFunctionSet = map[string]struct{}{
-		l1executor.FunctionSelectorUniswap.RawName:     {},
-		l1executor.FunctionSelectorCamelotSwap.RawName: {},
-		l1executor.FunctionSelectorKSClassic.RawName:   {},
-		l1executor.FunctionSelectorVelodrome.RawName:   {},
-		l1executor.FunctionSelectorMuteSwitch.RawName:  {},
-		l1executor.FunctionSelectorKTX.RawName:         {},
-		l1executor.FunctionSelectorBrownfi.RawName:     {},
+		l1executor.FunctionSelectorUniswap.RawName:        {},
+		l1executor.FunctionSelectorKSClassic.RawName:      {},
+		l1executor.FunctionSelectorVelodrome.RawName:      {},
+		l1executor.FunctionSelectorFraxSwap.RawName:       {},
+		l1executor.FunctionSelectorCamelotSwap.RawName:    {},
+		l1executor.FunctionSelectorMuteSwitch.RawName:    {},
+		l1executor.FunctionSelectorTraderJoeV2.RawName:    {},
+		l1executor.FunctionSelectorNomiswapStable.RawName: {},
+		l1executor.FunctionSelectorWooFiV2.RawName:        {},
+		l1executor.FunctionSelectorMaverickV2.RawName:     {},
+		l1executor.FunctionSelectorKTX.RawName:            {},
+		l1executor.FunctionSelectorSolidlyV2.RawName:      {},
+		l1executor.FunctionSelectorMemebox.RawName:        {},
+		l1executor.FunctionSelectorKatanaV3.RawName:       {},
+		l1executor.FunctionSelectorEulerSwap.RawName:      {},
+		l1executor.FunctionSelectorBrownfi.RawName:        {},
 
 		l2executor.FunctionSelectorUniswap.RawName:     {},
 		l2executor.FunctionSelectorKSClassic.RawName:   {},
-		l2executor.FunctionSelectorCamelotSwap.RawName: {},
 		l2executor.FunctionSelectorVelodrome.RawName:   {},
+		l2executor.FunctionSelectorFraxSwap.RawName:    {},
+		l2executor.FunctionSelectorCamelotSwap.RawName: {},
+		l2executor.FunctionSelectorTraderJoeV2.RawName: {},
+		l2executor.FunctionSelectorWooFiV2.RawName:     {},
+		l2executor.FunctionSelectorMaverickV2.RawName:  {},
 		l2executor.FunctionSelectorKTX.RawName:         {},
+		l2executor.FunctionSelectorMemebox.RawName:     {},
+		l2executor.FunctionSelectorEulerSwap.RawName:   {},
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively
