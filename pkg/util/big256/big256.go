@@ -20,6 +20,7 @@ var (
 	U4   = uint256.NewInt(4)
 	U5   = uint256.NewInt(5)
 	U6   = uint256.NewInt(6)
+	U8   = uint256.NewInt(8)
 	U9   = uint256.NewInt(9)
 	U10  = uint256.NewInt(10)
 	U100 = uint256.NewInt(100)

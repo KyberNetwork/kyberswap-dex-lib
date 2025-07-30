@@ -27,10 +27,10 @@ func TestCalcAmountIn[TB interface {
 		runs = runsOpt[0]
 	}
 	tokens := poolSim.GetTokens()
-	for inIdx, tokenIn := range tokens {
+	for idxIn, tokenIn := range tokens {
 		tokenOuts := poolSim.CanSwapFrom(tokenIn)
 		for _, tokenOut := range tokenOuts {
-			outIdx := poolSim.GetTokenIndex(tokenOut)
+			idxOut := poolSim.GetTokenIndex(tokenOut)
 			var base float64
 			for _, exp := range []int{3, 4, 6, 9, 13} {
 				baseOut, err := pool.CalcAmountOut(
@@ -60,7 +60,7 @@ func TestCalcAmountIn[TB interface {
 			}
 			for range runs {
 				amountOut, _ := big.NewFloat(base * (math.Pow(10, 1+rand.Float64()*maxExp))).Int(nil)
-				tb.Run(fmt.Sprintf("? token%d -> %s token%d", inIdx, amountOut, outIdx), func(tb TB) {
+				tb.Run(fmt.Sprintf("? token%d -> %s token%d", idxIn, amountOut, idxOut), func(tb TB) {
 					resIn, err := MustConcurrentSafe(tb, func() (*pool.CalcAmountInResult, error) {
 						return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 							TokenAmountOut: pool.TokenAmount{

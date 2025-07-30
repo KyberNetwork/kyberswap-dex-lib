@@ -6,9 +6,11 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -20,20 +22,19 @@ var (
 )
 
 func main() {
-	var paths []string
-	var structNames map[string]string
+	var structByFile map[string]string
 
 	dir := findGoModDirInParents()
 	if dir != "" {
-		paths, structNames = findAllSourceFiles(dir)
+		structByFile = findAllSourceFiles(dir)
 	}
-	if len(paths) == 0 {
+	if len(structByFile) == 0 {
 		return
 	}
 
 	moduleName := "github.com/KyberNetwork/" + filepath.Base(dir)
-	pkgNames := getPackageNamesFromSourceFiles(paths, dir)
-	importPaths := getPackageImportPathsFromSourceFiles(paths, dir, moduleName)
+	nameByFile, fileByPath := getPackageNamesAndImportPaths(structByFile, dir, moduleName)
+	paths := slices.Sorted(maps.Keys(fileByPath))
 
 	outFile, err := os.Create("./register_pool_types.gen.go")
 	if err != nil {
@@ -48,19 +49,18 @@ func main() {
 		_ = outFileBuf.Flush()
 	}(outFileBuf)
 
-	emitImports(outFileBuf, moduleName, pkgNames, importPaths)
+	emitImports(outFileBuf, moduleName, paths, nameByFile, fileByPath)
 	emitf(outFileBuf, "\n")
 
 	emitf(outFileBuf, "func init() {\n")
-	for i, path := range paths {
-		structName := structNames[path]
-		pkgName := pkgNames[i]
-		emitf(outFileBuf, "\tmsgpack.RegisterConcreteType(&%s.%s{})\n", pkgName, structName)
+	for _, path := range paths {
+		file := fileByPath[path]
+		emitf(outFileBuf, "\tmsgpack.RegisterConcreteType(&%s.%s{})\n", nameByFile[file], structByFile[file])
 	}
 	emitf(outFileBuf, "}\n")
 }
 
-func emitImports(outFileBuf io.Writer, dir string, pkgNames, importPaths []string) {
+func emitImports(outFileBuf io.Writer, dir string, paths []string, nameByFile, fileByPath map[string]string) {
 	emitf(outFileBuf, "package msgpack\n")
 	emitf(outFileBuf, "\n")
 
@@ -71,8 +71,8 @@ func emitImports(outFileBuf io.Writer, dir string, pkgNames, importPaths []strin
 	emitf(outFileBuf, "import (\n")
 	emitf(outFileBuf, "\t\"github.com/KyberNetwork/msgpack/v5\"\n")
 	emitf(outFileBuf, "\n")
-	for i, dexName := range pkgNames {
-		emitf(outFileBuf, "\t%s \"%s\"\n", dexName, importPaths[i])
+	for _, path := range paths {
+		emitf(outFileBuf, "\t%s \"%s\"\n", nameByFile[fileByPath[path]], path)
 	}
 	emitf(outFileBuf, ")\n")
 }
@@ -117,8 +117,8 @@ func findGoModDirInParents() string {
 	return ""
 }
 
-func findAllSourceFiles(rootDir string) (paths []string, structNames map[string]string) {
-	structNames = make(map[string]string)
+func findAllSourceFiles(rootDir string) map[string]string {
+	structNames := make(map[string]string)
 	regexps := make(map[string]*regexp.Regexp, len(structNameByFileName))
 	if err := filepath.Walk(rootDir, func(path string, info fs.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
@@ -137,33 +137,25 @@ func findAllSourceFiles(rootDir string) (paths []string, structNames map[string]
 		if err != nil || !structRegexp.Match(b) {
 			return err
 		}
-		paths = append(paths, path)
 		structNames[path] = structName
 		return nil
 	}); err != nil {
 		panic(err)
 	}
-	return paths, structNames
+	return structNames
 }
 
-func getPackageNamesFromSourceFiles(sourcePaths []string, dir string) []string {
-	importNames := make([]string, len(sourcePaths))
-	for i, path := range sourcePaths {
-		relPath, _ := filepath.Rel(dir, path)
-		dexName := filepath.Dir(relPath)
-		dexName = strings.ReplaceAll(dexName, "-", "")
-		dexName = strings.ReplaceAll(dexName, "/", "_")
-		importNames[i] = dexName
+func getPackageNamesAndImportPaths(structByFile map[string]string, dir, moduleName string) (nameByFile, fileByPath map[string]string) {
+	nameByFile = make(map[string]string, len(structByFile))
+	fileByPath = make(map[string]string, len(structByFile))
+	for file := range structByFile {
+		relPath, _ := filepath.Rel(dir, file)
+		name := filepath.Dir(relPath)
+		name = strings.ReplaceAll(name, "-", "")
+		name = strings.ReplaceAll(name, "/", "_")
+		nameByFile[file] = name
+		path := filepath.Join(moduleName, filepath.Dir(relPath))
+		fileByPath[path] = file
 	}
-	return importNames
-}
-
-func getPackageImportPathsFromSourceFiles(sourcePaths []string, dir, moduleName string) []string {
-	paths := make([]string, len(sourcePaths))
-	for i, path := range sourcePaths {
-		relPath, _ := filepath.Rel(dir, path)
-		importPath := filepath.Join(moduleName, filepath.Dir(relPath))
-		paths[i] = importPath
-	}
-	return paths
+	return nameByFile, fileByPath
 }
