@@ -130,13 +130,13 @@ func (u *PoolTracker) getNewPoolState(
 			ABI:    relayerABI,
 			Target: u.config.RelayerAddress,
 			Method: relayerGetPairByAddressMethod,
-			Params: []any{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
+			Params: []any{common.HexToAddress(p.Address), false}, // get price when swap X -> Y
 		}, []any{&pairInfo}).
 		AddCall(&ethrpc.Call{
 			ABI:    relayerABI,
 			Target: u.config.RelayerAddress,
 			Method: relayerGetPairByAddressMethod,
-			Params: []any{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
+			Params: []any{common.HexToAddress(p.Address), true}, // get price when swap Y -> X
 		}, []any{&invertedPairInfo})
 
 	if resp, err := rpcRequest.TryBlockAndAggregate(); err != nil {
