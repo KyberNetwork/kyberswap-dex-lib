@@ -22,21 +22,21 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
-	RelayerAddress string
+	relayerAddress string
 
-	IsEnabled     bool
-	Price         *uint256.Int
-	InvertedPrice *uint256.Int
-	SwapFee       *uint256.Int
+	isEnabled     bool
+	price         *uint256.Int
+	invertedPrice *uint256.Int
+	swapFee       *uint256.Int
 
-	Token0LimitMin *uint256.Int
-	Token1LimitMin *uint256.Int
+	token0LimitMin *uint256.Int
+	token1LimitMin *uint256.Int
 
-	Token0LimitMaxMultiplier *uint256.Int
-	Token1LimitMaxMultiplier *uint256.Int
+	token0LimitMaxMultiplier *uint256.Int
+	token1LimitMaxMultiplier *uint256.Int
 
-	XDecimals uint8
-	YDecimals uint8
+	xDecimals uint8
+	yDecimals uint8
 
 	gas Gas
 }
@@ -69,23 +69,23 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
-		IsEnabled:                extra.IsEnabled,
-		RelayerAddress:           extra.RelayerAddress,
-		Price:                    extra.Price,
-		SwapFee:                  extra.SwapFee,
-		InvertedPrice:            extra.InvertedPrice,
-		Token0LimitMin:           extra.Token0LimitMin,
-		Token1LimitMin:           extra.Token1LimitMin,
-		Token0LimitMaxMultiplier: extra.Token0LimitMaxMultiplier,
-		Token1LimitMaxMultiplier: extra.Token1LimitMaxMultiplier,
-		XDecimals:                entityPool.Tokens[0].Decimals,
-		YDecimals:                entityPool.Tokens[1].Decimals,
+		isEnabled:                extra.IsEnabled,
+		relayerAddress:           extra.RelayerAddress,
+		price:                    extra.Price,
+		swapFee:                  extra.SwapFee,
+		invertedPrice:            extra.InvertedPrice,
+		token0LimitMin:           extra.Token0LimitMin,
+		token1LimitMin:           extra.Token1LimitMin,
+		token0LimitMaxMultiplier: extra.Token0LimitMaxMultiplier,
+		token1LimitMaxMultiplier: extra.Token1LimitMaxMultiplier,
+		xDecimals:                entityPool.Tokens[0].Decimals,
+		yDecimals:                entityPool.Tokens[1].Decimals,
 		gas:                      defaultGas,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if !p.IsEnabled {
+	if !p.isEnabled {
 		return nil, ErrTR05
 	}
 
@@ -101,7 +101,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	maxAmountOut, _ := new(uint256.Int).MulDivOverflow(
 		number.SetFromBig(params.Limit.GetLimit(tokenOut)),
-		lo.Ternary(tokenOut == tokens[0], p.Token0LimitMaxMultiplier, p.Token1LimitMaxMultiplier),
+		lo.Ternary(tokenOut == tokens[0], p.token0LimitMaxMultiplier, p.token1LimitMaxMultiplier),
 		precision,
 	)
 
@@ -121,7 +121,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			RelayerAddress: p.RelayerAddress,
+			RelayerAddress: p.relayerAddress,
 		},
 	}, nil
 }
@@ -145,7 +145,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275
 func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn, maxAmountOut *uint256.Int) (*uint256.Int, *uint256.Int, error) {
 	tokens := p.GetTokens()
-	fee := number.SafeDiv(number.SafeMul(amountIn, p.SwapFee), precision)
+	fee := number.SafeDiv(number.SafeMul(amountIn, p.swapFee), precision)
 
 	inverted := tokens[1] == tokenIn
 
@@ -161,7 +161,7 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn, maxAmoun
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L520
 func (p *PoolSimulator) checkLimits(token string, amount, maxAmount *uint256.Int) error {
 	if token == p.GetTokens()[0] {
-		if amount.Lt(p.Token0LimitMin) {
+		if amount.Lt(p.token0LimitMin) {
 			return ErrTR03
 		}
 
@@ -169,7 +169,7 @@ func (p *PoolSimulator) checkLimits(token string, amount, maxAmount *uint256.Int
 			return ErrTR3A
 		}
 	} else if token == p.GetTokens()[1] {
-		if amount.Lt(p.Token1LimitMin) {
+		if amount.Lt(p.token1LimitMin) {
 			return ErrTR03
 		}
 
@@ -183,13 +183,13 @@ func (p *PoolSimulator) checkLimits(token string, amount, maxAmount *uint256.Int
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L324
 func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {
-	decimalsConverter := getDecimalsConverter(p.XDecimals, p.YDecimals, inverted)
+	decimalsConverter := getDecimalsConverter(p.xDecimals, p.yDecimals, inverted)
 
 	if inverted {
-		return number.SafeDiv(number.SafeMul(amountIn, p.InvertedPrice), decimalsConverter)
+		return number.SafeDiv(number.SafeMul(amountIn, p.invertedPrice), decimalsConverter)
 	}
 
-	return number.SafeDiv(number.SafeMul(amountIn, p.Price), decimalsConverter)
+	return number.SafeDiv(number.SafeMul(amountIn, p.price), decimalsConverter)
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L334
