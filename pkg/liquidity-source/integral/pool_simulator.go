@@ -89,6 +89,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrTR05
 	}
 
+	if params.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
+
 	tokens := p.GetTokens()
 	if len(tokens) < 2 {
 		return nil, ErrTokenNotFound
