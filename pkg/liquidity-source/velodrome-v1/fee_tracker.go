@@ -13,13 +13,10 @@ import (
 
 type (
 	IFeeTracker interface {
-		GetFee(
-			ctx context.Context,
-			poolAddress string,
-			factoryAddress string,
-			isStable bool,
-			blockNumber *big.Int,
-		) (uint64, error)
+		GetFee(ctx context.Context, factoryAddress, poolAddress string, isStable bool,
+			blockNumber *big.Int) (uint64, error)
+		AddGetFeeCall(request *ethrpc.Request, factoryAddress, poolAddress string, isStable bool,
+			feeOutput *uint64) *ethrpc.Request
 	}
 
 	// GenericFeeTracker gets fee generically, using {pool} and {factory} as templates for input common.Hash params
@@ -28,10 +25,14 @@ type (
 		abi          abi.ABI
 		target       string
 		args         []string
+		defaultFee   uint64
 	}
 )
 
-func NewGenericFeeTracker(ethrpcClient *ethrpc.Client, feeTrackerCfg *FeeTrackerCfg) *GenericFeeTracker {
+func NewGenericFeeTracker(ethrpcClient *ethrpc.Client, feeTrackerCfg *FeeTrackerCfg) IFeeTracker {
+	if feeTrackerCfg == nil {
+		return nil
+	}
 	return &GenericFeeTracker{
 		ethrpcClient: ethrpcClient,
 		abi: abi.ABI{
@@ -68,22 +69,27 @@ func getGenericInput(input, poolAddress, factoryAddress string, isStable bool) s
 	}
 }
 
-func (t *GenericFeeTracker) GetFee(
-	ctx context.Context,
-	poolAddress string,
-	factoryAddress string,
-	isStable bool,
-	blockNumber *big.Int,
-) (fee uint64, err error) {
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
-		AddCall(&ethrpc.Call{
-			ABI:    t.abi,
-			Target: getGenericInput(t.target, poolAddress, factoryAddress, isStable),
-			Method: genericMethodFee,
-			Params: lo.Map(t.args, func(arg string, _ int) any {
-				return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress, isStable))
-			}),
-		}, []any{&fee}).
-		Call()
+func (t *GenericFeeTracker) GetFee(ctx context.Context, factoryAddress, poolAddress string, isStable bool,
+	blockNumber *big.Int) (fee uint64, err error) {
+	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).AddCall(&ethrpc.Call{
+		ABI:    t.abi,
+		Target: getGenericInput(t.target, poolAddress, factoryAddress, isStable),
+		Method: genericMethodFee,
+		Params: lo.Map(t.args, func(arg string, _ int) any {
+			return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress, isStable))
+		}),
+	}, []any{&fee}).Call()
 	return fee, err
+}
+
+func (t *GenericFeeTracker) AddGetFeeCall(request *ethrpc.Request,
+	factoryAddress, poolAddress string, isStable bool, feeOutput *uint64) *ethrpc.Request {
+	return request.AddCall(&ethrpc.Call{
+		ABI:    t.abi,
+		Target: getGenericInput(t.target, poolAddress, factoryAddress, isStable),
+		Method: genericMethodFee,
+		Params: lo.Map(t.args, func(arg string, _ int) any {
+			return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress, isStable))
+		}),
+	}, []any{feeOutput})
 }

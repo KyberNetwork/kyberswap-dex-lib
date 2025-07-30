@@ -31,15 +31,12 @@ func NewPoolTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	tracker := &PoolTracker{
+	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
 		logDecoder:   uniswapv2.NewLogDecoder(),
-	}
-	if feeTrackerCfg := config.FeeTracker; feeTrackerCfg != nil {
-		tracker.feeTracker = NewGenericFeeTracker(ethrpcClient, feeTrackerCfg)
-	}
-	return tracker, nil
+		feeTracker:   NewGenericFeeTracker(ethrpcClient, config.FeeTracker),
+	}, nil
 }
 
 func (d *PoolTracker) GetNewPoolState(
@@ -66,64 +63,34 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	reserveData, blockNumber, err := d.getReserves(ctx, p.Address, params.Logs)
-	if err != nil {
-		return p, err
-	}
-
-	isPaused, err := d.getFactoryData(ctx, blockNumber)
-	if err != nil {
-		return p, err
-	}
-
-	fee, err := d.getFee(ctx, p.Address, staticExtra.Stable, blockNumber)
-	if err != nil {
-		return p, err
-	}
-
-	return d.updatePool(p, reserveData, isPaused, fee, blockNumber)
-}
-
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int,
-	error) {
-	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
-	if err != nil {
-		return d.getReservesFromRPCNode(ctx, poolAddress)
-	}
-
-	if reserveData.IsZero() {
-		return d.getReservesFromRPCNode(ctx, poolAddress)
-	}
-
-	return reserveData, blockNumber, nil
-}
-
-func (d *PoolTracker) getFactoryData(ctx context.Context, blockNumber *big.Int) (bool, error) {
 	var isPaused bool
-
-	getFactoryDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-
-	getFactoryDataRequest.AddCall(&ethrpc.Call{
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    pairFactoryABI,
 		Target: d.config.FactoryAddress,
 		Method: pairFactoryMethodIsPaused,
-		Params: nil,
 	}, []any{&isPaused})
 
-	if _, err := getFactoryDataRequest.TryBlockAndAggregate(); err != nil {
-		return false, err
+	reserveData := d.getReserves(req, p.Address, params.Logs)
+
+	var fee uint64
+	req = d.feeTracker.AddGetFeeCall(req, d.config.FactoryAddress, p.Address, staticExtra.Stable, &fee)
+
+	resp, err := req.TryBlockAndAggregate()
+	if err != nil {
+		return p, err
 	}
 
-	return isPaused, nil
+	return d.updatePool(p, *reserveData, isPaused, fee, resp.BlockNumber)
 }
 
-func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, isStable bool, blockNumber *big.Int) (uint64,
-	error) {
-	feeTracker := d.feeTracker
-	if feeTracker == nil {
-		return d.config.FeePrecision / 100, nil
+func (d *PoolTracker) getReserves(req *ethrpc.Request, poolAddress string, logs []types.Log) *ReserveData {
+	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
+	if err != nil || reserveData.IsZero() {
+		result, _ := d.getReservesFromRPCNode(req, poolAddress)
+		return result
 	}
-	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress, isStable, blockNumber)
+	req.SetBlockNumber(blockNumber)
+	return &reserveData
 }
 
 func (d *PoolTracker) updatePool(
@@ -156,35 +123,19 @@ func (d *PoolTracker) updatePool(
 	return pool, nil
 }
 
-func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
-	var getReservesResult GetReservesResult
-
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-	getReservesRequest.AddCall(&ethrpc.Call{
+func (d *PoolTracker) getReservesFromRPCNode(req *ethrpc.Request, poolAddress string) (*ReserveData,
+	*ethrpc.Request) {
+	var getReservesResult ReserveData
+	return &getReservesResult, req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 	}, []any{&getReservesResult})
-
-	resp, err := getReservesRequest.TryBlockAndAggregate()
-	if err != nil {
-		return ReserveData{}, nil, err
-	}
-
-	return ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
-	}, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.Int, error) {
-	if len(logs) == 0 {
+	if len(logs) == 0 || d.logDecoder == nil {
 		return ReserveData{}, nil, nil
 	}
-
-	if d.logDecoder == nil {
-		return ReserveData{}, nil, nil
-	}
-
 	return d.logDecoder.Decode(logs)
 }

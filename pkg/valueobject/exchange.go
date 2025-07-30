@@ -128,6 +128,8 @@ const (
 	ExchangeEthenaSusde                = "ethena-susde"
 	ExchangeEtherFieBTC                = "etherfi-ebtc"
 	ExchangeEtherVista                 = "ether-vista"
+	ExchangeEtherexCL                  = "etherex-cl"
+	ExchangeEtherexV2                  = "etherex-v2"
 	ExchangeEtherfiEETH                = "etherfi-eeth"
 	ExchangeEtherfiVampire             = "etherfi-vampire"
 	ExchangeEtherfiWEETH               = "etherfi-weeth"
@@ -557,6 +559,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEthenaSusde:                {},
 	ExchangeEtherFieBTC:                {},
 	ExchangeEtherVista:                 {},
+	ExchangeEtherexV2:                  {},
+	ExchangeEtherexCL:                  {},
 	ExchangeEtherfiEETH:                {},
 	ExchangeEtherfiVampire:             {},
 	ExchangeEtherfiWEETH:               {},
