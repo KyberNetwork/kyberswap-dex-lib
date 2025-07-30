@@ -14,7 +14,7 @@ var (
 		l1executor.FunctionSelectorVelodrome.RawName:      {},
 		l1executor.FunctionSelectorFraxSwap.RawName:       {},
 		l1executor.FunctionSelectorCamelotSwap.RawName:    {},
-		l1executor.FunctionSelectorMuteSwitch.RawName:    {},
+		l1executor.FunctionSelectorMuteSwitch.RawName:     {},
 		l1executor.FunctionSelectorTraderJoeV2.RawName:    {},
 		l1executor.FunctionSelectorNomiswapStable.RawName: {},
 		l1executor.FunctionSelectorWooFiV2.RawName:        {},
@@ -25,6 +25,7 @@ var (
 		l1executor.FunctionSelectorKatanaV3.RawName:       {},
 		l1executor.FunctionSelectorEulerSwap.RawName:      {},
 		l1executor.FunctionSelectorBrownfi.RawName:        {},
+		l1executor.FunctionSelectorBrownfiV2.RawName:      {},
 
 		l2executor.FunctionSelectorUniswap.RawName:     {},
 		l2executor.FunctionSelectorKSClassic.RawName:   {},
