@@ -12,26 +12,26 @@ type TokenInfo struct {
 	TickSpacing        int32
 	Fee                uint32
 	ChainID            valueobject.ChainID
+	IsNative           bool
 }
 
 type WrapFewMetadata struct {
-	ShouldWrapTokenInToFew bool
-	WrapTokenInInfo        WrapFewInfo
+	ShouldWrapFew bool        `json:"shouldWrapFew,omitempty"`
+	WrapFewInfo   WrapFewInfo `json:"wrapFewInfo,omitempty"`
 
-	ShouldUnwrapTokenOutFromFew bool
-	UnwrapTokenOutInfo          WrapFewInfo
+	ShouldUnwrapFew bool        `json:"shouldUnwrapFew,omitempty"`
+	UnwrapFewInfo   WrapFewInfo `json:"unwrapFewInfo,omitempty"`
 }
 
 type WrapFewInfo struct {
-	TokenIn     string
-	TokenOut    string
-	Hook        string
-	PoolAddress string
-	TickSpacing int32
-	Fee         uint32
+	TokenIn     string `json:"tokenIn,omitempty"`
+	TokenOut    string `json:"tokenOut,omitempty"`
+	HookAddress string `json:"hookAddress,omitempty"`
+	PoolAddress string `json:"poolAddress,omitempty"`
+	TickSpacing int32  `json:"tickSpacing,omitempty"`
+	Fee         uint32 `json:"fee,omitempty"`
 }
 
-// TODO: Add fwcbBTC
 var fewTokens = []TokenInfo{
 	{
 		FewTokenAddress:    "0xa250cc729bb3323e7933022a67b52200fe354767",
@@ -41,6 +41,7 @@ var fewTokens = []TokenInfo{
 		TickSpacing:        60,
 		Fee:                0,
 		ChainID:            valueobject.ChainIDEthereum,
+		IsNative:           true,
 	},
 	{
 		FewTokenAddress:    "0xe8e1f50392bd61d0f8f48e8e7af51d3b8a52090a",
@@ -66,7 +67,7 @@ var canWrapToFew = map[valueobject.ChainID]map[string]TokenInfo{}
 var isFewToken = map[valueobject.ChainID]map[string]TokenInfo{}
 
 // CanWrapToFew checks if a token can be wrapped to a FEW token.
-// Return the FEW token address and true if it can be wrapped,
+// Return the FEW token info and true if it can be wrapped,
 // otherwise return an empty string and false.
 func CanWrapToFew(chainID valueobject.ChainID, address string) (TokenInfo, bool) {
 	value, ok := canWrapToFew[chainID][address]

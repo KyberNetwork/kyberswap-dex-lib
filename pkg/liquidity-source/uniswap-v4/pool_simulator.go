@@ -113,6 +113,19 @@ func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
 }
 
+func (p *PoolSimulator) GetTokens() []string {
+	result := make(map[string]struct{})
+
+	for _, token := range p.Info.Tokens {
+		result[token] = struct{}{}
+		if fewInfo, isFewToken := few.IsFewToken(p.chainID, token); isFewToken {
+			result[fewInfo.UnwrapTokenAddress] = struct{}{}
+		}
+	}
+
+	return slices.Collect(maps.Keys(result))
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *pool.CalcAmountOutResult, err error) {
 	originalTokenIn := param.TokenAmountIn.Token
 	originalTokenOut := param.TokenOut
@@ -132,14 +145,18 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	// Wrap/unwrap FEW token if needed.
 	// Assume that if the token is not in the pool, it is a FEW token.
 	if p.GetTokenIndex(param.TokenAmountIn.Token) == -1 {
-		fewInfo, _ := few.CanWrapToFew(p.chainID, param.TokenAmountIn.Token)
-		param.TokenAmountIn.Token = fewInfo.FewTokenAddress
-		wrapFewAdditionalGas += p.Gas.BaseGas
+		fewInfo, canWrapToFew := few.CanWrapToFew(p.chainID, param.TokenAmountIn.Token)
+		if canWrapToFew {
+			param.TokenAmountIn.Token = fewInfo.FewTokenAddress
+			wrapFewAdditionalGas += p.Gas.BaseGas
+		}
 	}
 	if p.GetTokenIndex(param.TokenOut) == -1 {
-		fewInfo, _ := few.CanWrapToFew(p.chainID, param.TokenOut)
-		param.TokenOut = fewInfo.FewTokenAddress
-		wrapFewAdditionalGas += p.Gas.BaseGas
+		fewInfo, canUnwrapToFew := few.CanWrapToFew(p.chainID, param.TokenOut)
+		if canUnwrapToFew {
+			param.TokenOut = fewInfo.FewTokenAddress
+			wrapFewAdditionalGas += p.Gas.BaseGas
+		}
 	}
 
 	poolSim := p.PoolSimulator
@@ -226,31 +243,45 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	var wrapFewMetadata few.WrapFewMetadata
 	tokenInIndex := p.GetTokenIndex(tokenIn)
 	if tokenInIndex == -1 {
-		wrapFewMetadata.ShouldWrapTokenInToFew = true
-		fewInfo, _ := few.CanWrapToFew(p.chainID, tokenIn)
-		tokenInAfterWrapFew = fewInfo.FewTokenAddress
-		wrapFewMetadata.WrapTokenInInfo = few.WrapFewInfo{
-			TokenIn:     tokenIn,
-			TokenOut:    fewInfo.FewTokenAddress,
-			Hook:        fewInfo.HookAddress,
-			PoolAddress: fewInfo.PoolAddress,
-			TickSpacing: fewInfo.TickSpacing,
-			Fee:         fewInfo.Fee,
+		fewInfo, canWrapToFew := few.CanWrapToFew(p.chainID, tokenIn)
+		if canWrapToFew {
+			wrapFewMetadata.ShouldWrapFew = true
+			tokenInAfterWrapFew = fewInfo.FewTokenAddress
+
+			tokenIn := fewInfo.UnwrapTokenAddress
+			if fewInfo.IsNative {
+				tokenIn = NativeTokenAddress.Hex()
+			}
+			wrapFewMetadata.WrapFewInfo = few.WrapFewInfo{
+				TokenIn:     tokenIn,
+				TokenOut:    fewInfo.FewTokenAddress,
+				HookAddress: fewInfo.HookAddress,
+				PoolAddress: fewInfo.PoolAddress,
+				TickSpacing: fewInfo.TickSpacing,
+				Fee:         fewInfo.Fee,
+			}
 		}
 	}
 
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
 	if tokenOutIndex == -1 {
-		wrapFewMetadata.ShouldUnwrapTokenOutFromFew = true
-		fewInfo, _ := few.CanWrapToFew(p.chainID, tokenOut)
-		tokenOutBeforeUnwrapFew = fewInfo.FewTokenAddress
-		wrapFewMetadata.UnwrapTokenOutInfo = few.WrapFewInfo{
-			TokenIn:     fewInfo.FewTokenAddress,
-			TokenOut:    tokenOut,
-			Hook:        fewInfo.HookAddress,
-			PoolAddress: fewInfo.PoolAddress,
-			TickSpacing: fewInfo.TickSpacing,
-			Fee:         fewInfo.Fee,
+		fewInfo, canUnwrapToFew := few.CanWrapToFew(p.chainID, tokenOut)
+		if canUnwrapToFew {
+			wrapFewMetadata.ShouldUnwrapFew = true
+			tokenOutBeforeUnwrapFew = fewInfo.FewTokenAddress
+
+			tokenOut := fewInfo.UnwrapTokenAddress
+			if fewInfo.IsNative {
+				tokenOut = NativeTokenAddress.Hex()
+			}
+			wrapFewMetadata.UnwrapFewInfo = few.WrapFewInfo{
+				TokenIn:     fewInfo.FewTokenAddress,
+				TokenOut:    tokenOut,
+				HookAddress: fewInfo.HookAddress,
+				PoolAddress: fewInfo.PoolAddress,
+				TickSpacing: fewInfo.TickSpacing,
+				Fee:         fewInfo.Fee,
+			}
 		}
 	}
 
@@ -262,7 +293,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrapFew)
 	}
 	var priceLimit v3Utils.Uint160
-	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
+	_ = p.GetSqrtPriceLimit(tokenInAfterWrapFew == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
 		Router:          p.staticExtra.UniversalRouterAddress,
