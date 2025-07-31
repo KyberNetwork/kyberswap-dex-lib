@@ -114,10 +114,10 @@ func CalculatePoolTVLForTokenPair(
 					return 0, errors.New("index is invalid")
 				}
 				midPriceBF, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
-				midPrice, _ := midPriceBF.Float64()
 				if err != nil {
 					return 0, err
 				}
+				midPrice, _ := midPriceBF.Float64()
 
 				reserveBF, err := getReserve(ctx, p, i, price.Decimals)
 				reserve, _ := reserveBF.Float64()
