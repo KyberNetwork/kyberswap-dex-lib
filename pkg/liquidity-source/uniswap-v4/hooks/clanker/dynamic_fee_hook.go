@@ -2,7 +2,6 @@ package clanker
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
