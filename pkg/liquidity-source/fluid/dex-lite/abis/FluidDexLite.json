@@ -1,0 +1,59 @@
+[
+  {
+    "type": "function",
+    "name": "readFromStorage",
+    "inputs": [
+      {
+        "name": "slot_",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "swapSingle",
+    "inputs": [
+      {
+        "name": "dexKey_",
+        "type": "tuple",
+        "components": [
+          { "name": "token0", "type": "address" },
+          { "name": "token1", "type": "address" },
+          { "name": "salt", "type": "bytes32" }
+        ]
+      },
+      { "name": "swap0To1_", "type": "bool" },
+      { "name": "amountSpecified_", "type": "int256" },
+      { "name": "amountLimit_", "type": "uint256" },
+      { "name": "to_", "type": "address" },
+      { "name": "isCallback_", "type": "bool" },
+      { "name": "callbackData_", "type": "bytes" },
+      { "name": "extraData_", "type": "bytes" }
+    ],
+    "outputs": [{ "name": "amountUnspecified_", "type": "uint256" }],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "event",
+    "name": "LogSwap",
+    "inputs": [
+      {
+        "name": "swapData",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "amounts",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  }
+]
