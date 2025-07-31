@@ -2,12 +2,12 @@ package aegis
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

@@ -375,6 +375,8 @@ const (
 	ExchangeTraderJoeV20               = "traderjoe-v20"
 	ExchangeTraderJoeV21               = "traderjoe-v21"
 	ExchangeTraderJoeV22               = "traderjoe-v22"
+	ExchangeTrebleV2                   = "treble-v2"
+	ExchangeTrebleV4                   = "treble-v4"
 	ExchangeTrisolaris                 = "trisolaris"
 	ExchangeTsunamiX                   = "tsunami-x"
 	ExchangeUSDFi                      = "usdfi"
@@ -797,6 +799,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTraderJoeV20:               {},
 	ExchangeTraderJoeV21:               {},
 	ExchangeTraderJoeV22:               {},
+	ExchangeTrebleV2:                   {},
+	ExchangeTrebleV4:                   {},
 	ExchangeTrisolaris:                 {},
 	ExchangeTsunamiX:                   {},
 	ExchangeUSDFi:                      {},
