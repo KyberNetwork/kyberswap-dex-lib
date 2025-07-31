@@ -75,6 +75,7 @@ common:
     - native-v3
     - woofi-v3
     - bebop
+    - dexalot
     - wbeth
     - ktx
     - lo1inch
@@ -435,6 +436,15 @@ useCase:
             name:
             authorization:
             base_url: "https://api.bebop.xyz/pmm/bsc"
+            timeout: 10s
+            retry_count: 2
+      dexalot:
+        handler: dexalot
+        properties:
+          http:
+            api_key:
+            upscale_percent:
+            base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 2
       uniswap-v4-kem:
