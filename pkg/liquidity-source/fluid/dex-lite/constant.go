@@ -134,6 +134,6 @@ var (
 
 // Gas costs
 var (
-	// FluidDexLite is simpler than FluidDexT1, so lower gas costs
-	defaultGas = Gas{Swap: 180000}
+	// FluidDexLite is highly optimized and only takes 10K gas
+	defaultGas = Gas{Swap: 10000}
 )
