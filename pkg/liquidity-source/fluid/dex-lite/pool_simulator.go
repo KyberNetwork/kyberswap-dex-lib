@@ -167,6 +167,7 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 
 	var amountOut *big.Int
 	var newToken0Supply, newToken1Supply *big.Int
+	var feeInAdjusted *big.Int // Fee in adjusted (9-decimal) precision
 
 	if swap0To1 {
 		// Adjust input amount to internal decimals (9 precision as in contract)
@@ -181,17 +182,17 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 		}
 
 		// Calculate fee: fee = (amountIn * fee) / SIX_DECIMALS
-		fee := new(big.Int).Mul(amountInAdjusted, dexVars.Fee)
-		fee = fee.Div(fee, SixDecimals)
+		feeInAdjusted = new(big.Int).Mul(amountInAdjusted, dexVars.Fee)
+		feeInAdjusted = feeInAdjusted.Div(feeInAdjusted, SixDecimals)
 
 		// Calculate amount out: amountOut = (amountIn * iReserveOut) / (iReserveIn + amountIn)
-		amountInAfterFee := new(big.Int).Sub(amountInAdjusted, fee)
+		amountInAfterFee := new(big.Int).Sub(amountInAdjusted, feeInAdjusted)
 		numerator := new(big.Int).Mul(amountInAfterFee, token1ImaginaryReserves)
 		denominator := new(big.Int).Add(token0ImaginaryReserves, amountInAfterFee)
 		amountOut = new(big.Int).Div(numerator, denominator)
 
 		// Calculate revenue cut
-		revenueCut := new(big.Int).Mul(fee, dexVars.RevenueCut)
+		revenueCut := new(big.Int).Mul(feeInAdjusted, dexVars.RevenueCut)
 		revenueCut = revenueCut.Div(revenueCut, TwoDecimals)
 
 		// Update supplies
@@ -226,17 +227,17 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 		}
 
 		// Calculate fee
-		fee := new(big.Int).Mul(amountInAdjusted, dexVars.Fee)
-		fee = fee.Div(fee, SixDecimals)
+		feeInAdjusted = new(big.Int).Mul(amountInAdjusted, dexVars.Fee)
+		feeInAdjusted = feeInAdjusted.Div(feeInAdjusted, SixDecimals)
 
 		// Calculate amount out
-		amountInAfterFee := new(big.Int).Sub(amountInAdjusted, fee)
+		amountInAfterFee := new(big.Int).Sub(amountInAdjusted, feeInAdjusted)
 		numerator := new(big.Int).Mul(amountInAfterFee, token0ImaginaryReserves)
 		denominator := new(big.Int).Add(token1ImaginaryReserves, amountInAfterFee)
 		amountOut = new(big.Int).Div(numerator, denominator)
 
 		// Calculate revenue cut
-		revenueCut := new(big.Int).Mul(fee, dexVars.RevenueCut)
+		revenueCut := new(big.Int).Mul(feeInAdjusted, dexVars.RevenueCut)
 		revenueCut = revenueCut.Div(revenueCut, TwoDecimals)
 
 		// Update supplies
@@ -300,17 +301,8 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 	// Update dex variables with new supplies
 	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newToken0Supply, newToken1Supply)
 
-	// Calculate fee using the correct formula: feeCharged = (amountIn / (100000 - fee)) - amountIn
-	feeRate := dexVars.Fee                                // fee is already in 6 decimal precision
-	denominator := new(big.Int).Sub(SixDecimals, feeRate) // 100000 - fee
-
-	// feeCharged = (amountIn / (100000 - fee)) - amountIn (in adjusted precision)
-	grossAmount := new(big.Int).Mul(amountIn, SixDecimals)
-	grossAmount = grossAmount.Div(grossAmount, denominator)
-	feeAdjusted := new(big.Int).Sub(grossAmount, amountIn)
-
 	// Convert fee from adjusted precision back to token decimals
-	fee := s.adjustFromInternalDecimals(feeAdjusted, swap0To1, dexVars)
+	fee := s.adjustFromInternalDecimals(feeInAdjusted, swap0To1, dexVars)
 
 	return amountOut, newPoolState, fee, nil
 }
@@ -340,6 +332,7 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 
 	var amountIn *big.Int
 	var newToken0Supply, newToken1Supply *big.Int
+	var feeInAdjusted *big.Int // Fee in adjusted (9-decimal) precision
 
 	if swap0To1 {
 		// Adjust output amount to internal decimals
@@ -370,11 +363,11 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 
 		totalAmountIn := new(big.Int).Mul(amountIn, SixDecimals)
 		totalAmountIn = totalAmountIn.Div(totalAmountIn, feeDenominator)
-		fee := new(big.Int).Sub(totalAmountIn, amountIn)
+		feeInAdjusted = new(big.Int).Sub(totalAmountIn, amountIn)
 		amountIn = totalAmountIn
 
 		// Calculate revenue cut
-		revenueCut := new(big.Int).Mul(fee, dexVars.RevenueCut)
+		revenueCut := new(big.Int).Mul(feeInAdjusted, dexVars.RevenueCut)
 		revenueCut = revenueCut.Div(revenueCut, TwoDecimals)
 
 		// Update supplies
@@ -425,11 +418,11 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 
 		totalAmountIn := new(big.Int).Mul(amountIn, SixDecimals)
 		totalAmountIn = totalAmountIn.Div(totalAmountIn, feeDenominator)
-		fee := new(big.Int).Sub(totalAmountIn, amountIn)
+		feeInAdjusted = new(big.Int).Sub(totalAmountIn, amountIn)
 		amountIn = totalAmountIn
 
 		// Calculate revenue cut
-		revenueCut := new(big.Int).Mul(fee, dexVars.RevenueCut)
+		revenueCut := new(big.Int).Mul(feeInAdjusted, dexVars.RevenueCut)
 		revenueCut = revenueCut.Div(revenueCut, TwoDecimals)
 
 		// Update supplies
@@ -457,18 +450,8 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 		return nil, PoolState{}, nil, ErrAdjustedSupplyOverflow
 	}
 
-	// Calculate fee using the correct formula: feeCharged = (amountIn / (100000 - fee)) - amountIn
-	// Note: amountIn here is in adjusted (9-decimal) precision, so we need to convert fee back to token decimals
-	feeRate := dexVars.Fee                                // fee is already in 6 decimal precision
-	denominator := new(big.Int).Sub(SixDecimals, feeRate) // 100000 - fee
-
-	// feeCharged = (amountIn / (100000 - fee)) - amountIn (in adjusted precision)
-	grossAmount := new(big.Int).Mul(amountIn, SixDecimals)
-	grossAmount = grossAmount.Div(grossAmount, denominator)
-	feeAdjusted := new(big.Int).Sub(grossAmount, amountIn)
-
 	// Convert fee from adjusted precision back to token decimals
-	fee := s.adjustFromInternalDecimals(feeAdjusted, swap0To1, dexVars)
+	fee := s.adjustFromInternalDecimals(feeInAdjusted, swap0To1, dexVars)
 
 	// Calculate the current price after swap for rebalancing status check (same logic as in calculateSwapInWithState)
 	var currentPrice *big.Int

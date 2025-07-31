@@ -50,7 +50,7 @@
         "indexed": false
       },
       {
-        "name": "amounts",
+        "name": "dexVariables",
         "type": "uint256",
         "indexed": false
       }

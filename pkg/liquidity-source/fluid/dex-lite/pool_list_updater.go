@@ -165,11 +165,22 @@ func (u *PoolsListUpdater) calculatePoolMetrics(curPool PoolWithState) (entity.P
 // unpackDexVariables extracts the packed variables from dexVariables
 func (u *PoolsListUpdater) unpackDexVariables(dexVariables *big.Int) UnpackedDexVariables {
 	return UnpackedDexVariables{
-		Fee:                       new(big.Int).And(dexVariables, X13),
-		RevenueCut:                new(big.Int).And(new(big.Int).Rsh(dexVariables, 13), X7),
-		Token0TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables, 100), X64),
-		Token1TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables, 164), X64),
-		RebalancingStatus:         new(big.Int).And(new(big.Int).Rsh(dexVariables, 228), X28),
+		Fee:                         new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
+		RevenueCut:                  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut), X7),
+		RebalancingStatus:           new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2),
+		CenterPriceShiftActive:      new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		CenterPrice:                 new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPrice), X40),
+		CenterPriceContractAddress:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
+		RangePercentShiftActive:     new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperPercent), X14),
+		LowerPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14),
+		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
+		LowerShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
+		Token0Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0Decimals), X5),
+		Token1Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1Decimals), X5),
+		Token0TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
+		Token1TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
 	}
 }
 
@@ -280,7 +291,9 @@ func (u *PoolsListUpdater) readPoolAtIndex(ctx context.Context, index int) (*Poo
 		Token0: common.BigToAddress(dexKeyRaw[0]),
 		Token1: common.BigToAddress(dexKeyRaw[1]),
 	}
-	copy(dexKey.Salt[:], dexKeyRaw[2].Bytes())
+	// Properly reconstruct salt by padding to 32 bytes
+	saltBytes := common.LeftPadBytes(dexKeyRaw[2].Bytes(), 32)
+	copy(dexKey.Salt[:], saltBytes)
 
 	// Calculate dexId from dexKey
 	dexId := u.calculateDexId(dexKey)
