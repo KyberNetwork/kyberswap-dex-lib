@@ -26,9 +26,10 @@ var (
 
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
-	staticExtra StaticExtra
-	hook        Hook
-	chainID     valueobject.ChainID
+	staticExtra   StaticExtra
+	hook          Hook
+	chainID       valueobject.ChainID
+	tokenWrappers []ITokenWrapper
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -71,6 +72,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		staticExtra:   staticExtra,
 		hook:          hook,
 		chainID:       chainID,
+		tokenWrappers: []ITokenWrapper{few.NewTokenWrapper()},
 	}, nil
 }
 
@@ -80,28 +82,35 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
-	var canWrap bool
-	var fewInfo few.TokenInfo
+	var wrapTokens = make(map[string]struct{})
 
 	if tokenIndex == -1 {
-		fewInfo, canWrap = few.CanWrap(p.chainID, address)
-		if !canWrap {
-			return nil
-		}
-		fewTokenIndex := p.GetTokenIndex(fewInfo.FewTokenAddress)
-		if fewTokenIndex == -1 {
-			return nil
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, address)
+			if !canWrap {
+				continue
+			}
+
+			wrapTokenIndex := p.GetTokenIndex(metadata.GetWrapToken())
+			if wrapTokenIndex == -1 {
+				continue
+			}
+
+			wrapTokens[metadata.GetWrapToken()] = struct{}{}
 		}
 	}
 
 	result := map[string]struct{}{}
 	for _, token := range p.Info.Tokens {
-		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && token != fewInfo.FewTokenAddress) {
+		_, isWrapToken := wrapTokens[token]
+		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && !isWrapToken) {
 			result[token] = struct{}{}
 
-			fewInfo, isFewToken := few.IsFewToken(p.chainID, token)
-			if isFewToken && fewInfo.UnwrapTokenAddress != address {
-				result[fewInfo.UnwrapTokenAddress] = struct{}{}
+			for _, wrapper := range p.tokenWrappers {
+				metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
+				if canUnwrap && metadata.GetUnwrapToken() != address {
+					result[metadata.GetUnwrapToken()] = struct{}{}
+				}
 			}
 		}
 	}
@@ -118,8 +127,10 @@ func (p *PoolSimulator) GetTokens() []string {
 
 	for _, token := range p.Info.Tokens {
 		result[token] = struct{}{}
-		if fewInfo, isFewToken := few.IsFewToken(p.chainID, token); isFewToken {
-			result[fewInfo.UnwrapTokenAddress] = struct{}{}
+		for _, wrapper := range p.tokenWrappers {
+			if metadata, isWrapped := wrapper.IsWrapped(p.chainID, token); isWrapped {
+				result[metadata.GetUnwrapToken()] = struct{}{}
+			}
 		}
 	}
 
@@ -142,20 +153,25 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 		result.Gas += wrapAdditionalGas
 	}()
 
-	// Wrap/unwrap FEW token if needed.
-	// Assume that if the token is not in the pool, it is a FEW token.
+	// Wrap/unwrap tokens if needed.
 	if p.GetTokenIndex(param.TokenAmountIn.Token) == -1 {
-		fewInfo, canWrap := few.CanWrap(p.chainID, param.TokenAmountIn.Token)
-		if canWrap {
-			param.TokenAmountIn.Token = fewInfo.FewTokenAddress
-			wrapAdditionalGas += p.Gas.BaseGas
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, param.TokenAmountIn.Token)
+			if canWrap {
+				param.TokenAmountIn.Token = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
 		}
 	}
 	if p.GetTokenIndex(param.TokenOut) == -1 {
-		fewInfo, canUnwrap := few.CanWrap(p.chainID, param.TokenOut)
-		if canUnwrap {
-			param.TokenOut = fewInfo.FewTokenAddress
-			wrapAdditionalGas += p.Gas.BaseGas
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenOut)
+			if canUnwrap {
+				param.TokenOut = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
 		}
 	}
 
@@ -240,47 +256,47 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	tokenInAfterWrap := tokenIn
 	tokenOutBeforeUnwrap := tokenOut
 
-	var wrapMetadata few.WrapMetadata
+	var wrapMetadata TokenWrapMetadata
+
 	tokenInIndex := p.GetTokenIndex(tokenIn)
 	if tokenInIndex == -1 {
-		fewInfo, canWrap := few.CanWrap(p.chainID, tokenIn)
-		if canWrap {
-			wrapMetadata.ShouldWrap = true
-			tokenInAfterWrap = fewInfo.FewTokenAddress
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, tokenIn)
+			if canWrap {
+				wrapMetadata.ShouldWrap = true
+				tokenInAfterWrap = metadata.GetWrapToken()
 
-			tokenIn := fewInfo.UnwrapTokenAddress
-			if fewInfo.IsNative {
-				tokenIn = NativeTokenAddress.Hex()
-			}
-			wrapMetadata.WrapInfo = few.WrapInfo{
-				TokenIn:     tokenIn,
-				TokenOut:    fewInfo.FewTokenAddress,
-				HookAddress: fewInfo.HookAddress,
-				PoolAddress: fewInfo.PoolAddress,
-				TickSpacing: fewInfo.TickSpacing,
-				Fee:         fewInfo.Fee,
+				wrapMetadata.WrapInfo = WrapInfo{
+					TokenIn:     metadata.GetUnwrapToken(),
+					TokenOut:    metadata.GetWrapToken(),
+					HookAddress: metadata.GetHook(),
+					PoolAddress: metadata.GetPool(),
+					TickSpacing: metadata.GetTickSpacing(),
+					Fee:         metadata.GetFee(),
+					HookData:    metadata.GetHookData(),
+				}
+				break
 			}
 		}
 	}
 
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
 	if tokenOutIndex == -1 {
-		fewInfo, canUnwrap := few.CanWrap(p.chainID, tokenOut)
-		if canUnwrap {
-			wrapMetadata.ShouldUnwrap = true
-			tokenOutBeforeUnwrap = fewInfo.FewTokenAddress
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, tokenOut)
+			if canUnwrap {
+				wrapMetadata.ShouldUnwrap = true
+				tokenOutBeforeUnwrap = metadata.GetWrapToken()
 
-			tokenOut := fewInfo.UnwrapTokenAddress
-			if fewInfo.IsNative {
-				tokenOut = NativeTokenAddress.Hex()
-			}
-			wrapMetadata.UnwrapInfo = few.WrapInfo{
-				TokenIn:     fewInfo.FewTokenAddress,
-				TokenOut:    tokenOut,
-				HookAddress: fewInfo.HookAddress,
-				PoolAddress: fewInfo.PoolAddress,
-				TickSpacing: fewInfo.TickSpacing,
-				Fee:         fewInfo.Fee,
+				wrapMetadata.UnwrapInfo = WrapInfo{
+					TokenIn:     metadata.GetWrapToken(),
+					TokenOut:    metadata.GetUnwrapToken(),
+					HookAddress: metadata.GetHook(),
+					PoolAddress: metadata.GetPool(),
+					TickSpacing: metadata.GetTickSpacing(),
+					Fee:         metadata.GetFee(),
+					HookData:    metadata.GetHookData(),
+				}
 			}
 		}
 	}
@@ -296,15 +312,15 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	_ = p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
-		Router:       p.staticExtra.UniversalRouterAddress,
-		Permit2Addr:  p.staticExtra.Permit2Address,
-		TokenIn:      tokenInAddress,
-		TokenOut:     tokenOutAddress,
-		Fee:          p.staticExtra.Fee,
-		TickSpacing:  p.staticExtra.TickSpacing,
-		HookAddress:  p.staticExtra.HooksAddress,
-		HookData:     []byte{},
-		PriceLimit:   &priceLimit,
-		WrapMetadata: wrapMetadata,
+		Router:            p.staticExtra.UniversalRouterAddress,
+		Permit2Addr:       p.staticExtra.Permit2Address,
+		TokenIn:           tokenInAddress,
+		TokenOut:          tokenOutAddress,
+		Fee:               p.staticExtra.Fee,
+		TickSpacing:       p.staticExtra.TickSpacing,
+		HookAddress:       p.staticExtra.HooksAddress,
+		HookData:          []byte{},
+		PriceLimit:        &priceLimit,
+		TokenWrapMetadata: wrapMetadata,
 	}
 }

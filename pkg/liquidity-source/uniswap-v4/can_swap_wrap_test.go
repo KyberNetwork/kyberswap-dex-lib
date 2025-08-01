@@ -19,7 +19,7 @@ var tokens = map[string]struct {
 	"KNC":    {"0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202"},
 }
 
-func TestCanSwapFromUniV4(t *testing.T) {
+func TestCanSwapFromWrapToken(t *testing.T) {
 	t.Parallel()
 
 	testcases := []struct {

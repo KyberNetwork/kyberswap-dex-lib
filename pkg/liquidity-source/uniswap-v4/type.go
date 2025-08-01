@@ -7,7 +7,6 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/few"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 )
 
@@ -74,5 +73,23 @@ type PoolMetaInfo struct {
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
 
-	few.WrapMetadata `json:"wrapFewMetadata,omitempty"`
+	TokenWrapMetadata TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
+}
+
+type TokenWrapMetadata struct {
+	ShouldWrap bool     `json:"shouldWrap,omitempty"`
+	WrapInfo   WrapInfo `json:"wrapInfo,omitempty"`
+
+	ShouldUnwrap bool     `json:"shouldUnwrap,omitempty"`
+	UnwrapInfo   WrapInfo `json:"unwrapInfo,omitempty"`
+}
+
+type WrapInfo struct {
+	TokenIn     string `json:"tokenIn,omitempty"`
+	TokenOut    string `json:"tokenOut,omitempty"`
+	HookAddress string `json:"hookAddress,omitempty"`
+	PoolAddress string `json:"poolAddress,omitempty"`
+	TickSpacing int32  `json:"tickSpacing,omitempty"`
+	Fee         uint32 `json:"fee,omitempty"`
+	HookData    []byte `json:"hookData,omitempty"`
 }
