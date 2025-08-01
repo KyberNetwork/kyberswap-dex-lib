@@ -2,6 +2,7 @@ package classical
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -217,6 +218,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}, nil
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var isSellBase bool
@@ -232,16 +239,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if isSellBase {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] + inputAmount
 		// p.Info.Reserves[1] = p.Info.Reserves[1] - outputAmount - mtFee
-		p.Info.Reserves[0].Add(p.Info.Reserves[0], inputAmount)
-		p.Info.Reserves[1].Sub(p.Info.Reserves[1], outputAmount)
+		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], inputAmount)
+		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], outputAmount)
 
 		// Update p.Storage
 		p.UpdateStateSellBase(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
 	} else {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] - outputAmount - mtFee
 		// p.Info.Reserves[1] = p.Info.Reserves[1] + inputAmount
-		p.Info.Reserves[0].Sub(p.Info.Reserves[0], outputAmount)
-		p.Info.Reserves[1].Add(p.Info.Reserves[1], inputAmount)
+		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], outputAmount)
+		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], inputAmount)
 
 		// Update p.Storage
 		p.UpdateStateBuyBase(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
