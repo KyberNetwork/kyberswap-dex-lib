@@ -8,4 +8,5 @@ type IWrapMetadata interface {
 	GetTickSpacing() int32
 	GetFee() uint32
 	GetHookData() []byte
+	IsUnwrapNative() bool
 }

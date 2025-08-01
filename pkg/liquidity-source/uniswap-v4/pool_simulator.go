@@ -265,9 +265,13 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 			if canWrap {
 				wrapMetadata.ShouldWrap = true
 				tokenInAfterWrap = metadata.GetWrapToken()
+				tokenIn := tokenIn
+				if metadata.IsUnwrapNative() {
+					tokenIn = NativeTokenAddress.Hex()
+				}
 
 				wrapMetadata.WrapInfo = WrapInfo{
-					TokenIn:     metadata.GetUnwrapToken(),
+					TokenIn:     tokenIn,
 					TokenOut:    metadata.GetWrapToken(),
 					HookAddress: metadata.GetHook(),
 					PoolAddress: metadata.GetPool(),
@@ -287,10 +291,14 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 			if canUnwrap {
 				wrapMetadata.ShouldUnwrap = true
 				tokenOutBeforeUnwrap = metadata.GetWrapToken()
+				tokenOut := tokenOut
+				if metadata.IsUnwrapNative() {
+					tokenOut = NativeTokenAddress.Hex()
+				}
 
 				wrapMetadata.UnwrapInfo = WrapInfo{
 					TokenIn:     metadata.GetWrapToken(),
-					TokenOut:    metadata.GetUnwrapToken(),
+					TokenOut:    tokenOut,
 					HookAddress: metadata.GetHook(),
 					PoolAddress: metadata.GetPool(),
 					TickSpacing: metadata.GetTickSpacing(),

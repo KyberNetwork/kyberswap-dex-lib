@@ -49,10 +49,6 @@ func (t TokenInfo) GetWrapToken() string {
 }
 
 func (t TokenInfo) GetUnwrapToken() string {
-	if t.IsNative {
-		return "0x0000000000000000000000000000000000000000"
-	}
-
 	return t.UnwrapTokenAddress
 }
 
@@ -74,4 +70,8 @@ func (t TokenInfo) GetFee() uint32 {
 
 func (t TokenInfo) GetHookData() []byte {
 	return nil
+}
+
+func (t TokenInfo) IsUnwrapNative() bool {
+	return t.IsNative
 }
