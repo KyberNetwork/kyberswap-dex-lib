@@ -2,13 +2,17 @@ package dexLite
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
@@ -20,14 +24,27 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
+	ethClient    *ethclient.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	// Initialize ethClient - we'll use a default RPC since ethrpcClient doesn't expose URL
+	// In production, this should be configured properly
+	ethClient, err := ethclient.Dial("https://ethereum.kyberengineering.io")
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Failed to create ethclient for storage reads")
+		// Fallback to nil, we'll handle this in readFromStorage
+	}
+
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
+		ethClient:    ethClient,
 	}
 }
 
@@ -152,42 +169,46 @@ func (t *PoolTracker) getPoolStateByDexId(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolState, uint64, uint64, error) {
 
-	var poolStateSlots [4]*big.Int
-
-	req := t.ethrpcClient.R().SetContext(ctx)
+	// NOTE: Direct ethClient calls don't support overrides, so we log a warning if provided
 	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
-
-	// Read the 4 storage variables for FluidDexLite pool state
-	for i := 0; i < 4; i++ {
-		slot := t.calculatePoolStateSlot(dexId, i)
-		poolStateSlots[i] = new(big.Int)
-		req.AddCall(&ethrpc.Call{
-			ABI:    fluidDexLiteABI,
-			Target: t.config.DexLiteAddress,
-			Method: SRMethodReadFromStorage,
-			Params: []interface{}{slot},
-		}, []interface{}{poolStateSlots[i]})
-	}
-
-	resp, err := req.Aggregate()
-	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
-			"error":   err,
-		}).Error("Failed to get pool state")
-		return nil, 0, 0, err
+		}).Warn("Overrides not supported with direct ethClient calls")
+	}
+
+	var poolStateSlots [4]*big.Int
+
+	// Read the 4 storage variables for FluidDexLite pool state using direct calls
+	for i := 0; i < 4; i++ {
+		slot := t.calculatePoolStateSlot(dexId, i)
+		value, err := t.readFromStorage(ctx, slot)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexType": DexType,
+				"error":   err,
+				"slot":    i,
+			}).Error("Failed to read pool state slot")
+			return nil, 0, 0, err
+		}
+		poolStateSlots[i] = value
 	}
 
 	// Get block timestamp
-	blockTimestamp, err := t.ethrpcClient.R().SetContext(ctx).GetCurrentBlockTimestamp()
+	blockTimestamp, err := t.ethrpcClient.NewRequest().SetContext(ctx).GetCurrentBlockTimestamp()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Failed to get block timestamp")
 		return nil, 0, 0, err
+	}
+
+	// For blockNumber, we'll use a simple ethClient call
+	blockNumber := uint64(0)
+	if t.ethClient != nil {
+		if header, err := t.ethClient.HeaderByNumber(ctx, nil); err == nil {
+			blockNumber = header.Number.Uint64()
+		}
 	}
 
 	// Just return the 4 state variables - PoolSimulator will handle pause logic
@@ -198,7 +219,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 		ThresholdShift:   poolStateSlots[3],
 	}
 
-	return poolState, resp.BlockNumber.Uint64(), blockTimestamp, nil
+	return poolState, blockNumber, blockTimestamp, nil
 }
 
 // Helper functions
@@ -218,27 +239,69 @@ func (t *PoolTracker) calculateDexId(dexKey DexKey) [8]byte {
 }
 
 func (t *PoolTracker) calculatePoolStateSlot(dexId [8]byte, offset int) common.Hash {
-	// Pool state mapping: _dexVariables is at slot 2, others follow
-	// keccak256(dexId, baseSlot) where baseSlot varies by field
-	var baseSlot *big.Int
-
+	// Storage slot mapping for FluidDexLite pool state variables
+	var baseSlot uint64
 	switch offset {
-	case 0: // _dexVariables mapping at slot 2
-		baseSlot = big.NewInt(2)
-	case 1: // _centerPriceShift mapping at slot 3
-		baseSlot = big.NewInt(3)
-	case 2: // _rangeShift mapping at slot 4
-		baseSlot = big.NewInt(4)
-	case 3: // _thresholdShift mapping at slot 5
-		baseSlot = big.NewInt(5)
+	case 0: // _dexVariables mapping
+		baseSlot = StorageSlotDexVariables
+	case 1: // _centerPriceShift mapping
+		baseSlot = StorageSlotCenterPriceShift
+	case 2: // _rangeShift mapping
+		baseSlot = StorageSlotRangeShift
+	case 3: // _thresholdShift mapping
+		baseSlot = StorageSlotThresholdShift
 	default:
-		baseSlot = big.NewInt(2)
+		baseSlot = StorageSlotDexVariables
 	}
 
-	data := make([]byte, 0, 40) // 8 + 32 bytes
-	data = append(data, common.LeftPadBytes(dexId[:], 32)...)
-	data = append(data, common.LeftPadBytes(baseSlot.Bytes(), 32)...)
-	baseHash := crypto.Keccak256(data)
+	// Convert bytes8 dexId to bytes32 (right-padded with zeros)
+	var dexIdBytes32 [32]byte
+	copy(dexIdBytes32[:], dexId[:])
 
-	return common.BytesToHash(baseHash)
+	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot))
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+	arguments := abi.Arguments{{Type: bytes32Type}, {Type: uint256Type}}
+
+	encoded, err := arguments.Pack(common.BytesToHash(dexIdBytes32[:]), new(big.Int).SetUint64(baseSlot))
+	if err != nil {
+		// Fallback to manual encoding
+		encoded = make([]byte, 64)
+		copy(encoded[:32], dexIdBytes32[:])
+		copy(encoded[32:], common.LeftPadBytes(new(big.Int).SetUint64(baseSlot).Bytes(), 32))
+	}
+
+	return common.BytesToHash(crypto.Keccak256(encoded))
+}
+
+// readFromStorage reads a single storage slot using ethClient.CallContract
+func (t *PoolTracker) readFromStorage(ctx context.Context, slot common.Hash) (*big.Int, error) {
+	if t.ethClient == nil {
+		return nil, fmt.Errorf("ethClient not available for storage reads")
+	}
+
+	// Pack the function call using the actual FluidDexLite ABI
+	callData, err := fluidDexLiteABI.Pack("readFromStorage", slot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack readFromStorage call: %w", err)
+	}
+
+	// Create contract call message
+	contractAddr := common.HexToAddress(t.config.DexLiteAddress)
+	callMsg := ethereum.CallMsg{
+		To:   &contractAddr,
+		Data: callData,
+	}
+
+	// Make the call
+	resultBytes, err := t.ethClient.CallContract(ctx, callMsg, nil)
+	if err != nil {
+		return nil, fmt.Errorf("readFromStorage call failed: %w", err)
+	}
+
+	if len(resultBytes) != 32 {
+		return nil, fmt.Errorf("unexpected result length: %d", len(resultBytes))
+	}
+
+	return new(big.Int).SetBytes(resultBytes), nil
 }

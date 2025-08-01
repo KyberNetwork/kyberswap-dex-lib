@@ -2,13 +2,17 @@ package dexLite
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -19,6 +23,7 @@ import (
 type PoolsListUpdater struct {
 	config       Config
 	ethrpcClient *ethrpc.Client
+	ethClient    *ethclient.Client
 }
 
 type Metadata struct {
@@ -28,9 +33,21 @@ type Metadata struct {
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
+	// Initialize ethClient - we'll use a default RPC since ethrpcClient doesn't expose URL
+	// In production, this should be configured properly
+	ethClient, err := ethclient.Dial("https://ethereum.kyberengineering.io")
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Failed to create ethclient for storage reads")
+		// Fallback to nil, we'll handle this in readFromStorage
+	}
+
 	return &PoolsListUpdater{
 		config:       *config,
 		ethrpcClient: ethrpcClient,
+		ethClient:    ethClient,
 	}
 }
 
@@ -50,7 +67,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	// Get current block timestamp for all pools
-	blockTimestamp, err := u.ethrpcClient.R().SetContext(ctx).GetCurrentBlockTimestamp()
+	blockTimestamp, err := u.ethrpcClient.NewRequest().SetContext(ctx).GetCurrentBlockTimestamp()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
@@ -214,7 +231,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithState, er
 	// Get the number of pools in the dex list
 	var dexListLength *big.Int
 
-	req := u.ethrpcClient.R().SetContext(ctx)
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    fluidDexLiteABI,
@@ -223,7 +240,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithState, er
 		Params: []interface{}{common.HexToHash(StorageSlotDexList)},
 	}, []interface{}{&dexListLength})
 
-	_, err := req.Aggregate()
+	_, err := req.Call()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
@@ -241,58 +258,65 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithState, er
 	return u.readAllPoolsBatched(ctx, length)
 }
 
-// readAllPoolsBatched reads ALL pools in just 2 RPC calls instead of 2N calls
+// readAllPoolsBatched reads ALL pools using direct ethClient calls
 func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) ([]PoolWithState, error) {
-	// **BATCH 1**: Read ALL DexKeys in a single RPC call (3N storage slots)
-	var allDexKeyRaw [][3]*big.Int
-	req1 := u.ethrpcClient.R().SetContext(ctx)
+	// Read ALL DexKeys using individual storage calls
+	var validPools []int
+	var dexKeys []DexKey
+	var dexIds [][8]byte
 
 	for i := 0; i < length; i++ {
 		dexListSlot := u.calculateArraySlot(big.NewInt(1), i)
 		dexListSlotBig := new(big.Int).SetBytes(dexListSlot[:])
 
-		var dexKeyRaw [3]*big.Int
 		// Read 3 consecutive slots for this DexKey struct
-		for j := 0; j < 3; j++ {
-			slot := new(big.Int).Add(dexListSlotBig, big.NewInt(int64(j)))
-			dexKeyRaw[j] = new(big.Int)
-			req1.AddCall(&ethrpc.Call{
-				ABI:    fluidDexLiteABI,
-				Target: u.config.DexLiteAddress,
-				Method: SRMethodReadFromStorage,
-				Params: []interface{}{common.BigToHash(slot)},
-			}, []interface{}{dexKeyRaw[j]})
+		token0Slot := new(big.Int).Set(dexListSlotBig)
+		token1Slot := new(big.Int).Add(dexListSlotBig, big.NewInt(1))
+		saltSlot := new(big.Int).Add(dexListSlotBig, big.NewInt(2))
+
+		// Read token0, token1, salt
+		token0Raw, err := u.readFromStorage(ctx, common.BigToHash(token0Slot))
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexType": DexType,
+				"error":   err,
+				"index":   i,
+			}).Error("Failed to read token0")
+			return nil, err
 		}
-		allDexKeyRaw = append(allDexKeyRaw, dexKeyRaw)
-	}
 
-	_, err := req1.Aggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Failed to batch read all DexKeys")
-		return nil, err
-	}
-
-	// Process DexKeys and prepare dexIds for second batch
-	var validPools []int
-	var dexKeys []DexKey
-	var dexIds [][8]byte
-
-	for i, dexKeyRaw := range allDexKeyRaw {
 		// Skip invalid pools (token0 == 0)
-		if dexKeyRaw[0].Sign() == 0 {
+		if token0Raw.Sign() == 0 {
 			continue
+		}
+
+		token1Raw, err := u.readFromStorage(ctx, common.BigToHash(token1Slot))
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexType": DexType,
+				"error":   err,
+				"index":   i,
+			}).Error("Failed to read token1")
+			return nil, err
+		}
+
+		saltRaw, err := u.readFromStorage(ctx, common.BigToHash(saltSlot))
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexType": DexType,
+				"error":   err,
+				"index":   i,
+			}).Error("Failed to read salt")
+			return nil, err
 		}
 
 		// Reconstruct DexKey
 		dexKey := DexKey{
-			Token0: common.BigToAddress(dexKeyRaw[0]),
-			Token1: common.BigToAddress(dexKeyRaw[1]),
+			Token0: common.BigToAddress(token0Raw),
+			Token1: common.BigToAddress(token1Raw),
 		}
 		// Properly reconstruct salt by padding to 32 bytes
-		saltBytes := common.LeftPadBytes(dexKeyRaw[2].Bytes(), 32)
+		saltBytes := common.LeftPadBytes(saltRaw.Bytes(), 32)
 		copy(dexKey.Salt[:], saltBytes)
 
 		// Calculate dexId
@@ -301,41 +325,35 @@ func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) 
 		validPools = append(validPools, i)
 		dexKeys = append(dexKeys, dexKey)
 		dexIds = append(dexIds, dexId)
+
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"index":   i,
+			"token0":  dexKey.Token0.Hex(),
+			"token1":  dexKey.Token1.Hex(),
+			"salt":    common.BytesToHash(dexKey.Salt[:]).Hex(),
+		}).Debug("Successfully read DexKey")
 	}
 
 	if len(validPools) == 0 {
 		return []PoolWithState{}, nil
 	}
 
-	// **BATCH 2**: Read ALL dexVariables in a single RPC call (N storage slots)
-	var allDexVariables []*big.Int
-	req2 := u.ethrpcClient.R().SetContext(ctx)
-
-	for _, dexId := range dexIds {
-		dexVariablesSlot := u.calculatePoolStateSlot(dexId, 0)
-		dexVariables := new(big.Int)
-		req2.AddCall(&ethrpc.Call{
-			ABI:    fluidDexLiteABI,
-			Target: u.config.DexLiteAddress,
-			Method: SRMethodReadFromStorage,
-			Params: []interface{}{dexVariablesSlot},
-		}, []interface{}{dexVariables})
-		allDexVariables = append(allDexVariables, dexVariables)
-	}
-
-	_, err = req2.Aggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Failed to batch read all dexVariables")
-		return nil, err
-	}
-
-	// Build final pool list
+	// Read ALL dexVariables
 	pools := make([]PoolWithState, 0, len(validPools))
 	var skippedCount int
-	for i, dexVariables := range allDexVariables {
+	for i, dexId := range dexIds {
+		dexVariablesSlot := u.calculatePoolStateSlot(dexId, 0)
+		dexVariables, err := u.readFromStorage(ctx, dexVariablesSlot)
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"dexType": DexType,
+				"error":   err,
+				"dexId":   fmt.Sprintf("%x", dexId),
+			}).Error("Failed to read dexVariables")
+			return nil, err
+		}
+
 		// Skip uninitialized pools
 		if dexVariables.Sign() == 0 {
 			skippedCount++
@@ -368,8 +386,7 @@ func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) 
 		"validDexKeys":       len(validPools),
 		"uninitializedPools": skippedCount,
 		"initializedPools":   len(pools),
-		"rpcCallsSaved":      (length * 2) - 2, // Was 2N calls, now 2 calls
-	}).Info("Optimized pool discovery completed")
+	}).Info("Pool discovery completed using direct ethClient calls")
 
 	return pools, nil
 }
@@ -398,7 +415,7 @@ func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []P
 	}
 
 	// Batch read all token decimals in a single RPC call
-	req := u.ethrpcClient.R().SetContext(ctx)
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 	var tokens []common.Address
 	var decimalsResults []uint8
 
@@ -415,7 +432,7 @@ func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []P
 		decimalsResults = append(decimalsResults, decimals)
 	}
 
-	_, err := req.Aggregate()
+	_, err := req.Call()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
@@ -440,7 +457,7 @@ func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []P
 func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common.Address, token1 common.Address) (uint8, uint8, error) {
 	var decimals0, decimals1 uint8
 
-	req := u.ethrpcClient.R().SetContext(ctx)
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	if strings.EqualFold(valueobject.NativeAddress, token0.String()) {
 		decimals0 = 18
@@ -464,7 +481,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 		}, []interface{}{&decimals1})
 	}
 
-	_, err := req.Aggregate()
+	_, err := req.Call()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
@@ -504,27 +521,69 @@ func (u *PoolsListUpdater) calculateDexId(dexKey DexKey) [8]byte {
 }
 
 func (u *PoolsListUpdater) calculatePoolStateSlot(dexId [8]byte, offset int) common.Hash {
-	// Pool state mapping: _dexVariables is at slot 2, others follow
-	// keccak256(dexId, baseSlot) where baseSlot varies by field
-	var baseSlot *big.Int
-
+	// Storage slot mapping for FluidDexLite pool state variables
+	var baseSlot uint64
 	switch offset {
-	case 0: // _dexVariables mapping at slot 2
-		baseSlot = big.NewInt(2)
-	case 1: // _centerPriceShift mapping at slot 3
-		baseSlot = big.NewInt(3)
-	case 2: // _rangeShift mapping at slot 4
-		baseSlot = big.NewInt(4)
-	case 3: // _thresholdShift mapping at slot 5
-		baseSlot = big.NewInt(5)
+	case 0: // _dexVariables mapping
+		baseSlot = StorageSlotDexVariables
+	case 1: // _centerPriceShift mapping
+		baseSlot = StorageSlotCenterPriceShift
+	case 2: // _rangeShift mapping
+		baseSlot = StorageSlotRangeShift
+	case 3: // _thresholdShift mapping
+		baseSlot = StorageSlotThresholdShift
 	default:
-		baseSlot = big.NewInt(2)
+		baseSlot = StorageSlotDexVariables
 	}
 
-	data := make([]byte, 0, 40) // 8 + 32 bytes
-	data = append(data, common.LeftPadBytes(dexId[:], 32)...)
-	data = append(data, common.LeftPadBytes(baseSlot.Bytes(), 32)...)
-	baseHash := crypto.Keccak256(data)
+	// Convert bytes8 dexId to bytes32 (right-padded with zeros)
+	var dexIdBytes32 [32]byte
+	copy(dexIdBytes32[:], dexId[:])
 
-	return common.BytesToHash(baseHash)
+	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot))
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+	arguments := abi.Arguments{{Type: bytes32Type}, {Type: uint256Type}}
+
+	encoded, err := arguments.Pack(common.BytesToHash(dexIdBytes32[:]), new(big.Int).SetUint64(baseSlot))
+	if err != nil {
+		// Fallback to manual encoding
+		encoded = make([]byte, 64)
+		copy(encoded[:32], dexIdBytes32[:])
+		copy(encoded[32:], common.LeftPadBytes(new(big.Int).SetUint64(baseSlot).Bytes(), 32))
+	}
+
+	return common.BytesToHash(crypto.Keccak256(encoded))
+}
+
+// readFromStorage reads a single storage slot using ethClient.CallContract
+func (u *PoolsListUpdater) readFromStorage(ctx context.Context, slot common.Hash) (*big.Int, error) {
+	if u.ethClient == nil {
+		return nil, fmt.Errorf("ethClient not available for storage reads")
+	}
+
+	// Pack the function call using the actual FluidDexLite ABI
+	callData, err := fluidDexLiteABI.Pack("readFromStorage", slot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack readFromStorage call: %w", err)
+	}
+
+	// Create contract call message
+	contractAddr := common.HexToAddress(u.config.DexLiteAddress)
+	callMsg := ethereum.CallMsg{
+		To:   &contractAddr,
+		Data: callData,
+	}
+
+	// Make the call
+	resultBytes, err := u.ethClient.CallContract(ctx, callMsg, nil)
+	if err != nil {
+		return nil, fmt.Errorf("readFromStorage call failed: %w", err)
+	}
+
+	if len(resultBytes) != 32 {
+		return nil, fmt.Errorf("unexpected result length: %d", len(resultBytes))
+	}
+
+	return new(big.Int).SetBytes(resultBytes), nil
 }

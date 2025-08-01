@@ -23,7 +23,15 @@ const (
 )
 
 const (
-	// Storage slots for FluidDexLite
+	// Storage slots for FluidDexLite contract (matches Variables.sol layout)
+	StorageSlotIsAuth           = 0 // Slot 0: _isAuth mapping
+	StorageSlotDexesList        = 1 // Slot 1: _dexesList array
+	StorageSlotDexVariables     = 2 // Slot 2: _dexVariables mapping
+	StorageSlotCenterPriceShift = 3 // Slot 3: _centerPriceShift mapping
+	StorageSlotRangeShift       = 4 // Slot 4: _rangeShift mapping
+	StorageSlotThresholdShift   = 5 // Slot 5: _thresholdShift mapping
+
+	// Legacy storage slot (kept for compatibility)
 	StorageSlotDexList = "0x1" // Slot 1: dex list array (_dexesList)
 
 	// Fee precision
