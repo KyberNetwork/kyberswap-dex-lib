@@ -704,12 +704,12 @@ func assertSwapOutResult(t *testing.T, swap0To1 bool, amountOut *big.Int, colRes
 func TestPoolSimulator_SwapIn(t *testing.T) {
 	t.Parallel()
 	t.Run("TestPoolSimulator_SwapIn", func(t *testing.T) {
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710000000", 18, 18, limitsWide(), time.Now().Unix()-10)
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724000000", 18, 18, limitsWide(), time.Now().Unix()-10)
-		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905000000", 18, 18, limitsWide(), time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553000000", 18, 18, limitsWide(), time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607000000", 18, 18, limitsWide(), time.Now().Unix()-10)
-		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532000000", 18, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697204710000000", 12, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847016724000000", 12, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, true, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731289905000000", 12, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesOne(), "1000000000000000", "998262697752553000000", 12, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesEmpty(), NewDebtReservesOne(), "1000000000000000", "994619847560607000000", 12, 18, limitsWide(), time.Now().Unix()-10)
+		assertSwapInResult(t, false, big.NewInt(1e15), NewColReservesOne(), NewDebtReservesEmpty(), "1000000000000000", "997440731837532000000", 12, 18, limitsWide(), time.Now().Unix()-10)
 	})
 }
 
