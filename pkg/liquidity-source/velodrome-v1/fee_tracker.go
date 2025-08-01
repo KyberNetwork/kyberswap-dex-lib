@@ -25,7 +25,6 @@ type (
 		abi          abi.ABI
 		target       string
 		args         []string
-		defaultFee   uint64
 	}
 )
 

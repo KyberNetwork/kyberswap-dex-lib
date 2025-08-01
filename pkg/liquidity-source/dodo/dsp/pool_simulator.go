@@ -2,6 +2,7 @@ package dsp
 
 import (
 	"math/big"
+	"slices"
 	"strings"
 	"sync"
 
@@ -18,7 +19,7 @@ import (
 )
 
 type PoolSimulator struct {
-	sync.RWMutex
+	*sync.RWMutex
 	pool.Pool
 	libv2.PMMState
 	Meta shared.V2Meta
@@ -77,6 +78,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
+		RWMutex: &sync.RWMutex{},
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -143,6 +145,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, shared.ErrInvalidToken
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.RWMutex = &sync.RWMutex{}
+	cloned.Info.Reserves = slices.Clone(p.Info.Reserves)
+	return &cloned
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var isSellBase bool
@@ -158,16 +167,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if isSellBase {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] + inputAmount
 		// p.Info.Reserves[1] = p.Info.Reserves[1] - outputAmount - mtFee
-		p.Info.Reserves[0].Add(p.Info.Reserves[0], inputAmount)
-		p.Info.Reserves[1].Sub(p.Info.Reserves[1], outputAmount)
+		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], inputAmount)
+		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], outputAmount)
 
 		// Update p.Storage
 		p.UpdateStateSellBase(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
 	} else {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] - outputAmount - mtFee
 		// p.Info.Reserves[1] = p.Info.Reserves[1] + inputAmount
-		p.Info.Reserves[0].Sub(p.Info.Reserves[0], outputAmount)
-		p.Info.Reserves[1].Add(p.Info.Reserves[1], inputAmount)
+		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], outputAmount)
+		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], inputAmount)
 
 		// Update p.Storage
 		p.UpdateStateSellQuote(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
