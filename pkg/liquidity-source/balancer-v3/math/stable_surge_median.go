@@ -38,3 +38,12 @@ func (s *stableSurgeMedian) findMedian(balances []*uint256.Int) (*uint256.Int, e
 
 	return sortedBalances[mid], nil
 }
+
+func (s *stableSurgeMedian) CalculateFeeSurgeRatio(maxSurgeFeePercentage, surgeThresholdPercentage *uint256.Int) *uint256.Int {
+	if surgeThresholdPercentage.Cmp(U1e18) >= 0 {
+		return U0
+	}
+	var tmp uint256.Int
+	tmp.MulDivOverflow(maxSurgeFeePercentage, U1e18, tmp.Sub(U1e18, surgeThresholdPercentage))
+	return &tmp
+}
