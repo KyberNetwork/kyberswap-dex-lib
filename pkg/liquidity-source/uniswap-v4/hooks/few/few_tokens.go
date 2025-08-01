@@ -15,15 +15,15 @@ type TokenInfo struct {
 	IsNative           bool
 }
 
-type WrapFewMetadata struct {
-	ShouldWrapFew bool        `json:"shouldWrapFew,omitempty"`
-	WrapFewInfo   WrapFewInfo `json:"wrapFewInfo,omitempty"`
+type WrapMetadata struct {
+	ShouldWrap bool     `json:"shouldWrap,omitempty"`
+	WrapInfo   WrapInfo `json:"wrapFewInfo,omitempty"`
 
-	ShouldUnwrapFew bool        `json:"shouldUnwrapFew,omitempty"`
-	UnwrapFewInfo   WrapFewInfo `json:"unwrapFewInfo,omitempty"`
+	ShouldUnwrap bool     `json:"shouldUnwrap,omitempty"`
+	UnwrapInfo   WrapInfo `json:"unwrapFewInfo,omitempty"`
 }
 
-type WrapFewInfo struct {
+type WrapInfo struct {
 	TokenIn     string `json:"tokenIn,omitempty"`
 	TokenOut    string `json:"tokenOut,omitempty"`
 	HookAddress string `json:"hookAddress,omitempty"`
@@ -66,10 +66,10 @@ var fewTokens = []TokenInfo{
 var canWrapToFew = map[valueobject.ChainID]map[string]TokenInfo{}
 var isFewToken = map[valueobject.ChainID]map[string]TokenInfo{}
 
-// CanWrapToFew checks if a token can be wrapped to a FEW token.
+// CanWrap checks if a token can be wrapped to a FEW token.
 // Return the FEW token info and true if it can be wrapped,
 // otherwise return an empty string and false.
-func CanWrapToFew(chainID valueobject.ChainID, address string) (TokenInfo, bool) {
+func CanWrap(chainID valueobject.ChainID, address string) (TokenInfo, bool) {
 	value, ok := canWrapToFew[chainID][address]
 	return value, ok
 }
