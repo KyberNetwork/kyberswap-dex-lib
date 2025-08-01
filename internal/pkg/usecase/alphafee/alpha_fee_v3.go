@@ -7,15 +7,16 @@ import (
 	"runtime/debug"
 	"slices"
 
-	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
-	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
-	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
+
+	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -240,7 +241,8 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 				reduceAmountF := poolSurplus * reductionFactor / basisPointFloat
 				reduceAmountUsd := currentAmountOutUsd * reduceAmountF / currentAmountOutF
 
-				if surplusAllowanceUsd := c.getSurplusAllowanceUsd(pool); surplusAllowanceUsd > 0 {
+				if surplusAllowanceUsd := c.getSurplusAllowanceUsd(pool); surplusAllowanceUsd > 0 &&
+					reductionFactor > 0 && currentAmountOutUsd > 0 {
 					minReduceAmountUsd := reduceAmountUsd*basisPointFloat/reductionFactor - surplusAllowanceUsd
 					if reduceAmountUsd < minReduceAmountUsd {
 						reduceAmountUsd = minReduceAmountUsd
@@ -248,6 +250,9 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 					}
 				}
 
+				if math.IsNaN(reduceAmountF) {
+					reduceAmountF = 0
+				}
 				var reduceAmountBF big.Float
 				reduceAmount, _ := reduceAmountBF.SetFloat64(reduceAmountF).Int(nil)
 				swapReductions = append(swapReductions, routerEntity.AlphaFeeV2SwapReduction{
