@@ -123,10 +123,11 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
-		DexKey:      s.DexKey,
+		BlockNumber:     s.Pool.Info.BlockNumber,
+		DexKey:          s.DexKey,
+		ApprovalAddress: s.StaticExtra.DexLiteAddress,
 	}
 }
 
@@ -137,7 +138,8 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 
 // calculateSwapInWithState implements the exact same logic as _swapIn in the FluidDexLite contract
 // Returns: amountOut, newPoolState (all 4 variables), fee, error
-func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.Int, currentPoolState PoolState) (*big.Int, PoolState, *big.Int, error) {
+func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.Int,
+	currentPoolState PoolState) (*big.Int, PoolState, *big.Int, error) {
 	if currentPoolState.DexVariables.Sign() == 0 {
 		return nil, PoolState{}, nil, ErrPoolNotInitialized
 	}
@@ -153,7 +155,8 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 	token1AdjustedSupply := dexVars.Token1TotalSupplyAdjusted
 
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	centerPrice, token0ImaginaryReserves, token1ImaginaryReserves, err := s.getPricesAndReservesWithState(dexVars, &newPoolState)
+	centerPrice, token0ImaginaryReserves, token1ImaginaryReserves, err := s.getPricesAndReservesWithState(dexVars,
+		&newPoolState)
 	if err != nil {
 		return nil, PoolState{}, nil, err
 	}
@@ -262,38 +265,45 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 	var currentPrice *big.Int
 	if swap0To1 {
 		// price = (token1ImaginaryReserves - amountOut) * PRICE_PRECISION / (token0ImaginaryReserves + amountIn)
-		adjustedToken1 := new(big.Int).Sub(token1ImaginaryReserves, s.adjustToInternalDecimals(amountOut, false, dexVars))
+		adjustedToken1 := new(big.Int).Sub(token1ImaginaryReserves,
+			s.adjustToInternalDecimals(amountOut, false, dexVars))
 		adjustedToken0 := new(big.Int).Add(token0ImaginaryReserves, s.adjustToInternalDecimals(amountIn, true, dexVars))
 		currentPrice = new(big.Int).Mul(adjustedToken1, PricePrecision)
 		currentPrice = currentPrice.Div(currentPrice, adjustedToken0)
 	} else {
 		// price = (token1ImaginaryReserves + amountIn) * PRICE_PRECISION / (token0ImaginaryReserves - amountOut)
-		adjustedToken1 := new(big.Int).Add(token1ImaginaryReserves, s.adjustToInternalDecimals(amountIn, false, dexVars))
-		adjustedToken0 := new(big.Int).Sub(token0ImaginaryReserves, s.adjustToInternalDecimals(amountOut, true, dexVars))
+		adjustedToken1 := new(big.Int).Add(token1ImaginaryReserves,
+			s.adjustToInternalDecimals(amountIn, false, dexVars))
+		adjustedToken0 := new(big.Int).Sub(token0ImaginaryReserves,
+			s.adjustToInternalDecimals(amountOut, true, dexVars))
 		currentPrice = new(big.Int).Mul(adjustedToken1, PricePrecision)
 		currentPrice = currentPrice.Div(currentPrice, adjustedToken0)
 	}
 
 	// Update rebalancing status and check for state changes
-	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2)
+	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables,
+		BitsDexLiteDexVariablesRebalancingStatus), X2)
 	if rebalancingStatus.Cmp(big.NewInt(0)) > 0 {
 		blockTimestamp := s.BlockTimestamp
 		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, rebalancingStatus,
 			currentPrice, centerPrice, blockTimestamp)
 
 		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
-		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
+		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables,
+			BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
 		if newRebalancingStatus.Cmp(big.NewInt(1)) > 0 || centerPriceShiftActive.Cmp(big.NewInt(1)) == 0 {
 			// Update last interaction timestamp: _centerPriceShift[dexId_] = _centerPriceShift[dexId_] & ~(X33 << BITS_DEX_LITE_CENTER_PRICE_SHIFT_LAST_INTERACTION_TIMESTAMP) | (block.timestamp << BITS_DEX_LITE_CENTER_PRICE_SHIFT_LAST_INTERACTION_TIMESTAMP)
 			clearMask := new(big.Int).Lsh(X33, BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
 			newPoolState.CenterPriceShift = new(big.Int).AndNot(newPoolState.CenterPriceShift, clearMask)
-			newTimestamp := new(big.Int).Lsh(big.NewInt(int64(blockTimestamp)), BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
+			newTimestamp := new(big.Int).Lsh(big.NewInt(int64(blockTimestamp)),
+				BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
 			newPoolState.CenterPriceShift = new(big.Int).Or(newPoolState.CenterPriceShift, newTimestamp)
 		}
 	}
 
 	// Update dex variables with new supplies
-	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newToken0Supply, newToken1Supply)
+	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newToken0Supply,
+		newToken1Supply)
 
 	// Convert fee from adjusted precision back to token decimals
 	fee := s.adjustFromInternalDecimals(feeInAdjusted, swap0To1, dexVars)
@@ -303,7 +313,8 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 
 // calculateSwapOutWithState implements the exact same logic as _swapOut in the FluidDexLite contract
 // Returns: amountIn, newPoolState (all 4 variables), fee, error
-func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.Int, currentPoolState PoolState) (*big.Int, PoolState, *big.Int, error) {
+func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.Int,
+	currentPoolState PoolState) (*big.Int, PoolState, *big.Int, error) {
 	if currentPoolState.DexVariables.Sign() == 0 {
 		return nil, PoolState{}, nil, ErrPoolNotInitialized
 	}
@@ -319,7 +330,8 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 	token1AdjustedSupply := dexVars.Token1TotalSupplyAdjusted
 
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	centerPrice, token0ImaginaryReserves, token1ImaginaryReserves, err := s.getPricesAndReservesWithState(dexVars, &newPoolState)
+	centerPrice, token0ImaginaryReserves, token1ImaginaryReserves, err := s.getPricesAndReservesWithState(dexVars,
+		&newPoolState)
 	if err != nil {
 		return nil, PoolState{}, nil, err
 	}
@@ -451,38 +463,45 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 	var currentPrice *big.Int
 	if swap0To1 {
 		// price = (token1ImaginaryReserves - amountOut) * PRICE_PRECISION / (token0ImaginaryReserves + amountIn)
-		adjustedToken1 := new(big.Int).Sub(token1ImaginaryReserves, s.adjustToInternalDecimals(amountOut, false, dexVars))
+		adjustedToken1 := new(big.Int).Sub(token1ImaginaryReserves,
+			s.adjustToInternalDecimals(amountOut, false, dexVars))
 		adjustedToken0 := new(big.Int).Add(token0ImaginaryReserves, s.adjustToInternalDecimals(amountIn, true, dexVars))
 		currentPrice = new(big.Int).Mul(adjustedToken1, PricePrecision)
 		currentPrice = currentPrice.Div(currentPrice, adjustedToken0)
 	} else {
 		// price = (token1ImaginaryReserves + amountIn) * PRICE_PRECISION / (token0ImaginaryReserves - amountOut)
-		adjustedToken1 := new(big.Int).Add(token1ImaginaryReserves, s.adjustToInternalDecimals(amountIn, false, dexVars))
-		adjustedToken0 := new(big.Int).Sub(token0ImaginaryReserves, s.adjustToInternalDecimals(amountOut, true, dexVars))
+		adjustedToken1 := new(big.Int).Add(token1ImaginaryReserves,
+			s.adjustToInternalDecimals(amountIn, false, dexVars))
+		adjustedToken0 := new(big.Int).Sub(token0ImaginaryReserves,
+			s.adjustToInternalDecimals(amountOut, true, dexVars))
 		currentPrice = new(big.Int).Mul(adjustedToken1, PricePrecision)
 		currentPrice = currentPrice.Div(currentPrice, adjustedToken0)
 	}
 
 	// Update rebalancing status and check for state changes
-	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2)
+	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables,
+		BitsDexLiteDexVariablesRebalancingStatus), X2)
 	if rebalancingStatus.Cmp(big.NewInt(0)) > 0 {
 		blockTimestamp := s.BlockTimestamp
 		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, rebalancingStatus,
 			currentPrice, centerPrice, blockTimestamp)
 
 		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
-		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
+		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables,
+			BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
 		if newRebalancingStatus.Cmp(big.NewInt(1)) > 0 || centerPriceShiftActive.Cmp(big.NewInt(1)) == 0 {
 			// Update last interaction timestamp
 			clearMask := new(big.Int).Lsh(X33, BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
 			newPoolState.CenterPriceShift = new(big.Int).AndNot(newPoolState.CenterPriceShift, clearMask)
-			newTimestamp := new(big.Int).Lsh(big.NewInt(int64(blockTimestamp)), BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
+			newTimestamp := new(big.Int).Lsh(big.NewInt(int64(blockTimestamp)),
+				BitsDexLiteCenterPriceShiftLastInteractionTimestamp)
 			newPoolState.CenterPriceShift = new(big.Int).Or(newPoolState.CenterPriceShift, newTimestamp)
 		}
 	}
 
 	// Update dex variables with new supplies
-	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newToken0Supply, newToken1Supply)
+	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newToken0Supply,
+		newToken1Supply)
 
 	return amountIn, newPoolState, fee, nil
 }
@@ -572,7 +591,8 @@ func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *bi
 
 	// Extract old values - 7 bits each
 	oldUpperThreshold := new(big.Int).And(thresholdShift, X7) // first 7 bits
-	oldLowerThreshold := new(big.Int).And(new(big.Int).Rsh(thresholdShift, BitsDexLiteThresholdShiftOldLowerThresholdPercent), X7)
+	oldLowerThreshold := new(big.Int).And(new(big.Int).Rsh(thresholdShift,
+		BitsDexLiteThresholdShiftOldLowerThresholdPercent), X7)
 
 	// Calculate shifted values
 	newUpperThreshold := s.calcShiftingDone(upperThreshold, oldUpperThreshold, timePassed, shiftDuration)
@@ -589,7 +609,8 @@ func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *P
 	lowerRangePercent := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14)
 
 	// Check if range shift is active and calculate if needed
-	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1)
+	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive),
+		X1)
 	if rangeShiftActive.Cmp(big.NewInt(1)) == 0 {
 		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
 			blockTimestamp)
@@ -607,11 +628,14 @@ func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *P
 	lowerRangePrice = lowerRangePrice.Div(lowerRangePrice, FourDecimals)
 
 	// Extract threshold percents
-	upperThresholdPercent := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7)
-	lowerThresholdPercent := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7)
+	upperThresholdPercent := new(big.Int).And(new(big.Int).Rsh(dexVariables,
+		BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7)
+	lowerThresholdPercent := new(big.Int).And(new(big.Int).Rsh(dexVariables,
+		BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7)
 
 	// Check if threshold shift is active and calculate if needed
-	thresholdShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1)
+	thresholdShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables,
+		BitsDexLiteDexVariablesThresholdPercentShiftActive), X1)
 	if thresholdShiftActive.Cmp(big.NewInt(1)) == 0 {
 		upperThresholdPercent, lowerThresholdPercent = s.calcThresholdShifting(upperThresholdPercent,
 			lowerThresholdPercent, poolState, blockTimestamp)
@@ -669,27 +693,43 @@ func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *P
 // unpackDexVariables unpacks the packed dex variables exactly like in the contract
 func (s *PoolSimulator) unpackDexVariables(dexVariables *big.Int) *UnpackedDexVariables {
 	return &UnpackedDexVariables{
-		Fee:                         new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
-		RevenueCut:                  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut), X7),
-		RebalancingStatus:           new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2),
-		CenterPriceShiftActive:      new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		CenterPrice:                 new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPrice), X40),
-		CenterPriceContractAddress:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
-		RangePercentShiftActive:     new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperPercent), X14),
-		LowerPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14),
-		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
-		LowerShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
-		Token0Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0Decimals), X5),
-		Token1Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1Decimals), X5),
-		Token0TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
-		Token1TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
+		Fee: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
+		RevenueCut: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut),
+			X7),
+		RebalancingStatus: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesRebalancingStatus), X2),
+		CenterPriceShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		CenterPrice: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPrice), X40),
+		CenterPriceContractAddress: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
+		RangePercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesUpperPercent), X14),
+		LowerPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesLowerPercent), X14),
+		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
+		LowerShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
+		Token0Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken0Decimals), X5),
+		Token1Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken1Decimals), X5),
+		Token0TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
+		Token1TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
 	}
 }
 
 // Helper function to adjust amounts to internal decimals (TOKENS_DECIMALS_PRECISION = 9)
-func (s *PoolSimulator) adjustToInternalDecimals(amount *big.Int, isToken0 bool, dexVars *UnpackedDexVariables) *big.Int {
+func (s *PoolSimulator) adjustToInternalDecimals(amount *big.Int, isToken0 bool,
+	dexVars *UnpackedDexVariables) *big.Int {
 	var decimals uint64
 	if isToken0 {
 		decimals = dexVars.Token0Decimals.Uint64()
@@ -705,7 +745,8 @@ func (s *PoolSimulator) adjustToInternalDecimals(amount *big.Int, isToken0 bool,
 }
 
 // Helper function to adjust amounts from internal decimals back to token decimals
-func (s *PoolSimulator) adjustFromInternalDecimals(amount *big.Int, isToken0 bool, dexVars *UnpackedDexVariables) *big.Int {
+func (s *PoolSimulator) adjustFromInternalDecimals(amount *big.Int, isToken0 bool,
+	dexVars *UnpackedDexVariables) *big.Int {
 	var decimals uint64
 	if isToken0 {
 		decimals = dexVars.Token0Decimals.Uint64()
@@ -728,30 +769,37 @@ func (s *PoolSimulator) expandCenterPrice(centerPrice *big.Int) *big.Int {
 }
 
 // getPricesAndReservesWithState implements complete _getPricesAndReserves with all shifting logic
-func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariables, poolState *PoolState) (*big.Int, *big.Int, *big.Int, error) {
+func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariables, poolState *PoolState) (*big.Int,
+	*big.Int, *big.Int, error) {
 	// Use the actual block timestamp from when the pool state was fetched
 	blockTimestamp := s.BlockTimestamp
 
 	// Check for external center price functionality that we don't support
-	centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
-	centerPriceContractAddress := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesCenterPriceContractAddress), X19)
+	centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables,
+		BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
+	centerPriceContractAddress := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables,
+		BitsDexLiteDexVariablesCenterPriceContractAddress), X19)
 
 	if centerPriceShiftActive.Cmp(big.NewInt(1)) == 0 || centerPriceContractAddress.Sign() > 0 {
 		return nil, nil, nil, ErrExternalCenterPriceNotSupported
 	}
 
 	// Extract center price with exponential encoding (static price only)
-	centerPriceRaw := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesCenterPrice), X40)
+	centerPriceRaw := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesCenterPrice),
+		X40)
 	exponent := new(big.Int).And(centerPriceRaw, DefaultExponentMask)
 	coefficient := new(big.Int).Rsh(centerPriceRaw, uint(DefaultExponentSize))
 	centerPrice := new(big.Int).Lsh(coefficient, uint(exponent.Uint64()))
 
 	// Extract range percents
-	upperRangePercent := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesUpperPercent), X14)
-	lowerRangePercent := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesLowerPercent), X14)
+	upperRangePercent := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesUpperPercent),
+		X14)
+	lowerRangePercent := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesLowerPercent),
+		X14)
 
 	// Check if range shift is active
-	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1)
+	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables,
+		BitsDexLiteDexVariablesRangePercentShiftActive), X1)
 	if rangeShiftActive.Cmp(big.NewInt(1)) == 0 {
 		// An active range shift is going on
 		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
@@ -771,12 +819,15 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	lowerRangePrice = lowerRangePrice.Div(lowerRangePrice, FourDecimals)
 
 	// Handle rebalancing if status > 1
-	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2)
+	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables,
+		BitsDexLiteDexVariablesRebalancingStatus), X2)
 	if rebalancingStatus.Cmp(big.NewInt(1)) > 0 {
 		centerPriceShift := poolState.CenterPriceShift
 		if centerPriceShift.Sign() > 0 {
-			shiftingTime := new(big.Int).And(new(big.Int).Rsh(centerPriceShift, BitsDexLiteCenterPriceShiftShiftingTime), X24)
-			lastInteractionTimestamp := new(big.Int).And(centerPriceShift, X33) // BitsDexLiteCenterPriceShiftLastInteractionTimestamp = 0
+			shiftingTime := new(big.Int).And(new(big.Int).Rsh(centerPriceShift,
+				BitsDexLiteCenterPriceShiftShiftingTime), X24)
+			lastInteractionTimestamp := new(big.Int).And(centerPriceShift,
+				X33) // BitsDexLiteCenterPriceShiftLastInteractionTimestamp = 0
 			timeElapsed := new(big.Int).Sub(big.NewInt(int64(blockTimestamp)), lastInteractionTimestamp)
 
 			if rebalancingStatus.Cmp(big.NewInt(2)) == 0 {
@@ -806,12 +857,14 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 			}
 
 			// Check min/max bounds if rebalancing actually happened
-			maxCenterPrice := new(big.Int).And(new(big.Int).Rsh(centerPriceShift, BitsDexLiteCenterPriceShiftMaxCenterPrice), X28)
+			maxCenterPrice := new(big.Int).And(new(big.Int).Rsh(centerPriceShift,
+				BitsDexLiteCenterPriceShiftMaxCenterPrice), X28)
 			maxCenterPriceExpanded := s.expandCenterPrice(maxCenterPrice)
 			if centerPrice.Cmp(maxCenterPriceExpanded) > 0 {
 				centerPrice = maxCenterPriceExpanded
 			} else {
-				minCenterPrice := new(big.Int).And(new(big.Int).Rsh(centerPriceShift, BitsDexLiteCenterPriceShiftMinCenterPrice), X28)
+				minCenterPrice := new(big.Int).And(new(big.Int).Rsh(centerPriceShift,
+					BitsDexLiteCenterPriceShiftMinCenterPrice), X28)
 				minCenterPriceExpanded := s.expandCenterPrice(minCenterPrice)
 				if centerPrice.Cmp(minCenterPriceExpanded) < 0 {
 					centerPrice = minCenterPriceExpanded
@@ -857,8 +910,10 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 			geometricMeanPrice, upperRangePrice, token0Supply, token1Supply)
 	} else {
 		// Inverse calculation for large prices
-		inverseGeometricMean := new(big.Int).Div(new(big.Int).Mul(PricePrecision, PricePrecision), geometricMeanPrice) // 1e54 / geometricMeanPrice
-		inverseLowerRange := new(big.Int).Div(new(big.Int).Mul(PricePrecision, PricePrecision), lowerRangePrice)       // 1e54 / lowerRangePrice
+		inverseGeometricMean := new(big.Int).Div(new(big.Int).Mul(PricePrecision, PricePrecision),
+			geometricMeanPrice) // 1e54 / geometricMeanPrice
+		inverseLowerRange := new(big.Int).Div(new(big.Int).Mul(PricePrecision, PricePrecision),
+			lowerRangePrice) // 1e54 / lowerRangePrice
 
 		token1ImaginaryReserves, token0ImaginaryReserves = s.calculateReservesOutsideRange(
 			inverseGeometricMean, inverseLowerRange, token1Supply, token0Supply)
@@ -930,8 +985,10 @@ func (s *PoolSimulator) updateSuppliesInDexVariables(dexVariables, token0Supply,
 	newDexVars := new(big.Int).And(dexVariables, clearMask)
 
 	// Set new supplies
-	newSupply0 := new(big.Int).Lsh(new(big.Int).And(token0Supply, X60), BitsDexLiteDexVariablesToken0TotalSupplyAdjusted)
-	newSupply1 := new(big.Int).Lsh(new(big.Int).And(token1Supply, X60), BitsDexLiteDexVariablesToken1TotalSupplyAdjusted)
+	newSupply0 := new(big.Int).Lsh(new(big.Int).And(token0Supply, X60),
+		BitsDexLiteDexVariablesToken0TotalSupplyAdjusted)
+	newSupply1 := new(big.Int).Lsh(new(big.Int).And(token1Supply, X60),
+		BitsDexLiteDexVariablesToken1TotalSupplyAdjusted)
 
 	newDexVars.Or(newDexVars, newSupply0)
 	newDexVars.Or(newDexVars, newSupply1)

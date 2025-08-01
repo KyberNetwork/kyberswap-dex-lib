@@ -7,8 +7,9 @@ import (
 )
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
-	DexKey      DexKey `json:"dexKey"`
+	BlockNumber     uint64 `json:"blockNumber"`
+	DexKey          DexKey `json:"dexKey"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 // DexKey represents the unique identifier for a FluidDexLite pool
