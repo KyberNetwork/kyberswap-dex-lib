@@ -394,6 +394,7 @@ const (
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
+	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeVVS                        = "vvs"
