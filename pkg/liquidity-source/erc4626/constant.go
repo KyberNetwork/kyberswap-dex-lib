@@ -15,6 +15,8 @@ const (
 	erc4626MethodAsset          = "asset"
 	erc4626MethodMaxDeposit     = "maxDeposit"
 	erc4626MethodMaxRedeem      = "maxRedeem"
+	erc4626MethodTotalAssets    = "totalAssets"
+	erc4626MethodTotalSupply    = "totalSupply"
 	erc4626MethodPreviewDeposit = "previewDeposit"
 	erc4626MethodPreviewRedeem  = "previewRedeem"
 )
