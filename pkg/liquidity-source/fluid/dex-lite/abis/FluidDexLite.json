@@ -1,0 +1,307 @@
+[
+  {
+    "inputs": [
+      { "internalType": "address", "name": "auth_", "type": "address" },
+      { "internalType": "address", "name": "liquidity_", "type": "address" },
+      {
+        "internalType": "address",
+        "name": "deployerContract_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "dexId", "type": "bytes32" },
+      {
+        "internalType": "uint256",
+        "name": "token0AdjustedSupply",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "token1AdjustedSupply",
+        "type": "uint256"
+      }
+    ],
+    "name": "AdjustedSupplyOverflow",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountUnspecified",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "amountLimit", "type": "uint256" }
+    ],
+    "name": "AmountLimitExceeded",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountUnspecified",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "amountLimit", "type": "uint256" }
+    ],
+    "name": "AmountLimitNotMet",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "dexId", "type": "bytes32" }
+    ],
+    "name": "DexNotInitialized",
+    "type": "error"
+  },
+  { "inputs": [], "name": "EmptyDexKeysArray", "type": "error" },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountUnspecified",
+        "type": "uint256"
+      }
+    ],
+    "name": "EstimateSwap",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "adjustedAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "imaginaryReserve",
+        "type": "uint256"
+      }
+    ],
+    "name": "ExcessiveSwapAmount",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "errorId_", "type": "uint256" }
+    ],
+    "name": "FluidSafeTransferError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "receivedAmount",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "requiredAmount", "type": "uint256" }
+    ],
+    "name": "InsufficientERC20Received",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "receivedAmount",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "requiredAmount", "type": "uint256" }
+    ],
+    "name": "InsufficientNativeTokenReceived",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "dexKeysLength", "type": "uint256" },
+      {
+        "internalType": "uint256",
+        "name": "amountLimitsLength",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidAmountLimitsLength",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidMsgValue", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "pathLength", "type": "uint256" },
+      { "internalType": "uint256", "name": "dexKeysLength", "type": "uint256" }
+    ],
+    "name": "InvalidPathLength",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidPathTokenOrder", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "power", "type": "uint256" }
+    ],
+    "name": "InvalidPower",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "adjustedAmount", "type": "uint256" }
+    ],
+    "name": "InvalidSwapAmounts",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "token0RealReserve",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "token1RealReserve",
+        "type": "uint256"
+      }
+    ],
+    "name": "TokenReservesRatioTooHigh",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "adjustedAmount",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "realReserve", "type": "uint256" }
+    ],
+    "name": "TokenReservesTooLow",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "caller", "type": "address" }
+    ],
+    "name": "UnauthorizedCaller",
+    "type": "error"
+  },
+  { "inputs": [], "name": "ZeroAddress", "type": "error" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "swapData",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "dexVariables",
+        "type": "uint256"
+      }
+    ],
+    "name": "LogSwap",
+    "type": "event"
+  },
+  { "stateMutability": "payable", "type": "fallback" },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "slot_", "type": "bytes32" }
+    ],
+    "name": "readFromStorage",
+    "outputs": [
+      { "internalType": "uint256", "name": "result_", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "path_", "type": "address[]" },
+      {
+        "components": [
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "bytes32", "name": "salt", "type": "bytes32" }
+        ],
+        "internalType": "struct DexKey[]",
+        "name": "dexKeys_",
+        "type": "tuple[]"
+      },
+      {
+        "internalType": "int256",
+        "name": "amountSpecified_",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "amountLimits_",
+        "type": "uint256[]"
+      },
+      {
+        "components": [
+          { "internalType": "address", "name": "to", "type": "address" },
+          { "internalType": "bool", "name": "isCallback", "type": "bool" },
+          { "internalType": "bytes", "name": "callbackData", "type": "bytes" },
+          { "internalType": "bytes", "name": "extraData", "type": "bytes" }
+        ],
+        "internalType": "struct TransferParams",
+        "name": "transferParams_",
+        "type": "tuple"
+      }
+    ],
+    "name": "swapHop",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountUnspecified_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "bytes32", "name": "salt", "type": "bytes32" }
+        ],
+        "internalType": "struct DexKey",
+        "name": "dexKey_",
+        "type": "tuple"
+      },
+      { "internalType": "bool", "name": "swap0To1_", "type": "bool" },
+      {
+        "internalType": "int256",
+        "name": "amountSpecified_",
+        "type": "int256"
+      },
+      { "internalType": "uint256", "name": "amountLimit_", "type": "uint256" },
+      { "internalType": "address", "name": "to_", "type": "address" },
+      { "internalType": "bool", "name": "isCallback_", "type": "bool" },
+      { "internalType": "bytes", "name": "callbackData_", "type": "bytes" },
+      { "internalType": "bytes", "name": "extraData_", "type": "bytes" }
+    ],
+    "name": "swapSingle",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amountUnspecified_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  { "stateMutability": "payable", "type": "receive" }
+]

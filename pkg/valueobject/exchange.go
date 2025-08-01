@@ -137,6 +137,7 @@ const (
 	ExchangeEzkalibur                  = "ezkalibur"
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFenix                      = "fenix"
+	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
 	ExchangeFraxSwap                   = "fraxswap"
@@ -570,6 +571,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEulerSwap:                  {},
 	ExchangeEzkalibur:                  {},
 	ExchangeFenix:                      {},
+	ExchangeFluidDexLite:               {},
 	ExchangeFluidDexT1:                 {},
 	ExchangeFluidVaultT1:               {},
 	ExchangeFraxSwap:                   {},
