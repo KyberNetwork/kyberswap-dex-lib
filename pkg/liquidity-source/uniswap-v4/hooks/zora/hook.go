@@ -1,4 +1,4 @@
-package contentcoin
+package zora
 
 import (
 	"math/big"
