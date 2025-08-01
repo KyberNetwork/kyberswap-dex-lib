@@ -2,6 +2,7 @@ package dexLite
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
@@ -33,21 +35,10 @@ type Metadata struct {
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
-	// Initialize ethClient - we'll use a default RPC since ethrpcClient doesn't expose URL
-	// In production, this should be configured properly
-	ethClient, err := ethclient.Dial("https://ethereum.kyberengineering.io")
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Failed to create ethclient for storage reads")
-		// Fallback to nil, we'll handle this in readFromStorage
-	}
-
 	return &PoolsListUpdater{
 		config:       *config,
 		ethrpcClient: ethrpcClient,
-		ethClient:    ethClient,
+		ethClient:    ethrpcClient.GetETHClient(),
 	}
 }
 
@@ -97,16 +88,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	pools := make([]entity.Pool, 0)
 
-	// **OPTIMIZATION**: Batch read token decimals for all unique tokens
-	allTokenDecimals, err := u.batchReadTokenDecimals(ctx, allPools)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	for _, curPool := range allPools {
-		token0Decimals := allTokenDecimals[curPool.DexKey.Token0]
-		token1Decimals := allTokenDecimals[curPool.DexKey.Token1]
-
 		staticExtraBytes, err := json.Marshal(&StaticExtra{
 			DexLiteAddress: u.config.DexLiteAddress,
 			HasNative: strings.EqualFold(curPool.DexKey.Token0.Hex(), valueobject.NativeAddress) ||
@@ -134,20 +116,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		reserves, fee := u.calculatePoolMetrics(curPool)
 
 		pool := entity.Pool{
-			Address:  u.config.DexLiteAddress, // Singleton contract address
+			Address:  strings.ToLower(u.config.DexLiteAddress) + hex.EncodeToString(curPool.DexId[:]),
 			Exchange: "fluid-dex-lite",
 			Type:     DexType,
 			Reserves: reserves, // Real reserves for swap calculations
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   valueobject.WrapNativeLower(curPool.DexKey.Token0.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token0[:]), u.config.ChainID),
 					Swappable: true,
-					Decimals:  token0Decimals,
 				},
 				{
-					Address:   valueobject.WrapNativeLower(curPool.DexKey.Token1.Hex(), u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token1[:]), u.config.ChainID),
 					Swappable: true,
-					Decimals:  token1Decimals,
 				},
 			},
 			SwapFee:     fee, // Real fee for routing decisions
@@ -172,8 +152,10 @@ func (u *PoolsListUpdater) calculatePoolMetrics(curPool PoolWithState) (entity.P
 	unpackedVars := u.unpackDexVariables(curPool.State.DexVariables)
 
 	// Convert internal supplies to token decimals for display
-	token0Supply := u.adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted, 6) // Assume 6 decimals like USDC
-	token1Supply := u.adjustFromInternalDecimals(unpackedVars.Token1TotalSupplyAdjusted, 6) // Assume 6 decimals like USDT
+	token0Supply := u.adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted,
+		6) // Assume 6 decimals like USDC
+	token1Supply := u.adjustFromInternalDecimals(unpackedVars.Token1TotalSupplyAdjusted,
+		6) // Assume 6 decimals like USDT
 
 	reserves := entity.PoolReserves{
 		token0Supply.String(),
@@ -186,22 +168,37 @@ func (u *PoolsListUpdater) calculatePoolMetrics(curPool PoolWithState) (entity.P
 // unpackDexVariables extracts the packed variables from dexVariables
 func (u *PoolsListUpdater) unpackDexVariables(dexVariables *big.Int) UnpackedDexVariables {
 	return UnpackedDexVariables{
-		Fee:                         new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
-		RevenueCut:                  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut), X7),
-		RebalancingStatus:           new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2),
-		CenterPriceShiftActive:      new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		CenterPrice:                 new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPrice), X40),
-		CenterPriceContractAddress:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
-		RangePercentShiftActive:     new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperPercent), X14),
-		LowerPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14),
-		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
-		LowerShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
-		Token0Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0Decimals), X5),
-		Token1Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1Decimals), X5),
-		Token0TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
-		Token1TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
+		Fee: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
+		RevenueCut: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut),
+			X7),
+		RebalancingStatus: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesRebalancingStatus), X2),
+		CenterPriceShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		CenterPrice: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPrice), X40),
+		CenterPriceContractAddress: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
+		RangePercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesUpperPercent), X14),
+		LowerPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesLowerPercent), X14),
+		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
+		UpperShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
+		LowerShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
+		Token0Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken0Decimals), X5),
+		Token1Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken1Decimals), X5),
+		Token0TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
+		Token1TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
+			BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
 	}
 }
 
@@ -392,7 +389,8 @@ func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) 
 }
 
 // batchReadTokenDecimals reads decimals for all unique tokens in a single RPC call
-func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []PoolWithState) (map[common.Address]uint8, error) {
+func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []PoolWithState) (map[common.Address]uint8,
+	error) {
 	// Collect unique tokens (excluding native)
 	uniqueTokens := make(map[common.Address]bool)
 	for _, pool := range pools {
@@ -454,7 +452,8 @@ func (u *PoolsListUpdater) batchReadTokenDecimals(ctx context.Context, pools []P
 	return decimalsMap, nil
 }
 
-func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common.Address, token1 common.Address) (uint8, uint8, error) {
+func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common.Address, token1 common.Address) (uint8,
+	uint8, error) {
 	var decimals0, decimals1 uint8
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -537,7 +536,7 @@ func (u *PoolsListUpdater) calculatePoolStateSlot(dexId [8]byte, offset int) com
 	}
 
 	// Convert bytes8 dexId to bytes32 (right-padded with zeros)
-	var dexIdBytes32 [32]byte
+	var dexIdBytes32 common.Hash
 	copy(dexIdBytes32[:], dexId[:])
 
 	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot))

@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -17,7 +16,6 @@ type PoolSimulator struct {
 	StaticExtra
 
 	DexKey         DexKey    // Pool's key (token0, token1, salt)
-	DexId          [8]byte   // Unique identifier for this pool
 	PoolState      PoolState // The 4 storage variables
 	BlockTimestamp uint64    // Block timestamp when state was fetched
 
@@ -57,7 +55,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			SwapFee:     fee,
 		}},
 		DexKey:         extra.DexKey,
-		DexId:          extra.DexId,
 		PoolState:      extra.PoolState,
 		BlockTimestamp: extra.BlockTimestamp,
 		Token0Decimals: entityPool.Tokens[0].Decimals,
@@ -128,13 +125,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber:     s.Pool.Info.BlockNumber,
-		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
+		BlockNumber: s.Pool.Info.BlockNumber,
+		DexKey:      s.DexKey,
 	}
-}
-
-func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
-	return lo.Ternary(valueobject.IsNative(tokenIn), "", s.GetAddress())
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -285,7 +278,8 @@ func (s *PoolSimulator) calculateSwapInWithState(swap0To1 bool, amountIn *big.In
 	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2)
 	if rebalancingStatus.Cmp(big.NewInt(0)) > 0 {
 		blockTimestamp := s.BlockTimestamp
-		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, s.DexId, rebalancingStatus, currentPrice, centerPrice, blockTimestamp)
+		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, rebalancingStatus,
+			currentPrice, centerPrice, blockTimestamp)
 
 		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
 		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
@@ -473,7 +467,8 @@ func (s *PoolSimulator) calculateSwapOutWithState(swap0To1 bool, amountOut *big.
 	rebalancingStatus := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2)
 	if rebalancingStatus.Cmp(big.NewInt(0)) > 0 {
 		blockTimestamp := s.BlockTimestamp
-		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, s.DexId, rebalancingStatus, currentPrice, centerPrice, blockTimestamp)
+		newRebalancingStatus := s.getRebalancingStatus(newPoolState.DexVariables, &newPoolState, rebalancingStatus,
+			currentPrice, centerPrice, blockTimestamp)
 
 		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
 		centerPriceShiftActive := new(big.Int).And(new(big.Int).Rsh(newPoolState.DexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1)
@@ -515,7 +510,8 @@ func (s *PoolSimulator) calcShiftingDone(current, old, timePassed, shiftDuration
 }
 
 // calcRangeShifting implements _calcRangeShifting from the contract
-func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *big.Int, poolState *PoolState, dexId [8]byte, blockTimestamp uint64) (*big.Int, *big.Int) {
+func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *big.Int, poolState *PoolState,
+	blockTimestamp uint64) (*big.Int, *big.Int) {
 	rangeShift := poolState.RangeShift
 
 	// Extract shift data
@@ -550,7 +546,8 @@ func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *big.Int, poolS
 }
 
 // calcThresholdShifting implements _calcThresholdShifting from the contract
-func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *big.Int, poolState *PoolState, dexId [8]byte, blockTimestamp uint64) (*big.Int, *big.Int) {
+func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *big.Int, poolState *PoolState,
+	blockTimestamp uint64) (*big.Int, *big.Int) {
 	thresholdShift := poolState.ThresholdShift
 
 	// Extract shift data
@@ -585,7 +582,8 @@ func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *bi
 }
 
 // getRebalancingStatus implements _getRebalancingStatus from the contract
-func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *PoolState, dexId [8]byte, rebalancingStatus *big.Int, price, centerPrice *big.Int, blockTimestamp uint64) *big.Int {
+func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *PoolState,
+	rebalancingStatus, price, centerPrice *big.Int, blockTimestamp uint64) *big.Int {
 	// Extract range percents from dexVariables
 	upperRangePercent := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperPercent), X14)
 	lowerRangePercent := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14)
@@ -593,7 +591,8 @@ func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *P
 	// Check if range shift is active and calculate if needed
 	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1)
 	if rangeShiftActive.Cmp(big.NewInt(1)) == 0 {
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState, dexId, blockTimestamp)
+		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
+			blockTimestamp)
 	}
 
 	// Calculate range prices
@@ -614,7 +613,8 @@ func (s *PoolSimulator) getRebalancingStatus(dexVariables *big.Int, poolState *P
 	// Check if threshold shift is active and calculate if needed
 	thresholdShiftActive := new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1)
 	if thresholdShiftActive.Cmp(big.NewInt(1)) == 0 {
-		upperThresholdPercent, lowerThresholdPercent = s.calcThresholdShifting(upperThresholdPercent, lowerThresholdPercent, poolState, dexId, blockTimestamp)
+		upperThresholdPercent, lowerThresholdPercent = s.calcThresholdShifting(upperThresholdPercent,
+			lowerThresholdPercent, poolState, blockTimestamp)
 	}
 
 	// Calculate threshold prices
@@ -754,7 +754,8 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	rangeShiftActive := new(big.Int).And(new(big.Int).Rsh(poolState.DexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1)
 	if rangeShiftActive.Cmp(big.NewInt(1)) == 0 {
 		// An active range shift is going on
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState, s.DexId, blockTimestamp)
+		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
+			blockTimestamp)
 	}
 
 	// Calculate range prices

@@ -7,15 +7,15 @@ import (
 )
 
 type PoolMeta struct {
-	BlockNumber     uint64 `json:"blockNumber"`
-	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	BlockNumber uint64 `json:"blockNumber"`
+	DexKey      DexKey `json:"dexKey"`
 }
 
 // DexKey represents the unique identifier for a FluidDexLite pool
 type DexKey struct {
 	Token0 common.Address `json:"token0"`
 	Token1 common.Address `json:"token1"`
-	Salt   [32]byte       `json:"salt"`
+	Salt   common.Hash    `json:"salt"`
 }
 
 // PoolState represents the 4 storage variables for a FluidDexLite pool

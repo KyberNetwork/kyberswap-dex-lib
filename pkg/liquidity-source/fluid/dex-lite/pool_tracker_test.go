@@ -51,7 +51,7 @@ func TestPoolTracker(t *testing.T) {
 		mockDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
 			Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-			Salt:   [32]byte{},
+			Salt:   common.Hash{},
 		}
 		mockDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
 		extra := PoolExtra{
@@ -113,7 +113,7 @@ func TestCalculateDexId(t *testing.T) {
 	dexKey := DexKey{
 		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
 		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-		Salt:   [32]byte{},
+		Salt:   common.Hash{},
 	}
 
 	dexId := tracker.calculateDexId(dexKey)

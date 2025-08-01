@@ -596,6 +596,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 }
 
 var limitExpandTight, _ = new(big.Int).SetString("711907234052361388866", 10)
+
 func limitsTight() DexLimits {
 	return DexLimits{
 		WithdrawableToken0: TokenLimit{

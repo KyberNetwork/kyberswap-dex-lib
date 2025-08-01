@@ -9,9 +9,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -19,6 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolsListUpdater(t *testing.T) {
@@ -134,7 +135,7 @@ func TestCalculateDexIdFromUpdater(t *testing.T) {
 	dexKey := DexKey{
 		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
 		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-		Salt:   [32]byte{},
+		Salt:   common.Hash{},
 	}
 
 	dexId := updater.calculateDexId(dexKey)

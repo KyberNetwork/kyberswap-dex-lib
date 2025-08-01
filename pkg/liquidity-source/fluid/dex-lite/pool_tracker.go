@@ -30,21 +30,10 @@ type PoolTracker struct {
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	// Initialize ethClient - we'll use a default RPC since ethrpcClient doesn't expose URL
-	// In production, this should be configured properly
-	ethClient, err := ethclient.Dial("https://ethereum.kyberengineering.io")
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Failed to create ethclient for storage reads")
-		// Fallback to nil, we'll handle this in readFromStorage
-	}
-
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		ethClient:    ethClient,
+		ethClient:    ethrpcClient.GetETHClient(),
 	}
 }
 
@@ -255,7 +244,7 @@ func (t *PoolTracker) calculatePoolStateSlot(dexId [8]byte, offset int) common.H
 	}
 
 	// Convert bytes8 dexId to bytes32 (right-padded with zeros)
-	var dexIdBytes32 [32]byte
+	var dexIdBytes32 common.Hash
 	copy(dexIdBytes32[:], dexId[:])
 
 	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot))
