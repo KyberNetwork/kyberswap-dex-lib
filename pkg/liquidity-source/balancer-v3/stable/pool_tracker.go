@@ -15,6 +15,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
@@ -95,6 +96,7 @@ func (t *PoolTracker) getNewPoolState(
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(res.MaxSurgeFeePercentage)
 		extra.SurgeThresholdPercentage, _ = uint256.FromBig(res.SurgeThresholdPercentage)
+		res.IsPoolDisabled = res.IsPoolDisabled || extra.SurgePercentages.IsRisky()
 	}
 	extra.AmplificationParameter, _ = uint256.FromBig(res.AmplificationParameterRpc.Value)
 
@@ -108,10 +110,11 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
-	if !res.IsPoolDisabled && shared.IsHookSupported(staticExtra.HookType) {
-		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
-	} else { // set all reserves to 0 to disable pool temporarily
+	if res.IsPoolDisabled || !shared.IsHookSupported(staticExtra.HookType) {
+		// set all reserves to 0 to disable pool
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+	} else {
+		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
 	}
 
 	return p, nil
@@ -195,4 +198,11 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 	rpcRes.BlockNumber = res.BlockNumber.Uint64()
 
 	return &rpcRes, nil
+}
+
+func (s SurgePercentages) IsRisky() bool {
+	return s.MaxSurgeFeePercentage != nil && s.SurgeThresholdPercentage != nil &&
+		(s.MaxSurgeFeePercentage.Cmp(AcceptableMaxSurgeFeePercentage) > 0 ||
+			math.StableSurgeMedian.CalculateFeeSurgeRatio(s.MaxSurgeFeePercentage, s.SurgeThresholdPercentage).
+				Cmp(AcceptableMaxSurgeFeeByImbalance) > 0)
 }
