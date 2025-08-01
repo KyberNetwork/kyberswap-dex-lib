@@ -66,6 +66,13 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	if staticExtra.LpDeployed {
+		logger.WithFields(logger.Fields{
+			"address": p.Address,
+		}).Debug("pool already deployed, skip getting new state")
+		return p, ErrLpAlreadyDeployed
+	}
+
 	tokenId := staticExtra.TokenId
 	tokenManager := t.config.TokenManager
 
@@ -161,6 +168,13 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = calculateReserves(&extra)
+
+	if extra.TokenParams.LpDeployed {
+		staticExtra.LpDeployed = true
+		if staticExtraBytes, err := json.Marshal(staticExtra); err == nil {
+			p.StaticExtra = string(staticExtraBytes)
+		}
+	}
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
