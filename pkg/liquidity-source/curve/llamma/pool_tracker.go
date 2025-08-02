@@ -182,15 +182,9 @@ func (t *PoolTracker) getBands(
 		return nil, nil
 	}
 
-	startBand := activeBand - (bandLimit+1)/2
-	if startBand < minBand {
-		startBand = minBand
-	}
+	startBand := max(activeBand-(bandLimit+1)/2, minBand)
 
-	endBand := startBand + bandLimit - 1
-	if endBand > maxBand {
-		endBand = maxBand
-	}
+	endBand := min(startBand+bandLimit-1, maxBand)
 
 	bandCount := endBand - startBand + 1
 	var (
