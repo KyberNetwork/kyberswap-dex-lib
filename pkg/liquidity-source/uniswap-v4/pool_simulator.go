@@ -2,7 +2,9 @@ package uniswapv4
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake-infinity/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/few"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -23,8 +26,10 @@ var (
 
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
-	staticExtra StaticExtra
-	hook        Hook
+	staticExtra   StaticExtra
+	hook          Hook
+	chainID       valueobject.ChainID
+	tokenWrappers []ITokenWrapper
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -66,17 +71,114 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		chainID:       chainID,
+		tokenWrappers: []ITokenWrapper{few.NewTokenWrapper()},
 	}, nil
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	tokenIndex := p.GetTokenIndex(address)
+	var wrapTokens = make(map[string]struct{})
+
+	if tokenIndex == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, address)
+			if !canWrap {
+				continue
+			}
+
+			wrapTokenIndex := p.GetTokenIndex(metadata.GetWrapToken())
+			if wrapTokenIndex == -1 {
+				continue
+			}
+
+			wrapTokens[metadata.GetWrapToken()] = struct{}{}
+		}
+	}
+
+	result := map[string]struct{}{}
+	for _, token := range p.Info.Tokens {
+		_, isWrapToken := wrapTokens[token]
+		if (tokenIndex >= 0 && token != address) || (tokenIndex == -1 && !isWrapToken) {
+			result[token] = struct{}{}
+
+			for _, wrapper := range p.tokenWrappers {
+				metadata, canUnwrap := wrapper.IsWrapped(p.chainID, token)
+				if canUnwrap && metadata.GetUnwrapToken() != address {
+					result[metadata.GetUnwrapToken()] = struct{}{}
+				}
+			}
+		}
+	}
+
+	return slices.Collect(maps.Keys(result))
 }
 
 func (p *PoolSimulator) GetExchange() string {
 	return p.hook.GetExchange()
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) GetTokens() []string {
+	result := make(map[string]struct{})
+
+	for _, token := range p.Info.Tokens {
+		result[token] = struct{}{}
+		for _, wrapper := range p.tokenWrappers {
+			if metadata, isWrapped := wrapper.IsWrapped(p.chainID, token); isWrapped {
+				result[metadata.GetUnwrapToken()] = struct{}{}
+			}
+		}
+	}
+
+	return slices.Collect(maps.Keys(result))
+}
+
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *pool.CalcAmountOutResult, err error) {
+	originalTokenIn := param.TokenAmountIn.Token
+	originalTokenOut := param.TokenOut
+	wrapAdditionalGas := int64(0)
+
+	defer func() {
+		if result.TokenAmountOut != nil {
+			result.TokenAmountOut.Token = originalTokenOut
+		}
+		if result.RemainingTokenAmountIn != nil {
+			result.RemainingTokenAmountIn.Token = originalTokenIn
+		}
+
+		result.Gas += wrapAdditionalGas
+	}()
+
+	// Wrap/unwrap tokens if needed.
+	if p.GetTokenIndex(param.TokenAmountIn.Token) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, param.TokenAmountIn.Token)
+			if canWrap {
+				param.TokenAmountIn.Token = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	}
+	if p.GetTokenIndex(param.TokenOut) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenOut)
+			if canUnwrap {
+				param.TokenOut = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	}
+
 	poolSim := p.PoolSimulator
 	if p.hook == nil {
-		return poolSim.CalcAmountOut(param)
+		result, err = poolSim.CalcAmountOut(param)
+		return
 	}
 
 	tokenIn := param.TokenAmountIn.Token
@@ -111,7 +213,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		poolSim = &cloned
 	}
 
-	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  tokenIn,
 			Amount: amountIn,
@@ -151,25 +253,82 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // GetMetaInfo
 // adapt from https://github.com/KyberNetwork/kyberswap-dex-lib-private/blob/c1877a8c19759faeb7d82b6902ed335f0657ce3e/pkg/liquidity-source/uniswap-v4/pool_simulator.go#L201
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
-	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenIn)] {
-		tokenInAddress = common.HexToAddress(tokenIn)
+	tokenInAfterWrap := tokenIn
+	tokenOutBeforeUnwrap := tokenOut
+
+	var wrapMetadata TokenWrapMetadata
+
+	tokenInIndex := p.GetTokenIndex(tokenIn)
+	if tokenInIndex == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, tokenIn)
+			if canWrap {
+				wrapMetadata.ShouldWrap = true
+				tokenInAfterWrap = metadata.GetWrapToken()
+				tokenIn := tokenIn
+				if metadata.IsUnwrapNative() {
+					tokenIn = NativeTokenAddress.Hex()
+				}
+
+				wrapMetadata.WrapInfo = WrapInfo{
+					TokenIn:     tokenIn,
+					TokenOut:    metadata.GetWrapToken(),
+					HookAddress: metadata.GetHook(),
+					PoolAddress: metadata.GetPool(),
+					TickSpacing: metadata.GetTickSpacing(),
+					Fee:         metadata.GetFee(),
+					HookData:    metadata.GetHookData(),
+				}
+				break
+			}
+		}
 	}
-	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOut)] {
-		tokenOutAddress = common.HexToAddress(tokenOut)
+
+	tokenOutIndex := p.GetTokenIndex(tokenOut)
+	if tokenOutIndex == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, tokenOut)
+			if canUnwrap {
+				wrapMetadata.ShouldUnwrap = true
+				tokenOutBeforeUnwrap = metadata.GetWrapToken()
+				tokenOut := tokenOut
+				if metadata.IsUnwrapNative() {
+					tokenOut = NativeTokenAddress.Hex()
+				}
+
+				wrapMetadata.UnwrapInfo = WrapInfo{
+					TokenIn:     metadata.GetWrapToken(),
+					TokenOut:    tokenOut,
+					HookAddress: metadata.GetHook(),
+					PoolAddress: metadata.GetPool(),
+					TickSpacing: metadata.GetTickSpacing(),
+					Fee:         metadata.GetFee(),
+					HookData:    metadata.GetHookData(),
+				}
+			}
+		}
+	}
+
+	tokenInAddress, tokenOutAddress := NativeTokenAddress, NativeTokenAddress
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenInAfterWrap)] {
+		tokenInAddress = common.HexToAddress(tokenInAfterWrap)
+	}
+	if !p.staticExtra.IsNative[p.GetTokenIndex(tokenOutBeforeUnwrap)] {
+		tokenOutAddress = common.HexToAddress(tokenOutBeforeUnwrap)
 	}
 	var priceLimit v3Utils.Uint160
-	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
+	_ = p.GetSqrtPriceLimit(tokenInAfterWrap == p.Info.Tokens[0], &priceLimit)
 
 	return PoolMetaInfo{
-		Router:      p.staticExtra.UniversalRouterAddress,
-		Permit2Addr: p.staticExtra.Permit2Address,
-		TokenIn:     tokenInAddress,
-		TokenOut:    tokenOutAddress,
-		Fee:         p.staticExtra.Fee,
-		TickSpacing: p.staticExtra.TickSpacing,
-		HookAddress: p.staticExtra.HooksAddress,
-		HookData:    []byte{},
-		PriceLimit:  &priceLimit,
+		Router:            p.staticExtra.UniversalRouterAddress,
+		Permit2Addr:       p.staticExtra.Permit2Address,
+		TokenIn:           tokenInAddress,
+		TokenOut:          tokenOutAddress,
+		Fee:               p.staticExtra.Fee,
+		TickSpacing:       p.staticExtra.TickSpacing,
+		HookAddress:       p.staticExtra.HooksAddress,
+		HookData:          []byte{},
+		PriceLimit:        &priceLimit,
+		TokenWrapMetadata: wrapMetadata,
 	}
 }
