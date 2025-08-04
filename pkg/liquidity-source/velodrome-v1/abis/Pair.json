@@ -42,8 +42,8 @@
     "name": "blockTimestampLast",
     "outputs": [
       {
-        "internalType": "uint256",
-        "type": "uint256"
+        "internalType": "uint32",
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",
@@ -192,9 +192,9 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint32",
         "name": "_blockTimestampLast",
-        "type": "uint256"
+        "type": "uint32"
       }
     ],
     "stateMutability": "view",

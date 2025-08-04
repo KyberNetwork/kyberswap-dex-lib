@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -35,7 +34,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for i, reserveStr := range entityPool.Reserves {
 		reserve, err := uint256.FromDecimal(reserveStr)
 		if err != nil {
-			return nil, errors.WithMessage(err, "invalid reserve")
+			return nil, ErrInvalidReserve
 		}
 		reserves[i] = reserve
 	}

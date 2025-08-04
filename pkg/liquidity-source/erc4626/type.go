@@ -37,6 +37,8 @@ type (
 	PoolState struct {
 		MaxDeposit  *big.Int
 		MaxRedeem   *big.Int
+		TotalAssets *big.Int
+		TotalSupply *big.Int
 		DepositRate *big.Int
 		RedeemRate  *big.Int
 
