@@ -241,6 +241,57 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	return result, err
 }
 
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	poolSim := p.PoolSimulator
+	if p.hook == nil {
+		return poolSim.CalcAmountIn(param)
+	}
+	beforeSwapHookParams := &BeforeSwapHookParams{
+		ExactIn:         false,
+		ZeroForOne:      p.Pool.GetTokenIndex(param.TokenAmountOut.Token) == 1,
+		AmountSpecified: param.TokenAmountOut.Amount,
+	}
+
+	swapHookResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
+	if err != nil {
+		return nil, err
+	}
+
+	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
+		param.TokenAmountOut.Amount.Add(param.TokenAmountOut.Amount, swapHookResult.DeltaSpecific)
+	}
+
+	if swapHookResult.SwapFee >= constants.FeeMax {
+		return nil, errors.New("swap disabled")
+	} else if swapHookResult.SwapFee > 0 && swapHookResult.SwapFee != p.V3Pool.Fee {
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
+		cloned.V3Pool.Fee = swapHookResult.SwapFee
+		poolSim = &cloned
+	}
+
+	result, err := poolSim.CalcAmountIn(param)
+	if err != nil {
+		return nil, err
+	}
+
+	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
+		BeforeSwapHookParams: beforeSwapHookParams,
+		AmountIn:             result.TokenAmountIn.Amount,
+		AmountOut:            param.TokenAmountOut.Amount,
+	})
+
+	if swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
+		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, swapHookResult.DeltaUnSpecific)
+	}
+	if hookFee != nil {
+		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, hookFee)
+	}
+
+	return result, err
+}
+
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
