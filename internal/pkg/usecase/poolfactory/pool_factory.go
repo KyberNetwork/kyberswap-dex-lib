@@ -226,7 +226,8 @@ func newSwapLimit(
 		pooltypes.PoolTypes.LO1inch,
 		pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.Pmm1,
-		pooltypes.PoolTypes.Pmm2:
+		pooltypes.PoolTypes.Pmm2,
+		pooltypes.PoolTypes.Integral:
 		return swaplimit.NewInventory(dex, limit)
 
 	case pooltypes.PoolTypes.LimitOrder:
