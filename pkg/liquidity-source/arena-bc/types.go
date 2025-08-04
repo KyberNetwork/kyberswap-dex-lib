@@ -70,7 +70,6 @@ type StaticExtra struct {
 	ChainId      valueobject.ChainID `json:"cI"`
 	TokenManager string              `json:"tM"`
 	TokenId      *big.Int            `json:"tI"`
-	LpDeployed   bool                `json:"lD,omitempty"`
 }
 
 type MetaInfo struct {
