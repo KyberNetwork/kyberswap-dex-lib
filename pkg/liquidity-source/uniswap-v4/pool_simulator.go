@@ -241,6 +241,108 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	return result, err
 }
 
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *pool.CalcAmountInResult, err error) {
+	originalTokenOut := param.TokenAmountOut.Token
+	originalTokenIn := param.TokenIn
+	wrapAdditionalGas := int64(0)
+	defer func() {
+		if result.TokenAmountIn != nil {
+			result.TokenAmountIn.Token = originalTokenIn
+		}
+
+		if result.RemainingTokenAmountOut != nil {
+			result.RemainingTokenAmountOut.Token = originalTokenOut
+		}
+
+		result.Gas += wrapAdditionalGas
+	}()
+
+	// Wrap/unwrap tokens if needed.
+	if p.GetTokenIndex(param.TokenAmountOut.Token) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canWrap := wrapper.CanWrap(p.chainID, param.TokenAmountOut.Token)
+			if canWrap {
+				param.TokenAmountOut.Token = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	}
+
+	if p.GetTokenIndex(param.TokenIn) == -1 {
+		for _, wrapper := range p.tokenWrappers {
+			metadata, canUnwrap := wrapper.CanWrap(p.chainID, param.TokenIn)
+			if canUnwrap {
+				param.TokenIn = metadata.GetWrapToken()
+				wrapAdditionalGas += p.Gas.BaseGas
+				break
+			}
+		}
+	}
+
+	poolSim := p.PoolSimulator
+	if p.hook == nil {
+		result, err = poolSim.CalcAmountIn(param)
+		return
+	}
+
+	tokenOut := param.TokenAmountOut.Token
+	beforeSwapHookParams := &BeforeSwapHookParams{
+		ExactIn:         false,
+		ZeroForOne:      p.Pool.GetTokenIndex(tokenOut) == 1,
+		AmountSpecified: param.TokenAmountOut.Amount,
+	}
+
+	swapHookResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
+	if err != nil {
+		return nil, err
+	}
+
+	var amountOut *big.Int
+
+	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
+		amountOut = new(big.Int).Add(param.TokenAmountOut.Amount, swapHookResult.DeltaSpecific)
+	} else {
+		amountOut = param.TokenAmountOut.Amount
+	}
+
+	if swapHookResult.SwapFee >= constants.FeeMax {
+		return nil, errors.New("swap disabled")
+	} else if swapHookResult.SwapFee > 0 && swapHookResult.SwapFee != p.V3Pool.Fee {
+		cloned := *poolSim
+		clonedV3Pool := *poolSim.V3Pool
+		cloned.V3Pool = &clonedV3Pool
+		cloned.V3Pool.Fee = swapHookResult.SwapFee
+		poolSim = &cloned
+	}
+
+	result, err = poolSim.CalcAmountIn(pool.CalcAmountInParams{
+		TokenAmountOut: pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut,
+		},
+		TokenIn: param.TokenIn,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
+		BeforeSwapHookParams: beforeSwapHookParams,
+		AmountIn:             result.TokenAmountIn.Amount,
+		AmountOut:            amountOut,
+	})
+
+	if swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
+		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, swapHookResult.DeltaUnSpecific)
+	}
+	if hookFee != nil {
+		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, hookFee)
+	}
+
+	return result, err
+}
+
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
