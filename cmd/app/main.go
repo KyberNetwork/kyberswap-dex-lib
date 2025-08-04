@@ -268,26 +268,6 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.Repository.AlphaFee,
 	)
 
-	// TODO: REMOVE AFTER REDIS MIGRATION IS COMPLETE
-	migrationRedisClient, err := redis.New(&cfg.RouterRedis)
-	if err != nil {
-		log.Ctx(ctx).Error().Msg("fail to init client to routerRedis")
-		return err
-	}
-
-	alphaFeeMigrationRepository := alphafee.NewRedisRepository(
-		migrationRedisClient.Client,
-		cfg.Repository.AlphaFee,
-	)
-
-	routerMigrationRedisRepository := route.NewRedisRepository(migrationRedisClient.Client, cfg.Repository.Route.Redis)
-
-	routeMigrationRepository, err := route.NewRistrettoRepository(routerMigrationRedisRepository,
-		cfg.Repository.Route.RistrettoConfig)
-	if err != nil {
-		return err
-	}
-
 	// init validators
 	slippageValidator := validator.NewSlippageValidator(cfg.Validator.SlippageValidatorConfig)
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
@@ -382,10 +362,8 @@ func apiAction(c *cli.Context) (err error) {
 		cachedTokenRepository,
 		onchainPriceRepository,
 		routeRepository,
-		routeMigrationRepository,
 		gasRepository,
 		alphaFeeRepository,
-		alphaFeeMigrationRepository,
 		l1FeeEstimator,
 		poolManager,
 		aevmClient,
@@ -398,7 +376,6 @@ func apiAction(c *cli.Context) (err error) {
 		onchainPriceRepository,
 		gasRepository,
 		alphaFeeRepository,
-		alphaFeeMigrationRepository,
 		l1FeeEstimator,
 		poolManager,
 		poolFactory,
@@ -427,7 +404,6 @@ func apiAction(c *cli.Context) (err error) {
 		executorBalanceRepository,
 		onchainPriceRepository,
 		alphaFeeRepository,
-		alphaFeeMigrationRepository,
 		publisherRepository,
 		gasEstimator,
 		l1FeeCalculator,
@@ -443,7 +419,6 @@ func apiAction(c *cli.Context) (err error) {
 		onchainPriceRepository,
 		gasRepository,
 		alphaFeeRepository,
-		alphaFeeMigrationRepository,
 		l1FeeEstimator,
 		poolManager,
 		poolRepository,

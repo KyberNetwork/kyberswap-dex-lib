@@ -42,7 +42,6 @@ func NewCustomRoutesUseCase(
 	onchainpriceRepository getroute.IOnchainPriceRepository,
 	gasRepository getroute.IGasRepository,
 	alphaFeeRepository getroute.IAlphaFeeRepository,
-	alphaFeeMigrationRepository getroute.IAlphaFeeRepository,
 	l1FeeEstimator getroute.IL1FeeEstimator,
 	poolManager getroute.IPoolManager,
 	poolRepository getroute.IPoolRepository,
@@ -59,13 +58,12 @@ func NewCustomRoutesUseCase(
 	)
 
 	return &useCase{
-		aggregator:                  aggregator,
-		tokenRepository:             tokenRepository,
-		gasRepository:               gasRepository,
-		alphaFeeRepository:          alphaFeeRepository,
-		alphaFeeMigrationRepository: alphaFeeMigrationRepository,
-		l1FeeEstimator:              l1FeeEstimator,
-		onchainpriceRepository:      onchainpriceRepository,
+		aggregator:             aggregator,
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
+		alphaFeeRepository:     alphaFeeRepository,
+		l1FeeEstimator:         l1FeeEstimator,
+		onchainpriceRepository: onchainpriceRepository,
 
 		config: config,
 	}

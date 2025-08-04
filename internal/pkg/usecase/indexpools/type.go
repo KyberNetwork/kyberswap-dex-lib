@@ -88,10 +88,9 @@ func (t *TradeData) KeyError() string {
 type CalculateSwapLimit func(poolSimulator []poolpkg.IPoolSimulator) map[string]map[string]*big.Int
 
 type UpdatePoolScores struct {
-	rankingRepo            IPoolRankRepository
-	backupRankingRepo      IPoolRankRepository
-	config                 *UpdateLiquidityScoreConfig
-	ScoreWhitelistFileName string
+	rankingRepo       IPoolRankRepository
+	backupRankingRepo IPoolRankRepository
+	config            *UpdateLiquidityScoreConfig
 }
 
 type BlacklistPoolIndex struct {

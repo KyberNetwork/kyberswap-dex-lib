@@ -238,10 +238,7 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 				nil,
 				routeRepo,
 				nil,
-				nil,
-				valueobject.CacheConfig{
-					FeatureFlags: valueobject.FeatureFlags{IsRedisMigrationEnabled: true},
-				},
+				valueobject.CacheConfig{},
 				nil,
 				nil,
 				nil,

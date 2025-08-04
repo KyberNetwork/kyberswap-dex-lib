@@ -67,13 +67,7 @@ type (
 		IsOnePercentHillClimbEnabled      bool `mapstructure:"isOnePercentHillClimbEnabled" json:"isOnePercentHillClimbEnabled"`
 		ReturnAlphaFee                    bool `mapstructure:"returnAlphaFee" json:"returnAF"`
 
-		// IsRedisMigrationEnabled controls Redis migration behavior:
-		// - true: Migration in progress - read from new Redis, write to both old and new Redis
-		// - false: Migration rollback - read from old Redis, write to both old and new Redis
-		// Note: Always write to both Redis during migration for safety
-		IsRedisMigrationEnabled bool `mapstructure:"isRedisMigrationEnabled" json:"isRedisMigrationEnabled"`
-		EnableDoubleWrite       bool `mapstructure:"enableDoubleWrite" json:"enableDoubleWrite"`
-		IgnoreAEVM              bool `mapstructure:"ignoreAEVM" json:"ignoreAEVM"`
+		IgnoreAEVM bool `mapstructure:"ignoreAEVM" json:"ignoreAEVM"`
 	}
 
 	Log struct {

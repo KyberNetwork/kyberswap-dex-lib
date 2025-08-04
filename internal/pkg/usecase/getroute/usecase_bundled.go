@@ -30,20 +30,19 @@ func NewBundledUseCase(
 	tokenRepository ITokenRepository,
 	onchainPriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
-	alphaFeeRepository, alphaFeeMigrationRepository IAlphaFeeRepository,
+	alphaFeeRepository IAlphaFeeRepository,
 	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	poolFactory IPoolFactory,
 	finderEngine finderEngine.IPathFinderEngine,
 ) *bundledUseCase {
 	return &bundledUseCase{useCase: &useCase{
-		config:                      config,
-		tokenRepository:             tokenRepository,
-		gasRepository:               gasRepository,
-		alphaFeeRepository:          alphaFeeRepository,
-		alphaFeeMigrationRepository: alphaFeeMigrationRepository,
-		l1FeeEstimator:              l1FeeEstimator,
-		onchainPriceRepository:      onchainPriceRepository,
+		config:                 config,
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
+		alphaFeeRepository:     alphaFeeRepository,
+		l1FeeEstimator:         l1FeeEstimator,
+		onchainPriceRepository: onchainPriceRepository,
 	}, aggregator: NewBundledAggregator(
 		config.Aggregator,
 		poolRankRepository,
@@ -92,12 +91,6 @@ func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQ
 		if routeSummary.AlphaFee != nil {
 			if err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
 				return nil, err
-			}
-
-			if u.alphaFeeMigrationRepository != nil {
-				if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
-					log.Ctx(ctx).Err(err).Msg("[Migration] failed to save alphaFee to new redis repository")
-				}
 			}
 		}
 

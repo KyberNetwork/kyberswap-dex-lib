@@ -47,7 +47,6 @@ type cache struct {
 func NewCache(
 	aggregator IAggregator,
 	routeCacheRepository IRouteCacheRepository,
-	routeCacheMigrationRepository IRouteCacheRepository,
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
 	finderEngine finderEngine.IPathFinderEngine,
@@ -55,15 +54,14 @@ func NewCache(
 	onchainpriceRepository IOnchainPriceRepository,
 ) *cache {
 	return &cache{
-		aggregator:                    aggregator,
-		routeCacheRepository:          routeCacheRepository,
-		routeCacheMigrationRepository: routeCacheMigrationRepository,
-		poolManager:                   poolManager,
-		config:                        config,
-		keyGenerator:                  newCacheKeyGenerator(config),
-		finderEngine:                  finderEngine,
-		tokenRepository:               tokenRepository,
-		onchainpriceRepository:        onchainpriceRepository,
+		aggregator:             aggregator,
+		routeCacheRepository:   routeCacheRepository,
+		poolManager:            poolManager,
+		config:                 config,
+		keyGenerator:           newCacheKeyGenerator(config),
+		finderEngine:           finderEngine,
+		tokenRepository:        tokenRepository,
+		onchainpriceRepository: onchainpriceRepository,
 	}
 }
 
@@ -131,13 +129,7 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 		err          error
 	)
 
-	if !c.config.FeatureFlags.IsRedisMigrationEnabled {
-		span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get route from redis")
-		cachedRoutes, err = c.routeCacheMigrationRepository.Get(ctx, keys)
-		span.End()
-	} else {
-		cachedRoutes, err = c.routeCacheRepository.Get(ctx, keys)
-	}
+	cachedRoutes, err = c.routeCacheRepository.Get(ctx, keys)
 
 	if err != nil {
 		return nil, nil, err

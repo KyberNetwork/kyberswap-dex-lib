@@ -68,15 +68,14 @@ const (
 type BuildRouteUseCase struct {
 	config Config
 
-	tokenRepository             ITokenRepository
-	poolRepository              IPoolRepository
-	executorBalanceRepository   IExecutorBalanceRepository
-	onchainPriceRepository      IOnchainPriceRepository
-	alphaFeeRepository          IAlphaFeeRepository
-	alphaFeeMigrationRepository IAlphaFeeRepository
-	publisherRepository         IPublisherRepository
-	gasEstimator                IGasEstimator
-	l1FeeCalculator             IL1FeeCalculator
+	tokenRepository           ITokenRepository
+	poolRepository            IPoolRepository
+	executorBalanceRepository IExecutorBalanceRepository
+	onchainPriceRepository    IOnchainPriceRepository
+	alphaFeeRepository        IAlphaFeeRepository
+	publisherRepository       IPublisherRepository
+	gasEstimator              IGasEstimator
+	l1FeeCalculator           IL1FeeCalculator
 
 	rfqHandlerByExchange map[valueobject.Exchange]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
@@ -91,7 +90,7 @@ func NewBuildRouteUseCase(
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
 	onchainPriceRepository IOnchainPriceRepository,
-	alphaFeeRepository, alphaFeeMigrationRepository IAlphaFeeRepository,
+	alphaFeeRepository IAlphaFeeRepository,
 	publisherRepository IPublisherRepository,
 	gasEstimator IGasEstimator,
 	l1FeeCalculator IL1FeeCalculator,
@@ -107,19 +106,18 @@ func NewBuildRouteUseCase(
 	)
 
 	return &BuildRouteUseCase{
-		tokenRepository:             tokenRepository,
-		poolRepository:              poolRepository,
-		executorBalanceRepository:   executorBalanceRepository,
-		onchainPriceRepository:      onchainPriceRepository,
-		alphaFeeRepository:          alphaFeeRepository,
-		alphaFeeMigrationRepository: alphaFeeMigrationRepository,
-		publisherRepository:         publisherRepository,
-		gasEstimator:                gasEstimator,
-		l1FeeCalculator:             l1FeeCalculator,
-		rfqHandlerByExchange:        rfqHandlerByExchange,
-		clientDataEncoder:           clientDataEncoder,
-		encoder:                     encoder,
-		config:                      config,
+		tokenRepository:           tokenRepository,
+		poolRepository:            poolRepository,
+		executorBalanceRepository: executorBalanceRepository,
+		onchainPriceRepository:    onchainPriceRepository,
+		alphaFeeRepository:        alphaFeeRepository,
+		publisherRepository:       publisherRepository,
+		gasEstimator:              gasEstimator,
+		l1FeeCalculator:           l1FeeCalculator,
+		rfqHandlerByExchange:      rfqHandlerByExchange,
+		clientDataEncoder:         clientDataEncoder,
+		encoder:                   encoder,
+		config:                    config,
 
 		alphaFeeCalculation: alphaFeeCalculation,
 	}
@@ -158,13 +156,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	isValidChecksum := uc.IsValidChecksum(routeSummary)
 	if uc.config.FeatureFlags.IsAlphaFeeReductionEnable {
 		if !isValidChecksum { // the route might have an alphaFee
-			if !uc.config.FeatureFlags.IsRedisMigrationEnabled {
-				span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] get alpha fee from redis")
-				routeSummary.AlphaFee, _ = uc.alphaFeeMigrationRepository.GetByRouteId(ctx, routeSummary.RouteID)
-				span.End()
-			} else {
-				routeSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, routeSummary.RouteID)
-			}
+			routeSummary.AlphaFee, _ = uc.alphaFeeRepository.GetByRouteId(ctx, routeSummary.RouteID)
 			isValidChecksum = uc.IsValidChecksum(routeSummary)
 		}
 

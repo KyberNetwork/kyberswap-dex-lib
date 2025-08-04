@@ -32,13 +32,12 @@ import (
 type useCase struct {
 	config Config
 
-	aggregator                  IAggregator
-	tokenRepository             ITokenRepository
-	gasRepository               IGasRepository
-	alphaFeeRepository          IAlphaFeeRepository
-	alphaFeeMigrationRepository IAlphaFeeRepository
-	l1FeeEstimator              IL1FeeEstimator
-	onchainPriceRepository      IOnchainPriceRepository
+	aggregator             IAggregator
+	tokenRepository        ITokenRepository
+	gasRepository          IGasRepository
+	alphaFeeRepository     IAlphaFeeRepository
+	l1FeeEstimator         IL1FeeEstimator
+	onchainPriceRepository IOnchainPriceRepository
 }
 
 func NewUseCase(
@@ -46,9 +45,9 @@ func NewUseCase(
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
 	onchainPriceRepository IOnchainPriceRepository,
-	routeCacheRepository, routeCacheMigrationRepository IRouteCacheRepository,
+	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
-	alphaFeeRepository, alphaFeeMigrationRepository IAlphaFeeRepository,
+	alphaFeeRepository IAlphaFeeRepository,
 	l1FeeEstimator IL1FeeEstimator,
 	poolManager IPoolManager,
 	aevmClient aevmclient.Client,
@@ -74,7 +73,7 @@ func NewUseCase(
 
 	var finalizedAggregator IAggregator
 	if config.Aggregator.FeatureFlags.IsRouteCachedEnable {
-		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, routeCacheMigrationRepository,
+		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository,
 			poolManager, config.Cache, finderEngine, tokenRepository, onchainPriceRepository)
 		finalizedAggregator = aggregatorWithCache
 	} else {
@@ -85,13 +84,12 @@ func NewUseCase(
 	return &useCase{
 		config: config,
 
-		aggregator:                  aggregatorWithChargeExtraFee,
-		tokenRepository:             tokenRepository,
-		gasRepository:               gasRepository,
-		alphaFeeRepository:          alphaFeeRepository,
-		alphaFeeMigrationRepository: alphaFeeMigrationRepository,
-		l1FeeEstimator:              l1FeeEstimator,
-		onchainPriceRepository:      onchainPriceRepository,
+		aggregator:             aggregatorWithChargeExtraFee,
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
+		alphaFeeRepository:     alphaFeeRepository,
+		l1FeeEstimator:         l1FeeEstimator,
+		onchainPriceRepository: onchainPriceRepository,
 	}
 }
 
@@ -135,14 +133,6 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	if routeSummary.AlphaFee != nil {
 		if err = u.alphaFeeRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
 			return nil, err
-		}
-
-		if u.alphaFeeMigrationRepository != nil {
-			span, ctx := tracer.StartSpanFromContext(ctx, "[Migration] set alpha fee to redis")
-			if err = u.alphaFeeMigrationRepository.Save(ctx, routeID, routeSummary.AlphaFee); err != nil {
-				log.Ctx(ctx).Err(err).Msg("[Migration] failed to save alphaFee to new redis repository")
-			}
-			span.End()
 		}
 	}
 
