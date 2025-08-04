@@ -28,9 +28,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				"100000000000000000": "94920023483381004", // https://www.tdly.co/shared/simulation/823e01b9-6b2d-4ef2-8851-1ab2afb5ca86
 			},
 		},
-		1: {0: {
-			"100000000000000000": "105094814334276899", // https://www.tdly.co/shared/simulation/047d5b2e-91e3-45c7-868b-759d81fc8d62
-		}},
+		1: {
+			0: {
+				"100000000000000000": "105094814334276899", // https://www.tdly.co/shared/simulation/047d5b2e-91e3-45c7-868b-759d81fc8d62
+			},
+		},
 	})
 }
 
