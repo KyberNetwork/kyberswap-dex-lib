@@ -16,6 +16,8 @@ const (
 )
 
 const (
+	RelistInterval = 60 // relist every 60 times
+
 	VaultMethodGetBufferAsset             = "getBufferAsset"
 	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
