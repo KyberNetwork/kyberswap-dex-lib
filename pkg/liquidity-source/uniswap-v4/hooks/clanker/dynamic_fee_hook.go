@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -26,7 +25,6 @@ type DynamicFeeHook struct {
 	uniswapv4.Hook
 
 	hook            string
-	clankerCaller   *ClankerCaller
 	poolSim         *uniswapv3.PoolSimulator
 	protocolFee     *big.Int
 	poolFVars       *PoolDynamicFeeVars
@@ -84,6 +82,15 @@ type PoolDynamicFeeVarsRPC struct {
 	}
 }
 
+type ClankerDeploymentInfo struct {
+	Data struct {
+		Token      common.Address
+		Hook       common.Address
+		Locker     common.Address
+		Extensions []common.Address
+	}
+}
+
 var _ = uniswapv4.RegisterHooksFactory(NewDynamicFeeHook, DynamicFeeHookAddresses...)
 
 func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -113,11 +120,6 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
 	}
 
-	if param.RpcClient != nil {
-		hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
-			param.RpcClient.GetETHClient())
-	}
-
 	return hook
 }
 
@@ -142,10 +144,12 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	}
 
 	poolBytes := eth.StringToBytes32(param.Pool.Address)
+	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
 
 	var (
 		poolCVars PoolDynamicConfigVarsRPC
 		poolFVars PoolDynamicFeeVarsRPC
+		info      ClankerDeploymentInfo
 	)
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
@@ -166,6 +170,15 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 		Method: "poolFeeVars",
 		Params: []any{poolBytes},
 	}, []any{&poolFVars})
+
+	if !extra.ClankerTracked {
+		req.AddCall(&ethrpc.Call{
+			ABI:    clankerABI,
+			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Method: "tokenDeploymentInfo",
+			Params: []any{token0},
+		}, []any{&info})
+	}
 
 	if _, err := req.Aggregate(); err != nil {
 		return "", err
@@ -191,18 +204,8 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	}
 
 	if !extra.ClankerTracked {
-		if h.clankerCaller == nil {
-			return "", ErrClankerCallerIsNil
-		}
-
-		token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
-		info, err := h.clankerCaller.TokenDeploymentInfo(&bind.CallOpts{Context: ctx}, token0)
-		if err != nil {
-			return "", err
-		}
-
 		extra.ClankerTracked = true
-		extra.ClankerIsToken0 = info.Token.Cmp(token0) == 0
+		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
 	}
 
 	extraBytes, err := json.Marshal(&extra)
@@ -242,9 +245,9 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne,
 	} else if new(uint256.Int).Add(h.poolFVars.ResetTickTimestamp, h.poolCVars.ResetPeriod).Lt(blockTime) {
 		var resetTickDifference int64
 		if tickBefore > h.poolFVars.ResetTick {
-			resetTickDifference = int64(tickBefore - h.poolFVars.ResetTick)
+			resetTickDifference = tickBefore - h.poolFVars.ResetTick
 		} else {
-			resetTickDifference = int64(h.poolFVars.ResetTick - tickBefore)
+			resetTickDifference = h.poolFVars.ResetTick - tickBefore
 		}
 
 		if resetTickDifference > h.poolCVars.ResetTickFilter {

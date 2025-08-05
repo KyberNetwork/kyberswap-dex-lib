@@ -13,9 +13,10 @@ import (
 )
 
 type BeforeSwapHookParams struct {
-	ExactIn         bool
-	ZeroForOne      bool
-	AmountSpecified *big.Int
+	ExactIn           bool
+	ZeroForOne        bool
+	AmountSpecified   *big.Int
+	SqrtPriceLimitX96 *big.Int
 }
 
 type BeforeSwapHookResult struct {

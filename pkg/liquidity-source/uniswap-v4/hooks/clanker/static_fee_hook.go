@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -20,7 +19,6 @@ type StaticFeeHook struct {
 	uniswapv4.Hook
 
 	hook            string
-	clankerCaller   *ClankerCaller
 	protocolFee     *big.Int
 	clankerFee      uniswapv4.FeeAmount
 	pairedFee       uniswapv4.FeeAmount
@@ -43,8 +41,6 @@ func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook: param.HookAddress.Hex(),
 	}
 
-	chainID := valueobject.ChainID(param.Cfg.ChainID)
-
 	if param.HookExtra != "" {
 		var extra StaticFeeExtra
 		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
@@ -62,11 +58,6 @@ func NewStaticFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		}
 	}
 
-	if param.RpcClient != nil {
-		hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
-			param.RpcClient.GetETHClient())
-	}
-
 	return hook
 }
 
@@ -79,6 +70,8 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	}
 
 	poolBytes := eth.StringToBytes32(param.Pool.Address)
+	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
+	var info ClankerDeploymentInfo
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
@@ -100,23 +93,25 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 		Params: []any{poolBytes},
 	}, []any{&extra.PairedFee})
 
+	if !extra.ClankerTracked {
+		req.AddCall(&ethrpc.Call{
+			ABI:    clankerABI,
+			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Method: "tokenDeploymentInfo",
+			Params: []any{token0},
+		}, []any{&info})
+
+		extra.ClankerTracked = true
+		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
+	}
+
 	if _, err := req.Aggregate(); err != nil {
 		return "", err
 	}
 
 	if !extra.ClankerTracked {
-		if h.clankerCaller == nil {
-			return "", ErrClankerCallerIsNil
-		}
-
-		token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
-
-		info, err := h.clankerCaller.TokenDeploymentInfo(&bind.CallOpts{Context: ctx}, token0)
-		if err != nil {
-			return "", err
-		}
 		extra.ClankerTracked = true
-		extra.ClankerIsToken0 = info.Token.Cmp(token0) == 0
+		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
 	}
 
 	extraBytes, err := json.Marshal(&extra)
