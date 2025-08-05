@@ -87,6 +87,7 @@ def calculate_scores(pools, default_scores) -> dict:
             map_key = pool.key + pool.address
             if map_key not in default_scores:
                 default_scores[map_key] = []
+
             # score, token_in, token_out, level, pool_address
             default_scores[map_key].append((tmp_score, pool.data[0][2], pool.data[0][3], pool.level, pool.address, pool.data[0][4]))
         except Exception as e:
@@ -139,11 +140,11 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                     'level': level
                 }
         
-        sorted_set_key = key[:-len(pool_address)]
         if len(valid_scores) == 0:
             valid_scores = invalid_scores
+        sorted_set_key = key[:-len(pool_address)]
             
-        if len(valid_scores) < 2:
+        if len(valid_scores) == 1:
             result.append({
                 'key': sorted_set_key,
                 'pool': pool_address,
@@ -152,7 +153,7 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                 'arithmetic': float(valid_scores[0]),
                 'level': level
             })
-        else:
+        elif len(valid_scores) >= 2:
             try:
                 harmonic = harmonic_mean(valid_scores)
                 geometric = geometric_mean(valid_scores)

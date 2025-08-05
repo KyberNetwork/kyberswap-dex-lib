@@ -230,7 +230,7 @@ func (j *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, tra
 			log.Ctx(ctx).Err(err).
 				Str("job.name", LiquidityScoreIndexPools).
 				Str("tradeFile", tradeFile).
-				Msg("error when execute liquidity calc error")
+				Msgf("error when execute liquidity calc error %v", stderr.String())
 			continue
 		}
 

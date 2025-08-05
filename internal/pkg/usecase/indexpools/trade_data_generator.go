@@ -622,6 +622,16 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 					continue
 				}
 
+				// handle some special cases where pool.GetTokens() differ from canSwapFrom/canSwapTo tokens
+				if tokens[tokenI] == nil || tokens[tokenJ] == nil {
+					missedTokens := gen.getTokens(ctx, mapset.NewThreadUnsafeSet(tokenI, tokenJ))
+					missedPrices := gen.getPrices(ctx, mapset.NewThreadUnsafeSet(tokenI, tokenJ))
+					for t, v := range missedTokens {
+						tokens[t] = v
+						prices[t] = missedPrices[t]
+					}
+				}
+
 				if (prices[tokenI] == nil || prices[tokenI].GetSellPriceIfAny() == 0) &&
 					(prices[tokenJ] == nil || prices[tokenJ].GetBuyPriceIfAny() == 0) {
 					if gen.config.LogError {
