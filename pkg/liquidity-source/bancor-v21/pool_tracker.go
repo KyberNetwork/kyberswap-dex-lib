@@ -106,7 +106,7 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(ctx, p, innerPools, latestAnchors, reservesData, fees, blockNumber, tokensByAnchor)
 }
 
-// getAllPairsLength gets number of pairs from the factory contracts
+// getAnchorCount gets the number of anchors
 // nolint: unused
 func (d *PoolTracker) getAnchorCount(ctx context.Context) (int, error) {
 	anchorCount := new(big.Int)
