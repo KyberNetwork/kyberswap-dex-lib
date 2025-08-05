@@ -75,7 +75,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	needResetOffset := metadata.Offset > allPoolsLength
 
 	if metadata.Offset == allPoolsLength {
-		latestPoolAddress, err := u.getLatestPool(ctx, allPoolsLength)
+		poolList, err := u.listPoolAddresses(ctx, allPoolsLength-1, 1)
 		if err != nil {
 			logger.
 				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -84,11 +84,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		if latestPoolAddress.Cmp(metadata.LatestPool) == 0 {
+		latestPool := poolList[0]
+
+		if latestPool.Cmp(metadata.LatestPool) == 0 {
 			return nil, metadataBytes, nil
 		}
 
-		metadata.LatestPool = latestPoolAddress
+		metadata.LatestPool = latestPool
 
 		needResetOffset = true
 	}
@@ -143,28 +145,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Info("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
-}
-
-func (u *PoolsListUpdater) getLatestPool(ctx context.Context, poolLength int) (common.Address, error) {
-	var poolAddress [1]common.Address
-
-	startIdx := big.NewInt(int64(poolLength - 1))
-	endIdx := big.NewInt(int64(poolLength))
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-	req.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: u.config.FactoryAddress,
-		Method: factoryMethodPoolsSlice,
-		Params: []any{startIdx, endIdx},
-	}, []any{&poolAddress})
-
-	_, err := req.Aggregate()
-	if err != nil {
-		return common.Address{}, err
-	}
-
-	return poolAddress[0], nil
 }
 
 func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
