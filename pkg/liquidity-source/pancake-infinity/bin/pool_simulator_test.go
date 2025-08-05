@@ -211,10 +211,7 @@ func TestPancakeInfinityBin(t *testing.T) {
 	require.NotNil(t, pools)
 	require.NotNil(t, metadata)
 
-	numPoolsToTest := 100
-	if len(pools) < numPoolsToTest {
-		numPoolsToTest = len(pools)
-	}
+	numPoolsToTest := min(len(pools), 100)
 
 	var params pool.CalcAmountOutParams
 	var poolMeta PoolMetaInfo
