@@ -104,10 +104,7 @@ func (t *PoolTracker) getPoolReserves(
 
 	dexVariables2 := new(big.Int)
 
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,

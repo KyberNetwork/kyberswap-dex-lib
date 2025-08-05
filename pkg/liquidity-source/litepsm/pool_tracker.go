@@ -131,11 +131,7 @@ func (t *PoolTracker) getLitePSM(
 			ABI:    LitePSMABI,
 			Target: address,
 			Method: litePSMMethodTOut,
-		}, []any{&tOut})
-
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		}, []any{&tOut}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -172,11 +168,7 @@ func (t *PoolTracker) getReserves(
 			Target: pool.Tokens[1].Address,
 			Method: abi.Erc20BalanceOfMethod,
 			Params: []any{staticExtra.Pocket},
-		}, []any{&gemReserve})
-
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		}, []any{&gemReserve}).SetOverrides(overrides)
 
 	_, err := req.Aggregate()
 	if err != nil {

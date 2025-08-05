@@ -45,11 +45,7 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 			Target: address,
 			Method: vatMethodIlks,
 			Params: []interface{}{ilk},
-		}, []interface{}{&vat.ILK})
-
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		}, []interface{}{&vat.ILK}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

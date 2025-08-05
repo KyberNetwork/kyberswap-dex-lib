@@ -130,10 +130,7 @@ func (d *PoolTracker) getBondingData(
 		tradable      = true
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	// Fetch individual token balances for the pool
 	for i, token := range tokens {

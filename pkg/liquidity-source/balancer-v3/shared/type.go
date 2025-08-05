@@ -28,7 +28,7 @@ type RpcResult struct {
 	StaticSwapFeePercentage *big.Int
 	AggregateFeePercentageRPC
 	PoolDataRPC
-	Buffers        func() []*ExtraBuffer
+	Buffers        func() ([]*ExtraBuffer, []common.Address)
 	IsPoolDisabled bool
 	BlockNumber    uint64
 }

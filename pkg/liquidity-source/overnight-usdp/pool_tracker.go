@@ -63,10 +63,7 @@ func (t *PoolTracker) getNewPoolState(
 		buyFee, redeemFee *big.Int
 	)
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,

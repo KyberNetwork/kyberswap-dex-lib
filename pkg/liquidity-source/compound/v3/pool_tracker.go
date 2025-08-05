@@ -80,10 +80,7 @@ func (d *PoolTracker) getPoolExtraData(
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (Extra, uint64, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	var extra Extra
 

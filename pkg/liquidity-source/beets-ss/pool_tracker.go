@@ -82,10 +82,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, blocknumber, totalAssets, tot
 }
 
 func (d *PoolTracker) getPoolData(ctx context.Context, overrides map[common.Address]gethclient.OverrideAccount) (*big.Int, *big.Int, *big.Int, bool, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	var (
 		totalAssets   = ZERO
