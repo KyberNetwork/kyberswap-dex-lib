@@ -13,15 +13,20 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
-type PoolsListUpdater struct {
-	config            *Config
-	ethrpcClient      *ethrpc.Client
-	latestPoolAddress common.Address
-}
+type (
+	PoolsListUpdater struct {
+		config       *Config
+		ethrpcClient *ethrpc.Client
+	}
+
+	PoolsListUpdaterMetadata struct {
+		Offset     int            `json:"offset"`
+		LatestPool common.Address `json:"lp"`
+	}
+)
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
@@ -43,11 +48,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
 
-	offset, err := u.getOffset(metadataBytes)
+	metadata, err := u.getMetadata(metadataBytes)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Warn("getOffset failed")
+			Warn("getMetadata failed")
 	}
 
 	allPoolsLength, err := u.getAllPoolsLength(ctx)
@@ -67,9 +72,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	needResetOffset := offset > allPoolsLength
+	needResetOffset := metadata.Offset > allPoolsLength
 
-	if offset == allPoolsLength {
+	if metadata.Offset == allPoolsLength {
 		latestPoolAddress, err := u.getLatestPool(ctx, allPoolsLength)
 		if err != nil {
 			logger.
@@ -79,11 +84,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		if latestPoolAddress.Cmp(u.latestPoolAddress) == 0 {
+		if latestPoolAddress.Cmp(metadata.LatestPool) == 0 {
 			return nil, metadataBytes, nil
 		}
 
-		u.latestPoolAddress = latestPoolAddress
+		metadata.LatestPool = latestPoolAddress
 
 		needResetOffset = true
 	}
@@ -91,15 +96,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if needResetOffset {
 		logger.WithFields(logger.Fields{
 			"dex_id": dexID,
-			"offset": offset,
+			"offset": metadata.Offset,
 			"length": allPoolsLength,
 		}).Info("Resetting offset to 0 due to factory uninstall pools")
-		offset = 0
+		metadata.Offset = 0
 	}
 
-	batchSize := u.getBatchSize(allPoolsLength, offset)
+	batchSize := u.getBatchSize(allPoolsLength, metadata.Offset)
 
-	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
+	poolAddresses, err := u.listPoolAddresses(ctx, metadata.Offset, batchSize)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -117,7 +122,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := u.newMetadata(offset + batchSize)
+	newOffset := metadata.Offset + batchSize
+	newMetadataBytes, err := u.newMetadata(newOffset, metadata.LatestPool)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -316,9 +322,10 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 	return int(allPoolsLength.Int64()), nil
 }
 
-func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
-	metadata := uniswapv2.PoolsListUpdaterMetadata{
-		Offset: newOffset,
+func (u *PoolsListUpdater) newMetadata(newOffset int, newLatestPool common.Address) ([]byte, error) {
+	metadata := PoolsListUpdaterMetadata{
+		Offset:     newOffset,
+		LatestPool: newLatestPool,
 	}
 
 	metadataBytes, err := json.Marshal(metadata)
@@ -329,17 +336,17 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
+func (u *PoolsListUpdater) getMetadata(metadataBytes []byte) (PoolsListUpdaterMetadata, error) {
 	if len(metadataBytes) == 0 {
-		return 0, nil
+		return PoolsListUpdaterMetadata{}, nil
 	}
 
-	var metadata uniswapv2.PoolsListUpdaterMetadata
+	var metadata PoolsListUpdaterMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-		return 0, err
+		return PoolsListUpdaterMetadata{}, err
 	}
 
-	return metadata.Offset, nil
+	return metadata, nil
 }
 
 func (u *PoolsListUpdater) getBatchSize(length int, offset int) int {
