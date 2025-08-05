@@ -18,8 +18,9 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
+	config            *Config
+	ethrpcClient      *ethrpc.Client
+	latestPoolAddress common.Address
 }
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -58,11 +59,37 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	if offset == allPoolsLength {
+	if allPoolsLength == 0 {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID}).
+			Warn("no pools found")
+
 		return nil, metadataBytes, nil
 	}
 
+	var needResetOffset bool
 	if offset > allPoolsLength {
+		needResetOffset = true
+	} else if offset == allPoolsLength {
+		latestPoolAddress, err := u.getLatestPool(ctx, allPoolsLength)
+		if err != nil {
+			logger.
+				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+				Error("getLatestPool failed")
+
+			return nil, metadataBytes, err
+		}
+
+		if latestPoolAddress.Cmp(u.latestPoolAddress) == 0 && u.latestPoolAddress.Cmp(common.Address{}) != 0 {
+			return nil, metadataBytes, nil
+		}
+
+		u.latestPoolAddress = latestPoolAddress
+
+		needResetOffset = true
+	}
+
+	if needResetOffset {
 		logger.WithFields(logger.Fields{
 			"dex_id": dexID,
 			"offset": offset,
@@ -111,6 +138,28 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Info("Finished getting new pools")
 
 	return pools, newMetadataBytes, nil
+}
+
+func (u *PoolsListUpdater) getLatestPool(ctx context.Context, poolLength int) (common.Address, error) {
+	var poolAddress common.Address
+
+	startIdx := big.NewInt(int64(poolLength - 1))
+	endIdx := big.NewInt(int64(poolLength))
+
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: u.config.FactoryAddress,
+		Method: factoryMethodPoolsSlice,
+		Params: []any{startIdx, endIdx},
+	}, []any{&poolAddress})
+
+	_, err := req.Aggregate()
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	return poolAddress, nil
 }
 
 func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
