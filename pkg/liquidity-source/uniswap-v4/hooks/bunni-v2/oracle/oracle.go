@@ -1,6 +1,8 @@
 package oracle
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
 	MAX_ABS_TICK_MOVE = 9116
@@ -15,7 +17,16 @@ type Observation struct {
 }
 
 type ObservationStorage struct {
-	observations [MAX_CARDINALITY]Observation
+	data [MAX_CARDINALITY]*Observation
+}
+
+func NewObservationStorage(observations []*Observation) *ObservationStorage {
+	data := [MAX_CARDINALITY]*Observation{}
+	copy(data[:], observations)
+
+	return &ObservationStorage{
+		data: data,
+	}
 }
 
 func lte(time, time1, time2 uint32) bool {
@@ -25,23 +36,23 @@ func lte(time, time1, time2 uint32) bool {
 	return time2 > time1
 }
 
-func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinality uint32) (Observation, Observation) {
+func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinality uint32) (*Observation, *Observation) {
 	l := uint64((index + 1) % cardinality)
 	r := l + uint64(cardinality) - 1
 
 	var i uint64
-	var beforeOrAt, atOrAfter Observation
+	var beforeOrAt, atOrAfter *Observation
 	for {
 		i = (l + r) / 2
 
-		beforeOrAt = o.observations[i%uint64(cardinality)]
+		beforeOrAt = o.data[i%uint64(cardinality)]
 
 		if !beforeOrAt.Initialized {
 			l = i + 1
 			continue
 		}
 
-		atOrAfter = o.observations[(i+1)%uint64(cardinality)]
+		atOrAfter = o.data[(i+1)%uint64(cardinality)]
 
 		targetAtOrAfter := lte(time, beforeOrAt.BlockTimestamp, target)
 
@@ -60,37 +71,37 @@ func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinalit
 }
 
 func (o *ObservationStorage) getSurroundingObservations(
-	intermediate Observation,
+	intermediate *Observation,
 	time uint32,
 	target uint32,
 	tick int,
 	index uint32,
 	cardinality uint32,
-) (Observation, Observation, error) {
+) (*Observation, *Observation, error) {
 	beforeOrAt := intermediate
 
 	if lte(time, beforeOrAt.BlockTimestamp, target) {
 		if beforeOrAt.BlockTimestamp == target {
-			return beforeOrAt, Observation{}, nil
+			return beforeOrAt, nil, nil
 		} else {
 			return beforeOrAt, transform(beforeOrAt, target, tick), nil
 		}
 	}
 
-	beforeOrAt = o.observations[index]
+	beforeOrAt = o.data[index]
 	atOrAfter := intermediate
 
 	if lte(time, beforeOrAt.BlockTimestamp, target) {
 		return beforeOrAt, atOrAfter, nil
 	}
 
-	beforeOrAt = o.observations[(index+1)%cardinality]
+	beforeOrAt = o.data[(index+1)%cardinality]
 	if !beforeOrAt.Initialized {
-		beforeOrAt = o.observations[0]
+		beforeOrAt = o.data[0]
 	}
 
 	if !lte(time, beforeOrAt.BlockTimestamp, target) {
-		return Observation{}, Observation{}, errors.New("TargetPredatesOldestObservation")
+		return nil, nil, errors.New("TargetPredatesOldestObservation")
 	}
 
 	beforeOrAt, atOrAfter = o.binarySearch(time, target, index, cardinality)
@@ -98,7 +109,7 @@ func (o *ObservationStorage) getSurroundingObservations(
 	return beforeOrAt, atOrAfter, nil
 }
 
-func (o *ObservationStorage) ObserveDouble(intermediate Observation, time uint32, secondsAgos []uint32,
+func (o *ObservationStorage) ObserveDouble(intermediate *Observation, time uint32, secondsAgos []uint32,
 	tick int, index uint32, cardinality uint32) ([]int64, error) {
 	if cardinality == 0 {
 		return nil, errors.New("OracleCardinalityCannotBeZero")
@@ -117,7 +128,7 @@ func (o *ObservationStorage) ObserveDouble(intermediate Observation, time uint32
 	return tickCumulatives, nil
 }
 
-func (o *ObservationStorage) ObserveTriple(intermediate Observation, time uint32, secondsAgos []uint32,
+func (o *ObservationStorage) ObserveTriple(intermediate *Observation, time uint32, secondsAgos []uint32,
 	tick int, index uint32, cardinality uint32) ([]int64, error) {
 	if cardinality == 0 {
 		return nil, errors.New("OracleCardinalityCannotBeZero")
@@ -136,7 +147,7 @@ func (o *ObservationStorage) ObserveTriple(intermediate Observation, time uint32
 	return tickCumulatives, nil
 }
 
-func (o *ObservationStorage) ObserveSingle(intermediate Observation, time, secondsAgo uint32,
+func (o *ObservationStorage) ObserveSingle(intermediate *Observation, time, secondsAgo uint32,
 	tick int, index uint32, cardinality uint32) (int64, error) {
 	if secondsAgo == 0 {
 		if intermediate.BlockTimestamp != time {
@@ -170,21 +181,21 @@ func (o *ObservationStorage) ObserveSingle(intermediate Observation, time, secon
 }
 
 func (o *ObservationStorage) Write(
-	intermediate Observation,
+	intermediate *Observation,
 	index uint32,
 	blockTimestamp uint32,
 	tick int,
 	cardinality uint32,
 	cardinalityNext uint32,
 	minInterval uint32,
-) (Observation, uint32, uint32) {
+) (*Observation, uint32, uint32) {
 	if intermediate.BlockTimestamp == blockTimestamp {
 		return intermediate, index, cardinality
 	}
 
 	intermediateUpdated := transform(intermediate, blockTimestamp, tick)
 
-	if blockTimestamp-o.observations[index].BlockTimestamp < minInterval {
+	if blockTimestamp-o.data[index].BlockTimestamp < minInterval {
 		return intermediateUpdated, index, cardinality
 	}
 
@@ -196,12 +207,12 @@ func (o *ObservationStorage) Write(
 	}
 
 	indexUpdated := (index + 1) % cardinalityUpdated
-	o.observations[indexUpdated] = intermediateUpdated
+	o.data[indexUpdated] = intermediateUpdated
 
 	return intermediateUpdated, indexUpdated, cardinalityUpdated
 }
 
-func transform(last Observation, blockTimestamp uint32, tick int) Observation {
+func transform(last *Observation, blockTimestamp uint32, tick int) *Observation {
 	delta := blockTimestamp - last.BlockTimestamp
 
 	if (tick - last.PrevTick) > MAX_ABS_TICK_MOVE {
@@ -210,7 +221,7 @@ func transform(last Observation, blockTimestamp uint32, tick int) Observation {
 		tick = last.PrevTick - MAX_ABS_TICK_MOVE
 	}
 
-	return Observation{
+	return &Observation{
 		BlockTimestamp: blockTimestamp,
 		PrevTick:       tick,
 		TickCumulative: last.TickCumulative + int64(tick)*int64(delta),

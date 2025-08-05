@@ -1,4 +1,4 @@
-package bunniv2
+package hooklet
 
 import (
 	"bytes"
@@ -7,10 +7,7 @@ import (
 )
 
 var (
-	bunniHubABI  abi.ABI
-	bunniHookABI abi.ABI
-	erc4626ABI   abi.ABI
-	erc20ABI     abi.ABI
+	feeOverrideHookletABI abi.ABI
 )
 
 func init() {
@@ -18,10 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&bunniHubABI, bunniHubABIJson},
-		{&bunniHookABI, bunniHookABIJson},
-		{&erc4626ABI, erc4626ABIJson},
-		{&erc20ABI, erc20ABIJson},
+		{&feeOverrideHookletABI, feeOverrideHookletABIJson},
 	}
 
 	for _, b := range builder {
