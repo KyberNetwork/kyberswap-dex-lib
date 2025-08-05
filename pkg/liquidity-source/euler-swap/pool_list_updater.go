@@ -67,10 +67,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	var needResetOffset bool
-	if offset > allPoolsLength {
-		needResetOffset = true
-	} else if offset == allPoolsLength {
+	needResetOffset := offset > allPoolsLength
+
+	if offset == allPoolsLength {
 		latestPoolAddress, err := u.getLatestPool(ctx, allPoolsLength)
 		if err != nil {
 			logger.
@@ -80,7 +79,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		if latestPoolAddress.Cmp(u.latestPoolAddress) == 0 && u.latestPoolAddress.Cmp(common.Address{}) != 0 {
+		if latestPoolAddress.Cmp(u.latestPoolAddress) == 0 {
 			return nil, metadataBytes, nil
 		}
 
@@ -141,7 +140,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getLatestPool(ctx context.Context, poolLength int) (common.Address, error) {
-	var poolAddress common.Address
+	var poolAddress [1]common.Address
 
 	startIdx := big.NewInt(int64(poolLength - 1))
 	endIdx := big.NewInt(int64(poolLength))
@@ -159,7 +158,7 @@ func (u *PoolsListUpdater) getLatestPool(ctx context.Context, poolLength int) (c
 		return common.Address{}, err
 	}
 
-	return poolAddress, nil
+	return poolAddress[0], nil
 }
 
 func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset, batchSize int) ([]common.Address, error) {
