@@ -16,9 +16,9 @@ func TestCalcAmountOut[TB interface {
 	Run(string, func(TB)) bool
 }](tb TB, poolSim pool.IPoolSimulator, expected map[int]map[int]map[string]string) {
 	tokens := poolSim.GetTokens()
-	for idxIn, expected := range expected {
-		for idxOut, expected := range expected {
-			for amtIn, expected := range expected {
+	for idxIn, expectedByTokenIn := range expected {
+		for idxOut, expectedByTokenOut := range expectedByTokenIn {
+			for amtIn, expectedAmount := range expectedByTokenOut {
 				tb.Run(fmt.Sprintf("%s token%d -> ? token%d", amtIn, idxIn, idxOut), func(tb TB) {
 					amtOut, err := pool.CalcAmountOut(
 						poolSim,
@@ -26,10 +26,10 @@ func TestCalcAmountOut[TB interface {
 						tokens[idxOut],
 						nil,
 					)
-					if expected == "" {
+					if expectedAmount == "" {
 						assert.Error(tb, err)
 					} else if assert.NoError(tb, err) {
-						assert.Equal(tb, expected, amtOut.TokenAmountOut.Amount.String())
+						assert.Equal(tb, expectedAmount, amtOut.TokenAmountOut.Amount.String())
 					}
 				})
 			}
