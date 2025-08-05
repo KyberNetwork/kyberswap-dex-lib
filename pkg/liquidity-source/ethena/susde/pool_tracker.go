@@ -64,10 +64,7 @@ func (t *PoolTracker) getNewPoolState(
 		totalSupply *big.Int
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 	req.AddCall(&ethrpc.Call{
 		ABI:    stakedUSDeV2ABI,
 		Target: StakedUSDeV2,

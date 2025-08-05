@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -63,10 +64,7 @@ func (t *PoolTracker) getNewPoolState(
 	}).Info("fetching pool state")
 
 	var fee = bignumber.ZeroBI
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req.AddCall(&ethrpc.Call{
 		ABI:    mkrSkyABI,
 		Target: p.Address,

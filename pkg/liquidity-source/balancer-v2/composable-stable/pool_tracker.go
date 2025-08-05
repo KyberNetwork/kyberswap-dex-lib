@@ -189,10 +189,7 @@ func (t *PoolTracker) queryRPC(
 		- pausedState
 	*/
 
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,
@@ -317,10 +314,7 @@ func (t *PoolTracker) queryRPC(
 	*/
 
 	canNotUpdateTokenRates := false
-	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr).SetOverrides(overrides)
 
 	rateUpdatedTokenIndexes := make([]int, 0, len(tokens))
 	updatedRate := make([]*big.Int, tokenNbr)

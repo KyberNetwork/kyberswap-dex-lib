@@ -110,10 +110,7 @@ func (d *PoolTracker) getPoolData(
 	vaultList []VaultInfo,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (TrackerData, *big.Int, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	var (
 		isOperatorAuthorized bool

@@ -81,10 +81,7 @@ func (t *PoolTracker) getNewPoolState(
 		tokenSupply           *big.Int
 	)
 
-	req := t.ethrpcClient.NewRequest()
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.NewRequest().SetOverrides(overrides)
 
 	req.SetContext(ctx).
 		AddCall(&ethrpc.Call{

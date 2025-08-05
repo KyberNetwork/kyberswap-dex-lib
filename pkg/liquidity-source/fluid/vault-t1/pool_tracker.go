@@ -80,10 +80,7 @@ func (t *PoolTracker) getPoolSwapData(
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*SwapData, error) {
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	output := &Swap{}
 	req.AddCall(&ethrpc.Call{

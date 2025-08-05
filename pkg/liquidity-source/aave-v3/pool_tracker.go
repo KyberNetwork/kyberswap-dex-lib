@@ -92,10 +92,7 @@ func (d *PoolTracker) getPoolData(
 	assetToken string,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (RPCData, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	var rpcData RPCData
 
