@@ -90,7 +90,7 @@ func (p *FullRangePool) quoteWithLimitAndOverride(amount *big.Int, isToken1 bool
 		ConsumedAmount:   step.ConsumedAmount,
 		CalculatedAmount: step.CalculatedAmount,
 		FeesPaid:         step.FeeAmount,
-		Gas:              quoting.BaseGasCostOfOneFullRangeSwap,
+		Gas:              quoting.BaseGasFullRangeSwap,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: 0,
 			IsToken1:  isToken1,

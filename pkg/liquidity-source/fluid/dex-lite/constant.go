@@ -121,19 +121,10 @@ var (
 
 // Error definitions
 var (
-	ErrInvalidAmountIn  = errors.New("invalid amountIn")
-	ErrInvalidAmountOut = errors.New("invalid amount out")
-	ErrInvalidToken     = errors.New("invalid token")
-
-	ErrInsufficientReserve    = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
-	ErrSwapAndArbitragePaused = errors.New("swap and arbitrage paused")
-
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity for swap")
-	ErrInvalidPoolState      = errors.New("invalid pool state")
-	ErrPoolNotFound          = errors.New("pool not found")
-
-	ErrInvalidFee                      = errors.New("invalid fee")
-	ErrInvalidCenterPrice              = errors.New("invalid center price")
+	ErrInvalidAmountIn                 = errors.New("invalid amountIn")
+	ErrInvalidAmountOut                = errors.New("invalid amount out")
+	ErrInvalidToken                    = errors.New("invalid token")
+	ErrInsufficientReserve             = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
 	ErrPoolNotInitialized              = errors.New("pool not initialized")
 	ErrExcessiveSwapAmount             = errors.New("excessive swap amount")
 	ErrTokenReservesRatioTooHigh       = errors.New("token reserves ratio too high")
