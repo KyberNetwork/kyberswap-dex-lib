@@ -44,12 +44,15 @@ type Order struct {
 	// for calc taking & making amount after fee
 	ExtensionInstance *helper.Extension         `json:"-"`
 	FeeTakerExtension *helper.FeeTakerExtension `json:"-"`
+
+	MakerTraitsInstance *helper.MakerTraits `json:"-"`
 }
 
 type StaticExtra struct {
 	Token0        string `json:"token0"`
 	Token1        string `json:"token1"`
 	RouterAddress string `json:"routerAddress"`
+	TakerAddress  string `json:"takerAddress"`
 }
 
 type Extra struct {
@@ -151,17 +154,73 @@ func (o *Order) SetRate(r float64) {
 
 func (o *Order) CalcTakingAmount(
 	taker common.Address,
-	takingAmount *uint256.Int,
-) *uint256.Int {
+	makingAmount *uint256.Int,
+) (*uint256.Int, error) {
+	// if the order only allow full fill, we need to return error
+	if o.MakerTraitsInstance != nil && !o.MakerTraitsInstance.IsPartialFillAllowed() {
+		if makingAmount.Cmp(o.MakingAmount) != 0 {
+			return nil, ErrOnlyAllowFullFill
+		}
+
+		return o.TakingAmount, nil
+	}
+
 	takingAmount := utils.CalcTakingAmount(
+		makingAmount,
+		o.MakingAmount,
 		o.TakingAmount,
-		o.RemainingMakerAmount,
-		takingAmount,
 	)
 
 	if o.ExtensionInstance.IsEmpty() {
-		return takingAmount
+		return takingAmount, nil
 	}
 
-	return o.FeeTakerExtension.GetTakingAmount(taker, takingAmount)
+	// in case of having fee logic, we need to check if the fee taker extension is not nil
+	if o.FeeTakerExtension == nil {
+		return nil, ErrFeeTakerExtensionNotFound
+	}
+
+	return uint256.MustFromBig(
+		o.FeeTakerExtension.GetTakingAmount(
+			taker,
+			takingAmount.ToBig(),
+		),
+	), nil
+}
+
+func (o *Order) CalcMakingAmount(
+	taker common.Address,
+	takingAmount *uint256.Int,
+) (*uint256.Int, error) {
+	// if the order only allow full fill, we need to return error
+	if o.MakerTraitsInstance != nil && !o.MakerTraitsInstance.IsPartialFillAllowed() {
+		if takingAmount.Cmp(o.TakingAmount) != 0 {
+			return nil, ErrOnlyAllowFullFill
+		}
+
+		return o.MakingAmount, nil
+	}
+
+	makingAmount := utils.CalcMakingAmount(
+		takingAmount,
+		o.MakingAmount,
+		o.TakingAmount,
+	)
+
+	// if there is no extension, we can return the making amount trivially
+	if o.ExtensionInstance.IsEmpty() {
+		return makingAmount, nil
+	}
+
+	// in case of having fee logic, we need to check if the fee taker extension is not nil
+	if o.FeeTakerExtension == nil {
+		return nil, ErrFeeTakerExtensionNotFound
+	}
+
+	return uint256.MustFromBig(
+		o.FeeTakerExtension.GetMakingAmount(
+			taker,
+			makingAmount.ToBig(),
+		),
+	), nil
 }
