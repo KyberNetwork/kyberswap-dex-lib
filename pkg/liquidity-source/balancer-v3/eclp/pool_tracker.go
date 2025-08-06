@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -92,34 +91,13 @@ func (t *PoolTracker) getNewPoolState(
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
-	var underlyingTokens []common.Address
-	extra.Buffers, underlyingTokens = res.Buffers()
+	extra.Buffers = res.Buffers()
 	extra.ECLPParams = res.ECLPParamsRpc.toInt256()
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		l.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
 		return p, err
-	}
-
-	var hasStaticChange bool
-	for i, token := range underlyingTokens {
-		if extra.Buffers[i] != nil && token != (common.Address{}) {
-			hasStaticChange = true
-			staticExtra.BufferTokens[i] = p.Tokens[i].Address
-			p.Tokens[i] = &entity.PoolToken{
-				Address:   hexutil.Encode(token[:]),
-				Swappable: true,
-			}
-		}
-	}
-	if hasStaticChange {
-		staticExtraBytes, err := json.Marshal(staticExtra)
-		if err != nil {
-			l.WithFields(klog.Fields{"error": err}).Error("failed to marshal static extra data")
-			return p, err
-		}
-		p.StaticExtra = string(staticExtraBytes)
 	}
 
 	p.BlockNumber = res.BlockNumber
@@ -188,7 +166,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Target: poolAddress,
 		Method: poolMethodGetECLPParams,
 	}, []any{&rpcRes.ECLPParamsRpc})
-	rpcRes.Buffers = shared.GetBufferTokens(req, p.Tokens, staticExtra.BufferTokens, t.config.VaultExplorer)
+	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
