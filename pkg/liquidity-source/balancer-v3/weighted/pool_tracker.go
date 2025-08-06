@@ -104,15 +104,11 @@ func (t *PoolTracker) getNewPoolState(
 
 	var hasStaticChange bool
 	for i, token := range underlyingTokens {
-		tokenStr := hexutil.Encode(token[:])
-		if token != (common.Address{}) && !lo.ContainsBy(p.Tokens, func(t *entity.PoolToken) bool {
-			// don't use as buffer token if the underlying token is already contained in the pool as a main token
-			return tokenStr == t.Address
-		}) {
+		if extra.Buffers[i] != nil && token != (common.Address{}) {
 			hasStaticChange = true
 			staticExtra.BufferTokens[i] = p.Tokens[i].Address
 			p.Tokens[i] = &entity.PoolToken{
-				Address:   tokenStr,
+				Address:   hexutil.Encode(token[:]),
 				Swappable: true,
 			}
 		}

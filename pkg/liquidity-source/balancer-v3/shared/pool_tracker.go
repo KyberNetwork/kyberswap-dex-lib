@@ -5,6 +5,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -38,8 +39,13 @@ func GetBufferTokens(req *ethrpc.Request, poolTokens []*entity.PoolToken, buffer
 		}
 	}
 	return func() ([]*ExtraBuffer, []common.Address) {
-		return lo.Map(res, func(v *big.Int, _ int) *ExtraBuffer {
-			if v == nil {
+		return lo.Map(res, func(v *big.Int, i int) *ExtraBuffer {
+			tokenStr := hexutil.Encode(underlyingTokens[i][:])
+			if v == nil || bufferTokens[i] == "" && (underlyingTokens[i] == (common.Address{}) ||
+				lo.ContainsBy(poolTokens, func(t *entity.PoolToken) bool {
+					// don't use as buffer token if the underlying token is already contained in the pool as a main token
+					return tokenStr == t.Address
+				})) {
 				return nil
 			}
 			return &ExtraBuffer{
