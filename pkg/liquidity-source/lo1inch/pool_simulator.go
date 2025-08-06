@@ -38,8 +38,9 @@ type PoolSimulator struct {
 	// will be aggregated up by router-service to be a global value for all maker:makerAsset in LO
 	minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*uint256.Int
 
-	routerAddress string
-	takerAddress  common.Address
+	routerAddress          string
+	takerAddress           common.Address
+	takerTargetInteraction string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -146,6 +147,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		minBalanceAllowanceByMakerAndAsset: minBalanceAllowanceByMakerAndAsset,
 		routerAddress:                      staticExtra.RouterAddress,
 		takerAddress:                       common.HexToAddress(staticExtra.TakerAddress),
+		takerTargetInteraction:             staticExtra.TakerTargetInteraction,
 	}, nil
 }
 
@@ -492,7 +494,10 @@ func (p *PoolSimulator) getSwapSide(tokenIn string) SwapSide {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{ApprovalAddress: p.routerAddress}
+	return MetaInfo{
+		ApprovalAddress:        p.routerAddress,
+		TakerTargetInteraction: p.takerTargetInteraction,
+	}
 }
 
 // Inventory Limit
