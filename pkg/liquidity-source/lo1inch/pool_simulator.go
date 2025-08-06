@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -38,6 +39,7 @@ type PoolSimulator struct {
 	minBalanceAllowanceByMakerAndAsset map[makerAndAsset]*uint256.Int
 
 	routerAddress string
+	takerAddress  common.Address
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -77,6 +79,23 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		order.FeeTakerExtension = &feeTakerExtension
 		order.ExtensionInstance = &extensionInstance
+		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
+	}
+
+	for _, order := range extra.TakeToken1Orders {
+		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
+		if err != nil {
+			return nil, fmt.Errorf("decode extension: %w", err)
+		}
+
+		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
+		if err != nil {
+			return nil, fmt.Errorf("new fee taker extension: %w", err)
+		}
+
+		order.FeeTakerExtension = &feeTakerExtension
+		order.ExtensionInstance = &extensionInstance
+		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
 	}
 
 	takeToken0OrdersMapping := make(map[string]int, len(extra.TakeToken0Orders))
@@ -118,6 +137,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		takeToken1OrdersMapping:            takeToken1OrdersMapping,
 		minBalanceAllowanceByMakerAndAsset: minBalanceAllowanceByMakerAndAsset,
 		routerAddress:                      staticExtra.RouterAddress,
+		takerAddress:                       common.HexToAddress(staticExtra.TakerAddress),
 	}, nil
 }
 
@@ -186,22 +206,29 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		// calculate order's remaining taking amount
 		// orderRemainingTakingAmount = order.TakingAmount * orderRemainingMakingAmount / order.MakingAmount
-		orderRemainingTakingAmount := number.Set(order.TakingAmount)
-		orderRemainingTakingAmount.Mul(orderRemainingTakingAmount, orderRemainingMakingAmount)
-		orderRemainingTakingAmount.Div(orderRemainingTakingAmount, order.MakingAmount)
+		// but some orders have extension and fee, so we need to use the extension to calculate the taking amount
+		orderRemainingTakingAmount, err := order.CalcTakingAmount(p.takerAddress, orderRemainingMakingAmount)
+		if err != nil {
+			// if only allow full fill, skip this order
+			if err == ErrOnlyAllowFullFill {
+				continue
+			}
+
+			return nil, err
+		}
 
 		totalMakingAmount.Add(totalMakingAmount, orderRemainingMakingAmount)
 
 		// Case 1: This order can fulfill the remaining amount in
 		if orderRemainingTakingAmount.Cmp(remainingAmountIn) >= 0 {
-			orderAmountOut, overflow := new(uint256.Int).MulDivOverflow(
-				remainingAmountIn,
-				order.MakingAmount,
-				order.TakingAmount,
-			)
+			orderAmountOut, err := order.CalcMakingAmount(p.takerAddress, remainingAmountIn)
+			if err != nil {
+				// if only allow full fill, skip this order
+				if err == ErrOnlyAllowFullFill {
+					continue
+				}
 
-			if overflow {
-				continue
+				return nil, err
 			}
 
 			// order too small
