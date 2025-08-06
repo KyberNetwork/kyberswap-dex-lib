@@ -52,7 +52,13 @@ type StaticExtra struct {
 	Token0        string `json:"token0"`
 	Token1        string `json:"token1"`
 	RouterAddress string `json:"routerAddress"`
-	TakerAddress  string `json:"takerAddress"`
+	// TakerAddress should be whitelisted by 1inch team
+	// for example: the 1inch team mine a NFT to the executor contract, so takerAddress = Executor Address
+	TakerAddress string `json:"takerAddress"`
+	// TakerTargetInteraction
+	// Call back target interaction, use in case that we don't use KS Aggregator to check min amount out.
+	// It's should be the reserve fund contract address.
+	TakerTargetInteraction string `json:"takerTargetInteraction"`
 }
 
 type Extra struct {
