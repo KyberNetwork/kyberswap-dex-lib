@@ -408,3 +408,21 @@ func (r *redisRepository) AddScoreToSortedSets(ctx context.Context, scores []ent
 
 	return err
 }
+
+func (r *redisRepository) RemoveScoreToSortedSets(ctx context.Context, scores []entity.PoolScore) error {
+	if len(scores) == 0 {
+		return nil
+	}
+
+	_, err := r.redisClient.Pipelined(
+		ctx, func(tx redis.Pipeliner) error {
+			for _, score := range scores {
+				tx.ZRem(ctx, score.Key, score.Pool)
+			}
+
+			return nil
+		},
+	)
+
+	return err
+}

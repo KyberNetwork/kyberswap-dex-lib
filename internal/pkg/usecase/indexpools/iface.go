@@ -63,6 +63,7 @@ type IPoolRankRepository interface {
 	RemoveAddressesFromWhitelistIndex(ctx context.Context, key string, pools []string, removeFromGlobal bool) error
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)
 	AddScoreToSortedSets(ctx context.Context, scores []routerEntity.PoolScore) error
+	RemoveScoreToSortedSets(ctx context.Context, scores []routerEntity.PoolScore) error
 }
 
 type IPoolFactory interface {

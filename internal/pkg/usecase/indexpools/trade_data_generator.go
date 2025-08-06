@@ -215,7 +215,7 @@ func (gen *TradeDataGenerator) Handle(ctx context.Context,
 }
 
 func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
-	indexBlacklistWlPools mapset.Set[string],
+	indexBlacklistPools mapset.Set[string],
 	dexUseSwapLimit []string,
 	addresses []string) TradeDataGenerationResult {
 	// 1. Prepare data for handle chunk by chunk
@@ -235,13 +235,14 @@ func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
 		lowerAddr := strings.ToLower(addr)
 		return !gen.config.BlacklistedPoolSet[lowerAddr] &&
 			!dynamicBlacklistPools.ContainsOne(lowerAddr) &&
-			!indexBlacklistWlPools.ContainsOne(lowerAddr)
+			!indexBlacklistPools.ContainsOne(lowerAddr)
 	}
 	alreadyProceedPools, rfqResult := gen.handleRFQDexes(
 		ctx,
 		dexUseSwapLimit,
 		poolFilter,
-		poolAddressFilter)
+		poolAddressFilter,
+		indexBlacklistPools)
 
 	// 3. Proceed remain dexes
 	nonRFQPoolAddressFilter := func(addr string, _ int) bool {
@@ -249,13 +250,14 @@ func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
 		return !alreadyProceedPools.ContainsOne(lowerAddr) &&
 			!gen.config.BlacklistedPoolSet[lowerAddr] &&
 			!dynamicBlacklistPools.ContainsOne(lowerAddr) &&
-			!indexBlacklistWlPools.ContainsOne(lowerAddr)
+			!indexBlacklistPools.ContainsOne(lowerAddr)
 	}
 	allPoolResult := gen.handlePools(
 		ctx,
 		poolFilter,
 		nonRFQPoolAddressFilter,
 		addresses,
+		indexBlacklistPools,
 	)
 
 	return TradeDataGenerationResult{
@@ -267,7 +269,8 @@ func (gen *TradeDataGenerator) handleAllPools(ctx context.Context,
 func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 	dexUseSwapLimit []string,
 	poolFilter getpools.PoolFilter,
-	poolAddressFilter getpools.PoolAddressFilter) (mapset.Set[string], TradeDataGenerationResult) {
+	poolAddressFilter getpools.PoolAddressFilter,
+	indexBlacklistPools mapset.Set[string]) (mapset.Set[string], TradeDataGenerationResult) {
 	alreadyProceed := mapset.NewThreadUnsafeSet[string]()
 	blacklistPools := mapset.NewThreadUnsafeSet[string]()
 	var zeroPoolScores []routerEntity.PoolScore
@@ -318,7 +321,10 @@ func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 				Msg("processChunk failed")
 		} else {
 			filename := fmt.Sprintf("Chunk_%s.txt_%s", dex, jobID)
-			fileNames, err := gen.writeTradeData(ctx, result, filename)
+			fileNames, removalScores, err := gen.writeTradeData(ctx, result, filename, indexBlacklistPools)
+			if len(removalScores) != 0 {
+				gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
+			}
 			log.Ctx(ctx).Info().
 				Str("struct", "TradeDataGenerator").
 				Str("method", "handleRFQDexes").
@@ -352,7 +358,8 @@ func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 	poolFilter getpools.PoolFilter,
 	poolAddressFilter getpools.PoolAddressFilter,
-	addresses []string) TradeDataGenerationResult {
+	addresses []string,
+	indexBlacklistPools mapset.Set[string]) TradeDataGenerationResult {
 
 	addresses = lo.Filter(addresses, poolAddressFilter)
 	fileNames := mapset.NewThreadUnsafeSet[string]()
@@ -375,7 +382,7 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 				Str("method", "Handle").
 				Msg("processChunk failed")
 		} else {
-			files, err := gen.writeTradeData(ctx, result, fileName)
+			files, removalScores, err := gen.writeTradeData(ctx, result, fileName, indexBlacklistPools)
 			if err != nil {
 				log.Ctx(ctx).Err(err).
 					Str("struct", "TradeDataGenerator").
@@ -383,6 +390,9 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 					Msg("writeTradeData failed")
 			} else {
 				fileNames = fileNames.Union(files)
+				if len(removalScores) != 0 {
+					gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
+				}
 			}
 			blacklistPools = blacklistPools.Union(result.Blacklist)
 			gen.saveZeroScore(ctx, result.ZeroScorePools)
@@ -396,10 +406,11 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 
 }
 
-func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output TradesGenerationOutput, filename string) (mapset.Set[string], error) {
+func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output TradesGenerationOutput, filename string, totalBlacklistPools mapset.Set[string]) (mapset.Set[string], []routerEntity.PoolScore, error) {
 	var whitelistBuffer *bufio.Writer
 	var successedBuffer *bufio.Writer
 	names := mapset.NewThreadUnsafeSet[string]()
+	removalScores := make([]routerEntity.PoolScore, 0, len(output.Failed))
 
 	var failedBuffer *bufio.Writer
 	if gen.config.ExportFailedTrade {
@@ -427,7 +438,7 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 				// open single file for whitelist-whitelist set
 				whitelistFile, err := os.OpenFile(whitelistFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
-					return names, err
+					return names, removalScores, err
 				}
 				defer whitelistFile.Close()
 				names.Add(whitelistFileName)
@@ -441,7 +452,7 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 			name := strings.Join([]string{gen.config.FilePath, filename}, "")
 			file, err := os.Create(name)
 			if err != nil {
-				return names, err
+				return names, removalScores, err
 			}
 			defer file.Close()
 			names.Add(name)
@@ -461,6 +472,18 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 		} else if gen.config.LogError {
 			log.Ctx(ctx).Error().Msgf("Generate trade data failed %s:%s", p, jsonErr)
 		}
+
+		// only remove diff values from previous blacklisted pools
+		if p.Type == valueobject.WHITELIST_WHITELIST &&
+			!totalBlacklistPools.IsEmpty() && !totalBlacklistPools.ContainsOne(p.Pool) &&
+			errTrades != nil && errTrades.Liquidity < gen.config.minThresholdTvl {
+			for _, tr := range errTrades.TradeData {
+				removalScores = append(removalScores, routerEntity.PoolScore{
+					Pool: tr.Pool,
+					Key:  tr.Key,
+				})
+			}
+		}
 	}
 
 	if successedBuffer != nil {
@@ -471,7 +494,7 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 		whitelistBuffer.Flush()
 	}
 
-	return names, nil
+	return names, removalScores, nil
 }
 
 func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
@@ -584,11 +607,13 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 		poolTokens := pool.GetTokens()
 		tvlNative, err := business.CalculatePoolTVL(ctx, poolMap[pool.GetAddress()], prices, true)
 		if err != nil {
-			log.Ctx(ctx).Err(err).
-				Str("struct", "TradeDataGenerator").
-				Str("method", "processChunk").
-				Str("pool", pool.GetAddress()).
-				Msg("tvlNative could not be calculated")
+			if gen.config.LogError {
+				log.Ctx(ctx).Err(err).
+					Str("struct", "TradeDataGenerator").
+					Str("method", "processChunk").
+					Str("pool", pool.GetAddress()).
+					Msg("tvlNative could not be calculated")
+			}
 			tvlNative = 0.0
 		}
 		tvl[pool.GetAddress()] = tvlNative * nativePriceUsd
@@ -651,12 +676,14 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 					tvlOfPair, err := business.CalculatePoolTVLForTokenPair(ctx, poolMap[pool.GetAddress()], prices,
 						[]int{i, j})
 					if err != nil {
-						log.Ctx(ctx).Err(err).
-							Str("struct", "TradeDataGenerator").
-							Str("method", "generateTradeData").
-							Str("pool", pool.GetAddress()).
-							Ints("tokenId", []int{i, j}).
-							Msg("calculate pool tvl for token pair failed")
+						if gen.config.LogError {
+							log.Ctx(ctx).Err(err).
+								Str("struct", "TradeDataGenerator").
+								Str("method", "generateTradeData").
+								Str("pool", pool.GetAddress()).
+								Ints("tokenId", []int{i, j}).
+								Msg("calculate pool tvl for token pair failed")
+						}
 					}
 					keys := gen.generateTradeDataKey(tokenI, tokenJ)
 					for _, key := range keys {
@@ -744,13 +771,15 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 			if errors.Is(tr.Err, ErrNotEnoughSuccessTradeData) ||
 				errors.Is(tr.Err, ErrTokensHaveWrongPrice) ||
 				errors.Is(tr.Err, ErrNotFindStartAmount) {
-				log.Ctx(ctx).Info().Err(tr.Err).
-					Str("struct", "TradeDataGenerator").
-					Str("method", "proceedChunk").
-					Str("pool", tr.Pool).
-					Str("tokenIn", tr.TokenIn).
-					Str("tokenOut", tr.TokenOut).
-					Msg("add to ZeroScore")
+				if gen.config.LogError {
+					log.Ctx(ctx).Info().Err(tr.Err).
+						Str("struct", "TradeDataGenerator").
+						Str("method", "proceedChunk").
+						Str("pool", tr.Pool).
+						Str("tokenIn", tr.TokenIn).
+						Str("tokenOut", tr.TokenOut).
+						Msg("add to ZeroScore")
+				}
 				keys := gen.generateTradeDataKey(tr.TokenIn, tr.TokenOut)
 				score := 0.0
 				if errors.Is(tr.Err, ErrNotEnoughSuccessTradeData) ||
@@ -782,16 +811,6 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 	// Add zero reserves pools and pools which doesn't yield any successful swaps to blacklist
 	indexBlacklistTrack = indexBlacklistTrack.Union(gen.filterFailedPools(result, hasError))
 
-	log.Ctx(ctx).Info().
-		Str("struct", "TradeDataGenerator").
-		Str("method", "proceedChunk").
-		Int("chunk", len(chunk)).
-		Int("successResult", countSuccess).
-		Int("failedResult", countError).
-		Int("zeroPoolScores", len(zeroPoolScores)).
-		Int("tradeDataCount", tradaDataCount).
-		Msg("proceedChunk done")
-
 	return TradesGenerationOutput{
 		Successed:      result,
 		Failed:         hasError,
@@ -821,21 +840,18 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	successCount := 0
 
 	if prices[tokenIn] == nil || prices[tokenIn].GetSellPriceIfAny() == 0 {
-		log.Ctx(ctx).Info().
-			Str("struct", "TradeDataGenerator").
-			Str("method", "generateTradeData").
-			Str("tokenIn", tokenIn).
-			Msg("price of token in is nil")
 		amountIn, err = gen.findStartAmount(ctx, tokenIn, tokenOut, tokens, prices, pool, limit,
 			calcAmountOutInstance.CalcAmountOut)
 		if err != nil || amountIn == nil {
-			log.Ctx(ctx).Err(err).
-				Str("struct", "TradeDataGenerator").
-				Str("method", "generateTradeData").
-				Str("pool", pool.GetAddress()).
-				Str("tokenIn", tokenIn).
-				Str("tokenOut", tokenOut).
-				Msg("findStartAmount failed")
+			if gen.config.LogError {
+				log.Ctx(ctx).Err(err).
+					Str("struct", "TradeDataGenerator").
+					Str("method", "generateTradeData").
+					Str("pool", pool.GetAddress()).
+					Str("tokenIn", tokenIn).
+					Str("tokenOut", tokenOut).
+					Msg("findStartAmount failed")
+			}
 			return []TradeData{
 				{
 					Key:      key,
@@ -855,11 +871,13 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	if gen.poolHasLimitCheck(pool.GetType()) {
 		startAmountIn, err := gen.findStartAmountForPoolHasLimitCheck(ctx, tokenIn, tokenOut, amountIn, 0, tokens, prices, pool, limit, calcAmountOutInstance.CalcAmountOut)
 		if err != nil || startAmountIn == nil {
-			log.Ctx(ctx).Err(err).
-				Str("struct", "TradeDataGenerator").
-				Str("method", "generateTradeData").
-				Msgf("can not find start amount in for pool %v tokenIn %v amountIn %v", pool.GetAddress(), tokenIn,
-					amountIn.Text(10))
+			if gen.config.LogError {
+				log.Ctx(ctx).Err(err).
+					Str("struct", "TradeDataGenerator").
+					Str("method", "generateTradeData").
+					Msgf("can not find start amount in for pool %v tokenIn %v amountIn %v", pool.GetAddress(), tokenIn,
+						amountIn.Text(10))
+			}
 			return []TradeData{
 				{
 					Key:      key,
@@ -916,17 +934,19 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 				} else {
 					priceDifferencePercentage = math.Abs(amountInUsd-amountOutUsdResult) / amountInUsd
 					if priceDifferencePercentage >= gen.config.InvalidPriceImpactThreshold {
-						log.Ctx(ctx).Error().
-							Str("struct", "TradeDataGenerator").
-							Str("method", "generateTradeData").
-							Str("pool", pool.GetAddress()).
-							Str("tokenIn", tokenIn).
-							Str("tokenOut", tokenOut).
-							Stringer("AmountIn", amountIn).
-							Float64("AmountInUsd", amountInUsd).
-							Any("AmountOut", amountOut).
-							Float64("AmountOutUsd", amountOutUsdResult).
-							Msg("tokens have incorrect prices")
+						if gen.config.LogError {
+							log.Ctx(ctx).Error().
+								Str("struct", "TradeDataGenerator").
+								Str("method", "generateTradeData").
+								Str("pool", pool.GetAddress()).
+								Str("tokenIn", tokenIn).
+								Str("tokenOut", tokenOut).
+								Stringer("AmountIn", amountIn).
+								Float64("AmountInUsd", amountInUsd).
+								Any("AmountOut", amountOut).
+								Float64("AmountOutUsd", amountOutUsdResult).
+								Msg("tokens have incorrect prices")
+						}
 						return []TradeData{
 							{
 								Key:      key,
@@ -987,14 +1007,16 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	}
 
 	if successCount < MIN_DATA_POINT_NUMBER_DEFAULT {
-		log.Ctx(ctx).Error().
-			Str("struct", "TradeDataGenerator").
-			Str("method", "generateTradeData").
-			Str("pool", pool.GetAddress()).
-			Str("tokenIn", tokenIn).
-			Str("tokenOut", tokenOut).
-			Any("tradeData", result).
-			Msg("not generage enough trade data")
+		if gen.config.LogError {
+			log.Ctx(ctx).Error().
+				Str("struct", "TradeDataGenerator").
+				Str("method", "generateTradeData").
+				Str("pool", pool.GetAddress()).
+				Str("tokenIn", tokenIn).
+				Str("tokenOut", tokenOut).
+				Any("tradeData", result).
+				Msg("not generage enough trade data")
+		}
 		return []TradeData{
 			{
 				Key:      key,

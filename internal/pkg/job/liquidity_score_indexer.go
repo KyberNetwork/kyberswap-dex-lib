@@ -172,19 +172,25 @@ func (j *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
 			Msg("job failed in generate trade data step len of files is 0")
 	}
 
-	scoreFiles := j.runCalculationJob(ctx, tradeFiles.ToSlice(), entropyFactor)
+	scoreFiles, invalidScoreFileName := j.runCalculationJob(ctx, tradeFiles.ToSlice(), entropyFactor)
 	if len(scoreFiles) == 0 {
 		log.Ctx(ctx).Error().
 			Str("job.name", LiquidityScoreIndexPools).
 			Msg("job failed in liquidity score calculation step len of score files is 0")
 	}
 
-	errs := j.updatePoolScores.ProcessScoreFiles(ctx, scoreFiles)
+	errs := j.updatePoolScores.ProcessScoreFiles(ctx, scoreFiles, invalidScoreFileName)
 	if len(errs) != 0 {
 		log.Ctx(ctx).Error().
 			Str("job.name", LiquidityScoreIndexPools).
 			Errs("error", errs).
 			Msg("update pools for whitelist index failed")
+	}
+
+	if err := os.Remove(invalidScoreFileName); err != nil {
+		log.Ctx(ctx).Err(err).
+			Str("job.name", LiquidityScoreIndexPools).
+			Msg("remove invalid score file with err")
 	}
 
 	// remove scores file name because we have multiple scores files which can increases pod storage
@@ -209,28 +215,39 @@ func (j *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
 }
 
 func (j *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, tradeDataFileNames []string,
-	entropyFactor float64) []string {
+	entropyFactor float64) ([]string, string) {
 	// pass a float64 as a params to python job
 	scoreFileNames := make([]string, 0, len(tradeDataFileNames))
+	invalidScoreFileName := ""
 	for _, tradeFile := range tradeDataFileNames {
 		factorParam := strconv.FormatFloat(NON_FILTER_ENTROPY, 'f', -1, 64)
 		// only apply entropyFactor for whitelist - whitelist pools
+		invalidScoreFn := ""
 		id := strings.LastIndex(tradeFile, "/")
 		if tradeFile[id+1:] == indexpools.WHITELIST_FILENAME {
 			factorParam = strconv.FormatFloat(entropyFactor, 'f', -1, 64)
+			invalidScoreFileName = tradeFile[:id+1] + indexpools.INVALID_SCORE_FILENAME
+			invalidScoreFn = invalidScoreFileName
 		}
 		scoreFileName := fmt.Sprintf("%s%s", tradeFile, "-Score")
-		c := exec.Command(j.config.LiquidityScoreCalcScript, factorParam, tradeFile, scoreFileName)
+		c := exec.Command(j.config.LiquidityScoreCalcScript, factorParam, tradeFile, scoreFileName, invalidScoreFn)
 		var out bytes.Buffer
 		var stderr bytes.Buffer
 		c.Stdout = &out
 		c.Stderr = &stderr
 
 		if err := c.Run(); err != nil {
-			log.Ctx(ctx).Err(err).
-				Str("job.name", LiquidityScoreIndexPools).
-				Str("tradeFile", tradeFile).
-				Msgf("error when execute liquidity calc error %v", stderr.String())
+			if exitError, ok := err.(*exec.ExitError); ok {
+				log.Ctx(ctx).Error().
+					Str("job.name", LiquidityScoreIndexPools).
+					Str("tradeFile", tradeFile).
+					Msgf("runCalculationJob failed with exit code %d err %v", exitError.ExitCode(), stderr.String())
+			} else {
+				log.Ctx(ctx).Err(err).
+					Str("job.name", LiquidityScoreIndexPools).
+					Str("tradeFile", tradeFile).
+					Msgf("runCalculationJob failed with err")
+			}
 			continue
 		}
 
@@ -242,7 +259,7 @@ func (j *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context, tra
 		scoreFileNames = append(scoreFileNames, scoreFileName)
 	}
 
-	return scoreFileNames
+	return scoreFileNames, invalidScoreFileName
 }
 
 func (j *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context,

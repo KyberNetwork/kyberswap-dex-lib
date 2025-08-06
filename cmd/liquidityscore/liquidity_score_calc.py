@@ -45,15 +45,15 @@ def arithmetic_mean(nums):
     return sum(nums) / len(nums)
 
 def compute_price_impacts_log_scale(trades_data):
-    price_impacts_original = [(trade, (1 - (received / trade)), token_in, token_out, set_type) for trade, received, token_in, token_out, set_type in trades_data]
-    return [(math.log(trade, 10), impact, token_in, token_out, set_type) for trade, impact, token_in, token_out, set_type in price_impacts_original]
+    price_impacts_original = [(trade, (1 - (received / trade)), token_in, token_out, set_type, tvl_in_usd) for trade, received, token_in, token_out, set_type, tvl_in_usd in trades_data]
+    return [(math.log(trade, 10), impact, token_in, token_out, set_type, tvl_in_usd) for trade, impact, token_in, token_out, set_type, tvl_in_usd in price_impacts_original]
 
 def distance(m, trades):
-    x_values, y_values, _, _, _ = zip(*trades)
+    x_values, y_values, _, _, _, _ = zip(*trades)
     return np.sum(np.abs(y_values - (10**np.array(x_values) - 1) / (m + 10**np.array(x_values) - 1)))
 
 def find_best_m(trades):
-    x_values, y_values, _, _, _ = zip(*trades)
+    x_values, y_values, _, _, _, _ = zip(*trades)
     x_values = np.array(x_values)
     y_values = np.array(y_values)
 
@@ -87,9 +87,8 @@ def calculate_scores(pools, default_scores) -> dict:
             map_key = pool.key + pool.address
             if map_key not in default_scores:
                 default_scores[map_key] = []
-
-            # score, token_in, token_out, level, pool_address
-            default_scores[map_key].append((tmp_score, pool.data[0][2], pool.data[0][3], pool.level, pool.address, pool.data[0][4]))
+            # score, token_in, token_out, level, pool_address, key, tvl_in_usd
+            default_scores[map_key].append((tmp_score, pool.data[0][2], pool.data[0][3], pool.level, pool.address, pool.data[0][4], pool.data[0][5]))
         except Exception as e:
             print(f'Exception while find_best_m {e} pool {pool.address} tradedata {pool.data}')
     
@@ -108,9 +107,9 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
         invalid_scores = []
         # we need to filter out zero score from mean calculation input
         # with every whitelist-whitelist pair score, we have to store the pair scores in to 3 different keys
-        # example: we have a pair ETH-USDC, we have to store mean value score as whitelist-whitelis key
+        # example: we have a pair ETH-USDC, we have to store mean value score as whitelist-whitelist key
         # ETH-whitelist score for the original value, and whitelist-USDC for the original value as well
-        for score, token_in, token_out, level, pool_address, key_set_type in scores:
+        for score, token_in, token_out, level, pool_address, key_set_type, tvl_in_usd in scores:
             score_key = key[:-len(pool_address)]
             if score <= min_valid_score:
                 price_impact_zero_tokens.add(token_in)
@@ -127,8 +126,8 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                 if wl_token_key not in extra_scores:
                     extra_scores[wl_token_key] = []
                                 
-                extra_scores[token_wl_key].append((score, token_in, token_out, level, pool_address, entities.SortedSetType.TOKEN_WHITELIST))
-                extra_scores[wl_token_key].append((score, token_in, token_out, level, pool_address, entities.SortedSetType.WHITELIST_TOKEN))
+                extra_scores[token_wl_key].append((score, token_in, token_out, level, pool_address, entities.SortedSetType.TOKEN_WHITELIST, tvl_in_usd))
+                extra_scores[wl_token_key].append((score, token_in, token_out, level, pool_address, entities.SortedSetType.WHITELIST_TOKEN, tvl_in_usd))
             if key_set_type == entities.SortedSetType.TOKEN_WHITELIST or key_set_type == entities.SortedSetType.WHITELIST_TOKEN:
                 direct_key = extract_prefix(score_key, key_set_type, len(token_in)) + token_in + '-' + token_out
                 direct_scores[direct_key+pool_address] = {
@@ -137,13 +136,14 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                     'harmonic': score,
                     'geometric': score,
                     'arithmetic': score,
-                    'level': level
+                    'level': level,
+                    'tvl_in_usd': tvl_in_usd,
                 }
-        
+
         if len(valid_scores) == 0:
             valid_scores = invalid_scores
         sorted_set_key = key[:-len(pool_address)]
-            
+
         if len(valid_scores) == 1:
             result.append({
                 'key': sorted_set_key,
@@ -151,7 +151,8 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                 'harmonic': float(valid_scores[0]),
                 'geometric': float(valid_scores[0]),
                 'arithmetic': float(valid_scores[0]),
-                'level': level
+                'level': level,
+                'tvl_in_usd': tvl_in_usd,
             })
         elif len(valid_scores) >= 2:
             try:
@@ -168,7 +169,8 @@ def calculate_mean_scores(score_map, min_valid_score) -> entities.LiquidityScore
                     'harmonic': float(harmonic),
                     'geometric': float(geometric),
                     'arithmetic': float(arithmetic),
-                    'level': level
+                    'level': level,
+                    'tvl_in_usd': tvl_in_usd,
                 })
             except Exception as e:
                 print(f'Exception while calculate mean values {e} pool {pool_address} scores {valid_scores}')

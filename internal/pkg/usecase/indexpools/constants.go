@@ -5,6 +5,7 @@ import "errors"
 const PRICE_CHUNK_SIZE = 100
 const MAX_AMOUNT_OUT_USD = 10_000_000_000_000
 const WHITELIST_FILENAME = "whitelist-whitelist.txt"
+const INVALID_SCORE_FILENAME = "invalidScores.txt-Score"
 const WHITELIST_SCORE_FILENAME = "whitelist-whitelist.txt-Score"
 const ZERO_SCORES_FILENAME = "zeroScores.txt-Score"
 const MIN_DATA_POINT_NUMBER_DEFAULT = 6

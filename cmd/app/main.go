@@ -941,7 +941,6 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		poolRankRepo, getPools, aevmClient, poolFactory, &cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(
 		poolRankRepo,
-		poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank),
 		&cfg.UseCase.UpdateLiquidityScoreConfig)
 	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
 	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)

@@ -284,7 +284,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl:
+  httpUrl: 
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -653,6 +653,7 @@ useCase:
     poolHasManyTokensDefaultScore: 1000
     filePath: &scoreFilePath "./data/"
     exportZeroScores: false
+    minThresholdTvl: 100
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions

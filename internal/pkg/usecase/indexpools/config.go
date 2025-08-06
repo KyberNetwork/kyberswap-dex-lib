@@ -33,6 +33,7 @@ type TradeDataGeneratorConfig struct {
 	PoolHasManyTokensDefaultScore float64         `mapstructure:"poolHasManyTokensDefaultScore"`
 	FilePath                      string          `mapstructure:"filePath"`
 	ExportZeroScores              bool            `mapstructure:"exportZeroScores"`
+	minThresholdTvl               float64         `mapstructure:"minThresholdTvl"`
 }
 
 type UpdateLiquidityScoreConfig struct {

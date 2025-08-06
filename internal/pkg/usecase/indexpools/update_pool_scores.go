@@ -35,17 +35,34 @@ const (
 
 func NewUpdatePoolsScore(
 	rankingRepo IPoolRankRepository,
-	backupRankingRepo IPoolRankRepository,
 	config *UpdateLiquidityScoreConfig) *UpdatePoolScores {
 	return &UpdatePoolScores{
-		rankingRepo:       rankingRepo,
-		backupRankingRepo: backupRankingRepo,
-		config:            config,
+		rankingRepo: rankingRepo,
+		config:      config,
 	}
 }
 
-func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileNames []string) []error {
-	result := make([]error, 0, 4)
+func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileNames []string, invalidScoreFileName string) []error {
+	errors := u.saveLiquidityScores(ctx, scoresFileNames, func(ctx context.Context, scores []entity.PoolScore) error {
+		return u.rankingRepo.AddScoreToSortedSets(ctx, scores)
+	})
+
+	removeErrors := u.saveLiquidityScores(ctx, []string{invalidScoreFileName}, func(ctx context.Context, scores []entity.PoolScore) error {
+		return u.rankingRepo.RemoveScoreToSortedSets(ctx, scores)
+	})
+	if len(removeErrors) != 0 {
+		log.Ctx(ctx).Error().
+			Errs("errors", removeErrors).
+			Str("struct", "UpdateLiquidityScore").
+			Str("method", "ProcessScoreFiles error remove invalid liquidity scores")
+	}
+
+	return errors
+
+}
+
+func (u *UpdatePoolScores) saveLiquidityScores(ctx context.Context, scoresFileNames []string, handler func(ctx context.Context, scores []entity.PoolScore) error) []error {
+	result := []error{}
 	scoresChan := make(chan []entity.PoolScore, len(scoresFileNames))
 	errorChan := make(chan error, len(scoresFileNames))
 
@@ -63,7 +80,7 @@ func (u *UpdatePoolScores) ProcessScoreFiles(ctx context.Context, scoresFileName
 	count := 0
 	// Process scores and collect errors
 	for scores := range scoresChan {
-		err := u.rankingRepo.AddScoreToSortedSets(ctx, scores)
+		err := handler(ctx, scores)
 		if err != nil {
 			result = append(result, err)
 		}

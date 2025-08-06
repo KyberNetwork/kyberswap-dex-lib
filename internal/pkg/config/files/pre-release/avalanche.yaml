@@ -488,6 +488,7 @@ useCase:
     poolHasManyTokensDefaultScore: 1000
     filePath: &scoreFilePath "./data/"
     exportZeroScores: false
+    minThresholdTvl: 100
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions

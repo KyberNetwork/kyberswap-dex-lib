@@ -39,7 +39,7 @@ type IRemovePoolsFromIndexUseCase interface {
 }
 
 type IUpdatePoolScores interface {
-	ProcessScoreFiles(ctx context.Context, scoresFile []string) []error
+	ProcessScoreFiles(ctx context.Context, scoresFile []string, invalidScoreFileName string) []error
 }
 
 type IBlacklistIndexPoolsUsecase interface {

@@ -19,40 +19,39 @@ def main():
     trade_data_filename = os.environ.get('TRADE__DATA__FILE')
     mean_type = os.environ.get('MEAN__TYPE')
     target_factor_entropy = os.environ.get('TARGET__FACTOR__ENTROPY')
-    min_threshold_amount_out_percentage = os.environ.get('MIN__THRESHOLD__PERCENTAGE')
-    min_filtered_pools_len = os.environ.get('MIN__FILTERED__POOL__LEN')
+    min_threshold_amount_out_percentage = float(os.environ.get('MIN__THRESHOLD__PERCENTAGE'))
+    min_filtered_pools_len = int(os.environ.get('MIN__FILTERED__POOL__LEN'))
     filter_score_filename = os.environ.get('USECASE__UPDATELIQUIDITYSCORE__INPUTFILENAME')
+    invalid_scores_filename = os.environ.get('INVALID__SCORES__FILE')
+    min_threshold_tvl_in_usd = float(os.environ.get('USECASE__TRADEDATAGENERATOR__MINTHRESHOLDTVL'))
 
     # Get configs from params
     args = sys.argv
-    if len(args) == 4:
+    if len(args) == 5:
         target_factor_entropy = args[1]
         trade_data_filename = args[2]
         filter_score_filename = args[3]
+        invalid_scores_filename = args[4]
     
-    trade_data_file = read_trade_data(trade_data_filename, float(min_threshold_amount_out_percentage))
+    trade_data_file = read_trade_data(trade_data_filename, min_threshold_amount_out_percentage)
     if len(trade_data_file.pools) == 0:
         return
     
     print(f'invalid pools after read trade data {trade_data_file.invalid_pools}')
-    pool_scores = calculate_liquidity_scores(trade_data_file, target_factor_entropy, min_filtered_pools_len, mean_type)
-    # using score.txt for debug only purpose
-    # if env == DEV_ENV:
-    #     pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
+    pool_scores = calculate_liquidity_scores(trade_data_file, target_factor_entropy, min_filtered_pools_len, mean_type, invalid_scores_filename, min_threshold_tvl_in_usd)
 
     save_scores(filter_score_filename, pool_scores)
 
 
-def filter_scores(pool_scores, mean_type, min_score, min_len) -> list:
+def filter_scores(pool_scores, mean_type, min_score, min_len):
     pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
-    filter_scores = []
-    for v in pool_scores:
-        if v[mean_type] >= min_score or len(filter_scores) < min_len:
-            filter_scores.append(v)
-        else:
+    index = 0
+    for i in range(len(pool_scores) - 1, -1, -1):
+        if pool_scores[i][mean_type] >= min_score or i < min_len:
+            index = i
             break
     
-    return filter_scores
+    return pool_scores, index
 
 
 def save_scores(filename: str, scores: list):
@@ -166,7 +165,7 @@ def read_trade_data(filename, min_threshold_amount_out_percentage):
                     invalid_pools[entities.DefaultScore.MIN_SCORE].add(key)
                     
                 pools[pool_addr][key][token].append(
-                    (amount_in_usd, trade['amount_out_usd'], trade['token_in'], trade['token_out'], entities.SortedSetType(key_set_type)))
+                    (amount_in_usd, trade['amount_out_usd'], trade['token_in'], trade['token_out'], entities.SortedSetType(key_set_type), input_object.liquidity))
                 levels[pool_addr][key][token] = max(level_counter, levels[pool_addr][key][token])
 
             for default_score_key, dict in invalid_trades_count.items():
@@ -202,7 +201,7 @@ def calculate_price_impact(trade):
 
 # trade_data_file.pools is a map from pool -> key -> token -> trade data list
 # invalid_pools is a set of tuple (pool, key, token)
-def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile, target_factor_entropy: float, min_filtered_pools_len, mean_type) -> list:
+def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile, target_factor_entropy: float, min_filtered_pools_len, mean_type, invalid_scores_filename, min_threshold_tvl_in_usd) -> list:
     pools = []
     result = []
     # a map with key+pool_address -> list scores
@@ -221,13 +220,13 @@ def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile
                     if score_map_key not in default_scores:
                         default_scores[score_map_key] = []
                     tokens = token.split('-')
-                    default_scores[score_map_key].append((0.0, tokens[0], tokens[1], level, pool_addr, trades[0][4]))
+                    default_scores[score_map_key].append((0.0, tokens[0], tokens[1], level, pool_addr, trades[0][4], trades[0][5]))
                 elif (pool_addr, key, token) in trade_data_file.invalid_pools[entities.DefaultScore.MAX_SCORE]:
                     if score_map_key not in default_scores:
                         default_scores[score_map_key] = []
                     max_score = math.pow(10, level-1) - 1
                     tokens = token.split('-')
-                    default_scores[score_map_key].append((max_score, tokens[0], tokens[1], level, pool_addr, trades[0][4]))
+                    default_scores[score_map_key].append((max_score, tokens[0], tokens[1], level, pool_addr, trades[0][4], trades[0][5]))
                 else:
                     try:
                         pools.append(liq.Pool(pool_addr, key, level, trades))
@@ -251,9 +250,13 @@ def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile
         # run filter score by calculating entropy
         # only apply for whitelist - whitelist set
         min_score = entropy.get_top_pools(liquidity_scores_output.scores, mean_type, float(target_factor_entropy))
-        final_scores = filter_scores(liquidity_scores_output.scores, mean_type, min_score, int(min_filtered_pools_len))
-        print(f'Length of final scores after filtering: {len(final_scores)}')
+        pool_scores, index = filter_scores(liquidity_scores_output.scores, mean_type, min_score, min_filtered_pools_len)
+        final_scores = pool_scores[:index]
+        print(f'Length of final scores after filtering: {len(final_scores)} index {index}')
         result.extend(final_scores)
+        # save invalid pool scores in separate file to remove them on sorted set later
+        if invalid_scores_filename != '' and index != len(pool_scores):
+            save_invalid_pool_scores(pool_scores[index:], invalid_scores_filename, min_threshold_tvl_in_usd)
     except Exception as e:
         print(f'exception while calculate entropy values {e}, back to save all scores {liquidity_scores_output.scores}')
         # when exception occurs here, we don't need to filter score
@@ -262,5 +265,15 @@ def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile
     result.extend(liquidity_scores_output.direct_scores.values())
         
     return result
+
+# safe to remove some pools with low liquidity score and low tvl
+def save_invalid_pool_scores(pool_scores, invalid_scores_filename, min_threshold_tvl_in_usd):
+    invalid_scores = []
+    
+    for score in pool_scores:
+        if score['tvl_in_usd'] <= min_threshold_tvl_in_usd:
+            invalid_scores.append(score)
+    
+    save_scores(invalid_scores_filename, invalid_scores)
 
 main()

@@ -111,3 +111,17 @@ func (mr *MockIPoolRankRepositoryMockRecorder) RemoveFromSortedSet(ctx, token0, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveFromSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveFromSortedSet), ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted, key, memberName, useGlobal)
 }
+
+// RemoveScoreToSortedSets mocks base method.
+func (m *MockIPoolRankRepository) RemoveScoreToSortedSets(ctx context.Context, scores []entity.PoolScore) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveScoreToSortedSets", ctx, scores)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveScoreToSortedSets indicates an expected call of RemoveScoreToSortedSets.
+func (mr *MockIPoolRankRepositoryMockRecorder) RemoveScoreToSortedSets(ctx, scores any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveScoreToSortedSets", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveScoreToSortedSets), ctx, scores)
+}
