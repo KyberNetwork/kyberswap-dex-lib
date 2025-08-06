@@ -103,7 +103,8 @@ type FilledOrderInfo struct {
 }
 
 type MetaInfo struct {
-	ApprovalAddress string `json:"approvalAddress"`
+	ApprovalAddress        string `json:"approvalAddress"`
+	TakerTargetInteraction string `json:"takerTargetInteraction"`
 }
 
 func (o *Order) GetMakerAsset() string {
