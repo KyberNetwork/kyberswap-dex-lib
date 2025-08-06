@@ -16,9 +16,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -112,24 +114,26 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, nil, err
 		}
 
+		tokens := []*entity.PoolToken{
+			{
+				Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token0[:]), u.config.ChainID),
+				Swappable: true,
+			},
+			{
+				Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token1[:]), u.config.ChainID),
+				Swappable: true,
+			},
+		}
+
 		// Calculate actual reserves and fee for KyberSwap routing
-		reserves, fee := u.calculatePoolMetrics(curPool)
+		reserves, fee := calculatePoolMetrics(&curPool.State, tokens)
 
 		pool := entity.Pool{
-			Address:  strings.ToLower(u.config.DexLiteAddress) + hex.EncodeToString(curPool.DexId[:]),
-			Exchange: "fluid-dex-lite",
-			Type:     DexType,
-			Reserves: reserves, // Real reserves for swap calculations
-			Tokens: []*entity.PoolToken{
-				{
-					Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token0[:]), u.config.ChainID),
-					Swappable: true,
-				},
-				{
-					Address:   valueobject.WrapNativeLower(hexutil.Encode(curPool.DexKey.Token1[:]), u.config.ChainID),
-					Swappable: true,
-				},
-			},
+			Address:     strings.ToLower(u.config.DexLiteAddress) + hex.EncodeToString(curPool.DexId[:]),
+			Exchange:    valueobject.ExchangeFluidDexLite,
+			Type:        DexType,
+			Reserves:    reserves, // Real reserves for swap calculations
+			Tokens:      tokens,
 			SwapFee:     fee, // Real fee for routing decisions
 			Extra:       string(extraBytes),
 			StaticExtra: string(staticExtraBytes),
@@ -139,89 +143,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	return pools, newMetadataBytes, nil
-}
-
-// calculatePoolMetrics computes real reserves and fee for KyberSwap routing
-func (u *PoolsListUpdater) calculatePoolMetrics(curPool PoolWithState) (entity.PoolReserves, float64) {
-	// Extract fee from dexVariables (bits 0-12, stored as basis points)
-	feeRaw := new(big.Int).And(curPool.State.DexVariables, X13)
-	fee := float64(feeRaw.Int64()) / FeePercentPrecision
-
-	// Extract total supplies and calculate reserves
-	// Unpack dexVariables to get token supplies in internal precision (9 decimals)
-	unpackedVars := u.unpackDexVariables(curPool.State.DexVariables)
-
-	// Convert internal supplies to token decimals for display
-	token0Supply := u.adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted,
-		6) // Assume 6 decimals like USDC
-	token1Supply := u.adjustFromInternalDecimals(unpackedVars.Token1TotalSupplyAdjusted,
-		6) // Assume 6 decimals like USDT
-
-	reserves := entity.PoolReserves{
-		token0Supply.String(),
-		token1Supply.String(),
-	}
-
-	return reserves, fee
-}
-
-// unpackDexVariables extracts the packed variables from dexVariables
-func (u *PoolsListUpdater) unpackDexVariables(dexVariables *big.Int) UnpackedDexVariables {
-	return UnpackedDexVariables{
-		Fee: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
-		RevenueCut: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut),
-			X7),
-		RebalancingStatus: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesRebalancingStatus), X2),
-		CenterPriceShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		CenterPrice: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesCenterPrice), X40),
-		CenterPriceContractAddress: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
-		RangePercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesUpperPercent), X14),
-		LowerPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesLowerPercent), X14),
-		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
-		LowerShiftThresholdPercent: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
-		Token0Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesToken0Decimals), X5),
-		Token1Decimals: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesToken1Decimals), X5),
-		Token0TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
-		Token1TotalSupplyAdjusted: new(big.Int).And(new(big.Int).Rsh(dexVariables,
-			BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
-	}
-}
-
-// adjustFromInternalDecimals converts from 9-decimal precision to token decimals
-func (u *PoolsListUpdater) adjustFromInternalDecimals(amount *big.Int, tokenDecimals uint8) *big.Int {
-	internalDecimals := uint8(9)
-	if tokenDecimals >= internalDecimals {
-		factor := tenPow(int(tokenDecimals - internalDecimals))
-		return new(big.Int).Mul(amount, factor)
-	} else {
-		factor := tenPow(int(internalDecimals - tokenDecimals))
-		return new(big.Int).Div(amount, factor)
-	}
-}
-
-// tenPow calculates 10^n
-func tenPow(n int) *big.Int {
-	result := big.NewInt(1)
-	ten := big.NewInt(10)
-	for i := 0; i < n; i++ {
-		result.Mul(result, ten)
-	}
-	return result
 }
 
 func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithState, error) {
@@ -234,8 +155,8 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithState, er
 		ABI:    fluidDexLiteABI,
 		Target: u.config.DexLiteAddress,
 		Method: SRMethodReadFromStorage,
-		Params: []interface{}{common.HexToHash(StorageSlotDexList)},
-	}, []interface{}{&dexListLength})
+		Params: []any{common.HexToHash(StorageSlotDexList)},
+	}, []any{&dexListLength})
 
 	_, err := req.Call()
 	if err != nil {
@@ -358,14 +279,14 @@ func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) 
 		}
 
 		// Extract fee from dexVariables
-		fee := new(big.Int).And(dexVariables, X13)
+		fee := new(big.Int).And(dexVariables, X13B)
 
 		// Create minimal pool state for listing
 		poolState := PoolState{
-			DexVariables:     dexVariables,
-			CenterPriceShift: big.NewInt(0),
-			RangeShift:       big.NewInt(0),
-			ThresholdShift:   big.NewInt(0),
+			DexVariables:     uint256.MustFromBig(dexVariables),
+			CenterPriceShift: big256.U0,
+			RangeShift:       big256.U0,
+			ThresholdShift:   big256.U0,
 		}
 
 		pools = append(pools, PoolWithState{
@@ -386,46 +307,6 @@ func (u *PoolsListUpdater) readAllPoolsBatched(ctx context.Context, length int) 
 	}).Info("Pool discovery completed using direct ethClient calls")
 
 	return pools, nil
-}
-
-func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common.Address, token1 common.Address) (uint8,
-	uint8, error) {
-	var decimals0, decimals1 uint8
-
-	req := u.ethrpcClient.NewRequest().SetContext(ctx)
-
-	if strings.EqualFold(valueobject.NativeAddress, token0.String()) {
-		decimals0 = 18
-	} else {
-		req.AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: token0.String(),
-			Method: TokenMethodDecimals,
-			Params: nil,
-		}, []interface{}{&decimals0})
-	}
-
-	if strings.EqualFold(valueobject.NativeAddress, token1.String()) {
-		decimals1 = 18
-	} else {
-		req.AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: token1.String(),
-			Method: TokenMethodDecimals,
-			Params: nil,
-		}, []interface{}{&decimals1})
-	}
-
-	_, err := req.Call()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("can not read token info")
-		return 0, 0, err
-	}
-
-	return decimals0, decimals1, nil
 }
 
 // Helper functions for storage calculations

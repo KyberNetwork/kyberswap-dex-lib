@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type PoolMeta struct {
@@ -21,39 +22,37 @@ type DexKey struct {
 
 // PoolState represents the 4 storage variables for a FluidDexLite pool
 type PoolState struct {
-	DexVariables     *big.Int `json:"dexVariables"`     // Packed dex variables
-	CenterPriceShift *big.Int `json:"centerPriceShift"` // Center price shift variables
-	RangeShift       *big.Int `json:"rangeShift"`       // Range shift variables
-	ThresholdShift   *big.Int `json:"thresholdShift"`   // Threshold shift variables
+	DexVariables     *uint256.Int `json:"dexVariables"`     // Packed dex variables
+	CenterPriceShift *uint256.Int `json:"centerPriceShift"` // Center price shift variables
+	RangeShift       *uint256.Int `json:"rangeShift"`       // Range shift variables
+	ThresholdShift   *uint256.Int `json:"thresholdShift"`   // Threshold shift variables
 }
 
-func (p PoolState) Clone() PoolState {
-	return PoolState{
-		DexVariables:     new(big.Int).Set(p.DexVariables),
-		CenterPriceShift: new(big.Int).Set(p.CenterPriceShift),
-		RangeShift:       new(big.Int).Set(p.RangeShift),
-		ThresholdShift:   new(big.Int).Set(p.ThresholdShift),
+func (p *PoolState) Clone() *PoolState {
+	return &PoolState{
+		DexVariables:     p.DexVariables.Clone(),
+		CenterPriceShift: p.CenterPriceShift.Clone(),
+		RangeShift:       p.RangeShift.Clone(),
+		ThresholdShift:   p.ThresholdShift.Clone(),
 	}
 }
 
 // UnpackedDexVariables represents the unpacked dex variables for easier access
 type UnpackedDexVariables struct {
-	Fee                         *big.Int `json:"fee"`
-	RevenueCut                  *big.Int `json:"revenueCut"`
-	RebalancingStatus           *big.Int `json:"rebalancingStatus"`
-	CenterPriceShiftActive      bool     `json:"centerPriceShiftActive"`
-	CenterPrice                 *big.Int `json:"centerPrice"`
-	CenterPriceContractAddress  *big.Int `json:"centerPriceContractAddress"`
-	RangePercentShiftActive     bool     `json:"rangePercentShiftActive"`
-	UpperPercent                *big.Int `json:"upperPercent"`
-	LowerPercent                *big.Int `json:"lowerPercent"`
-	ThresholdPercentShiftActive bool     `json:"thresholdPercentShiftActive"`
-	UpperShiftThresholdPercent  *big.Int `json:"upperShiftThresholdPercent"`
-	LowerShiftThresholdPercent  *big.Int `json:"lowerShiftThresholdPercent"`
-	Token0Decimals              *big.Int `json:"token0Decimals"`
-	Token1Decimals              *big.Int `json:"token1Decimals"`
-	Token0TotalSupplyAdjusted   *big.Int `json:"token0TotalSupplyAdjusted"`
-	Token1TotalSupplyAdjusted   *big.Int `json:"token1TotalSupplyAdjusted"`
+	Fee                         *uint256.Int `json:"fee"`
+	RevenueCut                  *uint256.Int `json:"revenueCut"`
+	RebalancingStatus           *uint256.Int `json:"rebalancingStatus"`
+	CenterPriceShiftActive      bool         `json:"centerPriceShiftActive"`
+	CenterPrice                 *uint256.Int `json:"centerPrice"`
+	CenterPriceContractAddress  *uint256.Int `json:"centerPriceContractAddress"`
+	RangePercentShiftActive     bool         `json:"rangePercentShiftActive"`
+	UpperPercent                *uint256.Int `json:"upperPercent"`
+	LowerPercent                *uint256.Int `json:"lowerPercent"`
+	ThresholdPercentShiftActive bool         `json:"thresholdPercentShiftActive"`
+	UpperShiftThresholdPercent  *uint256.Int `json:"upperShiftThresholdPercent"`
+	LowerShiftThresholdPercent  *uint256.Int `json:"lowerShiftThresholdPercent"`
+	Token0TotalSupplyAdjusted   *uint256.Int `json:"token0TotalSupplyAdjusted"`
+	Token1TotalSupplyAdjusted   *uint256.Int `json:"token1TotalSupplyAdjusted"`
 }
 
 // PoolWithState represents a pool with its current state
@@ -63,11 +62,6 @@ type PoolWithState struct {
 	State    PoolState `json:"state"`    // Current pool state
 	Fee      *big.Int  `json:"fee"`      // Pool fee
 	IsActive bool      `json:"isActive"` // Whether pool is active
-}
-
-// Gas represents gas costs for different operations
-type Gas struct {
-	Swap int64
 }
 
 // StaticExtra represents static configuration that doesn't change
@@ -86,7 +80,7 @@ type PoolExtra struct {
 
 // SwapInfo contains information passed during swap execution
 type SwapInfo struct {
-	NewPoolState PoolState `json:"-"`
+	NewPoolState *PoolState `json:"-"`
 }
 
 // PricingResult represents the result of price calculations

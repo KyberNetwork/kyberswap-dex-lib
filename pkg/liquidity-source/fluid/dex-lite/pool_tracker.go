@@ -2,29 +2,27 @@ package dexLite
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	ethClient    *ethclient.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -33,7 +31,6 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		ethClient:    ethrpcClient.GetETHClient(),
 	}
 }
 
@@ -65,7 +62,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	poolState, blockNumber, blockTimestamp, err := t.getPoolStateByDexId(ctx, existingExtra.DexId, overrides)
+	poolState, blockNumber, err := t.getPoolStateByDexId(ctx, existingExtra.DexId, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -75,7 +72,7 @@ func (t *PoolTracker) getNewPoolState(
 		DexKey:         existingExtra.DexKey,
 		DexId:          existingExtra.DexId,
 		PoolState:      *poolState,
-		BlockTimestamp: blockTimestamp,
+		BlockTimestamp: uint64(time.Now().Unix()),
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -85,7 +82,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	// Update reserves and fee for KyberSwap routing
-	reserves, fee := t.calculatePoolMetrics(poolState, p.Tokens)
+	reserves, fee := calculatePoolMetrics(poolState, p.Tokens)
 	p.Reserves = reserves
 	p.SwapFee = fee
 
@@ -97,18 +94,18 @@ func (t *PoolTracker) getNewPoolState(
 }
 
 // calculatePoolMetrics computes real reserves and fee for KyberSwap routing
-func (t *PoolTracker) calculatePoolMetrics(poolState *PoolState, tokens []*entity.PoolToken) (entity.PoolReserves, float64) {
+func calculatePoolMetrics(poolState *PoolState, tokens []*entity.PoolToken) (entity.PoolReserves, float64) {
 	// Extract fee from dexVariables (bits 0-12, stored as basis points)
-	feeRaw := new(big.Int).And(poolState.DexVariables, X13)
-	fee := float64(feeRaw.Int64()) / FeePercentPrecision
+	feeRaw := new(uint256.Int).And(poolState.DexVariables, X13)
+	fee := feeRaw.Float64() / FeePercentPrecision
 
 	// Extract total supplies and calculate reserves
 	// Unpack dexVariables to get token supplies in internal precision (9 decimals)
-	unpackedVars := t.unpackDexVariables(poolState.DexVariables)
+	unpackedVars := unpackDexVariables(poolState.DexVariables)
 
 	// Convert internal supplies to actual token decimals
-	token0Supply := t.adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted, tokens[0].Decimals)
-	token1Supply := t.adjustFromInternalDecimals(unpackedVars.Token1TotalSupplyAdjusted, tokens[1].Decimals)
+	token0Supply := adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted, tokens[0].Decimals)
+	token1Supply := adjustFromInternalDecimals(unpackedVars.Token1TotalSupplyAdjusted, tokens[1].Decimals)
 
 	reserves := entity.PoolReserves{
 		token0Supply.String(),
@@ -119,36 +116,43 @@ func (t *PoolTracker) calculatePoolMetrics(poolState *PoolState, tokens []*entit
 }
 
 // unpackDexVariables extracts the packed variables from dexVariables
-func (t *PoolTracker) unpackDexVariables(dexVariables *big.Int) UnpackedDexVariables {
-	return UnpackedDexVariables{
-		Fee:                         new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesFee), X13),
-		RevenueCut:                  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRevenueCut), X7),
-		RebalancingStatus:           new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRebalancingStatus), X2),
-		CenterPriceShiftActive:      new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		CenterPrice:                 new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPrice), X40),
-		CenterPriceContractAddress:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesCenterPriceContractAddress), X19),
-		RangePercentShiftActive:     new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesRangePercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperPercent), X14),
-		LowerPercent:                new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerPercent), X14),
-		ThresholdPercentShiftActive: new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesThresholdPercentShiftActive), X1).Cmp(big.NewInt(1)) == 0,
-		UpperShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesUpperShiftThresholdPercent), X7),
-		LowerShiftThresholdPercent:  new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesLowerShiftThresholdPercent), X7),
-		Token0Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0Decimals), X5),
-		Token1Decimals:              new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1Decimals), X5),
-		Token0TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken0TotalSupplyAdjusted), X60),
-		Token1TotalSupplyAdjusted:   new(big.Int).And(new(big.Int).Rsh(dexVariables, BitsDexLiteDexVariablesToken1TotalSupplyAdjusted), X60),
+func unpackDexVariables(dexVars *uint256.Int) *UnpackedDexVariables {
+	return &UnpackedDexVariables{
+		Fee:                         rshAnd(dexVars, BitPosFee, X13),
+		RevenueCut:                  rshAnd(dexVars, BitPosRevenueCut, X7),
+		RebalancingStatus:           rshAnd(dexVars, BitPosRebalancingStatus, X2),
+		CenterPriceShiftActive:      rshAnd(dexVars, BitPosCenterPriceShiftActive, X1).Cmp(big256.U1) == 0,
+		CenterPrice:                 rshAnd(dexVars, BitPosCenterPrice, X40),
+		CenterPriceContractAddress:  rshAnd(dexVars, BitPosCenterPriceContractAddress, X19),
+		RangePercentShiftActive:     rshAnd(dexVars, BitPosRangePercentShiftActive, X1).Cmp(big256.U1) == 0,
+		UpperPercent:                rshAnd(dexVars, BitPosUpperPercent, X14),
+		LowerPercent:                rshAnd(dexVars, BitPosLowerPercent, X14),
+		ThresholdPercentShiftActive: rshAnd(dexVars, BitPosThresholdPercentShiftActive, X1).Cmp(big256.U1) == 0,
+		UpperShiftThresholdPercent:  rshAnd(dexVars, BitPosUpperShiftThresholdPercent, X7),
+		LowerShiftThresholdPercent:  rshAnd(dexVars, BitPosLowerShiftThresholdPercent, X7),
+		Token0TotalSupplyAdjusted:   rshAnd(dexVars, BitPosToken0TotalSupplyAdjusted, X60),
+		Token1TotalSupplyAdjusted:   rshAnd(dexVars, BitPosToken1TotalSupplyAdjusted, X60),
 	}
 }
 
-// adjustFromInternalDecimals converts from 9-decimal precision to token decimals
-func (t *PoolTracker) adjustFromInternalDecimals(amount *big.Int, tokenDecimals uint8) *big.Int {
-	internalDecimals := uint8(9)
-	if tokenDecimals >= internalDecimals {
-		factor := tenPow(int(tokenDecimals - internalDecimals))
-		return new(big.Int).Mul(amount, factor)
+func unpackTotalSupplies(dexVariables *uint256.Int) (*uint256.Int, *uint256.Int) {
+	return rshAnd(dexVariables, BitPosToken0TotalSupplyAdjusted, X60),
+		rshAnd(dexVariables, BitPosToken1TotalSupplyAdjusted, X60)
+}
+
+func rshAnd(value *uint256.Int, shift uint, mask *uint256.Int) *uint256.Int {
+	var ret uint256.Int
+	return ret.And(ret.Rsh(value, shift), mask)
+}
+
+// adjustFromInternalDecimals converts from internal decimal precision to token decimals
+func adjustFromInternalDecimals(amount *uint256.Int, tokenDecimals uint8) *uint256.Int {
+	if tokenDecimals >= TokensDecimalsPrecision {
+		factor := big256.TenPow(tokenDecimals - TokensDecimalsPrecision)
+		return new(uint256.Int).Mul(amount, factor)
 	} else {
-		factor := tenPow(int(internalDecimals - tokenDecimals))
-		return new(big.Int).Div(amount, factor)
+		factor := big256.TenPow(TokensDecimalsPrecision - tokenDecimals)
+		return new(uint256.Int).Div(amount, factor)
 	}
 }
 
@@ -156,7 +160,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 	ctx context.Context,
 	dexId [8]byte,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*PoolState, uint64, uint64, error) {
+) (*PoolState, uint64, error) {
 
 	// NOTE: Direct ethClient calls don't support overrides, so we log a warning if provided
 	if overrides != nil {
@@ -167,48 +171,34 @@ func (t *PoolTracker) getPoolStateByDexId(
 
 	var poolStateSlots [4]*big.Int
 
-	// Read the 4 storage variables for FluidDexLite pool state using direct calls
-	for i := 0; i < 4; i++ {
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+	for i := range 4 {
 		slot := t.calculatePoolStateSlot(dexId, i)
-		value, err := t.readFromStorage(ctx, slot)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"dexType": DexType,
-				"error":   err,
-				"slot":    i,
-			}).Error("Failed to read pool state slot")
-			return nil, 0, 0, err
-		}
-		poolStateSlots[i] = value
+		req.AddCall(&ethrpc.Call{
+			ABI:    fluidDexLiteABI,
+			Target: t.config.DexLiteAddress,
+			Method: "readFromStorage",
+			Params: []any{slot},
+		}, []any{&poolStateSlots[i]})
 	}
-
-	// Get block timestamp
-	blockTimestamp, err := t.ethrpcClient.NewRequest().SetContext(ctx).GetCurrentBlockTimestamp()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
-		}).Error("Failed to get block timestamp")
-		return nil, 0, 0, err
-	}
-
-	// For blockNumber, we'll use a simple ethClient call
-	blockNumber := uint64(0)
-	if t.ethClient != nil {
-		if header, err := t.ethClient.HeaderByNumber(ctx, nil); err == nil {
-			blockNumber = header.Number.Uint64()
-		}
+		}).Error("Failed to read pool state slot")
+		return nil, 0, err
 	}
 
 	// Just return the 4 state variables - PoolSimulator will handle pause logic
 	poolState := &PoolState{
-		DexVariables:     poolStateSlots[0],
-		CenterPriceShift: poolStateSlots[1],
-		RangeShift:       poolStateSlots[2],
-		ThresholdShift:   poolStateSlots[3],
+		DexVariables:     uint256.MustFromBig(poolStateSlots[0]),
+		CenterPriceShift: uint256.MustFromBig(poolStateSlots[1]),
+		RangeShift:       uint256.MustFromBig(poolStateSlots[2]),
+		ThresholdShift:   uint256.MustFromBig(poolStateSlots[3]),
 	}
 
-	return poolState, blockNumber, blockTimestamp, nil
+	return poolState, resp.BlockNumber.Uint64(), nil
 }
 
 // Helper functions
@@ -252,45 +242,14 @@ func (t *PoolTracker) calculatePoolStateSlot(dexId [8]byte, offset int) common.H
 	bytes32Type, _ := abi.NewType("bytes32", "", nil)
 	arguments := abi.Arguments{{Type: bytes32Type}, {Type: uint256Type}}
 
-	encoded, err := arguments.Pack(common.BytesToHash(dexIdBytes32[:]), new(big.Int).SetUint64(baseSlot))
+	var tmp big.Int
+	encoded, err := arguments.Pack(common.BytesToHash(dexIdBytes32[:]), tmp.SetUint64(baseSlot))
 	if err != nil {
 		// Fallback to manual encoding
 		encoded = make([]byte, 64)
 		copy(encoded[:32], dexIdBytes32[:])
-		copy(encoded[32:], common.LeftPadBytes(new(big.Int).SetUint64(baseSlot).Bytes(), 32))
+		copy(encoded[32:], common.LeftPadBytes(tmp.SetUint64(baseSlot).Bytes(), 32))
 	}
 
 	return common.BytesToHash(crypto.Keccak256(encoded))
-}
-
-// readFromStorage reads a single storage slot using ethClient.CallContract
-func (t *PoolTracker) readFromStorage(ctx context.Context, slot common.Hash) (*big.Int, error) {
-	if t.ethClient == nil {
-		return nil, fmt.Errorf("ethClient not available for storage reads")
-	}
-
-	// Pack the function call using the actual FluidDexLite ABI
-	callData, err := fluidDexLiteABI.Pack("readFromStorage", slot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to pack readFromStorage call: %w", err)
-	}
-
-	// Create contract call message
-	contractAddr := common.HexToAddress(t.config.DexLiteAddress)
-	callMsg := ethereum.CallMsg{
-		To:   &contractAddr,
-		Data: callData,
-	}
-
-	// Make the call
-	resultBytes, err := t.ethClient.CallContract(ctx, callMsg, nil)
-	if err != nil {
-		return nil, fmt.Errorf("readFromStorage call failed: %w", err)
-	}
-
-	if len(resultBytes) != 32 {
-		return nil, fmt.Errorf("unexpected result length: %d", len(resultBytes))
-	}
-
-	return new(big.Int).SetBytes(resultBytes), nil
 }
