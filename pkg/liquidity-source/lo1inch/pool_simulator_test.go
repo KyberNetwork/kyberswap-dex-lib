@@ -322,7 +322,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.fields.poolEntity)
 			assert.NoError(t, err)
-
 			got, err := p.CalcAmountOut(tt.args.param)
 			if err != nil {
 				assert.Equalf(t, tt.wantErr, err, "PoolSimulator.CalcAmountOut() error = %+v, wantErr %+v", err, tt.wantErr)

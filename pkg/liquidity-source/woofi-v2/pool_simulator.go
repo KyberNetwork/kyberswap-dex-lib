@@ -265,7 +265,8 @@ func (s *PoolSimulator) _swapBaseToBase(
 		spread = state2.Spread / 2
 	}
 
-	feeRate := max(s.tokenInfos[baseToken1].FeeRate, s.tokenInfos[baseToken2].FeeRate)
+	var feeRate uint16
+	feeRate = max(s.tokenInfos[baseToken1].FeeRate, s.tokenInfos[baseToken2].FeeRate)
 
 	state1.Spread, state2.Spread = spread, spread
 

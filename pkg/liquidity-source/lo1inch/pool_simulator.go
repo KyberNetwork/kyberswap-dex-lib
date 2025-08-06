@@ -67,6 +67,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	for _, order := range extra.TakeToken0Orders {
+		if order.Extension == "" {
+			continue
+		}
+
 		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
 		if err != nil {
 			return nil, fmt.Errorf("decode extension: %w", err)
@@ -83,6 +87,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	for _, order := range extra.TakeToken1Orders {
+		if order.Extension == "" {
+			continue
+		}
+
 		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
 		if err != nil {
 			return nil, fmt.Errorf("decode extension: %w", err)
