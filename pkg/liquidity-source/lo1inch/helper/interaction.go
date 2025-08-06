@@ -1,34 +1,34 @@
 package helper
 
 import (
-	"errors"
-	"strings"
+	"fmt"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/decode"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-// Interaction represents an interaction with a contract
 type Interaction struct {
-	Target Address
-	Data   string
+	Target common.Address
+	Data   []byte
 }
 
-func NewInteraction(target Address, data string) (*Interaction, error) {
-	if !isHexBytes(data) {
-		return nil, errors.New("interaction data must be valid hex bytes")
+func (i Interaction) IsZero() bool {
+	return i.Target.String() == common.Address{}.String() && len(i.Data) == 0
+}
+
+func (i Interaction) Encode() []byte {
+	res := make([]byte, 0, len(i.Target)+len(i.Data))
+	return append(append(res, i.Target.Bytes()...), i.Data...)
+}
+
+func DecodeInteraction(data []byte) (Interaction, error) {
+	bi := decode.NewBytesIterator(data)
+	target, err := bi.NextBytes(common.AddressLength)
+	if err != nil {
+		return Interaction{}, fmt.Errorf("get target: %w", err)
 	}
-	return &Interaction{
-		Target: target,
-		Data:   data,
+	return Interaction{
+		Target: common.BytesToAddress(target),
+		Data:   bi.RemainingData(),
 	}, nil
-}
-
-func DecodeInteraction(bytes string) (*Interaction, error) {
-	iter := NewBytesIter(bytes)
-	return NewInteraction(
-		Address(iter.NextUint160()),
-		iter.Rest(),
-	)
-}
-
-func (i *Interaction) Encode() string {
-	return i.Target.ToString() + strings.TrimPrefix(i.Data, "0x")
 }

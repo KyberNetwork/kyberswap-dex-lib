@@ -3,81 +3,71 @@ package helper
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtension(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name    string
-		input   ExtensionData
-		encoded string
-		wantErr bool
-	}{
-		{
-			name: "simple extension",
-			input: ExtensionData{
-				MakerAssetSuffix: "0x01",
-				TakerAssetSuffix: "0x02",
-				MakerPermit:      "0x03",
-				Predicate:        "0x04",
-				MakingAmountData: "0x05",
-				TakingAmountData: "0x06",
-				PreInteraction:   "0x07",
-				PostInteraction:  "0x08",
-				CustomData:       "0xff",
+	t.Run("should encode/decode", func(t *testing.T) {
+		extension := Extension{
+			MakerAssetSuffix: []byte{},
+			TakerAssetSuffix: []byte{},
+			MakingAmountData: []byte{
+				251, 40, 9, 165, 49, 68, 115, 225, 22, 95, 107, 88, 1, 142, 32,
+				237, 143, 7, 184, 64, 0, 12, 205, 0, 0, 54, 117, 103, 128, 51,
+				88, 0, 1, 104, 1, 65, 186, 0, 228, 79, 0, 48, 0, 223, 241, 0,
+				48, 0, 219, 142, 0, 48, 0, 215, 42, 0, 48, 0, 190, 211, 0, 48,
+				0, 165, 56, 0, 24, 0, 154, 249, 0, 60, 0, 12, 205, 0, 36,
 			},
-			encoded: "0x00000008000000070000000600000005000000040000000300000002000000010102050604030708ff",
-		},
-		{
-			name: "complex extension with permit (1)",
-			input: ExtensionData{
-				MakerAssetSuffix: "0x",
-				TakerAssetSuffix: "0x",
-				MakerPermit:      "0x111111111117dc0aa78b770fa6a738034120c30200000000000000000000000054526dd3b396a3233910baf1b8d195bea3b25021000000000000000000000000111111125421ca6dc452d289314280a0f8842a65ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000067a32268000000000000000000000000000000000000000000000000000000000000001c39c337785ca12a775f14455e997a2824d50542c36ae5ffee855ff8960bf5a91431ca6b66f75153ab651221085b7daa5920ff4944cb08be5e1d2bace94ab36edd",
-				Predicate:        "0x",
-				MakingAmountData: "0x",
-				TakingAmountData: "0x",
-				PreInteraction:   "0x",
-				PostInteraction:  "0x",
-				CustomData:       "0x",
+			TakingAmountData: []byte{
+				251, 40, 9, 165, 49, 68, 115, 225, 22, 95, 107, 88, 1, 142, 32,
+				237, 143, 7, 184, 64, 0, 12, 205, 0, 0, 54, 117, 103, 128, 51,
+				88, 0, 1, 104, 1, 65, 186, 0, 228, 79, 0, 48, 0, 223, 241, 0,
+				48, 0, 219, 142, 0, 48, 0, 215, 42, 0, 48, 0, 190, 211, 0, 48,
+				0, 165, 56, 0, 24, 0, 154, 249, 0, 60, 0, 12, 205, 0, 36,
 			},
-			encoded: "0x000000f4000000f4000000f40000000000000000000000000000000000000000111111111117dc0aa78b770fa6a738034120c30200000000000000000000000054526dd3b396a3233910baf1b8d195bea3b25021000000000000000000000000111111125421ca6dc452d289314280a0f8842a65ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000067a32268000000000000000000000000000000000000000000000000000000000000001c39c337785ca12a775f14455e997a2824d50542c36ae5ffee855ff8960bf5a91431ca6b66f75153ab651221085b7daa5920ff4944cb08be5e1d2bace94ab36edd",
-		},
-		{
-			name: "complex extension with permit (2)",
-			input: ExtensionData{
-				MakerAssetSuffix: "0x",
-				TakerAssetSuffix: "0x",
-				MakerPermit:      "0x111111111117dc0aa78b770fa6a738034120c3020000000000000000000000009c93896970b1332700f58eb44ffe3ea88f227ca0000000000000000000000000111111125421ca6dc452d289314280a0f8842a65ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000067cfad28000000000000000000000000000000000000000000000000000000000000001c65bbf3251cb7016d0b154fa816fef95b2b30167847ff9d6f3737766c7a9ae2d8121be4807c7d649e07dc063f23a1b47b39d992fe3f3181f07ebd2b02a7aa3775",
-				Predicate:        "0x",
-				MakingAmountData: "0x",
-				TakingAmountData: "0x",
-				PreInteraction:   "0x",
-				PostInteraction:  "0x",
-				CustomData:       "0x",
+			Predicate:      []byte{},
+			MakerPermit:    []byte{},
+			PreInteraction: []byte{},
+			PostInteraction: []byte{
+				251, 40, 9, 165, 49, 68, 115, 225, 22, 95, 107, 88, 1, 142, 32,
+				237, 143, 7, 184, 64, 103, 128, 51, 64, 176, 148, 152, 3, 10,
+				227, 65, 107, 102, 220, 0, 0, 109, 229, 224, 228, 40, 172, 119,
+				29, 119, 181, 0, 0, 51, 159, 181, 116, 189, 197, 103, 99, 249,
+				149, 0, 0, 209, 139, 212, 95, 11, 148, 245, 74, 150, 143, 0, 0,
+				214, 27, 137, 43, 42, 214, 36, 144, 17, 133, 0, 0, 187, 46, 246,
+				187, 26, 48, 190, 126, 230, 190, 0, 0, 173, 225, 149, 103, 187,
+				83, 128, 53, 237, 54, 0, 0, 56,
 			},
-			encoded: "0x000000f4000000f4000000f40000000000000000000000000000000000000000111111111117dc0aa78b770fa6a738034120c3020000000000000000000000009c93896970b1332700f58eb44ffe3ea88f227ca0000000000000000000000000111111125421ca6dc452d289314280a0f8842a65ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000067cfad28000000000000000000000000000000000000000000000000000000000000001c65bbf3251cb7016d0b154fa816fef95b2b30167847ff9d6f3737766c7a9ae2d8121be4807c7d649e07dc063f23a1b47b39d992fe3f3181f07ebd2b02a7aa3775",
-		},
-	}
+			CustomData: []byte{},
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Test NewExtension and Encode
-			extension, err := NewExtension(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
-				return
-			}
-			assert.NoError(t, err)
+		encodedExtension := extension.Encode()
 
-			encoded := extension.Encode()
-			assert.Equal(t, tt.encoded, encoded)
+		decodedExtension, err := DecodeExtension(hexutil.Encode(encodedExtension))
+		require.NoError(t, err)
 
-			// Test Decode
-			decoded, err := DecodeExtension(tt.encoded)
-			assert.NoError(t, err)
-			assert.Equal(t, extension, decoded)
-		})
-	}
+		require.Equal(t, extension, decodedExtension)
+	})
+
+	t.Run("decode empty", func(t *testing.T) {
+		encodedExtension := "0x"
+		e, err := DecodeExtension(encodedExtension)
+		require.NoError(t, err)
+
+		assert.True(t, e.IsEmpty())
+	})
+
+	t.Run("decode", func(t *testing.T) {
+		// nolint: lll
+		encodedExtension := "0x000001070000009a0000009a0000009a0000009a0000004d0000000000000000fb2809a5314473e1165f6b58018e20ed8f07b840000ccd00003675678033580001680141ba00e44f003000dff1003000db8e003000d72a003000bed3003000a5380018009af9003c000ccd0024fb2809a5314473e1165f6b58018e20ed8f07b840000ccd00003675678033580001680141ba00e44f003000dff1003000db8e003000d72a003000bed3003000a5380018009af9003c000ccd0024fb2809a5314473e1165f6b58018e20ed8f07b84067803340b09498030ae3416b66dc00006de5e0e428ac771d77b50000339fb574bdc56763f9950000d18bd45f0b94f54a968f0000d61b892b2ad6249011850000bb2ef6bb1a30be7ee6be0000ade19567bb538035ed36000038"
+		e, err := DecodeExtension(encodedExtension)
+		require.NoError(t, err)
+
+		assert.False(t, e.IsEmpty())
+		assert.NotEmpty(t, e.MakingAmountData)
+		assert.NotEmpty(t, e.TakingAmountData)
+		assert.NotEmpty(t, e.PostInteraction)
+	})
 }

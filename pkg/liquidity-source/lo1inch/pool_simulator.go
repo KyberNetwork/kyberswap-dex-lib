@@ -64,6 +64,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	for _, order := range extra.TakeToken0Orders {
+		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
+		if err != nil {
+			return nil, fmt.Errorf("decode extension: %w", err)
+		}
+
+		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
+		if err != nil {
+			return nil, fmt.Errorf("new fee taker extension: %w", err)
+		}
+
+		order.FeeTakerExtension = &feeTakerExtension
+		order.ExtensionInstance = &extensionInstance
+	}
+
 	takeToken0OrdersMapping := make(map[string]int, len(extra.TakeToken0Orders))
 	takeToken1OrdersMapping := make(map[string]int, len(extra.TakeToken1Orders))
 

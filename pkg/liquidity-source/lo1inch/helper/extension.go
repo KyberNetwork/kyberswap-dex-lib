@@ -1,144 +1,64 @@
 package helper
 
 import (
+	"bytes"
 	"fmt"
+	"math"
 	"math/big"
-	"strings"
 
-	"golang.org/x/crypto/sha3"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethmath "github.com/ethereum/go-ethereum/common/math"
 )
 
-// Extension represents additional data for orders
+const (
+	totalOffsetSlots     = 8
+	offsetSlotSizeInBits = 32
+	offsetLength         = common.HashLength
+)
+
+// Extension represents the extension data of a 1inch order.
+// This is copied from
+// nolint: lll
+// https://github.com/1inch/limit-order-sdk/blob/999852bc3eb92fb75332b7e3e0300e74a51943c1/src/limit-order/extension.ts#L6
 type Extension struct {
-	MakerAssetSuffix string
-	TakerAssetSuffix string
-	MakingAmountData string
-	TakingAmountData string
-	Predicate        string
-	MakerPermit      string
-	PreInteraction   string
-	PostInteraction  string
-	CustomData       string
+	MakerAssetSuffix []byte
+	TakerAssetSuffix []byte
+	MakingAmountData []byte
+	TakingAmountData []byte
+	Predicate        []byte
+	MakerPermit      []byte
+	PreInteraction   []byte
+	PostInteraction  []byte
+	CustomData       []byte
 }
 
-type ExtensionData struct {
-	MakerAssetSuffix string
-	TakerAssetSuffix string
-	MakingAmountData string
-	TakingAmountData string
-	Predicate        string
-	MakerPermit      string
-	PreInteraction   string
-	PostInteraction  string
-	CustomData       string
+func (e Extension) HasMakerPermit() bool {
+	return len(e.MakerPermit) > 0
 }
 
-func NewExtension(data ExtensionData) (*Extension, error) {
-	// Validate all fields are hex strings
-	fields := map[string]string{
-		"MakerAssetSuffix": data.MakerAssetSuffix,
-		"TakerAssetSuffix": data.TakerAssetSuffix,
-		"MakingAmountData": data.MakingAmountData,
-		"TakingAmountData": data.TakingAmountData,
-		"Predicate":        data.Predicate,
-		"MakerPermit":      data.MakerPermit,
-		"PreInteraction":   data.PreInteraction,
-		"PostInteraction":  data.PostInteraction,
-		"CustomData":       data.CustomData,
+func (e Extension) IsEmpty() bool {
+	return len(e.getConcatenatedInteractions()) == 0
+}
+
+func (e Extension) Encode() []byte {
+	interactionsConcatenated := e.getConcatenatedInteractions()
+	if len(interactionsConcatenated) == 0 {
+		return interactionsConcatenated
 	}
 
-	for key, val := range fields {
-		if val != ZX && !isHexString(val) {
-			return nil, fmt.Errorf("%s must be valid hex string", key)
-		}
-	}
+	offset := e.getOffsets()
 
-	return &Extension{
-		MakerAssetSuffix: data.MakerAssetSuffix,
-		TakerAssetSuffix: data.TakerAssetSuffix,
-		MakingAmountData: data.MakingAmountData,
-		TakingAmountData: data.TakingAmountData,
-		Predicate:        data.Predicate,
-		MakerPermit:      data.MakerPermit,
-		PreInteraction:   data.PreInteraction,
-		PostInteraction:  data.PostInteraction,
-		CustomData:       data.CustomData,
-	}, nil
+	b := new(bytes.Buffer)
+	b.Write(offset[:])
+	b.Write(interactionsConcatenated)
+	b.Write(e.CustomData)
+
+	return b.Bytes()
 }
 
-func DefaultExtension() *Extension {
-	ext, _ := NewExtension(ExtensionData{
-		MakerAssetSuffix: ZX,
-		TakerAssetSuffix: ZX,
-		MakingAmountData: ZX,
-		TakingAmountData: ZX,
-		Predicate:        ZX,
-		MakerPermit:      ZX,
-		PreInteraction:   ZX,
-		PostInteraction:  ZX,
-		CustomData:       ZX,
-	})
-	return ext
-}
-
-func (e *Extension) HasPredicate() bool {
-	return e.Predicate != ZX
-}
-
-func (e *Extension) HasMakerPermit() bool {
-	return e.MakerPermit != ZX
-}
-
-func DecodeExtension(bytes string) (*Extension, error) {
-	if bytes == ZX {
-		return DefaultExtension(), nil
-	}
-
-	iter := NewBytesIter(bytes)
-	offsets, _ := new(big.Int).SetString(strings.TrimPrefix(iter.NextUint256(), "0x"), 16)
-	consumed := 0
-
-	fields := []string{
-		"MakerAssetSuffix",
-		"TakerAssetSuffix",
-		"MakingAmountData",
-		"TakingAmountData",
-		"Predicate",
-		"MakerPermit",
-		"PreInteraction",
-		"PostInteraction",
-	}
-
-	data := make(map[string]string)
-	mask := new(big.Int).SetUint64(UINT_32_MAX)
-
-	for _, field := range fields {
-		offsetBig := new(big.Int).And(offsets, mask)
-		offset := int(offsetBig.Int64())
-		bytesCount := offset - consumed
-		data[field] = iter.NextBytes(bytesCount)
-
-		consumed += bytesCount
-		offsets.Rsh(offsets, 32)
-	}
-
-	data["CustomData"] = iter.Rest()
-
-	return NewExtension(ExtensionData{
-		MakerAssetSuffix: data["MakerAssetSuffix"],
-		TakerAssetSuffix: data["TakerAssetSuffix"],
-		MakingAmountData: data["MakingAmountData"],
-		TakingAmountData: data["TakingAmountData"],
-		Predicate:        data["Predicate"],
-		MakerPermit:      data["MakerPermit"],
-		PreInteraction:   data["PreInteraction"],
-		PostInteraction:  data["PostInteraction"],
-		CustomData:       data["CustomData"],
-	})
-}
-
-func (e *Extension) getAll() []string {
-	return []string{
+func (e Extension) interactionsArray() [totalOffsetSlots][]byte {
+	return [totalOffsetSlots][]byte{
 		e.MakerAssetSuffix,
 		e.TakerAssetSuffix,
 		e.MakingAmountData,
@@ -147,54 +67,101 @@ func (e *Extension) getAll() []string {
 		e.MakerPermit,
 		e.PreInteraction,
 		e.PostInteraction,
-		e.CustomData,
 	}
 }
 
-func (e *Extension) IsEmpty() bool {
-	allInteractions := e.getAll()
-	allInteractionsConcat := ""
-	for _, interaction := range allInteractions {
-		allInteractionsConcat += strings.TrimPrefix(interaction, "0x")
+func (e Extension) getConcatenatedInteractions() []byte {
+	builder := new(bytes.Buffer)
+	for _, interaction := range e.interactionsArray() {
+		builder.Write(interaction)
 	}
-	allInteractionsConcat += strings.TrimPrefix(e.CustomData, "0x")
-
-	return len(allInteractionsConcat) == 0
+	return builder.Bytes()
 }
 
-func (e *Extension) Keccak256() *big.Int {
-	encoded := e.Encode()
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write([]byte(encoded))
-	result := hash.Sum(nil)
-	value := new(big.Int).SetBytes(result)
-	return value
+func (e Extension) getOffsets() common.Hash {
+	var lengthMap [totalOffsetSlots]int
+	for i, interaction := range e.interactionsArray() {
+		lengthMap[i] = len(interaction)
+	}
+
+	cumulativeSum := 0
+	bytesAccumulator := big.NewInt(0)
+
+	for i, length := range lengthMap {
+		cumulativeSum += length
+		shiftVal := big.NewInt(int64(cumulativeSum))
+		shiftVal.Lsh(shiftVal, uint(offsetSlotSizeInBits*i)) // nolint:gosec // Shift left
+		bytesAccumulator.Add(bytesAccumulator, shiftVal)     // Add to accumulator
+	}
+
+	return common.Hash(ethmath.PaddedBigBytes(bytesAccumulator, offsetLength))
 }
 
-func (e *Extension) Encode() string {
-	allInteractions := e.getAll()
-	allInteractionsConcat := ""
-	for _, interaction := range allInteractions {
-		allInteractionsConcat += strings.TrimPrefix(interaction, "0x")
+// DecodeExtension decodes the encoded extension string into an Extension struct.
+// The encoded extension string is expected to be in the format of "0x" followed by the hex-encoded extension data.
+// The hex-encoded extension data is expected to be in
+// the format of 32 bytes of offset data followed by the extension data.
+func DecodeExtension(encodedExtension string) (Extension, error) {
+	extensionDataBytes, err := hexutil.Decode(encodedExtension)
+	if err != nil {
+		return Extension{}, fmt.Errorf("decode extension data: %w", err)
 	}
 
-	if len(allInteractionsConcat) == 0 {
-		return ZX
+	if len(extensionDataBytes) == 0 {
+		return defaultExtension(), nil
 	}
 
-	// Calculate offsets for each interaction
-	sum := 0
-	offsets := new(big.Int)
-	for i, interaction := range allInteractions {
-		length := len(strings.TrimPrefix(interaction, "0x")) / 2
-		if i < len(allInteractions)-1 { // Don't add offset for the last item
-			sum += length
-			offset := new(big.Int).SetInt64(int64(sum))
-			offset.Lsh(offset, uint(32*i))
-			offsets.Or(offsets, offset)
+	if len(extensionDataBytes) < offsetLength {
+		return Extension{},
+			fmt.Errorf("extension data length (%d) is less than offset length (%d)",
+				len(extensionDataBytes), offsetLength)
+	}
+
+	offset := new(big.Int).SetBytes(extensionDataBytes[:offsetLength])
+
+	maxInt32 := big.NewInt(math.MaxInt32)
+
+	extensionData := extensionDataBytes[offsetLength:]
+
+	data := [totalOffsetSlots][]byte{}
+	prevLength := 0
+	for i := 0; i < totalOffsetSlots; i++ {
+		length := int(new(big.Int).And(
+			new(big.Int).Rsh(
+				offset, uint(i*offsetSlotSizeInBits), // nolint:gosec
+			),
+			maxInt32,
+		).Int64())
+
+		start := prevLength
+		end := length
+
+		if len(extensionData) < end {
+			return Extension{},
+				fmt.Errorf("extension data length (%d) is less than expected (%d)", len(extensionData), end)
 		}
+
+		data[i] = extensionData[start:end]
+
+		prevLength = length
+	}
+	customData := extensionData[prevLength:]
+
+	e := Extension{
+		MakerAssetSuffix: data[0],
+		TakerAssetSuffix: data[1],
+		MakingAmountData: data[2],
+		TakingAmountData: data[3],
+		Predicate:        data[4],
+		MakerPermit:      data[5],
+		PreInteraction:   data[6],
+		PostInteraction:  data[7],
+		CustomData:       customData,
 	}
 
-	offsetsHex := fmt.Sprintf("%064x", offsets)
-	return "0x" + offsetsHex + allInteractionsConcat
+	return e, nil
+}
+
+func defaultExtension() Extension {
+	return Extension{}
 }
