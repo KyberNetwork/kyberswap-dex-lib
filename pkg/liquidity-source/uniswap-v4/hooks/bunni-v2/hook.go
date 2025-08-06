@@ -288,6 +288,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+	if h.ldf == nil {
+		return nil, fmt.Errorf("ldf is not initialized")
+	}
+
 	amountSpecified := uint256.MustFromBig(params.AmountSpecified)
 
 	blockTimestamp := uint32(time.Now().Unix())
