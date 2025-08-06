@@ -3,6 +3,9 @@ package lo1inch
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -37,6 +40,10 @@ type Order struct {
 	RemainingTakerAmount *uint256.Int `json:"-"`
 	RateWithGasFee       float64      `json:"-"`
 	Rate                 float64      `json:"-"`
+
+	// for calc taking & making amount after fee
+	ExtensionInstance *helper.Extension         `json:"-"`
+	FeeTakerExtension *helper.FeeTakerExtension `json:"-"`
 }
 
 type StaticExtra struct {
@@ -140,4 +147,21 @@ func (o *Order) GetRate() float64 {
 
 func (o *Order) SetRate(r float64) {
 	o.Rate = r
+}
+
+func (o *Order) CalcTakingAmount(
+	taker common.Address,
+	takingAmount *uint256.Int,
+) *uint256.Int {
+	takingAmount := utils.CalcTakingAmount(
+		o.TakingAmount,
+		o.RemainingMakerAmount,
+		takingAmount,
+	)
+
+	if o.ExtensionInstance.IsEmpty() {
+		return takingAmount
+	}
+
+	return o.FeeTakerExtension.GetTakingAmount(taker, takingAmount)
 }

@@ -2,236 +2,175 @@ package helper
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// Constants for bit positions
-const (
-	ZX          = "0x"
-	UINT_32_MAX = uint64(0xFFFFFFFF)
-
-	makerAmountFlag     = uint(255)
-	unwrapWethFlag      = uint(254)
-	skipOrderPermitFlag = uint(253)
-	usePermit2Flag      = uint(252)
-	argsHasReceiver     = uint(251)
-	thresholdMaskStart  = uint(0)
-	thresholdMaskEnd    = uint(185)
-	interactionLenStart = uint(200)
-	interactionLenEnd   = uint(224)
-	extensionLenStart   = uint(224)
-	extensionLenEnd     = uint(248)
-)
-
-// AmountMode represents how to treat the amount provided to fill function
-type AmountMode int
+type AmountMode uint
 
 const (
-	// TakerMode - Amount provided to fill function treated as `takingAmount`
-	// and `makingAmount` calculated based on it
-	TakerMode AmountMode = iota
+	makerAmountFlag     = 255
+	unwrapWethFlag      = 254
+	skipOrderPermitFlag = 253
+	usePermit2Flag      = 252
+	argsHasReceiver     = 251
 
-	// MakerMode - Amount provided to fill function treated as `makingAmount`
-	// and `takingAmount` calculated based on it
-	MakerMode
+	amountThresholdStart    = 0
+	amountThresholdEnd      = 185
+	argsInteractionLenStart = 200
+	argsInteractionLenEnd   = 224
+	argsExtensionLenStart   = 224
+	argsExtensionLenEnd     = 248
+
+	AmountModeTaker AmountMode = 0
+	AmountModeMaker AmountMode = 1
 )
 
-// Address represents an Ethereum address
-type Address string
+//nolint:gochecknoglobals,gomnd,mnd
+var (
+	// 224-247 bits `ARGS_EXTENSION_LENGTH`   - The length of the extension calldata in the args.
+	argsExtensionLenMask = newBitMask(224, 248)
+	// 200-223 bits `ARGS_INTERACTION_LENGTH` - The length of the interaction calldata in the args.
+	argsInteractionLenMask = newBitMask(200, 224)
+	// 0-184 bits                             - The threshold amount.
+	amountThresholdMask = newBitMask(0, 185)
+)
 
-func NewAddress(addr string) Address {
-	return Address(addr)
-}
-
-func (a Address) ToString() string {
-	return string(a)
-}
-
-// / TakerTraits defines the taker's preferences for an order in a single uint256
 type TakerTraits struct {
 	flags       *big.Int
-	receiver    *Address
+	receiver    *common.Address
 	extension   *Extension
 	interaction *Interaction
 }
 
-// EncodeResult represents the encoded result of TakerTraits
-type EncodeResult struct {
-	TakerTraits *big.Int
-	Args        []byte
+type TakerTraitsOptions struct {
+	IsMakingAmount  bool     `json:"is_making_amount"`
+	UnwrapWeth      bool     `json:"unwrap_weth"`
+	SkipOrderPermit bool     `json:"skip_order_permit"`
+	UsePermit2      bool     `json:"use_permit2"`
+	Threshold       *big.Int `json:"threshold"`
 }
 
-func NewTakerTraits(receiver *Address, ext *Extension, interaction *Interaction) *TakerTraits {
+func boolToBit(b bool) uint {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func NewTakerTraits(
+	flags *big.Int, receiver *common.Address, extension *Extension, interaction *Interaction,
+) *TakerTraits {
 	return &TakerTraits{
-		flags:       big.NewInt(0),
+		flags:       flags,
 		receiver:    receiver,
-		extension:   ext,
+		extension:   extension,
 		interaction: interaction,
 	}
 }
 
-func DefaultTakerTraits() *TakerTraits {
-	return NewTakerTraits(nil, nil, nil)
+func NewDefaultTakerTraits() *TakerTraits {
+	return &TakerTraits{
+		flags: new(big.Int),
+	}
 }
 
-// getBit gets a bit value at the specified position
-func (t *TakerTraits) getBit(pos uint) int {
-	return int(t.flags.Bit(int(pos)))
-}
-
-// setBit sets a bit value at the specified position
-func (t *TakerTraits) setBit(pos uint, val int) {
-	t.flags.SetBit(t.flags, int(pos), uint(val))
-}
-
-func (t *TakerTraits) GetAmountMode() AmountMode {
-	return AmountMode(t.getBit(makerAmountFlag))
+func (t *TakerTraits) Decode() TakerTraitsOptions {
+	return TakerTraitsOptions{
+		IsMakingAmount:  t.IsMakingAmount(),
+		UnwrapWeth:      t.UnwrapWeth(),
+		SkipOrderPermit: t.SkipOrderPermit(),
+		UsePermit2:      t.UsePermit2(),
+		Threshold:       t.AmountThreshold(),
+	}
 }
 
 func (t *TakerTraits) SetAmountMode(mode AmountMode) *TakerTraits {
-	t.setBit(makerAmountFlag, int(mode))
+	t.flags.SetBit(t.flags, makerAmountFlag, uint(mode))
 	return t
 }
 
-func (t *TakerTraits) IsNativeUnwrapEnabled() bool {
-	return t.getBit(unwrapWethFlag) == 1
+func (t *TakerTraits) IsMakingAmount() bool {
+	return t.flags.Bit(makerAmountFlag) != 0
 }
 
-func (t *TakerTraits) EnableNativeUnwrap() *TakerTraits {
-	t.setBit(unwrapWethFlag, 1)
+func (t *TakerTraits) SetUnwrapWeth(unwrap bool) *TakerTraits {
+	t.flags.SetBit(t.flags, unwrapWethFlag, boolToBit(unwrap))
 	return t
 }
 
-func (t *TakerTraits) DisableNativeUnwrap() *TakerTraits {
-	t.setBit(unwrapWethFlag, 0)
+func (t *TakerTraits) UnwrapWeth() bool {
+	return t.flags.Bit(unwrapWethFlag) != 0
+}
+
+func (t *TakerTraits) SetSkipOrderPermit(skip bool) *TakerTraits {
+	t.flags.SetBit(t.flags, skipOrderPermitFlag, boolToBit(skip))
 	return t
 }
 
-func (t *TakerTraits) IsOrderPermitSkipped() bool {
-	return t.getBit(skipOrderPermitFlag) == 1
+func (t *TakerTraits) SkipOrderPermit() bool {
+	return t.flags.Bit(skipOrderPermitFlag) != 0
 }
 
-func (t *TakerTraits) SkipOrderPermit() *TakerTraits {
-	t.setBit(skipOrderPermitFlag, 1)
+func (t *TakerTraits) SetUsePermit2(use bool) *TakerTraits {
+	t.flags.SetBit(t.flags, usePermit2Flag, boolToBit(use))
 	return t
 }
 
-func (t *TakerTraits) IsPermit2Enabled() bool {
-	return t.getBit(usePermit2Flag) == 1
+func (t *TakerTraits) UsePermit2() bool {
+	return t.flags.Bit(usePermit2Flag) != 0
 }
 
-func (t *TakerTraits) EnablePermit2() *TakerTraits {
-	t.setBit(usePermit2Flag, 1)
-	return t
-}
-
-func (t *TakerTraits) DisablePermit2() *TakerTraits {
-	t.setBit(usePermit2Flag, 0)
-	return t
-}
-
-func (t *TakerTraits) SetReceiver(receiver Address) *TakerTraits {
-	t.receiver = &receiver
-	return t
-}
-
-func (t *TakerTraits) RemoveReceiver() *TakerTraits {
-	t.receiver = nil
-	return t
-}
-
-func (t *TakerTraits) SetExtension(ext *Extension) *TakerTraits {
-	t.extension = ext
-	return t
-}
-
-func (t *TakerTraits) RemoveExtension() *TakerTraits {
-	t.extension = nil
-	return t
-}
-
+// SetAmountThreshold sets threshold amount.
+// In taker amount mode: the minimum amount a taker agrees to receive in exchange for a taking amount.
+// In maker amount mode: the maximum amount a taker agrees to give in exchange for a making amount.
 func (t *TakerTraits) SetAmountThreshold(threshold *big.Int) *TakerTraits {
-	// Create mask for threshold bits
-	mask := new(big.Int).Lsh(big.NewInt(1), thresholdMaskEnd)
-	mask.Sub(mask, big.NewInt(1))
-
-	// Clear threshold bits
-	t.flags.And(t.flags, mask.Not(mask))
-
-	// Set new threshold
-	t.flags.Or(t.flags, threshold)
+	setMask(t.flags, amountThresholdMask, threshold)
 	return t
 }
 
-func (t *TakerTraits) RemoveAmountThreshold() *TakerTraits {
-	return t.SetAmountThreshold(big.NewInt(0))
+func (t *TakerTraits) AmountThreshold() *big.Int {
+	return getMask(t.flags, amountThresholdStart, amountThresholdEnd)
 }
 
-func (t *TakerTraits) SetInteraction(interaction *Interaction) *TakerTraits {
-	t.interaction = interaction
+// SetExtension sets extension, it is required to provide same extension as in order creation (if any).
+func (t *TakerTraits) SetExtension(ext Extension) *TakerTraits {
+	t.extension = &ext
 	return t
 }
 
-func (t *TakerTraits) RemoveInteraction() *TakerTraits {
-	t.interaction = nil
+// SetInteraction sets interaction, target should implement `ITakerInteraction` interface.
+func (t *TakerTraits) SetInteraction(interaction Interaction) *TakerTraits {
+	t.interaction = &interaction
 	return t
 }
 
-// Encode encodes the TakerTraits into trait and args
-func (t *TakerTraits) Encode() EncodeResult {
-	var extensionLen, interactionLen int64
-
+func (t *TakerTraits) Encode() (*big.Int, []byte) {
+	var extension, interaction []byte
 	if t.extension != nil {
-		encodedExt := t.extension.Encode()
-		if encodedExt != ZX {
-			extensionLen = int64(len(strings.TrimPrefix(encodedExt, "0x")) / 2)
-		}
+		extension = t.extension.Encode()
 	}
-
 	if t.interaction != nil {
-		encodedInt := t.interaction.Encode()
-		if encodedInt != ZX {
-			interactionLen = int64(len(strings.TrimPrefix(encodedInt, "0x")) / 2)
-		}
+		interaction = t.interaction.Encode()
 	}
 
-	// Set has receiver bit
+	flags := new(big.Int).Set(t.flags)
 	if t.receiver != nil {
-		t.setBit(argsHasReceiver, 1)
+		flags.SetBit(flags, argsHasReceiver, 1)
+	}
+
+	// Set length for extension and interaction.
+	setMask(flags, argsExtensionLenMask, big.NewInt(int64(len(extension))))
+	setMask(flags, argsInteractionLenMask, big.NewInt(int64(len(interaction))))
+
+	var args []byte
+	if t.receiver == nil {
+		args = make([]byte, 0, len(extension)+len(interaction))
 	} else {
-		t.setBit(argsHasReceiver, 0)
+		args = make([]byte, 0, len(t.receiver)+len(extension)+len(interaction))
+		args = append(args, t.receiver.Bytes()...)
 	}
+	args = append(append(args, extension...), interaction...)
 
-	// Set extension length
-	extLenMask := new(big.Int).Lsh(big.NewInt(1), extensionLenEnd-extensionLenStart)
-	extLenMask.Sub(extLenMask, big.NewInt(1))
-	extLen := new(big.Int).SetInt64(extensionLen)
-	extLen.Lsh(extLen, extensionLenStart)
-	t.flags.Or(t.flags, extLen)
-
-	// Set interaction length
-	intLenMask := new(big.Int).Lsh(big.NewInt(1), interactionLenEnd-interactionLenStart)
-	intLenMask.Sub(intLenMask, big.NewInt(1))
-	intLen := new(big.Int).SetInt64(interactionLen)
-	intLen.Lsh(intLen, interactionLenStart)
-	t.flags.Or(t.flags, intLen)
-
-	// Build args string
-	args := ZX
-	if t.receiver != nil {
-		args += strings.TrimPrefix(t.receiver.ToString(), ZX)
-	}
-	if t.extension != nil {
-		args += strings.TrimPrefix(t.extension.Encode(), ZX)
-	}
-	if t.interaction != nil {
-		args += strings.TrimPrefix(t.interaction.Encode(), ZX)
-	}
-
-	return EncodeResult{
-		TakerTraits: t.flags,
-		Args:        common.FromHex(args),
-	}
+	return flags, args
 }
