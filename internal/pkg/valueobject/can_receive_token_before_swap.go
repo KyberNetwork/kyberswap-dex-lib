@@ -22,7 +22,6 @@ var (
 		l1executor.FunctionSelectorKTX.RawName:            {},
 		l1executor.FunctionSelectorSolidlyV2.RawName:      {},
 		l1executor.FunctionSelectorMemebox.RawName:        {},
-		l1executor.FunctionSelectorKatanaV3.RawName:       {},
 		l1executor.FunctionSelectorEulerSwap.RawName:      {},
 		l1executor.FunctionSelectorBrownfi.RawName:        {},
 		l1executor.FunctionSelectorBrownfiV2.RawName:      {},
