@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// isHexBytes
+// nolint: unused
 func isHexBytes(s string) bool {
 	s = strings.TrimPrefix(s, "0x")
 	if len(s)%2 != 0 {
@@ -15,6 +17,8 @@ func isHexBytes(s string) bool {
 	return err == nil
 }
 
+// isHexString
+// nolint: unused
 func isHexString(s string) bool {
 	if s == ZX {
 		return true
