@@ -171,7 +171,7 @@ func (o *Order) CalcTakingAmount(
 		o.TakingAmount,
 	)
 
-	if o.ExtensionInstance.IsEmpty() {
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() {
 		return takingAmount, nil
 	}
 
@@ -208,7 +208,7 @@ func (o *Order) CalcMakingAmount(
 	)
 
 	// if there is no extension, we can return the making amount trivially
-	if o.ExtensionInstance.IsEmpty() {
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() {
 		return makingAmount, nil
 	}
 

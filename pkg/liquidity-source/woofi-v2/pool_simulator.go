@@ -265,6 +265,8 @@ func (s *PoolSimulator) _swapBaseToBase(
 		spread = state2.Spread / 2
 	}
 
+	// feeRate
+	// nolint: gosimple
 	var feeRate uint16
 	feeRate = max(s.tokenInfos[baseToken1].FeeRate, s.tokenInfos[baseToken2].FeeRate)
 
