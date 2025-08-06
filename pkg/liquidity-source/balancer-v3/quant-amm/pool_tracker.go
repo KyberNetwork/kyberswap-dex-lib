@@ -125,11 +125,15 @@ func (t *PoolTracker) getNewPoolState(
 
 	var hasStaticChange bool
 	for i, token := range underlyingTokens {
-		if token != (common.Address{}) {
+		tokenStr := hexutil.Encode(token[:])
+		if token != (common.Address{}) && !lo.ContainsBy(p.Tokens, func(t *entity.PoolToken) bool {
+			// don't use as buffer token if the underlying token is already contained in the pool as a main token
+			return tokenStr == t.Address
+		}) {
 			hasStaticChange = true
 			staticExtra.BufferTokens[i] = p.Tokens[i].Address
 			p.Tokens[i] = &entity.PoolToken{
-				Address:   hexutil.Encode(token[:]),
+				Address:   tokenStr,
 				Swappable: true,
 			}
 		}
@@ -153,6 +157,7 @@ func (t *PoolTracker) getNewPoolState(
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
 	}
+
 	return p, nil
 }
 
@@ -163,7 +168,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		isVaultPaused bool
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	poolAddress := p.Address
 	paramsPool := []any{common.HexToAddress(poolAddress)}
