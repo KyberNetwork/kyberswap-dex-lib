@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
@@ -710,4 +711,14 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestPoolSimulatorFeeTakerExtension(t *testing.T) {
+	t.Skip()
+
+	extensionInstance, err := helper1inch.DecodeExtension("0x")
+	t.Log(extensionInstance, err)
+
+	feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
+	t.Log(feeTakerExtension, err)
 }

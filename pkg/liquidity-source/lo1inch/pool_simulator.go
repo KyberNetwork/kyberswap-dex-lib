@@ -68,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	for _, order := range extra.TakeToken0Orders {
-		if order.Extension == "" {
+		if order.Extension == "" || order.Extension == helper1inch.ZX {
 			continue
 		}
 
