@@ -520,14 +520,18 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 
 	// collect all tokens
 	tokenAddresses := mapset.NewThreadUnsafeSet[string]()
+	removedPools := make([]*entity.Pool, 0, len(pools))
 	for _, p := range pools {
 		if !p.HasReserves() {
+			// remove pools have no reserves from all related whitelist set
+			removedPools = append(removedPools, p)
 			continue
 		}
 		for _, t := range p.Tokens {
 			tokenAddresses.Add(t.Address)
 		}
 	}
+	gen.removeZeroReservesPoolsFromWhitelistSet(ctx, removedPools)
 	if tokenAddresses.IsEmpty() {
 		return TradesGenerationOutput{}, errors.New("tokens is empty")
 	}
@@ -817,6 +821,53 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 		Blacklist:      indexBlacklistTrack,
 		ZeroScorePools: zeroPoolScores,
 	}, nil
+}
+
+func (gen *TradeDataGenerator) removeZeroReservesPoolsFromWhitelistSet(ctx context.Context, removedPools []*entity.Pool) {
+	if len(removedPools) == 0 {
+		return
+	}
+
+	removedScores := make([]routerEntity.PoolScore, 0)
+
+	for _, p := range removedPools {
+		if p == nil || len(p.Tokens) < 2 {
+			continue
+		}
+
+		// Generate unique token pairs to avoid duplicates
+		for i := 0; i < len(p.Tokens); i++ {
+			tokenI := p.Tokens[i]
+			if tokenI == nil {
+				continue
+			}
+
+			for j := i + 1; j < len(p.Tokens); j++ {
+				tokenJ := p.Tokens[j]
+				if tokenJ == nil {
+					continue
+				}
+
+				keys := gen.generateTradeDataKey(tokenI.Address, tokenJ.Address)
+				for _, k := range keys {
+					removedScores = append(removedScores, routerEntity.PoolScore{
+						Key:  k,
+						Pool: p.Address,
+					})
+				}
+			}
+		}
+	}
+
+	if len(removedScores) > 0 {
+		if err := gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removedScores); err != nil {
+			log.Ctx(ctx).Err(err).
+				Str("struct", "TradeDataGenerator").
+				Str("method", "removeZeroReservesPoolsFromWhitelistSet").
+				Int("removedScoresCount", len(removedScores)).
+				Msg("failed to remove scores from sorted sets")
+		}
+	}
 }
 
 // return values: trade data that are generated from calcAmountOut, error and list of error pool address

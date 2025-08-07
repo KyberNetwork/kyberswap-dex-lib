@@ -44,8 +44,11 @@ def main():
 
 
 def filter_scores(pool_scores, mean_type, min_score, min_len):
+    index = len(pool_scores)
+    if len(pool_scores) <= min_len:
+        return pool_scores, index
+
     pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
-    index = 0
     for i in range(len(pool_scores) - 1, -1, -1):
         if pool_scores[i][mean_type] >= min_score or i < min_len:
             index = i
@@ -235,45 +238,51 @@ def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile
 
     liquidity_scores = liq.calculate_scores(pools, default_scores)
     liquidity_scores_output = liq.calculate_mean_scores(liquidity_scores, entities.MIN_VALID_SCORE)
+
+    invalid_scores = []
+    if float(target_factor_entropy) != 1.0:
+        try:
+            # run filter score by calculating entropy
+            # only apply for whitelist - whitelist set
+            min_score = entropy.get_top_pools(liquidity_scores_output.scores, mean_type, float(target_factor_entropy))
+            pool_scores, index = filter_scores(liquidity_scores_output.scores, mean_type, min_score, min_filtered_pools_len)
+            final_scores = pool_scores[:index]
+            print(f'Length of final scores after filtering: {len(final_scores)} index {index}')
+            result.extend(final_scores)
+            # save invalid pool scores in separate file to remove them on sorted set later
+            if invalid_scores_filename != '' and index < len(pool_scores):
+                invalid_scores = [s for s in pool_scores[index:] if s['tvl_in_usd'] <= min_threshold_tvl_in_usd]
+            if index == len(pool_scores):
+                min_score = 0.0
+        except Exception as e:
+            print(f'exception while calculate entropy values {e}, back to save all scores {liquidity_scores_output.scores}')
+            # when exception occurs here, we don't need to filter score
+            result.extend(liquidity_scores_output.scores)
+    
+    result.extend(liquidity_scores_output.direct_scores.values())
     
     if len(liquidity_scores_output.whitelist_token_scores) != 0:
         extra_mean_scores = liq.calculate_mean_scores(liquidity_scores_output.whitelist_token_scores, entities.MIN_VALID_SCORE)
-        result.extend(extra_mean_scores.scores)
-        result.extend(extra_mean_scores.direct_scores.values())
-
-    if float(target_factor_entropy) == 1.0:
-        result.extend(liquidity_scores_output.scores)
-        result.extend(liquidity_scores_output.direct_scores.values())
-        return result
-
-    try:
-        # run filter score by calculating entropy
-        # only apply for whitelist - whitelist set
-        min_score = entropy.get_top_pools(liquidity_scores_output.scores, mean_type, float(target_factor_entropy))
-        pool_scores, index = filter_scores(liquidity_scores_output.scores, mean_type, min_score, min_filtered_pools_len)
-        final_scores = pool_scores[:index]
-        print(f'Length of final scores after filtering: {len(final_scores)} index {index}')
-        result.extend(final_scores)
-        # save invalid pool scores in separate file to remove them on sorted set later
-        if invalid_scores_filename != '' and index != len(pool_scores):
-            save_invalid_pool_scores(pool_scores[index:], invalid_scores_filename, min_threshold_tvl_in_usd)
-    except Exception as e:
-        print(f'exception while calculate entropy values {e}, back to save all scores {liquidity_scores_output.scores}')
-        # when exception occurs here, we don't need to filter score
-        result.extend(liquidity_scores_output.scores)
-
-    result.extend(liquidity_scores_output.direct_scores.values())
+        # filter again some invalid scores
+        if target_factor_entropy != 1.0 and len(invalid_scores) != 0:
+            for s in extra_mean_scores.scores:
+                if s[mean_type] < min_score and s['tvl_in_usd'] <= min_threshold_tvl_in_usd:
+                    invalid_scores.append(s)
+                else:
+                    result.append(s)
+            
+            for s in extra_mean_scores.direct_scores.values():
+                if s[mean_type] < min_score and s['tvl_in_usd'] <= min_threshold_tvl_in_usd:
+                    invalid_scores.append(s)
+                else:
+                    result.append(s)
+            
+            if invalid_scores_filename != '' and len(invalid_scores) != 0:
+                save_scores(invalid_scores_filename, invalid_scores)
+        else:
+            result.extend(extra_mean_scores.scores)
+            result.extend(extra_mean_scores.direct_scores.values())
         
     return result
-
-# safe to remove some pools with low liquidity score and low tvl
-def save_invalid_pool_scores(pool_scores, invalid_scores_filename, min_threshold_tvl_in_usd):
-    invalid_scores = []
-    
-    for score in pool_scores:
-        if score['tvl_in_usd'] <= min_threshold_tvl_in_usd:
-            invalid_scores.append(score)
-    
-    save_scores(invalid_scores_filename, invalid_scores)
 
 main()
