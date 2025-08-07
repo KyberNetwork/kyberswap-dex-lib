@@ -72,39 +72,47 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			continue
 		}
 
+		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
+
 		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
 		if err != nil {
 			return nil, fmt.Errorf("decode extension: %w", err)
 		}
+		order.ExtensionInstance = &extensionInstance
 
 		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
 		if err != nil {
-			return nil, fmt.Errorf("new fee taker extension: %w", err)
-		}
-
-		order.FeeTakerExtension = &feeTakerExtension
-		order.ExtensionInstance = &extensionInstance
-		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
-	}
-
-	for _, order := range extra.TakeToken1Orders {
-		if order.Extension == "" {
+			logger.Errorf("failed to decode fee taker extension: %v", err)
+			// not always that extension data can be used to create new fee taker extension
+			// so we need to continue
 			continue
 		}
 
+		order.FeeTakerExtension = &feeTakerExtension
+	}
+
+	for _, order := range extra.TakeToken1Orders {
+		if order.Extension == "" || order.Extension == helper1inch.ZX {
+			continue
+		}
+
+		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
+
 		extensionInstance, err := helper1inch.DecodeExtension(order.Extension)
 		if err != nil {
 			return nil, fmt.Errorf("decode extension: %w", err)
 		}
+		order.ExtensionInstance = &extensionInstance
 
 		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
 		if err != nil {
-			return nil, fmt.Errorf("new fee taker extension: %w", err)
+			logger.Errorf("failed to decode fee taker extension: %v", err)
+			// not always that extension data can be used to create new fee taker extension
+			// so we need to continue
+			continue
 		}
 
 		order.FeeTakerExtension = &feeTakerExtension
-		order.ExtensionInstance = &extensionInstance
-		order.MakerTraitsInstance = helper1inch.NewMakerTraits(order.MakerTraits)
 	}
 
 	takeToken0OrdersMapping := make(map[string]int, len(extra.TakeToken0Orders))
