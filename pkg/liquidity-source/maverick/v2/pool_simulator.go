@@ -2,6 +2,7 @@ package maverickv2
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 	"strings"
 
@@ -639,9 +640,7 @@ func (state *MaverickPoolState) Clone() *MaverickPoolState {
 		cloned.Bins[k] = clonedBin
 	}
 
-	for k, v := range state.Ticks {
-		cloned.Ticks[k] = v
-	}
+	maps.Copy(cloned.Ticks, state.Ticks)
 
 	return cloned
 }
