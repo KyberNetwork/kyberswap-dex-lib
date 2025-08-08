@@ -37,6 +37,7 @@ var (
 		l2executor.FunctionSelectorKTX.RawName:         {},
 		l2executor.FunctionSelectorMemebox.RawName:     {},
 		l2executor.FunctionSelectorEulerSwap.RawName:   {},
+		l2executor.FunctionSelectorBrownFiV2.RawName:   {},
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively
