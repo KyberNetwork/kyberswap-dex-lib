@@ -101,6 +101,7 @@ var useApproveMaxFunctionSet = map[string]bool{
 	l1executor.FunctionSelectorGenericArm.RawName:      true,
 	l1executor.FunctionSelectorArena.RawName:           false,
 	l1executor.FunctionSelectorAngleTransmuter.RawName: true,
+	l1executor.FunctionSelectorBedrockBTC.RawName:      true,
 }
 
 // IsApproveMaxExchange returns true if we should track if executor `approveMax` for the provided exchange,
