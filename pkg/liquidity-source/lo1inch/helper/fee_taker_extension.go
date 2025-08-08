@@ -27,12 +27,17 @@ var ErrInvalidExtension = errors.New("invalid extension")
 //
 //nolint:funlen,cyclop
 func NewFeeTakerFromExtension(extension Extension) (FeeTakerExtension, error) {
+	if len(extension.MakingAmountData) == 0 {
+		return FeeTakerExtension{},
+			fmt.Errorf("%w: making amount data is empty", ErrInvalidExtension)
+	}
+
 	extensionAddress := util.AddressFromFirstBytes(extension.MakingAmountData)
-	if util.AddressFromFirstBytes(extension.TakingAmountData) != extensionAddress {
+	if len(extension.TakingAmountData) == 0 || util.AddressFromFirstBytes(extension.TakingAmountData) != extensionAddress {
 		return FeeTakerExtension{},
 			fmt.Errorf("%w: taking amount data settlement contract mismatch", ErrInvalidExtension)
 	}
-	if util.AddressFromFirstBytes(extension.PostInteraction) != extensionAddress {
+	if len(extension.PostInteraction) == 0 || util.AddressFromFirstBytes(extension.PostInteraction) != extensionAddress {
 		return FeeTakerExtension{},
 			fmt.Errorf("%w: post interaction settlement contract mismatch", ErrInvalidExtension)
 	}
