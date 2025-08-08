@@ -82,7 +82,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
 		if err != nil {
-			logger.Errorf("failed to decode fee taker extension: %v", err)
+			// logger.Errorf("failed to decode fee taker extension: %v", err)
 			// not always that extension data can be used to create new fee taker extension
 			// so we need to continue
 			continue
