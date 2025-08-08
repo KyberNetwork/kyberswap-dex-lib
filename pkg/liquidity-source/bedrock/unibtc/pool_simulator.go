@@ -3,6 +3,7 @@ package unibtc
 import (
 	"encoding/json"
 	"math/big"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -63,7 +64,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	case 18:
 		uniBTCAmt = new(big.Int).Div(params.TokenAmountIn.Amount, s.extra.ExchangeRateBase)
 	default:
-		uniBTCAmt = big.NewInt(0)
+		uniBTCAmt = bignumber.ZeroBI
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -76,6 +77,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	idIn := s.Info.GetTokenIndex(params.TokenAmountIn.Token)
 	s.extra.TokenUsedCaps[idIn] = new(big.Int).Add(s.extra.TokenUsedCaps[idIn], params.TokenAmountIn.Amount)
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.extra.TokenUsedCaps = slices.Clone(s.extra.TokenUsedCaps)
+	return &cloned
 }
 
 func (s *PoolSimulator) CanSwapTo(token string) []string {
