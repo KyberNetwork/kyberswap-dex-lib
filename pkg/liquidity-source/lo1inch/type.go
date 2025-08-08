@@ -178,13 +178,8 @@ func (o *Order) CalcTakingAmount(
 		o.TakingAmount,
 	)
 
-	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() {
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() || o.FeeTakerExtension == nil {
 		return takingAmount, nil
-	}
-
-	// in case of having fee logic, we need to check if the fee taker extension is not nil
-	if o.FeeTakerExtension == nil {
-		return nil, ErrFeeTakerExtensionNotFound
 	}
 
 	return uint256.MustFromBig(
@@ -215,13 +210,8 @@ func (o *Order) CalcMakingAmount(
 	)
 
 	// if there is no extension, we can return the making amount trivially
-	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() {
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() || o.FeeTakerExtension == nil {
 		return makingAmount, nil
-	}
-
-	// in case of having fee logic, we need to check if the fee taker extension is not nil
-	if o.FeeTakerExtension == nil {
-		return nil, ErrFeeTakerExtensionNotFound
 	}
 
 	return uint256.MustFromBig(
