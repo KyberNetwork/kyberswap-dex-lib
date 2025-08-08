@@ -53,7 +53,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrUnsupportedToken
 	}
 
-	if params.TokenAmountIn.Amount.Cmp(new(big.Int).Sub(s.extra.Caps[idIn], s.extra.TokenUsedCaps[idIn])) >= 0 {
+	if s.extra.TokenUsedCaps[idIn] == nil || params.TokenAmountIn.Amount.Cmp(new(big.Int).Sub(s.extra.Caps[idIn], s.extra.TokenUsedCaps[idIn])) >= 0 {
 		return nil, ErrInsufficientCap
 	}
 
