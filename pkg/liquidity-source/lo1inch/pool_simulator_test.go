@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
@@ -322,7 +323,6 @@ func TestPoolSimulator_CalcAmountOut_RealPool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.fields.poolEntity)
 			assert.NoError(t, err)
-
 			got, err := p.CalcAmountOut(tt.args.param)
 			if err != nil {
 				assert.Equalf(t, tt.wantErr, err, "PoolSimulator.CalcAmountOut() error = %+v, wantErr %+v", err, tt.wantErr)
@@ -711,4 +711,14 @@ func TestPoolSimulator_Inventory(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestPoolSimulatorFeeTakerExtension(t *testing.T) {
+	// t.Skip()
+
+	extensionInstance, err := helper1inch.DecodeExtension("0x000000f4000000f4000000f40000000000000000000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb480000000000000000000000004a1565c1a18add230581aa8cd60bf12f56eb7c15000000000000000000000000111111125421ca6dc452d289314280a0f8842a65ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000006c3c26f2000000000000000000000000000000000000000000000000000000000000001ca63fe2348d2dd71c5b04b1d626f2a5949d5a8b806521b4e516b6ef03ab8264376938f1bcd41e4df0c421642eabffcb9f2aa592df8eb45cfc8de198066e29a955")
+	t.Log(extensionInstance, err)
+
+	feeTakerExtension, err := helper1inch.NewFeeTakerFromExtension(extensionInstance)
+	t.Log(feeTakerExtension, err)
 }
