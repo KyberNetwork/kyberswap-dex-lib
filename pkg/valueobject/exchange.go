@@ -47,6 +47,7 @@ const (
 	ExchangeBaso                       = "baso"
 	ExchangeBebop                      = "bebop"
 	ExchangeBedrockUniETH              = "bedrock-unieth"
+	ExchangeBedrockUniBTC              = "bedrock-unibtc"
 	ExchangeBeefySonic                 = "beefy-sonic"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
@@ -484,6 +485,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaseSwapV3:                 {},
 	ExchangeBaso:                       {},
 	ExchangeBedrockUniETH:              {},
+	ExchangeBedrockUniBTC:              {},
 	ExchangeBeefySonic:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
