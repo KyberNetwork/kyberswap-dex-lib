@@ -112,7 +112,7 @@ func (d *PoolTracker) getReserves(
 	}
 
 	var (
-		getReservesResult uniswapv2.GetReservesResult
+		getReservesResult uniswapv2.ReserveData
 
 		originalReserve0 = bignumber.ZeroBI
 		originalReserve1 = bignumber.ZeroBI

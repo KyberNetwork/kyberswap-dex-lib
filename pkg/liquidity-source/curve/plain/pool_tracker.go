@@ -106,10 +106,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	req.SetFrom(nonZeroAddr) // poolMethodStoredRates behaves differently for tx.origin == 0
 
 	req.AddCall(&ethrpc.Call{

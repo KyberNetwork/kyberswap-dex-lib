@@ -1,7 +1,7 @@
 [
   {
     "inputs": [],
-    "name": "MAX_FEE",
+    "name": "Q64",
     "outputs": [
       {
         "internalType": "uint256",
@@ -42,7 +42,7 @@
   },
   {
     "inputs": [],
-    "name": "feeManager",
+    "name": "authority",
     "outputs": [
       {
         "internalType": "address",
@@ -54,29 +54,11 @@
   },
   {
     "inputs": [],
-    "name": "feeSplit",
+    "name": "feeTo",
     "outputs": [
       {
-        "internalType": "uint8",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_stable",
-        "type": "bool"
-      }
-    ],
-    "name": "getFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
+        "internalType": "address",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -91,10 +73,6 @@
       {
         "internalType": "address",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "type": "bool"
       }
     ],
     "name": "getPair",
@@ -108,48 +86,12 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_pool",
-        "type": "address"
-      }
-    ],
-    "name": "getPoolFeeSplit",
-    "outputs": [
-      {
-        "internalType": "uint8",
-        "name": "_poolFeeSplit",
-        "type": "uint8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "implementation",
+    "name": "isConsumingScheduledOp",
     "outputs": [
       {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "name": "isPair",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "type": "bool"
+        "internalType": "bytes4",
+        "type": "bytes4"
       }
     ],
     "stateMutability": "view",
@@ -169,11 +111,11 @@
   },
   {
     "inputs": [],
-    "name": "owner",
+    "name": "minPriceAge",
     "outputs": [
       {
-        "internalType": "address",
-        "type": "address"
+        "internalType": "uint256",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -181,29 +123,51 @@
   },
   {
     "inputs": [],
-    "name": "pairCodeHash",
+    "name": "paused",
     "outputs": [
       {
-        "internalType": "bytes32",
-        "type": "bytes32"
+        "internalType": "bool",
+        "type": "bool"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
       {
         "internalType": "address",
-        "name": "_pool",
         "type": "address"
       }
     ],
-    "name": "pairFee",
+    "name": "priceFeedIds",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "priceAge",
+        "type": "uint256"
+      }
+    ],
+    "name": "priceOf",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "fee",
+        "name": "_price",
         "type": "uint256"
       }
     ],
@@ -212,79 +176,7 @@
   },
   {
     "inputs": [],
-    "name": "pauser",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pendingFeeManager",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pendingPauser",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "stableFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "treasury",
-    "outputs": [
-      {
-        "internalType": "address",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "volatileFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "voter",
+    "name": "priceOracle",
     "outputs": [
       {
         "internalType": "address",

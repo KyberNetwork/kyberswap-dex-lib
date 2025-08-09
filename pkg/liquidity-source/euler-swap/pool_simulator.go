@@ -253,7 +253,7 @@ func (p *PoolSimulator) swap(
 
 	var newCollateralValue uint256.Int
 	newCollateralValue.Mul(toShareDown(depositAmt, fromVault.TotalAssets, fromVault.TotalSupply), fromVault.SharePrice)
-	newCollateralValue.MulDivOverflow(&newCollateralValue, fromVault.LTV, CONFIG_SCALE)
+	newCollateralValue.MulDivOverflow(&newCollateralValue, toVault.LTV, CONFIG_SCALE)
 	newCollateralValue.Add(&newCollateralValue, fromVault.CollateralValue)
 
 	// Apply a safety buffer (85%) to the collateral value for swap limit checks

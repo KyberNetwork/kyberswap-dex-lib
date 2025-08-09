@@ -244,10 +244,7 @@ func (t *PoolTracker) getPoolCollection(
 ) (*poolCollectionResp, error) {
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
-		SetBlockNumber(blockNbr)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		SetBlockNumber(blockNbr).SetOverrides(overrides)
 	poolDatResp := make([]*poolDataResp, len(pools))
 	for idx, p := range pools {
 		poolDatResp[idx] = &poolDataResp{}
@@ -291,10 +288,7 @@ func (t *PoolTracker) getCollectionByPool(
 ) (map[string]string, error) {
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
-		SetBlockNumber(blockNbr)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		SetBlockNumber(blockNbr).SetOverrides(overrides)
 	poolCollections := make([]common.Address, len(liquidityPools))
 	for idx, liquidityPool := range liquidityPools {
 		req.AddCall(&ethrpc.Call{
@@ -323,10 +317,7 @@ func (t *PoolTracker) getLiquidityPools(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]string, *big.Int, error) {
 	var addresses []common.Address
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    bancorNetworkABI,

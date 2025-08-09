@@ -2,7 +2,6 @@ package unieth
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -13,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -70,47 +70,26 @@ func (t *PoolTracker) getExtra(
 	ctx context.Context,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (PoolExtra, uint64, error) {
-	var (
-		paused         bool
-		totalSupply    *big.Int
-		currentReserve *big.Int
-	)
+	var extra PoolExtra
 
-	getPoolStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		getPoolStateRequest.SetOverrides(overrides)
-	}
-
-	getPoolStateRequest.AddCall(&ethrpc.Call{
+	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    StakingABI,
 		Target: Staking,
 		Method: StakingMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
-	getPoolStateRequest.AddCall(&ethrpc.Call{
+	}, []any{&extra.Paused}).AddCall(&ethrpc.Call{
 		ABI:    StakingABI,
 		Target: Staking,
 		Method: StakingMethodCurrentReserve,
-		Params: []interface{}{},
-	}, []interface{}{&currentReserve})
-	getPoolStateRequest.AddCall(&ethrpc.Call{
+	}, []any{&extra.CurrentReserve}).AddCall(&ethrpc.Call{
 		ABI:    RockXETHABI,
 		Target: UNIETH,
 		Method: UniETHMethodTotalSupply,
-		Params: []interface{}{},
-	}, []interface{}{&totalSupply})
-
-	resp, err := getPoolStateRequest.TryAggregate()
+	}, []any{&extra.TotalSupply}).TryBlockAndAggregate()
 	if err != nil {
-		return PoolExtra{}, 0, err
-	}
-	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
+		return extra, 0, err
+	} else if resp.BlockNumber == nil {
+		resp.BlockNumber = bignumber.ZeroBI
 	}
 
-	return PoolExtra{
-		Paused:         paused,
-		TotalSupply:    totalSupply,
-		CurrentReserve: currentReserve,
-	}, resp.BlockNumber.Uint64(), nil
+	return extra, resp.BlockNumber.Uint64(), nil
 }

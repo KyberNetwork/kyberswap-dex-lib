@@ -91,10 +91,7 @@ func (d *PoolTracker) updateMemecorePool(
 		getReservesResult MemecoreReserves
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    memecoreABI,
@@ -136,10 +133,7 @@ func (d *PoolTracker) updateShadowLegacyPool(
 		getReservesResult MemecoreReserves
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shadowLegacyABI,
@@ -182,10 +176,7 @@ func (d *PoolTracker) updateStandardPool(
 		getReservesResult velodromev2.GetReservesResult
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,

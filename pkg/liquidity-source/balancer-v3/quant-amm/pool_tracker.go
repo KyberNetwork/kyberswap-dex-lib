@@ -75,7 +75,7 @@ func (t *PoolTracker) getNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	res, err := t.queryRPCData(ctx, p.Address, staticExtra, overrides)
+	res, err := t.queryRPCData(ctx, &p, staticExtra, overrides)
 	if err != nil {
 		l.WithFields(klog.Fields{"error": err}).Error("failed to query RPC data")
 		return p, err
@@ -125,26 +125,26 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
-	if !res.IsPoolDisabled && shared.IsHookSupported(staticExtra.HookType) {
-		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
-	} else { // set all reserves to 0 to disable pool temporarily
+	if res.IsPoolDisabled || !shared.IsHookSupported(staticExtra.HookType) {
+		// set all reserves to 0 to disable pool
 		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+	} else {
+		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
 	}
+
 	return p, nil
 }
 
-func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, staticExtra StaticExtra,
+func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticExtra StaticExtra,
 	overrides map[common.Address]gethclient.OverrideAccount) (*RpcResult, error) {
 	var (
 		rpcRes        RpcResult
 		isVaultPaused bool
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
+	poolAddress := p.Address
 	paramsPool := []any{common.HexToAddress(poolAddress)}
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultExplorerABI,
@@ -182,7 +182,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, poolAddress string, stat
 			Method: poolMethodGetQuantAMMWeightedPoolImmutableData,
 		}, []any{&rpcRes.ImmutableDataRpc})
 	}
-	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens, t.config.VaultExplorer)
+	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {

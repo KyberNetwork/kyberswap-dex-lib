@@ -95,10 +95,7 @@ func (d *PoolTracker) getPoolData(
 		getReservesResult velodromev2.GetReservesResult
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	if stable {
 		req.AddCall(&ethrpc.Call{

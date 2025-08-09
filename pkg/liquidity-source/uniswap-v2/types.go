@@ -1,10 +1,13 @@
 package uniswapv2
 
-import "math/big"
+import (
+	"math/big"
+)
 
 type ReserveData struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0           *big.Int
+	Reserve1           *big.Int
+	BlockTimestampLast uint32
 }
 
 func (d ReserveData) IsZero() bool {

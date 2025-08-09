@@ -16,6 +16,7 @@ type (
 	PoolsListUpdater struct {
 		config        *Config
 		graphqlClient *graphqlpkg.Client
+		count         int
 	}
 
 	Metadata struct {
@@ -44,11 +45,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}()
 
 	var metadata Metadata
-	if len(metadataBytes) > 0 {
+	if len(metadataBytes) > 0 && u.count%RelistInterval > 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
 	}
+	u.count++
 
 	subgraphPools, metadata, err := u.querySubgraph(ctx, metadata)
 	if err != nil {

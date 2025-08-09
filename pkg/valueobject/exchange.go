@@ -47,6 +47,7 @@ const (
 	ExchangeBaso                       = "baso"
 	ExchangeBebop                      = "bebop"
 	ExchangeBedrockUniETH              = "bedrock-unieth"
+	ExchangeBedrockUniBTC              = "bedrock-unibtc"
 	ExchangeBeefySonic                 = "beefy-sonic"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
@@ -66,6 +67,7 @@ const (
 	ExchangeBlasterSwap                = "blasterswap"
 	ExchangeBlueprint                  = "blueprint"
 	ExchangeBrownfi                    = "brownfi"
+	ExchangeBrownfiV2                  = "brownfi-v2"
 	ExchangeBulla                      = "bulla"
 	ExchangeBurrBearComposableStable   = "burrbear-composable-stable"
 	ExchangeBurrBearStable             = "burrbear-stable"
@@ -127,6 +129,8 @@ const (
 	ExchangeEthenaSusde                = "ethena-susde"
 	ExchangeEtherFieBTC                = "etherfi-ebtc"
 	ExchangeEtherVista                 = "ether-vista"
+	ExchangeEtherexCL                  = "etherex-cl"
+	ExchangeEtherexV2                  = "etherex-v2"
 	ExchangeEtherfiEETH                = "etherfi-eeth"
 	ExchangeEtherfiVampire             = "etherfi-vampire"
 	ExchangeEtherfiWEETH               = "etherfi-weeth"
@@ -134,6 +138,7 @@ const (
 	ExchangeEzkalibur                  = "ezkalibur"
 	ExchangeFakePool                   = "fake-pool"
 	ExchangeFenix                      = "fenix"
+	ExchangeFluidDexLite               = "fluid-dex-lite"
 	ExchangeFluidDexT1                 = "fluid-dex-t1"
 	ExchangeFluidVaultT1               = "fluid-vault-t1"
 	ExchangeFraxSwap                   = "fraxswap"
@@ -372,6 +377,8 @@ const (
 	ExchangeTraderJoeV20               = "traderjoe-v20"
 	ExchangeTraderJoeV21               = "traderjoe-v21"
 	ExchangeTraderJoeV22               = "traderjoe-v22"
+	ExchangeTrebleV2                   = "treble-v2"
+	ExchangeTrebleV4                   = "treble-v4"
 	ExchangeTrisolaris                 = "trisolaris"
 	ExchangeTsunamiX                   = "tsunami-x"
 	ExchangeUSDFi                      = "usdfi"
@@ -389,6 +396,7 @@ const (
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
+	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeVVS                        = "vvs"
@@ -477,6 +485,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaseSwapV3:                 {},
 	ExchangeBaso:                       {},
 	ExchangeBedrockUniETH:              {},
+	ExchangeBedrockUniBTC:              {},
 	ExchangeBeefySonic:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
@@ -496,6 +505,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlasterSwap:                {},
 	ExchangeBlueprint:                  {},
 	ExchangeBrownfi:                    {},
+	ExchangeBrownfiV2:                  {},
 	ExchangeBulla:                      {},
 	ExchangeBurrBearComposableStable:   {},
 	ExchangeBurrBearStable:             {},
@@ -555,12 +565,15 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEthenaSusde:                {},
 	ExchangeEtherFieBTC:                {},
 	ExchangeEtherVista:                 {},
+	ExchangeEtherexV2:                  {},
+	ExchangeEtherexCL:                  {},
 	ExchangeEtherfiEETH:                {},
 	ExchangeEtherfiVampire:             {},
 	ExchangeEtherfiWEETH:               {},
 	ExchangeEulerSwap:                  {},
 	ExchangeEzkalibur:                  {},
 	ExchangeFenix:                      {},
+	ExchangeFluidDexLite:               {},
 	ExchangeFluidDexT1:                 {},
 	ExchangeFluidVaultT1:               {},
 	ExchangeFraxSwap:                   {},
@@ -791,6 +804,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTraderJoeV20:               {},
 	ExchangeTraderJoeV21:               {},
 	ExchangeTraderJoeV22:               {},
+	ExchangeTrebleV2:                   {},
+	ExchangeTrebleV4:                   {},
 	ExchangeTrisolaris:                 {},
 	ExchangeTsunamiX:                   {},
 	ExchangeUSDFi:                      {},

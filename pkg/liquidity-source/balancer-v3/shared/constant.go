@@ -1,9 +1,5 @@
 package shared
 
-import (
-	"github.com/holiman/uint256"
-)
-
 type (
 	Rounding int
 	SwapKind int
@@ -20,6 +16,9 @@ const (
 )
 
 const (
+	RelistInterval = 60 // relist every 60 times
+
+	VaultMethodGetBufferAsset             = "getBufferAsset"
 	VaultMethodGetHooksConfig             = "getHooksConfig"
 	VaultMethodGetStaticSwapFeePercentage = "getStaticSwapFeePercentage"
 	VaultMethodGetAggregateFeePercentages = "getAggregateFeePercentages"
@@ -29,11 +28,5 @@ const (
 	VaultMethodIsPoolPaused         = "isPoolPaused"
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 
-	ERC4626MethodTotalAssets     = "totalAssets"
-	ERC4626MethodTotalSupply     = "totalSupply"
 	ERC4626MethodConvertToAssets = "convertToAssets"
-)
-
-var (
-	DecimalsOffsetPow = uint256.NewInt(1e3) // some buffer has this as 0, but 1e3 is a good blanket value
 )

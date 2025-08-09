@@ -175,10 +175,7 @@ func (t *PoolTracker) queryRPC(
 
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
-		SetRequireSuccess(true)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		SetRequireSuccess(true).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,

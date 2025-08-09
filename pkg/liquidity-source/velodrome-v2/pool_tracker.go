@@ -94,10 +94,7 @@ func (d *PoolTracker) getPoolData(
 		getReservesResult GetReservesResult
 	)
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolFactoryABI,

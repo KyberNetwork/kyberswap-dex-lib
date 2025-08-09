@@ -51,11 +51,7 @@ func (r *PSMReader) Read(ctx context.Context, address string, overrides map[comm
 			Target: address,
 			Method: psmMethodIlk,
 			Params: nil,
-		}, []interface{}{&psm.ILK})
-
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+		}, []interface{}{&psm.ILK}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

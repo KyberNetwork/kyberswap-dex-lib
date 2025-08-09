@@ -18,6 +18,7 @@ import (
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
@@ -47,6 +48,7 @@ import (
 	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	eulerswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/euler-swap"
+	fluidDexLite "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-lite"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
@@ -258,6 +260,7 @@ type Types struct {
 	SwellSWETH                 string
 	SwellRSWETH                string
 	BedrockUniETH              string
+	BedrockUniBTC              string
 	PufferPufETH               string
 	BancorV21                  string
 	BancorV3                   string
@@ -293,6 +296,7 @@ type Types struct {
 	StaderETHx                 string
 	FluidVaultT1               string
 	FluidDexT1                 string
+	FluidDexLite               string
 	MantleETH                  string
 	OndoUSDY                   string
 	Clipper                    string
@@ -441,6 +445,7 @@ var (
 		SwellSWETH:                 sweth.DexType,
 		SwellRSWETH:                rsweth.DexType,
 		BedrockUniETH:              unieth.DexType,
+		BedrockUniBTC:              unibtc.DexType,
 		PufferPufETH:               pufeth.DexType,
 		EthenaSusde:                susde.DexType,
 		MakerSavingsDai:            savingsdai.DexType,
@@ -466,6 +471,7 @@ var (
 		StaderETHx:                 staderethx.DexType,
 		FluidVaultT1:               fluidVaultT1.DexType,
 		FluidDexT1:                 fluidDexT1.DexType,
+		FluidDexLite:               fluidDexLite.DexType,
 		MantleETH:                  meth.DexType,
 		OndoUSDY:                   ondousdy.DexType,
 		Clipper:                    clipper.DexType,

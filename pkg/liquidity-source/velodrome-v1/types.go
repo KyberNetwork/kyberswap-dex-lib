@@ -35,19 +35,12 @@ type PairMetadata struct {
 	St   bool
 	T0   common.Address
 	T1   common.Address
+	Fee  uint64
 }
 
 type ReserveData = uniswapv2.ReserveData
 
-type GetReservesResult struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
-	BlockTimestampLast *big.Int
-}
-
 type PairFactoryData struct {
 	AllPairsLength *big.Int
 	IsPaused       bool
-	StableFee      *big.Int
-	VolatileFee    *big.Int
 }

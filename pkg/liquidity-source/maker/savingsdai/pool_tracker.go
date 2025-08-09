@@ -70,10 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 		totalAssets, totalSupply *big.Int
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
 		Target: t.config.Pot,
@@ -109,10 +106,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	req = t.ethrpcClient.R().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req = t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	blockTimestamp, err := req.GetCurrentBlockTimestamp()
 	if err != nil {

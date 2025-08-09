@@ -1,7 +1,6 @@
 package stable
 
 import (
-	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -28,19 +27,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*base.PoolSimulator, error) {
 	}
 
 	var hook hooks.IHook
-	var err error
 	switch staticExtra.HookType {
 	case shared.StableSurgeHookType:
-		hook, err = hooks.NewStableSurgeHook(extra.MaxSurgeFeePercentage, extra.SurgeThresholdPercentage)
-	}
-
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolID":      entityPool.Address,
-			"hookType":    staticExtra.HookType,
-			"hooksConfig": extra.HooksConfig,
-		}).Errorf("failed to create hook: %v", err)
-		return nil, err
+		if extra.SurgePercentages.IsRisky() {
+			return nil, shared.ErrUnsupportedHook
+		}
+		hook = hooks.NewStableSurgeHook(extra.MaxSurgeFeePercentage, extra.SurgeThresholdPercentage)
 	}
 
 	return base.NewPoolSimulator(entityPool, extra.Extra, &staticExtra, &PoolSimulator{

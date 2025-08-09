@@ -1,11 +1,11 @@
 package genericarm
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 

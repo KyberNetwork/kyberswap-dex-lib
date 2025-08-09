@@ -116,10 +116,7 @@ func (d *PoolTracker) getReserves(
 ) ([]*big.Int, *big.Int, error) {
 	var reserves = make([]*big.Int, len(tokens))
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		req.SetOverrides(overrides)
-	}
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
 	for i, token := range tokens {
 		if valueobject.IsWrappedNative(token.Address, d.config.ChainID) {

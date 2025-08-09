@@ -16,21 +16,11 @@ import (
 )
 
 type (
-	ILogDecoder interface {
-		Decode(logs []types.Log) (ReserveData, *big.Int, error)
-	}
-
 	PoolTracker struct {
 		config       *Config
 		ethrpcClient *ethrpc.Client
 		logDecoder   ILogDecoder
 		feeTracker   IFeeTracker
-	}
-
-	GetReservesResult struct {
-		Reserve0           *big.Int
-		Reserve1           *big.Int
-		BlockTimestampLast uint32
 	}
 )
 
@@ -102,14 +92,9 @@ func (d *PoolTracker) GetNewPoolState(
 func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs []types.Log) (ReserveData, *big.Int,
 	error) {
 	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
-	if err != nil {
+	if err != nil || reserveData.IsZero() {
 		return d.getReservesFromRPCNode(ctx, poolAddress)
 	}
-
-	if reserveData.IsZero() {
-		return d.getReservesFromRPCNode(ctx, poolAddress)
-	}
-
 	return reserveData, blockNumber, nil
 }
 
@@ -145,7 +130,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 }
 
 func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
-	var getReservesResult GetReservesResult
+	var getReservesResult ReserveData
 
 	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
