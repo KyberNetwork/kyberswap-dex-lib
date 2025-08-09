@@ -2,11 +2,10 @@ package bunniv2
 
 import (
 	"context"
-	"errors"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -23,34 +22,31 @@ var (
 
 type LegacyHook struct {
 	uniswapv4.Hook
-	hubCaller    *BunniV2HubContractCaller
-	hubCallerErr error
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	hook := &LegacyHook{
+	return &LegacyHook{
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4BunniV2},
 	}
-	if param.RpcClient == nil {
-		hook.hubCallerErr = errors.New("nil rpc client")
-	} else {
-		hook.hubCaller, hook.hubCallerErr = NewBunniV2HubContractCaller(LegacyHubAddress, param.RpcClient.GetETHClient())
-	}
-	return hook
 }, LegacyHookAddresses...)
 
 func (h *LegacyHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	if err := h.hubCallerErr; err != nil {
-		return nil, err
-	}
+	req := param.RpcClient.NewRequest().SetContext(ctx)
 
-	poolState, err := h.hubCaller.PoolState(&bind.CallOpts{Context: ctx}, common.HexToHash(param.Pool.Address))
-	if err != nil {
+	var poolState PoolStateRPC
+	req.AddCall(&ethrpc.Call{
+		ABI:    bunniHubABI,
+		Target: LegacyHubAddress.Hex(),
+		Method: "poolState",
+		Params: []any{common.HexToHash(param.Pool.Address)},
+	}, []any{&poolState})
+
+	if _, err := req.Call(); err != nil {
 		return nil, err
 	}
 
 	return entity.PoolReserves{
-		poolState.Reserve0.Add(poolState.Reserve0, poolState.RawBalance0).String(),
-		poolState.Reserve1.Add(poolState.Reserve1, poolState.RawBalance1).String(),
+		poolState.Data.Reserve0.Add(poolState.Data.Reserve0, poolState.Data.RawBalance0).String(),
+		poolState.Data.Reserve1.Add(poolState.Data.Reserve1, poolState.Data.RawBalance1).String(),
 	}, nil
 }
