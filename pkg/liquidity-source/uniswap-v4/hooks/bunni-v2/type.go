@@ -3,27 +3,10 @@ package bunniv2
 import (
 	"math/big"
 
-	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/hooklet"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/oracle"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
-
-type Hook struct {
-	uniswapv4.Hook
-	HookExtra
-	hook common.Address
-
-	ldf         ldf.ILiquidityDensityFunction
-	oracle      *oracle.ObservationStorage
-	hooklet     hooklet.IHooklet
-	isNative    [2]bool
-	tickSpacing int
-
-	// rebalanceOrderDeadline *uint256.Int
-}
 
 type HookExtra struct {
 	HookletExtra        string

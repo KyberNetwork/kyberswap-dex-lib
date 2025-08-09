@@ -79,9 +79,9 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	}
 
 	// if the tick list is empty, the pool should be ignored
-	if len(v3Ticks) == 0 {
-		return nil, ErrV3TicksEmpty
-	}
+	// if len(v3Ticks) == 0 {
+	// 	return nil, ErrV3TicksEmpty
+	// }
 
 	tickSpacing := int(extra.TickSpacing)
 	// For some pools that not yet initialized tickSpacing in their extra,
@@ -111,8 +111,11 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		return nil, err
 	}
 
-	tickMin := v3Ticks[0].Index
-	tickMax := v3Ticks[len(v3Ticks)-1].Index
+	tickMin, tickMax := 0, 0
+	if len(v3Ticks) > 0 {
+		tickMin = v3Ticks[0].Index
+		tickMax = v3Ticks[len(v3Ticks)-1].Index
+	}
 
 	var info = pool.PoolInfo{
 		Address:  strings.ToLower(entityPool.Address),

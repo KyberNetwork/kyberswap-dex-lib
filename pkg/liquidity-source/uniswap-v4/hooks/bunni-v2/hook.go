@@ -16,6 +16,7 @@ import (
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/hooklet"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/oracle"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
@@ -28,6 +29,20 @@ import (
 )
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)
+
+type Hook struct {
+	uniswapv4.Hook
+	HookExtra
+	hook common.Address
+
+	ldf         ldf.ILiquidityDensityFunction
+	oracle      *oracle.ObservationStorage
+	hooklet     hooklet.IHooklet
+	isNative    [2]bool
+	tickSpacing int
+
+	// rebalanceOrderDeadline *uint256.Int
+}
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
@@ -42,22 +57,21 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		}
 	}
 
-	var poolStaticExtra uniswapv4.StaticExtra
-	if param.Pool.StaticExtra != "" {
-		if err := json.Unmarshal([]byte(param.Pool.StaticExtra), &poolStaticExtra); err != nil {
-			return nil
+	if param.Pool != nil {
+		if param.Pool.StaticExtra != "" {
+			var poolStaticExtra uniswapv4.StaticExtra
+			if err := json.Unmarshal([]byte(param.Pool.StaticExtra), &poolStaticExtra); err != nil {
+				return nil
+			}
+
+			hook.isNative = poolStaticExtra.IsNative
+			hook.tickSpacing = int(poolStaticExtra.TickSpacing)
+			hook.ldf = InitLDF(hookExtra.LDFAddress, hook.tickSpacing)
 		}
 	}
 
 	hook.hooklet = InitHooklet(hookExtra.HookletAddress, hookExtra.HookletExtra)
-
 	hook.oracle = oracle.NewObservationStorage(hookExtra.Observations)
-
-	hook.isNative = poolStaticExtra.IsNative
-	hook.tickSpacing = int(poolStaticExtra.TickSpacing)
-
-	hook.ldf = InitLDF(hookExtra.LDFAddress, int(poolStaticExtra.TickSpacing))
-
 	hook.HookExtra = hookExtra
 
 	return hook
@@ -163,7 +177,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Params: []any{poolManagerAddress},
 	}, []any{&poolManagerBalance1})
 
-	if _, err := req1.Aggregate(); err != nil {
+	res, err := req1.Aggregate()
+	if err != nil {
 		return "", err
 	}
 
@@ -216,7 +231,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		redeemRates [2]*big.Int
 		maxDeposits [2]*big.Int
 	)
-	req2 := param.RpcClient.NewRequest().SetContext(ctx)
+	req2 := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
 	for i, vault := range []string{poolState.Data.Vault0.Hex(), poolState.Data.Vault1.Hex()} {
 		req2.AddCall(&ethrpc.Call{
 			ABI:    erc4626ABI,
@@ -246,7 +261,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Params: []any{slotObservations},
 	}, []any{&observationHashes})
 
-	if _, err := req2.Aggregate(); err != nil {
+	if _, err := req2.TryBlockAndAggregate(); err != nil {
 		return "", err
 	}
 
