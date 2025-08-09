@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -15,7 +16,7 @@ type IHooklet interface {
 
 type HookletParams struct {
 	RpcClient      *ethrpc.Client
-	HookletAddress string
+	HookletAddress common.Address
 	HookletExtra   string
 	PoolId         [32]byte
 }

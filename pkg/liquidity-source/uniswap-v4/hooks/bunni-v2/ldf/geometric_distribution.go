@@ -146,13 +146,13 @@ func (g *GeometricDistribution) query(
 	}
 
 	// compute cumulativeAmount0DensityX96
-	cumulativeAmount0DensityX96, err = g.cumulativeAmount0(roundedTick, minTick, length, alphaX96)
+	cumulativeAmount0DensityX96, err = g.cumulativeAmount0(roundedTick+g.tickSpacing, minTick, length, alphaX96)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	// compute cumulativeAmount1DensityX96
-	cumulativeAmount1DensityX96, err = g.cumulativeAmount1(roundedTick, minTick, length, alphaX96)
+	cumulativeAmount1DensityX96, err = g.cumulativeAmount1(roundedTick-g.tickSpacing, minTick, length, alphaX96)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -189,8 +189,10 @@ func (g *GeometricDistribution) liquidityDensityX96(roundedTick, minTick, length
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(term1, &term2, term3)
+		result, err := math.FullMulDiv(term1, &term2, &denom)
 		if err != nil {
 			return nil, err
 		}
@@ -208,8 +210,10 @@ func (g *GeometricDistribution) liquidityDensityX96(roundedTick, minTick, length
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(&term1, term2, term3)
+		result, err := math.FullMulDiv(&term1, term2, &denom)
 		if err != nil {
 			return nil, err
 		}

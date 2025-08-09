@@ -2,7 +2,6 @@ package bunniv2
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/hooklet"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf"
@@ -69,27 +68,27 @@ var (
 		common.HexToAddress("0x005aF73a245d8171A0550ffAe2631f12cc211888"): "0x00000091Cb2d7914C9cd196161Da0943aB7b92E1",
 	}
 
-	HookletAddresses = map[string]func(string) hooklet.IHooklet{
-		"0x0000e819b8A536Cf8e5d70B9C49256911033000C": hooklet.NewFeeOverrideHooklet, // v1.0.0
-		"0x00eCE5a72612258f20eB24573C544f9dD8c5000C": hooklet.NewFeeOverrideHooklet, // v1.0.1
+	HookletAddresses = map[common.Address]func(string) hooklet.IHooklet{
+		common.HexToAddress("0x0000e819b8A536Cf8e5d70B9C49256911033000C"): hooklet.NewFeeOverrideHooklet, // v1.0.0
+		common.HexToAddress("0x00eCE5a72612258f20eB24573C544f9dD8c5000C"): hooklet.NewFeeOverrideHooklet, // v1.0.1
 	}
 
-	LDFAddresses = map[string]func(int) ldf.ILiquidityDensityFunction{
+	LDFAddresses = map[common.Address]func(int) ldf.ILiquidityDensityFunction{
 		// Ethereum, Base, Unichain, BSC
-		"0x00000000d5248262c18C5a8c706B2a3E740B8760": ldf.NewUniformDistribution,
-		"0x00000000B79037C909ff75dAFbA91b374bE2124f": ldf.NewGeometricDistribution,
-		"0x000000004a3e16323618D0E43e93b4DD64151eDB": ldf.NewDoubleGeometricDistribution,
-		"0x000000007cA9919151b275FABEA64A4f557Aa1F6": ldf.NewCarpetedGeometricDistribution,
-		"0x000000000b757686c9596caDA54fa28f8C429E0d": ldf.NewCarpetedDoubleGeometricDistribution,
-		"0x00000000a7A466ca990dE359E77B9E492d8a2d05": ldf.NewBuyTheDipGeometricDistribution,
+		common.HexToAddress("0x00000000d5248262c18C5a8c706B2a3E740B8760"): ldf.NewUniformDistribution,
+		common.HexToAddress("0x00000000B79037C909ff75dAFbA91b374bE2124f"): ldf.NewGeometricDistribution,
+		common.HexToAddress("0x000000004a3e16323618D0E43e93b4DD64151eDB"): ldf.NewDoubleGeometricDistribution,
+		common.HexToAddress("0x000000007cA9919151b275FABEA64A4f557Aa1F6"): ldf.NewCarpetedGeometricDistribution,
+		common.HexToAddress("0x000000000b757686c9596caDA54fa28f8C429E0d"): ldf.NewCarpetedDoubleGeometricDistribution,
+		common.HexToAddress("0x00000000a7A466ca990dE359E77B9E492d8a2d05"): ldf.NewBuyTheDipGeometricDistribution,
 
 		// Arbitrum
-		"0x000000d93DF3306877eCc66c6526c6DfC163D8b4": ldf.NewUniformDistribution,
-		"0x0000004f528E4547fcC40710CC3BFC6b2aaD4cE3": ldf.NewGeometricDistribution,
-		"0x00000079CEE5806435ED88Fd6BfA4A465c8D2F19": ldf.NewDoubleGeometricDistribution,
-		"0x0000009d24460d8F6223E39Eb5fF421E4413cA1F": ldf.NewCarpetedGeometricDistribution,
-		"0x000000E22477C615223E430266AD8d5285636e30": ldf.NewCarpetedDoubleGeometricDistribution,
-		"0x000000B2C6052cE049C49C3f0899992074F0462d": ldf.NewBuyTheDipGeometricDistribution,
+		common.HexToAddress("0x000000d93DF3306877eCc66c6526c6DfC163D8b4"): ldf.NewUniformDistribution,
+		common.HexToAddress("0x0000004f528E4547fcC40710CC3BFC6b2aaD4cE3"): ldf.NewGeometricDistribution,
+		common.HexToAddress("0x00000079CEE5806435ED88Fd6BfA4A465c8D2F19"): ldf.NewDoubleGeometricDistribution,
+		common.HexToAddress("0x0000009d24460d8F6223E39Eb5fF421E4413cA1F"): ldf.NewCarpetedGeometricDistribution,
+		common.HexToAddress("0x000000E22477C615223E430266AD8d5285636e30"): ldf.NewCarpetedDoubleGeometricDistribution,
+		common.HexToAddress("0x000000B2C6052cE049C49C3f0899992074F0462d"): ldf.NewBuyTheDipGeometricDistribution,
 	}
 )
 
@@ -111,9 +110,8 @@ func GetHubAddress(hookAddress common.Address) string {
 	return ""
 }
 
-func InitLDF(address string, tickSpacing int) ldf.ILiquidityDensityFunction {
-	addr := strings.ToLower(address)
-	initLDF, exists := LDFAddresses[addr]
+func InitLDF(address common.Address, tickSpacing int) ldf.ILiquidityDensityFunction {
+	initLDF, exists := LDFAddresses[address]
 	if exists {
 		return initLDF(tickSpacing)
 	}
@@ -121,9 +119,8 @@ func InitLDF(address string, tickSpacing int) ldf.ILiquidityDensityFunction {
 	return nil
 }
 
-func InitHooklet(address, hookletExtra string) hooklet.IHooklet {
-	addr := strings.ToLower(address)
-	initHooklet, exists := HookletAddresses[addr]
+func InitHooklet(address common.Address, hookletExtra string) hooklet.IHooklet {
+	initHooklet, exists := HookletAddresses[address]
 	if exists {
 		return initHooklet(hookletExtra)
 	}

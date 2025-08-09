@@ -6,7 +6,6 @@ import (
 
 const (
 	MAX_ABS_TICK_MOVE = 9116
-	MAX_CARDINALITY   = (1 << 24) - 1
 )
 
 type Observation struct {
@@ -17,15 +16,12 @@ type Observation struct {
 }
 
 type ObservationStorage struct {
-	data [MAX_CARDINALITY]*Observation
+	data []*Observation
 }
 
 func NewObservationStorage(observations []*Observation) *ObservationStorage {
-	data := [MAX_CARDINALITY]*Observation{}
-	copy(data[:], observations)
-
 	return &ObservationStorage{
-		data: data,
+		data: observations,
 	}
 }
 
@@ -45,14 +41,14 @@ func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinalit
 	for {
 		i = (l + r) / 2
 
-		beforeOrAt = o.data[i%uint64(cardinality)]
+		beforeOrAt = o.data[uint32(i)%cardinality]
 
 		if !beforeOrAt.Initialized {
 			l = i + 1
 			continue
 		}
 
-		atOrAfter = o.data[(i+1)%uint64(cardinality)]
+		atOrAfter = o.data[(uint32(i)+1)%cardinality]
 
 		targetAtOrAfter := lte(time, beforeOrAt.BlockTimestamp, target)
 
@@ -95,7 +91,11 @@ func (o *ObservationStorage) getSurroundingObservations(
 		return beforeOrAt, atOrAfter, nil
 	}
 
-	beforeOrAt = o.data[(index+1)%cardinality]
+	next := index + 1
+	if next == cardinality {
+		next = 0
+	}
+	beforeOrAt = o.data[next]
 	if !beforeOrAt.Initialized {
 		beforeOrAt = o.data[0]
 	}
@@ -115,17 +115,17 @@ func (o *ObservationStorage) ObserveDouble(intermediate *Observation, time uint3
 		return nil, errors.New("OracleCardinalityCannotBeZero")
 	}
 
-	tickCumulatives := make([]int64, 0, len(secondsAgos))
-	for _, secondsAgo := range secondsAgos {
+	out := make([]int64, len(secondsAgos))
+	for i, secondsAgo := range secondsAgos {
 		tickCumulative, err := o.ObserveSingle(intermediate, time, secondsAgo, tick, index, cardinality)
 		if err != nil {
 			return nil, err
 		}
 
-		tickCumulatives = append(tickCumulatives, tickCumulative)
+		out[i] = tickCumulative
 	}
 
-	return tickCumulatives, nil
+	return out, nil
 }
 
 func (o *ObservationStorage) ObserveTriple(intermediate *Observation, time uint32, secondsAgos []uint32,
@@ -134,17 +134,17 @@ func (o *ObservationStorage) ObserveTriple(intermediate *Observation, time uint3
 		return nil, errors.New("OracleCardinalityCannotBeZero")
 	}
 
-	tickCumulatives := make([]int64, 0, len(secondsAgos))
-	for _, secondsAgo := range secondsAgos {
+	out := make([]int64, len(secondsAgos))
+	for i, secondsAgo := range secondsAgos {
 		tickCumulative, err := o.ObserveSingle(intermediate, time, secondsAgo, tick, index, cardinality)
 		if err != nil {
 			return nil, err
 		}
 
-		tickCumulatives = append(tickCumulatives, tickCumulative)
+		out[i] = tickCumulative
 	}
 
-	return tickCumulatives, nil
+	return out, nil
 }
 
 func (o *ObservationStorage) ObserveSingle(intermediate *Observation, time, secondsAgo uint32,
@@ -206,7 +206,10 @@ func (o *ObservationStorage) Write(
 		cardinalityUpdated = cardinality
 	}
 
-	indexUpdated := (index + 1) % cardinalityUpdated
+	indexUpdated := index + 1
+	if indexUpdated == cardinalityUpdated {
+		indexUpdated = 0
+	}
 	o.data[indexUpdated] = intermediateUpdated
 
 	return intermediateUpdated, indexUpdated, cardinalityUpdated

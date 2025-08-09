@@ -197,7 +197,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		IdleBalance:          poolState.Data.IdleBalance,
 	}
 
-	hookExtra.HookletAddress = poolState.Data.Hooklet.Hex()
+	hookExtra.HookletAddress = poolState.Data.Hooklet
 	hookExtra.LdfState = ldfState
 
 	hookExtra.PoolManagerReserves = [2]*uint256.Int{

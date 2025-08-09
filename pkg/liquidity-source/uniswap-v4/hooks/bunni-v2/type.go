@@ -26,9 +26,9 @@ type Hook struct {
 }
 
 type HookExtra struct {
-	HookletAddress      string
 	HookletExtra        string
-	LDFAddress          string
+	HookletAddress      common.Address
+	LDFAddress          common.Address
 	HookFee             *uint256.Int
 	PoolManagerReserves [2]*uint256.Int
 	LdfState            [32]byte

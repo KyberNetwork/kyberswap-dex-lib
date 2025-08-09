@@ -196,11 +196,10 @@ func (d *DoubleGeometricDistribution) liquidityDensityX96(roundedTick, minTick, 
 	var weightedDensity1 uint256.Int
 	weightedDensity1.Mul(density1, weight1)
 
-	var totalWeight uint256.Int
-	totalWeight.Add(weight0, weight1)
-
 	var result uint256.Int
 	result.Add(&weightedDensity0, &weightedDensity1)
+	var totalWeight uint256.Int
+	totalWeight.Add(weight0, weight1)
 	result.Div(&result, &totalWeight)
 
 	return &result, nil
@@ -230,8 +229,10 @@ func (d *DoubleGeometricDistribution) geometricLiquidityDensityX96(roundedTick, 
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(term1, &term2, term3)
+		result, err := math.FullMulDiv(term1, &term2, &denom)
 		if err != nil {
 			return nil, err
 		}
@@ -248,8 +249,10 @@ func (d *DoubleGeometricDistribution) geometricLiquidityDensityX96(roundedTick, 
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(&term1, term2, term3)
+		result, err := math.FullMulDiv(&term1, term2, &denom)
 		if err != nil {
 			return nil, err
 		}

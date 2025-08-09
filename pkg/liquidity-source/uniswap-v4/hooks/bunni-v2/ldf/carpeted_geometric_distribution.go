@@ -151,13 +151,13 @@ func (c *CarpetedGeometricDistribution) query(
 	}
 
 	// compute cumulativeAmount0DensityX96
-	cumulativeAmount0DensityX96, err = c.cumulativeAmount0(roundedTick, minTick, length, alphaX96, weightCarpet)
+	cumulativeAmount0DensityX96, err = c.cumulativeAmount0(roundedTick+c.tickSpacing, minTick, length, alphaX96, weightCarpet)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	// compute cumulativeAmount1DensityX96
-	cumulativeAmount1DensityX96, err = c.cumulativeAmount1(roundedTick, minTick, length, alphaX96, weightCarpet)
+	cumulativeAmount1DensityX96, err = c.cumulativeAmount1(roundedTick-c.tickSpacing, minTick, length, alphaX96, weightCarpet)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -345,15 +345,20 @@ func (c *CarpetedGeometricDistribution) liquidityDensityX96(roundedTick, minTick
 		minUsableTick := math.MinUsableTick(c.tickSpacing)
 		maxUsableTick := math.MaxUsableTick(c.tickSpacing)
 		numRoundedTicksCarpeted := (maxUsableTick-minUsableTick)/c.tickSpacing - length
-
 		if numRoundedTicksCarpeted <= 0 {
 			var zero uint256.Int
 			return &zero, nil
 		}
 
-		// Carpet liquidity: Q96 * weightCarpet / numRoundedTicksCarpeted
+		// Carpet liquidity: totalLiquidity - mainLiquidity
+		var mainLiquidity uint256.Int
+		mainLiquidity.Mul(math.Q96, math.WAD)
+		var wadMinusWeightCarpet uint256.Int
+		wadMinusWeightCarpet.Sub(math.WAD, weightCarpet)
+		mainLiquidity.Mul(&mainLiquidity, &wadMinusWeightCarpet)
+		mainLiquidity.Div(&mainLiquidity, math.WAD)
 		var carpetLiquidity uint256.Int
-		carpetLiquidity.Mul(math.Q96, weightCarpet)
+		carpetLiquidity.Sub(math.Q96, &mainLiquidity)
 		result, err := math.FullMulDiv(&carpetLiquidity, math.Q96, uint256.NewInt(uint64(numRoundedTicksCarpeted)))
 		if err != nil {
 			return nil, err
@@ -388,8 +393,10 @@ func (c *CarpetedGeometricDistribution) geometricLiquidityDensityX96(roundedTick
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(term1, &term2, term3)
+		result, err := math.FullMulDiv(term1, &term2, &denom)
 		if err != nil {
 			return nil, err
 		}
@@ -406,8 +413,10 @@ func (c *CarpetedGeometricDistribution) geometricLiquidityDensityX96(roundedTick
 		if err != nil {
 			return nil, err
 		}
+		var denom uint256.Int
+		denom.Sub(math.Q96, term3)
 
-		result, err := math.FullMulDiv(&term1, term2, term3)
+		result, err := math.FullMulDiv(&term1, term2, &denom)
 		if err != nil {
 			return nil, err
 		}

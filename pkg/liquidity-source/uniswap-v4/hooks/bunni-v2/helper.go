@@ -1,7 +1,7 @@
 package bunniv2
 
 import (
-	"math/big"
+	"encoding/binary"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/oracle"
 	"github.com/ethereum/go-ethereum/common"
@@ -11,141 +11,65 @@ import (
 func decodeHookParams(data []byte) HookParams {
 	var result HookParams
 
-	result.FeeMin = uint256.NewInt(0)
-	result.FeeMax = uint256.NewInt(0)
-	result.FeeQuadraticMultiplier = uint256.NewInt(0)
-	// result.MaxAmAmmFee = uint256.NewInt(0)
-	result.SurgeFeeHalfLife = uint256.NewInt(0)
-	result.VaultSurgeThreshold0 = uint256.NewInt(0)
-	result.VaultSurgeThreshold1 = uint256.NewInt(0)
-	// result.MinRentMultiplier = uint256.NewInt(0)
+	// first 32 bytes (firstWord)
+	// | feeMin 3 | feeMax 3 | feeQuadraticMultiplier 3 | feeTwapSecondsAgo 3 |
+	// | maxAmAmmFee 3 | surgeFeeHalfLife 2 | surgeFeeAutostartThreshold 2 |
+	// | vaultSurgeThreshold0 2 | vaultSurgeThreshold1 2 | rebalanceThreshold 2 |
+	// | rebalanceMaxSlippage 2 | rebalanceTwapSecondsAgo 2 | rebalanceOrderTTL 2 | amAmmEnabled 1 |
 
-	var firstWord, secondWord, temp uint256.Int
-	firstWord.SetBytes(data[:32])
-	secondWord.SetBytes(data[32:64])
+	var feeMin, feeMax, feeQuad uint256.Int
+	feeMin.SetBytes(data[0:3])
+	feeMax.SetBytes(data[3:6])
+	feeQuad.SetBytes(data[6:9])
+	result.FeeMin = &feeMin
+	result.FeeMax = &feeMax
+	result.FeeQuadraticMultiplier = &feeQuad
 
-	mask24 := uint256.NewInt(0xFFFFFF)   // 2^24 - 1
-	mask16 := uint256.NewInt(0xFFFF)     // 2^16 - 1
-	mask32 := uint256.NewInt(0xFFFFFFFF) // 2^32 - 1
-	// mask48 := uint256.NewInt(0xFFFFFFFFFFFF) // 2^48 - 1
+	result.FeeTwapSecondsAgo = uint32(data[9])<<16 | uint32(data[10])<<8 | uint32(data[11])
 
-	//  uint24(firstWord & mask24)
-	result.FeeMin.And(&firstWord, mask24)
+	var surgeHalf uint256.Int
+	surgeHalf.SetBytes(data[15:17])
+	result.SurgeFeeHalfLife = &surgeHalf
 
-	//  uint24((firstWord >> 24) & mask24)
-	temp.Rsh(&firstWord, 24)
-	result.FeeMax.And(&temp, mask24)
+	result.SurgeFeeAutostartThreshold = binary.BigEndian.Uint16(data[17:19])
 
-	//  uint24((firstWord >> 48) & mask24)
-	temp.Rsh(&firstWord, 48)
-	result.FeeQuadraticMultiplier.And(&temp, mask24)
+	var v0, v1 uint256.Int
+	v0.SetBytes(data[19:21])
+	v1.SetBytes(data[21:23])
+	result.VaultSurgeThreshold0 = &v0
+	result.VaultSurgeThreshold1 = &v1
 
-	//  uint24((firstWord >> 72) & mask24)
-	temp.Rsh(&firstWord, 72)
-	temp.And(&temp, mask24)
-	result.FeeTwapSecondsAgo = uint32(temp.Uint64())
+	result.AmAmmEnabled = data[31] != 0
 
-	//  uint24((firstWord >> 96) & mask24)
-	// temp.Rsh(&firstWord, 96)
-	// result.MaxAmAmmFee.And(&temp, mask24)
-
-	//  uint16((firstWord >> 120) & mask16)
-	temp.Rsh(&firstWord, 120)
-	temp.And(&temp, mask16)
-	result.SurgeFeeHalfLife.SetUint64(temp.Uint64())
-
-	//  uint16((firstWord >> 136) & mask16)
-	temp.Rsh(&firstWord, 136)
-	temp.And(&temp, mask16)
-	result.SurgeFeeAutostartThreshold = uint16(temp.Uint64())
-
-	//  uint16((firstWord >> 152) & mask16)
-	temp.Rsh(&firstWord, 152)
-	temp.And(&temp, mask16)
-	result.VaultSurgeThreshold0.SetUint64(temp.Uint64())
-
-	//  uint16((firstWord >> 168) & mask16)
-	temp.Rsh(&firstWord, 168)
-	temp.And(&temp, mask16)
-	result.VaultSurgeThreshold1.SetUint64(temp.Uint64())
-
-	// //  uint16((firstWord >> 184) & mask16)
-	// temp.Rsh(&firstWord, 184)
-	// temp.And(&temp, mask16)
-	// result.RebalanceThreshold = uint16(temp.Uint64())
-
-	// // uint16((firstWord >> 200) & mask16)
-	// temp.Rsh(&firstWord, 200)
-	// temp.And(&temp, mask16)
-	// result.RebalanceMaxSlippage = uint16(temp.Uint64())
-
-	// //  uint16((firstWord >> 216) & mask16)
-	// temp.Rsh(&firstWord, 216)
-	// temp.And(&temp, mask16)
-	// result.RebalanceTwapSecondsAgo = uint16(temp.Uint64())
-
-	// //  uint16((firstWord >> 232) & mask16)
-	// temp.Rsh(&firstWord, 232)
-	// temp.And(&temp, mask16)
-	// result.RebalanceOrderTTL = uint16(temp.Uint64())
-
-	//  (firstWord >> 248) != 0
-	temp.Rsh(&firstWord, 248)
-	result.AmAmmEnabled = temp.Uint64() != 0
-
-	//  uint32(secondWord & mask32)
-	temp.And(&secondWord, mask32)
-	result.OracleMinInterval = uint32(temp.Uint64())
-
-	// //  uint48((secondWord >> 32) & mask48)
-	// temp.Rsh(&secondWord, 32)
-	// result.MinRentMultiplier.And(&temp, mask48)
+	result.OracleMinInterval = binary.BigEndian.Uint32(data[32:36])
 
 	return result
 }
 
 func decodeObservations(data []common.Hash) []*oracle.Observation {
-	var observations = make([]*oracle.Observation, len(data))
-
-	// Define masks
-	mask8 := big.NewInt(0xff)                                   // 8 bits
-	mask32 := big.NewInt(0xffffffff)                            // 32 bits
-	mask24 := big.NewInt(0xffffff)                              // 24 bits
-	mask56, _ := new(big.Int).SetString("00ffffffffffffff", 16) // 56 bits
-
-	// Thresholds for signed conversion
-	max24 := big.NewInt(0x7fffff)  // 2^23 - 1
-	mod24 := big.NewInt(0x1000000) // 2^24
-
-	max56, _ := new(big.Int).SetString("7fffffffffffff", 16)  // 2^55 - 1
-	mod56, _ := new(big.Int).SetString("100000000000000", 16) // 2^56
+	observations := make([]*oracle.Observation, len(data))
 
 	for i, raw := range data {
-		val := raw.Big()
+		bt := uint32(raw[28])<<24 | uint32(raw[29])<<16 | uint32(raw[30])<<8 | uint32(raw[31])
 
-		// Extract fields
-		blockTimestamp := new(big.Int).And(val, mask32)
+		ptU := uint32(raw[25])<<16 | uint32(raw[26])<<8 | uint32(raw[27])
+		prevTick := int(int32(ptU<<8) >> 8)
 
-		prevTick := new(big.Int).And(new(big.Int).Rsh(val, 32), mask24)
-		tickCumulative := new(big.Int).And(new(big.Int).Rsh(val, 56), mask56)
-		initialized := new(big.Int).And(new(big.Int).Rsh(val, 112), mask8).Cmp(big.NewInt(1)) == 0
+		tcU := (uint64(raw[18]) << 48) |
+			(uint64(raw[19]) << 40) |
+			(uint64(raw[20]) << 32) |
+			(uint64(raw[21]) << 24) |
+			(uint64(raw[22]) << 16) |
+			(uint64(raw[23]) << 8) |
+			uint64(raw[24])
+		tickCumulative := int64(tcU<<8) >> 8
 
-		// Convert signed prevTick
-		prevTickSigned := new(big.Int).Set(prevTick)
-		if prevTick.Cmp(max24) > 0 {
-			prevTickSigned.Sub(prevTick, mod24)
-		}
-
-		// Convert signed tickCumulative
-		tickCumulativeSigned := new(big.Int).Set(tickCumulative)
-		if tickCumulative.Cmp(max56) > 0 {
-			tickCumulativeSigned.Sub(tickCumulative, mod56)
-		}
+		initialized := raw[17] == 1
 
 		observations[i] = &oracle.Observation{
-			BlockTimestamp: uint32(blockTimestamp.Uint64()),
-			PrevTick:       int(prevTickSigned.Int64()),
-			TickCumulative: tickCumulativeSigned.Int64(),
+			BlockTimestamp: bt,
+			PrevTick:       prevTick,
+			TickCumulative: tickCumulative,
 			Initialized:    initialized,
 		}
 	}
@@ -154,84 +78,77 @@ func decodeObservations(data []common.Hash) []*oracle.Observation {
 }
 
 func decodeAmmPayload(manager common.Address, data [6]byte) AmAmm {
+	var swapFee0For1, swapFee1For0 uint256.Int
+	swapFee0For1.SetBytes(data[:3])
+	swapFee1For0.SetBytes(data[3:])
+
 	return AmAmm{
 		AmAmmManager: manager,
-		SwapFee0For1: new(uint256.Int).SetBytes(data[:3]),
-		SwapFee1For0: new(uint256.Int).SetBytes(data[3:]),
+		SwapFee0For1: &swapFee0For1,
+		SwapFee1For0: &swapFee1For0,
 	}
 }
 
 func decodeVaultSharePrices(data common.Hash) VaultSharePrices {
-	return VaultSharePrices{}
+	initialized := data[31] == 1
+	var sp0, sp1 uint256.Int
+	sp0.SetBytes(data[16:31])
+	sp1.SetBytes(data[1:16])
+
+	return VaultSharePrices{
+		Initialized:  initialized,
+		SharedPrice0: &sp0,
+		SharedPrice1: &sp1,
+	}
 }
 
 func decodeHookFee(data common.Hash) *uint256.Int {
-	return new(uint256.Int).SetBytes(data.Bytes())
+	var fee uint256.Int
+	fee.SetBytes(data[8:12])
+	return &fee
 }
 
 func decodeCuratorFees(data common.Hash) CuratorFees {
-	// Similar to TypeScript: const feeRate = bigIntify(decodedCuratorFees.and(mask16))
-	mask16 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 16), big.NewInt(1))
-	feeRate := new(big.Int).And(data.Big(), mask16)
+	var feeRate uint256.Int
+	feeRate.SetBytes(data[30:32])
 
 	return CuratorFees{
-		FeeRate: new(uint256.Int).SetBytes(feeRate.Bytes()),
+		FeeRate: &feeRate,
 	}
 }
 
 func decodeObservationState(data []common.Hash) ObservationState {
-	// First hash - decode the observation state (similar to TypeScript: decodedState = BigNumber.from(decoded[0][0]))
-	decodedState := data[0].Big()
+	rawState := data[0]
+	rawInter := data[1]
 
-	// Extract index, cardinality, cardinalityNext using bitwise operations
-	// Similar to TypeScript: decodedState.and(mask32)
-	mask32 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 32), big.NewInt(1))
+	index := binary.BigEndian.Uint32(rawState[28:32])
+	cardinality := binary.BigEndian.Uint32(rawState[24:28])
+	cardinalityNext := binary.BigEndian.Uint32(rawState[20:24])
 
-	index := new(big.Int).And(decodedState, mask32)
-	cardinality := new(big.Int).And(new(big.Int).Rsh(decodedState, 32), mask32)
-	cardinalityNext := new(big.Int).And(new(big.Int).Rsh(decodedState, 64), mask32)
+	blockTimestamp := binary.BigEndian.Uint32(rawInter[28:32])
 
-	// Second hash - decode the intermediate observation (similar to TypeScript: decodedIntermediateObservation = BigNumber.from(decoded[0][1]))
-	decodedIntermediateObservation := data[1].Big()
+	prevTickU := uint32(rawInter[25])<<16 | uint32(rawInter[26])<<8 | uint32(rawInter[27])
+	prevTick := int(int32(prevTickU<<8) >> 8)
 
-	// Extract blockTimestamp, prevTick, tickCumulative, initialized
-	// Similar to TypeScript: decodedIntermediateObservation.and(mask32)
-	blockTimestamp := new(big.Int).And(decodedIntermediateObservation, mask32)
+	tcU := (uint64(rawInter[18]) << 48) |
+		(uint64(rawInter[19]) << 40) |
+		(uint64(rawInter[20]) << 32) |
+		(uint64(rawInter[21]) << 24) |
+		(uint64(rawInter[22]) << 16) |
+		(uint64(rawInter[23]) << 8) |
+		uint64(rawInter[24])
+	tickCumulative := int64(tcU<<8) >> 8
 
-	// Similar to TypeScript: decodedIntermediateObservation.shr(32).and(mask24)
-	mask24 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 24), big.NewInt(1))
-	prevTick := new(big.Int).And(new(big.Int).Rsh(decodedIntermediateObservation, 32), mask24)
-
-	// Similar to TypeScript: decodedIntermediateObservation.shr(56).and(mask56)
-	mask56 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 56), big.NewInt(1))
-	tickCumulative := new(big.Int).And(new(big.Int).Rsh(decodedIntermediateObservation, 56), mask56)
-
-	// Similar to TypeScript: decodedIntermediateObservation.shr(112).and(mask8).eq(1)
-	mask8 := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 8), big.NewInt(1))
-	initialized := new(big.Int).And(new(big.Int).Rsh(decodedIntermediateObservation, 112), mask8).Cmp(big.NewInt(1)) == 0
-
-	// Handle signed values for prevTick (similar to TypeScript logic)
-	// Similar to TypeScript: prevTick.gt(BigNumber.from('0x7fffff')) ? prevTick.sub(BigNumber.from('0x1000000')) : prevTick
-	prevTickSigned := prevTick
-	if prevTick.Cmp(new(big.Int).Lsh(big.NewInt(1), 23)) > 0 {
-		prevTickSigned = new(big.Int).Sub(prevTick, new(big.Int).Lsh(big.NewInt(1), 24))
-	}
-
-	// Handle signed values for tickCumulative (similar to TypeScript logic)
-	// Similar to TypeScript: tickCumulative.gt(BigNumber.from('0x7fffffffffffff')) ? tickCumulative.sub(BigNumber.from('0x100000000000000')) : tickCumulative
-	tickCumulativeSigned := tickCumulative
-	if tickCumulative.Cmp(new(big.Int).Lsh(big.NewInt(1), 55)) > 0 {
-		tickCumulativeSigned = new(big.Int).Sub(tickCumulative, new(big.Int).Lsh(big.NewInt(1), 56))
-	}
+	initialized := rawInter[17] == 1
 
 	return ObservationState{
-		Index:           uint32(index.Uint64()),
-		Cardinality:     uint32(cardinality.Uint64()),
-		CardinalityNext: uint32(cardinalityNext.Uint64()),
+		Index:           index,
+		Cardinality:     cardinality,
+		CardinalityNext: cardinalityNext,
 		IntermediateObservation: &oracle.Observation{
-			BlockTimestamp: uint32(blockTimestamp.Uint64()),
-			PrevTick:       int(prevTickSigned.Int64()),
-			TickCumulative: tickCumulativeSigned.Int64(),
+			BlockTimestamp: blockTimestamp,
+			PrevTick:       prevTick,
+			TickCumulative: tickCumulative,
 			Initialized:    initialized,
 		},
 	}

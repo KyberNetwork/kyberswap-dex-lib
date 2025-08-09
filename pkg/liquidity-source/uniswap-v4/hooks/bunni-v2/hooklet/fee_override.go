@@ -44,7 +44,7 @@ func (h *feeOverrideHooklet) Track(ctx context.Context, params HookletParams) (s
 	req := params.RpcClient.NewRequest().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    feeOverrideHookletABI,
-		Target: params.HookletAddress,
+		Target: params.HookletAddress.Hex(),
 		Method: "feeOverrides",
 		Params: []any{params.PoolId},
 	}, []any{&feeOverride})

@@ -11,31 +11,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-var (
-	minX        = i256.MustFromDecimal("-42139678854452767551")
-	maxX        = i256.MustFromDecimal("135305999368893231589")
-	fiveToThe18 = i256.MustFromDecimal("3814697265625")
-	ln2Scaled   = i256.MustFromDecimal("54916777467707473351141471128")
-	twoTo95     = i256.MustFromDecimal("39614081257132168796771975168")
-
-	p0 = i256.MustFromDecimal("1346386616545796478920950773328")
-	p1 = i256.MustFromDecimal("57155421227552351082224309758442")
-	p2 = i256.MustFromDecimal("94201549194550492254356042504812")
-	p3 = i256.MustFromDecimal("28719021644029726153956944680412240")
-	p4 = i256.MustFromDecimal("4385272521454847904659076985693276")
-
-	q0 = i256.MustFromDecimal("2855989394907223263936484059900")
-	q1 = i256.MustFromDecimal("50020603652535783019961831881945")
-	q2 = i256.MustFromDecimal("533845033583426703283633433725380")
-	q3 = i256.MustFromDecimal("3604857256930695427073651918091429")
-	q4 = i256.MustFromDecimal("14423608567350463180887372962807573")
-	q5 = i256.MustFromDecimal("26449188498355588339934803723976023")
-
-	scaleFactor = uint256.MustFromDecimal("3822833074963236453042738258902158003155416615667")
-
-	ErrOverflow = errors.New("overflow")
-)
-
 func MulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
 	res, _ := v3Utils.MulDivRoundingUp(a, b, denominator)
 	return res
@@ -43,63 +18,6 @@ func MulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
 
 func DivUp(a, b *uint256.Int) *uint256.Int {
 	return MulDivUp(a, u256.BONE, b)
-}
-
-func Rpow(x *uint256.Int, n int, base *uint256.Int) (*uint256.Int, error) {
-	if x.IsZero() {
-		if n == 0 {
-			return base.Clone(), nil
-		}
-
-		return u256.U0.Clone(), nil
-	}
-
-	var (
-		z       uint256.Int
-		xx      uint256.Int
-		xxRound uint256.Int
-		zx      uint256.Int
-		zxRound uint256.Int
-		i       uint256.Int
-		temp    uint256.Int
-	)
-
-	if n%2 == 0 {
-		z.Set(base)
-	}
-
-	var half uint256.Int
-	half.Div(base, u256.U2)
-	for ; i.Sign() > 0; i.Div(&i, u256.U2) {
-		xx.Mul(x, x)
-
-		if !temp.Div(&xx, x).Eq(x) {
-			return nil, ErrOverflow
-		}
-
-		xxRound.Add(&xx, &half)
-		if xxRound.Lt(&xx) {
-			return nil, ErrOverflow
-		}
-
-		x = new(uint256.Int).Div(&xxRound, base)
-		if !temp.Mod(&i, u256.U2).IsZero() {
-			zx.Mul(&z, x)
-
-			if !x.IsZero() && !temp.Div(&zx, x).Eq(&z) {
-				return nil, ErrOverflow
-			}
-
-			zxRound.Add(&zx, &half)
-			if zxRound.Lt(&zx) {
-				return nil, ErrOverflow
-			}
-
-			z.Div(&zxRound, base)
-		}
-	}
-
-	return &z, nil
 }
 
 func Abs(x *int256.Int) *uint256.Int {
@@ -128,31 +46,6 @@ func Dist(x, y *uint256.Int) *uint256.Int {
 		return z.Sub(x, y)
 	}
 	return z.Sub(y, x)
-}
-
-func MulWadUp(x, y *uint256.Int) (*uint256.Int, error) {
-	if y.IsZero() {
-		return uint256.NewInt(0), nil
-	}
-
-	var tmp uint256.Int
-	tmp.SetAllOne()
-	tmp.Div(&tmp, y)
-	if x.Gt(&tmp) {
-		return nil, errors.New("MulWadFailed")
-	}
-
-	var result uint256.Int
-	result.Mul(x, y)
-
-	tmp.Clear()
-	result.DivMod(&result, WAD, &tmp)
-
-	if !tmp.IsZero() {
-		result.AddUint64(&result, 1)
-	}
-
-	return &result, nil
 }
 
 func ExpWad(x *int256.Int) (*uint256.Int, error) {
@@ -251,102 +144,29 @@ func ExpWad(x *int256.Int) (*uint256.Int, error) {
 	return new(uint256.Int).Rsh(tmp, uint(n)), nil
 }
 
-func FullMulDiv(a, b, c *uint256.Int) (*uint256.Int, error) {
-	var result uint256.Int
-	_, overflow := result.MulDivOverflow(a, b, c)
-	if overflow {
+func RoundUpFullMulDivResult(x, y, d, resultRoundedDown *uint256.Int) (*uint256.Int, error) {
+	var remainder uint256.Int
+	remainder.MulMod(x, y, d)
+	if remainder.IsZero() {
+		return resultRoundedDown, nil
+	}
+	var res uint256.Int
+	res.Set(resultRoundedDown)
+	res.AddUint64(&res, 1)
+	if res.IsZero() {
 		return nil, ErrOverflow
 	}
-	return &result, nil
-}
-
-func RoundUpFullMulDivResult(a, b, c, estimate *uint256.Int) (*uint256.Int, error) {
-	var result uint256.Int
-	result.Set(estimate)
-
-	var remainder uint256.Int
-	remainder.Mul(a, b)
-	remainder.Mod(&remainder, c)
-
-	if !remainder.IsZero() {
-		result.AddUint64(&result, 1)
-
-		if result.IsZero() {
-			return nil, errors.New("FullMulDivFailed")
-		}
-	}
-
-	return &result, nil
-}
-
-func FullMulDivUp(a, b, c *uint256.Int) (*uint256.Int, error) {
-	if c.IsZero() {
-		return nil, ErrOverflow
-	}
-
-	var product uint256.Int
-	product.Mul(a, b)
-
-	var remainder uint256.Int
-	remainder.Mod(&product, c)
-
-	var result uint256.Int
-	result.Div(&product, c)
-
-	if !remainder.IsZero() {
-		result.Add(&result, uint256.NewInt(1))
-	}
-
-	return &result, nil
-}
-
-// FullMulX96Up performs full multiplication with X96 scaling and rounds up
-func FullMulX96Up(a, b *uint256.Int) (*uint256.Int, error) {
-	var product uint256.Int
-	product.Mul(a, b)
-
-	var result uint256.Int
-	result.Div(&product, Q96)
-
-	var remainder uint256.Int
-	remainder.Mod(&product, Q96)
-
-	if !remainder.IsZero() {
-		result.Add(&result, uint256.NewInt(1))
-	}
-
-	return &result, nil
-}
-
-func FullMulX96(a, b *uint256.Int) (*uint256.Int, error) {
-	var result uint256.Int
-	_, overflow := result.MulOverflow(a, b)
-	if overflow {
-		return nil, errors.New("FullMulX96Overflow")
-	}
-
-	result.Rsh(&result, 96)
-	return &result, nil
+	return &res, nil
 }
 
 func FromIdleBalance(idleBalance [32]byte) (*uint256.Int, bool) {
+	isToken0 := (idleBalance[0] & 0x80) != 0
+
+	var raw [32]byte
+	copy(raw[:], idleBalance[:])
+	raw[0] &^= 0x80
+
 	var balance uint256.Int
-	balance.SetBytes(idleBalance[:])
-
-	// Clear the highest bit to get the raw balance
-	// The highest bit is used to indicate which token (0 or 1)
-	var highestBit uint256.Int
-	highestBit.SetUint64(1)
-	highestBit.Lsh(&highestBit, 255)
-
-	// Clear the highest bit by using AND with inverted mask
-	var mask uint256.Int
-	mask.SetAllOne()
-	mask.Xor(&mask, &highestBit)
-	balance.And(&balance, &mask)
-
-	// Check highest bit for isToken0
-	isToken0 := (idleBalance[0] & 0x80) == 0
-
+	balance.SetBytes(raw[:])
 	return &balance, isToken0
 }
