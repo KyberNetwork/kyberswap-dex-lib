@@ -1,6 +1,8 @@
 package math
 
 import (
+	"log"
+
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
@@ -68,6 +70,8 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 			// let xx := mul(x, x) // Store x squared.
 			var xx uint256.Int
 			if _, ov := xx.MulOverflow(&xv, &xv); ov {
+				log.Fatalln(0, x, y, b)
+
 				return nil, ErrOverflow
 			}
 
@@ -75,12 +79,16 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 			var temp uint256.Int
 			temp.Rsh(&xv, 128)
 			if !temp.IsZero() {
+				log.Fatalln(1, x, y, b)
+
 				return nil, ErrOverflow
 			}
 
 			// let xxRound := add(xx, half) // Round to the nearest number.
 			var xxRound uint256.Int
 			if _, ov := xxRound.AddOverflow(&xx, &half); ov {
+				log.Fatalln(2, x, y, b)
+
 				return nil, ErrOverflow
 			}
 
@@ -94,6 +102,8 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if _, ov := zx.MulOverflow(&z, &xv); ov {
 					// Revert if `x` is non-zero.
 					if !xv.IsZero() {
+						log.Fatalln(3, x, y, b)
+
 						return nil, ErrOverflow
 					}
 				}
@@ -103,6 +113,8 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if _, ov := zxRound.AddOverflow(&zx, &half); ov {
 					// Revert if `x` is non-zero.
 					if !xv.IsZero() {
+						log.Fatalln(4, x, y, b)
+
 						return nil, ErrOverflow
 					}
 				}
@@ -112,6 +124,8 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if !xv.IsZero() {
 					divCheck.Div(&zx, &xv)
 					if !divCheck.Eq(&z) {
+						log.Fatalln(5, x, y, b)
+
 						return nil, ErrOverflow
 					}
 				}

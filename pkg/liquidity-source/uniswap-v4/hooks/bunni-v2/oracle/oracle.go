@@ -38,7 +38,7 @@ func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinalit
 
 	var i uint64
 	var beforeOrAt, atOrAfter *Observation
-	for {
+	for l <= r {
 		i = (l + r) / 2
 
 		beforeOrAt = o.data[uint32(i)%cardinality]

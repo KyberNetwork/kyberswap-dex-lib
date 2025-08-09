@@ -14,6 +14,7 @@ import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/hooklet"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf"
@@ -75,6 +76,27 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook.HookExtra = hookExtra
 
 	return hook
+}
+
+func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
+	req := param.RpcClient.NewRequest().SetContext(ctx)
+
+	var poolState PoolStateRPC
+	req.AddCall(&ethrpc.Call{
+		ABI:    bunniHubABI,
+		Target: GetHubAddress(h.hook),
+		Method: "poolState",
+		Params: []any{common.HexToHash(param.Pool.Address)},
+	}, []any{&poolState})
+
+	if _, err := req.Call(); err != nil {
+		return nil, err
+	}
+
+	return entity.PoolReserves{
+		poolState.Data.Reserve0.Add(poolState.Data.Reserve0, poolState.Data.RawBalance0).String(),
+		poolState.Data.Reserve1.Add(poolState.Data.Reserve1, poolState.Data.RawBalance1).String(),
+	}, nil
 }
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
@@ -213,6 +235,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	hookExtra.HookletAddress = poolState.Data.Hooklet
+	hookExtra.LDFAddress = poolState.Data.LiquidityDensityFunction
 	hookExtra.LdfState = ldfState
 
 	hookExtra.PoolManagerReserves = [2]*uint256.Int{
@@ -325,15 +348,18 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		}
 	}
 
+	sqrtPriceLimitX96 := lo.Ternary(params.ZeroForOne,
+		new(uint256.Int).AddUint64(v3Utils.MinSqrtRatioU256, 1),
+		new(uint256.Int).SubUint64(v3Utils.MaxSqrtRatioU256, 1),
+	)
+
 	// Validate swap parameters
-	sqrtPriceLimitX96 := uint256.MustFromBig(params.SqrtPriceLimitX96)
 	if h.Slot0.SqrtPriceX96.IsZero() ||
-		(params.ZeroForOne && (sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0 ||
-			sqrtPriceLimitX96.Cmp(v3Utils.MinSqrtRatioU256) <= 0)) ||
-		(!params.ZeroForOne && (sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0 ||
-			sqrtPriceLimitX96.Cmp(v3Utils.MaxSqrtRatioU256) >= 0)) ||
+		(params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0) ||
+		(!params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0) ||
 		params.AmountSpecified.Cmp(bignumber.MAX_INT_128) > 0 ||
 		params.AmountSpecified.Cmp(bignumber.MIN_INT_128) < 0 {
+
 		return nil, fmt.Errorf("BunniHook__InvalidSwap")
 	}
 
@@ -429,6 +455,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	if (params.ZeroForOne && updatedSqrtPriceX96.Gt(h.Slot0.SqrtPriceX96)) ||
 		(!params.ZeroForOne && updatedSqrtPriceX96.Lt(h.Slot0.SqrtPriceX96)) ||
 		(outputAmount.IsZero() || inputAmount.IsZero()) {
+
 		return nil, errors.New("BunniHook__InvalidSwap")
 	}
 

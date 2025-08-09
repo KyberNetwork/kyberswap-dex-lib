@@ -82,7 +82,7 @@ var (
 		common.HexToAddress("0x000000000b757686c9596caDA54fa28f8C429E0d"): ldf.NewCarpetedDoubleGeometricDistribution,
 		common.HexToAddress("0x00000000a7A466ca990dE359E77B9E492d8a2d05"): ldf.NewBuyTheDipGeometricDistribution,
 
-		// Arbitrum
+		// Arbitrum + Unichain (v1.2.0)
 		common.HexToAddress("0x000000d93DF3306877eCc66c6526c6DfC163D8b4"): ldf.NewUniformDistribution,
 		common.HexToAddress("0x0000004f528E4547fcC40710CC3BFC6b2aaD4cE3"): ldf.NewGeometricDistribution,
 		common.HexToAddress("0x00000079CEE5806435ED88Fd6BfA4A465c8D2F19"): ldf.NewDoubleGeometricDistribution,

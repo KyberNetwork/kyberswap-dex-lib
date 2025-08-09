@@ -1,0 +1,10 @@
+package ldf
+
+// DecodeState decodes a bytes32 state into initialized flag and lastMinTick
+// Equivalent to Solidity: function _decodeState(bytes32 ldfState) internal pure returns (bool initialized, int24 lastMinTick)
+func DecodeState(ldfState [32]byte) (initialized bool, lastMinTick int32) {
+	// | initialized - 1 byte | lastMinTick - 3 bytes |
+	initialized = ldfState[0] == 1
+	lastMinTick = int32(uint32(ldfState[1])<<16 | uint32(ldfState[2])<<8 | uint32(ldfState[3]))
+	return
+}

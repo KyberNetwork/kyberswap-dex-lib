@@ -143,6 +143,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	wrapAdditionalGas := int64(0)
 
 	defer func() {
+		if result == nil {
+			return
+		}
 		if result.TokenAmountOut != nil {
 			result.TokenAmountOut.Token = originalTokenOut
 		}
@@ -246,6 +249,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *poo
 	originalTokenIn := param.TokenIn
 	wrapAdditionalGas := int64(0)
 	defer func() {
+		if result == nil {
+			return
+		}
 		if result.TokenAmountIn != nil {
 			result.TokenAmountIn.Token = originalTokenIn
 		}
