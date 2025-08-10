@@ -57,7 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		entityPool.SwapFee = 0
 	}
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256)
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256, true)
 	if err != nil {
 		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
 	}
@@ -199,11 +199,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	// beforeSwap -> amountToSwap += hookDeltaSpecified;
 	// for the case of calcAmountOut (exactIn) means amountToSwap(amountIn) supposed to be Negative, then turn to be TokenAmountIn.Sub
 	// fot the case of calcAmountIn (exactOut) means amountToSwap(amountOut) supposed to be Positive, then turn to be TokenAmountOut.Add
-	var amountIn *big.Int
+	var amountIn = new(big.Int).Set(param.TokenAmountIn.Amount)
 	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
-		amountIn = new(big.Int).Sub(param.TokenAmountIn.Amount, swapHookResult.DeltaSpecific)
-	} else {
-		amountIn = param.TokenAmountIn.Amount
+		if swapHookResult.DeltaSpecific.Sign() != 0 {
+			amountIn.Sub(amountIn, swapHookResult.DeltaSpecific)
+		} else if swapHookResult.DeltaSpecific.Sign() == 0 {
+			amountIn.SetUint64(0)
+		}
 	}
 
 	if swapHookResult.SwapFee >= constants.FeeMax {
@@ -226,6 +228,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	if err != nil {
 		return nil, err
 	}
+
 	hookFee := p.hook.AfterSwap(&AfterSwapHookParams{
 		BeforeSwapHookParams: beforeSwapHookParams,
 		AmountIn:             amountIn,
@@ -235,12 +238,19 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 	// afterSwap -> swapDelta = swapDelta - hookDelta;
 	// for the case of calcAmountOut (exactIn), amountOut supposed to be Positive, then turn to be TokenAmountOut.Sub
 	// for the case of calcAmountIn (exactOut), amountIn supposed to be Negative, then turn to be TokenAmountIn.Add
-	if swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
-		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific)
+	if result != nil && result.TokenAmountOut != nil &&
+		swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
+		if result.TokenAmountOut.Amount.Sign() != 0 {
+			result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, swapHookResult.DeltaUnSpecific)
+		} else {
+			result.TokenAmountOut.Amount.Set(swapHookResult.DeltaUnSpecific)
+		}
+
+		if hookFee != nil {
+			result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
+		}
 	}
-	if hookFee != nil {
-		result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
-	}
+
 	return result, err
 }
 
@@ -304,12 +314,13 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *poo
 		return nil, err
 	}
 
-	var amountOut *big.Int
-
+	var amountOut = new(big.Int).Set(param.TokenAmountOut.Amount)
 	if swapHookResult != nil && swapHookResult.DeltaSpecific != nil {
-		amountOut = new(big.Int).Add(param.TokenAmountOut.Amount, swapHookResult.DeltaSpecific)
-	} else {
-		amountOut = param.TokenAmountOut.Amount
+		if swapHookResult.DeltaSpecific.Sign() != 0 {
+			amountOut.Add(amountOut, swapHookResult.DeltaSpecific)
+		} else if swapHookResult.DeltaSpecific.Sign() == 0 {
+			amountOut.SetUint64(0)
+		}
 	}
 
 	if swapHookResult.SwapFee >= constants.FeeMax {
@@ -339,11 +350,17 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *poo
 		AmountOut:            amountOut,
 	})
 
-	if swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
-		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, swapHookResult.DeltaUnSpecific)
-	}
-	if hookFee != nil {
-		result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, hookFee)
+	if result != nil && result.TokenAmountIn != nil &&
+		swapHookResult != nil && swapHookResult.DeltaUnSpecific != nil {
+		if result.TokenAmountIn.Amount.Sign() != 0 {
+			result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, swapHookResult.DeltaUnSpecific)
+		} else {
+			result.TokenAmountIn.Amount.Set(swapHookResult.DeltaUnSpecific)
+		}
+
+		if hookFee != nil {
+			result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, hookFee)
+		}
 	}
 
 	return result, err

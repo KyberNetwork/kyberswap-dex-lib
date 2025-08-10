@@ -27,6 +27,7 @@ type PoolSimulator struct {
 	Gas     Gas
 	tickMin int
 	tickMax int
+	isV4    bool
 }
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
@@ -37,11 +38,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
-	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra)
+	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra, false)
 }
 
 func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
-	extra *ExtraTickU256) (*PoolSimulator, error) {
+	extra *ExtraTickU256, isV4 bool) (*PoolSimulator, error) {
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}
@@ -79,9 +80,10 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	}
 
 	// if the tick list is empty, the pool should be ignored
-	// if len(v3Ticks) == 0 {
-	// 	return nil, ErrV3TicksEmpty
-	// }
+	// for uniswap-v4, we want to bypass this check due to some hooks has no ticks
+	if !isV4 && len(v3Ticks) == 0 {
+		return nil, ErrV3TicksEmpty
+	}
 
 	tickSpacing := int(extra.TickSpacing)
 	// For some pools that not yet initialized tickSpacing in their extra,
@@ -111,7 +113,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		return nil, err
 	}
 
-	tickMin, tickMax := 0, 0
+	tickMin, tickMax := v3Utils.MinTick, v3Utils.MaxTick
 	if len(v3Ticks) > 0 {
 		tickMin = v3Ticks[0].Index
 		tickMax = v3Ticks[len(v3Ticks)-1].Index
@@ -132,6 +134,7 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		Gas:     defaultGas,
 		tickMin: tickMin,
 		tickMax: tickMax,
+		isV4:    isV4,
 	}, nil
 }
 
@@ -219,10 +222,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
 		}
 	}
+
 	amountOut := amountOutResult.ReturnedAmount
-	if amountOut.Sign() <= 0 {
-		return nil, errors.New("amountOut is 0")
+	if !p.isV4 {
+		if amountOut.Sign() <= 0 {
+			return nil, errors.New("amountOut is 0")
+		}
 	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
