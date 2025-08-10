@@ -2,8 +2,9 @@ package ldf
 
 import (
 	geoLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/geometric"
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -133,14 +134,19 @@ func (g *GeometricDistribution) decodeParams(
 // encodeState encodes the state into bytes32
 func (g *GeometricDistribution) encodeState(minTick int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((minTick >> 16) & 0xFF)
-	state[2] = byte((minTick >> 8) & 0xFF)
-	state[3] = byte(minTick & 0xFF)
+
+	minTickUint24 := uint32(minTick) & 0xFFFFFF
+	combined := INITIALIZED_STATE + minTickUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
-// query computes the liquidity density and cumulative amounts
+// query computes the liquidity density and cumulative amounts based on Solidity logic
 func (g *GeometricDistribution) query(
 	roundedTick,
 	minTick,
@@ -152,62 +158,25 @@ func (g *GeometricDistribution) query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	// liquidityDensityX96
-	if roundedTick < minTick || roundedTick >= minTick+length*g.tickSpacing {
-		var zero uint256.Int
-		liquidityDensityX96 = &zero
-	} else {
-		x := (roundedTick - minTick) / g.tickSpacing
-		if alphaX96.Gt(math.Q96) {
-			var alphaInvX96 uint256.Int
-			alphaInvX96.Mul(math.Q96, math.Q96)
-			alphaInvX96.Div(&alphaInvX96, alphaX96)
-
-			term1, err1 := math.Rpow(&alphaInvX96, length-x, math.Q96)
-			if err1 != nil {
-				return nil, nil, nil, err1
-			}
-			var term2 uint256.Int
-			term2.Sub(alphaX96, math.Q96)
-			term3, err1 := math.Rpow(&alphaInvX96, length, math.Q96)
-			if err1 != nil {
-				return nil, nil, nil, err1
-			}
-			var denom uint256.Int
-			denom.Sub(math.Q96, term3)
-
-			liquidityDensityX96, err = math.FullMulDiv(term1, &term2, &denom)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-		} else {
-			var term1 uint256.Int
-			term1.Sub(math.Q96, alphaX96)
-			term2, err1 := math.Rpow(alphaX96, x, math.Q96)
-			if err1 != nil {
-				return nil, nil, nil, err1
-			}
-			term3, err1 := math.Rpow(alphaX96, length, math.Q96)
-			if err1 != nil {
-				return nil, nil, nil, err1
-			}
-			var denom uint256.Int
-			denom.Sub(math.Q96, term3)
-
-			liquidityDensityX96, err = math.FullMulDiv(&term1, term2, &denom)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-		}
+	// compute liquidityDensityX96 using lib function
+	liquidityDensityX96, err = geoLib.LiquidityDensityX96(g.tickSpacing, roundedTick, minTick, length, alphaX96)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	// x for cumulative amounts
+	// x is the index of the roundedTick in the distribution
+	// should be in the range [0, length)
 	var x int
 	if roundedTick < minTick {
+		// roundedTick is to the left of the distribution
+		// set x = -1
 		x = -1
 	} else if roundedTick >= minTick+length*g.tickSpacing {
+		// roundedTick is to the right of the distribution
+		// set x = length
 		x = length
 	} else {
+		// roundedTick is in the distribution
 		x = (roundedTick - minTick) / g.tickSpacing
 	}
 
@@ -229,20 +198,21 @@ func (g *GeometricDistribution) query(
 		return nil, nil, nil, err
 	}
 
-	if alphaX96.Gt(math.Q96) {
+	if alphaX96.Cmp(math.Q96) > 0 {
 		// alpha > 1
 		var alphaInvX96 uint256.Int
 		alphaInvX96.Mul(math.Q96, math.Q96)
 		alphaInvX96.Div(&alphaInvX96, alphaX96)
 
-		// cumulativeAmount0DensityX96 (to the right)
+		// compute cumulativeAmount0DensityX96 for the rounded tick to the right of the rounded current tick
 		if x >= length-1 {
-			var zero uint256.Int
-			cumulativeAmount0DensityX96 = &zero
+			// roundedTick is the last tick in the distribution
+			// cumulativeAmount0DensityX96 is just 0
+			cumulativeAmount0DensityX96 = uint256.NewInt(0)
 		} else {
-			xPlus1 := x + 1
-			lengthMinusX := length - xPlus1
+			xPlus1 := x + 1 // the rounded tick to the right of the current rounded tick
 
+			lengthMinusX := length - xPlus1
 			intermediateTermIsPositive := alphaInvX96.Cmp(sqrtRatioNegTickSpacing) > 0
 			numeratorTermLeft, err1 := math.Rpow(&alphaInvX96, lengthMinusX, math.Q96)
 			if err1 != nil {
@@ -297,10 +267,11 @@ func (g *GeometricDistribution) query(
 			}
 		}
 
-		// cumulativeAmount1DensityX96 (to the left)
+		// compute cumulativeAmount1DensityX96 for the rounded tick to the left of the rounded current tick
 		if x <= 0 {
-			var zero uint256.Int
-			cumulativeAmount1DensityX96 = &zero
+			// roundedTick is the first tick in the distribution
+			// cumulativeAmount1DensityX96 is just 0
+			cumulativeAmount1DensityX96 = uint256.NewInt(0)
 		} else {
 			alphaInvPowLengthX96, err1 := math.Rpow(&alphaInvX96, length, math.Q96)
 			if err1 != nil {
@@ -352,10 +323,11 @@ func (g *GeometricDistribution) query(
 		}
 	} else {
 		// alpha <= 1
-		// cumulativeAmount0DensityX96 (to the right)
+		// compute cumulativeAmount0DensityX96 for the rounded tick to the right of the rounded current tick
 		if x >= length-1 {
-			var zero uint256.Int
-			cumulativeAmount0DensityX96 = &zero
+			// roundedTick is the last tick in the distribution
+			// cumulativeAmount0DensityX96 is just 0
+			cumulativeAmount0DensityX96 = uint256.NewInt(0)
 		} else {
 			baseX96, err1 := math.FullMulDiv(alphaX96, sqrtRatioNegTickSpacing, math.Q96)
 			if err1 != nil {
@@ -415,25 +387,22 @@ func (g *GeometricDistribution) query(
 			}
 		}
 
-		// cumulativeAmount1DensityX96 (to the left)
+		// compute cumulativeAmount1DensityX96 for the rounded tick to the left of the rounded current tick
 		if x <= 0 {
-			var zero uint256.Int
-			cumulativeAmount1DensityX96 = &zero
+			// roundedTick is the first tick in the distribution
+			// cumulativeAmount1DensityX96 is just 0
+			cumulativeAmount1DensityX96 = uint256.NewInt(0)
 		} else {
-			sqrtRatioMinTick2, err1 := math.GetSqrtPriceAtTick(minTick)
-			if err1 != nil {
-				return nil, nil, nil, err1
-			}
 			baseX96, err1 := math.FullMulDiv(alphaX96, sqrtRatioTickSpacing, math.Q96)
 			if err1 != nil {
 				return nil, nil, nil, err1
 			}
 
-			term1, err1 := math.Rpow(alphaX96, x+1, math.Q96)
+			term1, err1 := math.Rpow(alphaX96, x, math.Q96)
 			if err1 != nil {
 				return nil, nil, nil, err1
 			}
-			term2, err1 := math.GetSqrtPriceAtTick(g.tickSpacing * (x + 1))
+			term2, err1 := math.GetSqrtPriceAtTick(g.tickSpacing * x)
 			if err1 != nil {
 				return nil, nil, nil, err1
 			}
@@ -472,14 +441,14 @@ func (g *GeometricDistribution) query(
 			if err1 != nil {
 				return nil, nil, nil, err1
 			}
-			cumulativeAmount1DensityX96, err = math.FullMulDivUp(result, sqrtRatioMinTick2, math.Q96)
+			cumulativeAmount1DensityX96, err = math.FullMulDivUp(result, sqrtRatioMinTick, math.Q96)
 			if err != nil {
 				return nil, nil, nil, err
 			}
 		}
 	}
 
-	return
+	return liquidityDensityX96, cumulativeAmount0DensityX96, cumulativeAmount1DensityX96, nil
 }
 
 // computeSwap computes the swap parameters
@@ -509,8 +478,7 @@ func (g *GeometricDistribution) computeSwap(
 			alphaX96,
 		)
 		if !success || err != nil {
-			var zero uint256.Int
-			return false, 0, &zero, &zero, &zero, err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		// compute cumulative amounts
@@ -534,8 +502,7 @@ func (g *GeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			var zero uint256.Int
-			return false, 0, &zero, &zero, &zero, err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -558,13 +525,21 @@ func (g *GeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			var zero uint256.Int
-			return false, 0, &zero, &zero, &zero, err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	} else {
 		// compute roundedTick by inverting the cumulative amount1
-		// Simplified implementation - would need proper inverse calculation
-		roundedTick = minTick + (length/2)*g.tickSpacing
+		success, roundedTick, err = geoLib.InverseCumulativeAmount1(
+			g.tickSpacing,
+			inverseCumulativeAmountInput,
+			totalLiquidity,
+			minTick,
+			length,
+			alphaX96,
+		)
+		if !success || err != nil {
+			return false, 0, u256.U0, u256.U0, u256.U0, err
+		}
 
 		// compute cumulative amounts
 		if exactIn {
@@ -587,8 +562,7 @@ func (g *GeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			var zero uint256.Int
-			return false, 0, &zero, &zero, &zero, err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -611,16 +585,14 @@ func (g *GeometricDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			var zero uint256.Int
-			return false, 0, &zero, &zero, &zero, err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	}
 
 	// compute swap liquidity
 	swapLiquidity, err = geoLib.LiquidityDensityX96(g.tickSpacing, roundedTick, minTick, length, alphaX96)
 	if err != nil {
-		var zero uint256.Int
-		return false, 0, &zero, &zero, &zero, err
+		return false, 0, u256.U0, u256.U0, u256.U0, err
 	}
 
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)

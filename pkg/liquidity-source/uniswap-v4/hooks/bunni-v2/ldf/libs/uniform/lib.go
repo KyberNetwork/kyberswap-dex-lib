@@ -5,7 +5,19 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// cumulativeAmount0 computes the cumulative amount0
+// LiquidityDensityX96 computes the liquidity density at a given tick
+func LiquidityDensityX96(roundedTick, tickSpacing, tickLower, tickUpper int) *uint256.Int {
+	if roundedTick < tickLower || roundedTick >= tickUpper {
+		return uint256.NewInt(0)
+	}
+	length := (tickUpper - tickLower) / tickSpacing
+	if length <= 0 {
+		return uint256.NewInt(0)
+	}
+	return math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
+}
+
+// CumulativeAmount0 computes the cumulative amount0
 func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int, tickLower, tickUpper int, isCarpet bool) (*uint256.Int, error) {
 	if roundedTick >= tickUpper || tickLower >= tickUpper {
 		return uint256.NewInt(0), nil
@@ -51,7 +63,7 @@ func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 	return result, nil
 }
 
-// cumulativeAmount1 computes the cumulative amount1
+// CumulativeAmount1 computes the cumulative amount1
 func CumulativeAmount1(tickSpacing, roundedTick int, totalLiquidity *uint256.Int, tickLower, tickUpper int, isCarpet bool) (*uint256.Int, error) {
 	if roundedTick < tickLower || tickLower >= tickUpper {
 		return uint256.NewInt(0), nil
@@ -97,7 +109,7 @@ func CumulativeAmount1(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 	return result, nil
 }
 
-// inverseCumulativeAmount0 computes the inverse of cumulative amount0
+// InverseCumulativeAmount0 computes the inverse of cumulative amount0
 func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidity *uint256.Int, tickLower, tickUpper int, isCarpet bool) (bool, int) {
 	if cumulativeAmount0_.IsZero() {
 		return true, tickUpper
@@ -114,9 +126,10 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 	}
 
 	// For uniform distribution: cumulativeAmount0_.fullMulDiv(Q96, totalLiquidity)
-	var scaledAmount uint256.Int
-	scaledAmount.Mul(cumulativeAmount0_, math.Q96)
-	scaledAmount.Div(&scaledAmount, totalLiquidity)
+	scaledAmount, err := math.FullMulDiv(cumulativeAmount0_, math.Q96, totalLiquidity)
+	if err != nil {
+		return false, 0
+	}
 
 	// Get next sqrt price from amount0
 	// Using Q96.divUp(length) for liquidity
@@ -124,7 +137,7 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 	sqrtPrice, err := math.GetNextSqrtPriceFromAmount0RoundingUp(
 		sqrtPriceUpper,
 		liquidityPerTick,
-		&scaledAmount,
+		scaledAmount,
 		true,
 	)
 	if err != nil {
@@ -153,7 +166,7 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 	return true, roundedTick
 }
 
-// inverseCumulativeAmount1 computes the inverse of cumulative amount1
+// InverseCumulativeAmount1 computes the inverse of cumulative amount1
 func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidity *uint256.Int, tickLower, tickUpper int, isCarpet bool) (bool, int) {
 	if cumulativeAmount1_.IsZero() {
 		return true, tickLower - tickSpacing
@@ -170,9 +183,10 @@ func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidit
 	}
 
 	// For uniform distribution: cumulativeAmount1_.fullMulDiv(Q96, totalLiquidity)
-	var scaledAmount uint256.Int
-	scaledAmount.Mul(cumulativeAmount1_, math.Q96)
-	scaledAmount.Div(&scaledAmount, totalLiquidity)
+	scaledAmount, err := math.FullMulDiv(cumulativeAmount1_, math.Q96, totalLiquidity)
+	if err != nil {
+		return false, 0
+	}
 
 	// Get next sqrt price from amount1
 	// Using Q96.divUp(length) for liquidity
@@ -180,7 +194,7 @@ func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidit
 	sqrtPrice, err := math.GetNextSqrtPriceFromAmount1RoundingDown(
 		sqrtPriceLower,
 		liquidityPerTick,
-		&scaledAmount,
+		scaledAmount,
 		true,
 	)
 	if err != nil {

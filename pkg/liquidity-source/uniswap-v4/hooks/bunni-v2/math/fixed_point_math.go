@@ -381,7 +381,7 @@ func FullMulDivUp(a, b, d *uint256.Int) (*uint256.Int, error) {
 	if !rem.IsZero() {
 		z.AddUint64(z, 1)
 		if z.IsZero() {
-			return nil, ErrOverflow
+			return nil, ErrFullMulDivFailed
 		}
 	}
 	return z, nil

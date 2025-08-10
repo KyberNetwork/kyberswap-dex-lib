@@ -1,5 +1,7 @@
 package math
 
+import "github.com/holiman/uint256"
+
 var (
 	MIN_TICK = -887272
 	MAX_TICK = -MIN_TICK
@@ -33,4 +35,22 @@ func RoundTickSingle(currentTick int, tickSpacing int) int {
 	}
 
 	return compressed * tickSpacing
+}
+
+func WeightedSum(value0, weight0, value1, weight1 *uint256.Int) *uint256.Int {
+	// (value0 * weight0 + value1 * weight1) / (weight0 + weight1)
+
+	var result uint256.Int
+	result.Mul(value0, weight0)
+
+	var temp uint256.Int
+	temp.Mul(value1, weight1)
+
+	result.Add(&result, &temp)
+
+	temp.Add(weight0, weight1)
+
+	result.Div(&result, &temp)
+
+	return &result
 }

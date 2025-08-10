@@ -2,8 +2,8 @@ package carpeteddoublegeometric
 
 import (
 	doubleGeoLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/double-geometric"
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
 	uniformLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/uniform"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/holiman/uint256"
@@ -183,7 +183,7 @@ func InverseCumulativeAmount0(
 
 	if cumulativeAmount0_.Cmp(rightCarpetCumulativeAmount0) <= 0 && !rightCarpetLiquidity.IsZero() {
 		// use right carpet
-		roundedTick, sucess := uniformLib.InverseCumulativeAmount0(
+		success, roundedTick := uniformLib.InverseCumulativeAmount0(
 			tickSpacing,
 			cumulativeAmount0_,
 			rightCarpetLiquidity,
@@ -191,7 +191,7 @@ func InverseCumulativeAmount0(
 			maxUsableTick,
 			true,
 		)
-		return roundedTick, sucess, nil
+		return success, roundedTick, nil
 	} else {
 		// Reuse rightCarpetCumulativeAmount0 for remainder calculation
 		rightCarpetCumulativeAmount0.Sub(cumulativeAmount0_, rightCarpetCumulativeAmount0)
@@ -229,7 +229,7 @@ func InverseCumulativeAmount0(
 		} else if !leftCarpetLiquidity.IsZero() {
 			// use left carpet - reuse rightCarpetCumulativeAmount0 for final remainder
 			rightCarpetCumulativeAmount0.Sub(rightCarpetCumulativeAmount0, mainCumulativeAmount0)
-			roundedTick, sucess := uniformLib.InverseCumulativeAmount0(
+			success, roundedTick := uniformLib.InverseCumulativeAmount0(
 				tickSpacing,
 				rightCarpetCumulativeAmount0,
 				leftCarpetLiquidity,
@@ -237,7 +237,7 @@ func InverseCumulativeAmount0(
 				params.MinTick,
 				true,
 			)
-			return roundedTick, sucess, nil
+			return success, roundedTick, nil
 		}
 	}
 	return false, 0, nil
@@ -278,7 +278,7 @@ func InverseCumulativeAmount1(
 
 	if cumulativeAmount1_.Cmp(leftCarpetCumulativeAmount1) <= 0 && !leftCarpetLiquidity.IsZero() {
 		// use left carpet
-		roundedTick, sucess := uniformLib.InverseCumulativeAmount1(
+		success, roundedTick := uniformLib.InverseCumulativeAmount1(
 			tickSpacing,
 			cumulativeAmount1_,
 			leftCarpetLiquidity,
@@ -286,7 +286,7 @@ func InverseCumulativeAmount1(
 			params.MinTick,
 			true,
 		)
-		return roundedTick, sucess, nil
+		return success, roundedTick, nil
 	} else {
 		// Reuse leftCarpetCumulativeAmount1 for remainder calculation
 		leftCarpetCumulativeAmount1.Sub(cumulativeAmount1_, leftCarpetCumulativeAmount1)
@@ -323,14 +323,14 @@ func InverseCumulativeAmount1(
 		} else if !rightCarpetLiquidity.IsZero() {
 			// use right carpet - reuse leftCarpetCumulativeAmount1 for final remainder
 			leftCarpetCumulativeAmount1.Sub(leftCarpetCumulativeAmount1, mainCumulativeAmount1)
-			roundedTick, sucess := uniformLib.InverseCumulativeAmount1(tickSpacing,
+			success, roundedTick := uniformLib.InverseCumulativeAmount1(tickSpacing,
 				leftCarpetCumulativeAmount1,
 				rightCarpetLiquidity,
 				params.MinTick+length*tickSpacing,
 				maxUsableTick,
 				true,
 			)
-			return roundedTick, sucess, nil
+			return success, roundedTick, nil
 		}
 	}
 	return false, 0, nil

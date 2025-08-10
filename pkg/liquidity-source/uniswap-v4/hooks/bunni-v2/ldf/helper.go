@@ -1,5 +1,10 @@
 package ldf
 
+const (
+	QUERY_SCALE_SHIFT        = 4
+	INITIALIZED_STATE uint32 = 1 << 24
+)
+
 // DecodeState decodes a bytes32 state into initialized flag and lastMinTick
 // Equivalent to Solidity: function _decodeState(bytes32 ldfState) internal pure returns (bool initialized, int24 lastMinTick)
 func DecodeState(ldfState [32]byte) (initialized bool, lastMinTick int32) {

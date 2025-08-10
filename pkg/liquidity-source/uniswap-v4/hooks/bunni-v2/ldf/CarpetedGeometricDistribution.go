@@ -2,7 +2,7 @@ package ldf
 
 import (
 	carpetedgeoLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/carpeted-geometric"
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/holiman/uint256"
@@ -140,10 +140,14 @@ func (c *CarpetedGeometricDistribution) decodeParams(
 // encodeState encodes the state into bytes32
 func (c *CarpetedGeometricDistribution) encodeState(minTick int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((minTick >> 16) & 0xFF)
-	state[2] = byte((minTick >> 8) & 0xFF)
-	state[3] = byte(minTick & 0xFF)
+	minTickUint24 := uint32(minTick) & 0xFFFFFF
+	combined := INITIALIZED_STATE + minTickUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
@@ -177,6 +181,7 @@ func (c *CarpetedGeometricDistribution) query(
 	cumulativeAmount0DensityX96, err = carpetedgeoLib.CumulativeAmount0(
 		c.tickSpacing,
 		roundedTick+c.tickSpacing,
+		math.SCALED_Q96,
 		minTick,
 		length,
 		alphaX96,
@@ -186,10 +191,13 @@ func (c *CarpetedGeometricDistribution) query(
 		return nil, nil, nil, err
 	}
 
+	cumulativeAmount0DensityX96.Rsh(cumulativeAmount0DensityX96, QUERY_SCALE_SHIFT)
+
 	// compute cumulativeAmount1DensityX96
 	cumulativeAmount1DensityX96, err = carpetedgeoLib.CumulativeAmount1(
 		c.tickSpacing,
 		roundedTick-c.tickSpacing,
+		math.SCALED_Q96,
 		minTick,
 		length,
 		alphaX96,
@@ -198,13 +206,15 @@ func (c *CarpetedGeometricDistribution) query(
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	cumulativeAmount1DensityX96.Rsh(cumulativeAmount1DensityX96, QUERY_SCALE_SHIFT)
 
 	return
 }
 
 // computeSwap computes the swap parameters
 func (c *CarpetedGeometricDistribution) computeSwap(
-	_,
+	inverseCumulativeAmountInput,
 	totalLiquidity *uint256.Int,
 	zeroForOne,
 	exactIn bool,
@@ -222,14 +232,28 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 ) {
 	if exactIn == zeroForOne {
 		// compute roundedTick by inverting the cumulative amount0
-		// Simplified implementation - would need proper inverse calculation
-		roundedTick = minTick + (length/2)*c.tickSpacing
+		success, roundedTick, err = carpetedgeoLib.InverseCumulativeAmount0(
+			c.tickSpacing,
+			inverseCumulativeAmountInput,
+			totalLiquidity,
+			minTick,
+			length,
+			alphaX96,
+			weightCarpet,
+		)
+		if err != nil {
+			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+		}
+		if !success {
+			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+		}
 
 		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount0_, err = carpetedgeoLib.CumulativeAmount0(
 				c.tickSpacing,
 				roundedTick+c.tickSpacing,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -239,6 +263,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount0_, err = carpetedgeoLib.CumulativeAmount0(
 				c.tickSpacing,
 				roundedTick,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -253,6 +278,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount1_, err = carpetedgeoLib.CumulativeAmount1(
 				c.tickSpacing,
 				roundedTick,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -262,6 +288,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount1_, err = carpetedgeoLib.CumulativeAmount1(
 				c.tickSpacing,
 				roundedTick-c.tickSpacing,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -273,14 +300,28 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 		}
 	} else {
 		// compute roundedTick by inverting the cumulative amount1
-		// Simplified implementation - would need proper inverse calculation
-		roundedTick = minTick + (length/2)*c.tickSpacing
+		success, roundedTick, err = carpetedgeoLib.InverseCumulativeAmount1(
+			c.tickSpacing,
+			inverseCumulativeAmountInput,
+			totalLiquidity,
+			minTick,
+			length,
+			alphaX96,
+			weightCarpet,
+		)
+		if err != nil {
+			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+		}
+		if !success {
+			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+		}
 
 		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount1_, err = carpetedgeoLib.CumulativeAmount1(
 				c.tickSpacing,
 				roundedTick-c.tickSpacing,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -290,6 +331,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount1_, err = carpetedgeoLib.CumulativeAmount1(
 				c.tickSpacing,
 				roundedTick,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -304,6 +346,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount0_, err = carpetedgeoLib.CumulativeAmount0(
 				c.tickSpacing,
 				roundedTick,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,
@@ -313,6 +356,7 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			cumulativeAmount0_, err = carpetedgeoLib.CumulativeAmount0(
 				c.tickSpacing,
 				roundedTick+c.tickSpacing,
+				totalLiquidity,
 				minTick,
 				length,
 				alphaX96,

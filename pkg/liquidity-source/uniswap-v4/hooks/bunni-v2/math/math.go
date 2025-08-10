@@ -6,7 +6,6 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
@@ -17,7 +16,9 @@ func MulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
 }
 
 func DivUp(a, b *uint256.Int) *uint256.Int {
-	return MulDivUp(a, u256.BONE, b)
+	var res uint256.Int
+	v3Utils.DivRoundingUp(&res, a, b)
+	return &res
 }
 
 func Abs(x *int256.Int) *uint256.Int {

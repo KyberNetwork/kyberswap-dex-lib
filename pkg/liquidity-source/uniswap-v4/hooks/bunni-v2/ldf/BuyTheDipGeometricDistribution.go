@@ -58,10 +58,14 @@ func (b *BuyTheDipGeometricDistribution) decodeParams(ldfParams [32]byte) (
 // encodeState encodes the state into bytes32
 func (b *BuyTheDipGeometricDistribution) encodeState(twapTick int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((twapTick >> 16) & 0xFF)
-	state[2] = byte((twapTick >> 8) & 0xFF)
-	state[3] = byte(twapTick & 0xFF)
+	twapTickUint24 := uint32(twapTick) & 0xFFFFFF
+	combined := INITIALIZED_STATE + twapTickUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
@@ -97,44 +101,10 @@ func (b *BuyTheDipGeometricDistribution) Query(
 			buythedipLib.ShouldUseAltAlpha(int(lastTwapTick), altThreshold, altThresholdDirection)
 	}
 
-	// compute liquidityDensityX96
-	liquidityDensityX96, err = buythedipLib.LiquidityDensityX96(
-		b.tickSpacing,
+	// Use the lib Query function to avoid code duplication
+	liquidityDensityX96, cumulativeAmount0DensityX96, cumulativeAmount1DensityX96, err = buythedipLib.Query(
 		roundedTick,
-		twapTick,
-		minTick,
-		length,
-		alphaX96,
-		altAlphaX96,
-		altThreshold,
-		altThresholdDirection,
-	)
-	if err != nil {
-		return nil, nil, nil, [32]byte{}, false, err
-	}
-
-	// compute cumulativeAmount0DensityX96
-	cumulativeAmount0DensityX96, err = buythedipLib.CumulativeAmount0(
 		b.tickSpacing,
-		roundedTick+b.tickSpacing,
-		math.Q96,
-		twapTick,
-		minTick,
-		length,
-		alphaX96,
-		altAlphaX96,
-		altThreshold,
-		altThresholdDirection,
-	)
-	if err != nil {
-		return nil, nil, nil, [32]byte{}, false, err
-	}
-
-	// compute cumulativeAmount1DensityX96
-	cumulativeAmount1DensityX96, err = buythedipLib.CumulativeAmount1(
-		b.tickSpacing,
-		roundedTick-b.tickSpacing,
-		math.Q96,
 		twapTick,
 		minTick,
 		length,

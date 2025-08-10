@@ -1,8 +1,8 @@
 package ldf
 
 import (
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
 	uniformLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/uniform"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/holiman/uint256"
 )
@@ -111,8 +111,14 @@ func (u *UniformDistribution) computeSwap(
 ) {
 	if exactIn == zeroForOne {
 		// Compute roundedTick by inverting the cumulative amount0
-		success, roundedTick = uniformLib.InverseCumulativeAmount0(u.tickSpacing,
-			inverseCumulativeAmountInput, totalLiquidity, tickLower, tickUpper, false)
+		success, roundedTick = uniformLib.InverseCumulativeAmount0(
+			u.tickSpacing,
+			inverseCumulativeAmountInput,
+			totalLiquidity,
+			tickLower,
+			tickUpper,
+			false,
+		)
 		if !success {
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
@@ -165,8 +171,14 @@ func (u *UniformDistribution) computeSwap(
 		}
 	} else {
 		// Compute roundedTick by inverting the cumulative amount1
-		success, roundedTick = uniformLib.InverseCumulativeAmount1(u.tickSpacing,
-			inverseCumulativeAmountInput, totalLiquidity, tickLower, tickUpper, false)
+		success, roundedTick = uniformLib.InverseCumulativeAmount1(
+			u.tickSpacing,
+			inverseCumulativeAmountInput,
+			totalLiquidity,
+			tickLower,
+			tickUpper,
+			false,
+		)
 		if !success {
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
@@ -220,10 +232,7 @@ func (u *UniformDistribution) computeSwap(
 	}
 
 	// Compute swap liquidity
-	swapLiquidity, err = u.liquidityDensityX96(roundedTick, tickLower, tickUpper)
-	if err != nil {
-		return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
-	}
+	swapLiquidity = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)
 	swapLiquidity.Rsh(swapLiquidity, 96)
 
@@ -239,35 +248,59 @@ func (u *UniformDistribution) decodeParams(
 	tickUpper int,
 	shiftMode shiftmode.ShiftMode,
 ) {
-	// | shiftMode - 1 byte | tickLowerOrOffset - 3 bytes | tickUpperOrOffset - 3 bytes |
+	// | shiftMode - 1 byte | offset - 3 bytes | length - 3 bytes |
 	shiftMode = shiftmode.ShiftMode(ldfParams[0])
-	tickLowerOrOffset := int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-	tickUpperOrOffset := int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
+	offset := int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
+	length := int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
 
 	if shiftMode != shiftmode.Static {
-		// use rounded TWAP value + offset as tickLower
-		tickLower = math.RoundTickSingle(twapTick+tickLowerOrOffset, u.tickSpacing)
-		tickUpper = math.RoundTickSingle(twapTick+tickUpperOrOffset, u.tickSpacing)
-	} else {
-		// static ticks set in params
-		tickLower = tickLowerOrOffset
-		tickUpper = tickUpperOrOffset
-	}
+		// Dynamic: tickUpper is derived from tickLower + length * tickSpacing
+		tickLower = math.RoundTickSingle(twapTick+offset, u.tickSpacing)
+		tickUpper = tickLower + length*u.tickSpacing
 
+		// Bound distribution within usable ticks
+		minUsableTick := math.MinUsableTick(u.tickSpacing)
+		maxUsableTick := math.MaxUsableTick(u.tickSpacing)
+		if tickLower < minUsableTick {
+			tickLower = minUsableTick
+			upper := tickLower + length*u.tickSpacing
+			if upper > maxUsableTick {
+				tickUpper = maxUsableTick
+			} else {
+				tickUpper = upper
+			}
+		} else if tickUpper > maxUsableTick {
+			tickUpper = maxUsableTick
+			lower := tickUpper - length*u.tickSpacing
+			if lower < minUsableTick {
+				tickLower = minUsableTick
+			} else {
+				tickLower = lower
+			}
+		}
+	} else {
+		// Static
+		tickLower = int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
+		tickUpper = int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
+	}
 	return
 }
 
 // encodeState encodes the state into bytes32
 func (u *UniformDistribution) encodeState(tickLower int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((tickLower >> 16) & 0xFF)
-	state[2] = byte((tickLower >> 8) & 0xFF)
-	state[3] = byte(tickLower & 0xFF)
+	tickLowerUint24 := uint32(tickLower) & 0xFFFFFF
+	combined := INITIALIZED_STATE + tickLowerUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
-// query computes the liquidity density and cumulative amounts
+// query computes the liquidity density and cumulative amounts using uniformLib
 func (u *UniformDistribution) query(
 	roundedTick, tickLower, tickUpper int,
 ) (
@@ -276,11 +309,8 @@ func (u *UniformDistribution) query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	// compute liquidityDensityX96
-	liquidityDensityX96, err = u.liquidityDensityX96(roundedTick, tickLower, tickUpper)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	// Use the uniformLib Query function to avoid code duplication
+	liquidityDensityX96 = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
 
 	length := (tickUpper - tickLower) / u.tickSpacing
 	if length <= 0 {
@@ -288,8 +318,6 @@ func (u *UniformDistribution) query(
 	}
 
 	lengthBig := uint256.NewInt(uint64(length))
-
-	// liquidity = Q96.divUp(length)
 	liquidity := math.DivUp(math.Q96, lengthBig)
 
 	sqrtRatioTickLower, err := math.GetSqrtPriceAtTick(tickLower)
@@ -303,7 +331,6 @@ func (u *UniformDistribution) query(
 
 	// compute cumulativeAmount0DensityX96 for the rounded tick to the right of the rounded current tick
 	if roundedTick+u.tickSpacing >= tickUpper {
-		// cumulativeAmount0DensityX96 is just 0
 		cumulativeAmount0DensityX96 = uint256.NewInt(0)
 	} else if roundedTick+u.tickSpacing <= tickLower {
 		cumulativeAmount0DensityX96, err = math.GetAmount0Delta(
@@ -327,7 +354,6 @@ func (u *UniformDistribution) query(
 
 	// compute cumulativeAmount1DensityX96 for the rounded tick to the left of the rounded current tick
 	if roundedTick-u.tickSpacing < tickLower {
-		// cumulativeAmount1DensityX96 is just 0
 		cumulativeAmount1DensityX96 = uint256.NewInt(0)
 	} else if roundedTick >= tickUpper {
 		cumulativeAmount1DensityX96, err = math.GetAmount1Delta(
@@ -350,19 +376,4 @@ func (u *UniformDistribution) query(
 	}
 
 	return liquidityDensityX96, cumulativeAmount0DensityX96, cumulativeAmount1DensityX96, nil
-}
-
-// liquidityDensityX96 computes the liquidity density at a given tick
-func (u *UniformDistribution) liquidityDensityX96(roundedTick, tickLower, tickUpper int) (*uint256.Int, error) {
-	if roundedTick < tickLower || roundedTick >= tickUpper {
-		return uint256.NewInt(0), nil
-	}
-	length := (tickUpper - tickLower) / u.tickSpacing
-	if length <= 0 {
-		return uint256.NewInt(0), nil
-	}
-
-	var result uint256.Int
-	result.Div(math.Q96, uint256.NewInt(uint64(length)))
-	return &result, nil
 }

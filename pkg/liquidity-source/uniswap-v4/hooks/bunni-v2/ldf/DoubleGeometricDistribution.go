@@ -2,7 +2,7 @@ package ldf
 
 import (
 	doubleGeo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/double-geometric"
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/holiman/uint256"
 )
@@ -110,10 +110,10 @@ func (d *DoubleGeometricDistribution) decodeParams(
 	// | shiftMode - 1 byte | minTickOrOffset - 3 bytes | length0 - 2 bytes | alpha0 - 4 bytes | weight0 - 4 bytes | length1 - 2 bytes | alpha1 - 4 bytes | weight1 - 4 bytes |
 	shiftMode = shiftmode.ShiftMode(ldfParams[0])
 	length0 = int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
-	length1 = int(int16(uint16(ldfParams[6])<<8 | uint16(ldfParams[7])))
-	alpha0 := uint32(ldfParams[8])<<24 | uint32(ldfParams[9])<<16 | uint32(ldfParams[10])<<8 | uint32(ldfParams[11])
-	alpha1 := uint32(ldfParams[12])<<24 | uint32(ldfParams[13])<<16 | uint32(ldfParams[14])<<8 | uint32(ldfParams[15])
-	weight0Val := uint32(ldfParams[16])<<24 | uint32(ldfParams[17])<<16 | uint32(ldfParams[18])<<8 | uint32(ldfParams[19])
+	alpha0 := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
+	weight0Val := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
+	length1 = int(int16(uint16(ldfParams[14])<<8 | uint16(ldfParams[15])))
+	alpha1 := uint32(ldfParams[16])<<24 | uint32(ldfParams[17])<<16 | uint32(ldfParams[18])<<8 | uint32(ldfParams[19])
 	weight1Val := uint32(ldfParams[20])<<24 | uint32(ldfParams[21])<<16 | uint32(ldfParams[22])<<8 | uint32(ldfParams[23])
 
 	// Convert alphas to alphaX96
@@ -125,7 +125,7 @@ func (d *DoubleGeometricDistribution) decodeParams(
 	alpha1X96.Mul(alpha1X96, math.Q96)
 	alpha1X96.Div(alpha1X96, math.ALPHA_BASE)
 
-	// Convert weights to WAD
+	// Convert weights
 	weight0 = uint256.NewInt(uint64(weight0Val))
 	weight1 = uint256.NewInt(uint64(weight1Val))
 
@@ -153,14 +153,18 @@ func (d *DoubleGeometricDistribution) decodeParams(
 // encodeState encodes the state into bytes32
 func (d *DoubleGeometricDistribution) encodeState(minTick int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((minTick >> 16) & 0xFF)
-	state[2] = byte((minTick >> 8) & 0xFF)
-	state[3] = byte(minTick & 0xFF)
+	minTickUint24 := uint32(minTick) & 0xFFFFFF
+	combined := INITIALIZED_STATE + minTickUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
-// query computes the liquidity density and cumulative amounts
+// query computes the liquidity density and cumulative amounts using doubleGeo lib functions
 func (d *DoubleGeometricDistribution) query(
 	roundedTick,
 	minTick,
@@ -177,7 +181,8 @@ func (d *DoubleGeometricDistribution) query(
 	err error,
 ) {
 	// compute liquidityDensityX96
-	liquidityDensityX96, err = d.liquidityDensityX96(
+	liquidityDensityX96, err = doubleGeo.LiquidityDensityX96(
+		d.tickSpacing,
 		roundedTick,
 		minTick,
 		length0,
@@ -225,91 +230,7 @@ func (d *DoubleGeometricDistribution) query(
 		return nil, nil, nil, err
 	}
 
-	return
-}
-
-// liquidityDensityX96 computes the liquidity density using weighted sum of two geometric distributions
-func (d *DoubleGeometricDistribution) liquidityDensityX96(roundedTick, minTick, length0, length1 int, alpha0X96, alpha1X96, weight0, weight1 *uint256.Int) (*uint256.Int, error) {
-	// Calculate density for distribution 0 (right distribution)
-	density0, err := d.geometricLiquidityDensityX96(roundedTick, minTick+length1*d.tickSpacing, length0, alpha0X96)
-	if err != nil {
-		return nil, err
-	}
-
-	// Calculate density for distribution 1 (left distribution)
-	density1, err := d.geometricLiquidityDensityX96(roundedTick, minTick, length1, alpha1X96)
-	if err != nil {
-		return nil, err
-	}
-
-	// Apply weighted sum: density0 * weight0 + density1 * weight1
-	var weightedDensity0 uint256.Int
-	weightedDensity0.Mul(density0, weight0)
-	var weightedDensity1 uint256.Int
-	weightedDensity1.Mul(density1, weight1)
-
-	var result uint256.Int
-	result.Add(&weightedDensity0, &weightedDensity1)
-	var totalWeight uint256.Int
-	totalWeight.Add(weight0, weight1)
-	result.Div(&result, &totalWeight)
-
-	return &result, nil
-}
-
-// geometricLiquidityDensityX96 computes the liquidity density for a single geometric distribution
-func (d *DoubleGeometricDistribution) geometricLiquidityDensityX96(roundedTick, minTick, length int, alphaX96 *uint256.Int) (*uint256.Int, error) {
-	if roundedTick < minTick || roundedTick >= minTick+length*d.tickSpacing {
-		return uint256.NewInt(0), nil
-	}
-
-	x := (roundedTick - minTick) / d.tickSpacing
-
-	if alphaX96.Cmp(math.Q96) > 0 {
-		// alpha > 1
-		var alphaInvX96 uint256.Int
-		alphaInvX96.Mul(math.Q96, math.Q96)
-		alphaInvX96.Div(&alphaInvX96, alphaX96)
-
-		term1, err := math.Rpow(&alphaInvX96, length-x, math.Q96)
-		if err != nil {
-			return nil, err
-		}
-		var term2 uint256.Int
-		term2.Sub(alphaX96, math.Q96)
-		term3, err := math.Rpow(&alphaInvX96, length, math.Q96)
-		if err != nil {
-			return nil, err
-		}
-		var denom uint256.Int
-		denom.Sub(math.Q96, term3)
-
-		result, err := math.FullMulDiv(term1, &term2, &denom)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	} else {
-		// alpha <= 1
-		var term1 uint256.Int
-		term1.Sub(math.Q96, alphaX96)
-		term2, err := math.Rpow(alphaX96, x, math.Q96)
-		if err != nil {
-			return nil, err
-		}
-		term3, err := math.Rpow(alphaX96, length, math.Q96)
-		if err != nil {
-			return nil, err
-		}
-		var denom uint256.Int
-		denom.Sub(math.Q96, term3)
-
-		result, err := math.FullMulDiv(&term1, term2, &denom)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
-	}
+	return liquidityDensityX96, cumulativeAmount0DensityX96, cumulativeAmount1DensityX96, nil
 }
 
 // computeSwap computes the swap parameters
@@ -387,7 +308,17 @@ func (d *DoubleGeometricDistribution) computeSwap(
 	}
 
 	// compute swap liquidity
-	swapLiquidity, err = d.liquidityDensityX96(roundedTick, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
+	swapLiquidity, err = doubleGeo.LiquidityDensityX96(
+		d.tickSpacing,
+		roundedTick,
+		minTick,
+		length0,
+		length1,
+		alpha0X96,
+		alpha1X96,
+		weight0,
+		weight1,
+	)
 	if err != nil {
 		return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
 	}

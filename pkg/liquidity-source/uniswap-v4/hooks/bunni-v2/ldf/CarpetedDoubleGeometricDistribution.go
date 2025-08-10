@@ -2,7 +2,7 @@ package ldf
 
 import (
 	carpetedDoubleGeoLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/carpeted-double-geometric"
-	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/shift-mode"
+	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 	"github.com/holiman/uint256"
 )
@@ -89,14 +89,13 @@ func (c *CarpetedDoubleGeometricDistribution) ComputeSwap(
 
 // decodeParams decodes the LDF parameters from bytes32
 func (c *CarpetedDoubleGeometricDistribution) decodeParams(twapTick int, ldfParams [32]byte) carpetedDoubleGeoLib.Params {
-	// | shiftMode - 1 byte | minTickOrOffset - 3 bytes | length0 - 2 bytes | alpha0 - 4 bytes | weight0 - 4 bytes | length1 - 2 bytes | alpha1 - 4 bytes | weight1 - 4 bytes | weightCarpet - 4 bytes |
+	// | shiftMode - 1 byte | offset - 3 bytes | length0 - 2 bytes | alpha0 - 4 bytes | weight0 - 4 bytes | length1 - 2 bytes | alpha1 - 4 bytes | weight1 - 4 bytes | weightCarpet - 4 bytes |
 	shiftMode := shiftmode.ShiftMode(ldfParams[0])
 	length0 := int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
-	length1 := int(int16(uint16(ldfParams[6])<<8 | uint16(ldfParams[7])))
-
-	alpha0 := uint32(ldfParams[8])<<24 | uint32(ldfParams[9])<<16 | uint32(ldfParams[10])<<8 | uint32(ldfParams[11])
-	alpha1 := uint32(ldfParams[12])<<24 | uint32(ldfParams[13])<<16 | uint32(ldfParams[14])<<8 | uint32(ldfParams[15])
-	weight0Val := uint32(ldfParams[16])<<24 | uint32(ldfParams[17])<<16 | uint32(ldfParams[18])<<8 | uint32(ldfParams[19])
+	alpha0 := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
+	weight0Val := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
+	length1 := int(int16(uint16(ldfParams[14])<<8 | uint16(ldfParams[15])))
+	alpha1 := uint32(ldfParams[16])<<24 | uint32(ldfParams[17])<<16 | uint32(ldfParams[18])<<8 | uint32(ldfParams[19])
 	weight1Val := uint32(ldfParams[20])<<24 | uint32(ldfParams[21])<<16 | uint32(ldfParams[22])<<8 | uint32(ldfParams[23])
 	weightCarpetVal := uint32(ldfParams[24])<<24 | uint32(ldfParams[25])<<16 | uint32(ldfParams[26])<<8 | uint32(ldfParams[27])
 
@@ -149,10 +148,15 @@ func (c *CarpetedDoubleGeometricDistribution) decodeParams(twapTick int, ldfPara
 // encodeState encodes the state into bytes32
 func (c *CarpetedDoubleGeometricDistribution) encodeState(minTick int) [32]byte {
 	var state [32]byte
-	state[0] = 1 // initialized = true
-	state[1] = byte((minTick >> 16) & 0xFF)
-	state[2] = byte((minTick >> 8) & 0xFF)
-	state[3] = byte(minTick & 0xFF)
+
+	minTickUint24 := uint32(minTick) & 0xFFFFFF
+	combined := INITIALIZED_STATE + minTickUint24
+
+	state[0] = byte((combined >> 24) & 0xFF)
+	state[1] = byte((combined >> 16) & 0xFF)
+	state[2] = byte((combined >> 8) & 0xFF)
+	state[3] = byte(combined & 0xFF)
+
 	return state
 }
 
@@ -172,31 +176,29 @@ func (c *CarpetedDoubleGeometricDistribution) query(
 		return nil, nil, nil, err
 	}
 
-	// compute cumulativeAmount0DensityX96 (scaled by 2^100)
-	scaledQ96 := uint256.NewInt(1)
-	scaledQ96.Lsh(scaledQ96, 100) // Q96 << 4
+	// compute cumulativeAmount0DensityX96
 	cumulativeAmount0DensityX96, err = carpetedDoubleGeoLib.CumulativeAmount0(
 		c.tickSpacing,
 		roundedTick+c.tickSpacing,
-		scaledQ96,
+		math.SCALED_Q96,
 		params,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	cumulativeAmount0DensityX96.Rsh(cumulativeAmount0DensityX96, 4) // >> 4
+	cumulativeAmount0DensityX96.Rsh(cumulativeAmount0DensityX96, QUERY_SCALE_SHIFT)
 
-	// compute cumulativeAmount1DensityX96 (scaled by 2^100)
+	// compute cumulativeAmount1DensityX96
 	cumulativeAmount1DensityX96, err = carpetedDoubleGeoLib.CumulativeAmount1(
 		c.tickSpacing,
 		roundedTick-c.tickSpacing,
-		scaledQ96,
+		math.SCALED_Q96,
 		params,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	cumulativeAmount1DensityX96.Rsh(cumulativeAmount1DensityX96, 4) // >> 4
+	cumulativeAmount1DensityX96.Rsh(cumulativeAmount1DensityX96, QUERY_SCALE_SHIFT)
 
 	return
 }
