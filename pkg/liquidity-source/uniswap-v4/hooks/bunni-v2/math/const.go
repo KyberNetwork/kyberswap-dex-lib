@@ -24,6 +24,7 @@ var (
 	WAD                   = u256.BONE
 	Q96                   = new(uint256.Int).Lsh(u256.U1, 96)
 	SCALED_Q96, _         = uint256.FromHex("0x10000000000000000000000000")
+	_BALANCE_MASK, _      = uint256.FromHex("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 
 	minX        = i256.MustFromDecimal("-42139678854452767551")
 	maxX        = i256.MustFromDecimal("135305999368893231589")

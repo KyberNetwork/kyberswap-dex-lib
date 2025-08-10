@@ -305,7 +305,8 @@ func InverseCumulativeAmount0(
 		)
 		return success, roundedTick, nil
 	} else {
-		remainder := uint256.NewInt(0).Sub(cumulativeAmount0_, rightCarpetCumulativeAmount0)
+		var remainder uint256.Int
+		remainder.Sub(cumulativeAmount0_, rightCarpetCumulativeAmount0)
 		mainCumulativeAmount0, err := geoLib.CumulativeAmount0(
 			tickSpacing,
 			minTick,
@@ -322,7 +323,7 @@ func InverseCumulativeAmount0(
 			// Use main
 			success, roundedTick, err := geoLib.InverseCumulativeAmount0(
 				tickSpacing,
-				remainder,
+				&remainder,
 				mainLiquidity,
 				minTick,
 				length,
@@ -331,10 +332,10 @@ func InverseCumulativeAmount0(
 			return success, roundedTick, err
 		} else if !leftCarpetLiquidity.IsZero() {
 			// Use left carpet
-			remainder.Sub(remainder, mainCumulativeAmount0)
+			remainder.Sub(&remainder, mainCumulativeAmount0)
 			success, roundedTick := uniformLib.InverseCumulativeAmount0(
 				tickSpacing,
-				remainder,
+				&remainder,
 				leftCarpetLiquidity,
 				minUsableTick,
 				minTick,
@@ -399,7 +400,8 @@ func InverseCumulativeAmount1(
 		)
 		return success, roundedTick, nil
 	} else {
-		remainder := uint256.NewInt(0).Sub(cumulativeAmount1_, leftCarpetCumulativeAmount1)
+		var remainder uint256.Int
+		remainder.Sub(cumulativeAmount1_, leftCarpetCumulativeAmount1)
 		mainCumulativeAmount1, err := geoLib.CumulativeAmount1(
 			tickSpacing,
 			minTick+length*tickSpacing,
@@ -416,7 +418,7 @@ func InverseCumulativeAmount1(
 			// Use main
 			success, roundedTick, err := geoLib.InverseCumulativeAmount1(
 				tickSpacing,
-				remainder,
+				&remainder,
 				mainLiquidity,
 				minTick,
 				length,
@@ -425,10 +427,10 @@ func InverseCumulativeAmount1(
 			return success, roundedTick, err
 		} else if !rightCarpetLiquidity.IsZero() {
 			// Use right carpet
-			remainder.Sub(remainder, mainCumulativeAmount1)
+			remainder.Sub(&remainder, mainCumulativeAmount1)
 			success, roundedTick := uniformLib.InverseCumulativeAmount1(
 				tickSpacing,
-				remainder,
+				&remainder,
 				rightCarpetLiquidity,
 				minTick+length*tickSpacing,
 				maxUsableTick,

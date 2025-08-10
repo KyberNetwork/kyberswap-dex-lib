@@ -171,3 +171,18 @@ func FromIdleBalance(idleBalance [32]byte) (*uint256.Int, bool) {
 	balance.SetBytes(raw[:])
 	return &balance, isToken0
 }
+
+func ToIdleBalance(rawBalance *uint256.Int, isToken0 bool) ([32]byte, error) {
+	if rawBalance.Gt(_BALANCE_MASK) {
+		return [32]byte{}, errors.New("IdleBalanceLibrary__BalanceOverflow")
+	}
+
+	var idleBalance [32]byte
+	rawBalance.WriteToSlice(idleBalance[:])
+
+	if isToken0 {
+		idleBalance[0] |= 0x80
+	}
+
+	return idleBalance, nil
+}

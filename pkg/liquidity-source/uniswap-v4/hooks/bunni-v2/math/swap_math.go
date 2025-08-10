@@ -16,8 +16,8 @@ func ComputeSwapStep(
 	feePips *uint256.Int,
 ) (sqrtPriceNextX96, amountIn, amountOut *uint256.Int, err error) {
 	var feeAmount uint256.Int
-
 	var temp uint256.Int
+
 	if exactIn {
 		// Calculate amountRemainingLessFee
 		var amountRemainingLessFee uint256.Int
@@ -35,13 +35,13 @@ func ComputeSwapStep(
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			amountIn.Set(amountInDelta)
+			amountIn = amountInDelta
 		} else {
 			amountInDelta, err := GetAmount1Delta(sqrtPriceCurrentX96, sqrtPriceTargetX96, liquidity, true)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			amountIn.Set(amountInDelta)
+			amountIn = amountInDelta
 		}
 
 		if amountRemainingLessFee.Cmp(amountIn) >= 0 {

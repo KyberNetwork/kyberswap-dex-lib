@@ -41,8 +41,6 @@ type Hook struct {
 	hooklet     hooklet.IHooklet
 	isNative    [2]bool
 	tickSpacing int
-
-	// rebalanceOrderDeadline *uint256.Int
 }
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -338,7 +336,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		ZeroForOne: params.ZeroForOne,
 	})
 
-	// Apply price override if needed
 	if priceOverridden {
 		h.Slot0.SqrtPriceX96.Set(sqrtPriceX96Override)
 		var err error
@@ -353,7 +350,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		new(uint256.Int).SubUint64(v3Utils.MaxSqrtRatioU256, 1),
 	)
 
-	// Validate swap parameters
 	if h.Slot0.SqrtPriceX96.IsZero() ||
 		(params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) >= 0) ||
 		(!params.ZeroForOne && sqrtPriceLimitX96.Cmp(h.Slot0.SqrtPriceX96) <= 0) ||
@@ -363,26 +359,21 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		return nil, fmt.Errorf("BunniHook__InvalidSwap")
 	}
 
-	// Compute total token balances
 	var balance0 uint256.Int
 	balance0.Add(h.BunniState.RawBalance0, getReservesInUnderlying(h.Vaults[0], h.BunniState.Reserve0))
 
 	var balance1 uint256.Int
 	balance1.Add(h.BunniState.RawBalance1, getReservesInUnderlying(h.Vaults[1], h.BunniState.Reserve1))
 
-	// Update TWAP oracle
 	h.updateOracle(blockTimestamp)
 
-	// Determine TWAP usage
 	useLDFTwap := h.BunniState.TwapSecondsAgo != 0
 	useFeeTwap := !feeOverridden && h.HookParams.FeeTwapSecondsAgo != 0
 
-	// Calculate TWAP values
 	var arithmeticMeanTick int64
 	var feeMeanTick int64
 	var err error
 	if useLDFTwap && useFeeTwap {
-		// Get triple observation for both LDF and fee TWAP
 		tickCumulatives, err := h.oracle.ObserveTriple(
 			h.ObservationState.IntermediateObservation,
 			blockTimestamp,
@@ -396,28 +387,26 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		}
 
 		arithmeticMeanTick = (tickCumulatives[0] - tickCumulatives[1]) / int64(h.BunniState.TwapSecondsAgo)
-		feeMeanTick = (tickCumulatives[0] - tickCumulatives[2]) / int64(h.HookParams.FeeTwapSecondsAgo) // feeMeanTick
+		feeMeanTick = (tickCumulatives[0] - tickCumulatives[2]) / int64(h.HookParams.FeeTwapSecondsAgo)
 	} else if useLDFTwap {
 		arithmeticMeanTick, err = h.getTwap(blockTimestamp)
 		if err != nil {
 			return nil, err
 		}
 	} else if useFeeTwap {
-		feeMeanTick, err = h.getTwap(blockTimestamp) // feeMeanTick
+		feeMeanTick, err = h.getTwap(blockTimestamp)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// Query LDF for liquidity and token densities
-	totalLiquidity, _, currentActiveBalance0, currentActiveBalance1,
+	totalLiquidity, liquidityDensityOfRoundedTickX96, currentActiveBalance0, currentActiveBalance1,
 		newLdfState, shouldSurge, err := h.queryLDF(h.Slot0.SqrtPriceX96, h.Slot0.Tick,
 		int(arithmeticMeanTick), h.LdfState, &balance0, &balance1, h.BunniState.IdleBalance)
 	if err != nil {
 		return nil, err
 	}
 
-	// Validate output token availability
 	if (params.ZeroForOne && currentActiveBalance1.IsZero()) ||
 		(!params.ZeroForOne && currentActiveBalance0.IsZero()) ||
 		totalLiquidity.IsZero() ||
@@ -433,7 +422,12 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	}
 
 	if shouldSurge {
-		// todo
+		newIdleBalance, err := h.computeIdleBalance(currentActiveBalance0, currentActiveBalance1, &balance0, &balance1)
+		if err != nil {
+			return nil, err
+		}
+
+		h.BunniState.IdleBalance = newIdleBalance
 	}
 
 	shouldSurgeFromVaults, err := h.shouldSurgeFromVaults()
@@ -443,7 +437,18 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 
 	shouldSurge = shouldSurge || shouldSurgeFromVaults
 
-	updatedSqrtPriceX96, updatedTick, inputAmount, outputAmount, err := h.computeSwap(BunniComputeSwapInput{})
+	updatedSqrtPriceX96, updatedTick, inputAmount, outputAmount, err := h.computeSwap(BunniComputeSwapInput{
+		TotalLiquidity:                   totalLiquidity,
+		LiquidityDensityOfRoundedTickX96: liquidityDensityOfRoundedTickX96,
+		CurrentActiveBalance0:            currentActiveBalance0,
+		CurrentActiveBalance1:            currentActiveBalance1,
+		ArithmeticMeanTick:               int(arithmeticMeanTick),
+		ZeroForOne:                       params.ZeroForOne,
+		ExactIn:                          params.ExactIn,
+		AmountSpecified:                  amountSpecified,
+		SqrtPriceLimitX96:                sqrtPriceLimitX96,
+		LdfState:                         newLdfState,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -479,7 +484,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 
 	var amAmmSwapFee uint256.Int
 	if h.HookParams.AmAmmEnabled {
-		// todo
 		if params.ZeroForOne {
 			amAmmSwapFee.Set(h.AmAmm.SwapFee0For1)
 		} else {
@@ -511,8 +515,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	var swapFeeAmount *uint256.Int
 	var hookFeesAmount *uint256.Int
 	var curatorFeeAmount *uint256.Int
-	var hookHandleSwapInputAmount *uint256.Int
-	var hookHandleSwapOutputAmount *uint256.Int
+	var hookHandleSwapInputAmount uint256.Int
+	var hookHandleSwapOutputAmount uint256.Int
 
 	var result uniswapv4.BeforeSwapHookResult
 
@@ -600,15 +604,13 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		result.DeltaSpecific = actualInputAmount.ToBig()
 		result.DeltaUnSpecific = outputAmount.ToBig()
 
-		hookHandleSwapInputAmount = inputAmount.Clone()
+		hookHandleSwapInputAmount.Set(inputAmount)
 
-		var hookHandleSwapOutputAmount uint256.Int
 		hookHandleSwapOutputAmount.Add(outputAmount, hookFeesAmount)
-		hookHandleSwapOutputAmount.Add(&hookHandleSwapOutputAmount, curatorFeeAmount)
-
 		if useAmAmmFee {
-			hookHandleSwapOutputAmount.Add(outputAmount, swapFeeAmount)
+			hookHandleSwapOutputAmount.Add(&hookHandleSwapOutputAmount, swapFeeAmount)
 		}
+
 	} else {
 		swapFeeAmount, err = v3Utils.MulDivRoundingUp(inputAmount, &swapFee, new(uint256.Int).Sub(SWAP_FEE_BASE, &swapFee))
 		if err != nil {
@@ -658,17 +660,15 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		result.DeltaSpecific = actualOutputAmount.ToBig()
 		result.DeltaUnSpecific = inputAmount.ToBig()
 
-		hookHandleSwapOutputAmount = outputAmount.Clone()
+		hookHandleSwapOutputAmount.Set(outputAmount)
 
-		hookHandleSwapInputAmount.Sub(hookHandleSwapInputAmount, hookFeesAmount)
-		hookHandleSwapInputAmount.Sub(hookHandleSwapInputAmount, curatorFeeAmount)
-
+		hookHandleSwapInputAmount.Sub(inputAmount, hookFeesAmount)
 		if useAmAmmFee {
-			hookHandleSwapInputAmount.Sub(hookHandleSwapInputAmount, swapFeeAmount)
+			hookHandleSwapInputAmount.Sub(&hookHandleSwapInputAmount, swapFeeAmount)
 		}
 	}
 
-	err = h.hookHandleSwap(params.ZeroForOne, hookHandleSwapInputAmount, hookHandleSwapOutputAmount, shouldSurge)
+	err = h.hookHandleSwap(params.ZeroForOne, &hookHandleSwapInputAmount, &hookHandleSwapOutputAmount, shouldSurge)
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +697,12 @@ func (h *Hook) rebalance() error {
 	return nil
 }
 
-func (h *Hook) hookHandleSwap(zeroForOne bool, inputAmount, outputAmount *uint256.Int, shouldSurge bool) error {
+func (h *Hook) hookHandleSwap(
+	zeroForOne bool,
+	inputAmount,
+	outputAmount *uint256.Int,
+	shouldSurge bool,
+) error {
 	if !inputAmount.IsZero() {
 		if zeroForOne {
 			h.BunniState.RawBalance0.Add(h.BunniState.RawBalance0, inputAmount)
@@ -869,8 +874,6 @@ type BunniComputeSwapInput struct {
 	LiquidityDensityOfRoundedTickX96 *uint256.Int
 	CurrentActiveBalance0            *uint256.Int
 	CurrentActiveBalance1            *uint256.Int
-	SqrtPriceX96                     *uint256.Int
-	CurrentTick                      int
 	ArithmeticMeanTick               int
 	ZeroForOne                       bool
 	ExactIn                          bool
@@ -880,7 +883,6 @@ type BunniComputeSwapInput struct {
 }
 
 func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uint256.Int, *uint256.Int, error) {
-	// Initialize input and output amounts based on initial info
 	var inputAmount, outputAmount uint256.Int
 	if input.ExactIn {
 		inputAmount.Set(input.AmountSpecified)
@@ -888,15 +890,12 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		outputAmount.Set(input.AmountSpecified)
 	}
 
-	// Initialize updatedTick to the current tick
-	updatedTick := input.CurrentTick
+	updatedTick := h.Slot0.Tick
 
-	// Compute updated rounded tick liquidity
 	var updatedRoundedTickLiquidity uint256.Int
 	updatedRoundedTickLiquidity.Mul(input.TotalLiquidity, input.LiquidityDensityOfRoundedTickX96)
 	updatedRoundedTickLiquidity.Rsh(&updatedRoundedTickLiquidity, 96)
 
-	// Bound sqrtPriceLimitX96 by min/max possible values
 	var sqrtPriceLimitX96 uint256.Int
 	sqrtPriceLimitX96.Set(input.SqrtPriceLimitX96)
 
@@ -909,7 +908,6 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		return nil, 0, nil, nil, err
 	}
 
-	// Bound sqrtPriceLimit so that we never end up at an invalid rounded tick
 	if (input.ZeroForOne && sqrtPriceLimitX96.Cmp(minSqrtPrice) <= 0) ||
 		(!input.ZeroForOne && sqrtPriceLimitX96.Cmp(maxSqrtPrice) >= 0) {
 		if input.ZeroForOne {
@@ -919,11 +917,10 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		}
 	}
 
-	roundedTick, nextRoundedTick := math.RoundTick(input.CurrentTick, h.tickSpacing)
+	roundedTick, nextRoundedTick := math.RoundTick(h.Slot0.Tick, h.tickSpacing)
 
 	var naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut *uint256.Int
 
-	// Handle the special case when we don't cross rounded ticks
 	if !updatedRoundedTickLiquidity.IsZero() {
 		tickNext := lo.Ternary(input.ZeroForOne, roundedTick, nextRoundedTick)
 
@@ -932,7 +929,6 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 			return nil, 0, nil, nil, err
 		}
 
-		// Get sqrt price target
 		var sqrtPriceTargetX96 uint256.Int
 		if input.ZeroForOne {
 			if sqrtPriceLimitX96.Cmp(sqrtPriceNextX96) > 0 {
@@ -949,57 +945,48 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		}
 
 		naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut, err := math.ComputeSwapStep(
-			input.ExactIn, input.ZeroForOne, input.SqrtPriceX96,
+			input.ExactIn, input.ZeroForOne, h.Slot0.SqrtPriceX96,
 			&sqrtPriceTargetX96, &updatedRoundedTickLiquidity, input.AmountSpecified, u256.U0)
 		if err != nil {
 			return nil, 0, nil, nil, err
 		}
 
-		// Check if naive swap exhausted the specified amount
 		if (input.ExactIn && naiveSwapAmountIn.Eq(input.AmountSpecified)) ||
 			(!input.ExactIn && naiveSwapAmountOut.Eq(input.AmountSpecified)) {
 
-			// Compute the updated tick
 			if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceNextX96) {
 				updatedTick = lo.Ternary(input.ZeroForOne, tickNext-1, tickNext)
-			} else if !naiveSwapResultSqrtPriceX96.Eq(input.SqrtPriceX96) {
+			} else if !naiveSwapResultSqrtPriceX96.Eq(h.Slot0.SqrtPriceX96) {
 				updatedTick, err = math.GetTickAtSqrtPrice(naiveSwapResultSqrtPriceX96)
 				if err != nil {
 					return nil, 0, nil, nil, err
 				}
 			}
 
-			// naiveSwapAmountOut should be at most the corresponding active balance
 			currentBalance := lo.Ternary(input.ZeroForOne, input.CurrentActiveBalance1, input.CurrentActiveBalance0)
 			if naiveSwapAmountOut.Gt(currentBalance) {
 				naiveSwapAmountOut.Set(currentBalance)
 			}
 
-			// Early return
 			return naiveSwapResultSqrtPriceX96, updatedTick, naiveSwapAmountIn, naiveSwapAmountOut, nil
 		}
 	}
 
-	// Swap crosses rounded tick - need to use LDF to compute the swap
 	var inverseCumulativeAmountFnInput uint256.Int
 	if input.ExactIn {
-		// Exact input swap
 		inverseCumulativeAmountFnInput.Set(lo.Ternary(input.ZeroForOne, input.CurrentActiveBalance0, input.CurrentActiveBalance1))
 		inverseCumulativeAmountFnInput.Add(&inverseCumulativeAmountFnInput, &inputAmount)
 	} else {
-		// Exact output swap
 		inverseCumulativeAmountFnInput.Set(lo.Ternary(input.ZeroForOne, input.CurrentActiveBalance1, input.CurrentActiveBalance0))
 		inverseCumulativeAmountFnInput.Sub(&inverseCumulativeAmountFnInput, &outputAmount)
 	}
-
-	// Call LDF computeSwap
 	success, updatedRoundedTick, cumulativeAmount0, cumulativeAmount1, swapLiquidity, err := h.ldf.ComputeSwap(
 		&inverseCumulativeAmountFnInput,
 		input.TotalLiquidity,
 		input.ZeroForOne,
 		input.ExactIn,
 		input.ArithmeticMeanTick,
-		input.CurrentTick,
+		h.Slot0.Tick,
 		h.BunniState.LdfParams,
 		h.LdfState,
 	)
@@ -1012,7 +999,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 			(!input.ZeroForOne && updatedRoundedTick <= roundedTick) {
 
 			if updatedRoundedTickLiquidity.IsZero() {
-				return input.SqrtPriceX96, input.CurrentTick, uint256.NewInt(0), uint256.NewInt(0), nil
+				return h.Slot0.SqrtPriceX96, h.Slot0.Tick, uint256.NewInt(0), uint256.NewInt(0), nil
 			}
 
 			tickNext := lo.Ternary(input.ZeroForOne, roundedTick, nextRoundedTick)
@@ -1024,7 +1011,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 
 			if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceNextX96) {
 				updatedTick = lo.Ternary(input.ZeroForOne, tickNext-1, tickNext)
-			} else if !naiveSwapResultSqrtPriceX96.Eq(input.SqrtPriceX96) {
+			} else if !naiveSwapResultSqrtPriceX96.Eq(h.Slot0.SqrtPriceX96) {
 				updatedTick, err = math.GetTickAtSqrtPrice(naiveSwapResultSqrtPriceX96)
 				if err != nil {
 					return nil, 0, nil, nil, err
@@ -1050,8 +1037,8 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 			return nil, 0, nil, nil, err
 		}
 
-		if input.ZeroForOne && sqrtPriceLimitX96.Cmp(startSqrtPriceX96) < 0 ||
-			(!input.ZeroForOne && sqrtPriceLimitX96.Cmp(startSqrtPriceX96) > 0) {
+		if input.ZeroForOne && sqrtPriceLimitX96.Lt(startSqrtPriceX96) ||
+			(!input.ZeroForOne && sqrtPriceLimitX96.Gt(startSqrtPriceX96)) {
 
 			var sqrtPriceNextX96 uint256.Int
 			err = v3Utils.GetSqrtRatioAtTickV2(tickNext, &sqrtPriceNextX96)
@@ -1138,7 +1125,6 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 						updatedActiveBalance1.Add(cumulativeAmount1, naiveSwapAmountIn)
 					}
 
-					// Compute input and output token amounts
 					var finalInputAmount, finalOutputAmount uint256.Int
 					if input.ZeroForOne {
 						finalInputAmount.Sub(&updatedActiveBalance0, input.CurrentActiveBalance0)
@@ -1154,12 +1140,11 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		}
 	}
 
-	// The sqrt price limit has been reached
 	var updatedSqrtPriceX96 uint256.Int
 	updatedSqrtPriceX96.Set(&sqrtPriceLimitX96)
 
-	if sqrtPriceLimitX96.Eq(input.SqrtPriceX96) {
-		updatedTick = input.CurrentTick
+	if sqrtPriceLimitX96.Eq(h.Slot0.SqrtPriceX96) {
+		updatedTick = h.Slot0.Tick
 	} else {
 		updatedTick, err = math.GetTickAtSqrtPrice(&sqrtPriceLimitX96)
 		if err != nil {
@@ -1167,7 +1152,6 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		}
 	}
 
-	// Query LDF for updated balances
 	totalDensity0X96, totalDensity1X96, _, _, _, _, err := h.queryLDF(&updatedSqrtPriceX96, updatedTick,
 		input.ArithmeticMeanTick, input.LdfState, u256.U0, u256.U0, ZERO_BALANCE)
 	if err != nil {
@@ -1178,7 +1162,6 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 	updatedActiveBalance0.MulDivOverflow(totalDensity0X96, input.TotalLiquidity, SWAP_FEE_BASE)
 	updatedActiveBalance1.MulDivOverflow(totalDensity1X96, input.TotalLiquidity, SWAP_FEE_BASE)
 
-	// Compute final input and output amounts
 	var finalInputAmount, finalOutputAmount uint256.Int
 	if input.ZeroForOne {
 		finalInputAmount.Sub(&updatedActiveBalance0, input.CurrentActiveBalance0)
@@ -1199,8 +1182,7 @@ func (h *Hook) queryLDF(
 	balance0,
 	balance1 *uint256.Int,
 	idleBalance [32]byte,
-) (
-	*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, [32]byte, bool, error) {
+) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, [32]byte, bool, error) {
 
 	roundedTick, nextRoundedTick := math.RoundTick(h.Slot0.Tick, h.tickSpacing)
 
@@ -1214,7 +1196,13 @@ func (h *Hook) queryLDF(
 	}
 
 	liquidityDensityOfRoundedTickX96, density0RightOfRoundedTickX96, density1LeftOfRoundedTickX96,
-		newLdfState, shouldSurge, err := h.ldf.Query(roundedTick, arithmeticMeanTick, tick, h.BunniState.LdfParams, h.LdfState)
+		newLdfState, shouldSurge, err := h.ldf.Query(
+		roundedTick,
+		arithmeticMeanTick,
+		tick,
+		h.BunniState.LdfParams,
+		h.LdfState,
+	)
 	if err != nil {
 		return nil, nil, nil, nil, ldfState, false, err
 	}
@@ -1269,7 +1257,8 @@ func (h *Hook) queryLDF(
 			}
 		}
 
-		useLiquidityEstimate0 := (totalLiquidityEstimate0.Lt(totalLiquidityEstimate1) || totalDensity1X96.IsZero()) && !totalDensity0X96.IsZero()
+		useLiquidityEstimate0 := (totalLiquidityEstimate0.Lt(totalLiquidityEstimate1) ||
+			totalDensity1X96.IsZero()) && !totalDensity0X96.IsZero()
 
 		if useLiquidityEstimate0 {
 			if !noToken0 {
@@ -1327,25 +1316,25 @@ func (h *Hook) queryLDF(
 }
 
 func getAmountsForLiquidity(
-	sqrtPriceX96, sqrtPriceAX96, sqrtPriceBX96, liquidity *uint256.Int,
+	sqrtPriceX96,
+	sqrtPriceAX96,
+	sqrtPriceBX96,
+	liquidity *uint256.Int,
 	roundUp bool,
 ) (*uint256.Int, *uint256.Int, error) {
 	var amount0, amount1 uint256.Int
 
-	// Ensure sqrtPriceAX96 <= sqrtPriceBX96
 	if sqrtPriceAX96.Gt(sqrtPriceBX96) {
 		sqrtPriceAX96, sqrtPriceBX96 = sqrtPriceBX96, sqrtPriceAX96
 	}
 
 	if sqrtPriceX96.Cmp(sqrtPriceAX96) <= 0 {
-		// Current price is at or below the lower bound
 		amount0Delta, err := math.GetAmount0Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
 		}
 		amount0.Set(amount0Delta)
 	} else if sqrtPriceX96.Lt(sqrtPriceBX96) {
-		// Current price is within the range
 		amount0Delta, err := math.GetAmount0Delta(sqrtPriceX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
@@ -1358,7 +1347,6 @@ func getAmountsForLiquidity(
 		}
 		amount1.Set(amount1Delta)
 	} else {
-		// Current price is at or above the upper bound
 		amount1Delta, err := math.GetAmount1Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
@@ -1369,11 +1357,15 @@ func getAmountsForLiquidity(
 	return &amount0, &amount1, nil
 }
 
-func (h *Hook) getTwap(
-	blockTimestamp uint32,
-) (int64, error) {
-	tickCumulatives, err := h.oracle.ObserveDouble(h.ObservationState.IntermediateObservation, blockTimestamp,
-		[]uint32{h.BunniState.TwapSecondsAgo, 0}, h.Slot0.Tick, h.ObservationState.Index, h.ObservationState.Cardinality)
+func (h *Hook) getTwap(blockTimestamp uint32) (int64, error) {
+	tickCumulatives, err := h.oracle.ObserveDouble(
+		h.ObservationState.IntermediateObservation,
+		blockTimestamp,
+		[]uint32{h.BunniState.TwapSecondsAgo, 0},
+		h.Slot0.Tick,
+		h.ObservationState.Index,
+		h.ObservationState.Cardinality,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -1390,13 +1382,19 @@ func (h *Hook) updateOracle(blockTimestamp uint32) {
 			h.ObservationState.CardinalityNext, h.HookParams.OracleMinInterval)
 }
 
-func computeSurgeFee(blockTimestamp, lastSurgeTimestamp uint32, surgeFeeHalfLife *uint256.Int) (*uint256.Int, error) {
+func computeSurgeFee(
+	blockTimestamp,
+	lastSurgeTimestamp uint32,
+	surgeFeeHalfLife *uint256.Int,
+) (fee *uint256.Int, err error) {
 	timeSinceLastSurge := uint256.NewInt(uint64(blockTimestamp - lastSurgeTimestamp))
 
-	fee, _ := new(uint256.Int).MulDivOverflow(timeSinceLastSurge, LN2_WAD, surgeFeeHalfLife)
+	fee, _ = new(uint256.Int).MulDivOverflow(timeSinceLastSurge, LN2_WAD, surgeFeeHalfLife)
 
-	var err error
-	fee, err = math.ExpWad(i256.SafeToInt256(fee))
+	feeInt := i256.SafeToInt256(fee)
+	feeInt.Neg(feeInt)
+
+	fee, err = math.ExpWad(feeInt)
 	if err != nil {
 		return nil, err
 	}
@@ -1406,12 +1404,19 @@ func computeSurgeFee(blockTimestamp, lastSurgeTimestamp uint32, surgeFeeHalfLife
 		return nil, err
 	}
 
-	return fee, nil
+	return
 }
 
-func computeDynamicSwapFee(blockTimestamp uint32, postSwapSqrtPriceX96 *uint256.Int,
-	arithmeticMeanTick int, lastSurgeTimestamp uint32,
-	feeMin, feeMax, feeQuadraticMultiplier, surgeFeeHalfLife *uint256.Int) (*uint256.Int, error) {
+func computeDynamicSwapFee(
+	blockTimestamp uint32,
+	postSwapSqrtPriceX96 *uint256.Int,
+	arithmeticMeanTick int,
+	lastSurgeTimestamp uint32,
+	feeMin,
+	feeMax,
+	feeQuadraticMultiplier,
+	surgeFeeHalfLife *uint256.Int,
+) (*uint256.Int, error) {
 
 	fee, err := computeSurgeFee(blockTimestamp, lastSurgeTimestamp, surgeFeeHalfLife)
 	if err != nil {
@@ -1486,4 +1491,35 @@ func (h *Hook) shouldSurgeFromVaults() (shouldSurge bool, err error) {
 	}
 
 	return shouldSurge, nil
+}
+
+func (h *Hook) computeIdleBalance(activeBalance0, activeBalance1, balance0, balance1 *uint256.Int) ([32]byte, error) {
+	extraBalance0 := math.SubReLU(balance0, activeBalance0)
+	extraBalance1 := math.SubReLU(balance1, activeBalance1)
+
+	var extraBalanceProportion0, extraBalanceProportion1 uint256.Int
+	if !balance0.IsZero() {
+		extraBalanceProportion0.Mul(extraBalance0, math.WAD)
+		extraBalanceProportion0.Div(&extraBalanceProportion0, balance0)
+	}
+
+	if !balance1.IsZero() {
+		extraBalanceProportion1.Mul(extraBalance1, math.WAD)
+		extraBalanceProportion1.Div(&extraBalanceProportion1, balance1)
+	}
+
+	isToken0 := extraBalanceProportion0.Cmp(&extraBalanceProportion1) >= 0
+
+	var idleBalance [32]byte
+	var err error
+	if isToken0 {
+		idleBalance, err = math.ToIdleBalance(extraBalance0, true)
+	} else {
+		idleBalance, err = math.ToIdleBalance(extraBalance1, false)
+	}
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	return idleBalance, nil
 }
