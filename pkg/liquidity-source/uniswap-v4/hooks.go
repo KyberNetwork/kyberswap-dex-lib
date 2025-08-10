@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -22,6 +23,18 @@ type BeforeSwapHookResult struct {
 	DeltaSpecific   *big.Int
 	DeltaUnSpecific *big.Int
 	SwapFee         FeeAmount
+}
+
+func (b *BeforeSwapHookResult) Validate() error {
+	if b.DeltaSpecific == nil {
+		return errors.New("delta specified is nil")
+	}
+
+	if b.DeltaUnSpecific == nil {
+		return errors.New("delta unspecified is nil")
+	}
+
+	return nil
 }
 
 type AfterSwapHookParams struct {
@@ -74,7 +87,7 @@ type Hook interface {
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
 	BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error)
-	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int)
+	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int, err error)
 	CloneState() Hook
 }
 
@@ -146,6 +159,6 @@ func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwap
 	}, nil
 }
 
-func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return new(big.Int)
+func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
+	return new(big.Int), nil
 }

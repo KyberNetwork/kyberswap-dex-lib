@@ -146,12 +146,12 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
+func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
 	return lo.Ternary(!swapHookParams.ExactIn, func() *big.Int {
 		hookFeeAmt = new(big.Int)
 		hookFeeAmt.Mul(swapHookParams.AmountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
 		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
 		return hookFeeAmt
 	}(), new(big.Int),
-	)
+	), nil
 }

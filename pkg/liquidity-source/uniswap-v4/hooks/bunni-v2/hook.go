@@ -596,13 +596,11 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		outputAmount.Sub(outputAmount, hookFeesAmount)
 		outputAmount.Sub(outputAmount, curatorFeeAmount)
 
-		var actualInputAmount uint256.Int
-		if amountSpecified.Lt(inputAmount) {
-			actualInputAmount.Set(inputAmount)
-		}
-
+		actualInputAmount := u256.Max(amountSpecified, inputAmount)
 		result.DeltaSpecific = actualInputAmount.ToBig()
-		result.DeltaUnSpecific = outputAmount.ToBig()
+
+		outputAmountInt := outputAmount.ToBig()
+		result.DeltaUnSpecific = outputAmountInt.Neg(outputAmountInt)
 
 		hookHandleSwapInputAmount.Set(inputAmount)
 
@@ -652,13 +650,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		inputAmount.Add(inputAmount, hookFeesAmount)
 		inputAmount.Add(inputAmount, curatorFeeAmount)
 
-		var actualOutputAmount uint256.Int
-		if amountSpecified.Gt(outputAmount) {
-			actualOutputAmount.Set(outputAmount)
-		}
-
-		result.DeltaSpecific = actualOutputAmount.ToBig()
 		result.DeltaUnSpecific = inputAmount.ToBig()
+
+		actualOutputAmount := u256.Min(amountSpecified, outputAmount).ToBig()
+		result.DeltaSpecific = actualOutputAmount.Neg(actualOutputAmount)
 
 		hookHandleSwapOutputAmount.Set(outputAmount)
 

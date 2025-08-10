@@ -358,11 +358,11 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 	}, nil
 }
 
-func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
+func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
-		return big.NewInt(0)
+		return big.NewInt(0), nil
 	}
 
 	var delta big.Int
@@ -374,7 +374,7 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookF
 		delta.Mul(params.AmountIn, h.protocolFee)
 	}
 	delta.Div(&delta, FEE_DENOMINATOR)
-	return &delta
+	return &delta, nil
 }
 
 func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {

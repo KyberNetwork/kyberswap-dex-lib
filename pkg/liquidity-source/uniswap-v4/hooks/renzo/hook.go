@@ -130,12 +130,14 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 		}
 	}
 	return &uniswapv4.BeforeSwapHookResult{
-		SwapFee: uniswapv4.FeeAmount(fee.Uint64()),
+		DeltaSpecific:   new(big.Int),
+		DeltaUnSpecific: new(big.Int),
+		SwapFee:         uniswapv4.FeeAmount(fee.Uint64()),
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return nil
+func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
+	return new(big.Int), nil
 }
 
 func exchangeRateToSqrtPriceX96(rate *big.Int) *big.Int {
