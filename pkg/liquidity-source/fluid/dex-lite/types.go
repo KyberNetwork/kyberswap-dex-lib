@@ -4,14 +4,9 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/holiman/uint256"
 )
-
-type PoolMeta struct {
-	BlockNumber     uint64 `json:"blockNumber"`
-	DexKey          DexKey `json:"dexKey"`
-	ApprovalAddress string `json:"approvalAddress,omitempty"`
-}
 
 // DexKey represents the unique identifier for a FluidDexLite pool
 type DexKey struct {
@@ -39,48 +34,65 @@ func (p *PoolState) Clone() *PoolState {
 
 // UnpackedDexVariables represents the unpacked dex variables for easier access
 type UnpackedDexVariables struct {
-	Fee                         *uint256.Int `json:"fee"`
-	RevenueCut                  *uint256.Int `json:"revenueCut"`
-	RebalancingStatus           *uint256.Int `json:"rebalancingStatus"`
-	CenterPriceShiftActive      bool         `json:"centerPriceShiftActive"`
-	CenterPrice                 *uint256.Int `json:"centerPrice"`
-	CenterPriceContractAddress  *uint256.Int `json:"centerPriceContractAddress"`
-	RangePercentShiftActive     bool         `json:"rangePercentShiftActive"`
-	UpperPercent                *uint256.Int `json:"upperPercent"`
-	LowerPercent                *uint256.Int `json:"lowerPercent"`
-	ThresholdPercentShiftActive bool         `json:"thresholdPercentShiftActive"`
-	UpperShiftThresholdPercent  *uint256.Int `json:"upperShiftThresholdPercent"`
-	LowerShiftThresholdPercent  *uint256.Int `json:"lowerShiftThresholdPercent"`
-	Token0TotalSupplyAdjusted   *uint256.Int `json:"token0TotalSupplyAdjusted"`
-	Token1TotalSupplyAdjusted   *uint256.Int `json:"token1TotalSupplyAdjusted"`
-}
-
-// PoolWithState represents a pool with its current state
-type PoolWithState struct {
-	DexId    [8]byte   `json:"dexId"`    // bytes8 dex identifier
-	DexKey   DexKey    `json:"dexKey"`   // DexKey struct
-	State    PoolState `json:"state"`    // Current pool state
-	Fee      *big.Int  `json:"fee"`      // Pool fee
-	IsActive bool      `json:"isActive"` // Whether pool is active
+	Fee                         *uint256.Int
+	RevenueCut                  *uint256.Int
+	RebalancingStatus           uint64
+	CenterPriceShiftActive      bool
+	CenterPrice                 *uint256.Int
+	CenterPriceContractAddress  *uint256.Int
+	RangePercentShiftActive     bool
+	UpperPercent                *uint256.Int
+	LowerPercent                *uint256.Int
+	ThresholdPercentShiftActive bool
+	UpperShiftThresholdPercent  *uint256.Int
+	LowerShiftThresholdPercent  *uint256.Int
+	Token0TotalSupplyAdjusted   *uint256.Int
+	Token1TotalSupplyAdjusted   *uint256.Int
 }
 
 // StaticExtra represents static configuration that doesn't change
 type StaticExtra struct {
 	DexLiteAddress string `json:"dexLiteAddress"`
-	HasNative      bool   `json:"hasNative"`
+	DexKey         DexKey `json:"dexKey"` // The pool's key (token0, token1, salt)
+	DexId          DexId  `json:"dexId"`  // Unique identifier for this pool
+}
+
+type DexId [8]byte
+
+//goland:noinspection GoMixedReceiverTypes
+func (dexId DexId) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + hexutil.Encode(dexId[:]) + `"`), nil
+}
+
+//goland:noinspection GoMixedReceiverTypes
+func (dexId *DexId) UnmarshalJSON(data []byte) error {
+	bytes, err := hexutil.Decode(string(data)[1 : len(data)-1])
+	copy(dexId[:], bytes)
+	return err
 }
 
 // PoolExtra represents the essential FluidDexLite pool data
 type PoolExtra struct {
-	DexKey         DexKey    `json:"dexKey"`         // The pool's key (token0, token1, salt)
-	DexId          [8]byte   `json:"dexId"`          // Unique identifier for this pool
 	PoolState      PoolState `json:"poolState"`      // The 4 storage variables
 	BlockTimestamp uint64    `json:"blockTimestamp"` // Block timestamp when state was fetched
 }
 
+// PoolExtraMarshal marshals PoolExtra in a more compact and readable format
+type PoolExtraMarshal struct {
+	PoolState      PoolStateHex `json:"poolState"`      // The 4 storage variables
+	BlockTimestamp uint64       `json:"blockTimestamp"` // Block timestamp when state was fetched
+}
+
+type PoolStateHex struct {
+	DexVariables     string `json:"dexVariables"`     // Hex packed dex variables
+	CenterPriceShift string `json:"centerPriceShift"` // Hex center price shift variables
+	RangeShift       string `json:"rangeShift"`       // Hex range shift variables
+	ThresholdShift   string `json:"thresholdShift"`   // Hex threshold shift variables
+}
+
 // SwapInfo contains information passed during swap execution
 type SwapInfo struct {
-	NewPoolState *PoolState `json:"-"`
+	NewDexVars *UnpackedDexVariables `json:"-"`
 }
 
 // PricingResult represents the result of price calculations
@@ -96,4 +108,10 @@ type PricingResult struct {
 type SwapResult struct {
 	AmountOut *big.Int `json:"amountOut"`
 	AmountIn  *big.Int `json:"amountIn"`
+}
+
+type PoolMeta struct {
+	BlockNumber     uint64 `json:"blockNumber"`
+	DexKey          DexKey `json:"dexKey"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }

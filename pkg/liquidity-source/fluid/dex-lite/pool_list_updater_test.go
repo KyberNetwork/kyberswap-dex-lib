@@ -94,21 +94,17 @@ func TestGetAllPools(t *testing.T) {
 
 	updater := NewPoolsListUpdater(&config, client)
 
-	pools, err := updater.getAllPools(context.Background())
+	dexKeys, err := updater.getNextDexKeys(context.Background(), 0)
 
 	if err != nil {
-		logger.Debugf("Error getting all pools (expected for new protocol): %v", err)
+		logger.Debugf("Error getting all dexKeys (expected for new protocol): %v", err)
 	} else {
-		require.NotNil(t, pools)
-		logger.Debugf("Found %d pools in getAllPools", len(pools))
+		require.NotNil(t, dexKeys)
+		logger.Debugf("Found %d dexKeys in getNextDexKeys", len(dexKeys))
 
-		for i, p := range pools {
-			logger.Debugf("Pool %d: DexId=%x, Token0=%s, Token1=%s, Fee=%s",
-				i, p.DexId, p.DexKey.Token0.Hex(), p.DexKey.Token1.Hex(), p.Fee.String())
-
-			// Log the dexKey details
-			logger.Debugf("  DexKey - Token0: %s, Token1: %s, Salt: %x",
-				p.DexKey.Token0.Hex(), p.DexKey.Token1.Hex(), p.DexKey.Salt)
+		for i, dexKey := range dexKeys {
+			logger.Debugf("DexKey %d: DexId=%x, Token0=%s, Token1=%s, Salt=%x",
+				i, updater.calculateDexId(dexKey), dexKey.Token0, dexKey.Token1, dexKey.Salt)
 		}
 	}
 }
@@ -117,25 +113,25 @@ func TestCalculateArraySlot(t *testing.T) {
 	updater := &PoolsListUpdater{}
 
 	// Test array slot calculation
-	baseSlot := big.NewInt(1) // _dexesList is at slot 1
-	index := 0
+	baseSlot := uint64(1) // _dexesList is at slot 1
+	index := uint64(0)
 
 	slot := updater.calculateArraySlot(baseSlot, index)
 	require.NotEqual(t, common.Hash{}, slot)
 
-	logger.Debugf("Array slot for index 0: %s", slot.Hex())
+	logger.Debugf("Array slot for index 0: %s", slot)
 
 	// Different indices should give different slots
 	slot2 := updater.calculateArraySlot(baseSlot, 1)
 	require.NotEqual(t, slot, slot2)
 
-	logger.Debugf("Array slot for index 1: %s", slot2.Hex())
+	logger.Debugf("Array slot for index 1: %s", slot2)
 }
 
 func TestCalculateDexIdFromUpdater(t *testing.T) {
 	updater := &PoolsListUpdater{}
 
-	dexKey := DexKey{
+	dexKey := &DexKey{
 		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
 		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
 		Salt:   common.Hash{},
@@ -256,8 +252,7 @@ func TestSimpleContractCall(t *testing.T) {
 		// Try individual calls instead of multicall to isolate the issue
 		logger.Debugf("📋 Reading first DexKey with individual calls...")
 
-		dexListSlot := updater.calculateArraySlot(big.NewInt(1), 0)
-		dexListSlotBig := new(big.Int).SetBytes(dexListSlot[:])
+		dexListSlot := updater.calculateArraySlot(1, 0)
 
 		// Try DIRECT RPC call without multicall framework
 		logger.Debugf("🧪 Testing with DIRECT RPC call (no multicall)...")
@@ -287,7 +282,7 @@ func TestSimpleContractCall(t *testing.T) {
 		defer client.Close()
 
 		// Encode the function call data
-		callData, err := minimalABI.Pack("readFromStorage", common.BigToHash(dexListSlotBig))
+		callData, err := minimalABI.Pack("readFromStorage", common.BigToHash(dexListSlot))
 		if err != nil {
 			logger.Debugf("❌ Failed to pack call data: %v", err)
 			return
@@ -295,7 +290,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 		logger.Debugf("📦 Call data: %s", common.Bytes2Hex(callData))
 		logger.Debugf("🎯 Target: %s", config.DexLiteAddress)
-		logger.Debugf("📍 Slot: %s", common.BigToHash(dexListSlotBig).Hex())
+		logger.Debugf("📍 Slot: %s", common.BigToHash(dexListSlot).Hex())
 
 		// Create the contract call message
 		contractAddr := common.HexToAddress(config.DexLiteAddress)
@@ -318,7 +313,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 				// Continue reading token1 and salt...
 				logger.Debugf("📞 Reading Token1...")
-				token1Slot := new(big.Int).Add(dexListSlotBig, big.NewInt(1))
+				token1Slot := new(big.Int).Add(dexListSlot, big.NewInt(1))
 				callData1, _ := minimalABI.Pack("readFromStorage", common.BigToHash(token1Slot))
 
 				callMsg1 := ethereum.CallMsg{
@@ -335,7 +330,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 					// Read salt
 					logger.Debugf("📞 Reading Salt...")
-					saltSlot := new(big.Int).Add(dexListSlotBig, big.NewInt(2))
+					saltSlot := new(big.Int).Add(dexListSlot, big.NewInt(2))
 					callData2, _ := minimalABI.Pack("readFromStorage", common.BigToHash(saltSlot))
 
 					callMsg2 := ethereum.CallMsg{
@@ -440,7 +435,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 		// Simulate the swap using our pool simulator logic
 		// USDC → USDT means swap0To1 = true (assuming USDC is token0)
-		amountOut, fee, newState, err := poolSim.calculateSwapInWithState(0, 1, smallUSdc, *mockState)
+		amountOut, fee, newState, err := poolSim.calculateSwapInWithState(0, 1, smallUSdc, poolSim.DexVars)
 		if err != nil {
 			logger.Debugf("❌ Swap simulation failed: %v", err)
 
@@ -666,11 +661,16 @@ func decodeDexVariables(dexVariables *uint256.Int) {
 	// Unpack the variables
 	unpacked := unpackDexVariables(dexVariables)
 
+	if unpacked == nil {
+		logger.Debugf("❌ Failed to unpack dexVariables")
+		return
+	}
+
 	logger.Debugf("\n📊 DECODED DEXVARIABLES BREAKDOWN:")
 	feeValue := unpacked.Fee.Float64()
 	logger.Debugf("   Fee (basis points): %s (%.4f%%)", unpacked.Fee.String(), feeValue/10000)
 	logger.Debugf("   Revenue Cut: %s", unpacked.RevenueCut.String())
-	logger.Debugf("   Rebalancing Status: %s", unpacked.RebalancingStatus.String())
+	logger.Debugf("   Rebalancing Status: %d", unpacked.RebalancingStatus)
 	logger.Debugf("   Center Price Shift Active: %v", unpacked.CenterPriceShiftActive)
 	logger.Debugf("   Center Price: %s", unpacked.CenterPrice.String())
 	logger.Debugf("   Range Percent Shift Active: %v", unpacked.RangePercentShiftActive)

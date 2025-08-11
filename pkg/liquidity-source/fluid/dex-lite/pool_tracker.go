@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
@@ -56,25 +55,26 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	// Extract dexId from existing pool extra data
-	var existingExtra PoolExtra
-	if err := json.Unmarshal([]byte(p.Extra), &existingExtra); err != nil {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
 
-	poolState, blockNumber, err := t.getPoolStateByDexId(ctx, existingExtra.DexId, overrides)
+	poolState, blockNumber, err := t.getPoolStateByDexId(ctx, staticExtra.DexId, overrides)
 	if err != nil {
 		return p, err
 	}
 
 	// Update pool state while keeping dexKey and dexId
-	extra := PoolExtra{
-		DexKey:         existingExtra.DexKey,
-		DexId:          existingExtra.DexId,
-		PoolState:      *poolState,
+	extra := PoolExtraMarshal{
+		PoolState: PoolStateHex{
+			DexVariables:     poolState.DexVariables.Hex(),
+			CenterPriceShift: poolState.CenterPriceShift.Hex(),
+			RangeShift:       poolState.RangeShift.Hex(),
+			ThresholdShift:   poolState.ThresholdShift.Hex(),
+		},
 		BlockTimestamp: uint64(time.Now().Unix()),
 	}
-
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error marshaling extra data")
@@ -102,6 +102,9 @@ func calculatePoolMetrics(poolState *PoolState, tokens []*entity.PoolToken) (ent
 	// Extract total supplies and calculate reserves
 	// Unpack dexVariables to get token supplies in internal precision (9 decimals)
 	unpackedVars := unpackDexVariables(poolState.DexVariables)
+	if unpackedVars == nil {
+		return entity.PoolReserves{"0", "0"}, 0
+	}
 
 	// Convert internal supplies to actual token decimals
 	token0Supply := adjustFromInternalDecimals(unpackedVars.Token0TotalSupplyAdjusted, tokens[0].Decimals)
@@ -117,10 +120,13 @@ func calculatePoolMetrics(poolState *PoolState, tokens []*entity.PoolToken) (ent
 
 // unpackDexVariables extracts the packed variables from dexVariables
 func unpackDexVariables(dexVars *uint256.Int) *UnpackedDexVariables {
+	if dexVars == nil || dexVars.IsZero() {
+		return nil
+	}
 	return &UnpackedDexVariables{
 		Fee:                         rshAnd(dexVars, BitPosFee, X13),
 		RevenueCut:                  rshAnd(dexVars, BitPosRevenueCut, X7),
-		RebalancingStatus:           rshAnd(dexVars, BitPosRebalancingStatus, X2),
+		RebalancingStatus:           rshAnd(dexVars, BitPosRebalancingStatus, X2).Uint64(),
 		CenterPriceShiftActive:      rshAnd(dexVars, BitPosCenterPriceShiftActive, X1).Cmp(big256.U1) == 0,
 		CenterPrice:                 rshAnd(dexVars, BitPosCenterPrice, X40),
 		CenterPriceContractAddress:  rshAnd(dexVars, BitPosCenterPriceContractAddress, X19),
@@ -158,26 +164,23 @@ func adjustFromInternalDecimals(amount *uint256.Int, tokenDecimals uint8) *uint2
 
 func (t *PoolTracker) getPoolStateByDexId(
 	ctx context.Context,
-	dexId [8]byte,
+	dexId DexId,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolState, uint64, error) {
-
-	// NOTE: Direct ethClient calls don't support overrides, so we log a warning if provided
-	if overrides != nil {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-		}).Warn("Overrides not supported with direct ethClient calls")
-	}
-
 	var poolStateSlots [4]*big.Int
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
-	for i := range 4 {
-		slot := t.calculatePoolStateSlot(dexId, i)
+	for i, baseSlot := range []common.Hash{
+		StorageSlotDexVariables,
+		StorageSlotCenterPriceShift,
+		StorageSlotRangeShift,
+		StorageSlotThresholdShift,
+	} {
+		slot := calculatePoolStateSlot(dexId, baseSlot)
 		req.AddCall(&ethrpc.Call{
 			ABI:    fluidDexLiteABI,
 			Target: t.config.DexLiteAddress,
-			Method: "readFromStorage",
+			Method: SRMethodReadFromStorage,
 			Params: []any{slot},
 		}, []any{&poolStateSlots[i]})
 	}
@@ -201,55 +204,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 	return poolState, resp.BlockNumber.Uint64(), nil
 }
 
-// Helper functions
-func (t *PoolTracker) calculateDexId(dexKey DexKey) [8]byte {
-	// dexId = bytes8(keccak256(abi.encode(dexKey)))
-	// Encode the DexKey similar to abi.encode
-	data := make([]byte, 0, 96) // 32 + 32 + 32 bytes
-	data = append(data, common.LeftPadBytes(dexKey.Token0.Bytes(), 32)...)
-	data = append(data, common.LeftPadBytes(dexKey.Token1.Bytes(), 32)...)
-	data = append(data, dexKey.Salt[:]...)
-
-	hash := crypto.Keccak256(data)
-
-	var dexId [8]byte
-	copy(dexId[:], hash[:8])
-	return dexId
-}
-
-func (t *PoolTracker) calculatePoolStateSlot(dexId [8]byte, offset int) common.Hash {
-	// Storage slot mapping for FluidDexLite pool state variables
-	var baseSlot uint64
-	switch offset {
-	case 0: // _dexVariables mapping
-		baseSlot = StorageSlotDexVariables
-	case 1: // _centerPriceShift mapping
-		baseSlot = StorageSlotCenterPriceShift
-	case 2: // _rangeShift mapping
-		baseSlot = StorageSlotRangeShift
-	case 3: // _thresholdShift mapping
-		baseSlot = StorageSlotThresholdShift
-	default:
-		baseSlot = StorageSlotDexVariables
-	}
-
-	// Convert bytes8 dexId to bytes32 (right-padded with zeros)
-	var dexIdBytes32 common.Hash
-	copy(dexIdBytes32[:], dexId[:])
-
-	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot))
-	uint256Type, _ := abi.NewType("uint256", "", nil)
-	bytes32Type, _ := abi.NewType("bytes32", "", nil)
-	arguments := abi.Arguments{{Type: bytes32Type}, {Type: uint256Type}}
-
-	var tmp big.Int
-	encoded, err := arguments.Pack(common.BytesToHash(dexIdBytes32[:]), tmp.SetUint64(baseSlot))
-	if err != nil {
-		// Fallback to manual encoding
-		encoded = make([]byte, 64)
-		copy(encoded[:32], dexIdBytes32[:])
-		copy(encoded[32:], common.LeftPadBytes(tmp.SetUint64(baseSlot).Bytes(), 32))
-	}
-
-	return common.BytesToHash(crypto.Keccak256(encoded))
+func calculatePoolStateSlot(dexId DexId, baseSlot common.Hash) common.Hash {
+	// Use Solidity mapping storage calculation: keccak256(abi.encode(key, slot)), where bytes8 key is right-padded
+	return crypto.Keccak256Hash(dexId[:], bytes8Padding, baseSlot[:])
 }

@@ -17,7 +17,7 @@ import (
 
 var (
 	entityPool entity.Pool
-	_          = json.Unmarshal([]byte(`{"address":"0xbbcb91440523216e2b87052a99f69c604a7b6e006dd161107ef07bb8","swapFee":0.0005,"exchange":"fluid-dex-lite","type":"fluid-dex-lite","timestamp":1754385937,"reserves":["494178168265","507852200630"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"dexKey\":{\"token0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"token1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"salt\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"},\"dexId\":[109,209,97,16,126,240,123,184],\"poolState\":{\"dexVariables\":51005438878330161547276090818475617094685132078722513699762291259846164485,\"centerPriceShift\":8384412169014343027111630140612583,\"rangeShift\":493797497262629703680012,\"thresholdShift\":30139007401283553812},\"blockTimestamp\":1754385923}","staticExtra":"{\"dexLiteAddress\":\"0xBbcb91440523216e2b87052A99F69c604A7b6e00\",\"hasNative\":false}","blockNumber":23073952}`),
+	_          = json.Unmarshal([]byte(`{"address":"0xbbcb91440523216e2b87052a99f69c604a7b6e006dd161107ef07bb8","swapFee":0.0005,"exchange":"fluid-dex-lite","type":"fluid-dex-lite","timestamp":1754385937,"reserves":["494178168265","507852200630"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"poolState\":{\"dexVariables\":\"0x1cde38e0457a2001c173d22cdbba319bb7801e007c00006765c7939d300005\",\"centerPriceShift\":\"0x19d6228d9dcc28dfffffe688c1fe7\",\"rangeShift\":\"0x6890d0e315180004800c\",\"thresholdShift\":\"0x1a243438c54600a14\"},\"blockTimestamp\":1754385923}","staticExtra":"{\"dexLiteAddress\":\"0xBbcb91440523216e2b87052A99F69c604A7b6e00\",\"dexKey\":{\"token0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"token1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"salt\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"},\"dexId\":\"0x6dd161107ef07bb8\"}","blockNumber":23073952}`),
 		&entityPool)
 	poolSim = lo.Must(NewPoolSimulator(entityPool))
 )
@@ -61,10 +61,6 @@ func TestPoolSimulator(t *testing.T) {
 
 func TestPoolSimulatorEdgeCases(t *testing.T) {
 	t.Run("TestZeroAmountIn", func(t *testing.T) {
-		// Create normal pool for this test
-		staticExtra := StaticExtra{DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00"}
-		staticExtraBytes, _ := json.Marshal(staticExtra)
-
 		// Create a mock dexKey and dexId for this test
 		testDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
@@ -73,9 +69,15 @@ func TestPoolSimulatorEdgeCases(t *testing.T) {
 		}
 		testDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
 
+		// Create normal pool for this test
+		staticExtra := StaticExtra{
+			DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00",
+			DexKey:         testDexKey,
+			DexId:          testDexId,
+		}
+		staticExtraBytes, _ := json.Marshal(staticExtra)
+
 		extra := PoolExtra{
-			DexKey:    testDexKey,
-			DexId:     testDexId,
 			PoolState: PoolState{DexVariables: uint256.NewInt(0x123456789abcdef)},
 		}
 		extraBytes, _ := json.Marshal(extra)
@@ -114,7 +116,6 @@ func TestMathFunctions(t *testing.T) {
 	// Create a properly packed dexVariables for testing
 	// Pack: fee=100, revenueCut=10, rebalancing=1, centerPrice=1e27, token0Supply=1000000, token1Supply=1000000
 	mockDexVariables := uint256.NewInt(0)
-	poolSim := &PoolSimulator{DexVars: unpackDexVariables(mockDexVariables)}
 
 	t.Run("TestSwapMath", func(t *testing.T) {
 		// Test basic constant product calculation
@@ -150,16 +151,10 @@ func TestMathFunctions(t *testing.T) {
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token0Supply, 136))
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token1Supply, 196))
 
-		// Create a mock pool state for testing
-		mockPoolState := PoolState{
-			DexVariables:     mockDexVariables,
-			CenterPriceShift: uint256.NewInt(0),
-			RangeShift:       uint256.NewInt(0),
-			ThresholdShift:   uint256.NewInt(0),
-		}
+		poolSim := &PoolSimulator{DexVars: unpackDexVariables(mockDexVariables)}
 
 		// Test swapIn: 1000 tokens in
-		amountOut, _, _, err := poolSim.calculateSwapInWithState(0, 1, uint256.NewInt(1000), mockPoolState)
+		amountOut, _, _, err := poolSim.calculateSwapInWithState(0, 1, uint256.NewInt(1000), poolSim.DexVars)
 		if err != nil {
 			t.Logf("SwapIn error (expected with simple math): %v", err)
 		} else {
@@ -168,7 +163,7 @@ func TestMathFunctions(t *testing.T) {
 		}
 
 		// Test swapOut: want 1000 tokens out
-		amountIn, _, _, err := poolSim.calculateSwapOutWithState(0, 1, uint256.NewInt(1000), mockPoolState)
+		amountIn, _, _, err := poolSim.calculateSwapOutWithState(0, 1, uint256.NewInt(1000), poolSim.DexVars)
 		if err != nil {
 			t.Logf("SwapOut error (expected with simple math): %v", err)
 		} else {

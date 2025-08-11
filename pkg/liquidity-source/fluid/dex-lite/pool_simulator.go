@@ -19,7 +19,6 @@ type PoolSimulator struct {
 	StaticExtra
 	TokenDecimals [2]uint8
 
-	DexKey         DexKey                // Pool's key (token0, token1, salt)
 	PoolState      PoolState             // The 4 storage variables
 	DexVars        *UnpackedDexVariables // Unpacked dex variables
 	BlockTimestamp uint64                // Block timestamp when state was fetched
@@ -56,7 +55,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		StaticExtra:    staticExtra,
 		TokenDecimals:  [2]uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},
-		DexKey:         extra.DexKey,
 		PoolState:      extra.PoolState,
 		DexVars:        unpackDexVariables(extra.PoolState.DexVariables),
 		BlockTimestamp: extra.BlockTimestamp,
@@ -75,7 +73,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	// Simulate the swap and get the complete new state and fee
-	amountOut, fee, newPoolState, err := s.calculateSwapInWithState(idxIn, idxOut, amountIn, s.PoolState)
+	amountOut, fee, newPoolState, err := s.calculateSwapInWithState(idxIn, idxOut, amountIn, s.DexVars)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +82,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee.ToBig()},
 		Gas:            defaultGas,
-		SwapInfo:       SwapInfo{NewPoolState: newPoolState},
+		SwapInfo:       SwapInfo{NewDexVars: newPoolState},
 	}, nil
 }
 
@@ -103,7 +101,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	// Simulate the swap and get the complete new state and fee
-	amountIn, fee, newPoolState, err := s.calculateSwapOutWithState(idxIn, idxOut, amountOut, s.PoolState)
+	amountIn, fee, newPoolState, err := s.calculateSwapOutWithState(idxIn, idxOut, amountOut, s.DexVars)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +110,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: amountIn.ToBig()},
 		Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: fee.ToBig()},
 		Gas:           defaultGas,
-		SwapInfo:      SwapInfo{NewPoolState: newPoolState},
+		SwapInfo:      SwapInfo{NewDexVars: newPoolState},
 	}, nil
 }
 
@@ -125,12 +123,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// Update the PoolState (source of truth for FluidDexLite calculations)
 	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
-		s.PoolState = *swapInfo.NewPoolState
-
-		// Also update entity.Pool reserves for efficiency and consistency
-		// Extract new supplies from updated dexVariables
-		token0TotalSupplyAdjusted, token1TotalSupplyAdjusted := unpackTotalSupplies(swapInfo.NewPoolState.DexVariables)
-
+		s.DexVars = swapInfo.NewDexVars
+		token0TotalSupplyAdjusted := s.DexVars.Token0TotalSupplyAdjusted
+		token1TotalSupplyAdjusted := s.DexVars.Token1TotalSupplyAdjusted
 		s.Info.Reserves[0] = s.adjustFromInternalDecimals(token0TotalSupplyAdjusted, 0).ToBig()
 		s.Info.Reserves[1] = s.adjustFromInternalDecimals(token1TotalSupplyAdjusted, 1).ToBig()
 	}
@@ -152,14 +147,14 @@ func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 // calculateSwapInWithState implements the exact same logic as _swapIn in the FluidDexLite contract
 // Returns: amountOut, fee, newPoolState (all 4 variables), error
 func (s *PoolSimulator) calculateSwapInWithState(idxIn, idxOut int, amountIn *uint256.Int,
-	currentPoolState PoolState) (*uint256.Int, *uint256.Int, *PoolState, error) {
-	if currentPoolState.DexVariables.Sign() == 0 {
+	dexVars *UnpackedDexVariables) (*uint256.Int, *uint256.Int, *UnpackedDexVariables, error) {
+	if dexVars == nil {
 		return nil, nil, nil, ErrPoolNotInitialized
 	}
 
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	newPoolState := currentPoolState.Clone() // all 4 variables can potentially change
-	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(s.DexVars, newPoolState)
+	newDexVars := lo.ToPtr(*dexVars)
+	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(newDexVars)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -206,48 +201,24 @@ func (s *PoolSimulator) calculateSwapInWithState(idxIn, idxOut int, amountIn *ui
 	// Convert output back to token decimals
 	amountOut = s.adjustFromInternalDecimals(amountOut, idxOut)
 
-	// Calculate the current price after swap for rebalancing status check
-	// price = (token1ImaginaryReserves - amountOut) * PRICE_PRECISION / (token0ImaginaryReserves + amountIn)
-	// price = (token1ImaginaryReserves + amountIn) * PRICE_PRECISION / (token0ImaginaryReserves - amountOut)
-	imaginaryReserves[idxIn].Add(imaginaryReserves[idxIn], s.adjustToInternalDecimals(amountIn, idxIn))
-	imaginaryReserves[idxOut].Sub(imaginaryReserves[idxOut], s.adjustToInternalDecimals(amountOut, idxOut))
-	currentPrice, _ := imaginaryReserves[1].MulDivOverflow(imaginaryReserves[1], PricePrecision, imaginaryReserves[0])
-
-	// Update rebalancing status and check for state changes
-	rebalancingStatus := rshAnd(newPoolState.DexVariables, BitPosRebalancingStatus, X2).Uint64()
-	if rebalancingStatus > 0 {
-		blockTimestamp := s.BlockTimestamp
-		newRebalancingStatus := s.getRebalancingStatus(newPoolState, rebalancingStatus,
-			currentPrice, centerPrice, blockTimestamp)
-
-		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
-		centerPriceShiftActive := rshAnd(newPoolState.DexVariables, BitPosCenterPriceShiftActive, X1).Uint64()
-		if newRebalancingStatus > 1 || centerPriceShiftActive == 1 {
-			// Update last interaction timestamp: _centerPriceShift[dexId_] = _centerPriceShift[dexId_] & ~(X33 << BITS_DEX_LITE_CENTER_PRICE_SHIFT_LAST_INTERACTION_TIMESTAMP) | (block.timestamp << BITS_DEX_LITE_CENTER_PRICE_SHIFT_LAST_INTERACTION_TIMESTAMP)
-			clearMask := tmp.Lsh(X33, BitPosCenterPriceShiftLastInteractionTimestamp)
-			newPoolState.CenterPriceShift.And(newPoolState.CenterPriceShift, clearMask.Not(clearMask))
-			newTimestamp := tmp.Lsh(tmp.SetUint64(blockTimestamp), BitPosCenterPriceShiftLastInteractionTimestamp)
-			newPoolState.CenterPriceShift.Or(newPoolState.CenterPriceShift, newTimestamp)
-		}
-	}
-
 	// Update dex variables with new supplies
-	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newSupplies)
+	newDexVars.Token0TotalSupplyAdjusted = newSupplies[0]
+	newDexVars.Token1TotalSupplyAdjusted = newSupplies[1]
 
-	return amountOut, fee, newPoolState, nil
+	return amountOut, fee, newDexVars, nil
 }
 
 // calculateSwapOutWithState implements the exact same logic as _swapOut in the FluidDexLite contract
 // Returns: amountIn, fee, newPoolState (all 4 variables), error
 func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *uint256.Int,
-	currentPoolState PoolState) (*uint256.Int, *uint256.Int, *PoolState, error) {
-	if currentPoolState.DexVariables.Sign() == 0 {
+	dexVars *UnpackedDexVariables) (*uint256.Int, *uint256.Int, *UnpackedDexVariables, error) {
+	if dexVars == nil {
 		return nil, nil, nil, ErrPoolNotInitialized
 	}
 
-	newPoolState := currentPoolState.Clone() // all 4 variables can potentially change
 	// Calculate pricing and imaginary reserves with complete shifting logic
-	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(s.DexVars, newPoolState)
+	newDexVars := lo.ToPtr(*dexVars)
+	centerPrice, imaginaryReserves, err := s.getPricesAndReservesWithState(newDexVars)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -304,35 +275,11 @@ func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *
 	// Convert input back to token decimals
 	amountIn = s.adjustFromInternalDecimals(amountIn, 0)
 
-	// Calculate the current price after swap for rebalancing status check (same logic as in calculateSwapInWithState)
-	// price = (token1ImaginaryReserves - amountOut) * PRICE_PRECISION / (token0ImaginaryReserves + amountIn)
-	// price = (token1ImaginaryReserves + amountIn) * PRICE_PRECISION / (token0ImaginaryReserves - amountOut)
-	imaginaryReserves[idxIn].Add(imaginaryReserves[idxIn], s.adjustToInternalDecimals(amountIn, idxIn))
-	imaginaryReserves[idxOut].Sub(imaginaryReserves[idxOut], s.adjustToInternalDecimals(amountOut, idxOut))
-	currentPrice, _ := imaginaryReserves[1].MulDivOverflow(imaginaryReserves[1], PricePrecision, imaginaryReserves[0])
-
-	// Update rebalancing status and check for state changes
-	rebalancingStatus := rshAnd(newPoolState.DexVariables, BitPosRebalancingStatus, X2).Uint64()
-	if rebalancingStatus > 0 {
-		blockTimestamp := s.BlockTimestamp
-		newRebalancingStatus := s.getRebalancingStatus(newPoolState, rebalancingStatus,
-			currentPrice, centerPrice, blockTimestamp)
-
-		// Update centerPriceShift timestamp if rebalancing is active or center price shift is active
-		centerPriceShiftActive := rshAnd(newPoolState.DexVariables, BitPosCenterPriceShiftActive, X1).Uint64()
-		if newRebalancingStatus > 1 || centerPriceShiftActive == 1 {
-			// Update last interaction timestamp
-			clearMask := tmp.Lsh(X33, BitPosCenterPriceShiftLastInteractionTimestamp)
-			newPoolState.CenterPriceShift.And(newPoolState.CenterPriceShift, clearMask.Not(clearMask))
-			newTimestamp := tmp.Lsh(tmp.SetUint64(blockTimestamp), BitPosCenterPriceShiftLastInteractionTimestamp)
-			newPoolState.CenterPriceShift.Or(newPoolState.CenterPriceShift, newTimestamp)
-		}
-	}
-
 	// Update dex variables with new supplies
-	newPoolState.DexVariables = s.updateSuppliesInDexVariables(newPoolState.DexVariables, newSupplies)
+	newDexVars.Token0TotalSupplyAdjusted = newSupplies[0]
+	newDexVars.Token1TotalSupplyAdjusted = newSupplies[1]
 
-	return amountIn, fee, newPoolState, nil
+	return amountIn, fee, newDexVars, nil
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -356,21 +303,15 @@ func (s *PoolSimulator) calcShiftingDone(current, old, timePassed, shiftDuration
 
 // calcRangeShifting implements _calcRangeShifting from the contract
 func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *uint256.Int, poolState *PoolState,
-	blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
+	dexVars *UnpackedDexVariables, blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
 	rangeShift := poolState.RangeShift
 
 	// Extract shift data
 	tmp := rshAnd(rangeShift, BitPosRangeShiftTimestamp, X33)
 	startTimestamp := tmp.Uint64()
 	shiftDuration := rshAnd(rangeShift, BitPosRangeShiftTimeToShift, X20)
-	if blockTimestamp >= startTimestamp+shiftDuration.Uint64() {
-		// Shifting fully done - clear the range shift and deactivate
-		poolState.RangeShift = big256.U0 // delete _rangeShift[dexId_]
-
-		// Clear range shift active bit in dexVariables
-		mask := tmp.Lsh(big256.U1, BitPosRangePercentShiftActive)
-		poolState.DexVariables.And(poolState.DexVariables, mask.Not(mask))
-
+	if blockTimestamp >= startTimestamp+shiftDuration.Uint64() { // shifting fully done
+		dexVars.RangePercentShiftActive = false
 		return upperRange, lowerRange
 	}
 
@@ -388,21 +329,15 @@ func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *uint256.Int, p
 
 // calcThresholdShifting implements _calcThresholdShifting from the contract
 func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *uint256.Int, poolState *PoolState,
-	blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
+	dexVars *UnpackedDexVariables, blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
 	thresholdShift := poolState.ThresholdShift
 
 	// Extract shift data
 	tmp := rshAnd(thresholdShift, BitPosThresholdShiftTimestamp, X33)
 	startTimestamp := tmp.Uint64()
 	shiftDuration := rshAnd(thresholdShift, BitPosThresholdShiftTimeToShift, X20)
-	if blockTimestamp >= startTimestamp+shiftDuration.Uint64() {
-		// Shifting fully done - clear the threshold shift and deactivate
-		poolState.ThresholdShift = big256.U0 // delete _thresholdShift[dexId_]
-
-		// Clear threshold shift active bit in dexVariables
-		mask := tmp.Lsh(big256.U1, BitPosThresholdPercentShiftActive)
-		poolState.DexVariables.And(poolState.DexVariables, mask.Not(mask))
-
+	if blockTimestamp >= startTimestamp+shiftDuration.Uint64() { // shifting fully done
+		dexVars.ThresholdPercentShiftActive = false
 		return upperThreshold, lowerThreshold
 	}
 
@@ -419,18 +354,16 @@ func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *ui
 }
 
 // getRebalancingStatus implements _getRebalancingStatus from the contract
-func (s *PoolSimulator) getRebalancingStatus(poolState *PoolState, rebalancingStatus uint64,
+func (s *PoolSimulator) getRebalancingStatus(dexVars *UnpackedDexVariables, rebalancingStatus uint64,
 	price, centerPrice *uint256.Int, blockTimestamp uint64) uint64 {
-	dexVariables := poolState.DexVariables
 	// Extract range percents from dexVariables
-	upperRangePercent := rshAnd(dexVariables, BitPosUpperPercent, X14)
-	lowerRangePercent := rshAnd(dexVariables, BitPosLowerPercent, X14)
+	upperRangePercent := dexVars.UpperPercent
+	lowerRangePercent := dexVars.LowerPercent
 
 	// Check if range shift is active and calculate if needed
-	rangeShiftActive := rshAnd(dexVariables, BitPosRangePercentShiftActive, X1).Uint64()
-	if rangeShiftActive == 1 {
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
-			blockTimestamp)
+	if dexVars.RangePercentShiftActive {
+		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, &s.PoolState,
+			dexVars, blockTimestamp)
 	}
 
 	// Calculate range prices
@@ -443,14 +376,13 @@ func (s *PoolSimulator) getRebalancingStatus(poolState *PoolState, rebalancingSt
 	lowerRangePrice.MulDivOverflow(centerPrice, numerator, FourDecimals)
 
 	// Extract threshold percents
-	upperThresholdPercent := rshAnd(dexVariables, BitPosUpperShiftThresholdPercent, X7)
-	lowerThresholdPercent := rshAnd(dexVariables, BitPosLowerShiftThresholdPercent, X7)
+	upperThresholdPercent := dexVars.UpperShiftThresholdPercent
+	lowerThresholdPercent := dexVars.LowerShiftThresholdPercent
 
 	// Check if threshold shift is active and calculate if needed
-	thresholdShiftActive := rshAnd(dexVariables, BitPosThresholdPercentShiftActive, X1).Uint64()
-	if thresholdShiftActive == 1 {
+	if dexVars.ThresholdPercentShiftActive {
 		upperThresholdPercent, lowerThresholdPercent = s.calcThresholdShifting(upperThresholdPercent,
-			lowerThresholdPercent, poolState, blockTimestamp)
+			lowerThresholdPercent, &s.PoolState, dexVars, blockTimestamp)
 	}
 
 	// Calculate threshold prices
@@ -467,36 +399,14 @@ func (s *PoolSimulator) getRebalancingStatus(poolState *PoolState, rebalancingSt
 
 	// Check thresholds and update rebalancing status
 	if price.Cmp(upperThreshold) > 0 {
-		if rebalancingStatus != 2 {
-			// Update dexVariables with rebalancing status = 2
-			clearMask := tmp.Lsh(X2, BitPosRebalancingStatus)
-			dexVariables.And(dexVariables, clearMask.Not(clearMask))
-			newStatus := tmp.Lsh(big256.U2, BitPosRebalancingStatus)
-			dexVariables.Or(dexVariables, newStatus)
-			return 2
-		}
+		dexVars.RebalancingStatus = 2
 	} else if price.Cmp(lowerThreshold) < 0 {
-		if rebalancingStatus != 3 {
-			// Update dexVariables with rebalancing status = 3
-			clearMask := tmp.Lsh(X2, BitPosRebalancingStatus)
-			dexVariables.And(dexVariables, clearMask.Not(clearMask))
-			newStatus := tmp.Lsh(big256.U3, BitPosRebalancingStatus)
-			dexVariables.Or(dexVariables, newStatus)
-			return 3
-		}
+		dexVars.RebalancingStatus = 3
 	} else {
-		// Price is within normal range
-		if rebalancingStatus != 1 {
-			// Update dexVariables with rebalancing status = 1
-			clearMask := tmp.Lsh(X2, BitPosRebalancingStatus)
-			dexVariables.And(dexVariables, clearMask.Not(clearMask))
-			newStatus := tmp.Lsh(big256.U1, BitPosRebalancingStatus)
-			dexVariables.Or(dexVariables, newStatus)
-			return 1
-		}
+		dexVars.RebalancingStatus = 1
 	}
 
-	return rebalancingStatus
+	return dexVars.RebalancingStatus
 }
 
 // Helper function to adjust amounts to internal decimals (TOKENS_DECIMALS_PRECISION = 9)
@@ -522,34 +432,28 @@ func (s *PoolSimulator) expandCenterPrice(centerPrice *uint256.Int) *uint256.Int
 }
 
 // getPricesAndReservesWithState implements complete _getPricesAndReserves with all shifting logic
-func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariables,
-	poolState *PoolState) (*uint256.Int, [2]*uint256.Int, error) {
+func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariables) (*uint256.Int, [2]*uint256.Int,
+	error) {
 	// Use the actual block timestamp from when the pool state was fetched
 	blockTimestamp := s.BlockTimestamp
 
-	// Check for external center price functionality that we don't support
-	dexVariables := poolState.DexVariables
-	centerPriceShiftActive := rshAnd(dexVariables, BitPosCenterPriceShiftActive, X1).Uint64()
-	centerPriceContractAddress := rshAnd(dexVariables, BitPosCenterPriceContractAddress, X19)
-
-	if centerPriceShiftActive == 1 || centerPriceContractAddress.Sign() > 0 {
+	// Check for external center price functionality that we don't currently support
+	if dexVars.CenterPriceShiftActive || !dexVars.CenterPriceContractAddress.IsZero() {
 		return nil, [2]*uint256.Int{}, ErrExternalCenterPriceNotSupported
 	}
 
 	// Extract center price with exponential encoding (static price only)
-	centerPriceRaw := rshAnd(dexVariables, BitPosCenterPrice, X40)
-	centerPrice := s.expandCenterPrice(centerPriceRaw)
+	centerPrice := s.expandCenterPrice(dexVars.CenterPrice)
 
 	// Extract range percents
-	upperRangePercent := rshAnd(dexVariables, BitPosUpperPercent, X14)
-	lowerRangePercent := rshAnd(dexVariables, BitPosLowerPercent, X14)
+	upperRangePercent := dexVars.UpperPercent
+	lowerRangePercent := dexVars.LowerPercent
 
 	// Check if range shift is active
-	rangeShiftActive := rshAnd(dexVariables, BitPosRangePercentShiftActive, X1).Uint64()
-	if rangeShiftActive == 1 {
+	if dexVars.RangePercentShiftActive {
 		// An active range shift is going on
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, poolState,
-			blockTimestamp)
+		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, &s.PoolState,
+			dexVars, blockTimestamp)
 	}
 
 	// Calculate range prices
@@ -562,14 +466,13 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	lowerRangePrice.MulDivOverflow(centerPrice, numerator, FourDecimals)
 
 	// Handle rebalancing if status > 1
-	rebalancingStatus := rshAnd(dexVariables, BitPosRebalancingStatus, X2).Uint64()
+	rebalancingStatus := dexVars.RebalancingStatus
 	if rebalancingStatus > 1 {
-		centerPriceShift := poolState.CenterPriceShift
+		centerPriceShift := s.PoolState.CenterPriceShift
 		if centerPriceShift.Sign() > 0 {
 			shiftingTime := rshAnd(centerPriceShift, BitPosCenterPriceShiftShiftingTime, X24)
 			var timeElapsed uint256.Int
-			lastInteractionTimestamp := tmp.And(centerPriceShift,
-				X33) // BitPosCenterPriceShiftLastInteractionTimestamp = 0
+			lastInteractionTimestamp := tmp.And(centerPriceShift, X33)
 			timeElapsed.Sub(timeElapsed.SetUint64(blockTimestamp), lastInteractionTimestamp)
 
 			if rebalancingStatus == 2 {
@@ -643,7 +546,6 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 		// Inverse calculation for large prices
 		inverseGeometricMean := tmp.Div(PricePrecisionSq, geometricMeanPrice) // 1e54 / geometricMeanPrice
 		inverseLowerRange := tmp2.Div(PricePrecisionSq, &lowerRangePrice)     // 1e54 / lowerRangePrice
-
 		token1ImaginaryReserves, token0ImaginaryReserves = s.calculateReservesOutsideRange(
 			inverseGeometricMean, inverseLowerRange, token1Supply, token0Supply)
 	}
@@ -674,19 +576,4 @@ func (s *PoolSimulator) calculateReservesOutsideRange(gp, pa, rx, ry *uint256.In
 	yb, _ := p2.MulDivOverflow(xa, gp, PricePrecision)
 
 	return xa, yb
-}
-
-// updateSuppliesInDexVariables updates the token supplies in the packed dex variables
-func (s *PoolSimulator) updateSuppliesInDexVariables(dexVariables *uint256.Int, supplies [2]*uint256.Int) *uint256.Int {
-	// Clear existing supply bits
-	var clearMask0, clearMask1 uint256.Int
-	clearMask0.Lsh(X60, BitPosToken0TotalSupplyAdjusted)
-	clearMask1.Lsh(X60, BitPosToken1TotalSupplyAdjusted)
-	clearMask := clearMask0.Or(&clearMask0, &clearMask1)
-	newDexVars := dexVariables.And(dexVariables, clearMask.Not(clearMask))
-
-	newSupply0 := supplies[0].Lsh(supplies[0].And(supplies[0], X60), BitPosToken0TotalSupplyAdjusted)
-	newSupply1 := supplies[1].Lsh(supplies[1].And(supplies[1], X60), BitPosToken1TotalSupplyAdjusted)
-
-	return newDexVars.Or(newDexVars, newSupply0).Or(newDexVars, newSupply1)
 }

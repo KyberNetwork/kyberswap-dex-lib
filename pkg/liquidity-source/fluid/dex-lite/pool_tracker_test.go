@@ -43,11 +43,6 @@ func TestPoolTracker(t *testing.T) {
 	logger.Debugf("PoolTracker initialized: %+v", poolTracker)
 
 	t.Run("USDC_USDT_Pool", func(t *testing.T) {
-		staticExtraBytes, _ := json.Marshal(&StaticExtra{
-			DexLiteAddress: config.DexLiteAddress,
-			HasNative:      false,
-		})
-
 		// Create mock dexKey and dexId
 		mockDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
@@ -55,9 +50,13 @@ func TestPoolTracker(t *testing.T) {
 			Salt:   common.Hash{},
 		}
 		mockDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
+
+		staticExtraBytes, _ := json.Marshal(&StaticExtra{
+			DexLiteAddress: config.DexLiteAddress,
+			DexKey:         mockDexKey,
+			DexId:          mockDexId,
+		})
 		extra := PoolExtra{
-			DexKey: mockDexKey,
-			DexId:  mockDexId,
 			PoolState: PoolState{
 				DexVariables:     uint256.NewInt(0x123456789abcdef),
 				CenterPriceShift: uint256.NewInt(0),
@@ -107,41 +106,6 @@ func TestPoolTracker(t *testing.T) {
 		}
 	})
 }
-
-func TestCalculateDexId(t *testing.T) {
-	tracker := &PoolTracker{}
-
-	dexKey := DexKey{
-		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
-		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-		Salt:   common.Hash{},
-	}
-
-	dexId := tracker.calculateDexId(dexKey)
-	require.NotEqual(t, [8]byte{}, dexId)
-
-	// DexId should be deterministic
-	dexId2 := tracker.calculateDexId(dexKey)
-	require.Equal(t, dexId, dexId2)
-
-	logger.Debugf("DexId for USDC/USDT: %x", dexId)
-}
-
-func TestCalculatePoolStateSlot(t *testing.T) {
-	tracker := &PoolTracker{}
-
-	dexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
-
-	// Test different offsets
-	for i := 0; i < 5; i++ {
-		slot := tracker.calculatePoolStateSlot(dexId, i)
-		require.NotEqual(t, common.Hash{}, slot)
-		logger.Debugf("Slot %d: %s", i, slot.Hex())
-	}
-}
-
-// TestCalculateReserves was removed because calculateReserves is no longer part of PoolTracker
-// Reserve calculations are now handled by PoolSimulator
 
 // TestRealOnChainPoolState tests against the actual USDC/USDT pool on-chain
 func TestRealOnChainPoolState(t *testing.T) {
@@ -254,7 +218,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 			logger.Debugf("\n📊 DECODED ON-CHAIN DEX VARIABLES:")
 			logger.Debugf("   Fee: %s basis points (%.6f%%)", unpacked.Fee.String(), unpacked.Fee.Float64()/10000)
 			logger.Debugf("   Revenue Cut: %s", unpacked.RevenueCut.String())
-			logger.Debugf("   Rebalancing Status: %s", unpacked.RebalancingStatus.String())
+			logger.Debugf("   Rebalancing Status: %d", unpacked.RebalancingStatus)
 			logger.Debugf("   Center Price Shift Active: %v", unpacked.CenterPriceShiftActive)
 			logger.Debugf("   Center Price: %s", unpacked.CenterPrice.String())
 			logger.Debugf("   Range Percent Shift Active: %v", unpacked.RangePercentShiftActive)
