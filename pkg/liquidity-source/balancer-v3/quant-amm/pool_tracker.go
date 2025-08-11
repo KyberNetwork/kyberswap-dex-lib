@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -92,8 +91,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra.BalancesLiveScaled18 = shared.FromBigs(res.PoolData.BalancesLiveScaled18)
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
-	var underlyingTokens []common.Address
-	extra.Buffers, underlyingTokens = res.Buffers()
+	extra.Buffers = res.Buffers()
 
 	// QuantAMM-specific fields
 	if staticExtra.MaxTradeSizeRatio == nil {
@@ -123,26 +121,6 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	var hasStaticChange bool
-	for i, token := range underlyingTokens {
-		if token != (common.Address{}) {
-			hasStaticChange = true
-			staticExtra.BufferTokens[i] = p.Tokens[i].Address
-			p.Tokens[i] = &entity.PoolToken{
-				Address:   hexutil.Encode(token[:]),
-				Swappable: true,
-			}
-		}
-	}
-	if hasStaticChange {
-		staticExtraBytes, err := json.Marshal(staticExtra)
-		if err != nil {
-			l.WithFields(klog.Fields{"error": err}).Error("failed to marshal static extra data")
-			return p, err
-		}
-		p.StaticExtra = string(staticExtraBytes)
-	}
-
 	p.BlockNumber = res.BlockNumber
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
@@ -153,6 +131,7 @@ func (t *PoolTracker) getNewPoolState(
 	} else {
 		p.Reserves = lo.Map(res.PoolData.BalancesRaw, func(v *big.Int, _ int) string { return v.String() })
 	}
+
 	return p, nil
 }
 
@@ -163,7 +142,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		isVaultPaused bool
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
+	req := t.ethrpcClient.R().SetContext(ctx).SetOverrides(overrides)
 
 	poolAddress := p.Address
 	paramsPool := []any{common.HexToAddress(poolAddress)}
@@ -203,7 +182,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 			Method: poolMethodGetQuantAMMWeightedPoolImmutableData,
 		}, []any{&rpcRes.ImmutableDataRpc})
 	}
-	rpcRes.Buffers = shared.GetBufferTokens(req, p.Tokens, staticExtra.BufferTokens, t.config.VaultExplorer)
+	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {

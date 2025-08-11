@@ -18,6 +18,7 @@ import (
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unibtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
@@ -259,6 +260,7 @@ type Types struct {
 	SwellSWETH                 string
 	SwellRSWETH                string
 	BedrockUniETH              string
+	BedrockUniBTC              string
 	PufferPufETH               string
 	BancorV21                  string
 	BancorV3                   string
@@ -443,6 +445,7 @@ var (
 		SwellSWETH:                 sweth.DexType,
 		SwellRSWETH:                rsweth.DexType,
 		BedrockUniETH:              unieth.DexType,
+		BedrockUniBTC:              unibtc.DexType,
 		PufferPufETH:               pufeth.DexType,
 		EthenaSusde:                susde.DexType,
 		MakerSavingsDai:            savingsdai.DexType,

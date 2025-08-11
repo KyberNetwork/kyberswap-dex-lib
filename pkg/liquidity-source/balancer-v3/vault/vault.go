@@ -38,11 +38,9 @@ func New(hook hooks.IHook, hooksConfig shared.HooksConfig,
 
 func (v *Vault) CloneState() *Vault {
 	cloned := *v
-
 	v.balancesLiveScaled18 = lo.Map(v.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
-		return new(uint256.Int).Set(v)
+		return v.Clone()
 	})
-
 	return &cloned
 }
 
@@ -52,9 +50,11 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 	amountGivenScaled18, err := v.ComputeAmountGivenScaled18(vaultSwapParams)
 	if err != nil {
 		return nil, nil, nil, err
+	} else if amountGivenScaled18.Lt(MinimumTradeAmount) { // _ensureValidSwapAmount
+		return nil, nil, nil, ErrAmountInTooSmall
 	}
 
-	var poolSwapParams = shared.PoolSwapParams{
+	poolSwapParams := shared.PoolSwapParams{
 		Kind:                    vaultSwapParams.Kind,
 		OnSwap:                  onSwap,
 		StaticSwapFeePercentage: v.staticSwapFeePercentage,
@@ -68,7 +68,6 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 		if err := v.callBeforeSwapHook(poolSwapParams); err != nil {
 			return nil, nil, nil, err
 		}
-
 		// WARN: some states can be changed after hook
 	}
 
@@ -94,18 +93,10 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 		}
 	}
 
-	// _ensureValidSwapAmount
-	if amountGivenScaled18.Lt(MinimumTradeAmount) {
-		return nil, nil, nil, ErrAmountInTooSmall
-	}
-
 	amountCalculatedScaled18, err := onSwap(poolSwapParams)
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	// _ensureValidSwapAmount
-	if amountCalculatedScaled18.Lt(MinimumTradeAmount) {
+	} else if amountCalculatedScaled18.Lt(MinimumTradeAmount) { // _ensureValidSwapAmount
 		return nil, nil, nil, ErrAmountOutTooSmall
 	}
 
@@ -130,10 +121,8 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 			return nil, nil, nil, err
 		}
 
-		if amountCalculated, err = toRawUndoRateRoundDown(
-			amountCalculatedScaled18,
-			v.decimalScalingFactors[poolSwapParams.IndexIn],
-			v.tokenRates[poolSwapParams.IndexIn],
+		if amountCalculated, err = toRawUndoRateRoundDown(amountCalculatedScaled18,
+			v.decimalScalingFactors[poolSwapParams.IndexIn], v.tokenRates[poolSwapParams.IndexIn],
 		); err != nil {
 			return nil, nil, nil, err
 		}
@@ -158,40 +147,33 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 
 func (v *Vault) ComputeAmountGivenScaled18(param shared.VaultSwapParams) (*uint256.Int, error) {
 	if param.Kind == shared.ExactIn {
-		return toScaled18ApplyRateRoundDown(param.AmountGivenRaw, v.decimalScalingFactors[param.IndexIn],
-			v.tokenRates[param.IndexIn])
+		return toScaled18ApplyRateRoundDown(param.AmountGivenRaw,
+			v.decimalScalingFactors[param.IndexIn], v.tokenRates[param.IndexIn])
 	}
 
-	return toScaled18ApplyRateRoundUp(param.AmountGivenRaw, v.decimalScalingFactors[param.IndexOut],
-		computeRateRoundUp(v.tokenRates[param.IndexOut]))
+	return toScaled18ApplyRateRoundUp(param.AmountGivenRaw,
+		v.decimalScalingFactors[param.IndexOut], computeRateRoundUp(v.tokenRates[param.IndexOut]))
 }
 
 func (v *Vault) ComputeAggregateSwapFees(index int, totalSwapFeeAmountScaled18, aggregateSwapFeePercentage *uint256.Int,
 ) (totalSwapFeeAmountRaw, aggregateSwapFeeAmountRaw *uint256.Int, err error) {
-	if totalSwapFeeAmountScaled18.Sign() > 0 {
-		totalSwapFeeAmountRaw, err = toRawUndoRateRoundDown(totalSwapFeeAmountScaled18, v.decimalScalingFactors[index],
-			v.tokenRates[index])
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if !v.isPoolInRecoveryMode {
-			aggregateSwapFeeAmountRaw, err = math.FixPoint.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
-			if err != nil {
-				return nil, nil, err
-			}
-
-			if aggregateSwapFeeAmountRaw.Gt(totalSwapFeeAmountRaw) {
-				return nil, nil, ErrProtocolFeesExceedTotalCollected
-			}
-
-			return
-		}
-
+	if totalSwapFeeAmountScaled18.Sign() <= 0 {
+		return math.U0, math.U0, nil
+	}
+	totalSwapFeeAmountRaw, err = toRawUndoRateRoundDown(totalSwapFeeAmountScaled18,
+		v.decimalScalingFactors[index], v.tokenRates[index])
+	if err != nil {
+		return nil, nil, err
+	} else if v.isPoolInRecoveryMode {
 		return totalSwapFeeAmountRaw, math.U0, nil
 	}
-
-	return math.U0, math.U0, nil
+	aggregateSwapFeeAmountRaw, err = math.FixPoint.MulDown(totalSwapFeeAmountRaw, aggregateSwapFeePercentage)
+	if err != nil {
+		return nil, nil, err
+	} else if aggregateSwapFeeAmountRaw.Gt(totalSwapFeeAmountRaw) {
+		return nil, nil, ErrProtocolFeesExceedTotalCollected
+	}
+	return
 }
 
 func (v *Vault) UpdateLiveBalance(
@@ -200,18 +182,16 @@ func (v *Vault) UpdateLiveBalance(
 	rounding shared.Rounding,
 ) (newBalanceLiveScaled18 *uint256.Int, err error) {
 	if rounding == shared.RoundUp {
-		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundUp(amountGivenRaw, v.decimalScalingFactors[index],
-			v.tokenRates[index])
+		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundUp(amountGivenRaw,
+			v.decimalScalingFactors[index], v.tokenRates[index])
 	} else {
-		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundDown(amountGivenRaw, v.decimalScalingFactors[index],
-			v.tokenRates[index])
+		newBalanceLiveScaled18, err = toScaled18ApplyRateRoundDown(amountGivenRaw,
+			v.decimalScalingFactors[index], v.tokenRates[index])
 	}
-
 	if err != nil {
 		return nil, err
 	}
 
 	v.balancesLiveScaled18[index] = newBalanceLiveScaled18
-
 	return
 }
