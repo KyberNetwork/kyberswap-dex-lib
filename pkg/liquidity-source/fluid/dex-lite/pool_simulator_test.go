@@ -17,7 +17,7 @@ import (
 
 var (
 	entityPool entity.Pool
-	_          = json.Unmarshal([]byte(`{"address":"0xbbcb91440523216e2b87052a99f69c604a7b6e006dd161107ef07bb8","swapFee":0.0005,"exchange":"fluid-dex-lite","type":"fluid-dex-lite","timestamp":1754385937,"reserves":["494178168265","507852200630"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"dexKey\":{\"token0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"token1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"salt\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"},\"dexId\":[109,209,97,16,126,240,123,184],\"poolState\":{\"dexVariables\":51005438878330161547276090818475617057843189718983808558245696039163002885,\"centerPriceShift\":8384412169014343027111630140612583,\"rangeShift\":0,\"thresholdShift\":0},\"blockTimestamp\":1754385923}","staticExtra":"{\"dexLiteAddress\":\"0xBbcb91440523216e2b87052A99F69c604A7b6e00\",\"hasNative\":false}","blockNumber":23073952}`),
+	_          = json.Unmarshal([]byte(`{"address":"0xbbcb91440523216e2b87052a99f69c604a7b6e006dd161107ef07bb8","swapFee":0.0005,"exchange":"fluid-dex-lite","type":"fluid-dex-lite","timestamp":1754385937,"reserves":["494178168265","507852200630"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"dexKey\":{\"token0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"token1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"salt\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"},\"dexId\":[109,209,97,16,126,240,123,184],\"poolState\":{\"dexVariables\":51005438878330161547276090818475617094685132078722513699762291259846164485,\"centerPriceShift\":8384412169014343027111630140612583,\"rangeShift\":493797497262629703680012,\"thresholdShift\":30139007401283553812},\"blockTimestamp\":1754385923}","staticExtra":"{\"dexLiteAddress\":\"0xBbcb91440523216e2b87052A99F69c604A7b6e00\",\"hasNative\":false}","blockNumber":23073952}`),
 		&entityPool)
 	poolSim = lo.Must(NewPoolSimulator(entityPool))
 )
@@ -27,14 +27,14 @@ func TestPoolSimulator(t *testing.T) {
 		testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
 			0: {
 				1: {
-					"1000000": "1000015",
-					"9999999": "10000153",
+					"1000000": "999879",
+					"9999999": "9998798",
 				},
 			},
 			1: {
 				0: {
-					"1000000": "999974",
-					"9999999": "9999744",
+					"1000000": "1000110",
+					"9999999": "10001099",
 				},
 			},
 		})
