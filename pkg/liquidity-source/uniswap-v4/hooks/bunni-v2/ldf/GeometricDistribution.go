@@ -50,7 +50,7 @@ func (g *GeometricDistribution) Query(
 		return nil, nil, nil, [32]byte{}, false, err
 	}
 
-	newLdfState = g.encodeState(minTick)
+	newLdfState = EncodeState(minTick)
 	return
 }
 
@@ -129,21 +129,6 @@ func (g *GeometricDistribution) decodeParams(
 	}
 
 	return
-}
-
-// encodeState encodes the state into bytes32
-func (g *GeometricDistribution) encodeState(minTick int) [32]byte {
-	var state [32]byte
-
-	minTickUint24 := uint32(minTick) & 0xFFFFFF
-	combined := INITIALIZED_STATE + minTickUint24
-
-	state[0] = byte((combined >> 24) & 0xFF)
-	state[1] = byte((combined >> 16) & 0xFF)
-	state[2] = byte((combined >> 8) & 0xFF)
-	state[3] = byte(combined & 0xFF)
-
-	return state
 }
 
 // query computes the liquidity density and cumulative amounts based on Solidity logic

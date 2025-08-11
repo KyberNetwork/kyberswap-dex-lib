@@ -24,6 +24,7 @@ type HookExtra struct {
 	Slot0               Slot0
 	BunniState          PoolState
 	VaultSharePrices    VaultSharePrices
+	BlockTimestamp      uint32
 }
 
 type LdfState struct {

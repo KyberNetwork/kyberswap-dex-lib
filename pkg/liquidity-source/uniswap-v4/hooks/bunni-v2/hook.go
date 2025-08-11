@@ -22,11 +22,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/oracle"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
+)
+
+const (
+	MAX_OBSERVATION_BATCH_SIZE = 1000
 )
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)
@@ -105,16 +108,14 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}
 	}
 
-	poolId := eth.StringToBytes32(param.Pool.Address)
+	poolId := common.HexToHash(param.Pool.Address)
 
 	var (
-		ldfState  [32]byte
-		slot0     Slot0RPC
-		poolState PoolStateRPC
-		// hookParamsBytes []byte
+		ldfState     [32]byte
+		slot0        Slot0RPC
+		poolState    PoolStateRPC
 		storageSlots [5]common.Hash
 		topBid       BidRPC
-		// nextBid      BidRPC
 
 		poolManagerBalance0, poolManagerBalance1 = big.NewInt(0), big.NewInt(0)
 	)
@@ -133,7 +134,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
 
 	req1 := param.RpcClient.NewRequest().SetContext(ctx)
-
 	req1.AddCall(&ethrpc.Call{
 		ABI:    bunniHookABI,
 		Target: hookAddress,
@@ -154,12 +154,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Method: "getBid",
 		Params: []any{poolId, true},
 	}, []any{&topBid})
-	// req1.AddCall(&ethrpc.Call{
-	// 	ABI:    bunniHookABI,
-	// 	Target: hookAddress,
-	// 	Method: "getBid",
-	// 	Params: []any{poolId, false},
-	// }, []any{&nextBid})
 	req1.AddCall(&ethrpc.Call{
 		ABI:    bunniHookABI,
 		Target: hookAddress,
@@ -178,12 +172,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Method: "poolState",
 		Params: []any{poolId},
 	}, []any{&poolState})
-	// req1.AddCall(&ethrpc.Call{
-	// 	ABI:    bunniHubABI,
-	// 	Target: hubAddress,
-	// 	Method: "hookParams",
-	// 	Params: []any{poolId},
-	// }, []any{&hookParamsBytes})
 	req1.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: token0Address,
@@ -210,9 +198,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	hookExtra.BunniState = PoolState{
-		// LiquidityDensityFunction: poolState.Data.LiquidityDensityFunction,
-		// BunniToken:           poolState.Data.BunniToken,
-		// Hooklet:              poolState.Data.Hooklet,
 		TwapSecondsAgo:       uint32(poolState.Data.TwapSecondsAgo.Int64()),
 		LdfParams:            poolState.Data.LdfParams,
 		HookParams:           poolState.Data.HookParams,
@@ -249,40 +234,36 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	hookExtra.AmAmm = decodeAmmPayload(topBid.Data.Manager, topBid.Data.Payload)
 
 	var (
-		redeemRates [2]*big.Int
-		maxDeposits [2]*big.Int
+		redeemRates = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
+		maxDeposits = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 	)
 	req2 := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
-	for i, vault := range []string{poolState.Data.Vault0.Hex(), poolState.Data.Vault1.Hex()} {
+	for i, vault := range []common.Address{poolState.Data.Vault0, poolState.Data.Vault1} {
+		if valueobject.IsZeroAddress(vault) {
+			continue
+		}
+
 		req2.AddCall(&ethrpc.Call{
 			ABI:    erc4626ABI,
-			Target: vault,
+			Target: vault.Hex(),
 			Method: "previewRedeem",
 			Params: []any{WAD.ToBig()},
 		}, []any{&redeemRates[i]})
 		req2.AddCall(&ethrpc.Call{
 			ABI:    erc4626ABI,
-			Target: poolState.Data.Vault1.Hex(),
+			Target: vault.Hex(),
 			Method: "maxDeposit",
 			Params: []any{common.HexToAddress(hubAddress)},
 		}, []any{&maxDeposits[i]})
 	}
 
-	var slotObservations = make([]common.Hash, 0, hookExtra.ObservationState.CardinalityNext)
-	for i := range hookExtra.ObservationState.CardinalityNext {
-		slotObservations = append(slotObservations,
-			common.BigToHash(big.NewInt(int64(6+i))))
+	if _, err := req2.TryBlockAndAggregate(); err != nil {
+		return "", err
 	}
 
-	var observationHashes = make([]common.Hash, len(slotObservations))
-	req2.AddCall(&ethrpc.Call{
-		ABI:    bunniHookABI,
-		Target: h.hook.Hex(),
-		Method: "extsload",
-		Params: []any{slotObservations},
-	}, []any{&observationHashes})
-
-	if _, err := req2.TryBlockAndAggregate(); err != nil {
+	observationHashes, err := h.fetchObservations(
+		ctx, param.RpcClient, res.BlockNumber, hookExtra.ObservationState.CardinalityNext)
+	if err != nil {
 		return "", err
 	}
 
@@ -330,7 +311,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 
 	amountSpecified := uint256.MustFromBig(params.AmountSpecified)
 
-	blockTimestamp := uint32(time.Now().Unix())
+	if h.BlockTimestamp == 0 {
+		h.BlockTimestamp = uint32(time.Now().Unix())
+	}
 
 	feeOverridden, feeOverride, priceOverridden, sqrtPriceX96Override := h.hooklet.BeforeSwap(&hooklet.SwapParams{
 		ZeroForOne: params.ZeroForOne,
@@ -365,7 +348,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	var balance1 uint256.Int
 	balance1.Add(h.BunniState.RawBalance1, getReservesInUnderlying(h.Vaults[1], h.BunniState.Reserve1))
 
-	h.updateOracle(blockTimestamp)
+	h.updateOracle()
 
 	useLDFTwap := h.BunniState.TwapSecondsAgo != 0
 	useFeeTwap := !feeOverridden && h.HookParams.FeeTwapSecondsAgo != 0
@@ -376,7 +359,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	if useLDFTwap && useFeeTwap {
 		tickCumulatives, err := h.oracle.ObserveTriple(
 			h.ObservationState.IntermediateObservation,
-			blockTimestamp,
+			h.BlockTimestamp,
 			[]uint32{0, h.BunniState.TwapSecondsAgo, h.HookParams.FeeTwapSecondsAgo},
 			h.Slot0.Tick,
 			h.ObservationState.Index,
@@ -389,12 +372,12 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 		arithmeticMeanTick = (tickCumulatives[0] - tickCumulatives[1]) / int64(h.BunniState.TwapSecondsAgo)
 		feeMeanTick = (tickCumulatives[0] - tickCumulatives[2]) / int64(h.HookParams.FeeTwapSecondsAgo)
 	} else if useLDFTwap {
-		arithmeticMeanTick, err = h.getTwap(blockTimestamp)
+		arithmeticMeanTick, err = h.getTwap()
 		if err != nil {
 			return nil, err
 		}
 	} else if useFeeTwap {
-		feeMeanTick, err = h.getTwap(blockTimestamp)
+		feeMeanTick, err = h.getTwap()
 		if err != nil {
 			return nil, err
 		}
@@ -467,19 +450,19 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	lastSurgeTimestamp := h.Slot0.LastSurgeTimestamp
 
 	if shouldSurge {
-		timeSinceLastSwap := blockTimestamp - h.Slot0.LastSwapTimestamp
+		timeSinceLastSwap := h.BlockTimestamp - h.Slot0.LastSwapTimestamp
 
 		surgeFeeAutostartThreshold := uint32(h.HookParams.SurgeFeeAutostartThreshold)
 		if timeSinceLastSwap >= surgeFeeAutostartThreshold {
 			lastSurgeTimestamp = h.Slot0.LastSwapTimestamp + surgeFeeAutostartThreshold
 		} else {
-			lastSurgeTimestamp = blockTimestamp
+			lastSurgeTimestamp = h.BlockTimestamp
 		}
 	}
 
 	h.Slot0.SqrtPriceX96 = updatedSqrtPriceX96
 	h.Slot0.Tick = updatedTick
-	h.Slot0.LastSwapTimestamp = blockTimestamp
+	h.Slot0.LastSwapTimestamp = h.BlockTimestamp
 	h.Slot0.LastSurgeTimestamp = lastSurgeTimestamp
 
 	var amAmmSwapFee uint256.Int
@@ -495,14 +478,14 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 
 	var hookFeesBaseSwapFee uint256.Int
 	if feeOverridden {
-		surgeFee, err := computeSurgeFee(blockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)
+		surgeFee, err := computeSurgeFee(h.BlockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)
 		if err != nil {
 			return nil, err
 		}
 
 		hookFeesBaseSwapFee.Set(u256.Max(feeOverride, surgeFee))
 	} else {
-		dynamicFee, err := computeDynamicSwapFee(blockTimestamp, updatedSqrtPriceX96, int(feeMeanTick), lastSurgeTimestamp,
+		dynamicFee, err := computeDynamicSwapFee(h.BlockTimestamp, updatedSqrtPriceX96, int(feeMeanTick), lastSurgeTimestamp,
 			h.HookParams.FeeMin, h.HookParams.FeeMax, h.HookParams.FeeQuadraticMultiplier, h.HookParams.SurgeFeeHalfLife)
 		if err != nil {
 			return nil, err
@@ -521,7 +504,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	var result uniswapv4.BeforeSwapHookResult
 
 	if useAmAmmFee {
-		surgeFee, err := computeSurgeFee(blockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)
+		surgeFee, err := computeSurgeFee(h.BlockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)
 		if err != nil {
 			return nil, err
 		}
@@ -1347,10 +1330,10 @@ func getAmountsForLiquidity(
 	return &amount0, &amount1, nil
 }
 
-func (h *Hook) getTwap(blockTimestamp uint32) (int64, error) {
+func (h *Hook) getTwap() (int64, error) {
 	tickCumulatives, err := h.oracle.ObserveDouble(
 		h.ObservationState.IntermediateObservation,
-		blockTimestamp,
+		h.BlockTimestamp,
 		[]uint32{h.BunniState.TwapSecondsAgo, 0},
 		h.Slot0.Tick,
 		h.ObservationState.Index,
@@ -1365,10 +1348,10 @@ func (h *Hook) getTwap(blockTimestamp uint32) (int64, error) {
 	return tickCumulativesDelta / int64(h.BunniState.TwapSecondsAgo), nil
 }
 
-func (h *Hook) updateOracle(blockTimestamp uint32) {
+func (h *Hook) updateOracle() {
 	h.ObservationState.IntermediateObservation, h.ObservationState.Index, h.ObservationState.Cardinality =
 		h.oracle.Write(h.ObservationState.IntermediateObservation,
-			h.ObservationState.Index, blockTimestamp, h.Slot0.Tick, h.ObservationState.Cardinality,
+			h.ObservationState.Index, h.BlockTimestamp, h.Slot0.Tick, h.ObservationState.Cardinality,
 			h.ObservationState.CardinalityNext, h.HookParams.OracleMinInterval)
 }
 
@@ -1512,4 +1495,41 @@ func (h *Hook) computeIdleBalance(activeBalance0, activeBalance1, balance0, bala
 	}
 
 	return idleBalance, nil
+}
+
+func (h *Hook) fetchObservations(
+	ctx context.Context,
+	rpcClient *ethrpc.Client,
+	blockNumber *big.Int,
+	cardinalityNext uint32,
+) ([]common.Hash, error) {
+	var slotObservations = make([]common.Hash, 0, cardinalityNext)
+	for i := range cardinalityNext {
+		slotObservations = append(slotObservations,
+			common.BigToHash(big.NewInt(int64(6+i))))
+	}
+
+	var observationHashes = make([]common.Hash, 0, len(slotObservations))
+	for start := 0; start < len(slotObservations); start += MAX_OBSERVATION_BATCH_SIZE {
+		end := min(start+MAX_OBSERVATION_BATCH_SIZE, len(slotObservations))
+
+		batchSlots := slotObservations[start:end]
+		var batchResult = make([]common.Hash, len(batchSlots))
+
+		reqBatch := rpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		reqBatch.AddCall(&ethrpc.Call{
+			ABI:    bunniHookABI,
+			Target: h.hook.Hex(),
+			Method: "extsload",
+			Params: []any{batchSlots},
+		}, []any{&batchResult})
+
+		if _, err := reqBatch.TryBlockAndAggregate(); err != nil {
+			return nil, err
+		}
+
+		observationHashes = append(observationHashes, batchResult...)
+	}
+
+	return observationHashes, nil
 }

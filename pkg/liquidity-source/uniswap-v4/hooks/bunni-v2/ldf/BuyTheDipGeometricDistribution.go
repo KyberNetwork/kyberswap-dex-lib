@@ -55,20 +55,6 @@ func (b *BuyTheDipGeometricDistribution) decodeParams(ldfParams [32]byte) (
 	return
 }
 
-// encodeState encodes the state into bytes32
-func (b *BuyTheDipGeometricDistribution) encodeState(twapTick int) [32]byte {
-	var state [32]byte
-	twapTickUint24 := uint32(twapTick) & 0xFFFFFF
-	combined := INITIALIZED_STATE + twapTickUint24
-
-	state[0] = byte((combined >> 24) & 0xFF)
-	state[1] = byte((combined >> 16) & 0xFF)
-	state[2] = byte((combined >> 8) & 0xFF)
-	state[3] = byte(combined & 0xFF)
-
-	return state
-}
-
 // decodeBuyTheDipState decodes the LDF state from bytes32 for BuyTheDipGeometricDistribution
 func decodeBuyTheDipState(ldfState [32]byte) (initialized bool, lastTwapTick int32) {
 	// | initialized - 1 byte | lastTwapTick - 3 bytes |
@@ -117,7 +103,7 @@ func (b *BuyTheDipGeometricDistribution) Query(
 		return nil, nil, nil, [32]byte{}, false, err
 	}
 
-	newLdfState = b.encodeState(twapTick)
+	newLdfState = EncodeState(twapTick)
 	return
 }
 

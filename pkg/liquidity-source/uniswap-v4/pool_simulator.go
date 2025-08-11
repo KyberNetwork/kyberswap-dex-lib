@@ -57,7 +57,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		entityPool.SwapFee = 0
 	}
 
-	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256, true)
+	var allowEmptyTicks bool
+	switch hook.GetExchange() {
+	case valueobject.ExchangeUniswapV4BunniV2:
+		allowEmptyTicks = true
+	}
+
+	v3PoolSimulator, err := uniswapv3.NewPoolSimulatorWithExtra(entityPool, chainID, extra.ExtraTickU256, allowEmptyTicks)
 	if err != nil {
 		return nil, errors.WithMessage(pool.ErrUnsupported, err.Error())
 	}

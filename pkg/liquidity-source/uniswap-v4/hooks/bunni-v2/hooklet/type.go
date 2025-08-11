@@ -18,7 +18,7 @@ type HookletParams struct {
 	RpcClient      *ethrpc.Client
 	HookletAddress common.Address
 	HookletExtra   string
-	PoolId         [32]byte
+	PoolId         common.Hash
 }
 
 type SwapParams struct {

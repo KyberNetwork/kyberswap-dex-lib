@@ -53,7 +53,7 @@ func (u *UniformDistribution) Query(
 		return nil, nil, nil, [32]byte{}, false, err
 	}
 
-	newLdfState = u.encodeState(tickLower)
+	newLdfState = EncodeState(tickLower)
 	return
 }
 
@@ -284,20 +284,6 @@ func (u *UniformDistribution) decodeParams(
 		tickUpper = int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
 	}
 	return
-}
-
-// encodeState encodes the state into bytes32
-func (u *UniformDistribution) encodeState(tickLower int) [32]byte {
-	var state [32]byte
-	tickLowerUint24 := uint32(tickLower) & 0xFFFFFF
-	combined := INITIALIZED_STATE + tickLowerUint24
-
-	state[0] = byte((combined >> 24) & 0xFF)
-	state[1] = byte((combined >> 16) & 0xFF)
-	state[2] = byte((combined >> 8) & 0xFF)
-	state[3] = byte(combined & 0xFF)
-
-	return state
 }
 
 // query computes the liquidity density and cumulative amounts using uniformLib
