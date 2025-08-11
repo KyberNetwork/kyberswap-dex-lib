@@ -17,14 +17,14 @@ func GetSqrtPriceAtTick(tick int) (*uint256.Int, error) {
 
 func GetNextSqrtPriceFromInput(sqrtPX96, liquidity, amountIn *uint256.Int, zeroForOne bool) (*uint256.Int, error) {
 	var price uint256.Int
-	v3Utils.GetNextSqrtPriceFromInput(sqrtPX96, liquidity, amountIn, zeroForOne, &price)
-	return &price, nil
+	err := v3Utils.GetNextSqrtPriceFromInput(sqrtPX96, liquidity, amountIn, zeroForOne, &price)
+	return &price, err
 }
 
 func GetNextSqrtPriceFromOutput(sqrtPX96, liquidity, amountOut *uint256.Int, zeroForOne bool) (*uint256.Int, error) {
 	var price uint256.Int
-	v3Utils.GetNextSqrtPriceFromOutput(sqrtPX96, liquidity, amountOut, zeroForOne, &price)
-	return &price, nil
+	err := v3Utils.GetNextSqrtPriceFromOutput(sqrtPX96, liquidity, amountOut, zeroForOne, &price)
+	return &price, err
 }
 
 func GetAmount0Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {

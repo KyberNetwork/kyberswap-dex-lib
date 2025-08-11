@@ -687,11 +687,6 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	return &result, nil
 }
 
-func (h *Hook) rebalance() error {
-	// should implement to avoid unexpected revert
-	return nil
-}
-
 func (h *Hook) hookHandleSwap(
 	zeroForOne bool,
 	inputAmount,
