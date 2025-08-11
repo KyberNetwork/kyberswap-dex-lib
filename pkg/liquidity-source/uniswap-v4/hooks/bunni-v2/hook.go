@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	MAX_OBSERVATION_BATCH_SIZE = 1000
+	_MAX_OBSERVATION_BATCH_SIZE = 1000
 )
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)
@@ -1510,8 +1510,8 @@ func (h *Hook) fetchObservations(
 	}
 
 	var observationHashes = make([]common.Hash, 0, len(slotObservations))
-	for start := 0; start < len(slotObservations); start += MAX_OBSERVATION_BATCH_SIZE {
-		end := min(start+MAX_OBSERVATION_BATCH_SIZE, len(slotObservations))
+	for start := 0; start < len(slotObservations); start += _MAX_OBSERVATION_BATCH_SIZE {
+		end := min(start+_MAX_OBSERVATION_BATCH_SIZE, len(slotObservations))
 
 		batchSlots := slotObservations[start:end]
 		var batchResult = make([]common.Hash, len(batchSlots))

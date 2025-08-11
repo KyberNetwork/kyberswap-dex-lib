@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	bunniHubABI  abi.ABI
-	bunniHookABI abi.ABI
-	erc4626ABI   abi.ABI
-	erc20ABI     abi.ABI
+	legacyBunniHubABI abi.ABI
+	bunniHubABI       abi.ABI
+	bunniHookABI      abi.ABI
+	erc4626ABI        abi.ABI
+	erc20ABI          abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{&legacyBunniHubABI, legacyBunniHubABIJson},
 		{&bunniHubABI, bunniHubABIJson},
 		{&bunniHookABI, bunniHookABIJson},
 		{&erc4626ABI, erc4626ABIJson},

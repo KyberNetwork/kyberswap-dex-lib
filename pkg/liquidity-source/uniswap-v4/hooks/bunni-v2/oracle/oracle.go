@@ -9,10 +9,10 @@ const (
 )
 
 type Observation struct {
-	BlockTimestamp uint32
-	PrevTick       int
-	TickCumulative int64
-	Initialized    bool
+	BlockTimestamp uint32 `json:"bt"`
+	PrevTick       int    `json:"pt"`
+	TickCumulative int64  `json:"tc"`
+	Initialized    bool   `json:"i"`
 }
 
 type ObservationStorage struct {

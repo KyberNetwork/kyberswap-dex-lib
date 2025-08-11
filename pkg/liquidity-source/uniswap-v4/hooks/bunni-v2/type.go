@@ -9,105 +9,98 @@ import (
 )
 
 type HookExtra struct {
-	HookletExtra        string
-	HookletAddress      common.Address
-	LDFAddress          common.Address
-	HookFee             *uint256.Int
-	PoolManagerReserves [2]*uint256.Int
-	LdfState            [32]byte
-	Vaults              [2]Vault
-	AmAmm               AmAmm
-	ObservationState    ObservationState
-	CuratorFees         CuratorFees
-	Observations        []*oracle.Observation
-	HookParams          HookParams
-	Slot0               Slot0
-	BunniState          PoolState
-	VaultSharePrices    VaultSharePrices
-	BlockTimestamp      uint32
+	HookletExtra        string                `json:"he"`
+	HookletAddress      common.Address        `json:"ha"`
+	LDFAddress          common.Address        `json:"la"`
+	HookFee             *uint256.Int          `json:"hf"`
+	PoolManagerReserves [2]*uint256.Int       `json:"pmr"`
+	LdfState            [32]byte              `json:"ls"`
+	Vaults              [2]Vault              `json:"v"`
+	AmAmm               AmAmm                 `json:"aa"`
+	ObservationState    ObservationState      `json:"os"`
+	CuratorFees         CuratorFees           `json:"cf"`
+	Observations        []*oracle.Observation `json:"o"`
+	HookParams          HookParams            `json:"hp"`
+	Slot0               Slot0                 `json:"s0"`
+	BunniState          PoolState             `json:"bs"`
+	VaultSharePrices    VaultSharePrices      `json:"vsp"`
+	BlockTimestamp      uint32                `json:"bt"`
 }
 
 type LdfState struct {
-	Initialized bool
-	LastMinTick int
+	Initialized bool `json:"i"`
+	LastMinTick int  `json:"lmt"`
 }
 
 type Vault struct {
-	Address    common.Address
-	Decimals   uint8
-	RedeemRate *uint256.Int
-	MaxDeposit *uint256.Int
+	Address    common.Address `json:"a"`
+	Decimals   uint8          `json:"d"`
+	RedeemRate *uint256.Int   `json:"rr"`
+	MaxDeposit *uint256.Int   `json:"md"`
 }
+
 type ObservationState struct {
-	Index                   uint32
-	Cardinality             uint32
-	CardinalityNext         uint32
-	IntermediateObservation *oracle.Observation
+	Index                   uint32              `json:"i"`
+	Cardinality             uint32              `json:"c"`
+	CardinalityNext         uint32              `json:"cn"`
+	IntermediateObservation *oracle.Observation `json:"io"`
 }
 
 type VaultSharePrices struct {
-	Initialized  bool
-	SharedPrice0 *uint256.Int
-	SharedPrice1 *uint256.Int
+	Initialized  bool         `json:"i"`
+	SharedPrice0 *uint256.Int `json:"sp0"`
+	SharedPrice1 *uint256.Int `json:"sp1"`
 }
 
 type CuratorFees struct {
-	FeeRate *uint256.Int
+	FeeRate *uint256.Int `json:"fr"`
 }
 
 type AmAmm struct {
-	AmAmmManager common.Address
-	SwapFee0For1 *uint256.Int
-	SwapFee1For0 *uint256.Int
+	AmAmmManager common.Address `json:"am"`
+	SwapFee0For1 *uint256.Int   `json:"sf01"`
+	SwapFee1For0 *uint256.Int   `json:"sf10"`
 }
 
 type HookParams struct {
-	FeeMin                 *uint256.Int
-	FeeMax                 *uint256.Int
-	FeeQuadraticMultiplier *uint256.Int
-	FeeTwapSecondsAgo      uint32
-	// MaxAmAmmFee                *uint256.Int
-	SurgeFeeHalfLife           *uint256.Int
-	SurgeFeeAutostartThreshold uint16
-	VaultSurgeThreshold0       *uint256.Int
-	VaultSurgeThreshold1       *uint256.Int
-	// RebalanceThreshold         uint16
-	// RebalanceMaxSlippage       uint16
-	// RebalanceTwapSecondsAgo    uint16
-	// RebalanceOrderTTL          uint16
-	AmAmmEnabled      bool
-	OracleMinInterval uint32
-	// MinRentMultiplier          *uint256.Int
+	FeeMin                     *uint256.Int `json:"fmin"`
+	FeeMax                     *uint256.Int `json:"fmax"`
+	FeeQuadraticMultiplier     *uint256.Int `json:"fqm"`
+	FeeTwapSecondsAgo          uint32       `json:"ftsa"`
+	SurgeFeeHalfLife           *uint256.Int `json:"sfhl"`
+	SurgeFeeAutostartThreshold uint16       `json:"sfat"`
+	VaultSurgeThreshold0       *uint256.Int `json:"vst0"`
+	VaultSurgeThreshold1       *uint256.Int `json:"vst1"`
+	AmAmmEnabled               bool         `json:"aae"`
+	OracleMinInterval          uint32       `json:"omi"`
 }
 
 type Slot0 struct {
-	SqrtPriceX96       *uint256.Int
-	Tick               int
-	LastSwapTimestamp  uint32
-	LastSurgeTimestamp uint32
+	SqrtPriceX96       *uint256.Int `json:"spx96"`
+	Tick               int          `json:"t"`
+	LastSwapTimestamp  uint32       `json:"lst"`
+	LastSurgeTimestamp uint32       `json:"lsgt"`
 }
 
 type PoolState struct {
-	// LiquidityDensityFunction common.Address
-	// BunniToken           common.Address
-	Hooklet              common.Address
-	TwapSecondsAgo       uint32
-	LdfParams            [32]byte
-	HookParams           []byte
-	LdfType              uint8
-	MinRawTokenRatio0    *uint256.Int
-	TargetRawTokenRatio0 *uint256.Int
-	MaxRawTokenRatio0    *uint256.Int
-	MinRawTokenRatio1    *uint256.Int
-	TargetRawTokenRatio1 *uint256.Int
-	MaxRawTokenRatio1    *uint256.Int
-	Currency0Decimals    uint8
-	Currency1Decimals    uint8
-	RawBalance0          *uint256.Int
-	RawBalance1          *uint256.Int
-	Reserve0             *uint256.Int
-	Reserve1             *uint256.Int
-	IdleBalance          [32]byte
+	Hooklet              common.Address `json:"h"`
+	TwapSecondsAgo       uint32         `json:"tsa"`
+	LdfParams            [32]byte       `json:"lp"`
+	HookParams           []byte         `json:"hp"`
+	LdfType              uint8          `json:"lt"`
+	MinRawTokenRatio0    *uint256.Int   `json:"mrtr0"`
+	TargetRawTokenRatio0 *uint256.Int   `json:"trtr0"`
+	MaxRawTokenRatio0    *uint256.Int   `json:"xrtr0"`
+	MinRawTokenRatio1    *uint256.Int   `json:"mrtr1"`
+	TargetRawTokenRatio1 *uint256.Int   `json:"trtr1"`
+	MaxRawTokenRatio1    *uint256.Int   `json:"xrtr1"`
+	Currency0Decimals    uint8          `json:"c0d"`
+	Currency1Decimals    uint8          `json:"c1d"`
+	RawBalance0          *uint256.Int   `json:"rb0"`
+	RawBalance1          *uint256.Int   `json:"rb1"`
+	Reserve0             *uint256.Int   `json:"r0"`
+	Reserve1             *uint256.Int   `json:"r1"`
+	IdleBalance          [32]byte       `json:"ib"`
 }
 
 type Slot0RPC struct {
@@ -147,6 +140,31 @@ type PoolStateRPC struct {
 		Currency1Decimals        uint8
 		Vault0Decimals           uint8
 		Vault1Decimals           uint8
+		RawBalance0              *big.Int
+		RawBalance1              *big.Int
+		Reserve0                 *big.Int
+		Reserve1                 *big.Int
+		IdleBalance              [32]byte
+	}
+}
+
+type LegacyPoolStateRPC struct {
+	Data struct {
+		LiquidityDensityFunction common.Address
+		BunniToken               common.Address
+		Hooklet                  common.Address
+		TwapSecondsAgo           *big.Int
+		LdfParams                [32]byte
+		HookParams               []byte
+		Vault0                   common.Address
+		Vault1                   common.Address
+		LdfType                  uint8
+		MinRawTokenRatio0        *big.Int
+		TargetRawTokenRatio0     *big.Int
+		MaxRawTokenRatio0        *big.Int
+		MinRawTokenRatio1        *big.Int
+		TargetRawTokenRatio1     *big.Int
+		MaxRawTokenRatio1        *big.Int
 		RawBalance0              *big.Int
 		RawBalance1              *big.Int
 		Reserve0                 *big.Int

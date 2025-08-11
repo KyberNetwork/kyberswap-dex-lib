@@ -2,6 +2,9 @@ package bunniv2
 
 import _ "embed"
 
+//go:embed abis/LegacyBunniHub.json
+var legacyBunniHubABIJson []byte
+
 //go:embed abis/BunniHub.json
 var bunniHubABIJson []byte
 

@@ -24,18 +24,20 @@ type LegacyHook struct {
 	uniswapv4.Hook
 }
 
-var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
+var _ = uniswapv4.RegisterHooksFactory(NewLegacyHook, LegacyHookAddresses...)
+
+func NewLegacyHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return &LegacyHook{
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4BunniV2},
 	}
-}, LegacyHookAddresses...)
+}
 
 func (h *LegacyHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
 	req := param.RpcClient.NewRequest().SetContext(ctx)
 
-	var poolState PoolStateRPC
+	var poolState LegacyPoolStateRPC
 	req.AddCall(&ethrpc.Call{
-		ABI:    bunniHubABI,
+		ABI:    legacyBunniHubABI,
 		Target: LegacyHubAddress.Hex(),
 		Method: "poolState",
 		Params: []any{common.HexToHash(param.Pool.Address)},
