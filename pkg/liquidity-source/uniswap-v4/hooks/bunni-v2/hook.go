@@ -28,10 +28,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-const (
-	_MAX_OBSERVATION_BATCH_SIZE = 1000
-)
-
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)
 
 type Hook struct {
@@ -304,7 +300,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(newHookExtra), nil
 }
 
-func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.ldf == nil {
 		return nil, fmt.Errorf("ldf is not initialized")
 	}
@@ -501,7 +497,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.Be
 	var hookHandleSwapInputAmount uint256.Int
 	var hookHandleSwapOutputAmount uint256.Int
 
-	var result uniswapv4.BeforeSwapHookResult
+	var result = uniswapv4.BeforeSwapResult{
+		Gas: _BEFORE_SWAP_GAS,
+	}
 
 	if useAmAmmFee {
 		surgeFee, err := computeSurgeFee(h.BlockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)

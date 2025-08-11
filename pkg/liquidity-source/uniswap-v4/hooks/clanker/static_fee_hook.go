@@ -122,11 +122,11 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	return string(extraBytes), nil
 }
 
-func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
-		return &uniswapv4.BeforeSwapHookResult{
+		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecific:   new(big.Int),
 			DeltaUnSpecific: new(big.Int),
 			SwapFee:         h.clankerFee,
@@ -145,18 +145,21 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uni
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
 
-	return &uniswapv4.BeforeSwapHookResult{
+	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   &fee,
 		DeltaUnSpecific: new(big.Int),
 		SwapFee:         h.pairedFee,
 	}, nil
 }
 
-func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
+func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
-		return big.NewInt(0), nil
+		return &uniswapv4.AfterSwapResult{
+			HookFee: new(big.Int),
+			Gas:     0,
+		}, nil
 	}
 
 	var delta big.Int
@@ -167,7 +170,10 @@ func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFe
 	}
 	delta.Div(&delta, FEE_DENOMINATOR)
 
-	return &delta, nil
+	return &uniswapv4.AfterSwapResult{
+		HookFee: &delta,
+		Gas:     0,
+	}, nil
 }
 
 func (h *StaticFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {

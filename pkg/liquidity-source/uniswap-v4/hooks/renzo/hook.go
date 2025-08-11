@@ -112,7 +112,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.poolSqrtPriceX96 == nil || h.rate == nil {
 		return nil, errors.New("sqrtPriceX96 or rate is not set")
 	}
@@ -129,15 +129,11 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 			fee = h.maxFeeBps
 		}
 	}
-	return &uniswapv4.BeforeSwapHookResult{
+	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   new(big.Int),
 		DeltaUnSpecific: new(big.Int),
 		SwapFee:         uniswapv4.FeeAmount(fee.Uint64()),
 	}, nil
-}
-
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
-	return new(big.Int), nil
 }
 
 func exchangeRateToSqrtPriceX96(rate *big.Int) *big.Int {

@@ -1,8 +1,6 @@
 package zora
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
@@ -10,22 +8,15 @@ import (
 )
 
 type Hook struct {
-	*uniswapv4.BaseHook
+	uniswapv4.Hook
 	hook common.Address
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Zora},
-		hook:     param.HookAddress,
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Zora},
+		hook: param.HookAddress,
 	}
 
 	return hook
 }, HookAddresses...)
-
-func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
-	// The main logic is to convert remaining fees to payout currency
-	// for market rewards. It doesn't modify the amountOut and only for
-	// their dex internal purposes. So empty implementation here.
-	return new(big.Int), nil
-}

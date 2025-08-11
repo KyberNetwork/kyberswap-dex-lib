@@ -192,12 +192,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 
 	tokenIn := param.TokenAmountIn.Token
 
-	beforeSwapHookParams := &BeforeSwapHookParams{
+	beforeSwapParams := &BeforeSwapParams{
 		ExactIn:         true,
 		ZeroForOne:      p.Pool.GetTokenIndex(tokenIn) == 0,
 		AmountSpecified: param.TokenAmountIn.Amount,
 	}
-	beforeSwapResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
+	beforeSwapResult, err := p.hook.BeforeSwap(beforeSwapParams)
 	if err != nil {
 		return nil, fmt.Errorf("[BeforeSwap] %s", err)
 	}
@@ -236,27 +236,29 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (result *p
 		return nil, err
 	}
 
-	hookFee, err := p.hook.AfterSwap(&AfterSwapHookParams{
-		BeforeSwapHookParams: beforeSwapHookParams,
-		AmountIn:             &amountIn,
-		AmountOut:            result.TokenAmountOut.Amount,
+	afterSwapResult, err := p.hook.AfterSwap(&AfterSwapParams{
+		BeforeSwapParams: beforeSwapParams,
+		AmountIn:         &amountIn,
+		AmountOut:        result.TokenAmountOut.Amount,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("[AfterSwap] %s", err)
 	}
 
-	if hookFee == nil {
-		return nil, errors.New("[AfterSwap] hook fee is nil")
+	if err := afterSwapResult.Validate(); err != nil {
+		return nil, fmt.Errorf("[AfterSwap] %s", err)
 	}
 
 	// afterSwap -> swapDelta = swapDelta - hookDelta;
 	// for the case of calcAmountOut (exactIn), amountOut supposed to be Positive, then turn to be TokenAmountOut.Sub
 	// for the case of calcAmountIn (exactOut), amountIn supposed to be Negative, then turn to be TokenAmountIn.Add
 	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
-	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, hookFee)
+	result.TokenAmountOut.Amount.Sub(result.TokenAmountOut.Amount, afterSwapResult.HookFee)
 	if result.TokenAmountOut.Amount.Sign() < 0 {
 		return nil, errors.New("[AfterSwap] amount out is negative")
 	}
+
+	result.Gas += beforeSwapResult.Gas + afterSwapResult.Gas
 
 	return result, err
 }
@@ -310,34 +312,34 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *poo
 	}
 
 	tokenOut := param.TokenAmountOut.Token
-	beforeSwapHookParams := &BeforeSwapHookParams{
+	beforeSwapParams := &BeforeSwapParams{
 		ExactIn:         false,
 		ZeroForOne:      p.Pool.GetTokenIndex(tokenOut) == 1,
 		AmountSpecified: param.TokenAmountOut.Amount,
 	}
 
-	swapHookResult, err := p.hook.BeforeSwap(beforeSwapHookParams)
+	beforeSwapResult, err := p.hook.BeforeSwap(beforeSwapParams)
 	if err != nil {
 		return nil, fmt.Errorf("[BeforeSwap] %s", err)
 	}
 
-	if err := swapHookResult.Validate(); err != nil {
+	if err := beforeSwapResult.Validate(); err != nil {
 		return nil, fmt.Errorf("[BeforeSwap] %s", err)
 	}
 
 	var amountOut big.Int
-	amountOut.Add(param.TokenAmountOut.Amount, swapHookResult.DeltaSpecific)
+	amountOut.Add(param.TokenAmountOut.Amount, beforeSwapResult.DeltaSpecific)
 	if amountOut.Sign() < 0 {
 		return nil, errors.New("[BeforeSwap] amount out is negative")
 	}
 
-	if swapHookResult.SwapFee >= constants.FeeMax {
+	if beforeSwapResult.SwapFee >= constants.FeeMax {
 		return nil, errors.New("[BeforeSwap] swap fee is greater than max fee")
-	} else if swapHookResult.SwapFee > 0 && swapHookResult.SwapFee != p.V3Pool.Fee {
+	} else if beforeSwapResult.SwapFee > 0 && beforeSwapResult.SwapFee != p.V3Pool.Fee {
 		cloned := *poolSim
 		clonedV3Pool := *poolSim.V3Pool
 		cloned.V3Pool = &clonedV3Pool
-		cloned.V3Pool.Fee = swapHookResult.SwapFee
+		cloned.V3Pool.Fee = beforeSwapResult.SwapFee
 		poolSim = &cloned
 	}
 
@@ -352,24 +354,26 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (result *poo
 		return nil, err
 	}
 
-	hookFee, err := p.hook.AfterSwap(&AfterSwapHookParams{
-		BeforeSwapHookParams: beforeSwapHookParams,
-		AmountIn:             result.TokenAmountIn.Amount,
-		AmountOut:            &amountOut,
+	afterSwapResult, err := p.hook.AfterSwap(&AfterSwapParams{
+		BeforeSwapParams: beforeSwapParams,
+		AmountIn:         result.TokenAmountIn.Amount,
+		AmountOut:        &amountOut,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("[AfterSwap] %s", err)
 	}
 
-	if hookFee == nil {
-		return nil, errors.New("[AfterSwap] hook fee is nil")
+	if err := afterSwapResult.Validate(); err != nil {
+		return nil, fmt.Errorf("[AfterSwap] %s", err)
 	}
 
-	result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, swapHookResult.DeltaUnSpecific)
-	result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, hookFee)
+	result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
+	result.TokenAmountIn.Amount.Add(result.TokenAmountIn.Amount, afterSwapResult.HookFee)
 	if result.TokenAmountIn.Amount.Sign() < 0 {
 		return nil, errors.New("[AfterSwap] amount in is negative")
 	}
+
+	result.Gas += beforeSwapResult.Gas + afterSwapResult.Gas
 
 	return result, err
 }

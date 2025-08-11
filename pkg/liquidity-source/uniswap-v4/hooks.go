@@ -13,19 +13,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type BeforeSwapHookParams struct {
+type BeforeSwapParams struct {
 	ExactIn         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int
 }
 
-type BeforeSwapHookResult struct {
+type BeforeSwapResult struct {
 	DeltaSpecific   *big.Int
 	DeltaUnSpecific *big.Int
 	SwapFee         FeeAmount
+	Gas             int64
 }
 
-func (b *BeforeSwapHookResult) Validate() error {
+func (b *BeforeSwapResult) Validate() error {
 	if b.DeltaSpecific == nil {
 		return errors.New("delta specified is nil")
 	}
@@ -37,8 +38,21 @@ func (b *BeforeSwapHookResult) Validate() error {
 	return nil
 }
 
-type AfterSwapHookParams struct {
-	*BeforeSwapHookParams
+type AfterSwapResult struct {
+	HookFee *big.Int
+	Gas     int64
+}
+
+func (b *AfterSwapResult) Validate() error {
+	if b.HookFee == nil {
+		return errors.New("hook fee is nil")
+	}
+
+	return nil
+}
+
+type AfterSwapParams struct {
+	*BeforeSwapParams
 	AmountIn  *big.Int
 	AmountOut *big.Int
 }
@@ -86,8 +100,8 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error)
-	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int, err error)
+	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
+	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
 	CloneState() Hook
 }
 
@@ -151,14 +165,18 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
-	return &BeforeSwapHookResult{
+func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error) {
+	return &BeforeSwapResult{
 		SwapFee:         0,
 		DeltaSpecific:   new(big.Int),
 		DeltaUnSpecific: new(big.Int),
+		Gas:             0,
 	}, nil
 }
 
-func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
-	return new(big.Int), nil
+func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
+	return &AfterSwapResult{
+		HookFee: new(big.Int),
+		Gas:     0,
+	}, nil
 }

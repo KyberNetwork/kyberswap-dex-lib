@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	MAX_ABS_TICK_MOVE = 9116
+	_MAX_OBSERVATION_BATCH_SIZE = 1000
+
+	_BEFORE_SWAP_GAS = 525000
 )
 
 const (

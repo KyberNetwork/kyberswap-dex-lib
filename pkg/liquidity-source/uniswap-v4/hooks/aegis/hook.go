@@ -132,8 +132,8 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
-	return &uniswapv4.BeforeSwapHookResult{
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	return &uniswapv4.BeforeSwapResult{
 		SwapFee: h.swapFee,
 		DeltaSpecific: lo.Ternary(swapHookParams.ExactIn, func() *big.Int {
 			hookFeeAmt := new(big.Int)
@@ -146,12 +146,14 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
-	return lo.Ternary(!swapHookParams.ExactIn, func() *big.Int {
-		hookFeeAmt = new(big.Int)
-		hookFeeAmt.Mul(swapHookParams.AmountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
-		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-		return hookFeeAmt
-	}(), new(big.Int),
-	), nil
+func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
+	return &uniswapv4.AfterSwapResult{
+		HookFee: lo.Ternary(!swapHookParams.ExactIn, func() *big.Int {
+			hookFeeAmt := new(big.Int)
+			hookFeeAmt.Mul(swapHookParams.AmountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+			hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+			return hookFeeAmt
+		}(), new(big.Int),
+		),
+	}, nil
 }

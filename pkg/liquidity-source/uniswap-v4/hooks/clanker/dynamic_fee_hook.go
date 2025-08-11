@@ -308,7 +308,7 @@ func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
 	return fee.Uint64()
 }
 
-func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.poolSim == nil {
 		return nil, ErrPoolSimIsNil
 	}
@@ -329,7 +329,7 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 	swapFee := uniswapv4.FeeAmount(lpFee)
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
-		return &uniswapv4.BeforeSwapHookResult{
+		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecific:   new(big.Int),
 			DeltaUnSpecific: new(big.Int),
 			SwapFee:         swapFee,
@@ -351,18 +351,21 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
 
-	return &uniswapv4.BeforeSwapHookResult{
+	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   &fee,
 		DeltaUnSpecific: new(big.Int),
 		SwapFee:         swapFee,
 	}, nil
 }
 
-func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int, err error) {
+func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
-		return big.NewInt(0), nil
+		return &uniswapv4.AfterSwapResult{
+			HookFee: new(big.Int),
+			Gas:     0,
+		}, nil
 	}
 
 	var delta big.Int
@@ -374,7 +377,10 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookF
 		delta.Mul(params.AmountIn, h.protocolFee)
 	}
 	delta.Div(&delta, FEE_DENOMINATOR)
-	return &delta, nil
+	return &uniswapv4.AfterSwapResult{
+		HookFee: &delta,
+		Gas:     0,
+	}, nil
 }
 
 func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
