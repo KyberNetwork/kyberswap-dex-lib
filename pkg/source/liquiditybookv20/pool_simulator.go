@@ -87,7 +87,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			Token:  tokenAmountIn.Token,
 			Amount: swapOutResult.Fee,
 		},
-		Gas: defaultGas,
+		Gas: baseGas + perBinGas*int64(len(swapOutResult.BinsReserveChanges)),
 		SwapInfo: SwapInfo{
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
 			NewFeeParameters:   swapOutResult.FeeParameters,
