@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -42,11 +43,6 @@ func TestPoolTracker(t *testing.T) {
 	logger.Debugf("PoolTracker initialized: %+v", poolTracker)
 
 	t.Run("USDC_USDT_Pool", func(t *testing.T) {
-		staticExtraBytes, _ := json.Marshal(&StaticExtra{
-			DexLiteAddress: config.DexLiteAddress,
-			HasNative:      false,
-		})
-
 		// Create mock dexKey and dexId
 		mockDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
@@ -54,14 +50,18 @@ func TestPoolTracker(t *testing.T) {
 			Salt:   common.Hash{},
 		}
 		mockDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
+
+		staticExtraBytes, _ := json.Marshal(&StaticExtra{
+			DexLiteAddress: config.DexLiteAddress,
+			DexKey:         mockDexKey,
+			DexId:          mockDexId,
+		})
 		extra := PoolExtra{
-			DexKey: mockDexKey,
-			DexId:  mockDexId,
 			PoolState: PoolState{
-				DexVariables:     big.NewInt(0x123456789abcdef),
-				CenterPriceShift: big.NewInt(0),
-				RangeShift:       big.NewInt(0),
-				ThresholdShift:   big.NewInt(0),
+				DexVariables:     uint256.NewInt(0x123456789abcdef),
+				CenterPriceShift: uint256.NewInt(0),
+				RangeShift:       uint256.NewInt(0),
+				NewCenterPrice:   uint256.NewInt(0),
 			},
 		}
 		extraBytes, _ := json.Marshal(extra)
@@ -106,41 +106,6 @@ func TestPoolTracker(t *testing.T) {
 		}
 	})
 }
-
-func TestCalculateDexId(t *testing.T) {
-	tracker := &PoolTracker{}
-
-	dexKey := DexKey{
-		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
-		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-		Salt:   common.Hash{},
-	}
-
-	dexId := tracker.calculateDexId(dexKey)
-	require.NotEqual(t, [8]byte{}, dexId)
-
-	// DexId should be deterministic
-	dexId2 := tracker.calculateDexId(dexKey)
-	require.Equal(t, dexId, dexId2)
-
-	logger.Debugf("DexId for USDC/USDT: %x", dexId)
-}
-
-func TestCalculatePoolStateSlot(t *testing.T) {
-	tracker := &PoolTracker{}
-
-	dexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
-
-	// Test different offsets
-	for i := 0; i < 5; i++ {
-		slot := tracker.calculatePoolStateSlot(dexId, i)
-		require.NotEqual(t, common.Hash{}, slot)
-		logger.Debugf("Slot %d: %s", i, slot.Hex())
-	}
-}
-
-// TestCalculateReserves was removed because calculateReserves is no longer part of PoolTracker
-// Reserve calculations are now handled by PoolSimulator
 
 // TestRealOnChainPoolState tests against the actual USDC/USDT pool on-chain
 func TestRealOnChainPoolState(t *testing.T) {
@@ -216,7 +181,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 		logger.Debugf("   Salt %d: %s -> DexId: %x", i, common.BytesToHash(testDexKey.Salt[:]).Hex(), testDexId)
 
 		// Try to read this pool state
-		testPoolState, _, _, err := poolTracker.getPoolStateByDexId(context.Background(), testDexId, nil)
+		testPoolState, _, err := poolTracker.getPoolStateByDexId(context.Background(), testDexId, nil)
 		if err != nil {
 			logger.Debugf("     ❌ Error reading pool state: %v", err)
 		} else if testPoolState.DexVariables.Sign() != 0 {
@@ -233,42 +198,27 @@ func TestRealOnChainPoolState(t *testing.T) {
 	logger.Debugf("\n🔬 DIRECT POOL STATE READING:")
 	ctx := context.Background()
 
-	// Let me manually check the storage slot calculation
-	logger.Debugf("\n🔧 MANUAL STORAGE SLOT VERIFICATION:")
-	for i := 0; i < 4; i++ {
-		slot := poolTracker.calculatePoolStateSlot(dexId, i)
-		logger.Debugf("   Pool State Variable %d: Slot 0x%s", i, slot.Hex())
-
-		value, err := poolTracker.readFromStorage(ctx, slot)
-		if err != nil {
-			logger.Debugf("     ❌ Error reading slot: %v", err)
-		} else {
-			logger.Debugf("     ✅ Raw Value: %s (hex: 0x%s)", value.String(), value.Text(16))
-		}
-	}
-
-	poolState, blockNumber, blockTimestamp, err := poolTracker.getPoolStateByDexId(ctx, dexId, nil)
+	poolState, blockNumber, err := poolTracker.getPoolStateByDexId(ctx, dexId, nil)
 	if err != nil {
 		logger.Debugf("❌ Failed to read pool state directly: %v", err)
 	} else {
 		logger.Debugf("✅ RAW POOL STATE FROM BLOCKCHAIN:")
 		logger.Debugf("   Block Number: %d", blockNumber)
-		logger.Debugf("   Block Timestamp: %d", blockTimestamp)
 		logger.Debugf("   DexVariables (raw): %s", poolState.DexVariables.String())
-		logger.Debugf("   DexVariables (hex): 0x%s", poolState.DexVariables.Text(16))
+		logger.Debugf("   DexVariables (hex): 0x%s", poolState.DexVariables.Hex())
 		logger.Debugf("   CenterPriceShift: %s", poolState.CenterPriceShift.String())
 		logger.Debugf("   RangeShift: %s", poolState.RangeShift.String())
-		logger.Debugf("   ThresholdShift: %s", poolState.ThresholdShift.String())
+		logger.Debugf("   NewCenterPrice: %s", poolState.NewCenterPrice.String())
 
 		if poolState.DexVariables.Sign() != 0 {
 			logger.Debugf("\n🔍 DECODING REAL DEXVARIABLES FROM ON-CHAIN:")
 
 			// Use pool tracker's unpack method
-			unpacked := poolTracker.unpackDexVariables(poolState.DexVariables)
+			unpacked := unpackDexVariables(poolState.DexVariables)
 			logger.Debugf("\n📊 DECODED ON-CHAIN DEX VARIABLES:")
-			logger.Debugf("   Fee: %s basis points (%.6f%%)", unpacked.Fee.String(), float64(unpacked.Fee.Int64())/10000)
+			logger.Debugf("   Fee: %s basis points (%.6f%%)", unpacked.Fee.String(), unpacked.Fee.Float64()/10000)
 			logger.Debugf("   Revenue Cut: %s", unpacked.RevenueCut.String())
-			logger.Debugf("   Rebalancing Status: %s", unpacked.RebalancingStatus.String())
+			logger.Debugf("   Rebalancing Status: %d", unpacked.RebalancingStatus)
 			logger.Debugf("   Center Price Shift Active: %v", unpacked.CenterPriceShiftActive)
 			logger.Debugf("   Center Price: %s", unpacked.CenterPrice.String())
 			logger.Debugf("   Range Percent Shift Active: %v", unpacked.RangePercentShiftActive)
@@ -277,8 +227,6 @@ func TestRealOnChainPoolState(t *testing.T) {
 			logger.Debugf("   Threshold Percent Shift Active: %v", unpacked.ThresholdPercentShiftActive)
 			logger.Debugf("   Upper Shift Threshold: %s", unpacked.UpperShiftThresholdPercent.String())
 			logger.Debugf("   Lower Shift Threshold: %s", unpacked.LowerShiftThresholdPercent.String())
-			logger.Debugf("   Token0 Decimals: %s", unpacked.Token0Decimals.String())
-			logger.Debugf("   Token1 Decimals: %s", unpacked.Token1Decimals.String())
 			logger.Debugf("   Token0 Total Supply Adjusted: %s", unpacked.Token0TotalSupplyAdjusted.String())
 			logger.Debugf("   Token1 Total Supply Adjusted: %s", unpacked.Token1TotalSupplyAdjusted.String())
 		} else {
@@ -308,7 +256,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 		Target: config.DexLiteAddress,
 		Method: "getDexesListLength", // Method we know exists
 		Params: nil,
-	}, []interface{}{&dexesListLength})
+	}, []any{&dexesListLength})
 
 	_, err = req.Call()
 	if err != nil {
@@ -327,8 +275,8 @@ func TestRealOnChainPoolState(t *testing.T) {
 		ABI:    fluidDexLiteABI,
 		Target: config.DexLiteAddress,
 		Method: "readFromStorage",
-		Params: []interface{}{slot1Hash},
-	}, []interface{}{&storageResult})
+		Params: []any{slot1Hash},
+	}, []any{&storageResult})
 
 	_, err = req2.Call()
 	if err != nil {

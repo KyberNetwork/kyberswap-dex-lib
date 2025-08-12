@@ -6,6 +6,7 @@ import (
 
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+	"golang.org/x/exp/constraints"
 )
 
 var (
@@ -44,7 +45,7 @@ var (
 	})
 )
 
-func TenPow(decimal uint8) *uint256.Int {
+func TenPow[T constraints.Integer](decimal T) *uint256.Int {
 	if int(decimal) < len(preTenPow) {
 		return preTenPow[decimal]
 	}

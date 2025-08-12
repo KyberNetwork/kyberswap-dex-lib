@@ -6,123 +6,47 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+var (
+	entityPool entity.Pool
+	_          = json.Unmarshal([]byte(`{"address":"0xbbcb91440523216e2b87052a99f69c604a7b6e006dd161107ef07bb8","swapFee":0.0005,"exchange":"fluid-dex-lite","type":"fluid-dex-lite","timestamp":1754385937,"reserves":["494178168265","507852200630"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"pS\":{\"dV\":\"0x1cde38e0457a2001c173d22cdbba319bb7801e007c00006765c7939d700005\",\"pS\":\"0xd1182321a5e00000039d6228d9dcc28dfffffe6890d0e3\",\"rS\":\"0x6890d0e315180004800c\",\"nP\":\"0x33b2e3ca3a10079d480c6b0\"},\"ts\":1754385923}","staticExtra":"{\"l\":\"19d6228d9dcc28dfffffe688c1fe7\",\"k\":{\"t0\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"t1\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"s\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"},\"i\":\"0x6dd161107ef07bb8\"}","blockNumber":23073952}`),
+		&entityPool)
+	poolSim = lo.Must(NewPoolSimulator(entityPool))
 )
 
 func TestPoolSimulator(t *testing.T) {
-	// Create a mock pool similar to the Foundry test scenario
-	staticExtra := StaticExtra{
-		DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00",
-		HasNative:      false,
-	}
-	staticExtraBytes, _ := json.Marshal(staticExtra)
-
-	// Mock pool state with reasonable values
-	poolState := PoolState{
-		DexVariables:     big.NewInt(0x123456789abcdef), // Mock packed variables
-		CenterPriceShift: big.NewInt(0),
-		RangeShift:       big.NewInt(0),
-		ThresholdShift:   big.NewInt(0),
-	}
-
-	// Create mock dexKey and dexId
-	mockDexKey := DexKey{
-		Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
-		Token1: common.HexToAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), // USDT
-		Salt:   common.Hash{},
-	}
-	mockDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
-
-	extra := PoolExtra{
-		DexKey:    mockDexKey,
-		DexId:     mockDexId,
-		PoolState: poolState,
-	}
-	extraBytes, _ := json.Marshal(extra)
-
-	entityPool := entity.Pool{
-		Address:  "0x1234567890123456789012345678901234567890",
-		Exchange: "fluid-dex-lite",
-		Type:     DexType,
-		Reserves: entity.PoolReserves{"1000000000", "1000000000"}, // 1000 USDC, 1000 USDT
-		Tokens: []*entity.PoolToken{
-			{
-				Address:   "0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1", // USDC
-				Swappable: true,
-				Decimals:  6,
-			},
-			{
-				Address:   "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
-				Swappable: true,
-				Decimals:  6,
-			},
-		},
-		SwapFee:     0.001, // 0.1%
-		BlockNumber: 18000000,
-		Extra:       string(extraBytes),
-		StaticExtra: string(staticExtraBytes),
-		Timestamp:   1234567890,
-	}
-
-	simulator, err := NewPoolSimulator(entityPool)
-	require.NoError(t, err)
-	require.NotNil(t, simulator)
-
 	t.Run("TestCalcAmountOut", func(t *testing.T) {
-		// Test swapping 1 USDC for USDT (similar to Foundry test)
-		amountIn := big.NewInt(1000000) // 1 USDC (6 decimals)
-
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  "0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1", // USDC
-				Amount: amountIn,
+		testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
+			0: {
+				1: {
+					"1000000": "999909",
+					"9999999": "9999090",
+				},
 			},
-			TokenOut: "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
+			1: {
+				0: {
+					"1000000": "1000080",
+					"9999999": "10000807",
+				},
+			},
 		})
-
-		if err != nil {
-			t.Logf("CalcAmountOut error (expected with mock data): %v", err)
-		} else {
-			require.NotNil(t, result)
-			require.NotNil(t, result.TokenAmountOut)
-			require.Greater(t, result.TokenAmountOut.Amount.Int64(), int64(0))
-
-			t.Logf("Swap 1 USDC -> %s USDT", result.TokenAmountOut.Amount.String())
-			t.Logf("Fee: %s USDC", result.Fee.Amount.String())
-			t.Logf("Gas: %d", result.Gas)
-		}
 	})
 
 	t.Run("TestCalcAmountIn", func(t *testing.T) {
-		// Test calculating input for 1 USDT output
-		amountOut := big.NewInt(1000000) // 1 USDT (6 decimals)
-
-		result, err := simulator.CalcAmountIn(pool.CalcAmountInParams{
-			TokenAmountOut: pool.TokenAmount{
-				Token:  "0xdAC17F958D2ee523a2206206994597C13D831ec7", // USDT
-				Amount: amountOut,
-			},
-			TokenIn: "0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1", // USDC
-		})
-
-		if err != nil {
-			t.Logf("CalcAmountIn error (expected with mock data): %v", err)
-		} else {
-			require.NotNil(t, result)
-			require.NotNil(t, result.TokenAmountIn)
-			require.Greater(t, result.TokenAmountIn.Amount.Int64(), int64(0))
-
-			t.Logf("Need %s USDC -> 1 USDT", result.TokenAmountIn.Amount.String())
-			t.Logf("Fee: %s USDC", result.Fee.Amount.String())
-		}
+		testutil.TestCalcAmountIn(t, poolSim)
 	})
 
 	t.Run("TestUnpackDexVariables", func(t *testing.T) {
 		// Test unpacking dex variables
-		dexVars := simulator.unpackDexVariables(poolState.DexVariables)
+		dexVars := unpackDexVariables(poolSim.PoolState.DexVariables)
 
 		require.NotNil(t, dexVars)
 		require.NotNil(t, dexVars.Fee)
@@ -133,43 +57,10 @@ func TestPoolSimulator(t *testing.T) {
 		t.Logf("Unpacked revenue cut: %s", dexVars.RevenueCut.String())
 		t.Logf("Unpacked center price: %s", dexVars.CenterPrice.String())
 	})
-
-	t.Run("TestUpdateBalance", func(t *testing.T) {
-		// Test updating pool balance after swap
-		initialReserves := simulator.GetReserves()
-		require.Len(t, initialReserves, 2)
-
-		// Mock swap: 1 USDC in, 0.999 USDT out
-		simulator.UpdateBalance(pool.UpdateBalanceParams{
-			TokenAmountIn: pool.TokenAmount{
-				Token:  "0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bB336F8eb2f",
-				Amount: big.NewInt(1000000),
-			},
-			TokenAmountOut: pool.TokenAmount{
-				Token:  "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-				Amount: big.NewInt(999000),
-			},
-			SwapInfo: SwapInfo{
-				NewPoolState: poolState,
-			},
-		})
-
-		newReserves := simulator.GetReserves()
-		require.Len(t, newReserves, 2)
-
-		t.Logf("Reserve changes: [%s -> %s], [%s -> %s]",
-			initialReserves[0].String(), newReserves[0].String(),
-			initialReserves[1].String(), newReserves[1].String())
-	})
 }
 
 func TestPoolSimulatorEdgeCases(t *testing.T) {
-
 	t.Run("TestZeroAmountIn", func(t *testing.T) {
-		// Create normal pool for this test
-		staticExtra := StaticExtra{DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00"}
-		staticExtraBytes, _ := json.Marshal(staticExtra)
-
 		// Create a mock dexKey and dexId for this test
 		testDexKey := DexKey{
 			Token0: common.HexToAddress("0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bD1"), // USDC
@@ -178,10 +69,16 @@ func TestPoolSimulatorEdgeCases(t *testing.T) {
 		}
 		testDexId := [8]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}
 
+		// Create normal pool for this test
+		staticExtra := StaticExtra{
+			DexLiteAddress: "0xBbcb91440523216e2b87052A99F69c604A7b6e00",
+			DexKey:         testDexKey,
+			DexId:          testDexId,
+		}
+		staticExtraBytes, _ := json.Marshal(staticExtra)
+
 		extra := PoolExtra{
-			DexKey:    testDexKey,
-			DexId:     testDexId,
-			PoolState: PoolState{DexVariables: big.NewInt(0x123456789abcdef)},
+			PoolState: PoolState{DexVariables: uint256.NewInt(0x123456789abcdef)},
 		}
 		extraBytes, _ := json.Marshal(extra)
 
@@ -198,11 +95,11 @@ func TestPoolSimulatorEdgeCases(t *testing.T) {
 			StaticExtra: string(staticExtraBytes),
 		}
 
-		simulator, err := NewPoolSimulator(entityPool)
+		poolSim, err := NewPoolSimulator(entityPool)
 		require.NoError(t, err)
 
 		// Should fail with zero amount
-		_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		_, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xA0b86a33E6441c0c37Fc0C16b6C7Da2A0edD0bB336F8eb2f",
 				Amount: big.NewInt(0),
@@ -216,10 +113,9 @@ func TestPoolSimulatorEdgeCases(t *testing.T) {
 }
 
 func TestMathFunctions(t *testing.T) {
-	simulator := &PoolSimulator{
-		Token0Decimals: 6,
-		Token1Decimals: 6,
-	}
+	// Create a properly packed dexVariables for testing
+	// Pack: fee=100, revenueCut=10, rebalancing=1, centerPrice=1e27, token0Supply=1000000, token1Supply=1000000
+	mockDexVariables := uint256.NewInt(0)
 
 	t.Run("TestSwapMath", func(t *testing.T) {
 		// Test basic constant product calculation
@@ -236,52 +132,42 @@ func TestMathFunctions(t *testing.T) {
 		//	Token1ImaginaryReserves: dexVars.Token1TotalSupplyAdjusted,
 		// }
 
-		// Create a properly packed dexVariables for testing
-		// Pack: fee=100, revenueCut=10, rebalancing=1, centerPrice=1e27, token0Supply=1000000, token1Supply=1000000
-		mockDexVariables := big.NewInt(0)
-
 		// Fee (100) at bits 0-12
-		mockDexVariables.Or(mockDexVariables, big.NewInt(100))
+		mockDexVariables.Or(mockDexVariables, uint256.NewInt(100))
 
 		// Revenue cut (10) at bits 13-19
-		mockDexVariables.Or(mockDexVariables, new(big.Int).Lsh(big.NewInt(10), 13))
+		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(uint256.NewInt(10), 13))
 
 		// Rebalancing status (1) at bits 20-21
-		mockDexVariables.Or(mockDexVariables, new(big.Int).Lsh(big.NewInt(1), 20))
+		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(uint256.NewInt(1), 20))
 
 		// Center price (1e27 compressed) at bits 23-62
-		centerPriceCompressed := big.NewInt(1e18) // Simplified for testing
-		mockDexVariables.Or(mockDexVariables, new(big.Int).Lsh(centerPriceCompressed, 23))
+		centerPriceCompressed := uint256.NewInt(1e18) // Simplified for testing
+		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(centerPriceCompressed, 23))
 
 		// Token supplies at bits 136-196
-		token0Supply := big.NewInt(1000000)
-		token1Supply := big.NewInt(1000000)
-		mockDexVariables.Or(mockDexVariables, new(big.Int).Lsh(token0Supply, 136))
-		mockDexVariables.Or(mockDexVariables, new(big.Int).Lsh(token1Supply, 196))
+		token0Supply := uint256.NewInt(1000000)
+		token1Supply := uint256.NewInt(1000000)
+		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token0Supply, 136))
+		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token1Supply, 196))
 
-		// Create a mock pool state for testing
-		mockPoolState := PoolState{
-			DexVariables:     mockDexVariables,
-			CenterPriceShift: big.NewInt(0),
-			RangeShift:       big.NewInt(0),
-			ThresholdShift:   big.NewInt(0),
-		}
+		poolSim := &PoolSimulator{DexVars: unpackDexVariables(mockDexVariables)}
 
 		// Test swapIn: 1000 tokens in
-		amountOut, _, _, err := simulator.calculateSwapInWithState(true, big.NewInt(1000), mockPoolState)
+		amountOut, _, _, err := poolSim.calculateSwapInWithState(0, 1, uint256.NewInt(1000), poolSim.DexVars)
 		if err != nil {
 			t.Logf("SwapIn error (expected with simple math): %v", err)
 		} else {
-			require.Greater(t, amountOut.Int64(), int64(0))
+			require.Greater(t, amountOut.Uint64(), 0)
 			t.Logf("SwapIn: 1000 -> %s", amountOut.String())
 		}
 
 		// Test swapOut: want 1000 tokens out
-		amountIn, _, _, err := simulator.calculateSwapOutWithState(true, big.NewInt(1000), mockPoolState)
+		amountIn, _, _, err := poolSim.calculateSwapOutWithState(0, 1, uint256.NewInt(1000), poolSim.DexVars)
 		if err != nil {
 			t.Logf("SwapOut error (expected with simple math): %v", err)
 		} else {
-			require.Greater(t, amountIn.Int64(), int64(0))
+			require.Greater(t, amountIn.Uint64(), 0)
 			t.Logf("SwapOut: %s -> 1000", amountIn.String())
 		}
 	})

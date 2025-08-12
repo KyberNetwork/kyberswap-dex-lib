@@ -198,7 +198,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 		ConsumedAmount:   finalQuote.ConsumedAmount,
 		CalculatedAmount: finalQuote.CalculatedAmount,
 		FeesPaid:         finalQuote.FeesPaid,
-		Gas:              finalQuote.Gas + virtualOrderDeltaTimesCrossed*quoting.GasCostOfOneVirtualOrderDelta + virtualOrdersExecuted*quoting.GasCostOfExecutingVirtualOrders,
+		Gas:              finalQuote.Gas + virtualOrderDeltaTimesCrossed*quoting.GasVirtualOrderDelta + virtualOrdersExecuted*quoting.GasExecutingVirtualOrders,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: 0,
 			IsToken1:  isToken1,
