@@ -25,7 +25,7 @@ const (
 
 	parsedDecimals = 18
 
-	defaultGas = 170000
+	defaultGas = 183499
 )
 
 var (

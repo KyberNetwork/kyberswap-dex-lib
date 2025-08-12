@@ -12,16 +12,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type Gas struct {
-	Swap int64
-}
-
 type PoolSimulator struct {
 	pool.Pool
 
 	vault      *Vault
 	vaultUtils *VaultUtils
-	gas        Gas
 }
 
 var _ = pool.RegisterFactory0(DexTypeGmx, NewPoolSimulator)
@@ -61,7 +56,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		vault:      extra.Vault,
 		vaultUtils: NewVaultUtils(extra.Vault),
-		gas:        DefaultGas,
 	}, nil
 }
 
@@ -85,7 +79,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
-		Gas:            p.gas.Swap,
+		Gas:            defaultGas,
 	}, nil
 }
 

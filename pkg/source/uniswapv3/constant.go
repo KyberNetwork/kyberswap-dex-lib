@@ -21,7 +21,7 @@ const (
 
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+	defaultGas = Gas{BaseGas: 87842, CrossInitTickGas: 21492}
 
 	ErrOverflow       = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier = errors.New("invalid feeTier")
