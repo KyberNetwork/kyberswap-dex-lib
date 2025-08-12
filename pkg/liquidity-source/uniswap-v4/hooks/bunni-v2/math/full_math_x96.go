@@ -88,8 +88,7 @@ func FullMulX96Up(a, b *uint256.Int) (*uint256.Int, error) {
 	var remainder uint256.Int
 	remainder.MulMod(a, b, Q96)
 	if !remainder.IsZero() {
-		z, _ = new(uint256.Int).AddOverflow(z, u256.U1)
-		if z.IsZero() {
+		if z.AddUint64(z, 1).IsZero() {
 			return nil, ErrMulDivFailed
 		}
 	}

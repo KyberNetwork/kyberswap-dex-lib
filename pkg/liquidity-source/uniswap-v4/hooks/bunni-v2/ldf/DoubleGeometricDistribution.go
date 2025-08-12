@@ -34,7 +34,8 @@ func (d *DoubleGeometricDistribution) Query(
 	shouldSurge bool,
 	err error,
 ) {
-	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode := d.decodeParams(twapTick, ldfParams)
+	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode :=
+		doubleGeo.DecodeParams(d.tickSpacing, twapTick, ldfParams)
 	initialized, lastMinTick := DecodeState(ldfState)
 
 	if initialized {
@@ -71,7 +72,8 @@ func (d *DoubleGeometricDistribution) ComputeSwap(
 	swapLiquidity *uint256.Int,
 	err error,
 ) {
-	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode := d.decodeParams(twapTick, ldfParams)
+	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode :=
+		doubleGeo.DecodeParams(d.tickSpacing, twapTick, ldfParams)
 	initialized, lastMinTick := DecodeState(ldfState)
 
 	if initialized {
@@ -91,63 +93,6 @@ func (d *DoubleGeometricDistribution) ComputeSwap(
 		weight0,
 		weight1,
 	)
-}
-
-// decodeParams decodes the LDF parameters from bytes32
-func (d *DoubleGeometricDistribution) decodeParams(
-	twapTick int,
-	ldfParams [32]byte,
-) (
-	minTick,
-	length0,
-	length1 int,
-	alpha0X96,
-	alpha1X96,
-	weight0,
-	weight1 *uint256.Int,
-	shiftMode shiftmode.ShiftMode,
-) {
-	// | shiftMode - 1 byte | minTickOrOffset - 3 bytes | length0 - 2 bytes | alpha0 - 4 bytes | weight0 - 4 bytes | length1 - 2 bytes | alpha1 - 4 bytes | weight1 - 4 bytes |
-	shiftMode = shiftmode.ShiftMode(ldfParams[0])
-	length0 = int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
-	alpha0 := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
-	weight0Val := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
-	length1 = int(int16(uint16(ldfParams[14])<<8 | uint16(ldfParams[15])))
-	alpha1 := uint32(ldfParams[16])<<24 | uint32(ldfParams[17])<<16 | uint32(ldfParams[18])<<8 | uint32(ldfParams[19])
-	weight1Val := uint32(ldfParams[20])<<24 | uint32(ldfParams[21])<<16 | uint32(ldfParams[22])<<8 | uint32(ldfParams[23])
-
-	// Convert alphas to alphaX96
-	alpha0X96 = uint256.NewInt(uint64(alpha0))
-	alpha0X96.Mul(alpha0X96, math.Q96)
-	alpha0X96.Div(alpha0X96, math.ALPHA_BASE)
-
-	alpha1X96 = uint256.NewInt(uint64(alpha1))
-	alpha1X96.Mul(alpha1X96, math.Q96)
-	alpha1X96.Div(alpha1X96, math.ALPHA_BASE)
-
-	// Convert weights
-	weight0 = uint256.NewInt(uint64(weight0Val))
-	weight1 = uint256.NewInt(uint64(weight1Val))
-
-	if shiftMode != shiftmode.Static {
-		// use rounded TWAP value + offset as minTick
-		offset := int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-		minTick = math.RoundTickSingle(twapTick+offset, d.tickSpacing)
-
-		// bound distribution to be within the range of usable ticks
-		minUsableTick := math.MinUsableTick(d.tickSpacing)
-		maxUsableTick := math.MaxUsableTick(d.tickSpacing)
-		if minTick < minUsableTick {
-			minTick = minUsableTick
-		} else if minTick > maxUsableTick-(length0+length1)*d.tickSpacing {
-			minTick = maxUsableTick - (length0+length1)*d.tickSpacing
-		}
-	} else {
-		// static minTick set in params
-		minTick = int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-	}
-
-	return
 }
 
 // query computes the liquidity density and cumulative amounts using doubleGeo lib functions
@@ -236,7 +181,6 @@ func (d *DoubleGeometricDistribution) computeSwap(
 	err error,
 ) {
 	if exactIn == zeroForOne {
-		// compute roundedTick by inverting the cumulative amount0
 		success, roundedTick, err = doubleGeo.InverseCumulativeAmount0(d.tickSpacing, inverseCumulativeAmountInput, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		if err != nil {
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
@@ -245,7 +189,6 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount0_, err = doubleGeo.CumulativeAmount0(d.tickSpacing, roundedTick+d.tickSpacing, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		} else {
@@ -264,7 +207,6 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
 		}
 	} else {
-		// compute roundedTick by inverting the cumulative amount1
 		success, roundedTick, err = doubleGeo.InverseCumulativeAmount1(d.tickSpacing, inverseCumulativeAmountInput, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		if err != nil {
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
@@ -273,7 +215,6 @@ func (d *DoubleGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount1_, err = doubleGeo.CumulativeAmount1(d.tickSpacing, roundedTick-d.tickSpacing, totalLiquidity, minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1)
 		} else {
@@ -293,7 +234,6 @@ func (d *DoubleGeometricDistribution) computeSwap(
 		}
 	}
 
-	// compute swap liquidity
 	swapLiquidity, err = doubleGeo.LiquidityDensityX96(
 		d.tickSpacing,
 		roundedTick,

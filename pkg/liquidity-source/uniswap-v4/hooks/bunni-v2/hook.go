@@ -1,20 +1,16 @@
 package bunniv2
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/hooklet"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf"
@@ -24,7 +20,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/holiman/uint256"
 )
 
@@ -36,7 +31,7 @@ type Hook struct {
 	hook common.Address
 
 	ldf         ldf.ILiquidityDensityFunction
-	oracle      *oracle.ObservationStorage
+	oracle      oracle.ObservationStorage
 	hooklet     hooklet.IHooklet
 	isNative    [2]bool
 	tickSpacing int
@@ -75,234 +70,32 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return hook
 }
 
-func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	req := param.RpcClient.NewRequest().SetContext(ctx)
-
-	var poolState PoolStateRPC
-	req.AddCall(&ethrpc.Call{
-		ABI:    bunniHubABI,
-		Target: GetHubAddress(h.hook),
-		Method: "poolState",
-		Params: []any{common.HexToHash(param.Pool.Address)},
-	}, []any{&poolState})
-
-	if _, err := req.Call(); err != nil {
-		return nil, err
+func (h *Hook) CloneState() uniswapv4.Hook {
+	cloned := *h
+	cloned.ObservationState.IntermediateObservation = &oracle.Observation{
+		BlockTimestamp: h.ObservationState.IntermediateObservation.BlockTimestamp,
+		PrevTick:       h.ObservationState.IntermediateObservation.PrevTick,
+		TickCumulative: h.ObservationState.IntermediateObservation.TickCumulative,
+		Initialized:    h.ObservationState.IntermediateObservation.Initialized,
 	}
+	cloned.Slot0.SqrtPriceX96 = h.Slot0.SqrtPriceX96.Clone()
+	cloned.BunniState.RawBalance0 = h.BunniState.RawBalance0.Clone()
+	cloned.BunniState.RawBalance1 = h.BunniState.RawBalance1.Clone()
+	cloned.BunniState.Reserve0 = h.BunniState.Reserve0.Clone()
+	cloned.BunniState.Reserve1 = h.BunniState.Reserve1.Clone()
 
-	return entity.PoolReserves{
-		poolState.Data.Reserve0.Add(poolState.Data.Reserve0, poolState.Data.RawBalance0).String(),
-		poolState.Data.Reserve1.Add(poolState.Data.Reserve1, poolState.Data.RawBalance1).String(),
-	}, nil
-}
+	// cloned.hooklet = h.hooklet.CloneState()
 
-func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
-	var hookExtra HookExtra
-	if param.HookExtra != "" {
-		if err := json.Unmarshal([]byte(param.HookExtra), &hookExtra); err != nil {
-			return "", err
-		}
-	}
-
-	poolId := common.HexToHash(param.Pool.Address)
-
-	var (
-		ldfState     [32]byte
-		slot0        Slot0RPC
-		poolState    PoolStateRPC
-		storageSlots [5]common.Hash
-		topBid       BidRPC
-
-		poolManagerBalance0, poolManagerBalance1 = big.NewInt(0), big.NewInt(0)
-	)
-
-	slotObservationState := crypto.Keccak256Hash(poolId[:], OBSERVATION_STATE_SLOT)
-	slotObservationBase := common.BigToHash(new(big.Int).Add(slotObservationState.Big(), bignumber.One))
-
-	slotVaultSharePrices := crypto.Keccak256Hash(poolId[:], VAULT_SHARE_PRICES_SLOT)
-	slotCuratorFees := crypto.Keccak256Hash(poolId[:], CURATOR_FEES_SLOT)
-	slotHookFee := crypto.Keccak256Hash(poolId[:], HOOK_FEE_SLOT)
-
-	hubAddress := GetHubAddress(h.hook)
-	hookAddress := h.hook.Hex()
-	token0Address := param.Pool.Tokens[0].Address
-	token1Address := param.Pool.Tokens[1].Address
-	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
-
-	req1 := param.RpcClient.NewRequest().SetContext(ctx)
-	req1.AddCall(&ethrpc.Call{
-		ABI:    bunniHookABI,
-		Target: hookAddress,
-		Method: "extsload",
-		Params: []any{
-			[]common.Hash{
-				slotObservationState,
-				slotObservationBase,
-				slotVaultSharePrices,
-				slotCuratorFees,
-				slotHookFee,
-			},
-		},
-	}, []any{&storageSlots})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    bunniHookABI,
-		Target: hookAddress,
-		Method: "getBid",
-		Params: []any{poolId, true},
-	}, []any{&topBid})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    bunniHookABI,
-		Target: hookAddress,
-		Method: "ldfStates",
-		Params: []any{poolId},
-	}, []any{&ldfState})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    bunniHookABI,
-		Target: hookAddress,
-		Method: "slot0s",
-		Params: []any{poolId},
-	}, []any{&slot0})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    bunniHubABI,
-		Target: hubAddress,
-		Method: "poolState",
-		Params: []any{poolId},
-	}, []any{&poolState})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    erc20ABI,
-		Target: token0Address,
-		Method: "balanceOf",
-		Params: []any{poolManagerAddress},
-	}, []any{&poolManagerBalance0})
-	req1.AddCall(&ethrpc.Call{
-		ABI:    erc20ABI,
-		Target: token1Address,
-		Method: "balanceOf",
-		Params: []any{poolManagerAddress},
-	}, []any{&poolManagerBalance1})
-
-	res, err := req1.Aggregate()
-	if err != nil {
-		return "", err
-	}
-
-	hookExtra.Slot0 = Slot0{
-		SqrtPriceX96:       uint256.MustFromBig(slot0.SqrtPriceX96),
-		Tick:               int(slot0.Tick.Int64()),
-		LastSwapTimestamp:  slot0.LastSwapTimestamp,
-		LastSurgeTimestamp: slot0.LastSurgeTimestamp,
-	}
-
-	hookExtra.BunniState = PoolState{
-		TwapSecondsAgo:       uint32(poolState.Data.TwapSecondsAgo.Int64()),
-		LdfParams:            poolState.Data.LdfParams,
-		HookParams:           poolState.Data.HookParams,
-		LdfType:              poolState.Data.LdfType,
-		MinRawTokenRatio0:    uint256.MustFromBig(poolState.Data.MinRawTokenRatio0),
-		TargetRawTokenRatio0: uint256.MustFromBig(poolState.Data.TargetRawTokenRatio0),
-		MaxRawTokenRatio0:    uint256.MustFromBig(poolState.Data.MaxRawTokenRatio0),
-		MinRawTokenRatio1:    uint256.MustFromBig(poolState.Data.MinRawTokenRatio1),
-		TargetRawTokenRatio1: uint256.MustFromBig(poolState.Data.TargetRawTokenRatio1),
-		MaxRawTokenRatio1:    uint256.MustFromBig(poolState.Data.MaxRawTokenRatio1),
-		Currency0Decimals:    poolState.Data.Currency0Decimals,
-		Currency1Decimals:    poolState.Data.Currency1Decimals,
-		RawBalance0:          uint256.MustFromBig(poolState.Data.RawBalance0),
-		RawBalance1:          uint256.MustFromBig(poolState.Data.RawBalance1),
-		Reserve0:             uint256.MustFromBig(poolState.Data.Reserve0),
-		Reserve1:             uint256.MustFromBig(poolState.Data.Reserve1),
-		IdleBalance:          poolState.Data.IdleBalance,
-	}
-
-	hookExtra.HookletAddress = poolState.Data.Hooklet
-	hookExtra.LDFAddress = poolState.Data.LiquidityDensityFunction
-	hookExtra.LdfState = ldfState
-
-	hookExtra.PoolManagerReserves = [2]*uint256.Int{
-		uint256.MustFromBig(poolManagerBalance0),
-		uint256.MustFromBig(poolManagerBalance1),
-	}
-
-	hookExtra.HookParams = decodeHookParams(poolState.Data.HookParams)
-	hookExtra.ObservationState = decodeObservationState(storageSlots[0:2])
-	hookExtra.VaultSharePrices = decodeVaultSharePrices(storageSlots[2])
-	hookExtra.CuratorFees = decodeCuratorFees(storageSlots[3])
-	hookExtra.HookFee = decodeHookFee(storageSlots[4])
-	hookExtra.AmAmm = decodeAmmPayload(topBid.Data.Manager, topBid.Data.Payload)
-
-	var (
-		redeemRates = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
-		maxDeposits = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
-	)
-	req2 := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
-	for i, vault := range []common.Address{poolState.Data.Vault0, poolState.Data.Vault1} {
-		if valueobject.IsZeroAddress(vault) {
-			continue
-		}
-
-		req2.AddCall(&ethrpc.Call{
-			ABI:    erc4626ABI,
-			Target: vault.Hex(),
-			Method: "previewRedeem",
-			Params: []any{WAD.ToBig()},
-		}, []any{&redeemRates[i]})
-		req2.AddCall(&ethrpc.Call{
-			ABI:    erc4626ABI,
-			Target: vault.Hex(),
-			Method: "maxDeposit",
-			Params: []any{common.HexToAddress(hubAddress)},
-		}, []any{&maxDeposits[i]})
-	}
-
-	if _, err := req2.TryBlockAndAggregate(); err != nil {
-		return "", err
-	}
-
-	observationHashes, err := h.fetchObservations(
-		ctx, param.RpcClient, res.BlockNumber, hookExtra.ObservationState.CardinalityNext)
-	if err != nil {
-		return "", err
-	}
-
-	hookExtra.Vaults = [2]Vault{
-		{
-			Address:    poolState.Data.Vault0,
-			Decimals:   poolState.Data.Vault0Decimals,
-			RedeemRate: uint256.MustFromBig(redeemRates[0]),
-			MaxDeposit: uint256.MustFromBig(maxDeposits[0]),
-		},
-		{
-			Address:    poolState.Data.Vault1,
-			Decimals:   poolState.Data.Vault1Decimals,
-			RedeemRate: uint256.MustFromBig(redeemRates[1]),
-			MaxDeposit: uint256.MustFromBig(maxDeposits[1]),
-		},
-	}
-
-	hookExtra.Observations = decodeObservations(observationHashes)
-
-	hookletExtra, err := h.hooklet.Track(ctx, hooklet.HookletParams{
-		RpcClient:      param.RpcClient,
-		HookletAddress: hookExtra.HookletAddress,
-		HookletExtra:   hookExtra.HookletExtra,
-		PoolId:         poolId,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	hookExtra.HookletExtra = hookletExtra
-
-	newHookExtra, err := json.Marshal(&hookExtra)
-	if err != nil {
-		return "", err
-	}
-
-	return string(newHookExtra), nil
+	return &cloned
 }
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.ldf == nil {
 		return nil, fmt.Errorf("ldf is not initialized")
+	}
+
+	if h.hooklet == nil {
+		return nil, fmt.Errorf("hooklet is not initialized")
 	}
 
 	amountSpecified := uint256.MustFromBig(params.AmountSpecified)
@@ -379,7 +172,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}
 	}
 
-	totalLiquidity, liquidityDensityOfRoundedTickX96, currentActiveBalance0, currentActiveBalance1,
+	totalLiquidity, _, _, liquidityDensityOfRoundedTickX96, currentActiveBalance0, currentActiveBalance1,
 		newLdfState, shouldSurge, err := h.queryLDF(h.Slot0.SqrtPriceX96, h.Slot0.Tick,
 		int(arithmeticMeanTick), h.LdfState, &balance0, &balance1, h.BunniState.IdleBalance)
 	if err != nil {
@@ -481,8 +274,16 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 
 		hookFeesBaseSwapFee.Set(u256.Max(feeOverride, surgeFee))
 	} else {
-		dynamicFee, err := computeDynamicSwapFee(h.BlockTimestamp, updatedSqrtPriceX96, int(feeMeanTick), lastSurgeTimestamp,
-			h.HookParams.FeeMin, h.HookParams.FeeMax, h.HookParams.FeeQuadraticMultiplier, h.HookParams.SurgeFeeHalfLife)
+		dynamicFee, err := computeDynamicSwapFee(
+			h.BlockTimestamp,
+			updatedSqrtPriceX96,
+			int(feeMeanTick),
+			lastSurgeTimestamp,
+			h.HookParams.FeeMin,
+			h.HookParams.FeeMax,
+			h.HookParams.FeeQuadraticMultiplier,
+			h.HookParams.SurgeFeeHalfLife,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -490,7 +291,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		hookFeesBaseSwapFee.Set(dynamicFee)
 	}
 
-	var swapFee uint256.Int
+	var swapFee *uint256.Int
 	var swapFeeAmount *uint256.Int
 	var hookFeesAmount *uint256.Int
 	var curatorFeeAmount *uint256.Int
@@ -507,67 +308,38 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			return nil, err
 		}
 
-		swapFee.Set(u256.Max(&amAmmSwapFee, surgeFee))
+		swapFee = u256.Max(&amAmmSwapFee, surgeFee)
 	} else {
-		swapFee.Set(&hookFeesBaseSwapFee)
+		swapFee = &hookFeesBaseSwapFee
 	}
 
 	if params.ExactIn {
-		swapFeeAmount, err = v3Utils.MulDivRoundingUp(outputAmount, &swapFee, SWAP_FEE_BASE)
-		if err != nil {
-			return nil, err
-		}
+		swapFeeAmount = math.MulDivUp(outputAmount, swapFee, SWAP_FEE_BASE)
 
 		if useAmAmmFee {
-			baseSwapFeeAmount, err := v3Utils.MulDivRoundingUp(outputAmount, &hookFeesBaseSwapFee, SWAP_FEE_BASE)
-			if err != nil {
-				return nil, err
-			}
+			baseSwapFeeAmount := math.MulDivUp(outputAmount, &hookFeesBaseSwapFee, SWAP_FEE_BASE)
 
-			hookFeesAmount, err = v3Utils.MulDivRoundingUp(baseSwapFeeAmount, h.HookFee, MODIFIER_BASE)
-			if err != nil {
-				return nil, err
-			}
+			hookFeesAmount = math.MulDivUp(baseSwapFeeAmount, h.HookFee, MODIFIER_BASE)
 
-			curatorFeeAmount, err = v3Utils.MulDivRoundingUp(baseSwapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
-			if err != nil {
-				return nil, err
-			}
+			curatorFeeAmount = math.MulDivUp(baseSwapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 
 			if swapFee.Cmp(&amAmmSwapFee) != 0 {
-				swapFeeAdjusted, err := v3Utils.MulDivRoundingUp(&hookFeesBaseSwapFee, h.HookFee, MODIFIER_BASE)
-				if err != nil {
-					return nil, err
-				}
+				swapFeeAdjusted := math.MulDivUp(&hookFeesBaseSwapFee, h.HookFee, MODIFIER_BASE)
+				swapFeeAdjusted.Sub(swapFee, swapFeeAdjusted)
 
-				swapFeeAdjusted.Sub(&swapFee, swapFeeAdjusted)
-
-				tmp, err := v3Utils.MulDivRoundingUp(&hookFeesBaseSwapFee, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
-				if err != nil {
-					return nil, err
-				}
-
-				swapFeeAdjusted.Sub(swapFeeAdjusted, tmp)
+				swapFeeAdjusted.Sub(swapFeeAdjusted,
+					math.MulDivUp(&hookFeesBaseSwapFee, h.CuratorFees.FeeRate, CURATOR_FEE_BASE))
 
 				if swapFeeAdjusted.Lt(&amAmmSwapFee) {
 					swapFeeAdjusted.Set(&amAmmSwapFee)
 				}
 
-				swapFeeAmount, err = v3Utils.MulDivRoundingUp(outputAmount, swapFeeAdjusted, SWAP_FEE_BASE)
-				if err != nil {
-					return nil, err
-				}
+				swapFeeAmount = math.MulDivUp(outputAmount, swapFeeAdjusted, SWAP_FEE_BASE)
 			}
 		} else {
-			hookFeesAmount, err = v3Utils.MulDivRoundingUp(swapFeeAmount, h.HookFee, MODIFIER_BASE)
-			if err != nil {
-				return nil, err
-			}
+			hookFeesAmount = math.MulDivUp(swapFeeAmount, h.HookFee, MODIFIER_BASE)
 
-			curatorFeeAmount, err = v3Utils.MulDivRoundingUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
-			if err != nil {
-				return nil, err
-			}
+			curatorFeeAmount = math.MulDivUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 
 			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount)
 			swapFeeAmount.Sub(swapFeeAmount, curatorFeeAmount)
@@ -591,37 +363,19 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}
 
 	} else {
-		swapFeeAmount, err = v3Utils.MulDivRoundingUp(inputAmount, &swapFee, new(uint256.Int).Sub(SWAP_FEE_BASE, &swapFee))
-		if err != nil {
-			return nil, err
-		}
+		swapFeeAmount = math.MulDivUp(inputAmount, swapFee, new(uint256.Int).Sub(SWAP_FEE_BASE, swapFee))
 
 		if useAmAmmFee {
-			baseSwapFeeAmount, err := v3Utils.MulDivRoundingUp(inputAmount, &hookFeesBaseSwapFee,
+			baseSwapFeeAmount := math.MulDivUp(inputAmount, &hookFeesBaseSwapFee,
 				new(uint256.Int).Sub(SWAP_FEE_BASE, &hookFeesBaseSwapFee))
-			if err != nil {
-				return nil, err
-			}
 
-			hookFeesAmount, err = v3Utils.MulDivRoundingUp(baseSwapFeeAmount, h.HookFee, MODIFIER_BASE)
-			if err != nil {
-				return nil, err
-			}
+			hookFeesAmount = math.MulDivUp(baseSwapFeeAmount, h.HookFee, MODIFIER_BASE)
 
-			curatorFeeAmount, err = v3Utils.MulDivRoundingUp(baseSwapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
-			if err != nil {
-				return nil, err
-			}
+			curatorFeeAmount = math.MulDivUp(baseSwapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 		} else {
-			hookFeesAmount, err = v3Utils.MulDivRoundingUp(swapFeeAmount, h.HookFee, MODIFIER_BASE)
-			if err != nil {
-				return nil, err
-			}
+			hookFeesAmount = math.MulDivUp(swapFeeAmount, h.HookFee, MODIFIER_BASE)
 
-			curatorFeeAmount, err = v3Utils.MulDivRoundingUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
-			if err != nil {
-				return nil, err
-			}
+			curatorFeeAmount = math.MulDivUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 
 			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount)
 			swapFeeAmount.Sub(swapFeeAmount, curatorFeeAmount)
@@ -792,8 +546,7 @@ func getReservesInUnderlying(vault Vault, reserveAmount *uint256.Int) *uint256.I
 		return reserveAmount
 	}
 
-	reserve, _ := v3Utils.MulDivRoundingUp(reserveAmount, WAD, vault.RedeemRate)
-	return reserve
+	return math.MulDivUp(reserveAmount, WAD, vault.RedeemRate)
 }
 
 func (h *Hook) updateVaultReserveViaClaimTokens(
@@ -915,7 +668,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 			}
 		}
 
-		naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut, err := math.ComputeSwapStep(
+		naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut, err = math.ComputeSwapStep(
 			input.ExactIn, input.ZeroForOne, h.Slot0.SqrtPriceX96,
 			&sqrtPriceTargetX96, &updatedRoundedTickLiquidity, input.AmountSpecified, u256.U0)
 		if err != nil {
@@ -1123,26 +876,31 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		}
 	}
 
-	totalDensity0X96, totalDensity1X96, _, _, _, _, err := h.queryLDF(&updatedSqrtPriceX96, updatedTick,
-		input.ArithmeticMeanTick, input.LdfState, u256.U0, u256.U0, ZERO_BALANCE)
+	_, totalDensity0X96, totalDensity1X96, _, _, _, _, _, err :=
+		h.queryLDF(&updatedSqrtPriceX96, updatedTick,
+			input.ArithmeticMeanTick, input.LdfState, u256.U0, u256.U0, ZERO_BALANCE)
 	if err != nil {
 		return nil, 0, nil, nil, err
 	}
 
-	var updatedActiveBalance0, updatedActiveBalance1 uint256.Int
-	updatedActiveBalance0.MulDivOverflow(totalDensity0X96, input.TotalLiquidity, SWAP_FEE_BASE)
-	updatedActiveBalance1.MulDivOverflow(totalDensity1X96, input.TotalLiquidity, SWAP_FEE_BASE)
-
-	var finalInputAmount, finalOutputAmount uint256.Int
-	if input.ZeroForOne {
-		finalInputAmount.Sub(&updatedActiveBalance0, input.CurrentActiveBalance0)
-		finalOutputAmount.Set(math.SubReLU(input.CurrentActiveBalance1, &updatedActiveBalance1))
-	} else {
-		finalInputAmount.Sub(&updatedActiveBalance1, input.CurrentActiveBalance1)
-		finalOutputAmount.Set(math.SubReLU(input.CurrentActiveBalance0, &updatedActiveBalance0))
+	updatedActiveBalance0, err := math.FullMulX96Up(totalDensity0X96, input.TotalLiquidity)
+	if err != nil {
+		return nil, 0, nil, nil, err
+	}
+	updatedActiveBalance1, err := math.FullMulX96Up(totalDensity1X96, input.TotalLiquidity)
+	if err != nil {
+		return nil, 0, nil, nil, err
 	}
 
-	return &updatedSqrtPriceX96, updatedTick, &finalInputAmount, &finalOutputAmount, nil
+	if input.ZeroForOne {
+		inputAmount.Sub(updatedActiveBalance0, input.CurrentActiveBalance0)
+		outputAmount.Set(math.SubReLU(input.CurrentActiveBalance1, updatedActiveBalance1))
+	} else {
+		inputAmount.Sub(updatedActiveBalance1, input.CurrentActiveBalance1)
+		outputAmount.Set(math.SubReLU(input.CurrentActiveBalance0, updatedActiveBalance0))
+	}
+
+	return &updatedSqrtPriceX96, updatedTick, &inputAmount, &outputAmount, nil
 }
 
 func (h *Hook) queryLDF(
@@ -1153,17 +911,26 @@ func (h *Hook) queryLDF(
 	balance0,
 	balance1 *uint256.Int,
 	idleBalance [32]byte,
-) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, [32]byte, bool, error) {
-
+) (
+	totalLiquidity,
+	totalDensity0X96,
+	totalDensity1X96,
+	liquidityDensityOfRoundedTickX96,
+	activeBalance0,
+	activeBalance1 *uint256.Int,
+	newLdfState [32]byte,
+	shouldSurge bool,
+	err error,
+) {
 	roundedTick, nextRoundedTick := math.RoundTick(h.Slot0.Tick, h.tickSpacing)
 
 	roundedTickSqrtRatio, err := math.GetSqrtPriceAtTick(roundedTick)
 	if err != nil {
-		return nil, nil, nil, nil, ldfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 	nextRoundedTickSqrtRatio, err := math.GetSqrtPriceAtTick(nextRoundedTick)
 	if err != nil {
-		return nil, nil, nil, nil, ldfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
 	liquidityDensityOfRoundedTickX96, density0RightOfRoundedTickX96, density1LeftOfRoundedTickX96,
@@ -1175,11 +942,10 @@ func (h *Hook) queryLDF(
 		h.LdfState,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, ldfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
-	var density0OfRoundedTickX96, density1OfRoundedTickX96 *uint256.Int
-	density0OfRoundedTickX96, density1OfRoundedTickX96, err = getAmountsForLiquidity(
+	density0OfRoundedTickX96, density1OfRoundedTickX96, err := getAmountsForLiquidity(
 		sqrtPriceX96,
 		roundedTickSqrtRatio,
 		nextRoundedTickSqrtRatio,
@@ -1187,28 +953,23 @@ func (h *Hook) queryLDF(
 		true,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, ldfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
-	var totalDensity0X96, totalDensity1X96 uint256.Int
-	totalDensity0X96.Add(density0RightOfRoundedTickX96, density0OfRoundedTickX96)
-	totalDensity1X96.Add(density1LeftOfRoundedTickX96, density1OfRoundedTickX96)
+	totalDensity0X96 = density0OfRoundedTickX96.Add(density0RightOfRoundedTickX96, density0OfRoundedTickX96)
+	totalDensity1X96 = density1OfRoundedTickX96.Add(density1LeftOfRoundedTickX96, density1OfRoundedTickX96)
 
-	var modifiedBalance0, modifiedBalance1 uint256.Int
-	modifiedBalance0.Set(balance0)
-	modifiedBalance1.Set(balance1)
+	modifiedBalance0 := balance0.Clone()
+	modifiedBalance1 := balance1.Clone()
 
 	if !shouldSurge {
 		idleBalance, isToken0 := math.FromIdleBalance(idleBalance)
 		if isToken0 {
-			modifiedBalance0.Set(math.SubReLU(&modifiedBalance0, idleBalance))
+			modifiedBalance0.Set(math.SubReLU(modifiedBalance0, idleBalance))
 		} else {
-			modifiedBalance1.Set(math.SubReLU(&modifiedBalance1, idleBalance))
+			modifiedBalance1.Set(math.SubReLU(modifiedBalance1, idleBalance))
 		}
 	}
-
-	var totalLiquidity uint256.Int
-	var activeBalance0, activeBalance1 uint256.Int
 
 	if !modifiedBalance0.IsZero() || !modifiedBalance1.IsZero() {
 		noToken0 := modifiedBalance0.IsZero() || totalDensity0X96.IsZero()
@@ -1216,15 +977,15 @@ func (h *Hook) queryLDF(
 
 		var totalLiquidityEstimate0, totalLiquidityEstimate1 *uint256.Int
 		if !noToken0 {
-			totalLiquidityEstimate0, err = math.FullMulDiv(&modifiedBalance0, Q96, &totalDensity0X96)
+			totalLiquidityEstimate0, err = math.FullMulDiv(modifiedBalance0, Q96, totalDensity0X96)
 			if err != nil {
-				return nil, nil, nil, nil, ldfState, false, err
+				return nil, nil, nil, nil, nil, nil, ldfState, false, err
 			}
 		}
 		if !noToken1 {
-			totalLiquidityEstimate1, err = math.FullMulDiv(&modifiedBalance1, Q96, &totalDensity1X96)
+			totalLiquidityEstimate1, err = math.FullMulDiv(modifiedBalance1, Q96, totalDensity1X96)
 			if err != nil {
-				return nil, nil, nil, nil, ldfState, false, err
+				return nil, nil, nil, nil, nil, nil, ldfState, false, err
 			}
 		}
 
@@ -1233,57 +994,52 @@ func (h *Hook) queryLDF(
 
 		if useLiquidityEstimate0 {
 			if !noToken0 {
-				totalLiquidityPtr, err := math.RoundUpFullMulDivResult(&modifiedBalance0, Q96, &totalDensity0X96, totalLiquidityEstimate0)
+				totalLiquidity, err = math.RoundUpFullMulDivResult(modifiedBalance0, Q96, totalDensity0X96, totalLiquidityEstimate0)
 				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
-				totalLiquidity.Set(totalLiquidityPtr)
+
+				temp, err := math.FullMulX96(totalLiquidityEstimate0, totalDensity0X96)
+				if err != nil {
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
+				}
+				activeBalance0 = u256.Min(modifiedBalance0, temp)
 			}
 
-			var temp0, temp1 *uint256.Int
-			if !noToken0 {
-				temp0, err = math.FullMulX96(totalLiquidityEstimate0, &totalDensity0X96)
-				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
-				}
-				activeBalance0.Set(u256.Min(&modifiedBalance0, temp0))
-			}
 			if !noToken1 {
-				temp1, err = math.FullMulX96(totalLiquidityEstimate0, &totalDensity1X96)
+				temp, err := math.FullMulX96(totalLiquidityEstimate0, totalDensity1X96)
 				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
-				activeBalance1.Set(u256.Min(&modifiedBalance1, temp1))
+				activeBalance1 = u256.Min(modifiedBalance1, temp)
 			}
 		} else {
 			if !noToken1 {
-				totalLiquidityPtr, err := math.RoundUpFullMulDivResult(&modifiedBalance1, Q96, &totalDensity1X96, totalLiquidityEstimate1)
+				totalLiquidity, err = math.RoundUpFullMulDivResult(modifiedBalance1, Q96, totalDensity1X96, totalLiquidityEstimate1)
 				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
-				totalLiquidity.Set(totalLiquidityPtr)
+
+				temp, err := math.FullMulX96(totalLiquidityEstimate1, totalDensity1X96)
+				if err != nil {
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
+				}
+				activeBalance1 = u256.Min(modifiedBalance1, temp)
 			}
 
-			var temp0, temp1 *uint256.Int
 			if !noToken0 {
-				temp0, err = math.FullMulX96(totalLiquidityEstimate1, &totalDensity0X96)
+				temp, err := math.FullMulX96(totalLiquidityEstimate1, totalDensity0X96)
 				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
-				activeBalance0.Set(u256.Min(&modifiedBalance0, temp0))
+				activeBalance0 = u256.Min(modifiedBalance0, temp)
 			}
-			if !noToken1 {
-				temp1, err = math.FullMulX96(totalLiquidityEstimate1, &totalDensity1X96)
-				if err != nil {
-					return nil, nil, nil, nil, ldfState, false, err
-				}
-				activeBalance1.Set(u256.Min(&modifiedBalance1, temp1))
-			}
+
 		}
 	}
 
-	return &totalLiquidity, &totalDensity0X96, &totalDensity1X96, liquidityDensityOfRoundedTickX96,
-		newLdfState, shouldSurge, nil
+	return totalLiquidity, totalDensity0X96, totalDensity1X96, liquidityDensityOfRoundedTickX96,
+		activeBalance0, activeBalance1, newLdfState, shouldSurge, nil
 }
 
 func getAmountsForLiquidity(
@@ -1292,40 +1048,34 @@ func getAmountsForLiquidity(
 	sqrtPriceBX96,
 	liquidity *uint256.Int,
 	roundUp bool,
-) (*uint256.Int, *uint256.Int, error) {
-	var amount0, amount1 uint256.Int
-
+) (amount0 *uint256.Int, amount1 *uint256.Int, err error) {
 	if sqrtPriceAX96.Gt(sqrtPriceBX96) {
 		sqrtPriceAX96, sqrtPriceBX96 = sqrtPriceBX96, sqrtPriceAX96
 	}
 
 	if sqrtPriceX96.Cmp(sqrtPriceAX96) <= 0 {
-		amount0Delta, err := math.GetAmount0Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
+		amount0, err = math.GetAmount0Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
 		}
-		amount0.Set(amount0Delta)
 	} else if sqrtPriceX96.Lt(sqrtPriceBX96) {
-		amount0Delta, err := math.GetAmount0Delta(sqrtPriceX96, sqrtPriceBX96, liquidity, roundUp)
+		amount0, err = math.GetAmount0Delta(sqrtPriceX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
 		}
-		amount0.Set(amount0Delta)
 
-		amount1Delta, err := math.GetAmount1Delta(sqrtPriceAX96, sqrtPriceX96, liquidity, roundUp)
+		amount1, err = math.GetAmount1Delta(sqrtPriceAX96, sqrtPriceX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
 		}
-		amount1.Set(amount1Delta)
 	} else {
-		amount1Delta, err := math.GetAmount1Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
+		amount1, err = math.GetAmount1Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity, roundUp)
 		if err != nil {
 			return nil, nil, err
 		}
-		amount1.Set(amount1Delta)
 	}
 
-	return &amount0, &amount1, nil
+	return
 }
 
 func (h *Hook) getTwap() (int64, error) {
@@ -1388,7 +1138,6 @@ func computeDynamicSwapFee(
 	feeQuadraticMultiplier,
 	surgeFeeHalfLife *uint256.Int,
 ) (*uint256.Int, error) {
-
 	fee, err := computeSurgeFee(blockTimestamp, lastSurgeTimestamp, surgeFeeHalfLife)
 	if err != nil {
 		return nil, err
@@ -1415,11 +1164,7 @@ func computeDynamicSwapFee(
 
 	delta.Exp(delta, u256.U2)
 
-	quadraticTerm := sqrtPriceX96
-	err = v3Utils.MulDivRoundingUpV2(feeQuadraticMultiplier, delta, SWAP_FEE_BASE_SQUARED, quadraticTerm)
-	if err != nil {
-		return nil, err
-	}
+	quadraticTerm := math.MulDivUp(feeQuadraticMultiplier, delta, SWAP_FEE_BASE_SQUARED)
 
 	return u256.Max(fee, u256.Min(quadraticTerm.Add(quadraticTerm, feeMin), feeMax)), nil
 }
@@ -1432,19 +1177,13 @@ func (h *Hook) shouldSurgeFromVaults() (shouldSurge bool, err error) {
 		var sharePrice0 *uint256.Int
 		if !h.BunniState.Reserve0.IsZero() {
 			reserveBalance0 := getReservesInUnderlying(h.Vaults[0], h.BunniState.Reserve0)
-			sharePrice0, err = v3Utils.MulDivRoundingUp(reserveBalance0, u256.TenPow(rescaleFactor0), h.BunniState.Reserve0)
-			if err != nil {
-				return false, err
-			}
+			sharePrice0 = math.MulDivUp(reserveBalance0, u256.TenPow(rescaleFactor0), h.BunniState.Reserve0)
 		}
 
 		var sharePrice1 *uint256.Int
 		if !h.BunniState.Reserve1.IsZero() {
 			reserveBalance1 := getReservesInUnderlying(h.Vaults[1], h.BunniState.Reserve1)
-			sharePrice1, err = v3Utils.MulDivRoundingUp(reserveBalance1, u256.TenPow(rescaleFactor1), h.BunniState.Reserve1)
-			if err != nil {
-				return false, err
-			}
+			sharePrice1 = math.MulDivUp(reserveBalance1, u256.TenPow(rescaleFactor1), h.BunniState.Reserve1)
 		}
 
 		shouldSurge = h.VaultSharePrices.Initialized &&
@@ -1493,41 +1232,4 @@ func (h *Hook) computeIdleBalance(activeBalance0, activeBalance1, balance0, bala
 	}
 
 	return idleBalance, nil
-}
-
-func (h *Hook) fetchObservations(
-	ctx context.Context,
-	rpcClient *ethrpc.Client,
-	blockNumber *big.Int,
-	cardinalityNext uint32,
-) ([]common.Hash, error) {
-	var slotObservations = make([]common.Hash, 0, cardinalityNext)
-	for i := range cardinalityNext {
-		slotObservations = append(slotObservations,
-			common.BigToHash(big.NewInt(int64(6+i))))
-	}
-
-	var observationHashes = make([]common.Hash, 0, len(slotObservations))
-	for start := 0; start < len(slotObservations); start += _MAX_OBSERVATION_BATCH_SIZE {
-		end := min(start+_MAX_OBSERVATION_BATCH_SIZE, len(slotObservations))
-
-		batchSlots := slotObservations[start:end]
-		var batchResult = make([]common.Hash, len(batchSlots))
-
-		reqBatch := rpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-		reqBatch.AddCall(&ethrpc.Call{
-			ABI:    bunniHookABI,
-			Target: h.hook.Hex(),
-			Method: "extsload",
-			Params: []any{batchSlots},
-		}, []any{&batchResult})
-
-		if _, err := reqBatch.TryBlockAndAggregate(); err != nil {
-			return nil, err
-		}
-
-		observationHashes = append(observationHashes, batchResult...)
-	}
-
-	return observationHashes, nil
 }

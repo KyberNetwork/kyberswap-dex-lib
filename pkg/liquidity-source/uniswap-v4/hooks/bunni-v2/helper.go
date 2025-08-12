@@ -50,10 +50,15 @@ func decodeObservations(data []common.Hash) []*oracle.Observation {
 	observations := make([]*oracle.Observation, len(data))
 
 	for i, raw := range data {
-		bt := uint32(raw[28])<<24 | uint32(raw[29])<<16 | uint32(raw[30])<<8 | uint32(raw[31])
+		bt := binary.BigEndian.Uint32(raw[28:32])
 
-		ptU := uint32(raw[25])<<16 | uint32(raw[26])<<8 | uint32(raw[27])
-		prevTick := int(int32(ptU<<8) >> 8)
+		ptU := (uint32(raw[25]) << 16) | (uint32(raw[26]) << 8) | uint32(raw[27])
+		var prevTick int32
+		if ptU > 0x7FFFFF {
+			prevTick = int32(ptU - 0x1000000)
+		} else {
+			prevTick = int32(ptU)
+		}
 
 		tcU := (uint64(raw[18]) << 48) |
 			(uint64(raw[19]) << 40) |
@@ -62,13 +67,19 @@ func decodeObservations(data []common.Hash) []*oracle.Observation {
 			(uint64(raw[22]) << 16) |
 			(uint64(raw[23]) << 8) |
 			uint64(raw[24])
-		tickCumulative := int64(tcU<<8) >> 8
+
+		var tickCumulative int64
+		if tcU > 0x7FFFFFFFFFFFFF {
+			tickCumulative = int64(tcU - 0x100000000000000)
+		} else {
+			tickCumulative = int64(tcU)
+		}
 
 		initialized := raw[17] == 1
 
 		observations[i] = &oracle.Observation{
 			BlockTimestamp: bt,
-			PrevTick:       prevTick,
+			PrevTick:       int(prevTick),
 			TickCumulative: tickCumulative,
 			Initialized:    initialized,
 		}
@@ -124,20 +135,30 @@ func decodeObservationState(data []common.Hash) ObservationState {
 	index := binary.BigEndian.Uint32(rawState[28:32])
 	cardinality := binary.BigEndian.Uint32(rawState[24:28])
 	cardinalityNext := binary.BigEndian.Uint32(rawState[20:24])
-
 	blockTimestamp := binary.BigEndian.Uint32(rawInter[28:32])
 
-	prevTickU := uint32(rawInter[25])<<16 | uint32(rawInter[26])<<8 | uint32(rawInter[27])
-	prevTick := int(int32(prevTickU<<8) >> 8)
+	prevTickRaw := (uint32(rawInter[25]) << 16) | (uint32(rawInter[26]) << 8) | uint32(rawInter[27])
+	var prevTick int32
+	if prevTickRaw&0x800000 != 0 {
+		prevTick = int32(prevTickRaw | 0xFF000000)
+	} else {
+		prevTick = int32(prevTickRaw)
+	}
 
-	tcU := (uint64(rawInter[18]) << 48) |
+	tickCumulativeRaw := (uint64(rawInter[18]) << 48) |
 		(uint64(rawInter[19]) << 40) |
 		(uint64(rawInter[20]) << 32) |
 		(uint64(rawInter[21]) << 24) |
 		(uint64(rawInter[22]) << 16) |
 		(uint64(rawInter[23]) << 8) |
 		uint64(rawInter[24])
-	tickCumulative := int64(tcU<<8) >> 8
+
+	var tickCumulative int64
+	if tickCumulativeRaw&0x80000000000000 != 0 {
+		tickCumulative = int64(tickCumulativeRaw | 0xFF00000000000000)
+	} else {
+		tickCumulative = int64(tickCumulativeRaw)
+	}
 
 	initialized := rawInter[17] == 1
 
@@ -146,8 +167,8 @@ func decodeObservationState(data []common.Hash) ObservationState {
 		Cardinality:     cardinality,
 		CardinalityNext: cardinalityNext,
 		IntermediateObservation: &oracle.Observation{
-			BlockTimestamp: blockTimestamp,
-			PrevTick:       prevTick,
+			BlockTimestamp: uint32(blockTimestamp),
+			PrevTick:       int(prevTick),
 			TickCumulative: tickCumulative,
 			Initialized:    initialized,
 		},

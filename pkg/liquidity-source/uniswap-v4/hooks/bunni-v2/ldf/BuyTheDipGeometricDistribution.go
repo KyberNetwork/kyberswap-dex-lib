@@ -2,7 +2,6 @@ package ldf
 
 import (
 	buythedipLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/ldf/libs/buy-the-dip-geometric"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4/hooks/bunni-v2/math"
 
 	"github.com/holiman/uint256"
 )
@@ -17,50 +16,6 @@ func NewBuyTheDipGeometricDistribution(tickSpacing int) ILiquidityDensityFunctio
 	return &BuyTheDipGeometricDistribution{
 		tickSpacing: tickSpacing,
 	}
-}
-
-// decodeParams decodes the LDF parameters from bytes32
-func (b *BuyTheDipGeometricDistribution) decodeParams(ldfParams [32]byte) (
-	minTick, length, altThreshold int,
-	alphaX96, altAlphaX96 *uint256.Int,
-	altThresholdDirection bool,
-) {
-	// | shiftMode - 1 byte | minTick - 3 bytes | length - 2 bytes | alpha - 4 bytes | altAlpha - 4 bytes | altThreshold - 3 bytes | altThresholdDirection - 1 byte |
-	// minTick = int24(uint24(bytes3(ldfParams << 8)))
-	minTick = int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-
-	// length = int24(int16(uint16(bytes2(ldfParams << 32))))
-	length = int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
-
-	// uint256 alpha = uint32(bytes4(ldfParams << 48))
-	alpha := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
-	// alphaX96 = alpha.mulDiv(Q96, ALPHA_BASE)
-	alphaX96 = uint256.NewInt(uint64(alpha))
-	alphaX96.Mul(alphaX96, math.Q96)
-	alphaX96.Div(alphaX96, math.ALPHA_BASE)
-
-	// uint256 altAlpha = uint32(bytes4(ldfParams << 80))
-	altAlpha := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
-	// altAlphaX96 = altAlpha.mulDiv(Q96, ALPHA_BASE)
-	altAlphaX96 = uint256.NewInt(uint64(altAlpha))
-	altAlphaX96.Mul(altAlphaX96, math.Q96)
-	altAlphaX96.Div(altAlphaX96, math.ALPHA_BASE)
-
-	// altThreshold = int24(uint24(bytes3(ldfParams << 112)))
-	altThreshold = int(int32(uint32(ldfParams[14])<<16 | uint32(ldfParams[15])<<8 | uint32(ldfParams[16])))
-
-	// altThresholdDirection = uint8(bytes1(ldfParams << 136)) != 0
-	altThresholdDirection = ldfParams[17] != 0
-
-	return
-}
-
-// decodeBuyTheDipState decodes the LDF state from bytes32 for BuyTheDipGeometricDistribution
-func decodeBuyTheDipState(ldfState [32]byte) (initialized bool, lastTwapTick int32) {
-	// | initialized - 1 byte | lastTwapTick - 3 bytes |
-	initialized = ldfState[0] == 1
-	lastTwapTick = int32(uint32(ldfState[1])<<16 | uint32(ldfState[2])<<8 | uint32(ldfState[3]))
-	return
 }
 
 // Query implements the Query method for BuyTheDipGeometricDistribution
@@ -78,16 +33,14 @@ func (b *BuyTheDipGeometricDistribution) Query(
 	shouldSurge bool,
 	err error,
 ) {
-	minTick, length, altThreshold, alphaX96, altAlphaX96, altThresholdDirection := b.decodeParams(ldfParams)
-	initialized, lastTwapTick := decodeBuyTheDipState(ldfState)
+	minTick, length, altThreshold, alphaX96, altAlphaX96, altThresholdDirection := buythedipLib.DecodeParams(ldfParams)
+	initialized, lastTwapTick := DecodeState(ldfState)
 
 	if initialized {
-		// should surge if switched from one alpha to another
 		shouldSurge = buythedipLib.ShouldUseAltAlpha(twapTick, altThreshold, altThresholdDirection) !=
 			buythedipLib.ShouldUseAltAlpha(int(lastTwapTick), altThreshold, altThresholdDirection)
 	}
 
-	// Use the lib Query function to avoid code duplication
 	liquidityDensityX96, cumulativeAmount0DensityX96, cumulativeAmount1DensityX96, err = buythedipLib.Query(
 		roundedTick,
 		b.tickSpacing,
@@ -124,7 +77,7 @@ func (b *BuyTheDipGeometricDistribution) ComputeSwap(
 	swapLiquidity *uint256.Int,
 	err error,
 ) {
-	minTick, length, altThreshold, alphaX96, altAlphaX96, altThresholdDirection := b.decodeParams(ldfParams)
+	minTick, length, altThreshold, alphaX96, altAlphaX96, altThresholdDirection := buythedipLib.DecodeParams(ldfParams)
 
 	return b.computeSwap(
 		inverseCumulativeAmountInput,
@@ -160,7 +113,6 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 	err error,
 ) {
 	if exactIn == zeroForOne {
-		// compute roundedTick by inverting the cumulative amount0
 		success, roundedTick, err = buythedipLib.InverseCumulativeAmount0(
 			b.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -176,7 +128,6 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount0_, err = buythedipLib.CumulativeAmount0(
 				b.tickSpacing,
@@ -239,7 +190,6 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
 		}
 	} else {
-		// compute roundedTick by inverting the cumulative amount1
 		success, roundedTick, err = buythedipLib.InverseCumulativeAmount1(
 			b.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -255,7 +205,6 @@ func (b *BuyTheDipGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount1_, err = buythedipLib.CumulativeAmount1(
 				b.tickSpacing,

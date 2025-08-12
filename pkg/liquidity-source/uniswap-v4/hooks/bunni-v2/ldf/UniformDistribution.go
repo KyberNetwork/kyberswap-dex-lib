@@ -34,7 +34,7 @@ func (u *UniformDistribution) Query(
 	shouldSurge bool,
 	err error,
 ) {
-	tickLower, tickUpper, shiftMode := u.decodeParams(twapTick, ldfParams)
+	tickLower, tickUpper, shiftMode := uniformLib.DecodeParams(u.tickSpacing, twapTick, ldfParams)
 	initialized, lastTickLower := DecodeState(ldfState)
 
 	if initialized {
@@ -75,7 +75,7 @@ func (u *UniformDistribution) ComputeSwap(
 	swapLiquidity *uint256.Int,
 	err error,
 ) {
-	tickLower, tickUpper, shiftMode := u.decodeParams(twapTick, ldfParams)
+	tickLower, tickUpper, shiftMode := uniformLib.DecodeParams(u.tickSpacing, twapTick, ldfParams)
 	initialized, lastTickLower := DecodeState(ldfState)
 
 	if initialized {
@@ -237,53 +237,6 @@ func (u *UniformDistribution) computeSwap(
 	swapLiquidity.Rsh(swapLiquidity, 96)
 
 	return true, roundedTick, cumulativeAmount0_, cumulativeAmount1_, swapLiquidity, nil
-}
-
-// decodeParams decodes the LDF parameters from bytes32
-func (u *UniformDistribution) decodeParams(
-	twapTick int,
-	ldfParams [32]byte,
-) (
-	tickLower,
-	tickUpper int,
-	shiftMode shiftmode.ShiftMode,
-) {
-	// | shiftMode - 1 byte | offset - 3 bytes | length - 3 bytes |
-	shiftMode = shiftmode.ShiftMode(ldfParams[0])
-	offset := int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-	length := int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
-
-	if shiftMode != shiftmode.Static {
-		// Dynamic: tickUpper is derived from tickLower + length * tickSpacing
-		tickLower = math.RoundTickSingle(twapTick+offset, u.tickSpacing)
-		tickUpper = tickLower + length*u.tickSpacing
-
-		// Bound distribution within usable ticks
-		minUsableTick := math.MinUsableTick(u.tickSpacing)
-		maxUsableTick := math.MaxUsableTick(u.tickSpacing)
-		if tickLower < minUsableTick {
-			tickLower = minUsableTick
-			upper := tickLower + length*u.tickSpacing
-			if upper > maxUsableTick {
-				tickUpper = maxUsableTick
-			} else {
-				tickUpper = upper
-			}
-		} else if tickUpper > maxUsableTick {
-			tickUpper = maxUsableTick
-			lower := tickUpper - length*u.tickSpacing
-			if lower < minUsableTick {
-				tickLower = minUsableTick
-			} else {
-				tickLower = lower
-			}
-		}
-	} else {
-		// Static
-		tickLower = int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-		tickUpper = int(int32(uint32(ldfParams[4])<<16 | uint32(ldfParams[5])<<8 | uint32(ldfParams[6])))
-	}
-	return
 }
 
 // query computes the liquidity density and cumulative amounts using uniformLib

@@ -19,8 +19,8 @@ type ObservationStorage struct {
 	data []*Observation
 }
 
-func NewObservationStorage(observations []*Observation) *ObservationStorage {
-	return &ObservationStorage{
+func NewObservationStorage(observations []*Observation) ObservationStorage {
+	return ObservationStorage{
 		data: observations,
 	}
 }
@@ -91,10 +91,7 @@ func (o *ObservationStorage) getSurroundingObservations(
 		return beforeOrAt, atOrAfter, nil
 	}
 
-	next := index + 1
-	if next == cardinality {
-		next = 0
-	}
+	next := (index + 1) % cardinality
 	beforeOrAt = o.data[next]
 	if !beforeOrAt.Initialized {
 		beforeOrAt = o.data[0]
@@ -134,14 +131,14 @@ func (o *ObservationStorage) ObserveTriple(intermediate *Observation, time uint3
 		return nil, errors.New("OracleCardinalityCannotBeZero")
 	}
 
-	out := make([]int64, len(secondsAgos))
-	for i, secondsAgo := range secondsAgos {
+	out := make([]int64, 0, len(secondsAgos))
+	for _, secondsAgo := range secondsAgos {
 		tickCumulative, err := o.ObserveSingle(intermediate, time, secondsAgo, tick, index, cardinality)
 		if err != nil {
 			return nil, err
 		}
 
-		out[i] = tickCumulative
+		out = append(out, tickCumulative)
 	}
 
 	return out, nil
@@ -177,7 +174,6 @@ func (o *ObservationStorage) ObserveSingle(intermediate *Observation, time, seco
 	return beforeOrAt.TickCumulative +
 		((atOrAfter.TickCumulative-beforeOrAt.TickCumulative)/int64(observationTimeDelta))*
 			int64(targetDelta), nil
-
 }
 
 func (o *ObservationStorage) Write(
@@ -206,10 +202,7 @@ func (o *ObservationStorage) Write(
 		cardinalityUpdated = cardinality
 	}
 
-	indexUpdated := index + 1
-	if indexUpdated == cardinalityUpdated {
-		indexUpdated = 0
-	}
+	indexUpdated := (index + 1) % cardinalityUpdated
 	o.data[indexUpdated] = intermediateUpdated
 
 	return intermediateUpdated, indexUpdated, cardinalityUpdated

@@ -29,8 +29,10 @@ type FeeOverrideRPC struct {
 
 func NewFeeOverrideHooklet(extra string) IHooklet {
 	var hookletExtra HookletExtra
-	if err := json.Unmarshal([]byte(extra), &hookletExtra); err != nil {
-		return nil
+	if extra != "" {
+		if err := json.Unmarshal([]byte(extra), &hookletExtra); err != nil {
+			return nil
+		}
 	}
 
 	return &feeOverrideHooklet{
@@ -76,3 +78,10 @@ func (h *feeOverrideHooklet) BeforeSwap(params *SwapParams) (bool, *uint256.Int,
 }
 
 func (h *feeOverrideHooklet) AfterSwap(_ *SwapParams) {}
+
+func (h *feeOverrideHooklet) CloneState() IHooklet {
+	cloned := *h
+	cloned.FeeOneToZero = h.FeeOneToZero.Clone()
+	cloned.FeeZeroToOne = h.FeeZeroToOne.Clone()
+	return &cloned
+}

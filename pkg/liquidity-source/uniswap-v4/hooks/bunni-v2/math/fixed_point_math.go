@@ -1,7 +1,7 @@
 package math
 
 import (
-	"log"
+	"errors"
 
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
@@ -70,8 +70,6 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 			// let xx := mul(x, x) // Store x squared.
 			var xx uint256.Int
 			if _, ov := xx.MulOverflow(&xv, &xv); ov {
-				log.Fatalln(0, x, y, b)
-
 				return nil, ErrOverflow
 			}
 
@@ -79,16 +77,12 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 			var temp uint256.Int
 			temp.Rsh(&xv, 128)
 			if !temp.IsZero() {
-				log.Fatalln(1, x, y, b)
-
 				return nil, ErrOverflow
 			}
 
 			// let xxRound := add(xx, half) // Round to the nearest number.
 			var xxRound uint256.Int
 			if _, ov := xxRound.AddOverflow(&xx, &half); ov {
-				log.Fatalln(2, x, y, b)
-
 				return nil, ErrOverflow
 			}
 
@@ -102,8 +96,6 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if _, ov := zx.MulOverflow(&z, &xv); ov {
 					// Revert if `x` is non-zero.
 					if !xv.IsZero() {
-						log.Fatalln(3, x, y, b)
-
 						return nil, ErrOverflow
 					}
 				}
@@ -113,8 +105,6 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if _, ov := zxRound.AddOverflow(&zx, &half); ov {
 					// Revert if `x` is non-zero.
 					if !xv.IsZero() {
-						log.Fatalln(4, x, y, b)
-
 						return nil, ErrOverflow
 					}
 				}
@@ -124,8 +114,6 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 				if !xv.IsZero() {
 					divCheck.Div(&zx, &xv)
 					if !divCheck.Eq(&z) {
-						log.Fatalln(5, x, y, b)
-
 						return nil, ErrOverflow
 					}
 				}
@@ -139,6 +127,33 @@ func Rpow(x *uint256.Int, y int, b *uint256.Int) (*uint256.Int, error) {
 	}
 
 	return &z, nil
+}
+
+func MulWad(x, y *uint256.Int) (*uint256.Int, error) {
+	// assembly {
+	//     // Equivalent to `require(y == 0 || x <= type(uint256).max / y)`.
+	//     if mul(y, gt(x, div(not(0), y))) {
+	//         mstore(0x00, 0xbac65e5b) // `MulWadFailed()`.
+	//         revert(0x1c, 0x04)
+	//     }
+	//     z := div(mul(x, y), WAD)
+	// }
+
+	// Check for overflow: y == 0 || x <= type(uint256).max / y
+	if !y.IsZero() {
+		var maxDiv uint256.Int
+		maxDiv.SetAllOne()
+		maxDiv.Div(&maxDiv, y)
+		if x.Gt(&maxDiv) {
+			return nil, errors.New("MulWadFailed")
+		}
+	}
+
+	// z := div(mul(x, y), WAD)
+	var result uint256.Int
+	result.Mul(x, y)
+	result.Div(&result, WAD)
+	return &result, nil
 }
 
 func MulWadUp(x, y *uint256.Int) (*uint256.Int, error) {
@@ -324,35 +339,34 @@ func FullMulDiv(a, b, d *uint256.Int) (*uint256.Int, error) {
 	//     inv
 	// )
 
-	// First part: sub(p1, gt(r, result))
+	//  sub(p1, gt(r, result))
 	var p1Adj uint256.Int
 	p1Adj.Set(&p1)
 	if r.Gt(&p0) {
 		p1Adj.SubUint64(&p1Adj, 1)
 	}
 
-	// Second part: add(div(sub(0, t), t), 1)
+	//  add(div(sub(0, t), t), 1)
 	var negT uint256.Int
 	negT.Sub(u256.U0, &t)
 	var divNegT uint256.Int
 	divNegT.Div(&negT, &t)
 	divNegT.AddUint64(&divNegT, 1)
 
-	// Third part: div(sub(result, r), t)
+	//  div(sub(result, r), t)
 	var p0MinusR uint256.Int
 	p0MinusR.Sub(&p0, &r)
 	var divP0R uint256.Int
 	divP0R.Div(&p0MinusR, &t)
 
-	// Combine: mul(p1Adj, divNegT)
+	//  mul(p1Adj, divNegT)
 	var leftPart uint256.Int
 	leftPart.Mul(&p1Adj, &divNegT)
 
-	// OR operation: or(leftPart, divP0R)
+	//  or(leftPart, divP0R)
 	var combined uint256.Int
 	combined.Or(&leftPart, &divP0R)
 
-	// Final multiplication with inverse
 	var result uint256.Int
 	result.Mul(&combined, &inv)
 

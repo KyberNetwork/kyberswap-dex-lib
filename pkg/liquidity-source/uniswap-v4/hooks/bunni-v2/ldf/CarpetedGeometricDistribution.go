@@ -35,7 +35,7 @@ func (c *CarpetedGeometricDistribution) Query(
 	shouldSurge bool,
 	err error,
 ) {
-	minTick, length, alphaX96, weightCarpet, shiftMode := c.decodeParams(twapTick, ldfParams)
+	minTick, length, alphaX96, weightCarpet, shiftMode := carpetedgeoLib.DecodeParams(c.tickSpacing, twapTick, ldfParams)
 	initialized, lastMinTick := DecodeState(ldfState)
 
 	if initialized {
@@ -72,7 +72,7 @@ func (c *CarpetedGeometricDistribution) ComputeSwap(
 	swapLiquidity *uint256.Int,
 	err error,
 ) {
-	minTick, length, alphaX96, weightCarpet, shiftMode := c.decodeParams(twapTick, ldfParams)
+	minTick, length, alphaX96, weightCarpet, shiftMode := carpetedgeoLib.DecodeParams(c.tickSpacing, twapTick, ldfParams)
 	initialized, lastMinTick := DecodeState(ldfState)
 
 	if initialized {
@@ -91,52 +91,6 @@ func (c *CarpetedGeometricDistribution) ComputeSwap(
 	)
 }
 
-// decodeParams decodes the LDF parameters from bytes32
-func (c *CarpetedGeometricDistribution) decodeParams(
-	twapTick int,
-	ldfParams [32]byte,
-) (
-	minTick,
-	length int,
-	alphaX96,
-	weightCarpet *uint256.Int,
-	shiftMode shiftmode.ShiftMode,
-) {
-	// | shiftMode - 1 byte | minTickOrOffset - 3 bytes | length - 2 bytes | alpha - 4 bytes | weightCarpet - 4 bytes |
-	shiftMode = shiftmode.ShiftMode(ldfParams[0])
-	length = int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
-	alpha := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
-	weightCarpetVal := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
-
-	// Convert alpha to alphaX96
-	alphaX96 = uint256.NewInt(uint64(alpha))
-	alphaX96.Mul(alphaX96, math.Q96)
-	alphaX96.Div(alphaX96, math.ALPHA_BASE)
-
-	// Convert weightCarpet to WAD
-	weightCarpet = uint256.NewInt(uint64(weightCarpetVal))
-
-	if shiftMode != shiftmode.Static {
-		// use rounded TWAP value + offset as minTick
-		offset := int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-		minTick = math.RoundTickSingle(twapTick+offset, c.tickSpacing)
-
-		// bound distribution to be within the range of usable ticks
-		minUsableTick := math.MinUsableTick(c.tickSpacing)
-		maxUsableTick := math.MaxUsableTick(c.tickSpacing)
-		if minTick < minUsableTick {
-			minTick = minUsableTick
-		} else if minTick > maxUsableTick-length*c.tickSpacing {
-			minTick = maxUsableTick - length*c.tickSpacing
-		}
-	} else {
-		// static minTick set in params
-		minTick = int(int32(uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])))
-	}
-
-	return
-}
-
 // query computes the liquidity density and cumulative amounts
 func (c *CarpetedGeometricDistribution) query(
 	roundedTick,
@@ -150,7 +104,6 @@ func (c *CarpetedGeometricDistribution) query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	// compute liquidityDensityX96
 	liquidityDensityX96, err = carpetedgeoLib.LiquidityDensityX96(
 		c.tickSpacing,
 		roundedTick,
@@ -163,7 +116,6 @@ func (c *CarpetedGeometricDistribution) query(
 		return nil, nil, nil, err
 	}
 
-	// compute cumulativeAmount0DensityX96
 	cumulativeAmount0DensityX96, err = carpetedgeoLib.CumulativeAmount0(
 		c.tickSpacing,
 		roundedTick+c.tickSpacing,
@@ -179,7 +131,6 @@ func (c *CarpetedGeometricDistribution) query(
 
 	cumulativeAmount0DensityX96.Rsh(cumulativeAmount0DensityX96, QUERY_SCALE_SHIFT)
 
-	// compute cumulativeAmount1DensityX96
 	cumulativeAmount1DensityX96, err = carpetedgeoLib.CumulativeAmount1(
 		c.tickSpacing,
 		roundedTick-c.tickSpacing,
@@ -217,7 +168,6 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 	err error,
 ) {
 	if exactIn == zeroForOne {
-		// compute roundedTick by inverting the cumulative amount0
 		success, roundedTick, err = carpetedgeoLib.InverseCumulativeAmount0(
 			c.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -234,7 +184,6 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount0_, err = carpetedgeoLib.CumulativeAmount0(
 				c.tickSpacing,
@@ -285,7 +234,6 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
 		}
 	} else {
-		// compute roundedTick by inverting the cumulative amount1
 		success, roundedTick, err = carpetedgeoLib.InverseCumulativeAmount1(
 			c.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -302,7 +250,6 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// compute cumulative amounts
 		if exactIn {
 			cumulativeAmount1_, err = carpetedgeoLib.CumulativeAmount1(
 				c.tickSpacing,
@@ -354,7 +301,6 @@ func (c *CarpetedGeometricDistribution) computeSwap(
 		}
 	}
 
-	// compute swap liquidity
 	swapLiquidity, err = carpetedgeoLib.LiquidityDensityX96(
 		c.tickSpacing,
 		roundedTick,

@@ -10,6 +10,7 @@ var (
 	legacyBunniHubABI abi.ABI
 	bunniHubABI       abi.ABI
 	bunniHookABI      abi.ABI
+	bunniQuoterABI    abi.ABI
 	erc4626ABI        abi.ABI
 	erc20ABI          abi.ABI
 )
@@ -22,6 +23,7 @@ func init() {
 		{&legacyBunniHubABI, legacyBunniHubABIJson},
 		{&bunniHubABI, bunniHubABIJson},
 		{&bunniHookABI, bunniHookABIJson},
+		{&bunniQuoterABI, bunniQuoterABIJson},
 		{&erc4626ABI, erc4626ABIJson},
 		{&erc20ABI, erc20ABIJson},
 	}

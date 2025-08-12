@@ -93,3 +93,11 @@ type WrapInfo struct {
 	Fee         uint32 `json:"fee,omitempty"`
 	HookData    []byte `json:"hookData,omitempty"`
 }
+
+type PoolKey struct {
+	Currency0   common.Address
+	Currency1   common.Address
+	Fee         *big.Int
+	TickSpacing *big.Int
+	Hooks       common.Address
+}

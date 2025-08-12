@@ -9,11 +9,33 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// Params represents the parameters for CarpetedDoubleGeometricDistribution
 type Params struct {
 	MinTick, Length0, Length1                            int
 	Alpha0X96, Alpha1X96, Weight0, Weight1, WeightCarpet *uint256.Int
 	ShiftMode                                            shiftmode.ShiftMode
+}
+
+// DecodeParams decodes the LDF parameters from bytes32
+func DecodeParams(tickSpacing, twapTick int, ldfParams [32]byte) Params {
+	// | shiftMode - 1 byte | offset - 3 bytes | length0 - 2 bytes | alpha0 - 4 bytes | weight0 - 4 bytes | length1 - 2 bytes | alpha1 - 4 bytes | weight1 - 4 bytes | weightCarpet - 4 bytes |
+
+	weightCarpetVal := uint32(ldfParams[24])<<24 | uint32(ldfParams[25])<<16 | uint32(ldfParams[26])<<8 | uint32(ldfParams[27])
+	weightCarpet := uint256.NewInt(uint64(weightCarpetVal))
+
+	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode :=
+		doubleGeoLib.DecodeParams(tickSpacing, -1, ldfParams)
+
+	return Params{
+		MinTick:      minTick,
+		Length0:      length0,
+		Length1:      length1,
+		Alpha0X96:    alpha0X96,
+		Alpha1X96:    alpha1X96,
+		Weight0:      weight0,
+		Weight1:      weight1,
+		WeightCarpet: weightCarpet,
+		ShiftMode:    shiftMode,
+	}
 }
 
 // CumulativeAmount0 computes the cumulative amount of token0
@@ -32,7 +54,6 @@ func CumulativeAmount0(
 		params.WeightCarpet,
 	)
 
-	// Left carpet amount0
 	leftCarpetAmount0, err := uniformLib.CumulativeAmount0(
 		tickSpacing,
 		roundedTick,
@@ -45,7 +66,6 @@ func CumulativeAmount0(
 		return nil, err
 	}
 
-	// Main double geometric amount0
 	mainAmount0, err := doubleGeoLib.CumulativeAmount0(
 		tickSpacing,
 		roundedTick,
@@ -62,7 +82,6 @@ func CumulativeAmount0(
 		return nil, err
 	}
 
-	// Right carpet amount0
 	rightCarpetAmount0, err := uniformLib.CumulativeAmount0(
 		tickSpacing,
 		roundedTick,
@@ -75,7 +94,6 @@ func CumulativeAmount0(
 		return nil, err
 	}
 
-	// Sum all amounts - reuse leftCarpetAmount0 for total
 	leftCarpetAmount0.Add(leftCarpetAmount0, mainAmount0)
 	leftCarpetAmount0.Add(leftCarpetAmount0, rightCarpetAmount0)
 
@@ -98,7 +116,6 @@ func CumulativeAmount1(
 		params.WeightCarpet,
 	)
 
-	// Left carpet amount1
 	leftCarpetAmount1, err := uniformLib.CumulativeAmount1(
 		tickSpacing,
 		roundedTick,
@@ -111,7 +128,6 @@ func CumulativeAmount1(
 		return nil, err
 	}
 
-	// Main double geometric amount1
 	mainAmount1, err := doubleGeoLib.CumulativeAmount1(
 		tickSpacing,
 		roundedTick,
@@ -128,7 +144,6 @@ func CumulativeAmount1(
 		return nil, err
 	}
 
-	// Right carpet amount1
 	rightCarpetAmount1, err := uniformLib.CumulativeAmount1(
 		tickSpacing,
 		roundedTick,
@@ -141,7 +156,6 @@ func CumulativeAmount1(
 		return nil, err
 	}
 
-	// Sum all amounts - reuse leftCarpetAmount1 for total
 	leftCarpetAmount1.Add(leftCarpetAmount1, mainAmount1)
 	leftCarpetAmount1.Add(leftCarpetAmount1, rightCarpetAmount1)
 
@@ -159,7 +173,6 @@ func InverseCumulativeAmount0(
 		return true, math.MaxUsableTick(tickSpacing), nil
 	}
 
-	// try LDFs in the order of right carpet, main, left carpet
 	length := params.Length0 + params.Length1
 	leftCarpetLiquidity, mainLiquidity, rightCarpetLiquidity, minUsableTick, maxUsableTick := getCarpetedLiquidity(
 		tickSpacing,
@@ -182,7 +195,6 @@ func InverseCumulativeAmount0(
 	}
 
 	if cumulativeAmount0_.Cmp(rightCarpetCumulativeAmount0) <= 0 && !rightCarpetLiquidity.IsZero() {
-		// use right carpet
 		success, roundedTick := uniformLib.InverseCumulativeAmount0(
 			tickSpacing,
 			cumulativeAmount0_,
@@ -193,7 +205,6 @@ func InverseCumulativeAmount0(
 		)
 		return success, roundedTick, nil
 	} else {
-		// Reuse rightCarpetCumulativeAmount0 for remainder calculation
 		rightCarpetCumulativeAmount0.Sub(cumulativeAmount0_, rightCarpetCumulativeAmount0)
 
 		mainCumulativeAmount0, err := doubleGeoLib.CumulativeAmount0(
@@ -213,7 +224,6 @@ func InverseCumulativeAmount0(
 		}
 
 		if rightCarpetCumulativeAmount0.Cmp(mainCumulativeAmount0) <= 0 {
-			// use main
 			return doubleGeoLib.InverseCumulativeAmount0(
 				tickSpacing,
 				rightCarpetCumulativeAmount0,
@@ -227,7 +237,6 @@ func InverseCumulativeAmount0(
 				params.Weight1,
 			)
 		} else if !leftCarpetLiquidity.IsZero() {
-			// use left carpet - reuse rightCarpetCumulativeAmount0 for final remainder
 			rightCarpetCumulativeAmount0.Sub(rightCarpetCumulativeAmount0, mainCumulativeAmount0)
 			success, roundedTick := uniformLib.InverseCumulativeAmount0(
 				tickSpacing,
@@ -254,7 +263,6 @@ func InverseCumulativeAmount1(
 		return true, math.MinUsableTick(tickSpacing) - tickSpacing, nil
 	}
 
-	// try LDFs in the order of left carpet, main, right carpet
 	length := params.Length0 + params.Length1
 	leftCarpetLiquidity, mainLiquidity, rightCarpetLiquidity, minUsableTick, maxUsableTick := getCarpetedLiquidity(
 		tickSpacing,
@@ -277,7 +285,6 @@ func InverseCumulativeAmount1(
 	}
 
 	if cumulativeAmount1_.Cmp(leftCarpetCumulativeAmount1) <= 0 && !leftCarpetLiquidity.IsZero() {
-		// use left carpet
 		success, roundedTick := uniformLib.InverseCumulativeAmount1(
 			tickSpacing,
 			cumulativeAmount1_,
@@ -288,7 +295,6 @@ func InverseCumulativeAmount1(
 		)
 		return success, roundedTick, nil
 	} else {
-		// Reuse leftCarpetCumulativeAmount1 for remainder calculation
 		leftCarpetCumulativeAmount1.Sub(cumulativeAmount1_, leftCarpetCumulativeAmount1)
 
 		mainCumulativeAmount1, err := doubleGeoLib.CumulativeAmount1(tickSpacing,
@@ -307,7 +313,6 @@ func InverseCumulativeAmount1(
 		}
 
 		if leftCarpetCumulativeAmount1.Cmp(mainCumulativeAmount1) <= 0 {
-			// use main
 			return doubleGeoLib.InverseCumulativeAmount1(
 				tickSpacing,
 				leftCarpetCumulativeAmount1,
@@ -321,7 +326,6 @@ func InverseCumulativeAmount1(
 				params.Weight1,
 			)
 		} else if !rightCarpetLiquidity.IsZero() {
-			// use right carpet - reuse leftCarpetCumulativeAmount1 for final remainder
 			leftCarpetCumulativeAmount1.Sub(leftCarpetCumulativeAmount1, mainCumulativeAmount1)
 			success, roundedTick := uniformLib.InverseCumulativeAmount1(tickSpacing,
 				leftCarpetCumulativeAmount1,
@@ -344,7 +348,6 @@ func LiquidityDensityX96(
 ) (*uint256.Int, error) {
 	length := params.Length0 + params.Length1
 	if roundedTick >= params.MinTick && roundedTick < params.MinTick+length*tickSpacing {
-		// Main distribution
 		mainDensity, err := doubleGeoLib.LiquidityDensityX96(
 			tickSpacing,
 			roundedTick,
@@ -360,16 +363,11 @@ func LiquidityDensityX96(
 			return nil, err
 		}
 
-		// Apply carpet weight: mainDensity * (WAD - weightCarpet) / WAD
 		var wadMinusWeightCarpet uint256.Int
 		wadMinusWeightCarpet.Sub(math.WAD, params.WeightCarpet)
-		result, err := math.FullMulDiv(mainDensity, &wadMinusWeightCarpet, math.WAD)
-		if err != nil {
-			return nil, err
-		}
-		return result, nil
+
+		return math.MulWad(mainDensity, &wadMinusWeightCarpet)
 	} else {
-		// Carpet distribution
 		minUsableTick := math.MinUsableTick(tickSpacing)
 		maxUsableTick := math.MaxUsableTick(tickSpacing)
 		numRoundedTicksCarpeted := (maxUsableTick-minUsableTick)/tickSpacing - length
@@ -377,15 +375,17 @@ func LiquidityDensityX96(
 			return uint256.NewInt(0), nil
 		}
 
-		// Carpet liquidity: Q96 * weightCarpet / numRoundedTicksCarpeted
-		var carpetLiquidity uint256.Int
-		carpetLiquidity.Mul(math.Q96, params.WeightCarpet)
-		result, err := math.FullMulDiv(&carpetLiquidity, math.Q96, uint256.NewInt(uint64(numRoundedTicksCarpeted)))
+		var wadMinusWeightCarpet uint256.Int
+		wadMinusWeightCarpet.Sub(math.WAD, params.WeightCarpet)
+
+		carpetLiquidity, err := math.MulWad(math.Q96, &wadMinusWeightCarpet)
 		if err != nil {
 			return nil, err
 		}
 
-		return result, nil
+		carpetLiquidity.Sub(math.Q96, carpetLiquidity)
+
+		return math.DivUp(carpetLiquidity, uint256.NewInt(uint64(numRoundedTicksCarpeted))), nil
 	}
 }
 
@@ -409,29 +409,24 @@ func getCarpetedLiquidity(
 		return uint256.NewInt(0), totalLiquidity, uint256.NewInt(0), minUsableTick, maxUsableTick
 	}
 
-	// Main liquidity: totalLiquidity * (WAD - weightCarpet) / WAD
-	var mainLiquidityVar uint256.Int
-	mainLiquidityVar.Mul(totalLiquidity, math.WAD)
 	var wadMinusWeightCarpet uint256.Int
 	wadMinusWeightCarpet.Sub(math.WAD, weightCarpet)
-	mainLiquidityVar.Mul(&mainLiquidityVar, &wadMinusWeightCarpet)
-	mainLiquidityVar.Div(&mainLiquidityVar, math.WAD)
-	mainLiquidity = &mainLiquidityVar
 
-	// Carpet liquidity: totalLiquidity - mainLiquidity
+	mainLiquidity, err := math.MulWad(totalLiquidity, &wadMinusWeightCarpet)
+	if err != nil {
+		return nil, nil, nil, 0, 0
+	}
+
 	var carpetLiquidity uint256.Int
-	carpetLiquidity.Sub(totalLiquidity, &mainLiquidityVar)
+	carpetLiquidity.Sub(totalLiquidity, mainLiquidity)
 
-	// Right carpet liquidity: carpetLiquidity * rightCarpetTicks / numRoundedTicksCarpeted
-	rightCarpetTicks := (maxUsableTick-minTick)/tickSpacing - length
-	var rightCarpetLiquidityVar uint256.Int
-	rightCarpetLiquidityVar.Mul(&carpetLiquidity, uint256.NewInt(uint64(rightCarpetTicks)))
-	rightCarpetLiquidityVar.Div(&rightCarpetLiquidityVar, uint256.NewInt(uint64(numRoundedTicksCarpeted)))
-	rightCarpetLiquidity = &rightCarpetLiquidityVar
+	rightCarpetLiquidity, _ = new(uint256.Int).MulDivOverflow(
+		&carpetLiquidity,
+		uint256.NewInt(uint64((maxUsableTick-minTick)/tickSpacing-length)),
+		uint256.NewInt(uint64(numRoundedTicksCarpeted)),
+	)
 
-	// Left carpet liquidity: carpetLiquidity - rightCarpetLiquidity
-	carpetLiquidity.Sub(&carpetLiquidity, &rightCarpetLiquidityVar)
-	leftCarpetLiquidity = &carpetLiquidity
+	leftCarpetLiquidity = carpetLiquidity.Sub(&carpetLiquidity, rightCarpetLiquidity)
 
 	return
 }

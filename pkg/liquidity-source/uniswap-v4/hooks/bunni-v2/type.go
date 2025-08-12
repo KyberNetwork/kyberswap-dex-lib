@@ -172,3 +172,19 @@ type LegacyPoolStateRPC struct {
 		IdleBalance              [32]byte
 	}
 }
+
+type SwapResult struct {
+	Success             bool
+	UpdatedSqrtPriceX96 *big.Int
+	UpdatedTick         *big.Int
+	InputAmount         *big.Int
+	OutputAmount        *big.Int
+	SwapFee             *big.Int
+	TotalLiquidity      *big.Int
+}
+
+type SwapParams struct {
+	ZeroForOne        bool
+	AmountSpecified   *big.Int
+	SqrtPriceLimitX96 *big.Int
+}

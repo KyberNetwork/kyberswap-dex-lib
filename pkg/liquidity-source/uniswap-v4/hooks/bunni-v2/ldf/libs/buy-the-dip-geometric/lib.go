@@ -6,7 +6,45 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// ShouldUseAltAlpha determines whether to use the alternative alpha value based on TWAP tick and threshold
+// DecodeParams decodes the LDF parameters from bytes32
+func DecodeParams(ldfParams [32]byte) (
+	minTick,
+	length,
+	altThreshold int,
+	alphaX96,
+	altAlphaX96 *uint256.Int,
+	altThresholdDirection bool,
+) {
+	// | shiftMode - 1 byte | minTick - 3 bytes | length - 2 bytes | alpha - 4 bytes | altAlpha - 4 bytes | altThreshold - 3 bytes | altThresholdDirection - 1 byte |
+	minTickRaw := uint32(ldfParams[1])<<16 | uint32(ldfParams[2])<<8 | uint32(ldfParams[3])
+	if minTickRaw&0x800000 != 0 {
+		minTickRaw |= 0xFF000000
+	}
+	minTick = int(int32(minTickRaw))
+
+	length = int(int16(uint16(ldfParams[4])<<8 | uint16(ldfParams[5])))
+
+	alpha := uint32(ldfParams[6])<<24 | uint32(ldfParams[7])<<16 | uint32(ldfParams[8])<<8 | uint32(ldfParams[9])
+	alphaX96 = uint256.NewInt(uint64(alpha))
+	alphaX96.Mul(alphaX96, math.Q96)
+	alphaX96.Div(alphaX96, math.ALPHA_BASE)
+
+	altAlpha := uint32(ldfParams[10])<<24 | uint32(ldfParams[11])<<16 | uint32(ldfParams[12])<<8 | uint32(ldfParams[13])
+	altAlphaX96 = uint256.NewInt(uint64(altAlpha))
+	altAlphaX96.Mul(altAlphaX96, math.Q96)
+	altAlphaX96.Div(altAlphaX96, math.ALPHA_BASE)
+
+	altThresholdRaw := uint32(ldfParams[14])<<16 | uint32(ldfParams[15])<<8 | uint32(ldfParams[16])
+	if altThresholdRaw&0x800000 != 0 {
+		altThresholdRaw |= 0xFF000000
+	}
+	altThreshold = int(int32(altThresholdRaw))
+
+	altThresholdDirection = ldfParams[17] != 0
+
+	return
+}
+
 func ShouldUseAltAlpha(twapTick, altThreshold int, altThresholdDirection bool) bool {
 	if altThresholdDirection {
 		return twapTick <= altThreshold
@@ -15,7 +53,6 @@ func ShouldUseAltAlpha(twapTick, altThreshold int, altThresholdDirection bool) b
 }
 
 // Query queries the liquidity density and cumulative amounts at the given rounded tick
-// This matches the Solidity LibBuyTheDipGeometricDistribution.query function
 func Query(
 	roundedTick,
 	tickSpacing,
@@ -32,7 +69,6 @@ func Query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	// compute liquidityDensityX96
 	liquidityDensityX96, err = LiquidityDensityX96(
 		tickSpacing,
 		roundedTick,
@@ -48,7 +84,6 @@ func Query(
 		return nil, nil, nil, err
 	}
 
-	// compute cumulativeAmount0DensityX96
 	cumulativeAmount0DensityX96, err = CumulativeAmount0(
 		tickSpacing,
 		roundedTick+tickSpacing,
@@ -65,7 +100,6 @@ func Query(
 		return nil, nil, nil, err
 	}
 
-	// compute cumulativeAmount1DensityX96
 	cumulativeAmount1DensityX96, err = CumulativeAmount1(
 		tickSpacing,
 		roundedTick-tickSpacing,

@@ -10,6 +10,11 @@ import (
 	"github.com/holiman/uint256"
 )
 
+func MulDiv(a, b, denominator *uint256.Int) *uint256.Int {
+	res, _ := v3Utils.MulDiv(a, b, denominator)
+	return res
+}
+
 func MulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
 	res, _ := v3Utils.MulDivRoundingUp(a, b, denominator)
 	return res
@@ -17,7 +22,7 @@ func MulDivUp(a, b, denominator *uint256.Int) *uint256.Int {
 
 func DivUp(a, b *uint256.Int) *uint256.Int {
 	var res uint256.Int
-	v3Utils.DivRoundingUp(&res, a, b)
+	v3Utils.DivRoundingUp(a, b, &res)
 	return &res
 }
 
@@ -47,6 +52,127 @@ func Dist(x, y *uint256.Int) *uint256.Int {
 		return z.Sub(x, y)
 	}
 	return z.Sub(y, x)
+}
+
+func lnQ96(x *int256.Int) (*int256.Int, int, error) {
+	if x.Sign() <= 0 {
+		return nil, 0, errors.New("LnQ96Undefined")
+	}
+
+	ux := i256.UnsafeToUInt256(x)
+	msb := ux.BitLen() - 1
+	k := msb - 96
+
+	var value *int256.Int
+	if k > 0 {
+		value = i256.Rsh(x, uint(k))
+	} else if k < 0 {
+		value = i256.Lsh(x, uint(-k))
+	} else {
+		value = x
+	}
+
+	p := i256.Sub(
+		i256.Rsh(
+			i256.Mul(
+				i256.Add(lnQ96A0,
+					i256.Rsh(
+						i256.Mul(
+							i256.Add(lnQ96A1,
+								i256.Rsh(
+									i256.Mul(i256.Add(lnQ96A2, value), value),
+									96,
+								),
+							),
+							value,
+						),
+						96,
+					),
+				),
+				value,
+			),
+			96,
+		),
+		lnQ96B0,
+	)
+	p = i256.Sub(i256.Rsh(i256.Mul(p, value), 96), lnQ96B1)
+	p = i256.Sub(i256.Rsh(i256.Mul(p, value), 96), lnQ96B2)
+	p = i256.Sub(i256.Mul(p, value), i256.Lsh(lnQ96C, 96))
+
+	q := i256.Add(lnQ96Q0, value)
+	q = i256.Add(lnQ96Q1, i256.Rsh(i256.Mul(value, q), 96))
+	q = i256.Add(lnQ96Q2, i256.Rsh(i256.Mul(value, q), 96))
+	q = i256.Add(lnQ96Q3, i256.Rsh(i256.Mul(value, q), 96))
+	q = i256.Add(lnQ96Q4, i256.Rsh(i256.Mul(value, q), 96))
+	q = i256.Add(lnQ96Q5, i256.Rsh(i256.Mul(value, q), 96))
+	q = i256.Add(lnQ96Q6, i256.Rsh(i256.Mul(value, q), 96))
+
+	p = i256.Div(p, q)
+
+	p = i256.Mul(lnQ96Scale, p)
+
+	if k != 0 {
+		p = i256.Add(p, i256.Mul(lnQ96Ln2Scaled2Pow192, int256.NewInt(int64(k))))
+	}
+
+	return p, k, nil
+}
+
+func LnQ96(x *int256.Int) (*int256.Int, error) {
+	p, _, err := lnQ96(x)
+	if err != nil {
+		return nil, err
+	}
+	return i256.Rsh(p, 96), nil
+}
+
+func LnQ96RoundingUp(x *int256.Int) (*int256.Int, error) {
+	p, _, err := lnQ96(x)
+	if err != nil {
+		return nil, err
+	}
+
+	res := i256.Rsh(p, 96)
+	if i256.Lsh(res, 96).Cmp(p) != 0 {
+		res.Add(res, i256.Number_1)
+	}
+	return res, nil
+}
+
+func SDivWad(x, y *int256.Int) (*int256.Int, error) {
+	// Equivalent to require(y != 0 && ((x * WAD) / WAD == x))
+	if y.Sign() == 0 {
+		return nil, errors.New("SDivWadFailed")
+	}
+
+	var z int256.Int
+	z.Mul(x, WAD_INT)
+
+	if new(int256.Int).Quo(&z, WAD_INT).Cmp(x) != 0 {
+		return nil, errors.New("SDivWadFailed")
+	}
+
+	z.Quo(&z, y)
+
+	return &z, nil
+}
+
+// XWadToRoundedTick converts xWad to rounded tick (placeholder)
+func XWadToRoundedTick(xWad *int256.Int, mu int, tickSpacing int, roundUp bool) int {
+	x := int(new(int256.Int).Quo(xWad, WAD_INT).Int64())
+
+	tmp := new(int256.Int).Rem(xWad, WAD_INT)
+	if roundUp {
+		if xWad.Sign() > 0 && tmp.Sign() != 0 {
+			x++
+		}
+	} else {
+		if xWad.Sign() < 0 && tmp.Sign() != 0 {
+			x--
+		}
+	}
+
+	return x*tickSpacing + mu
 }
 
 func ExpWad(x *int256.Int) (*uint256.Int, error) {
