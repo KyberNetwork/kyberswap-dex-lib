@@ -271,18 +271,16 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		ExtraFinalizerData: extra,
 	}
 
-	if params.SkipMergeSwap {
-		return route, nil
+	if !params.SkipMergeSwap {
+		if mergeSwapRoute, err := mergeswap.MergeSwap(ctx, params, constructRoute, route, amountReductionEachSwap,
+			f.CustomFuncs(), alphaFee); err == nil {
+			route = mergeSwapRoute
+		}
 	}
 
-	mergeSwapRoute, err := mergeswap.MergeSwap(ctx, params, constructRoute, route, amountReductionEachSwap,
-		f.CustomFuncs(), alphaFee)
+	route.GasUsed = route.GasUsed * business.GasMultiplierPct / 100
 
-	if err != nil {
-		return route, nil
-	}
-
-	return mergeSwapRoute, nil
+	return route, nil
 }
 
 func hasOnlyOneSwap(r *finderCommon.ConstructRoute) bool {
