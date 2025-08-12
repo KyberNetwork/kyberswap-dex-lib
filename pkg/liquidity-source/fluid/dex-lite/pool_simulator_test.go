@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -28,13 +29,13 @@ func TestPoolSimulator(t *testing.T) {
 			0: {
 				1: {
 					"1000000": "999909",
-					"9999999": "9999090",
+					"9999999": "9999091",
 				},
 			},
 			1: {
 				0: {
 					"1000000": "1000080",
-					"9999999": "10000807",
+					"9999999": "10000806",
 				},
 			},
 		})
@@ -151,7 +152,7 @@ func TestMathFunctions(t *testing.T) {
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token0Supply, 136))
 		mockDexVariables.Or(mockDexVariables, new(uint256.Int).Lsh(token1Supply, 196))
 
-		poolSim := &PoolSimulator{DexVars: unpackDexVariables(mockDexVariables)}
+		poolSim := &PoolSimulator{DexVars: unpackDexVariables(mockDexVariables), PoolState: PoolState{RangeShift: big256.U0}}
 
 		// Test swapIn: 1000 tokens in
 		amountOut, _, _, err := poolSim.calculateSwapInWithState(0, 1, uint256.NewInt(1000), poolSim.DexVars)
