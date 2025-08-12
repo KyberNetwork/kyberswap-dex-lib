@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -133,25 +134,27 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 }
 
 func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+	var hookFeeAmt *big.Int
+	if !swapHookParams.ExactIn {
+		hookFeeAmt = bignumber.ZeroBI
+	} else {
+		hookFeeAmt = new(big.Int)
+		hookFeeAmt.Mul(swapHookParams.AmountSpecified, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+	}
 	return &uniswapv4.BeforeSwapHookResult{
-		SwapFee: h.swapFee,
-		DeltaSpecific: lo.Ternary(swapHookParams.ExactIn, func() *big.Int {
-			hookFeeAmt := new(big.Int)
-			hookFeeAmt.Mul(swapHookParams.AmountSpecified, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
-			hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-			return hookFeeAmt
-		}(), new(big.Int),
-		),
-		DeltaUnSpecific: new(big.Int),
+		SwapFee:         h.swapFee,
+		DeltaSpecific:   hookFeeAmt,
+		DeltaUnSpecific: bignumber.ZeroBI,
 	}, nil
 }
 
 func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return lo.Ternary(!swapHookParams.ExactIn, func() *big.Int {
-		hookFeeAmt = new(big.Int)
-		hookFeeAmt.Mul(swapHookParams.AmountIn, big.NewInt(int64(h.swapFee))).Div(hookFeeAmt, FeeMax)
-		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-		return hookFeeAmt
-	}(), new(big.Int),
-	)
+	if swapHookParams.ExactIn {
+		return bignumber.ZeroBI
+	}
+	hookFeeAmt = new(big.Int)
+	hookFeeAmt.Mul(swapHookParams.AmountIn, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
+	hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
+	return hookFeeAmt
 }
