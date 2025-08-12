@@ -22,7 +22,6 @@ var (
 	// NativeTokenAddress is the address that UniswapV4 uses to represent native token in pools.
 	NativeTokenAddress = common.Address{}
 	Q96                = new(big.Int).Lsh(bignumber.One, 96)
-	ErrUnsupportedHook = errors.New("unsupported hook")
 
-	ErrTooManyChangedTickes = errors.New("too many changed ticks")
+	ErrTooManyChangedTicks = errors.New("too many changed ticks")
 )

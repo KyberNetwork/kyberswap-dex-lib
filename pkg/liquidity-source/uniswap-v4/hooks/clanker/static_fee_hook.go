@@ -132,8 +132,8 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uni
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapHookResult{
-			DeltaSpecific:   new(big.Int),
-			DeltaUnSpecific: new(big.Int),
+			DeltaSpecific:   bignumber.ZeroBI,
+			DeltaUnSpecific: bignumber.ZeroBI,
 			SwapFee:         h.clankerFee,
 		}, nil
 	}
@@ -152,7 +152,7 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uni
 
 	return &uniswapv4.BeforeSwapHookResult{
 		DeltaSpecific:   &fee,
-		DeltaUnSpecific: new(big.Int),
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         h.pairedFee,
 	}, nil
 }

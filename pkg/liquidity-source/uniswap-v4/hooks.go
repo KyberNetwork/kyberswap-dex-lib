@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -138,14 +139,14 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
+func (h *BaseHook) BeforeSwap(_ *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
 	return &BeforeSwapHookResult{
 		SwapFee:         0,
-		DeltaSpecific:   new(big.Int),
-		DeltaUnSpecific: new(big.Int),
+		DeltaSpecific:   bignumber.ZeroBI,
+		DeltaUnSpecific: bignumber.ZeroBI,
 	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return new(big.Int)
+	return bignumber.ZeroBI
 }

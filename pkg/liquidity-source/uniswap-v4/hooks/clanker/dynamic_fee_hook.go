@@ -327,8 +327,8 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapHookResult{
-			DeltaSpecific:   new(big.Int),
-			DeltaUnSpecific: new(big.Int),
+			DeltaSpecific:   bignumber.ZeroBI,
+			DeltaUnSpecific: bignumber.ZeroBI,
 			SwapFee:         swapFee,
 		}, nil
 	}
@@ -350,7 +350,7 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 
 	return &uniswapv4.BeforeSwapHookResult{
 		DeltaSpecific:   &fee,
-		DeltaUnSpecific: new(big.Int),
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         swapFee,
 	}, nil
 }
@@ -374,7 +374,7 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookF
 	return &delta
 }
 
-func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
+func (h *DynamicFeeHook) GetReserves(_ context.Context, _ *uniswapv4.HookParam) (entity.PoolReserves, error) {
 	return nil, nil
 }
 
@@ -390,7 +390,7 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exac
 
 		scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
 
-		if exactIn && swappingForClanker {
+		if exactIn {
 			fee.Add(MILLION, h.protocolFee)
 		} else { // !exactIn && !swappingForClanker
 			fee.Sub(MILLION, h.protocolFee)

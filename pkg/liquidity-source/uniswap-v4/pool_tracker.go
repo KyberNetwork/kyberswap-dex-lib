@@ -297,7 +297,7 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 
 	changedTicksCount := len(changedTicks)
 	if changedTicksCount == 0 || changedTicksCount > maxChangedTicks {
-		return nil, ErrTooManyChangedTickes
+		return nil, ErrTooManyChangedTicks
 	}
 
 	rpcRequest := t.ethrpcClient.NewRequest()
