@@ -83,24 +83,23 @@ type Slot0 struct {
 }
 
 type PoolState struct {
-	Hooklet              common.Address `json:"h"`
-	TwapSecondsAgo       uint32         `json:"tsa"`
-	LdfParams            [32]byte       `json:"lp"`
-	HookParams           []byte         `json:"hp"`
-	LdfType              uint8          `json:"lt"`
-	MinRawTokenRatio0    *uint256.Int   `json:"mrtr0"`
-	TargetRawTokenRatio0 *uint256.Int   `json:"trtr0"`
-	MaxRawTokenRatio0    *uint256.Int   `json:"xrtr0"`
-	MinRawTokenRatio1    *uint256.Int   `json:"mrtr1"`
-	TargetRawTokenRatio1 *uint256.Int   `json:"trtr1"`
-	MaxRawTokenRatio1    *uint256.Int   `json:"xrtr1"`
-	Currency0Decimals    uint8          `json:"c0d"`
-	Currency1Decimals    uint8          `json:"c1d"`
-	RawBalance0          *uint256.Int   `json:"rb0"`
-	RawBalance1          *uint256.Int   `json:"rb1"`
-	Reserve0             *uint256.Int   `json:"r0"`
-	Reserve1             *uint256.Int   `json:"r1"`
-	IdleBalance          [32]byte       `json:"ib"`
+	TwapSecondsAgo       uint32       `json:"tsa"`
+	LdfParams            [32]byte     `json:"lp"`
+	HookParams           []byte       `json:"hp"`
+	LdfType              uint8        `json:"lt"`
+	MinRawTokenRatio0    *uint256.Int `json:"mrtr0"`
+	TargetRawTokenRatio0 *uint256.Int `json:"trtr0"`
+	MaxRawTokenRatio0    *uint256.Int `json:"xrtr0"`
+	MinRawTokenRatio1    *uint256.Int `json:"mrtr1"`
+	TargetRawTokenRatio1 *uint256.Int `json:"trtr1"`
+	MaxRawTokenRatio1    *uint256.Int `json:"xrtr1"`
+	Currency0Decimals    uint8        `json:"c0d"`
+	Currency1Decimals    uint8        `json:"c1d"`
+	RawBalance0          *uint256.Int `json:"rb0"`
+	RawBalance1          *uint256.Int `json:"rb1"`
+	Reserve0             *uint256.Int `json:"r0"`
+	Reserve1             *uint256.Int `json:"r1"`
+	IdleBalance          [32]byte     `json:"ib"`
 }
 
 type Slot0RPC struct {

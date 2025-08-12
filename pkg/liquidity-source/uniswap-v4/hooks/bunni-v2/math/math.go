@@ -289,13 +289,13 @@ func RoundUpFullMulDivResult(x, y, d, resultRoundedDown *uint256.Int) (*uint256.
 func FromIdleBalance(idleBalance [32]byte) (*uint256.Int, bool) {
 	isToken0 := (idleBalance[0] & 0x80) != 0
 
-	var raw [32]byte
-	copy(raw[:], idleBalance[:])
-	raw[0] &^= 0x80
+	var maskedBytes [32]byte
+	copy(maskedBytes[:], idleBalance[:])
+	maskedBytes[0] &= 0x7f
 
-	var balance uint256.Int
-	balance.SetBytes(raw[:])
-	return &balance, isToken0
+	balance := new(uint256.Int).SetBytes32(maskedBytes[:])
+
+	return balance, isToken0
 }
 
 func ToIdleBalance(rawBalance *uint256.Int, isToken0 bool) ([32]byte, error) {
@@ -303,8 +303,7 @@ func ToIdleBalance(rawBalance *uint256.Int, isToken0 bool) ([32]byte, error) {
 		return [32]byte{}, errors.New("IdleBalanceLibrary__BalanceOverflow")
 	}
 
-	var idleBalance [32]byte
-	rawBalance.WriteToSlice(idleBalance[:])
+	idleBalance := rawBalance.Bytes32()
 
 	if isToken0 {
 		idleBalance[0] |= 0x80

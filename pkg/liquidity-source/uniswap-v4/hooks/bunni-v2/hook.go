@@ -341,13 +341,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 
 			curatorFeeAmount = math.MulDivUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 
-			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount)
-			swapFeeAmount.Sub(swapFeeAmount, curatorFeeAmount)
+			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount).Sub(swapFeeAmount, curatorFeeAmount)
 		}
 
-		outputAmount.Sub(outputAmount, swapFeeAmount)
-		outputAmount.Sub(outputAmount, hookFeesAmount)
-		outputAmount.Sub(outputAmount, curatorFeeAmount)
+		outputAmount.Sub(outputAmount, swapFeeAmount).Sub(outputAmount, hookFeesAmount).Sub(outputAmount, curatorFeeAmount)
 
 		actualInputAmount := u256.Max(amountSpecified, inputAmount)
 		result.DeltaSpecific = actualInputAmount.ToBig()
@@ -377,13 +374,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 
 			curatorFeeAmount = math.MulDivUp(swapFeeAmount, h.CuratorFees.FeeRate, CURATOR_FEE_BASE)
 
-			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount)
-			swapFeeAmount.Sub(swapFeeAmount, curatorFeeAmount)
+			swapFeeAmount.Sub(swapFeeAmount, hookFeesAmount).Sub(swapFeeAmount, curatorFeeAmount)
 		}
 
-		inputAmount.Add(inputAmount, swapFeeAmount)
-		inputAmount.Add(inputAmount, hookFeesAmount)
-		inputAmount.Add(inputAmount, curatorFeeAmount)
+		inputAmount.Add(inputAmount, swapFeeAmount).Add(inputAmount, hookFeesAmount).Add(inputAmount, curatorFeeAmount)
 
 		result.DeltaUnSpecific = inputAmount.ToBig()
 
@@ -546,7 +540,7 @@ func getReservesInUnderlying(vault Vault, reserveAmount *uint256.Int) *uint256.I
 		return reserveAmount
 	}
 
-	return math.MulDivUp(reserveAmount, WAD, vault.RedeemRate)
+	return math.MulDivUp(reserveAmount, vault.RedeemRate, WAD)
 }
 
 func (h *Hook) updateVaultReserveViaClaimTokens(
@@ -965,9 +959,9 @@ func (h *Hook) queryLDF(
 	if !shouldSurge {
 		idleBalance, isToken0 := math.FromIdleBalance(idleBalance)
 		if isToken0 {
-			modifiedBalance0.Set(math.SubReLU(modifiedBalance0, idleBalance))
+			modifiedBalance0 = math.SubReLU(modifiedBalance0, idleBalance)
 		} else {
-			modifiedBalance1.Set(math.SubReLU(modifiedBalance1, idleBalance))
+			modifiedBalance1 = math.SubReLU(modifiedBalance1, idleBalance)
 		}
 	}
 
@@ -1034,7 +1028,6 @@ func (h *Hook) queryLDF(
 				}
 				activeBalance0 = u256.Min(modifiedBalance0, temp)
 			}
-
 		}
 	}
 
@@ -1110,7 +1103,7 @@ func computeSurgeFee(
 ) (fee *uint256.Int, err error) {
 	timeSinceLastSurge := uint256.NewInt(uint64(blockTimestamp - lastSurgeTimestamp))
 
-	fee, _ = new(uint256.Int).MulDivOverflow(timeSinceLastSurge, LN2_WAD, surgeFeeHalfLife)
+	fee = math.MulDiv(timeSinceLastSurge, LN2_WAD, surgeFeeHalfLife)
 
 	feeInt := i256.SafeToInt256(fee)
 	feeInt.Neg(feeInt)

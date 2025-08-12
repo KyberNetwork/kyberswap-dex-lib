@@ -70,7 +70,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	token1Address := param.Pool.Tokens[1].Address
 	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
 
-	req1 := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(big.NewInt(24220660))
+	req1 := param.RpcClient.NewRequest().SetContext(ctx)
 	req1.AddCall(&ethrpc.Call{
 		ABI:    bunniHookABI,
 		Target: hookAddress,
@@ -199,10 +199,12 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	observationHashes, err := h.fetchObservations(
-		ctx, param.RpcClient, res.BlockNumber, hookExtra.ObservationState.CardinalityNext)
+		ctx, param.RpcClient, res.BlockNumber, poolId, hookExtra.ObservationState.CardinalityNext)
 	if err != nil {
 		return "", err
 	}
+
+	hookExtra.Observations = decodeObservations(observationHashes)
 
 	hookExtra.Vaults = [2]Vault{
 		{
@@ -218,8 +220,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 			MaxDeposit: uint256.MustFromBig(maxDeposits[1]),
 		},
 	}
-
-	hookExtra.Observations = decodeObservations(observationHashes)
 
 	if hookExtra.HookletExtra == "" {
 		h.hooklet = InitHooklet(hookExtra.HookletAddress, "")
@@ -249,12 +249,16 @@ func (h *Hook) fetchObservations(
 	ctx context.Context,
 	rpcClient *ethrpc.Client,
 	blockNumber *big.Int,
+	poolId common.Hash,
 	cardinalityNext uint32,
 ) ([]common.Hash, error) {
+	observationsBaseSlot := crypto.Keccak256Hash(poolId[:], OBSERVATION_BASE_SLOT)
+
 	var slotObservations = make([]common.Hash, 0, cardinalityNext)
 	for i := range cardinalityNext {
-		slotObservations = append(slotObservations,
-			common.BigToHash(big.NewInt(int64(6+i))))
+		slotBig := big.NewInt(int64(i))
+		slotBig.Add(slotBig, observationsBaseSlot.Big())
+		slotObservations = append(slotObservations, common.BigToHash(slotBig))
 	}
 
 	var observationHashes = make([]common.Hash, 0, len(slotObservations))

@@ -25,11 +25,26 @@ func NewObservationStorage(observations []*Observation) ObservationStorage {
 	}
 }
 
-func lte(time, time1, time2 uint32) bool {
-	if time1 <= time {
-		return time1 <= time2
+func lte(time, a, b uint32) bool {
+	if a <= time && b <= time {
+		return a <= b
 	}
-	return time2 > time1
+
+	var aAdjusted uint64
+	if a > time {
+		aAdjusted = uint64(a)
+	} else {
+		aAdjusted = uint64(a) + (1 << 32)
+	}
+
+	var bAdjusted uint64
+	if b > time {
+		bAdjusted = uint64(b)
+	} else {
+		bAdjusted = uint64(b) + (1 << 32)
+	}
+
+	return aAdjusted <= bAdjusted
 }
 
 func (o *ObservationStorage) binarySearch(time, target uint32, index, cardinality uint32) (*Observation, *Observation) {
@@ -148,10 +163,8 @@ func (o *ObservationStorage) ObserveSingle(intermediate *Observation, time, seco
 	tick int, index uint32, cardinality uint32) (int64, error) {
 	if secondsAgo == 0 {
 		if intermediate.BlockTimestamp != time {
-			intermediate = transform(intermediate, time, tick)
-			return intermediate.TickCumulative, nil
+			return transform(intermediate, time, tick).TickCumulative, nil
 		}
-		return intermediate.TickCumulative, nil
 	}
 
 	target := time - secondsAgo
