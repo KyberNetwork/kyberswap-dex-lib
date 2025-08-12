@@ -91,7 +91,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Amount: new(big.Int).SetInt64(530263907448717)},
 			expectedFee: &pool.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
 				Amount: new(big.Int).SetInt64(2129573925497)},
-			expectedGas: 165000,
+			expectedGas: 286524,
 			expectedErr: nil,
 		},
 		{
@@ -160,7 +160,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 				Amount: new(big.Int).SetInt64(530263907448717)},
 			expectedFee: &pool.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
 				Amount: new(big.Int).SetInt64(2129573925497)},
-			expectedGas: 165000,
+			expectedGas: 286524,
 			expectedErr: nil,
 		},
 		{

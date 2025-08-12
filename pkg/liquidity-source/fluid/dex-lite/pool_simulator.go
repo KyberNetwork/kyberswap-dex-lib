@@ -309,7 +309,7 @@ func (s *PoolSimulator) calcCenterPrice(poolState *PoolState,
 	tmp := rshAnd(centerPriceShift, BitPosCenterPriceShiftTimestamp, X33)
 	tmp2 := rshAnd(centerPriceShift, BitPosCenterPriceShiftLastInteractionTimestamp, X33)
 	fromTimestamp := big256.Max(tmp, tmp2).Uint64()
-	newCenterPrice := poolState.NewCenterPrice
+	newCenterPrice := tmp2.Set(poolState.NewCenterPrice)
 
 	priceShift := rshAnd(centerPriceShift, BitPosCenterPriceShiftPercent, X20)
 	timePassed := tmp.SetUint64(blockTimestamp - fromTimestamp)

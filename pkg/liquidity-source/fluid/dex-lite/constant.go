@@ -15,10 +15,9 @@ const (
 	SRMethodReadFromStorage      = "readFromStorage"
 	CenterPriceMethodCenterPrice = "centerPrice"
 
-	FeePercentPrecision     float64 = 1e4 // 10000
-	TokensDecimalsPrecision         = 9   // FluidDexLite uses 9 decimal precision internally
-	DefaultCoefficientSize          = 32
-	DefaultExponentSize             = 8
+	FeePercentPrecision     = 1e4
+	TokensDecimalsPrecision = 9 // FluidDexLite uses 9 decimal precision internally
+	DefaultExponentSize     = 8
 
 	defaultGas = 82651
 
