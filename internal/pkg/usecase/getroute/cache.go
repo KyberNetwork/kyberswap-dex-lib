@@ -424,7 +424,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 	// Step 2.1: summarize ammRoute
 	ammConstructRoute, err := c.summarizeSimpleRoute(ctx, simpleRoute.AMMRoute, params, tokenMap, priceMap, state)
 	if err != nil {
-		log.Ctx(ctx).Warn().Err(err).
+		log.Ctx(ctx).Warn().Stack().Err(err).
 			Str("client.id", clientid.GetClientIDFromCtx(ctx)).
 			Msg("summarize ammRoute failed")
 		// TODO: count metric

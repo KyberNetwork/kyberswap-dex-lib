@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cespare/xxhash/v2"
 	"github.com/samber/lo"
+	"github.com/zeebo/xxh3"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
@@ -69,7 +69,7 @@ func (k *RouteCacheKey) String() string {
 
 // Hash produces a quick statistically unique hash for RouteCacheKey. This hash is NOT cryptographically secure.
 func (k *RouteCacheKey) Hash(prefix string) uint64 {
-	d := xxhash.New()
+	d := xxh3.New()
 	_, _ = d.WriteString(prefix)
 	_, _ = d.WriteString(k.TokenIn)
 	_, _ = d.WriteString(k.TokenOut)
@@ -83,19 +83,19 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	}
 	var unorderedHash uint64
 	for _, dex := range k.Dexes {
-		unorderedHash ^= xxhash.Sum64String("d" + dex)
+		unorderedHash ^= xxh3.HashString("d" + dex)
 	}
 	for _, pool := range k.ExcludedPools {
-		unorderedHash ^= xxhash.Sum64String("e" + pool)
+		unorderedHash ^= xxh3.HashString("e" + pool)
 	}
 	for token, pools := range k.ForcePoolsForToken {
-		unorderedHash ^= xxhash.Sum64String("f" + token)
+		unorderedHash ^= xxh3.HashString("f" + token)
 		for _, pool := range pools {
-			unorderedHash ^= xxhash.Sum64String("o" + pool)
+			unorderedHash ^= xxh3.HashString("o" + pool)
 		}
 	}
 	for _, pool := range k.PoolIds {
-		unorderedHash ^= xxhash.Sum64String("p" + pool)
+		unorderedHash ^= xxh3.HashString("p" + pool)
 	}
 	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, unorderedHash))
 	if k.GasInclude {

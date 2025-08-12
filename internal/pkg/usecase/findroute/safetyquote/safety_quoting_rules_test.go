@@ -1,18 +1,35 @@
 package safetyquote
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 )
+
+func TestSafetyQuoteReduction_rand(t *testing.T) {
+	t.Parallel()
+	var r *Reduction
+	var lowOk, highOk bool
+	for i := range 99 {
+		f := r.rand(string(rune(i)))
+		if f < 0.3 {
+			lowOk = true
+		} else if f > 0.7 {
+			highOk = true
+		}
+		if lowOk && highOk {
+			return
+		}
+	}
+	assert.Fail(t, "expected to generate some number lower than 0.3 and higher than 0.7")
+}
 
 func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 	t.Parallel()
@@ -181,7 +198,7 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: utils.NewBig10("12345061639509506216049999"),
+				Amount: utils.NewBig10("12345061639509506602827776"),
 			},
 			config: &valueobject.SafetyQuoteReductionConfig{
 				ExcludeOneSwapEnable: true,
@@ -266,23 +283,19 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			sqParams := types.SafetyQuotingParams{
-				ApplyDeductionFactor: tc.applyDeductionFactor,
-				TokenIn:              "0xabc",
-				TokenOut:             "0xdef",
-				PoolType:             tc.poolType,
-				ClientId:             tc.clientId,
+			safetyQuotingParams := types.SafetyQuotingParams{
+				PoolType:       tc.poolType,
+				TokenIn:        "0xabc",
+				TokenOut:       "0xdef",
+				Amount:         tc.amount.Amount,
+				HasOnlyOneSwap: tc.applyDeductionFactor,
+				ClientId:       tc.clientId,
 			}
 
 			safetyQuoteReduction := NewSafetyQuoteReduction(tc.config)
-			res := safetyQuoteReduction.Reduce(tc.amount,
-				safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
+			res := safetyQuoteReduction.Reduce(safetyQuotingParams)
 
-			assert.True(t, res.Cmp(tc.result.Amount) == 0, fmt.Sprintf("Expect %s but got %s", tc.result.Amount.String(),
-				res.String()))
+			assert.Equal(t, tc.result.Amount, res)
 		})
 	}
 }

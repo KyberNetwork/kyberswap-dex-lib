@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/cespare/xxhash/v2"
+	"github.com/zeebo/xxh3"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
@@ -61,8 +61,8 @@ type RouteSummary struct {
 }
 
 // Checksum only uses enough data to avoid "return amount not enough" due to manually modify amount out and swap amount
-func (rs *RouteSummary) Checksum(salt string) *xxhash.Digest {
-	h := xxhash.New()
+func (rs *RouteSummary) Checksum(salt string) uint64 {
+	h := xxh3.New()
 	_, _ = h.WriteString(salt)
 	_, _ = h.WriteString(rs.TokenIn)
 	_, _ = h.Write(rs.AmountIn.Bytes())
@@ -93,7 +93,7 @@ func (rs *RouteSummary) Checksum(salt string) *xxhash.Digest {
 		}
 	}
 
-	return h
+	return h.Sum64()
 }
 
 // GetTotalAmountOut returns total amount out before fee

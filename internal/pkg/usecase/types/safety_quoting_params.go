@@ -10,12 +10,14 @@ type (
 	SafetyQuoteCategory string
 
 	SafetyQuotingParams struct {
-		Exchange             valueobject.Exchange
-		PoolType             string
-		TokenIn              string
-		TokenOut             string
-		ApplyDeductionFactor bool
-		ClientId             string
+		Address        string
+		Exchange       valueobject.Exchange
+		PoolType       string
+		TokenIn        string
+		TokenOut       string
+		Amount         *big.Int
+		HasOnlyOneSwap bool
+		ClientId       string
 	}
 )
 
@@ -43,7 +45,7 @@ var (
 		HighSlippage:   50,
 	}
 
-	// BasisPoint is one hundredth of 1 percentage point
+	// BasisPointMulByTen where BasisPoint is one hundredth of 1 percentage point
 	// https://en.wikipedia.org/wiki/Basis_point
 	BasisPointMulByTen = big.NewInt(10 * 10_000)
 )

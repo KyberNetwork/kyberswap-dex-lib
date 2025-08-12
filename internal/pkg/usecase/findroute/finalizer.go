@@ -26,7 +26,7 @@ import (
 )
 
 type FeeReductionRouteFinalizer struct {
-	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
+	safetyQuoteReduction *safetyquote.Reduction
 	alphaFeeCalculation  *alphafee.AlphaFeeV3Calculation
 
 	finderEntity.ICustomFuncsHolder
@@ -37,7 +37,7 @@ type FeeReductionFinalizerExtraData struct {
 }
 
 func NewFeeReductionRouteFinalizer(
-	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
+	safetyQuoteReduction *safetyquote.Reduction,
 	alphaFeeCalculation *alphafee.AlphaFeeV3Calculation,
 	customFuncs finderEntity.ICustomFuncs,
 ) *FeeReductionRouteFinalizer {
@@ -162,15 +162,6 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
-			sqParams := types.SafetyQuotingParams{
-				Exchange:             valueobject.Exchange(pool.GetExchange()),
-				PoolType:             pool.GetType(),
-				TokenIn:              tokenAmountIn.Token,
-				TokenOut:             res.TokenAmountOut.Token,
-				ApplyDeductionFactor: hasOnlyOneSwap(constructRoute),
-				ClientId:             params.ClientId,
-			}
-
 			// Step 2.1.6: apply alpha fee reduction
 			// Assuming alphaFee.SwapReductions are sorted by ExecutedId.
 			reducedNextAmountIn := res.TokenAmountOut.Amount
@@ -196,13 +187,18 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 				alphaFeeReductionPointer++
 			}
 
-			// Step 2.1.7: We need to calculate safety quoting amount and reassign new amount out to next path's amount in
-			reducedNextAmountIn = f.safetyQuoteReduction.Reduce(
-				&dexlibPool.TokenAmount{
-					Token:  res.TokenAmountOut.Token,
-					Amount: reducedNextAmountIn,
-				},
-				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
+			// Step 2.1.7: Calculate safety quoting amount and reassign new amount out to next path's amount in
+			safetyQuotingParams := types.SafetyQuotingParams{
+				Address:        pool.GetAddress(),
+				Exchange:       valueobject.Exchange(pool.GetExchange()),
+				PoolType:       pool.GetType(),
+				TokenIn:        tokenAmountIn.Token,
+				TokenOut:       res.TokenAmountOut.Token,
+				Amount:         reducedNextAmountIn,
+				HasOnlyOneSwap: hasOnlyOneSwap(constructRoute),
+				ClientId:       params.ClientId,
+			}
+			reducedNextAmountIn = f.safetyQuoteReduction.Reduce(safetyQuotingParams)
 
 			// Step 2.1.8: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn

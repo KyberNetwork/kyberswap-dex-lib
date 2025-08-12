@@ -36,8 +36,8 @@ github.com/KyberNetwork/msgpack/v5 v5.4.2 h1:1RBX5AriCTNnXheBzV3/upOPr8QxjdGDSY1
 github.com/KyberNetwork/msgpack/v5 v5.4.2/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2 h1:45P7nv11pKHiQQcad2IA6RerjTyVZJmwAvZiFljA/hs=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/pathfinder-lib v0.1.26 h1:J9XRYssylVzSHf1/R7sRI64XbgWO1ZCLCBQc+1efGd8=
-github.com/KyberNetwork/pathfinder-lib v0.1.26/go.mod h1:fp1CgNepI8g+0ZhhJfLf06I9fZct/1nQo7pi4HnOX84=
+github.com/KyberNetwork/pathfinder-lib v0.1.27 h1:68TtqUSoyJdgM3DJZ3wCfqbU4ksFYB+QWyJcK4MLFDI=
+github.com/KyberNetwork/pathfinder-lib v0.1.27/go.mod h1:LYeMkHAii0A5i8FUt9P4WlGULyug1YYrg/fhSxwzZ9I=
 github.com/KyberNetwork/pool-service v0.93.6 h1:gQxnxd4l/gr/j1bn2tDAgby9XYg/thBbxIAzGr/Clv4=
 github.com/KyberNetwork/pool-service v0.93.6/go.mod h1:jIgwxdEgH4jHNdRZjAtI6gE1Mnb95JpSFGzqqEhERLI=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=
@@ -501,6 +501,10 @@ github.com/yuin/gopher-lua v1.1.1 h1:kYKnWBjvbNP4XLT3+bPEwAXJx262OhaHDWDVOPjL46M
 github.com/yuin/gopher-lua v1.1.1/go.mod h1:GBR0iDaNXjAgGg9zfCvksxSRnQx76gclCIb7kdAd1Pw=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
+github.com/zeebo/assert v1.3.0 h1:g7C04CbJuIDKNPFHmsk4hwZDO5O+kntRxzaUoNXj+IQ=
+github.com/zeebo/assert v1.3.0/go.mod h1:Pq9JiuJQpG8JLJdtkwrJESF0Foym2/D9XMU5ciN/wJ0=
+github.com/zeebo/xxh3 v1.0.2 h1:xZmwmqxHZA8AI603jOQ0tMqmBr9lPeFwGg6d+xy9DC0=
+github.com/zeebo/xxh3 v1.0.2/go.mod h1:5NWz9Sef7zIDm2JHfFlcQvNekmcEl9ekUZQQKCYaDcA=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.59.0 h1:5Acs0t57/EJbB54SUEdALa+0ln2UEawYPUSIX3qdE14=

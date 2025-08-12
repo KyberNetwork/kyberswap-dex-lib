@@ -3,10 +3,16 @@ package valueobject
 import (
 	"math/big"
 	"testing"
-
-	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
+// goos: linux
+// goarch: amd64
+// cpu: AMD Ryzen 7 5800H with Radeon Graphics
+// BenchmarkRouteSummaryChecksum (zeebo/xxh3)
+// BenchmarkRouteSummaryChecksum-16    	   10000	    703296 ns/op
+// BenchmarkRouteSummaryChecksum (cespare/xxhash/v2)
+// BenchmarkRouteSummaryChecksum-16    	   10000	    800201 ns/op
+//
 // goos: darwin
 // goarch: arm64
 // pkg: github.com/KyberNetwork/router-service/internal/pkg/valueobject
@@ -67,6 +73,6 @@ func BenchmarkRouteSummaryChecksum(b *testing.B) {
 				PoolType:   "nomiswap-stable",
 			},
 		})
-		crypto.NewChecksum(routeSummary, randomeSalt)
+		routeSummary.Checksum(randomeSalt)
 	}
 }

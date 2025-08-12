@@ -23,13 +23,12 @@ require (
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.14.12
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pathfinder-lib v0.1.26
+	github.com/KyberNetwork/pathfinder-lib v0.1.27
 	github.com/KyberNetwork/pool-service v0.93.6
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.8.0
 	github.com/alicebob/miniredis/v2 v2.34.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.7.0
 	github.com/dgraph-io/ristretto v0.2.0
@@ -66,6 +65,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tdewolff/minify/v2 v2.21.3
 	github.com/urfave/cli/v2 v2.27.5
+	github.com/zeebo/xxh3 v1.0.2
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.59.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.59.0
 	go.opentelemetry.io/otel v1.34.0
@@ -91,6 +91,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/bytedance/sonic v1.12.9 // indirect
 	github.com/bytedance/sonic/loader v0.2.3 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/consensys/bavard v0.1.29 // indirect
 	github.com/consensys/gnark-crypto v0.16.0 // indirect

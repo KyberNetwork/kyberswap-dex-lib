@@ -25,7 +25,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -341,7 +340,7 @@ func (u *useCase) checksumRouteSummary(routeSummary *valueobject.RouteSummary, o
 		routeSummary.Route[0][0].Extra = firstSwapExtra
 	}
 
-	checksum := crypto.NewChecksum(routeSummary, u.config.Salt).Hash()
+	checksum := routeSummary.Checksum(u.config.Salt)
 	if !u.config.FeatureFlags.ReturnAlphaFee {
 		routeSummary.AlphaFee = nil
 	}

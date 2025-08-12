@@ -432,6 +432,7 @@ useCase:
         LowSlippage: 3
         NormalSlippage: 10
         HighSlippage: 50
+      randomJitter: 0.2
       whitelistedClient:
     alphaFeeConfig: *alphaFeeConfig
   getCustomRoute:

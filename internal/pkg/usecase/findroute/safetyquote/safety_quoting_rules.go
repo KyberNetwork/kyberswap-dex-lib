@@ -1,69 +1,81 @@
 package safetyquote
 
 import (
+	"math"
 	"math/big"
 	"strings"
+	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/samber/lo"
+	"github.com/zeebo/xxh3"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-type SafetyQuoteReduction struct {
-	// These configs are not refreshed, instead the whole object is renew
+type Reduction struct {
+	// These configs are not refreshed, instead the whole object is renewed
 	excludeOneSwapEnable bool
 	deductionFactorInBps map[types.SafetyQuoteCategory]float64
-	whiteListClients     mapset.Set[string]
-	tokenGroups          *valueobject.TokenGroupConfig
+	randomJitter         float64
+	whitelistedClients   mapset.Set[string]
+	tokenGroups          valueobject.TokenGroupConfig
 }
 
-func NewSafetyQuoteReduction(config *valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
-	whitelistSet := whitelistClientToSet(config.WhitelistedClient)
-
-	tokenGroups := config.TokenGroupConfig
-	if tokenGroups == nil {
-		tokenGroups = &valueobject.TokenGroupConfig{
-			StableGroup:      make(map[string]bool),
-			CorrelatedGroup1: make(map[string]bool),
-			CorrelatedGroup2: make(map[string]bool),
-			CorrelatedGroup3: make(map[string]bool),
-		}
-	}
+func NewSafetyQuoteReduction(config *valueobject.SafetyQuoteReductionConfig) *Reduction {
+	whitelistedClients := toLowerStrSet(config.WhitelistedClient)
+	tokenGroups := lo.FromPtr(config.TokenGroupConfig)
 
 	if len(config.Factor) == 0 {
-		return &SafetyQuoteReduction{
+		return &Reduction{
 			excludeOneSwapEnable: true,
 			deductionFactorInBps: types.SafetyQuoteMappingDefault,
-			whiteListClients:     whitelistSet,
+			whitelistedClients:   whitelistedClients,
 			tokenGroups:          tokenGroups,
 		}
 	}
 
-	return &SafetyQuoteReduction{
+	return &Reduction{
 		excludeOneSwapEnable: config.ExcludeOneSwapEnable,
 		deductionFactorInBps: getFactor(config),
-		whiteListClients:     whitelistSet,
+		randomJitter:         config.RandomJitter,
+		whitelistedClients:   whitelistedClients,
 		tokenGroups:          tokenGroups,
 	}
 }
 
-func whitelistClientToSet(clients []string) mapset.Set[string] {
-	whitelistSet := mapset.NewThreadUnsafeSet[string]()
-	for _, cli := range clients {
-		whitelistSet.Add(strings.ToLower(cli))
+func toLowerStrSet(strs []string) mapset.Set[string] {
+	set := mapset.NewThreadUnsafeSetWithSize[string](len(strs))
+	for _, str := range strs {
+		set.Add(strings.ToLower(str))
 	}
-
-	return whitelistSet
+	return set
 }
 
-func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingParams) float64 {
-	if f.whiteListClients.ContainsOne(strings.ToLower(params.ClientId)) {
-		return 0
+// Reduce wraps the whole logic of safety quoting calculation
+// which is described in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
+// Deduction factor can be positive in optimistic case
+func (f *Reduction) Reduce(params types.SafetyQuotingParams) *big.Int {
+	deductionFactor := f.getSafetyQuotingRate(params)
+	if deductionFactor == 0 {
+		return params.Amount
+	} else if f.randomJitter > 0 {
+		deductionFactor += deductionFactor * f.randomJitter * (2*f.rand(params.Address) - 1)
 	}
-	if f.excludeOneSwapEnable && params.ApplyDeductionFactor {
+
+	amountF, _ := params.Amount.Float64()
+	amountF *= (10000 - deductionFactor) / 10000
+	newAmount, _ := big.NewFloat(amountF).Int(nil)
+
+	return newAmount
+}
+
+func (f *Reduction) getSafetyQuotingRate(params types.SafetyQuotingParams) float64 {
+	if f.whitelistedClients.ContainsOne(strings.ToLower(params.ClientId)) {
+		return 0
+	} else if f.excludeOneSwapEnable && params.HasOnlyOneSwap {
 		return 0
 	}
 
@@ -97,26 +109,13 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 	return f.deductionFactorInBps[types.Default]
 }
 
-// This function wrap the whole logic of safety quoting calculation
-// which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
-// Deduction factor can be positive in optimistic case
-func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64) *big.Int {
-	if deductionFactor == 0 {
-		return amount.Amount
-	}
-	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
-	// 100% is equal to 10000Bps
-	deductionFactorInBps := big.NewInt(int64(10 * (10000 - deductionFactor)))
-	newAmount := new(big.Int).Div(
-		new(big.Int).Mul(amount.Amount, deductionFactorInBps),
-		types.BasisPointMulByTen,
-	)
-
-	return newAmount
-
+// rand generates a non-cryptographic random number in [0,1] that stays the same for 6 seconds for the same seed
+func (f *Reduction) rand(seed string) float64 {
+	h := xxh3.HashStringSeed(seed, uint64(time.Now().Unix()/6))
+	return float64(h) / math.MaxUint64
 }
 
-// Because viper makes all keys case insensitive, so that we have to accept case insensitive in safety quoting configs
+// Because viper makes all keys case-insensitive, so that we have to accept case-insensitive in safety quoting configs
 // which receives values from both source viper config and ks-settings
 // Ref: https://github.com/spf13/viper#does-viper-support-case-sensitive-keys
 func getFactor(config *valueobject.SafetyQuoteReductionConfig) map[types.SafetyQuoteCategory]float64 {
@@ -124,7 +123,7 @@ func getFactor(config *valueobject.SafetyQuoteReductionConfig) map[types.SafetyQ
 	for category, defaultVal := range types.SafetyQuoteMappingDefault {
 		// only update safety quote reduction factor in SafetyQuoteMappingDefault
 		// this protect SafetyQuoteReductionConfig from the wrong value in remote configs
-		// if remote config doesn't contains enough value, default value will be used instead.
+		// if remote config doesn't contain enough value, default value will be used instead.
 		if v, ok := config.Factor[string(category)]; ok {
 			factors[category] = v
 		} else if value, ok := config.Factor[strings.ToLower(string(category))]; ok {

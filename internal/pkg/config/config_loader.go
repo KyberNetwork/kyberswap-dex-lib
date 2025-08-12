@@ -19,6 +19,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
@@ -162,14 +163,15 @@ func (cl *ConfigLoader) Initialize() error {
 		log.Logger = zerolog.New(os.Stdout)
 	}
 	log.Logger = log.Logger.Level(parseLevel(cfg.Log.ConsoleLevel)).With().Timestamp().Caller().Logger()
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.CallerMarshalFunc = func(pc uintptr, file string, line int) string {
 		return filepath.Base(filepath.Dir(file)) + "/" + filepath.Base(file) + ":" + strconv.Itoa(line)
 	}
-	zerolog.DefaultContextLogger = &log.Logger
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	zerolog.InterfaceMarshalFunc = json.MarshalNoEscape
-	log.Info().Any("local config", cl.config).Send()
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	zerolog.DefaultContextLogger = &log.Logger
 
+	log.Info().Any("local config", cl.config).Send()
 	return nil
 }
 

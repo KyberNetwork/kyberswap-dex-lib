@@ -160,6 +160,7 @@ type (
 	SafetyQuoteReductionConfig struct {
 		ExcludeOneSwapEnable bool               `mapstructure:"excludeOneSwapEnable" json:"excludeOneSwapEnable"`
 		Factor               map[string]float64 `mapstructure:"factor" json:"factor"`
+		RandomJitter         float64            `mapstructure:"randomJitter" json:"randomJitter"`
 		WhitelistedClient    []string           `mapstructure:"whitelistedClient" json:"whitelistedClient"`
 		// tokenGroup config doesn't need to update from remote config
 		TokenGroupConfig *TokenGroupConfig `mapstructure:"tokenGroupConfig"`

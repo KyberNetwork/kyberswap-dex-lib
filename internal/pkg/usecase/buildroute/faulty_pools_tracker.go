@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 func (uc *BuildRouteUseCase) recordMetrics(ctx context.Context, route [][]valueobject.Swap, slippageTolerance float64,
@@ -238,6 +237,5 @@ func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(routeTimestamp int64) boo
 }
 
 func (uc *BuildRouteUseCase) IsValidChecksum(route *valueobject.RouteSummary) bool {
-	checksum := crypto.NewChecksum(route, uc.config.Salt)
-	return checksum.Verify(route.OriginalChecksum)
+	return route.Checksum(uc.config.Salt) == route.OriginalChecksum
 }

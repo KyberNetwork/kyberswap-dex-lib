@@ -26,7 +26,6 @@ import (
 	. "github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 type dummyL1FeeCalculator struct{}
@@ -673,7 +672,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:      route,
 					SlippageTolerance: 5,
@@ -828,7 +827,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -1099,7 +1098,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -1278,7 +1277,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					Sender:              sender,
@@ -1382,7 +1381,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:      route,
 					Sender:            sender,
@@ -1476,7 +1475,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					Sender:              sender,
@@ -1680,7 +1679,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -1825,7 +1824,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -1944,7 +1943,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -2063,7 +2062,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   30,
@@ -2203,7 +2202,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 							},
 						},
 					}}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   50,
@@ -2344,7 +2343,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -2493,7 +2492,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   50,
@@ -2655,7 +2654,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   50,
@@ -2912,7 +2911,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   10,
@@ -3024,7 +3023,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 						},
 					},
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   10,
@@ -3249,7 +3248,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					SlippageTolerance:   5,
@@ -3359,7 +3358,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					EnableGasEstimation: true,
@@ -3486,7 +3485,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 					},
 					Timestamp: time.Now().Unix(),
 				}
-				route.OriginalChecksum = crypto.NewChecksum(route, randomSalt).Hash()
+				route.OriginalChecksum = route.Checksum(randomSalt)
 				return dto.BuildRouteCommand{
 					RouteSummary:        route,
 					EnableGasEstimation: true,
