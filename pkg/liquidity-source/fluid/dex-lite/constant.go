@@ -12,10 +12,12 @@ import (
 const (
 	DexType = "fluid-dex-lite"
 
-	SRMethodReadFromStorage = "readFromStorage"
+	SRMethodReadFromStorage      = "readFromStorage"
+	CenterPriceMethodCenterPrice = "centerPrice"
 
 	FeePercentPrecision     float64 = 1e4 // 10000
 	TokensDecimalsPrecision         = 9   // FluidDexLite uses 9 decimal precision internally
+	DefaultCoefficientSize          = 32
 	DefaultExponentSize             = 8
 
 	defaultGas = 82651
@@ -105,14 +107,14 @@ var (
 
 	// Error definitions
 
-	ErrInvalidAmountIn                 = errors.New("invalid amountIn")
-	ErrInvalidAmountOut                = errors.New("invalid amount out")
-	ErrInvalidToken                    = errors.New("invalid token")
-	ErrInsufficientReserve             = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
-	ErrPoolNotInitialized              = errors.New("pool not initialized")
-	ErrExcessiveSwapAmount             = errors.New("excessive swap amount")
-	ErrTokenReservesRatioTooHigh       = errors.New("token reserves ratio too high")
-	ErrAdjustedSupplyOverflow          = errors.New("adjusted supply overflow")
-	ErrInvalidFeeRate                  = errors.New("invalid fee rate")
-	ErrExternalCenterPriceNotSupported = errors.New("external center price feeds not supported")
+	ErrInvalidAmountIn           = errors.New("invalid amountIn")
+	ErrInvalidAmountOut          = errors.New("invalid amount out")
+	ErrInvalidToken              = errors.New("invalid token")
+	ErrInsufficientReserve       = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
+	ErrPoolNotInitialized        = errors.New("pool not initialized")
+	ErrExcessiveSwapAmount       = errors.New("excessive swap amount")
+	ErrTokenReservesRatioTooHigh = errors.New("token reserves ratio too high")
+	ErrAdjustedSupplyOverflow    = errors.New("adjusted supply overflow")
+	ErrCenterPriceOverflow       = errors.New("center price overflow")
+	ErrInvalidFeeRate            = errors.New("invalid fee rate")
 )

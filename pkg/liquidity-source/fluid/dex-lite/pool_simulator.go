@@ -301,9 +301,49 @@ func (s *PoolSimulator) calcShiftingDone(current, old, timePassed, shiftDuration
 	}
 }
 
+// calcCenterPrice implements _calcCenterPrice from the contract
+func (s *PoolSimulator) calcCenterPrice(poolState *PoolState,
+	dexVars *UnpackedDexVariables, blockTimestamp uint64) *uint256.Int {
+	oldCenterPrice := expandCenterPrice(dexVars.CenterPrice)
+	centerPriceShift := poolState.CenterPriceShift
+	tmp := rshAnd(centerPriceShift, BitPosCenterPriceShiftTimestamp, X33)
+	tmp2 := rshAnd(centerPriceShift, BitPosCenterPriceShiftLastInteractionTimestamp, X33)
+	fromTimestamp := big256.Max(tmp, tmp2).Uint64()
+	newCenterPrice := poolState.NewCenterPrice
+
+	priceShift := rshAnd(centerPriceShift, BitPosCenterPriceShiftPercent, X20)
+	timePassed := tmp.SetUint64(blockTimestamp - fromTimestamp)
+	shiftDuration := rshAnd(centerPriceShift, BitPosCenterPriceShiftTimeToShift, X20)
+	priceShift.MulDivOverflow(priceShift.Mul(oldCenterPrice, priceShift), timePassed,
+		shiftDuration.Mul(shiftDuration, SixDecimals))
+
+	if newCenterPrice.Cmp(oldCenterPrice) > 0 {
+		oldCenterPrice.Add(oldCenterPrice, priceShift)
+		if newCenterPrice.Cmp(oldCenterPrice) > 0 {
+			newCenterPrice.Set(oldCenterPrice)
+		} else { // shifting fully done
+			dexVars.CenterPriceShiftActive = false
+		}
+	} else {
+		if oldCenterPrice.Cmp(priceShift) > 0 {
+			oldCenterPrice.Sub(oldCenterPrice, priceShift)
+		} else {
+			oldCenterPrice.Clear()
+		}
+		if newCenterPrice.Cmp(oldCenterPrice) < 0 {
+			newCenterPrice.Set(oldCenterPrice)
+		} else { // shifting fully done
+			dexVars.CenterPriceShiftActive = false
+		}
+	}
+
+	return newCenterPrice
+}
+
 // calcRangeShifting implements _calcRangeShifting from the contract
-func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *uint256.Int, poolState *PoolState,
-	dexVars *UnpackedDexVariables, blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
+func (s *PoolSimulator) calcRangeShifting(poolState *PoolState, dexVars *UnpackedDexVariables,
+	blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
+	upperRange, lowerRange := dexVars.UpperPercent, dexVars.LowerPercent
 	rangeShift := poolState.RangeShift
 
 	// Extract shift data
@@ -327,88 +367,6 @@ func (s *PoolSimulator) calcRangeShifting(upperRange, lowerRange *uint256.Int, p
 	return newUpperRange, newLowerRange
 }
 
-// calcThresholdShifting implements _calcThresholdShifting from the contract
-func (s *PoolSimulator) calcThresholdShifting(upperThreshold, lowerThreshold *uint256.Int, poolState *PoolState,
-	dexVars *UnpackedDexVariables, blockTimestamp uint64) (*uint256.Int, *uint256.Int) {
-	thresholdShift := poolState.ThresholdShift
-
-	// Extract shift data
-	tmp := rshAnd(thresholdShift, BitPosThresholdShiftTimestamp, X33)
-	startTimestamp := tmp.Uint64()
-	shiftDuration := rshAnd(thresholdShift, BitPosThresholdShiftTimeToShift, X20)
-	if blockTimestamp >= startTimestamp+shiftDuration.Uint64() { // shifting fully done
-		dexVars.ThresholdPercentShiftActive = false
-		return upperThreshold, lowerThreshold
-	}
-
-	// Extract old values - 7 bits each
-	oldLowerThreshold := rshAnd(thresholdShift, BitPosThresholdShiftOldLowerThresholdPercent, X7)
-	oldUpperThreshold := rshAnd(thresholdShift, BitPosThresholdShiftOldUpperThresholdPercent, X7)
-
-	// Calculate shifted values
-	timePassed := tmp.SetUint64(blockTimestamp - startTimestamp)
-	newUpperThreshold := s.calcShiftingDone(upperThreshold, oldUpperThreshold, timePassed, shiftDuration)
-	newLowerThreshold := s.calcShiftingDone(lowerThreshold, oldLowerThreshold, timePassed, shiftDuration)
-
-	return newUpperThreshold, newLowerThreshold
-}
-
-// getRebalancingStatus implements _getRebalancingStatus from the contract
-func (s *PoolSimulator) getRebalancingStatus(dexVars *UnpackedDexVariables, rebalancingStatus uint64,
-	price, centerPrice *uint256.Int, blockTimestamp uint64) uint64 {
-	// Extract range percents from dexVariables
-	upperRangePercent := dexVars.UpperPercent
-	lowerRangePercent := dexVars.LowerPercent
-
-	// Check if range shift is active and calculate if needed
-	if dexVars.RangePercentShiftActive {
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, &s.PoolState,
-			dexVars, blockTimestamp)
-	}
-
-	// Calculate range prices
-	var upperRangePrice, lowerRangePrice, tmp uint256.Int
-	// upperRangePrice = (centerPrice * FOUR_DECIMALS) / (FOUR_DECIMALS - upperRangePercent)
-	denominator := tmp.Sub(FourDecimals, upperRangePercent)
-	upperRangePrice.MulDivOverflow(centerPrice, FourDecimals, denominator)
-	// lowerRangePrice = (centerPrice * (FOUR_DECIMALS - lowerRangePercent)) / FOUR_DECIMALS
-	numerator := tmp.Sub(FourDecimals, lowerRangePercent)
-	lowerRangePrice.MulDivOverflow(centerPrice, numerator, FourDecimals)
-
-	// Extract threshold percents
-	upperThresholdPercent := dexVars.UpperShiftThresholdPercent
-	lowerThresholdPercent := dexVars.LowerShiftThresholdPercent
-
-	// Check if threshold shift is active and calculate if needed
-	if dexVars.ThresholdPercentShiftActive {
-		upperThresholdPercent, lowerThresholdPercent = s.calcThresholdShifting(upperThresholdPercent,
-			lowerThresholdPercent, &s.PoolState, dexVars, blockTimestamp)
-	}
-
-	// Calculate threshold prices
-	// upperThreshold = centerPrice + ((upperRangePrice - centerPrice) * (TWO_DECIMALS - upperThresholdPercent)) / TWO_DECIMALS
-	rangeDiff := upperRangePrice.Sub(&upperRangePrice, centerPrice)
-	thresholdFactor := tmp.Sub(TwoDecimals, upperThresholdPercent)
-	adjustment, _ := rangeDiff.MulDivOverflow(rangeDiff, thresholdFactor, TwoDecimals)
-	upperThreshold := adjustment.Add(centerPrice, adjustment)
-	// lowerThreshold = centerPrice - ((centerPrice - lowerRangePrice) * (TWO_DECIMALS - lowerThresholdPercent)) / TWO_DECIMALS
-	rangeDiff = lowerRangePrice.Sub(centerPrice, &lowerRangePrice)
-	thresholdFactor = tmp.Sub(TwoDecimals, lowerThresholdPercent)
-	adjustment, _ = rangeDiff.MulDivOverflow(rangeDiff, thresholdFactor, TwoDecimals)
-	lowerThreshold := adjustment.Sub(centerPrice, adjustment)
-
-	// Check thresholds and update rebalancing status
-	if price.Cmp(upperThreshold) > 0 {
-		dexVars.RebalancingStatus = 2
-	} else if price.Cmp(lowerThreshold) < 0 {
-		dexVars.RebalancingStatus = 3
-	} else {
-		dexVars.RebalancingStatus = 1
-	}
-
-	return dexVars.RebalancingStatus
-}
-
 // Helper function to adjust amounts to internal decimals (TOKENS_DECIMALS_PRECISION = 9)
 func (s *PoolSimulator) adjustToInternalDecimals(amount *uint256.Int, tokenIdx int) *uint256.Int {
 	decimals := s.TokenDecimals[tokenIdx]
@@ -425,7 +383,7 @@ func (s *PoolSimulator) adjustFromInternalDecimals(amount *uint256.Int, tokenIdx
 }
 
 // expandCenterPrice expands the compressed center price
-func (s *PoolSimulator) expandCenterPrice(centerPrice *uint256.Int) *uint256.Int {
+func expandCenterPrice(centerPrice *uint256.Int) *uint256.Int {
 	var coefficient, exponent uint256.Int
 	return coefficient.Lsh(coefficient.Rsh(centerPrice, DefaultExponentSize),
 		uint(exponent.And(centerPrice, DefaultExponentMask).Uint64()))
@@ -437,13 +395,12 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	// Use the actual block timestamp from when the pool state was fetched
 	blockTimestamp := s.BlockTimestamp
 
-	// Check for external center price functionality that we don't currently support
-	if dexVars.CenterPriceShiftActive || !dexVars.CenterPriceContractAddress.IsZero() {
-		return nil, [2]*uint256.Int{}, ErrExternalCenterPriceNotSupported
+	var centerPrice *uint256.Int
+	if dexVars.CenterPriceShiftActive {
+		centerPrice = s.calcCenterPrice(&s.PoolState, dexVars, blockTimestamp)
+	} else { // Extract center price with exponential encoding (static price only)
+		centerPrice = expandCenterPrice(dexVars.CenterPrice)
 	}
-
-	// Extract center price with exponential encoding (static price only)
-	centerPrice := s.expandCenterPrice(dexVars.CenterPrice)
 
 	// Extract range percents
 	upperRangePercent := dexVars.UpperPercent
@@ -452,8 +409,7 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 	// Check if range shift is active
 	if dexVars.RangePercentShiftActive {
 		// An active range shift is going on
-		upperRangePercent, lowerRangePercent = s.calcRangeShifting(upperRangePercent, lowerRangePercent, &s.PoolState,
-			dexVars, blockTimestamp)
+		upperRangePercent, lowerRangePercent = s.calcRangeShifting(&s.PoolState, dexVars, blockTimestamp)
 	}
 
 	// Calculate range prices
@@ -501,12 +457,12 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 
 			// Check min/max bounds if rebalancing actually happened
 			maxCenterPrice := rshAnd(centerPriceShift, BitPosCenterPriceShiftMaxCenterPrice, X28)
-			maxCenterPriceExpanded := s.expandCenterPrice(maxCenterPrice)
+			maxCenterPriceExpanded := expandCenterPrice(maxCenterPrice)
 			if centerPrice.Cmp(maxCenterPriceExpanded) > 0 {
 				centerPrice = maxCenterPriceExpanded
 			} else {
 				minCenterPrice := rshAnd(centerPriceShift, BitPosCenterPriceShiftMinCenterPrice, X28)
-				minCenterPriceExpanded := s.expandCenterPrice(minCenterPrice)
+				minCenterPriceExpanded := expandCenterPrice(minCenterPrice)
 				if centerPrice.Cmp(minCenterPriceExpanded) < 0 {
 					centerPrice = minCenterPriceExpanded
 				}

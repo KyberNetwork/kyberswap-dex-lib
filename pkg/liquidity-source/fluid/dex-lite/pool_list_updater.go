@@ -77,12 +77,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		// Store only the essential FluidDexLite data
 		extraBytes, err := json.Marshal(PoolExtraMarshal{
-			PoolState: PoolStateHex{
-				DexVariables:     "0x0",
-				CenterPriceShift: "0x0",
-				RangeShift:       "0x0",
-				ThresholdShift:   "0x0",
-			},
 			BlockTimestamp: uint64(time.Now().Unix()),
 		})
 		if err != nil {

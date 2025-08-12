@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
@@ -71,13 +72,13 @@ func (t *PoolTracker) getNewPoolState(
 			DexVariables:     poolState.DexVariables.Hex(),
 			CenterPriceShift: poolState.CenterPriceShift.Hex(),
 			RangeShift:       poolState.RangeShift.Hex(),
-			ThresholdShift:   poolState.ThresholdShift.Hex(),
+			NewCenterPrice:   poolState.NewCenterPrice.Hex(),
 		},
 		BlockTimestamp: uint64(time.Now().Unix()),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error marshaling extra data")
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("error marshaling extra data")
 		return p, err
 	}
 
@@ -141,11 +142,6 @@ func unpackDexVariables(dexVars *uint256.Int) *UnpackedDexVariables {
 	}
 }
 
-func unpackTotalSupplies(dexVariables *uint256.Int) (*uint256.Int, *uint256.Int) {
-	return rshAnd(dexVariables, BitPosToken0TotalSupplyAdjusted, X60),
-		rshAnd(dexVariables, BitPosToken1TotalSupplyAdjusted, X60)
-}
-
 func rshAnd(value *uint256.Int, shift uint, mask *uint256.Int) *uint256.Int {
 	var ret uint256.Int
 	return ret.And(ret.Rsh(value, shift), mask)
@@ -167,14 +163,13 @@ func (t *PoolTracker) getPoolStateByDexId(
 	dexId DexId,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*PoolState, uint64, error) {
-	var poolStateSlots [4]*big.Int
+	var poolStateSlots [3]*big.Int
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(true).SetOverrides(overrides)
 	for i, baseSlot := range []common.Hash{
 		StorageSlotDexVariables,
 		StorageSlotCenterPriceShift,
 		StorageSlotRangeShift,
-		StorageSlotThresholdShift,
 	} {
 		slot := calculatePoolStateSlot(dexId, baseSlot)
 		req.AddCall(&ethrpc.Call{
@@ -189,7 +184,7 @@ func (t *PoolTracker) getPoolStateByDexId(
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
-		}).Error("Failed to read pool state slot")
+		}).Error("failed to read pool state slot")
 		return nil, 0, err
 	}
 
@@ -198,10 +193,40 @@ func (t *PoolTracker) getPoolStateByDexId(
 		DexVariables:     uint256.MustFromBig(poolStateSlots[0]),
 		CenterPriceShift: uint256.MustFromBig(poolStateSlots[1]),
 		RangeShift:       uint256.MustFromBig(poolStateSlots[2]),
-		ThresholdShift:   uint256.MustFromBig(poolStateSlots[3]),
+		NewCenterPrice:   big256.U0,
+	}
+
+	centerPriceContractAddress := rshAnd(poolState.DexVariables, BitPosCenterPriceContractAddress, X19)
+	if !centerPriceContractAddress.IsZero() {
+		centerPrice, err := t.getCenterPrice(ctx, centerPriceContractAddress.Uint64(), overrides)
+		if err != nil {
+			return poolState, resp.BlockNumber.Uint64(), nil
+		}
+		poolState.NewCenterPrice = centerPrice
 	}
 
 	return poolState, resp.BlockNumber.Uint64(), nil
+}
+
+func (t *PoolTracker) getCenterPrice(ctx context.Context, centerPriceContractAddressNonce uint64,
+	overrides map[common.Address]gethclient.OverrideAccount) (*uint256.Int, error) {
+	var expandedCenterPrice *big.Int
+	centerPriceSource := crypto.CreateAddress(t.config.DeployerAddress, centerPriceContractAddressNonce)
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
+		ABI:    centerPriceABI,
+		Target: hexutil.Encode(centerPriceSource[:]),
+		Method: CenterPriceMethodCenterPrice,
+	}, []any{&expandedCenterPrice}).Call(); err != nil {
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("failed to get center price")
+		return nil, err
+	}
+
+	centerPrice, ok := uint256.FromBig(expandedCenterPrice)
+	if !ok {
+		return nil, ErrCenterPriceOverflow
+	}
+
+	return centerPrice, nil
 }
 
 func calculatePoolStateSlot(dexId DexId, baseSlot common.Hash) common.Hash {

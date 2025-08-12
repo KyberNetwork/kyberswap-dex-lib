@@ -61,7 +61,7 @@ func TestPoolTracker(t *testing.T) {
 				DexVariables:     uint256.NewInt(0x123456789abcdef),
 				CenterPriceShift: uint256.NewInt(0),
 				RangeShift:       uint256.NewInt(0),
-				ThresholdShift:   uint256.NewInt(0),
+				NewCenterPrice:   uint256.NewInt(0),
 			},
 		}
 		extraBytes, _ := json.Marshal(extra)
@@ -208,7 +208,7 @@ func TestRealOnChainPoolState(t *testing.T) {
 		logger.Debugf("   DexVariables (hex): 0x%s", poolState.DexVariables.Hex())
 		logger.Debugf("   CenterPriceShift: %s", poolState.CenterPriceShift.String())
 		logger.Debugf("   RangeShift: %s", poolState.RangeShift.String())
-		logger.Debugf("   ThresholdShift: %s", poolState.ThresholdShift.String())
+		logger.Debugf("   NewCenterPrice: %s", poolState.NewCenterPrice.String())
 
 		if poolState.DexVariables.Sign() != 0 {
 			logger.Debugf("\n🔍 DECODING REAL DEXVARIABLES FROM ON-CHAIN:")

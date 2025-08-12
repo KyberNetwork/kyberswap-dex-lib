@@ -396,7 +396,7 @@ func TestSimpleContractCall(t *testing.T) {
 			DexVariables:     mockDexVariables,
 			CenterPriceShift: uint256.NewInt(0),
 			RangeShift:       uint256.NewInt(0),
-			ThresholdShift:   uint256.NewInt(0),
+			NewCenterPrice:   uint256.NewInt(0),
 		}
 
 		// Create a working pool simulator from the mock entity
@@ -566,7 +566,7 @@ func createMockPool() []entity.Pool {
 			DexVariables:     createSampleDexVariables(),
 			CenterPriceShift: uint256.NewInt(0),
 			RangeShift:       uint256.NewInt(0),
-			ThresholdShift:   uint256.NewInt(0),
+			NewCenterPrice:   uint256.NewInt(0),
 		},
 		BlockTimestamp: uint64(1704067200), // Jan 1, 2024
 	}
