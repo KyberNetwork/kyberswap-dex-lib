@@ -275,7 +275,7 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
 		CalculatedAmount: calculatedAmount,
 		FeesPaid:         feesPaid,
-		Gas:              quoting.BaseGasCostOfOneConcentratedLiquidtitySwap + int64(initializedTicksCrossed)*quoting.GasCostOfOneInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasCostOfOneTickSpacingCrossed,
+		Gas:              quoting.BaseGasConcentratedLiquiditySwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasTickSpacingCrossed,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
 			IsToken1:  isToken1,

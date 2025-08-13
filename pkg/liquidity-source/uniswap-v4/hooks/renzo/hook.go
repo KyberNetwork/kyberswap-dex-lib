@@ -9,8 +9,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -55,10 +55,6 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	}
 	return hook
 }, HookAddresses...)
-
-func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
-}
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
 	var extra RenzoExtra
@@ -130,8 +126,8 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 		}
 	}
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecific:   new(big.Int),
-		DeltaUnSpecific: new(big.Int),
+		DeltaSpecific:   bignumber.ZeroBI,
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         uniswapv4.FeeAmount(fee.Uint64()),
 	}, nil
 }

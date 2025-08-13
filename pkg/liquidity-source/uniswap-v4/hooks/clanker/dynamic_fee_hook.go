@@ -11,7 +11,6 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
@@ -330,8 +329,8 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecific:   new(big.Int),
-			DeltaUnSpecific: new(big.Int),
+			DeltaSpecific:   bignumber.ZeroBI,
+			DeltaUnSpecific: bignumber.ZeroBI,
 			SwapFee:         swapFee,
 		}, nil
 	}
@@ -353,7 +352,7 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   &fee,
-		DeltaUnSpecific: new(big.Int),
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         swapFee,
 	}, nil
 }
@@ -383,10 +382,6 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv
 	}, nil
 }
 
-func (h *DynamicFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
-}
-
 func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exactIn bool) (swapInfo uniswapv3.SwapInfo, err error) {
 	swappingForClanker := zeroForOne != h.clankerIsToken0
 
@@ -399,7 +394,7 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exac
 
 		scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
 
-		if exactIn && swappingForClanker {
+		if exactIn {
 			fee.Add(MILLION, h.protocolFee)
 		} else { // !exactIn && !swappingForClanker
 			fee.Sub(MILLION, h.protocolFee)

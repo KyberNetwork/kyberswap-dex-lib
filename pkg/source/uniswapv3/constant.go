@@ -1,8 +1,11 @@
 package uniswapv3
 
 import (
-	"errors"
 	"math/big"
+
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -21,10 +24,10 @@ const (
 
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+	defaultGas = Gas{BaseGas: 87842, CrossInitTickGas: 21492}
 
 	ErrOverflow       = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier = errors.New("invalid feeTier")
-	ErrTickNil        = errors.New("tick is nil")
-	ErrV3TicksEmpty   = errors.New("v3Ticks empty")
+	ErrTickNil        = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty   = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 )

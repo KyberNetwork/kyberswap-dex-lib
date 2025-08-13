@@ -28,7 +28,8 @@ const (
 
 	realIDShift = 1 << 23
 
-	defaultGas = 125000
+	baseGas   = 71109
+	perBinGas = 14992
 )
 
 var (

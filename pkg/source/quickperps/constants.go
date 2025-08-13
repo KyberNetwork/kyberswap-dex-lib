@@ -7,7 +7,7 @@ const DexTypeQuickperps = "quickperps"
 const flagArbitrumSeqOffline = "0xa438451d6458044c3c8cd2f6f31c91ac882a6d91"
 
 var (
-	DefaultGas             = Gas{Swap: 165000}
+	DefaultGas             = Gas{Swap: 286524}
 	BasisPointsDivisor     = big.NewInt(10000)
 	PricePrecision         = new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil)
 	USDQDecimals           = big.NewInt(18)

@@ -6,6 +6,6 @@ var (
 	//go:embed abis/FluidDexLite.json
 	fluidDexLiteABIBytes []byte
 
-	//go:embed abis/ERC20.json
-	erc20ABIBytes []byte
+	//go:embed abis/CenterPrice.json
+	centerPriceABIBytes []byte
 )

@@ -1172,29 +1172,29 @@ func (h *Hook) shouldSurgeFromVaults() (shouldSurge bool, err error) {
 		rescaleFactor0 := 18 + h.Vaults[0].Decimals - h.BunniState.Currency0Decimals
 		rescaleFactor1 := 18 + h.Vaults[1].Decimals - h.BunniState.Currency1Decimals
 
-		var sharePrice0 *uint256.Int
+		var sharePrice0 uint256.Int
 		if !h.BunniState.Reserve0.IsZero() {
 			reserveBalance0 := getReservesInUnderlying(h.Vaults[0], h.BunniState.Reserve0)
-			sharePrice0 = math.MulDivUp(reserveBalance0, u256.TenPow(rescaleFactor0), h.BunniState.Reserve0)
+			sharePrice0.Set(math.MulDivUp(reserveBalance0, u256.TenPow(rescaleFactor0), h.BunniState.Reserve0))
 		}
 
-		var sharePrice1 *uint256.Int
+		var sharePrice1 uint256.Int
 		if !h.BunniState.Reserve1.IsZero() {
 			reserveBalance1 := getReservesInUnderlying(h.Vaults[1], h.BunniState.Reserve1)
-			sharePrice1 = math.MulDivUp(reserveBalance1, u256.TenPow(rescaleFactor1), h.BunniState.Reserve1)
+			sharePrice1.Set(math.MulDivUp(reserveBalance1, u256.TenPow(rescaleFactor1), h.BunniState.Reserve1))
 		}
 
 		shouldSurge = h.VaultSharePrices.Initialized &&
-			(math.Dist(sharePrice0, h.VaultSharePrices.SharedPrice0).
+			(math.Dist(&sharePrice0, h.VaultSharePrices.SharedPrice0).
 				Gt(new(uint256.Int).Div(h.VaultSharePrices.SharedPrice0, h.HookParams.VaultSurgeThreshold0)) ||
-				math.Dist(sharePrice1, h.VaultSharePrices.SharedPrice1).
+				math.Dist(&sharePrice1, h.VaultSharePrices.SharedPrice1).
 					Gt(new(uint256.Int).Div(h.VaultSharePrices.SharedPrice1, h.HookParams.VaultSurgeThreshold1)))
 
 		if !h.VaultSharePrices.Initialized || !sharePrice0.Eq(h.VaultSharePrices.SharedPrice0) ||
 			!sharePrice1.Eq(h.VaultSharePrices.SharedPrice1) {
 			h.VaultSharePrices.Initialized = true
-			h.VaultSharePrices.SharedPrice0.Set(sharePrice0)
-			h.VaultSharePrices.SharedPrice1.Set(sharePrice1)
+			h.VaultSharePrices.SharedPrice0 = &sharePrice0
+			h.VaultSharePrices.SharedPrice1 = &sharePrice1
 		}
 	}
 

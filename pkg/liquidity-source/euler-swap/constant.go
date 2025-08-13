@@ -9,35 +9,23 @@ import (
 const (
 	DexType = "euler-swap"
 
-	DefaultGas int64 = 400000
+	DefaultGas int64 = 640910
 
 	factoryMethodPoolsSlice  = "poolsSlice"
 	factoryMethodPoolsLength = "poolsLength"
 
-	poolMethodGetAssets           = "getAssets"
-	poolMethodGetReserves         = "getReserves"
-	poolMethodGetParams           = "getParams"
-	poolMethodEVC                 = "EVC"
-	poolMethodEulerAccount        = "eulerAccount"
-	poolMethodAsset0              = "asset0"
-	poolMethodAsset1              = "asset1"
-	poolMethodVault0              = "vault0"
-	poolMethodVault1              = "vault1"
-	poolMethodPriceX              = "priceX"
-	poolMethodPriceY              = "priceY"
-	poolMethodEquilibriumReserve0 = "equilibriumReserve0"
-	poolMethodEquilibriumReserve1 = "equilibriumReserve1"
-	poolMethodConcentrationX      = "concentrationX"
-	poolMethodConcentrationY      = "concentrationY"
-	poolMethodFeeMultiplier       = "feeMultiplier"
+	poolMethodGetAssets   = "getAssets"
+	poolMethodGetReserves = "getReserves"
+	poolMethodGetParams   = "getParams"
+	poolMethodEVC         = "EVC"
 
-	vaultMethodCash             = "cash"
-	vaultMethodDebtOf           = "debtOf"
-	vaultMethodMaxDeposit       = "maxDeposit"
-	vaultMethodCaps             = "caps"
-	vaultMethodTotalBorrows     = "totalBorrows"
-	vaultMethodBalanceOf        = "balanceOf"
-	vaultMethodConvertToAssets  = "convertToAssets"
+	vaultMethodCash         = "cash"
+	vaultMethodDebtOf       = "debtOf"
+	vaultMethodMaxDeposit   = "maxDeposit"
+	vaultMethodCaps         = "caps"
+	vaultMethodTotalBorrows = "totalBorrows"
+	vaultMethodBalanceOf    = "balanceOf"
+
 	vaultMethodTotalAssets      = "totalAssets"
 	vaultMethodTotalSupply      = "totalSupply"
 	vaultMethodAccountLiquidity = "accountLiquidity"
@@ -46,7 +34,6 @@ const (
 	vaultMethodLTVBorrow        = "LTVBorrow"
 
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
-	evcMethodGetCollaterals              = "getCollaterals"
 
 	routerMethodGetQuotes = "getQuotes"
 
@@ -63,7 +50,7 @@ var (
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 
-	CONFIG_SCALE = uint256.NewInt(1e4)
+	ConfigScale = uint256.NewInt(1e4)
 
 	bufferSwapLimit = uint256.NewInt(85) // 85%
 )

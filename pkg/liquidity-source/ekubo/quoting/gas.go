@@ -1,16 +1,16 @@
 package quoting
 
 const (
-	BaseGasCost = 29_000
+	BaseGasCost = 81_473
 
-	BaseGasCostOfOneFullRangeSwap              = 20_000
-	BaseGasCostOfOneConcentratedLiquidtitySwap = 24_000
-	ExtraBaseGasCostOfMevResistSwap            = 17_600
+	BaseGasFullRangeSwap             = 17_351
+	BaseGasConcentratedLiquiditySwap = 21_827
+	ExtraBaseGasMevResistSwap        = 9_178
 
-	GasCostOfOneInitializedTickCrossed = 20_000
-	GasCostOfOneTickSpacingCrossed     = 4_000
-	GasCostOfUpdatingOracleSnapshot    = 15_000
-	GasCostOfOneVirtualOrderDelta      = 25_000
-	GasCostOfExecutingVirtualOrders    = 15_000
-	GasCostOfAccumulatingMevResistFees = 16_400
+	GasInitializedTickCrossed    = 20_000
+	GasTickSpacingCrossed        = 2_507
+	GasUpdatingOracleSnapshot    = 16_821
+	GasVirtualOrderDelta         = 25_000
+	GasExecutingVirtualOrders    = 25_502
+	GasAccumulatingMevResistFees = 11_264
 )

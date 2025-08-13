@@ -4,24 +4,11 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/samber/lo"
 )
 
 // Parsed ABI instances
 var (
-	fluidDexLiteABI abi.ABI
-	erc20ABI        abi.ABI
+	fluidDexLiteABI = lo.Must(abi.JSON(strings.NewReader(string(fluidDexLiteABIBytes))))
+	centerPriceABI  = lo.Must(abi.JSON(strings.NewReader(string(centerPriceABIBytes))))
 )
-
-func init() {
-	var err error
-
-	fluidDexLiteABI, err = abi.JSON(strings.NewReader(string(fluidDexLiteABIBytes)))
-	if err != nil {
-		panic(err)
-	}
-
-	erc20ABI, err = abi.JSON(strings.NewReader(string(erc20ABIBytes)))
-	if err != nil {
-		panic(err)
-	}
-}

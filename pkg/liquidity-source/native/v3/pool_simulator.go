@@ -309,8 +309,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	v3Pool := *p.V3Pool
-	v3Pool.SqrtRatioX96 = v3Pool.SqrtRatioX96.Clone()
-	v3Pool.Liquidity = v3Pool.Liquidity.Clone()
 	cloned.V3Pool = &v3Pool
 	return &cloned
 }

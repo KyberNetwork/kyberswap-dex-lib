@@ -79,7 +79,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenAmountIn.Token,
 			Amount: swapOutResult.Fee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas: baseGas + perBinGas*int64(len(swapOutResult.BinsReserveChanges)),
 		SwapInfo: SwapInfo{
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
 			NewParameters:      swapOutResult.Parameters,
@@ -114,7 +114,7 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			Token:  tokenIn,
 			Amount: swapInResult.Fee.ToBig(),
 		},
-		Gas: defaultGas,
+		Gas: baseGas + perBinGas*int64(len(swapInResult.BinsReserveChanges)),
 		SwapInfo: SwapInfo{
 			BinsReserveChanges: swapInResult.BinsReserveChanges,
 			NewParameters:      swapInResult.Parameters,

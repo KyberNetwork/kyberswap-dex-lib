@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -127,8 +126,8 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecific:   new(big.Int),
-			DeltaUnSpecific: new(big.Int),
+			DeltaSpecific:   bignumber.ZeroBI,
+			DeltaUnSpecific: bignumber.ZeroBI,
 			SwapFee:         h.clankerFee,
 		}, nil
 	}
@@ -147,7 +146,7 @@ func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswap
 
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   &fee,
-		DeltaUnSpecific: new(big.Int),
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         h.pairedFee,
 	}, nil
 }
@@ -157,8 +156,7 @@ func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4
 
 	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
 		return &uniswapv4.AfterSwapResult{
-			HookFee: new(big.Int),
-			Gas:     0,
+			HookFee: bignumber.ZeroBI,
 		}, nil
 	}
 
@@ -174,8 +172,4 @@ func (h *StaticFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4
 		HookFee: &delta,
 		Gas:     0,
 	}, nil
-}
-
-func (h *StaticFeeHook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
 }

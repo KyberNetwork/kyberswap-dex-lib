@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -26,12 +27,16 @@ type BeforeSwapResult struct {
 	Gas             int64
 }
 
-func (b *BeforeSwapResult) Validate() error {
-	if b.DeltaSpecific == nil {
+func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
+	if result == nil {
+		return errors.New("before swap result is nil")
+	}
+
+	if result.DeltaSpecific == nil {
 		return errors.New("delta specified is nil")
 	}
 
-	if b.DeltaUnSpecific == nil {
+	if result.DeltaUnSpecific == nil {
 		return errors.New("delta unspecified is nil")
 	}
 
@@ -43,8 +48,12 @@ type AfterSwapResult struct {
 	Gas     int64
 }
 
-func (b *AfterSwapResult) Validate() error {
-	if b.HookFee == nil {
+func ValidateAfterSwapResult(result *AfterSwapResult) error {
+	if result == nil {
+		return errors.New("after swap result is nil")
+	}
+
+	if result.HookFee == nil {
 		return errors.New("hook fee is nil")
 	}
 
@@ -102,6 +111,8 @@ type Hook interface {
 	Track(context.Context, *HookParam) (string, error)
 	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
 	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
+	CanBeforeSwap(address common.Address) bool
+	CanAfterSwap(address common.Address) bool
 	CloneState() Hook
 }
 
@@ -167,16 +178,24 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 
 func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error) {
 	return &BeforeSwapResult{
+		DeltaSpecific:   bignumber.ZeroBI,
+		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         0,
-		DeltaSpecific:   new(big.Int),
-		DeltaUnSpecific: new(big.Int),
 		Gas:             0,
 	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
 	return &AfterSwapResult{
-		HookFee: new(big.Int),
+		HookFee: bignumber.ZeroBI,
 		Gas:     0,
 	}, nil
+}
+
+func (h *BaseHook) CanBeforeSwap(address common.Address) bool {
+	return hasPermission(address, BeforeSwap)
+}
+
+func (h *BaseHook) CanAfterSwap(address common.Address) bool {
+	return hasPermission(address, AfterSwap)
 }

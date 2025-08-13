@@ -1,10 +1,10 @@
 package brownfiv2
 
 import (
-	"errors"
-
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
@@ -25,7 +25,7 @@ const (
 
 	parsedDecimals = 18
 
-	defaultGas = 170000
+	defaultGas = 183499
 )
 
 var (
@@ -36,6 +36,7 @@ var (
 
 	ErrInvalidToken             = errors.New("invalid token")
 	ErrInvalidReserve           = errors.New("invalid reserve")
+	ErrInvalidPrices            = errors.WithMessage(pool.ErrUnsupported, "invalid prices")
 	ErrInvalidAmountIn          = errors.New("invalid amount in")
 	ErrInvalidAmountOut         = errors.New("invalid amount out")
 	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
