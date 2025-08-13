@@ -23,7 +23,7 @@ func DecodeParams(tickSpacing, twapTick int, ldfParams [32]byte) Params {
 	weightCarpet := uint256.NewInt(uint64(weightCarpetVal))
 
 	minTick, length0, length1, alpha0X96, alpha1X96, weight0, weight1, shiftMode :=
-		doubleGeoLib.DecodeParams(tickSpacing, -1, ldfParams)
+		doubleGeoLib.DecodeParams(tickSpacing, twapTick, ldfParams)
 
 	return Params{
 		MinTick:      minTick,

@@ -127,14 +127,14 @@ func (o *ObservationStorage) ObserveDouble(intermediate *Observation, time uint3
 		return nil, errors.New("OracleCardinalityCannotBeZero")
 	}
 
-	out := make([]int64, len(secondsAgos))
-	for i, secondsAgo := range secondsAgos {
+	out := make([]int64, 0, len(secondsAgos))
+	for _, secondsAgo := range secondsAgos {
 		tickCumulative, err := o.ObserveSingle(intermediate, time, secondsAgo, tick, index, cardinality)
 		if err != nil {
 			return nil, err
 		}
 
-		out[i] = tickCumulative
+		out = append(out, tickCumulative)
 	}
 
 	return out, nil

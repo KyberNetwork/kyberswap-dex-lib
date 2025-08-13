@@ -216,32 +216,64 @@ func Test_Pool_ETH_USDC(t *testing.T) {
 	assert.Equal(t, "4591379284", got.TokenAmountOut.Amount.String())
 }
 
+func Test_Pool_USDC_USDT(t *testing.T) {
+	// LDF: CarpetedDoubleGeometric
+
+	var p entity.Pool
+	poolData := `{"address":"0xd9f673912e1da331c9e56c5f0dbc7273c0eb684617939a375ec5e227c62d6707","exchange":"uniswap-v4-bunni-v2","type":"uniswap-v4","timestamp":1755109562,"reserves":["446911087981","21425165138529"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"liquidity\":0,\"sqrtPriceX96\":79222893666315702689978882880,\"tickSpacing\":1,\"tick\":-2,\"ticks\":null,\"hX\":\"{\\\"he\\\":\\\"{\\\\\\\"OverrideZeroToOne\\\\\\\":false,\\\\\\\"FeeZeroToOne\\\\\\\":\\\\\\\"0\\\\\\\",\\\\\\\"OverrideOneToZero\\\\\\\":false,\\\\\\\"FeeOneToZero\\\\\\\":\\\\\\\"0\\\\\\\"}\\\",\\\"ha\\\":\\\"0x00ece5a72612258f20eb24573c544f9dd8c5000c\\\",\\\"la\\\":\\\"0x000000000b757686c9596cada54fa28f8c429e0d\\\",\\\"hf\\\":\\\"0\\\",\\\"pmr\\\":[\\\"93652840032181\\\",\\\"94837960075304\\\"],\\\"ls\\\":[1,255,255,251,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\\\"v\\\":[{\\\"a\\\":\\\"0xe0a80d35bb6618cba260120b279d357978c42bce\\\",\\\"d\\\":6,\\\"rr\\\":\\\"1046347458720277169\\\",\\\"md\\\":\\\"128419192327426\\\"},{\\\"a\\\":\\\"0x7c280dbdef569e96c7919251bd2b0edf0734c5a8\\\",\\\"d\\\":6,\\\"rr\\\":\\\"1040427427800105297\\\",\\\"md\\\":\\\"13235672060599\\\"}],\\\"aa\\\":{\\\"am\\\":\\\"0x0000000000000000000000000000000000000000\\\",\\\"sf01\\\":\\\"0\\\",\\\"sf10\\\":\\\"0\\\"},\\\"os\\\":{\\\"i\\\":11,\\\"c\\\":25,\\\"cn\\\":25,\\\"io\\\":{\\\"bt\\\":1755109439,\\\"pt\\\":-3,\\\"tc\\\":-3842580,\\\"i\\\":true}},\\\"cf\\\":{\\\"fr\\\":\\\"0\\\"},\\\"o\\\":[{\\\"bt\\\":1755062699,\\\"pt\\\":-1,\\\"tc\\\":-3727860,\\\"i\\\":true},{\\\"bt\\\":1755067811,\\\"pt\\\":-1,\\\"tc\\\":-3732972,\\\"i\\\":true},{\\\"bt\\\":1755073967,\\\"pt\\\":-3,\\\"tc\\\":-3751440,\\\"i\\\":true},{\\\"bt\\\":1755077291,\\\"pt\\\":-2,\\\"tc\\\":-3758088,\\\"i\\\":true},{\\\"bt\\\":1755083459,\\\"pt\\\":-2,\\\"tc\\\":-3770424,\\\"i\\\":true},{\\\"bt\\\":1755085835,\\\"pt\\\":-3,\\\"tc\\\":-3777540,\\\"i\\\":true},{\\\"bt\\\":1755089315,\\\"pt\\\":-3,\\\"tc\\\":-3787980,\\\"i\\\":true},{\\\"bt\\\":1755092675,\\\"pt\\\":-2,\\\"tc\\\":-3794700,\\\"i\\\":true},{\\\"bt\\\":1755096167,\\\"pt\\\":-2,\\\"tc\\\":-3801684,\\\"i\\\":true},{\\\"bt\\\":1755099023,\\\"pt\\\":-3,\\\"tc\\\":-3808500,\\\"i\\\":true},{\\\"bt\\\":1755102611,\\\"pt\\\":-4,\\\"tc\\\":-3822096,\\\"i\\\":true},{\\\"bt\\\":1755109439,\\\"pt\\\":-3,\\\"tc\\\":-3842580,\\\"i\\\":true},{\\\"bt\\\":1754991839,\\\"pt\\\":-1,\\\"tc\\\":-3638580,\\\"i\\\":true},{\\\"bt\\\":1754997803,\\\"pt\\\":-1,\\\"tc\\\":-3644544,\\\"i\\\":true},{\\\"bt\\\":1755002975,\\\"pt\\\":-1,\\\"tc\\\":-3649716,\\\"i\\\":true},{\\\"bt\\\":1755007283,\\\"pt\\\":-1,\\\"tc\\\":-3654024,\\\"i\\\":true},{\\\"bt\\\":1755009995,\\\"pt\\\":-1,\\\"tc\\\":-3656736,\\\"i\\\":true},{\\\"bt\\\":1755019715,\\\"pt\\\":-1,\\\"tc\\\":-3666456,\\\"i\\\":true},{\\\"bt\\\":1755023255,\\\"pt\\\":-2,\\\"tc\\\":-3673536,\\\"i\\\":true},{\\\"bt\\\":1755030311,\\\"pt\\\":-2,\\\"tc\\\":-3687648,\\\"i\\\":true},{\\\"bt\\\":1755033215,\\\"pt\\\":-2,\\\"tc\\\":-3693456,\\\"i\\\":true},{\\\"bt\\\":1755036527,\\\"pt\\\":-2,\\\"tc\\\":-3700080,\\\"i\\\":true},{\\\"bt\\\":1755039095,\\\"pt\\\":-1,\\\"tc\\\":-3704256,\\\"i\\\":true},{\\\"bt\\\":1755053627,\\\"pt\\\":-1,\\\"tc\\\":-3718788,\\\"i\\\":true},{\\\"bt\\\":1755058919,\\\"pt\\\":-1,\\\"tc\\\":-3724080,\\\"i\\\":true}],\\\"hp\\\":{\\\"fmin\\\":\\\"5\\\",\\\"fmax\\\":\\\"5\\\",\\\"fqm\\\":\\\"0\\\",\\\"ftsa\\\":0,\\\"sfhl\\\":\\\"60\\\",\\\"sfat\\\":120,\\\"vst0\\\":\\\"100\\\",\\\"vst1\\\":\\\"100\\\",\\\"aae\\\":false,\\\"omi\\\":1800},\\\"s0\\\":{\\\"spx96\\\":\\\"79216693889887181912641437745\\\",\\\"t\\\":-3,\\\"lst\\\":1755109439,\\\"lsgt\\\":1755098039},\\\"bs\\\":{\\\"tsa\\\":43200,\\\"lp\\\":[0,255,255,253,0,4,2,250,240,128,29,205,101,0,0,4,11,235,194,0,29,205,101,0,59,154,202,0,0,0,0,0],\\\"hp\\\":\\\"AAAFAAAFAAAAAAAAAAAAADwAeABkAGQAZABkBwgBLAAAAAcIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\\\",\\\"lt\\\":2,\\\"mrtr0\\\":\\\"100000\\\",\\\"trtr0\\\":\\\"200000\\\",\\\"xrtr0\\\":\\\"300000\\\",\\\"mrtr1\\\":\\\"100000\\\",\\\"trtr1\\\":\\\"200000\\\",\\\"xrtr1\\\":\\\"300000\\\",\\\"c0d\\\":6,\\\"c1d\\\":6,\\\"rb0\\\":\\\"80137597638\\\",\\\"rb1\\\":\\\"5578611240788\\\",\\\"r0\\\":\\\"366773490343\\\",\\\"r1\\\":\\\"15846553897741\\\",\\\"ib\\\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,20,3,153,214,185,46]},\\\"vsp\\\":{\\\"i\\\":true,\\\"sp0\\\":\\\"1046347159259255418\\\",\\\"sp1\\\":\\\"1040427094309843910\\\"},\\\"bt\\\":1755109559}\"}","staticExtra":"{\"0x0\":[false,false],\"fee\":0,\"tS\":1,\"hooks\":\"0x000052423c1db6b7ff8641b85a7eefc7b2791888\",\"uR\":\"0x66a9893cc07d91d95644aedd05d03f95e1dba8af\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}","blockNumber":23133910}`
+
+	assert.NoError(t, json.Unmarshal([]byte(poolData), &p))
+
+	pSim, err := uniswapv4.NewPoolSimulator(p, valueobject.ChainIDUnichain)
+	assert.NoError(t, err)
+
+	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: big.NewInt(1000000000),
+		},
+		TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "999704796", got.TokenAmountOut.Amount.String())
+
+	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			Amount: big.NewInt(1000000000),
+		},
+		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "1000285284", got.TokenAmountOut.Amount.String())
+}
+
 func Test_Quoter(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	rpcClient := ethrpc.New("https://unichain.drpc.org").
+	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io").
 		SetMulticallContract(common.HexToAddress("0xca11bde05977b3631167028862be2a173976ca11"))
 
 	sender := common.HexToAddress("0x7b42Ed932f26509465F7cE3FAF76FfCe1275312f")
 
 	poolKey := uniswapv4.PoolKey{
-		Currency0:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
-		Currency1:   common.HexToAddress("0x078d782b760474a361dda0af3839290b0ef57ad6"),
-		Fee:         big.NewInt(3),
-		TickSpacing: big.NewInt(10),
+		Currency0:   common.HexToAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"),
+		Currency1:   common.HexToAddress("0xdac17f958d2ee523a2206206994597c13d831ec7"),
+		Fee:         big.NewInt(0),
+		TickSpacing: big.NewInt(1),
 		Hooks:       common.HexToAddress("0x000052423c1db6b7ff8641b85a7eefc7b2791888"),
 	}
 
 	swapParams := SwapParams{
-		ZeroForOne:        false,
-		AmountSpecified:   big.NewInt(-4500000000),
-		SqrtPriceLimitX96: maxPriceLimit,
+		ZeroForOne:        true,
+		AmountSpecified:   big.NewInt(-1000000000),
+		SqrtPriceLimitX96: minPriceLimit,
 	}
 
 	var swapResult SwapResult
-	_, err := rpcClient.R().SetBlockNumber(big.NewInt(24303131)).AddCall(&ethrpc.Call{
+	_, err := rpcClient.R().AddCall(&ethrpc.Call{
 		ABI:    bunniQuoterABI,
 		Target: "0x00000000E15009D51C6d57f7164f4Ed4996ae55C",
 		Method: "quoteSwap",

@@ -1089,7 +1089,7 @@ func (h *Hook) getTwap() (int64, error) {
 		return 0, err
 	}
 
-	tickCumulativesDelta := tickCumulatives[0] - tickCumulatives[1]
+	tickCumulativesDelta := tickCumulatives[1] - tickCumulatives[0]
 
 	return tickCumulativesDelta / int64(h.BunniState.TwapSecondsAgo), nil
 }
