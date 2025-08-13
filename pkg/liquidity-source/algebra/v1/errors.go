@@ -1,14 +1,16 @@
 package algebrav1
 
 import (
-	"errors"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
 	ErrUnmarshalVolLiq     = errors.New("failed to unmarshal volumePerLiquidityInBlock")
 	ErrMaxBinarySearchLoop = errors.New("max binary search loop reached")
 	ErrStaleTimepoints     = errors.New("getting stale timepoint data")
-	ErrTickNil             = errors.New("tick is nil")
+	ErrTickNil             = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
 	ErrTickInvalid         = errors.New("tick is invalid")
 	ErrTicksEmpty          = errors.New("ticks list is empty")
 	ErrInvalidToken        = errors.New("invalid token")

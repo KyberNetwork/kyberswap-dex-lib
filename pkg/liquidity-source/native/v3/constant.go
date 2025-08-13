@@ -1,7 +1,9 @@
 package v3
 
 import (
-	"errors"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -27,8 +29,8 @@ var (
 	ErrPoolLocked      = errors.New("pool is locked")
 	ErrOverflow        = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier  = errors.New("invalid feeTier")
-	ErrTickNil         = errors.New("tick is nil")
-	ErrV3TicksEmpty    = errors.New("v3Ticks empty")
+	ErrTickNil         = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty    = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 	ErrTokenInInvalid  = errors.New("tokenIn is not correct")
 	ErrTokenOutInvalid = errors.New("tokenOut is not correct")
 	ErrAmountInZero    = errors.New("amountIn is 0")
