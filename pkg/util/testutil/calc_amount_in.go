@@ -22,6 +22,7 @@ func TestCalcAmountIn[TB interface {
 	pool.IPoolSimulator
 	pool.IPoolExactOutSimulator
 }, runsOpt ...int) {
+	tb.Helper()
 	runs := 32
 	if len(runsOpt) > 0 {
 		runs = runsOpt[0]
@@ -34,6 +35,7 @@ func TestCalcAmountIn[TB interface {
 			var base float64
 			for _, exp := range []int{3, 4, 6, 9, 13} {
 				baseOut, err := pool.CalcAmountOut(
+					ctx,
 					poolSim,
 					pool.TokenAmount{Token: tokenIn, Amount: bignumber.TenPowInt(exp)},
 					tokenOut,
@@ -48,6 +50,7 @@ func TestCalcAmountIn[TB interface {
 			maxExp := 1.0
 			for _, exp := range []int{23, 17, 12, 8, 5} {
 				if baseOut, err := pool.CalcAmountOut(
+					ctx,
 					poolSim,
 					pool.TokenAmount{Token: tokenIn, Amount: bignumber.TenPowInt(exp)},
 					tokenOut,
