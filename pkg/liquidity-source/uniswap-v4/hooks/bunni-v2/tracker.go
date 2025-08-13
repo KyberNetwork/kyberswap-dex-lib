@@ -70,7 +70,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	token1Address := param.Pool.Tokens[1].Address
 	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
 
-	req1 := param.RpcClient.NewRequest().SetContext(ctx)
+	req1 := param.RpcClient.NewRequest().SetBlockNumber(big.NewInt(24303131)).SetContext(ctx)
 	req1.AddCall(&ethrpc.Call{
 		ABI:    bunniHookABI,
 		Target: hookAddress,

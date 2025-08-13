@@ -15,56 +15,45 @@ func ComputeSwapStep(
 	amountRemaining,
 	feePips *uint256.Int,
 ) (sqrtPriceNextX96, amountIn, amountOut *uint256.Int, err error) {
-	var feeAmount uint256.Int
-	var temp uint256.Int
+	var feeAmount = new(uint256.Int)
+	var feeDelta = new(uint256.Int).Sub(MAX_SWAP_FEE, feePips)
 
 	if exactIn {
-		// Calculate amountRemainingLessFee
-		var amountRemainingLessFee uint256.Int
-		if feePips.Eq(MAX_SWAP_FEE) {
-			amountRemainingLessFee.Clear()
-		} else {
-			temp.Sub(MAX_SWAP_FEE, feePips)
-			temp.Mul(amountRemaining, &temp)
-			temp.Div(&temp, MAX_SWAP_FEE)
-			amountRemainingLessFee.Set(u256.Min(&temp, SubReLU(amountRemaining, MIN_FEE_AMOUNT)))
-		}
+		amountRemainingLessFee := u256.Min(
+			MulDiv(amountRemaining, feeDelta, MAX_SWAP_FEE),
+			SubReLU(amountRemaining, MIN_FEE_AMOUNT),
+		)
 
 		if zeroForOne {
-			amountInDelta, err := GetAmount0Delta(sqrtPriceTargetX96, sqrtPriceCurrentX96, liquidity, true)
+			amountIn, err = GetAmount0Delta(sqrtPriceTargetX96, sqrtPriceCurrentX96, liquidity, true)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			amountIn = amountInDelta
 		} else {
-			amountInDelta, err := GetAmount1Delta(sqrtPriceCurrentX96, sqrtPriceTargetX96, liquidity, true)
+			amountIn, err = GetAmount1Delta(sqrtPriceCurrentX96, sqrtPriceTargetX96, liquidity, true)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			amountIn = amountInDelta
 		}
 
 		if amountRemainingLessFee.Cmp(amountIn) >= 0 {
-			// amountIn is capped by the target price
-			sqrtPriceNextX96 = sqrtPriceTargetX96
+			sqrtPriceNextX96 = sqrtPriceTargetX96.Clone()
+
 			if feePips.Eq(MAX_SWAP_FEE) {
-				feeAmount.Clear()
+				feeAmount.Set(amountIn)
 			} else {
-				temp.Mul(amountIn, feePips)
-				temp.Div(&temp, MAX_SWAP_FEE)
-				temp.Sub(&temp, feePips)
-				feeAmount.Set(u256.Max(&temp, MIN_FEE_AMOUNT))
+				feeAmount.Set(u256.Max(MulDivUp(amountIn, feePips, feeDelta), MIN_FEE_AMOUNT))
 			}
+
 		} else {
-			// exhaust the remaining amount
-			amountIn.Set(&amountRemainingLessFee)
-			sqrtPriceNextX96, err = GetNextSqrtPriceFromInput(sqrtPriceCurrentX96, liquidity, &amountRemainingLessFee, zeroForOne)
+			amountIn = amountRemainingLessFee.Clone()
+			sqrtPriceNextX96, err = GetNextSqrtPriceFromInput(sqrtPriceCurrentX96, liquidity, amountRemainingLessFee, zeroForOne)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			// we didn't reach the target, so take the remainder of the maximum input as fee
-			temp.Sub(amountRemaining, amountIn)
-			feeAmount.Set(u256.Max(&temp, MIN_FEE_AMOUNT))
+
+			feeAmount.Sub(amountRemaining, amountIn)
+			feeAmount = u256.Max(feeAmount, MIN_FEE_AMOUNT)
 		}
 
 		if zeroForOne {
@@ -78,63 +67,51 @@ func ComputeSwapStep(
 				return nil, nil, nil, err
 			}
 		}
-
-		// add fee back into amountIn
-		// ensure that amountIn <= |amountRemaining| if exactIn
-		amountIn.Add(amountIn, &feeAmount)
-		if exactIn {
-			amountIn.Set(u256.Min(amountIn, amountRemaining))
-		}
-
-		return sqrtPriceNextX96, amountIn, amountOut, nil
-	}
-
-	// exactOut
-
-	if zeroForOne {
-		amountOut, err = GetAmount1Delta(sqrtPriceTargetX96, sqrtPriceCurrentX96, liquidity, false)
-		if err != nil {
-			return nil, nil, nil, err
-		}
 	} else {
-		amountOut, err = GetAmount0Delta(sqrtPriceCurrentX96, sqrtPriceTargetX96, liquidity, false)
-		if err != nil {
-			return nil, nil, nil, err
+		if zeroForOne {
+			amountOut, err = GetAmount1Delta(sqrtPriceTargetX96, sqrtPriceCurrentX96, liquidity, false)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+		} else {
+			amountOut, err = GetAmount0Delta(sqrtPriceCurrentX96, sqrtPriceTargetX96, liquidity, false)
+			if err != nil {
+				return nil, nil, nil, err
+			}
 		}
+
+		if amountRemaining.Cmp(amountOut) >= 0 {
+			sqrtPriceNextX96 = sqrtPriceTargetX96.Clone()
+		} else {
+			amountOut = amountRemaining.Clone()
+			sqrtPriceNextX96, err = GetNextSqrtPriceFromOutput(sqrtPriceCurrentX96, liquidity, amountOut, zeroForOne)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+		}
+
+		if zeroForOne {
+			amountIn, err = GetAmount0Delta(sqrtPriceNextX96, sqrtPriceCurrentX96, liquidity, true)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+		} else {
+			amountIn, err = GetAmount1Delta(sqrtPriceCurrentX96, sqrtPriceNextX96, liquidity, true)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+		}
+
+		feeAmount = u256.Max(MulDivUp(amountIn, feePips, feeDelta), MIN_FEE_AMOUNT)
 	}
 
-	if amountRemaining.Cmp(amountOut) >= 0 {
-		sqrtPriceNextX96 = sqrtPriceTargetX96
+	if exactIn {
+		var temp uint256.Int
+		temp.Add(amountIn, feeAmount)
+		amountIn.Set(u256.Min(&temp, amountRemaining))
 	} else {
-		// cap the output amount to not exceed the remaining output amount
-		amountOut.Set(amountRemaining)
-		sqrtPriceNextX96, err = GetNextSqrtPriceFromOutput(sqrtPriceCurrentX96, liquidity, amountOut, zeroForOne)
-		if err != nil {
-			return nil, nil, nil, err
-		}
+		amountIn.Add(amountIn, feeAmount)
 	}
 
-	if zeroForOne {
-		amountIn, err = GetAmount0Delta(sqrtPriceNextX96, sqrtPriceCurrentX96, liquidity, true)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	} else {
-		amountIn, err = GetAmount1Delta(sqrtPriceCurrentX96, sqrtPriceNextX96, liquidity, true)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-	}
-
-	// feePips cannot be MAX_SWAP_FEE for exact out
-	temp.Mul(amountIn, feePips)
-	temp.Div(&temp, MAX_SWAP_FEE)
-	temp.Sub(&temp, feePips)
-	feeAmount.Set(u256.Max(&temp, MIN_FEE_AMOUNT))
-
-	// add fee back into amountIn
-	amountIn.Add(amountIn, &feeAmount)
-
-	return sqrtPriceNextX96, amountIn, amountOut, nil
-
+	return
 }

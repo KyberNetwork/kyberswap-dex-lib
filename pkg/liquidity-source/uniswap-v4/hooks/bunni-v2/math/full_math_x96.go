@@ -40,29 +40,34 @@ func FullMulX96(a, b *uint256.Int) (*uint256.Int, error) {
 	var z uint256.Int
 	z.Mul(a, b)
 
-	var divCheck uint256.Int
-	divCheck.Div(&z, a)
-	if a.IsZero() || divCheck.Eq(b) {
+	var temp uint256.Int
+	temp.Div(&z, a)
+	if a.IsZero() || temp.Eq(b) {
 		z.Rsh(&z, 96)
 		return &z, nil
 	}
 
 	var mm, p1 uint256.Int
 	mm.MulMod(a, b, u256.UMax)
-	p1.Sub(&mm, &z)
+
+	var carry uint64
 	if mm.Lt(&z) {
-		p1.SubUint64(&p1, 1)
+		carry = 1
 	}
 
-	var top uint256.Int
-	top.Rsh(&p1, 96)
-	if top.Sign() != 0 {
+	temp.SetUint64(carry)
+	temp.Add(&temp, &z)
+	p1.Sub(&mm, &temp)
+
+	temp.Rsh(&p1, 96)
+	if temp.Sign() != 0 {
 		return nil, ErrFullMulDivFailed
 	}
 
 	z.Rsh(&z, 96)
 	p1.Lsh(&p1, 160)
-	z.Or(&z, &p1)
+	z.Add(&z, &p1)
+
 	return &z, nil
 }
 

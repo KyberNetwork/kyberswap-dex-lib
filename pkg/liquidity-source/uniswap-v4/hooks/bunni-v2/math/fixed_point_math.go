@@ -256,121 +256,69 @@ func FullMulDiv(a, b, d *uint256.Int) (*uint256.Int, error) {
 	// 	}
 	// }
 
-	// Least significant 256 bits of the product.
 	var p0 uint256.Int
-	p0.Mul(a, b) // result := mul(x, y)
+	p0.Mul(a, b)
 
-	// let mm := mulmod(x, y, not(0))
 	var mm uint256.Int
 	mm.MulMod(a, b, u256.UMax)
 
-	// Most significant 256 bits of the product.
-	// let p1 := sub(mm, add(result, lt(mm, result)))
-	var p1 uint256.Int
 	var carry uint64
 	if mm.Lt(&p0) {
 		carry = 1
 	}
+
 	var temp uint256.Int
-	temp.Set(&p0)
-	temp.AddUint64(&temp, carry)
+	temp.AddUint64(&p0, carry)
+
+	var p1 uint256.Int
 	p1.Sub(&mm, &temp)
 
-	// Handle non-overflow cases, 256 by 256 division.
 	if p1.IsZero() {
 		if d.IsZero() {
-			return nil, ErrOverflow // FullMulDivFailed()
+			return nil, ErrOverflow
 		}
-		var result uint256.Int
-		result.Div(&p0, d)
-		return &result, nil
+		p0.Div(&p0, d)
+		return &p0, nil
 	}
 
-	// Make sure the result is less than `2**256`. Also prevents `d == 0`.
-	// if iszero(gt(d, p1)) means if !(d > p1), i.e., if d <= p1
 	if d.Cmp(&p1) <= 0 {
-		return nil, ErrOverflow // FullMulDivFailed()
+		return nil, ErrOverflow
 	}
 
-	/*------------------- 512 by 256 division --------------------*/
-
-	// Make division exact by subtracting the remainder from `[p1 p0]`.
-	// Compute remainder using mulmod.
 	var r uint256.Int
 	r.MulMod(a, b, d)
 
-	// `t` is the least significant bit of `d`.
-	// t := and(d, sub(0, d))
-	var negD uint256.Int
-	negD.Sub(u256.U0, d) // sub(0, d)
+	temp.Sub(u256.U0, d)
 	var t uint256.Int
-	t.And(d, &negD)
+	t.And(d, &temp)
 
-	// Divide `d` by `t`, which is a power of two.
-	var dOdd uint256.Int
-	dOdd.Div(d, &t)
+	temp.Div(d, &t)
 
-	// Invert `d mod 2**256`
-	// let inv := xor(2, mul(3, d))
 	var inv uint256.Int
-	var temp3d uint256.Int
-	temp3d.Mul(u256.U3, &dOdd)
-	inv.Xor(u256.U2, &temp3d)
+	mm.Mul(u256.U3, &temp)
+	inv.Xor(u256.U2, &mm)
 
-	// Newton-Raphson iterations (5 iterations in loop + 1 final)
 	for range 5 {
-		var tmp uint256.Int
-		tmp.Mul(&dOdd, &inv)
-		tmp.Sub(u256.U2, &tmp)
-		inv.Mul(&inv, &tmp)
+		mm.Mul(&temp, &inv)
+		mm.Sub(u256.U2, &mm)
+		inv.Mul(&inv, &mm)
 	}
-	// Final iteration: mul(inv, sub(2, mul(d, inv)))
-	var finalTmp uint256.Int
-	finalTmp.Mul(&dOdd, &inv)
-	finalTmp.Sub(u256.U2, &finalTmp)
-	inv.Mul(&inv, &finalTmp)
 
-	// Assembly calculation:
-	// result := mul(
-	//     or(
-	//         mul(sub(p1, gt(r, result)), add(div(sub(0, t), t), 1)),
-	//         div(sub(result, r), t)
-	//     ),
-	//     inv
-	// )
+	mm.Mul(&temp, &inv)
+	mm.Sub(u256.U2, &mm)
+	inv.Mul(&inv, &mm)
 
-	//  sub(p1, gt(r, result))
-	var p1Adj uint256.Int
-	p1Adj.Set(&p1)
 	if r.Gt(&p0) {
-		p1Adj.SubUint64(&p1Adj, 1)
+		p1.SubUint64(&p1, 1)
 	}
 
-	//  add(div(sub(0, t), t), 1)
-	var negT uint256.Int
-	negT.Sub(u256.U0, &t)
-	var divNegT uint256.Int
-	divNegT.Div(&negT, &t)
-	divNegT.AddUint64(&divNegT, 1)
+	mm.Sub(u256.U0, &t).Div(&mm, &t).AddUint64(&mm, 1)
 
-	//  div(sub(result, r), t)
-	var p0MinusR uint256.Int
-	p0MinusR.Sub(&p0, &r)
-	var divP0R uint256.Int
-	divP0R.Div(&p0MinusR, &t)
+	temp.Sub(&p0, &r).Div(&temp, &t)
 
-	//  mul(p1Adj, divNegT)
-	var leftPart uint256.Int
-	leftPart.Mul(&p1Adj, &divNegT)
+	p1.Mul(&p1, &mm).Or(&p1, &temp).Mul(&p1, &inv)
 
-	//  or(leftPart, divP0R)
-	var combined uint256.Int
-	combined.Or(&leftPart, &divP0R)
-
-	var result uint256.Int
-	result.Mul(&combined, &inv)
-
-	return &result, nil
+	return &p1, nil
 }
 
 func FullMulDivUp(a, b, d *uint256.Int) (*uint256.Int, error) {

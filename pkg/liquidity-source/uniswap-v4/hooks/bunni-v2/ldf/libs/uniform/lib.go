@@ -57,16 +57,20 @@ func LiquidityDensityX96(roundedTick, tickSpacing, tickLower, tickUpper int) *ui
 		return uint256.NewInt(0)
 	}
 	length := (tickUpper - tickLower) / tickSpacing
-	if length <= 0 {
-		return uint256.NewInt(0)
-	}
 	res := uint256.NewInt(uint64(length))
 
 	return res.Div(math.Q96, res)
 }
 
 // CumulativeAmount0 computes the cumulative amount0
-func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int, tickLower, tickUpper int, isCarpet bool) (*uint256.Int, error) {
+func CumulativeAmount0(
+	tickSpacing,
+	roundedTick int,
+	totalLiquidity *uint256.Int,
+	tickLower,
+	tickUpper int,
+	isCarpet bool,
+) (amount0 *uint256.Int, err error) {
 	if roundedTick >= tickUpper || tickLower >= tickUpper {
 		return uint256.NewInt(0), nil
 	}
@@ -75,9 +79,6 @@ func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 	}
 
 	length := (tickUpper - tickLower) / tickSpacing
-	if length <= 0 {
-		return uint256.NewInt(0), nil
-	}
 
 	sqrtPriceRoundedTick, err := math.GetSqrtPriceAtTick(roundedTick)
 	if err != nil {
@@ -89,12 +90,10 @@ func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 	}
 
 	if isCarpet {
-		liquidityPerTick := math.DivUp(totalLiquidity, uint256.NewInt(uint64(length)))
-
-		amount0, err := math.GetAmount0Delta(
+		amount0, err = math.GetAmount0Delta(
 			sqrtPriceRoundedTick,
 			sqrtPriceTickUpper,
-			liquidityPerTick,
+			math.DivUp(totalLiquidity, uint256.NewInt(uint64(length))),
 			true, // roundUp
 		)
 		if err != nil {
@@ -103,24 +102,22 @@ func CumulativeAmount0(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 
 		return amount0, nil
 	} else {
-		liquidityPerTick := math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
-
-		amount0, err := math.GetAmount0Delta(
+		amount0, err = math.GetAmount0Delta(
 			sqrtPriceRoundedTick,
 			sqrtPriceTickUpper,
-			liquidityPerTick,
+			math.DivUp(math.Q96, uint256.NewInt(uint64(length))),
 			true, // roundUp
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		result, err := math.FullMulX96Up(totalLiquidity, amount0)
+		amount0, err = math.FullMulX96Up(totalLiquidity, amount0)
 		if err != nil {
 			return nil, err
 		}
 
-		return result, nil
+		return amount0, nil
 	}
 }
 
@@ -148,12 +145,10 @@ func CumulativeAmount1(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 	}
 
 	if isCarpet {
-		liquidityPerTick := math.DivUp(totalLiquidity, uint256.NewInt(uint64(length)))
-
 		amount1, err := math.GetAmount1Delta(
 			sqrtPriceTickLower,
 			sqrtPriceRoundedTickPlusSpacing,
-			liquidityPerTick,
+			math.DivUp(totalLiquidity, uint256.NewInt(uint64(length))),
 			true, // roundUp
 		)
 		if err != nil {
@@ -162,12 +157,10 @@ func CumulativeAmount1(tickSpacing, roundedTick int, totalLiquidity *uint256.Int
 
 		return amount1, nil
 	} else {
-		liquidityPerTick := math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
-
 		amount1, err := math.GetAmount1Delta(
 			sqrtPriceTickLower,
 			sqrtPriceRoundedTickPlusSpacing,
-			liquidityPerTick,
+			math.DivUp(math.Q96, uint256.NewInt(uint64(length))),
 			true, // roundUp
 		)
 		if err != nil {
@@ -190,9 +183,6 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 	}
 
 	length := (tickUpper - tickLower) / tickSpacing
-	if length <= 0 {
-		return false, 0
-	}
 
 	sqrtPriceLower, err := math.GetSqrtPriceAtTick(tickLower)
 	if err != nil {
@@ -205,10 +195,9 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 
 	var sqrtPrice *uint256.Int
 	if isCarpet {
-		liquidityPerTick := math.DivUp(totalLiquidity, uint256.NewInt(uint64(length)))
 		sqrtPrice, err = math.GetNextSqrtPriceFromAmount0RoundingUp(
 			sqrtPriceUpper,
-			liquidityPerTick,
+			math.DivUp(totalLiquidity, uint256.NewInt(uint64(length))),
 			cumulativeAmount0_,
 			true,
 		)
@@ -221,10 +210,9 @@ func InverseCumulativeAmount0(tickSpacing int, cumulativeAmount0_, totalLiquidit
 			return false, 0
 		}
 
-		liquidityPerTick := math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
 		sqrtPrice, err = math.GetNextSqrtPriceFromAmount0RoundingUp(
 			sqrtPriceUpper,
-			liquidityPerTick,
+			math.DivUp(math.Q96, uint256.NewInt(uint64(length))),
 			scaledAmount,
 			true,
 		)
@@ -262,9 +250,6 @@ func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidit
 	}
 
 	length := (tickUpper - tickLower) / tickSpacing
-	if length <= 0 {
-		return false, 0
-	}
 
 	sqrtPriceLower, err := math.GetSqrtPriceAtTick(tickLower)
 	if err != nil {
@@ -277,10 +262,9 @@ func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidit
 
 	var sqrtPrice *uint256.Int
 	if isCarpet {
-		liquidityPerTick := math.DivUp(totalLiquidity, uint256.NewInt(uint64(length)))
 		sqrtPrice, err = math.GetNextSqrtPriceFromAmount1RoundingDown(
 			sqrtPriceLower,
-			liquidityPerTick,
+			math.DivUp(totalLiquidity, uint256.NewInt(uint64(length))),
 			cumulativeAmount1_,
 			true,
 		)
@@ -293,10 +277,9 @@ func InverseCumulativeAmount1(tickSpacing int, cumulativeAmount1_, totalLiquidit
 			return false, 0
 		}
 
-		liquidityPerTick := math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
 		sqrtPrice, err = math.GetNextSqrtPriceFromAmount1RoundingDown(
 			sqrtPriceLower,
-			liquidityPerTick,
+			math.DivUp(math.Q96, uint256.NewInt(uint64(length))),
 			scaledAmount,
 			true,
 		)

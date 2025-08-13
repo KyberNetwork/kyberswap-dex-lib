@@ -1,6 +1,9 @@
 package math
 
 import (
+	"errors"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
@@ -13,6 +16,18 @@ func GetSqrtPriceAtTick(tick int) (*uint256.Int, error) {
 	var price uint256.Int
 	err := v3Utils.GetSqrtRatioAtTickV2(tick, &price)
 	return &price, err
+}
+
+func GetSqrtPriceTarget(zeroForOne bool, sqrtPriceNextX96, sqrtPriceLimitX96 *uint256.Int) *uint256.Int {
+	var result uint256.Int
+
+	if zeroForOne {
+		result.Set(u256.Max(sqrtPriceNextX96, sqrtPriceLimitX96))
+	} else {
+		result.Set(u256.Min(sqrtPriceNextX96, sqrtPriceLimitX96))
+	}
+
+	return &result
 }
 
 func GetNextSqrtPriceFromInput(sqrtPX96, liquidity, amountIn *uint256.Int, zeroForOne bool) (*uint256.Int, error) {
@@ -39,137 +54,86 @@ func GetAmount1Delta(sqrtPriceAX96, sqrtPriceBX96, liquidity *uint256.Int, round
 	return &result, err
 }
 
-// GetNextSqrtPriceFromAmount0RoundingUp gets the next sqrt price given a delta of currency0
-// Always rounds up, because in the exact output case (increasing price) we need to move the price at least
-// far enough to get the desired output amount, and in the exact input case (decreasing price) we need to move the
-// price less in order to not send too much output.
-// The most precise formula for this is liquidity * sqrtPX96 / (liquidity +- amount * sqrtPX96),
-// if this is impossible because of overflow, we calculate liquidity / (liquidity / sqrtPX96 +- amount).
 func GetNextSqrtPriceFromAmount0RoundingUp(sqrtPX96, liquidity, amount *uint256.Int, add bool) (*uint256.Int, error) {
-	// we short circuit amount == 0 because the result is otherwise not guaranteed to equal the input price
 	if amount.IsZero() {
 		return sqrtPX96.Clone(), nil
 	}
 
-	// numerator1 = liquidity << FixedPoint96.RESOLUTION (Q96)
 	var numerator1 uint256.Int
 	numerator1.Lsh(liquidity, 96)
 
 	if add {
-		// product = amount * sqrtPX96
-		var product uint256.Int
-		product.Mul(amount, sqrtPX96)
+		var res uint256.Int
+		res.Mul(amount, sqrtPX96)
 
-		// Check if product / amount == sqrtPX96 (overflow check)
-		var check uint256.Int
-		check.Div(&product, amount)
-		if check.Eq(sqrtPX96) {
-			// denominator = numerator1 + product
-			var denominator uint256.Int
-			denominator.Add(&numerator1, &product)
+		var temp uint256.Int
+		temp.Div(&res, amount)
+		if temp.Eq(sqrtPX96) {
+			temp.Add(&numerator1, &res)
 
-			// Check if denominator >= numerator1 (overflow check)
-			if denominator.Cmp(&numerator1) >= 0 {
-				// always fits in 160 bits
-				// return FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator)
-				return FullMulDivUp(&numerator1, sqrtPX96, &denominator)
+			if temp.Cmp(&numerator1) >= 0 {
+				return FullMulDivUp(&numerator1, sqrtPX96, &temp)
 			}
 		}
 
-		// denominator is checked for overflow
-		// return UnsafeMath.divRoundingUp(numerator1, (numerator1 / sqrtPX96) + amount)
-		var temp uint256.Int
 		temp.Div(&numerator1, sqrtPX96)
 		temp.Add(&temp, amount)
 
-		res := check // reuse
+		res.Clear()
 		v3Utils.DivRoundingUp(&res, &numerator1, &temp)
-
 		return &res, nil
-	} else {
-		// product = amount * sqrtPX96
-		var product uint256.Int
-		product.Mul(amount, sqrtPX96)
 
-		// Check if product / amount != sqrtPX96 or numerator1 <= product (overflow/underflow check)
-		var check uint256.Int
-		check.Div(&product, amount)
-		if !check.Eq(sqrtPX96) || numerator1.Cmp(&product) <= 0 {
+	} else {
+		var res uint256.Int
+		res.Mul(amount, sqrtPX96)
+
+		var temp uint256.Int
+		temp.Div(&res, amount)
+		if !temp.Eq(sqrtPX96) || numerator1.Cmp(&res) <= 0 {
 			return nil, ErrOverflow
 		}
 
-		// denominator = numerator1 - product
-		denominator := check // reuse
-		denominator.Sub(&numerator1, &product)
+		temp.Sub(&numerator1, &res)
 
-		// return FullMath.mulDivRoundingUp(numerator1, sqrtPX96, denominator)
-		return FullMulDivUp(&numerator1, sqrtPX96, &denominator)
+		return FullMulDivUp(&numerator1, sqrtPX96, &temp)
 	}
 }
 
-// GetNextSqrtPriceFromAmount1RoundingDown gets the next sqrt price given a delta of currency1
-// Always rounds down, because in the exact output case (decreasing price) we need to move the price at least
-// far enough to get the desired output amount, and in the exact input case (increasing price) we need to move the
-// price less in order to not send too much output.
-// The most precise formula for this is liquidity * sqrtPX96 / (liquidity +- amount * sqrtPX96),
-// if this is impossible because of overflow, we calculate liquidity / (liquidity / sqrtPX96 +- amount).
 func GetNextSqrtPriceFromAmount1RoundingDown(sqrtPX96, liquidity, amount *uint256.Int, add bool) (*uint256.Int, error) {
-	// we short circuit amount == 0 because the result is otherwise not guaranteed to equal the input price
-	if amount.IsZero() {
-		return sqrtPX96.Clone(), nil
-	}
-
-	// numerator1 = liquidity << FixedPoint96.RESOLUTION (Q96)
-	var numerator1 uint256.Int
-	numerator1.Lsh(liquidity, 96)
+	var res uint256.Int
 
 	if add {
-		// product = amount * sqrtPX96
-		var product uint256.Int
-		product.Mul(amount, sqrtPX96)
-
-		// Check if product / amount == sqrtPX96 (overflow check)
-		var check uint256.Int
-		check.Div(&product, amount)
-		if check.Eq(sqrtPX96) {
-			// denominator = numerator1 + product
-			var denominator uint256.Int
-			denominator.Add(&numerator1, &product)
-
-			// Check if denominator >= numerator1 (overflow check)
-			if denominator.Cmp(&numerator1) >= 0 {
-				// always fits in 160 bits
-				// return FullMath.mulDiv(numerator1, sqrtPX96, denominator) (rounding down)
-				return FullMulDiv(&numerator1, sqrtPX96, &denominator)
+		if amount.Cmp(v3Utils.MaxUint160) <= 0 {
+			res.Lsh(amount, 96)
+			res.Div(&res, liquidity)
+		} else {
+			result, err := FullMulDiv(amount, Q96, liquidity)
+			if err != nil {
+				return nil, err
 			}
+			res = *result
 		}
 
-		// denominator is checked for overflow
-		// return UnsafeMath.div(numerator1, (numerator1 / sqrtPX96) + amount) (rounding down)
-		temp := check // reuse
-		temp.Div(&numerator1, sqrtPX96)
-		temp.Add(&temp, amount)
-
-		var result uint256.Int
-		result.Div(&numerator1, &temp)
-		return &result, nil
+		res.Add(sqrtPX96, &res)
+		return &res, nil
 	} else {
-		// product = amount * sqrtPX96
-		var product uint256.Int
-		product.Mul(amount, sqrtPX96)
-
-		// Check if product / amount != sqrtPX96 or numerator1 <= product (overflow/underflow check)
-		var check uint256.Int
-		check.Div(&product, amount)
-		if !check.Eq(sqrtPX96) || numerator1.Cmp(&product) <= 0 {
-			return nil, ErrOverflow
+		if amount.Cmp(v3Utils.MaxUint160) <= 0 {
+			var temp uint256.Int
+			temp.Lsh(amount, 96)
+			v3Utils.DivRoundingUp(&res, &temp, liquidity)
+		} else {
+			result, err := FullMulDivUp(amount, Q96, liquidity)
+			if err != nil {
+				return nil, err
+			}
+			res = *result
 		}
 
-		// denominator = numerator1 - product
-		denominator := check // reuse
-		denominator.Sub(&numerator1, &product)
+		if sqrtPX96.Cmp(&res) <= 0 {
+			return nil, errors.New("NotEnoughLiquidity")
+		}
 
-		// return FullMath.mulDiv(numerator1, sqrtPX96, denominator) (rounding down)
-		return FullMulDiv(&numerator1, sqrtPX96, &denominator)
+		res.Sub(sqrtPX96, &res)
+		return &res, nil
 	}
 }

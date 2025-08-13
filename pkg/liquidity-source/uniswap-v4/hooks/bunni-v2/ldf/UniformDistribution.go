@@ -110,7 +110,6 @@ func (u *UniformDistribution) computeSwap(
 	err error,
 ) {
 	if exactIn == zeroForOne {
-		// Compute roundedTick by inverting the cumulative amount0
 		success, roundedTick = uniformLib.InverseCumulativeAmount0(
 			u.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -123,7 +122,6 @@ func (u *UniformDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// Compute cumulative amounts
 		if exactIn {
 			cumulativeAmount0_, err = uniformLib.CumulativeAmount0(
 				u.tickSpacing,
@@ -170,7 +168,7 @@ func (u *UniformDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
 		}
 	} else {
-		// Compute roundedTick by inverting the cumulative amount1
+
 		success, roundedTick = uniformLib.InverseCumulativeAmount1(
 			u.tickSpacing,
 			inverseCumulativeAmountInput,
@@ -183,7 +181,6 @@ func (u *UniformDistribution) computeSwap(
 			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
 		}
 
-		// Compute cumulative amounts
 		if exactIn {
 			cumulativeAmount1_, err = uniformLib.CumulativeAmount1(
 				u.tickSpacing,
@@ -231,7 +228,6 @@ func (u *UniformDistribution) computeSwap(
 		}
 	}
 
-	// Compute swap liquidity
 	swapLiquidity = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)
 	swapLiquidity.Rsh(swapLiquidity, 96)
@@ -248,16 +244,11 @@ func (u *UniformDistribution) query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	// Use the uniformLib Query function to avoid code duplication
 	liquidityDensityX96 = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
 
 	length := (tickUpper - tickLower) / u.tickSpacing
-	if length <= 0 {
-		return liquidityDensityX96, uint256.NewInt(0), uint256.NewInt(0), nil
-	}
 
-	lengthBig := uint256.NewInt(uint64(length))
-	liquidity := math.DivUp(math.Q96, lengthBig)
+	liquidity := math.DivUp(math.Q96, uint256.NewInt(uint64(length)))
 
 	sqrtRatioTickLower, err := math.GetSqrtPriceAtTick(tickLower)
 	if err != nil {
@@ -268,7 +259,6 @@ func (u *UniformDistribution) query(
 		return nil, nil, nil, err
 	}
 
-	// compute cumulativeAmount0DensityX96 for the rounded tick to the right of the rounded current tick
 	if roundedTick+u.tickSpacing >= tickUpper {
 		cumulativeAmount0DensityX96 = uint256.NewInt(0)
 	} else if roundedTick+u.tickSpacing <= tickLower {
@@ -283,6 +273,7 @@ func (u *UniformDistribution) query(
 		if err != nil {
 			return nil, nil, nil, err
 		}
+
 		cumulativeAmount0DensityX96, err = math.GetAmount0Delta(
 			sqrtPriceRoundedTickPlusSpacing, sqrtRatioTickUpper, liquidity, true,
 		)
@@ -291,7 +282,6 @@ func (u *UniformDistribution) query(
 		}
 	}
 
-	// compute cumulativeAmount1DensityX96 for the rounded tick to the left of the rounded current tick
 	if roundedTick-u.tickSpacing < tickLower {
 		cumulativeAmount1DensityX96 = uint256.NewInt(0)
 	} else if roundedTick >= tickUpper {
