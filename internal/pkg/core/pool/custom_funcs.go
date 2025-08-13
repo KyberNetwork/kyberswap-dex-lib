@@ -79,5 +79,5 @@ func CalcAmountOut(ctx context.Context, pool poolpkg.IPoolSimulator, tokenAmount
 		c.(*metrics.CalcAmountOutCounter).Inc(pool.GetType(), 1)
 	}
 
-	return poolpkg.CalcAmountOut(pool, tokenAmountIn, tokenOut, limit)
+	return poolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, tokenOut, limit)
 }
