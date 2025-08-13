@@ -15,7 +15,7 @@ func MaxUsableTick(tickSpacing int) int {
 	return (MAX_TICK / tickSpacing) * tickSpacing
 }
 
-func RoundTick(currentTick int, tickSpacing int) (roundedTick, nextRoundedTick int) {
+func RoundTick(currentTick, tickSpacing int) (roundedTick, nextRoundedTick int) {
 	compressed := currentTick / tickSpacing
 
 	if currentTick < 0 && currentTick%tickSpacing != 0 {
@@ -27,7 +27,7 @@ func RoundTick(currentTick int, tickSpacing int) (roundedTick, nextRoundedTick i
 	return
 }
 
-func RoundTickSingle(currentTick int, tickSpacing int) int {
+func RoundTickSingle(currentTick, tickSpacing int) int {
 	compressed := currentTick / tickSpacing
 
 	if currentTick < 0 && currentTick%tickSpacing != 0 {

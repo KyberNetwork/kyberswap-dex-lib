@@ -43,7 +43,7 @@ var (
 	MAX_SWAP_FEE_RATIO, _ = u256.NewUint256("28800000000000000000000") // 2.88e20
 	MAX_SWAP_FEE          = SWAP_FEE_BASE                              // 1e6
 	MIN_FEE_AMOUNT        = u256.U1
-	EPSILON_FEE           = u256.U1
+	EPSILON_FEE           = uint256.NewInt(30)
 	SWAP_FEE_BASE_SQUARED = uint256.NewInt(1e12)
 	LN2_WAD               = uint256.NewInt(693147180559945309)
 	WAD                   = uint256.NewInt(1e18)

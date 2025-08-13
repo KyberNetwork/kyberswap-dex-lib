@@ -72,12 +72,10 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 
 func (h *Hook) CloneState() uniswapv4.Hook {
 	cloned := *h
-	cloned.ObservationState.IntermediateObservation = &oracle.Observation{
-		BlockTimestamp: h.ObservationState.IntermediateObservation.BlockTimestamp,
-		PrevTick:       h.ObservationState.IntermediateObservation.PrevTick,
-		TickCumulative: h.ObservationState.IntermediateObservation.TickCumulative,
-		Initialized:    h.ObservationState.IntermediateObservation.Initialized,
-	}
+
+	clonedIntermediateObservation := *h.ObservationState.IntermediateObservation
+	cloned.ObservationState.IntermediateObservation = &clonedIntermediateObservation
+
 	cloned.Slot0.SqrtPriceX96 = h.Slot0.SqrtPriceX96.Clone()
 	cloned.BunniState.RawBalance0 = h.BunniState.RawBalance0.Clone()
 	cloned.BunniState.RawBalance1 = h.BunniState.RawBalance1.Clone()
@@ -172,9 +170,11 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		}
 	}
 
+	ldfState := lo.Ternary(h.BunniState.LdfType == DYNAMIC_AND_STATEFUL, h.LdfState, [32]byte{})
+
 	totalLiquidity, _, _, liquidityDensityOfRoundedTickX96, currentActiveBalance0, currentActiveBalance1,
 		newLdfState, shouldSurge, err := h.queryLDF(h.Slot0.SqrtPriceX96, h.Slot0.Tick,
-		int(arithmeticMeanTick), &balance0, &balance1, h.BunniState.IdleBalance)
+		int(arithmeticMeanTick), ldfState, &balance0, &balance1, h.BunniState.IdleBalance)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		ExactIn:                          params.ExactIn,
 		AmountSpecified:                  amountSpecified,
 		SqrtPriceLimitX96:                sqrtPriceLimitX96,
-		LdfState:                         newLdfState,
+		LdfState:                         ldfState,
 	})
 	if err != nil {
 		return nil, err
@@ -695,7 +695,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		input.ArithmeticMeanTick,
 		h.Slot0.Tick,
 		h.BunniState.LdfParams,
-		h.LdfState,
+		input.LdfState,
 	)
 	if err != nil {
 		return nil, 0, nil, nil, err
@@ -733,7 +733,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 
 		tickStart := updatedRoundedTick
 		tickNext := updatedRoundedTick + h.tickSpacing
-		if !input.ZeroForOne {
+		if input.ZeroForOne {
 			tickStart, tickNext = tickNext, tickStart
 		}
 
@@ -751,99 +751,91 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 			}
 
 			if input.ZeroForOne {
-				if cumulativeAmount0.Lt(input.CurrentActiveBalance0) {
-					cumulativeAmount0.Set(input.CurrentActiveBalance0)
-				}
+				cumulativeAmount0.Set(u256.Max(cumulativeAmount0, input.CurrentActiveBalance0))
+			} else {
+				cumulativeAmount1.Set(u256.Max(cumulativeAmount1, input.CurrentActiveBalance1))
+			}
 
-				if cumulativeAmount1.Lt(input.CurrentActiveBalance1) {
-					cumulativeAmount1.Set(input.CurrentActiveBalance1)
-				}
+			var hitSqrtPriceLimit bool
+			if swapLiquidity.IsZero() || sqrtPriceLimitX96.Eq(startSqrtPriceX96) {
+				naiveSwapResultSqrtPriceX96 = startSqrtPriceX96.Clone()
+				naiveSwapAmountIn = uint256.NewInt(0)
+				naiveSwapAmountOut = uint256.NewInt(0)
+			} else {
+				var amountSpecifiedRemaining uint256.Int
 
-				var hitSqrtPriceLimit bool
-				if swapLiquidity.IsZero() || sqrtPriceLimitX96.Eq(startSqrtPriceX96) {
-					naiveSwapResultSqrtPriceX96 = startSqrtPriceX96.Clone()
-					naiveSwapAmountIn = uint256.NewInt(0)
-					naiveSwapAmountOut = uint256.NewInt(0)
+				if input.ExactIn {
+					amountSpecifiedRemaining.Sub(&inverseCumulativeAmountFnInput, lo.Ternary(input.ZeroForOne, cumulativeAmount0, cumulativeAmount1))
 				} else {
-					var amountSpecifiedRemaining *int256.Int
-					var temp uint256.Int
+					amountSpecifiedRemaining.Sub(lo.Ternary(input.ZeroForOne, cumulativeAmount1, cumulativeAmount0), &inverseCumulativeAmountFnInput)
+				}
 
-					if input.ExactIn {
-						temp.Sub(&inverseCumulativeAmountFnInput, lo.Ternary(input.ZeroForOne, cumulativeAmount0, cumulativeAmount1))
-						amountSpecifiedRemaining = i256.SafeToInt256(&temp)
-						amountSpecifiedRemaining.Neg(amountSpecifiedRemaining)
-					} else {
-						temp.Sub(lo.Ternary(input.ZeroForOne, cumulativeAmount1, cumulativeAmount0), &inverseCumulativeAmountFnInput)
-						amountSpecifiedRemaining = i256.SafeToInt256(&temp)
-					}
+				naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut, err = math.ComputeSwapStep(
+					input.ExactIn,
+					input.ZeroForOne,
+					startSqrtPriceX96,
+					math.GetSqrtPriceTarget(input.ZeroForOne, sqrtPriceNextX96, sqrtPriceLimitX96),
+					swapLiquidity,
+					&amountSpecifiedRemaining,
+					EPSILON_FEE,
+				)
+				if err != nil {
+					return nil, 0, nil, nil, err
+				}
 
-					naiveSwapResultSqrtPriceX96, naiveSwapAmountIn, naiveSwapAmountOut, err = math.ComputeSwapStep(
-						input.ExactIn,
-						input.ZeroForOne,
-						startSqrtPriceX96,
-						math.GetSqrtPriceTarget(input.ZeroForOne, sqrtPriceNextX96, sqrtPriceLimitX96),
-						swapLiquidity,
-						i256.SafeConvertToUInt256(amountSpecifiedRemaining),
-						EPSILON_FEE,
-					)
+				if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceLimitX96) && !sqrtPriceLimitX96.Eq(sqrtPriceNextX96) {
+					hitSqrtPriceLimit = true
+				}
+			}
+
+			if !hitSqrtPriceLimit {
+				updatedTick = tickStart
+
+				if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceNextX96) {
+					updatedTick = lo.Ternary(input.ZeroForOne, tickNext-1, tickNext)
+				} else if !naiveSwapResultSqrtPriceX96.Eq(startSqrtPriceX96) {
+					updatedTick, err = math.GetTickAtSqrtPrice(naiveSwapResultSqrtPriceX96)
 					if err != nil {
 						return nil, 0, nil, nil, err
 					}
-
-					if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceLimitX96) && !sqrtPriceLimitX96.Eq(sqrtPriceNextX96) {
-						hitSqrtPriceLimit = true
-					}
 				}
 
-				if !hitSqrtPriceLimit {
-					updatedTick = tickStart
+				updatedSqrtPriceX96 := naiveSwapResultSqrtPriceX96.Clone()
 
-					if naiveSwapResultSqrtPriceX96.Eq(sqrtPriceNextX96) {
-						updatedTick = lo.Ternary(input.ZeroForOne, tickNext-1, tickNext)
-					} else if !naiveSwapResultSqrtPriceX96.Eq(startSqrtPriceX96) {
-						updatedTick, err = math.GetTickAtSqrtPrice(naiveSwapResultSqrtPriceX96)
-						if err != nil {
-							return nil, 0, nil, nil, err
-						}
+				if (input.ExactIn && naiveSwapAmountIn.Eq(input.AmountSpecified)) ||
+					(!input.ExactIn && naiveSwapAmountOut.Eq(input.AmountSpecified)) {
+
+					currentBalance := lo.Ternary(input.ZeroForOne, input.CurrentActiveBalance1, input.CurrentActiveBalance0)
+					if naiveSwapAmountOut.Gt(currentBalance) {
+						naiveSwapAmountOut.Set(currentBalance)
 					}
 
-					updatedSqrtPriceX96 := naiveSwapResultSqrtPriceX96.Clone()
-
-					if (input.ExactIn && naiveSwapAmountIn.Eq(input.AmountSpecified)) ||
-						(!input.ExactIn && naiveSwapAmountOut.Eq(input.AmountSpecified)) {
-
-						currentBalance := lo.Ternary(input.ZeroForOne, input.CurrentActiveBalance1, input.CurrentActiveBalance0)
-						if naiveSwapAmountOut.Gt(currentBalance) {
-							naiveSwapAmountOut.Set(currentBalance)
-						}
-
-						return naiveSwapResultSqrtPriceX96, updatedTick, naiveSwapAmountIn, naiveSwapAmountOut, nil
-					}
-
-					if (input.ZeroForOne && cumulativeAmount1.Lt(naiveSwapAmountOut)) ||
-						(!input.ZeroForOne && cumulativeAmount0.Lt(naiveSwapAmountOut)) {
-						return nil, 0, nil, nil, errors.New("BunniSwapMath__SwapFailed")
-					}
-
-					var updatedActiveBalance0, updatedActiveBalance1 uint256.Int
-					if input.ZeroForOne {
-						updatedActiveBalance0.Add(cumulativeAmount0, naiveSwapAmountIn)
-						updatedActiveBalance1.Sub(cumulativeAmount1, naiveSwapAmountOut)
-					} else {
-						updatedActiveBalance0.Sub(cumulativeAmount0, naiveSwapAmountOut)
-						updatedActiveBalance1.Add(cumulativeAmount1, naiveSwapAmountIn)
-					}
-
-					if input.ZeroForOne {
-						inputAmount.Sub(&updatedActiveBalance0, input.CurrentActiveBalance0)
-						outputAmount.Set(math.SubReLU(input.CurrentActiveBalance1, &updatedActiveBalance1))
-					} else {
-						inputAmount.Sub(&updatedActiveBalance1, input.CurrentActiveBalance1)
-						outputAmount.Set(math.SubReLU(input.CurrentActiveBalance0, &updatedActiveBalance0))
-					}
-
-					return updatedSqrtPriceX96, updatedTick, &inputAmount, &outputAmount, nil
+					return naiveSwapResultSqrtPriceX96, updatedTick, naiveSwapAmountIn, naiveSwapAmountOut, nil
 				}
+
+				if (input.ZeroForOne && cumulativeAmount1.Lt(naiveSwapAmountOut)) ||
+					(!input.ZeroForOne && cumulativeAmount0.Lt(naiveSwapAmountOut)) {
+					return nil, 0, nil, nil, errors.New("BunniSwapMath__SwapFailed")
+				}
+
+				var updatedActiveBalance0, updatedActiveBalance1 uint256.Int
+				if input.ZeroForOne {
+					updatedActiveBalance0.Add(cumulativeAmount0, naiveSwapAmountIn)
+					updatedActiveBalance1.Sub(cumulativeAmount1, naiveSwapAmountOut)
+				} else {
+					updatedActiveBalance0.Sub(cumulativeAmount0, naiveSwapAmountOut)
+					updatedActiveBalance1.Add(cumulativeAmount1, naiveSwapAmountIn)
+				}
+
+				if input.ZeroForOne {
+					inputAmount.Sub(&updatedActiveBalance0, input.CurrentActiveBalance0)
+					outputAmount.Set(math.SubReLU(input.CurrentActiveBalance1, &updatedActiveBalance1))
+				} else {
+					inputAmount.Sub(&updatedActiveBalance1, input.CurrentActiveBalance1)
+					outputAmount.Set(math.SubReLU(input.CurrentActiveBalance0, &updatedActiveBalance0))
+				}
+
+				return updatedSqrtPriceX96, updatedTick, &inputAmount, &outputAmount, nil
 			}
 		}
 	}
@@ -863,6 +855,7 @@ func (h *Hook) computeSwap(input BunniComputeSwapInput) (*uint256.Int, int, *uin
 		updatedSqrtPriceX96,
 		updatedTick,
 		input.ArithmeticMeanTick,
+		input.LdfState,
 		u256.U0,
 		u256.U0,
 		ZERO_BALANCE,
@@ -895,6 +888,7 @@ func (h *Hook) queryLDF(
 	sqrtPriceX96 *uint256.Int,
 	tick,
 	arithmeticMeanTick int,
+	ldfState [32]byte,
 	balance0,
 	balance1 *uint256.Int,
 	idleBalance [32]byte,
@@ -913,11 +907,11 @@ func (h *Hook) queryLDF(
 
 	roundedTickSqrtRatio, err := math.GetSqrtPriceAtTick(roundedTick)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 	nextRoundedTickSqrtRatio, err := math.GetSqrtPriceAtTick(nextRoundedTick)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
 	liquidityDensityOfRoundedTickX96, density0RightOfRoundedTickX96, density1LeftOfRoundedTickX96,
@@ -926,10 +920,10 @@ func (h *Hook) queryLDF(
 		arithmeticMeanTick,
 		tick,
 		h.BunniState.LdfParams,
-		h.LdfState,
+		ldfState,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
 	density0OfRoundedTickX96, density1OfRoundedTickX96, err := getAmountsForLiquidity(
@@ -940,7 +934,7 @@ func (h *Hook) queryLDF(
 		true,
 	)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+		return nil, nil, nil, nil, nil, nil, ldfState, false, err
 	}
 
 	totalDensity0X96 = density0OfRoundedTickX96.Add(density0RightOfRoundedTickX96, density0OfRoundedTickX96)
@@ -968,7 +962,7 @@ func (h *Hook) queryLDF(
 		} else {
 			totalLiquidityEstimate0, err = math.FullMulDiv(modifiedBalance0, Q96, totalDensity0X96)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+				return nil, nil, nil, nil, nil, nil, ldfState, false, err
 			}
 		}
 
@@ -977,7 +971,7 @@ func (h *Hook) queryLDF(
 		} else {
 			totalLiquidityEstimate1, err = math.FullMulDiv(modifiedBalance1, Q96, totalDensity1X96)
 			if err != nil {
-				return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+				return nil, nil, nil, nil, nil, nil, ldfState, false, err
 			}
 		}
 
@@ -991,12 +985,12 @@ func (h *Hook) queryLDF(
 			} else {
 				totalLiquidity, err = math.RoundUpFullMulDivResult(modifiedBalance0, Q96, totalDensity0X96, totalLiquidityEstimate0)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 
 				temp, err := math.FullMulX96(totalLiquidityEstimate0, totalDensity0X96)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 				activeBalance0 = u256.Min(modifiedBalance0, temp)
 			}
@@ -1006,7 +1000,7 @@ func (h *Hook) queryLDF(
 			} else {
 				temp, err := math.FullMulX96(totalLiquidityEstimate0, totalDensity1X96)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 				activeBalance1 = u256.Min(modifiedBalance1, temp)
 			}
@@ -1017,12 +1011,12 @@ func (h *Hook) queryLDF(
 			} else {
 				totalLiquidity, err = math.RoundUpFullMulDivResult(modifiedBalance1, Q96, totalDensity1X96, totalLiquidityEstimate1)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 
 				temp, err := math.FullMulX96(totalLiquidityEstimate1, totalDensity1X96)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 				activeBalance1 = u256.Min(modifiedBalance1, temp)
 			}
@@ -1032,7 +1026,7 @@ func (h *Hook) queryLDF(
 			} else {
 				temp, err := math.FullMulX96(totalLiquidityEstimate1, totalDensity0X96)
 				if err != nil {
-					return nil, nil, nil, nil, nil, nil, h.LdfState, false, err
+					return nil, nil, nil, nil, nil, nil, ldfState, false, err
 				}
 				activeBalance0 = u256.Min(modifiedBalance0, temp)
 			}

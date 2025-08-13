@@ -76,6 +76,7 @@ func (u *UniformDistribution) ComputeSwap(
 	err error,
 ) {
 	tickLower, tickUpper, shiftMode := uniformLib.DecodeParams(u.tickSpacing, twapTick, ldfParams)
+
 	initialized, lastTickLower := DecodeState(ldfState)
 
 	if initialized {
