@@ -439,6 +439,7 @@ const (
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
+	ExchangeXSolvBTC                   = "xsolvbtc"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -862,6 +863,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZyberSwapV3:                {},
 	ExchangeAngleTransmuterUSD:         {},
 	ExchangeAngleTransmuterEUR:         {},
+	ExchangeXSolvBTC:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
