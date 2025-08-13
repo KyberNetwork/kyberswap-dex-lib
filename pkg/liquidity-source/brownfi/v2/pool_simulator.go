@@ -35,6 +35,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, ErrInvalidToken
 	} else if len(entityPool.Reserves) != 2 {
 		return nil, ErrInvalidReserve
+	} else if extra.OPrices[0] == nil || extra.OPrices[1] == nil {
+		return nil, ErrInvalidPrices
 	}
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
