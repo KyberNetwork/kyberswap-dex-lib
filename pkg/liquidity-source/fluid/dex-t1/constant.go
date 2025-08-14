@@ -9,9 +9,9 @@ import (
 
 const (
 	DexType = "fluid-dex-t1"
-)
 
-const ( // DexReservesResolver methods
+	// DexReservesResolver methods
+
 	DRRMethodGetAllPoolsReservesAdjusted = "getAllPoolsReservesAdjusted"
 	DRRMethodGetPoolReservesAdjusted     = "getPoolReservesAdjusted"
 
@@ -20,20 +20,23 @@ const ( // DexReservesResolver methods
 
 	// SRMethodReadFromStorage - StorageRead methods
 	SRMethodReadFromStorage = "readFromStorage"
-)
 
-const (
 	DexAmountsDecimals = 12
 
 	FeePercentPrecision float64 = 1e4
+
+	// Uniswap takes total gas of 125k = 21k base gas & 104k swap (this is when user has token balance)
+	// Fluid takes total gas of 175k = 21k base gas & 154k swap (this is when user has token balance),
+	// with ETH swaps costing less (because no WETH conversion)
+	defaultGas = 155433
 )
 
 var (
 	MaxPriceDiff     = big.NewInt(5)      // 5%
 	MinSwapLiquidity = big.NewInt(0.85e4) // on-chain we use 1e4 but use extra buffer to avoid reverts
 
-	SIX_DECIMALS = big.NewInt(1e6)
-	TWO_DECIMALS = big.NewInt(1e2)
+	SixDecimals = big.NewInt(1e6)
+	TwoDecimals = big.NewInt(1e2)
 
 	bI1e18 = bignumber.TenPowInt(18)
 	bI1e27 = bignumber.TenPowInt(27)
@@ -52,11 +55,4 @@ var (
 	ErrInsufficientMaxPrice = errors.New("insufficient reserve: tokenOut amount exceeds max price limit")
 
 	ErrVerifyReservesRatiosInvalid = errors.New("invalid reserves ratio")
-)
-
-var (
-	// Uniswap takes total gas of 125k = 21k base gas & 104k swap (this is when user has token balance)
-	// Fluid takes total gas of 175k = 21k base gas & 154k swap (this is when user has token balance),
-	// with ETH swaps costing less (because no WETH conversion)
-	defaultGas = Gas{Swap: 260000}
 )

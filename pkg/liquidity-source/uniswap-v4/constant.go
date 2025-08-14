@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -24,4 +25,6 @@ var (
 	Q96                = new(big.Int).Lsh(bignumber.One, 96)
 
 	ErrTooManyChangedTicks = errors.New("too many changed ticks")
+
+	defaultGas = uniswapv3.Gas{BaseGas: 129869, CrossInitTickGas: 15460}
 )
