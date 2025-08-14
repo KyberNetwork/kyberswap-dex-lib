@@ -92,6 +92,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	return p
+}
+
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		BlockNumber: s.Pool.Info.BlockNumber,
