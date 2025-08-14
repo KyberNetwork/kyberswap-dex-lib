@@ -63,20 +63,20 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 			return "", err
 		}
 	}
+
+	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	if extra.RateProviderAddress == (common.Address{}) {
-		req := param.RpcClient.NewRequest().SetContext(ctx)
 		req.AddCall(&ethrpc.Call{
 			ABI:    renzoHookABI,
 			Target: h.hook,
 			Method: "rateProvider",
 		}, []any{&extra.RateProviderAddress})
-		_, err := req.Aggregate()
-		if err != nil {
-			return "", err
-		}
 	}
 
-	req := param.RpcClient.NewRequest().SetContext(ctx)
 	var rate, minFeeBps, maxFeeBps *big.Int
 	req.AddCall(&ethrpc.Call{
 		ABI:    rateProviderABI,
@@ -93,6 +93,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Target: h.hook,
 		Method: "maxFeeBps",
 	}, []any{&maxFeeBps})
+
 	_, err := req.Aggregate()
 	if err != nil {
 		return "", err
@@ -105,6 +106,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	if err != nil {
 		return "", err
 	}
+
 	return string(extraBytes), nil
 }
 

@@ -122,6 +122,7 @@ type HookParam struct {
 	Pool        *entity.Pool
 	HookExtra   string
 	HookAddress common.Address
+	BlockNumber *big.Int
 }
 
 type HookFactory func(param *HookParam) Hook

@@ -18,6 +18,9 @@ import (
 
 func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
 	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
 
 	var poolState PoolStateRPC
 	req.AddCall(&ethrpc.Call{
@@ -71,6 +74,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	poolManagerAddress := GetPoolManagerAddress(valueobject.ChainID(param.Cfg.ChainID))
 
 	req1 := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req1.SetBlockNumber(param.BlockNumber)
+	}
+
 	req1.AddCall(&ethrpc.Call{
 		ABI:    bunniHookABI,
 		Target: hookAddress,

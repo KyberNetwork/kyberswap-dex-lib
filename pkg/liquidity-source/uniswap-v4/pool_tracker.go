@@ -86,7 +86,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Params: []any{eth.StringToBytes32(p.Address)},
 	}, []any{&result.Slot0})
 
-	_, err := rpcRequests.Aggregate()
+	res, err := rpcRequests.Aggregate()
 	if err != nil {
 		return result, err
 	}
@@ -106,6 +106,7 @@ func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		result.Reserves = entity.PoolReserves{reserve0.String(), reserve1.String()}
 	}
 
+	hookParam.BlockNumber = res.BlockNumber
 	result.HookExtra, err = hook.Track(ctx, hookParam)
 	return result, err
 }

@@ -73,6 +73,10 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 	var info ClankerDeploymentInfo
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    dynamicFeeHookABI,
 		Target: h.hook,

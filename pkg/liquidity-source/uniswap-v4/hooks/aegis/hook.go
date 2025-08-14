@@ -10,7 +10,6 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -64,10 +63,6 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
-}
-
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
 	var extra AegisExtra
 	if param.HookExtra != "" {
@@ -95,6 +90,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	var dynamicFeeState DynamicFeeStateRPC
 	var manualFee ManualFeeRPC
 	var poolPOLShare *big.Int
