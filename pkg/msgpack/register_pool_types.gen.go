@@ -115,6 +115,7 @@ import (
 	pkg_liquiditysource_virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
+	pkg_liquiditysource_xsolvbtc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/xsolvbtc"
 	pkg_source_camelot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	pkg_source_curve_aave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	pkg_source_curve_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -276,6 +277,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_xsolvbtc.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_camelot.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_aave.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_curve_base.PoolSimulator{})
