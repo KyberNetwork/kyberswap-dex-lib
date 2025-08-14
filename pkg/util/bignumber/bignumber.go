@@ -20,7 +20,11 @@ var (
 	Four   = big.NewInt(4)
 	Five   = big.NewInt(5)
 	Six    = big.NewInt(6)
+	Seven  = big.NewInt(7)
+	Eight  = big.NewInt(8)
+	Nine   = big.NewInt(9)
 	Ten    = big.NewInt(10)
+	Eleven = big.NewInt(11)
 
 	MIN_SQRT_RATIO    = big.NewInt(4295128739)
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
@@ -29,6 +33,9 @@ var (
 
 	MAX_UINT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 128), One)
 	MAX_UINT_256 = new(big.Int).Sub(new(big.Int).Lsh(One, 256), One)
+
+	MIN_INT_128 = new(big.Int).Neg(new(big.Int).Lsh(One, 127))
+	MAX_INT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 127), One)
 )
 
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)

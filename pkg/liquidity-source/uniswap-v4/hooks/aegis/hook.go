@@ -10,7 +10,6 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
@@ -64,10 +63,6 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) GetReserves(ctx context.Context, param *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
-}
-
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
 	var extra AegisExtra
 	if param.HookExtra != "" {
@@ -95,6 +90,10 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	var dynamicFeeState DynamicFeeStateRPC
 	var manualFee ManualFeeRPC
 	var poolPOLShare *big.Int
@@ -133,7 +132,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	var hookFeeAmt *big.Int
 	if !swapHookParams.ExactIn {
 		hookFeeAmt = bignumber.ZeroBI
@@ -142,19 +141,25 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 		hookFeeAmt.Mul(swapHookParams.AmountSpecified, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
 		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
 	}
-	return &uniswapv4.BeforeSwapHookResult{
+	return &uniswapv4.BeforeSwapResult{
 		SwapFee:         h.swapFee,
 		DeltaSpecific:   hookFeeAmt,
 		DeltaUnSpecific: bignumber.ZeroBI,
 	}, nil
 }
 
-func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
+func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	if swapHookParams.ExactIn {
-		return bignumber.ZeroBI
+		return &uniswapv4.AfterSwapResult{
+			HookFee: bignumber.ZeroBI,
+		}, nil
 	}
-	hookFeeAmt = new(big.Int)
+
+	hookFeeAmt := new(big.Int)
 	hookFeeAmt.Mul(swapHookParams.AmountIn, hookFeeAmt.SetUint64(uint64(h.swapFee))).Div(hookFeeAmt, FeeMax)
 	hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
-	return hookFeeAmt
+
+	return &uniswapv4.AfterSwapResult{
+		HookFee: hookFeeAmt,
+	}, nil
 }
