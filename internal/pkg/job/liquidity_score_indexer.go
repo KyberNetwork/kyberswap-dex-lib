@@ -22,7 +22,12 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
-const NON_FILTER_ENTROPY = 1.0
+const (
+	NON_FILTER_ENTROPY = 1.0
+	JOB_NAME_KEY       = ctxutils.CtxKey(1)
+	FULL_SCAN          = "full_scan"
+	PARTIAL            = "partial"
+)
 
 type LiquidityScoreIndexPoolsJob struct {
 	indexUsecase               ITradeGeneratorUsecase
@@ -61,7 +66,7 @@ func (j *LiquidityScoreIndexPoolsJob) runScanAndIndex(ctx context.Context) {
 
 	for {
 		j.scanAndIndex(
-			ctxutils.NewJobCtx(ctx),
+			ctxutils.NewCtxFromValue(ctx, JOB_NAME_KEY, FULL_SCAN),
 			mapset.NewThreadUnsafeSet[indexpools.TradesGenerationInput](),
 			j.config.TargetFactorEntropy)
 		select {
@@ -153,15 +158,17 @@ func (j *LiquidityScoreIndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddr
 	}
 
 	ctx := ctxutils.NewJobCtx(msgs[0].Ctx())
-	j.scanAndIndex(ctx, poolAddrSet, NON_FILTER_ENTROPY)
+	j.scanAndIndex(ctxutils.NewCtxFromValue(ctx, JOB_NAME_KEY, PARTIAL), poolAddrSet, NON_FILTER_ENTROPY)
 }
 
 func (j *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context,
 	poolAddresses mapset.Set[indexpools.TradesGenerationInput], entropyFactor float64) {
 	startTime := time.Now()
 	defer func() {
+		jobName, _ := ctx.Value(JOB_NAME_KEY).(string)
 		log.Ctx(ctx).Info().
 			Str("job.name", LiquidityScoreIndexPools).
+			Str("job.from", jobName).
 			Dur("duration_ms", time.Since(startTime)).
 			Msg("job done with duration")
 	}()

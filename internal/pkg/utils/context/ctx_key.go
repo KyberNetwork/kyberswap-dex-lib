@@ -1,7 +1,7 @@
 package context
 
-type ctxKey int8
+type CtxKey int8
 
 const (
-	jobIDContextKey = ctxKey(0)
+	jobIDContextKey = CtxKey(0)
 )

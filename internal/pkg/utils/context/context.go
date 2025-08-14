@@ -15,3 +15,7 @@ func GetJobID(ctx context.Context) string {
 
 	return jobID
 }
+
+func NewCtxFromValue(ctx context.Context, key CtxKey, value string) context.Context {
+	return context.WithValue(ctx, key, value)
+}
