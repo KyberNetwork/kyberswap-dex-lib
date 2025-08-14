@@ -19,7 +19,7 @@ import (
 
 var (
 	minPriceLimit, _ = new(big.Int).SetString("4295128740", 10)
-	maxPriceLimit, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970341", 10)
+	// maxPriceLimit, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970341", 10)
 )
 
 func TestHookV121_Track(t *testing.T) {
