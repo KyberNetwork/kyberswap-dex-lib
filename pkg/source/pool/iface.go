@@ -45,7 +45,10 @@ type IPoolTracker interface {
 }
 
 type IInactivePoolTracker interface {
-	IsInactive(p *entity.Pool, currentTimestamp, inactiveTimeThresholdInSecond int64) bool
+	IsInactive(p *entity.Pool, currentTimestamp int64) bool
+
+	// GetInactivePools returns a list of pools that are considered inactive.
+	// These pools should be rechecked to confirm whether they are active or inactive when updating to the latest state.
 	GetInactivePools(ctx context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error)
 }
 

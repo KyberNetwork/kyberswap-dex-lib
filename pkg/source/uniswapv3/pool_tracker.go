@@ -179,7 +179,7 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
-	p.IsInactive = d.IsInactive(&p, time.Now().Unix(), int64(d.config.InactiveTimeThreshold.Seconds()))
+	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 
@@ -329,7 +329,16 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	return ticks, nil
 }
 
-func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp, inactiveTimeThresholdInSecond int64) bool {
+func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp int64) bool {
+	if !d.config.TrackInactivePools.Enabled {
+		return false
+	}
+
+	inactiveTimeThresholdInSecond := int64(d.config.TrackInactivePools.TimeThreshold.Seconds())
+	if inactiveTimeThresholdInSecond <= 0 {
+		return false
+	}
+
 	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
 }
 
@@ -339,7 +348,7 @@ func (d *PoolTracker) GetInactivePools(_ context.Context, currentTimestamp int64
 	}
 
 	inactivePools := lo.Filter(pools, func(p entity.Pool, _ int) bool {
-		return d.IsInactive(&p, currentTimestamp, int64(d.config.InactiveTimeThreshold.Seconds()))
+		return d.IsInactive(&p, currentTimestamp)
 	})
 
 	return lo.Map(inactivePools, func(p entity.Pool, _ int) string { return p.Address }), nil

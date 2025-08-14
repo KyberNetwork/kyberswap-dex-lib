@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -125,7 +126,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 	pool.Extra = string(extraBytes)
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = int64(reserveData.BlockTimestampLast)
-	pool.IsInactive = d.IsInactive(&pool, time.Now().Unix(), int64(d.config.InactiveTimeThreshold.Seconds()))
+	pool.IsInactive = d.IsInactive(&pool, time.Now().Unix())
 
 	return pool, nil
 }
@@ -173,37 +174,27 @@ func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.I
 	return d.logDecoder.Decode(logs)
 }
 
-func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp, inactiveTimeThresholdInSecond int64) bool {
+func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp int64) bool {
+	if !d.config.TrackInactivePools.Enabled {
+		return false
+	}
+
+	inactiveTimeThresholdInSecond := int64(d.config.TrackInactivePools.TimeThreshold.Seconds())
+	if inactiveTimeThresholdInSecond <= 0 {
+		return false
+	}
+
 	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
 }
 
-func (d *PoolTracker) GetInactivePools(ctx context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error) {
+func (d *PoolTracker) GetInactivePools(_ context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error) {
 	if len(pools) == 0 {
 		return nil, nil
 	}
 
-	inactiveTimeThresholdInSecond := int64(d.config.InactiveTimeThreshold.Seconds())
-	inactivePools := make([]string, 0)
-	reservesList := make([]ReserveData, len(pools))
+	inactivePools := lo.Filter(pools, func(p entity.Pool, _ int) bool {
+		return d.IsInactive(&p, currentTimestamp)
+	})
 
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for _, p := range pools {
-		req.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: p.Address,
-			Method: pairMethodGetReserves,
-		}, []any{&reservesList})
-	}
-	_, err := req.TryAggregate()
-	if err != nil {
-		return nil, err
-	}
-
-	for i, reserves := range reservesList {
-		if currentTimestamp-int64(reserves.BlockTimestampLast) > inactiveTimeThresholdInSecond {
-			inactivePools = append(inactivePools, pools[i].Address)
-		}
-	}
-
-	return inactivePools, nil
+	return lo.Map(inactivePools, func(p entity.Pool, _ int) string { return p.Address }), nil
 }
