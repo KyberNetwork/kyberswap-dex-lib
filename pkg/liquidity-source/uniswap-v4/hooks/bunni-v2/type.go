@@ -9,22 +9,23 @@ import (
 )
 
 type HookExtra struct {
-	HookletExtra        string                `json:"he"`
-	HookletAddress      common.Address        `json:"ha"`
-	LDFAddress          common.Address        `json:"la"`
-	HookFee             *uint256.Int          `json:"hf"`
-	PoolManagerReserves [2]*uint256.Int       `json:"pmr"`
-	LdfState            [32]byte              `json:"ls"`
-	Vaults              [2]Vault              `json:"v"`
-	AmAmm               AmAmm                 `json:"aa"`
-	ObservationState    ObservationState      `json:"os"`
-	CuratorFees         CuratorFees           `json:"cf"`
-	Observations        []*oracle.Observation `json:"o"`
-	HookParams          HookParams            `json:"hp"`
-	Slot0               Slot0                 `json:"s0"`
-	BunniState          PoolState             `json:"bs"`
-	VaultSharePrices    VaultSharePrices      `json:"vsp"`
-	BlockTimestamp      uint32                `json:"bt"`
+	HookletExtra           string                `json:"he"`
+	HookletAddress         common.Address        `json:"ha"`
+	LDFAddress             common.Address        `json:"la"`
+	HookFee                *uint256.Int          `json:"hf"`
+	PoolManagerReserves    [2]*uint256.Int       `json:"pmr"`
+	LdfState               [32]byte              `json:"ls"`
+	Vaults                 [2]Vault              `json:"v"`
+	AmAmm                  AmAmm                 `json:"aa"`
+	ObservationState       ObservationState      `json:"os"`
+	CuratorFees            CuratorFees           `json:"cf"`
+	Observations           []*oracle.Observation `json:"o"`
+	HookParams             HookParams            `json:"hp"`
+	Slot0                  Slot0                 `json:"s0"`
+	BunniState             PoolState             `json:"bs"`
+	VaultSharePrices       VaultSharePrices      `json:"vsp"`
+	RebalanceOrderDeadline uint32                `json:"rod"`
+	BlockTimestamp         uint32                `json:"bt"`
 }
 
 type LdfState struct {
@@ -71,6 +72,7 @@ type HookParams struct {
 	SurgeFeeAutostartThreshold uint16       `json:"sfat"`
 	VaultSurgeThreshold0       *uint256.Int `json:"vst0"`
 	VaultSurgeThreshold1       *uint256.Int `json:"vst1"`
+	RebalanceThreshold         uint16       `json:"rt"`
 	AmAmmEnabled               bool         `json:"aae"`
 	OracleMinInterval          uint32       `json:"omi"`
 }

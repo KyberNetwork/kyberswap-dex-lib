@@ -54,7 +54,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		ldfState     [32]byte
 		slot0        Slot0RPC
 		poolState    PoolStateRPC
-		storageSlots [5]common.Hash
+		storageSlots [6]common.Hash
 		topBid       BidRPC
 
 		poolManagerBalance0, poolManagerBalance1 = big.NewInt(0), big.NewInt(0)
@@ -66,6 +66,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	slotVaultSharePrices := crypto.Keccak256Hash(poolId[:], VAULT_SHARE_PRICES_SLOT)
 	slotCuratorFees := crypto.Keccak256Hash(poolId[:], CURATOR_FEES_SLOT)
 	slotHookFee := crypto.Keccak256Hash(poolId[:], HOOK_FEE_SLOT)
+	slotRebalanceOrderDeadline := crypto.Keccak256Hash(poolId[:], REBALANCE_ORDER_DEADLINE_SLOT)
 
 	hubAddress := GetHubAddress(h.hook)
 	hookAddress := h.hook.Hex()
@@ -89,6 +90,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 				slotVaultSharePrices,
 				slotCuratorFees,
 				slotHookFee,
+				slotRebalanceOrderDeadline,
 			},
 		},
 	}, []any{&storageSlots})
@@ -175,6 +177,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	hookExtra.VaultSharePrices = decodeVaultSharePrices(storageSlots[2])
 	hookExtra.CuratorFees = decodeCuratorFees(storageSlots[3])
 	hookExtra.HookFee = decodeHookFee(storageSlots[4])
+	hookExtra.RebalanceOrderDeadline = decodeRebalanceOrderDeadline(storageSlots[5])
 	hookExtra.AmAmm = decodeAmmPayload(topBid.Data.Manager, topBid.Data.Payload)
 
 	var (
@@ -243,7 +246,6 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	}
 
 	hookExtra.HookletExtra = hookletExtra
-
 	newHookExtra, err := json.Marshal(&hookExtra)
 	if err != nil {
 		return "", err
