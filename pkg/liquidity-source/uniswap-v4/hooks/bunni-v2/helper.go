@@ -39,6 +39,8 @@ func decodeHookParams(data []byte) HookParams {
 	result.VaultSurgeThreshold0 = &v0
 	result.VaultSurgeThreshold1 = &v1
 
+	result.RebalanceThreshold = binary.BigEndian.Uint16(data[23:25])
+
 	result.AmAmmEnabled = data[31] != 0
 
 	result.OracleMinInterval = binary.BigEndian.Uint32(data[32:36])
@@ -126,6 +128,10 @@ func decodeCuratorFees(data common.Hash) CuratorFees {
 	return CuratorFees{
 		FeeRate: &feeRate,
 	}
+}
+
+func decodeRebalanceOrderDeadline(data common.Hash) uint32 {
+	return binary.BigEndian.Uint32(data[:])
 }
 
 func decodeObservationState(data []common.Hash) ObservationState {

@@ -3,6 +3,7 @@ package hooklet
 import (
 	"context"
 
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -24,7 +25,7 @@ func (h *baseHooklet) Track(_ context.Context, _ HookletParams) (string, error) 
 }
 
 func (h *baseHooklet) BeforeSwap(_ *SwapParams) (bool, *uint256.Int, bool, *uint256.Int) {
-	return false, new(uint256.Int), false, new(uint256.Int)
+	return false, u256.U0, false, u256.U0
 }
 
 func (h *baseHooklet) AfterSwap(_ *SwapParams) {}

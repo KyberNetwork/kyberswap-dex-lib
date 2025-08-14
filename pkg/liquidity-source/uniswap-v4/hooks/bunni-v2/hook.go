@@ -102,9 +102,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		h.BlockTimestamp = uint32(time.Now().Unix())
 	}
 
-	feeOverridden, feeOverride, priceOverridden, sqrtPriceX96Override := h.hooklet.BeforeSwap(&hooklet.SwapParams{
-		ZeroForOne: params.ZeroForOne,
-	})
+	feeOverridden, feeOverride, priceOverridden, sqrtPriceX96Override :=
+		h.hooklet.BeforeSwap(&hooklet.SwapParams{
+			ZeroForOne: params.ZeroForOne,
+		})
 
 	if priceOverridden {
 		h.Slot0.SqrtPriceX96.Set(sqrtPriceX96Override)
@@ -302,6 +303,12 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		Gas: _BEFORE_SWAP_GAS,
 	}
 
+	for _, vault := range h.Vaults {
+		if !valueobject.IsZeroAddress(vault.Address) {
+			result.Gas += _PREVIEW_REDEEM_GAS
+		}
+	}
+
 	if useAmAmmFee {
 		surgeFee, err := computeSurgeFee(h.BlockTimestamp, lastSurgeTimestamp, h.HookParams.SurgeFeeHalfLife)
 		if err != nil {
@@ -397,19 +404,16 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		return nil, err
 	}
 
-	// rebalanceOrderDeadline := h.rebalanceOrderDeadline
-	// if shouldSurge {
-	// 	rebalanceOrderDeadline = uint256.NewInt(0)
-	// }
+	rebalanceOrderDeadline := h.RebalanceOrderDeadline
+	if shouldSurge {
+		rebalanceOrderDeadline = 0
+	}
 
-	// if h.HookParams.RebalanceThreshold != 0 &&
-	// 	(shouldSurge || blockTimestamp > uint32(rebalanceOrderDeadline.Uint64()) && !rebalanceOrderDeadline.IsZero()) {
-	// 	if shouldSurge {
-	// 		h.rebalanceOrderDeadline.Clear()
-	// 	}
+	if h.HookParams.RebalanceThreshold != 0 &&
+		(shouldSurge || h.BlockTimestamp > rebalanceOrderDeadline && rebalanceOrderDeadline != 0) {
 
-	// 	h.rebalance()
-	// }
+		result.Gas += _REBALANCE_GAS
+	}
 
 	h.hooklet.AfterSwap(nil)
 
@@ -466,8 +470,12 @@ func (h *Hook) hookHandleSwap(
 		if !valueobject.IsZeroAddress(h.Vaults[0].Address) {
 			newReserve0, newRawBalance0, err := h.updateRawBalanceIfNeeded(
 				0,
-				h.BunniState.RawBalance0, h.BunniState.Reserve0,
-				h.BunniState.MinRawTokenRatio0, h.BunniState.MaxRawTokenRatio0, h.BunniState.TargetRawTokenRatio0)
+				h.BunniState.RawBalance0,
+				h.BunniState.Reserve0,
+				h.BunniState.MinRawTokenRatio0,
+				h.BunniState.MaxRawTokenRatio0,
+				h.BunniState.TargetRawTokenRatio0,
+			)
 			if err != nil {
 				return err
 			}
@@ -479,8 +487,12 @@ func (h *Hook) hookHandleSwap(
 		if !valueobject.IsZeroAddress(h.Vaults[1].Address) {
 			newReserve1, newRawBalance1, err := h.updateRawBalanceIfNeeded(
 				1,
-				h.BunniState.RawBalance1, h.BunniState.Reserve1,
-				h.BunniState.MinRawTokenRatio1, h.BunniState.MaxRawTokenRatio1, h.BunniState.TargetRawTokenRatio1)
+				h.BunniState.RawBalance1,
+				h.BunniState.Reserve1,
+				h.BunniState.MinRawTokenRatio1,
+				h.BunniState.MaxRawTokenRatio1,
+				h.BunniState.TargetRawTokenRatio1,
+			)
 			if err != nil {
 				return err
 			}
@@ -506,17 +518,14 @@ func (h *Hook) updateRawBalanceIfNeeded(
 	var balance uint256.Int
 	balance.Add(rawBalance, reserveInUnderlying)
 
-	var maxRawBalance uint256.Int
-	maxRawBalance.MulDivOverflow(&balance, maxRatio, RAW_TOKEN_RATIO_BASE)
+	maxRawBalance := math.MulDiv(&balance, maxRatio, RAW_TOKEN_RATIO_BASE)
 
-	minRawBalance := reserveInUnderlying // reuse
-	minRawBalance.MulDivOverflow(&balance, minRatio, RAW_TOKEN_RATIO_BASE)
+	minRawBalance := math.MulDiv(&balance, minRatio, RAW_TOKEN_RATIO_BASE)
 
-	if rawBalance.Lt(minRawBalance) || rawBalance.Gt(&maxRawBalance) {
-		targetRawBalance := maxRawBalance // reuse
-		targetRawBalance.MulDivOverflow(&balance, targetRatio, RAW_TOKEN_RATIO_BASE)
+	if rawBalance.Lt(minRawBalance) || rawBalance.Gt(maxRawBalance) {
+		targetRawBalance := math.MulDiv(&balance, targetRatio, RAW_TOKEN_RATIO_BASE)
 
-		rawBalanceChange := i256.SafeToInt256(&targetRawBalance)
+		rawBalanceChange := i256.SafeToInt256(targetRawBalance)
 		rawBalanceChange.Sub(rawBalanceChange, i256.SafeToInt256(rawBalance))
 
 		reserveChange, rawBalanceChange, err := h.updateVaultReserveViaClaimTokens(vaultIndex, rawBalanceChange)

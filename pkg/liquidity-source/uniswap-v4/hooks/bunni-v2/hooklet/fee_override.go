@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -69,12 +70,17 @@ func (h *feeOverrideHooklet) Track(ctx context.Context, params HookletParams) (s
 	return string(extra), nil
 }
 
-func (h *feeOverrideHooklet) BeforeSwap(params *SwapParams) (bool, *uint256.Int, bool, *uint256.Int) {
+func (h *feeOverrideHooklet) BeforeSwap(params *SwapParams) (
+	feeOverriden bool,
+	fee *uint256.Int,
+	priceOverridden bool,
+	sqrtPriceX96 *uint256.Int,
+) {
 	if params.ZeroForOne {
-		return h.OverrideZeroToOne, h.FeeZeroToOne, false, new(uint256.Int)
+		return h.OverrideZeroToOne, h.FeeZeroToOne, false, u256.U0
 	}
 
-	return h.OverrideOneToZero, h.FeeOneToZero, false, new(uint256.Int)
+	return h.OverrideOneToZero, h.FeeOneToZero, false, u256.U0
 }
 
 func (h *feeOverrideHooklet) AfterSwap(_ *SwapParams) {}

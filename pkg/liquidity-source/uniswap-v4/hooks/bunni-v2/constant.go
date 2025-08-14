@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	_MAX_OBSERVATION_BATCH_SIZE = 1000
+	_MAX_OBSERVATION_BATCH_SIZE = 500
 
-	_BEFORE_SWAP_GAS = 525000
+	_BEFORE_SWAP_GAS    = 500000
+	_REBALANCE_GAS      = 175000
+	_PREVIEW_REDEEM_GAS = 25000
 )
 
 const (
@@ -29,8 +31,10 @@ var (
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}
 
-	OBSERVATION_BASE_SLOT   = common.LeftPadBytes(big.NewInt(6).Bytes(), 32)
-	OBSERVATION_STATE_SLOT  = common.LeftPadBytes(big.NewInt(7).Bytes(), 32)
+	OBSERVATION_BASE_SLOT         = common.LeftPadBytes(big.NewInt(6).Bytes(), 32)
+	OBSERVATION_STATE_SLOT        = common.LeftPadBytes(big.NewInt(7).Bytes(), 32)
+	REBALANCE_ORDER_DEADLINE_SLOT = common.LeftPadBytes(big.NewInt(10).Bytes(), 32)
+
 	VAULT_SHARE_PRICES_SLOT = common.LeftPadBytes(big.NewInt(11).Bytes(), 32)
 	CURATOR_FEES_SLOT       = common.LeftPadBytes(big.NewInt(15).Bytes(), 32)
 	HOOK_FEE_SLOT           = common.LeftPadBytes(big.NewInt(16).Bytes(), 32)
