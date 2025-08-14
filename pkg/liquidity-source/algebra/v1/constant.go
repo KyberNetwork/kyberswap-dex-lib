@@ -32,8 +32,8 @@ const (
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
 
-	BaseGas          = int64(242000)
-	CrossInitTickGas = int64(21000)
+	BaseGas          = int64(242334)
+	CrossInitTickGas = int64(21492)
 )
 
 var (

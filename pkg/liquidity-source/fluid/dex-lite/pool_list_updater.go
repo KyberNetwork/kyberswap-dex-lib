@@ -17,7 +17,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -152,40 +151,42 @@ func (u *PoolsListUpdater) readDexKeys(ctx context.Context, from, till uint64) (
 
 	dexKeyFns := make([]func() *DexKey, till-from)
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	baseSlot := u.calculateArraySlot(1, 0)
+	var token0Slot, token1Slot, saltSlot uint256.Int
 	for i := from; i < till; i++ {
-		// Read 3 consecutive slots for this DexKey struct
-		token0Slot := u.calculateArraySlot(1, i)
-		var tmp1, tmp2 big.Int
-		token1Slot := tmp1.Add(token0Slot, bignumber.One)
-		saltSlot := tmp2.Add(token0Slot, bignumber.Two)
+		var token0, token1, salt *big.Int
+		// Read 3 consecutive slots for each DexKey struct
+		token0Slot.AddUint64(baseSlot, i*3)
+		token1Slot.AddUint64(baseSlot, i*3+1)
+		saltSlot.AddUint64(baseSlot, i*3+2)
 
 		// Read token0, token1, salt
 		req.AddCall(&ethrpc.Call{
 			ABI:    fluidDexLiteABI,
 			Target: u.config.DexLiteAddress,
 			Method: SRMethodReadFromStorage,
-			Params: []any{common.BigToHash(token0Slot)},
-		}, []any{&token0Slot}).AddCall(&ethrpc.Call{
+			Params: []any{token0Slot.Bytes32()},
+		}, []any{&token0}).AddCall(&ethrpc.Call{
 			ABI:    fluidDexLiteABI,
 			Target: u.config.DexLiteAddress,
 			Method: SRMethodReadFromStorage,
-			Params: []any{common.BigToHash(token1Slot)},
-		}, []any{&token1Slot}).AddCall(&ethrpc.Call{
+			Params: []any{token1Slot.Bytes32()},
+		}, []any{&token1}).AddCall(&ethrpc.Call{
 			ABI:    fluidDexLiteABI,
 			Target: u.config.DexLiteAddress,
 			Method: SRMethodReadFromStorage,
-			Params: []any{common.BigToHash(saltSlot)},
-		}, []any{&saltSlot})
+			Params: []any{saltSlot.Bytes32()},
+		}, []any{&salt})
 
 		dexKeyFns[i-from] = func() *DexKey {
-			if token0Slot.Sign() == 0 || token1Slot.Sign() == 0 {
+			if token0.Sign() == 0 || token1.Sign() == 0 {
 				return nil // Skip invalid dexKeys (token0 == 0 || token1 == 0)
 			}
 			// Reconstruct DexKey
 			dexKey := &DexKey{
-				Token0: common.BigToAddress(token0Slot),
-				Token1: common.BigToAddress(token1Slot),
-				Salt:   common.BigToHash(saltSlot),
+				Token0: common.BigToAddress(token0),
+				Token1: common.BigToAddress(token1),
+				Salt:   common.BigToHash(salt),
 			}
 			logger.WithFields(logger.Fields{
 				"dexType": DexType,
@@ -226,11 +227,11 @@ func (u *PoolsListUpdater) readDexKeys(ctx context.Context, from, till uint64) (
 }
 
 // Helper functions for storage calculations
-func (u *PoolsListUpdater) calculateArraySlot(baseSlot, index uint64) *big.Int {
+func (u *PoolsListUpdater) calculateArraySlot(baseSlot, index uint64) *uint256.Int {
 	// For dynamic arrays: keccak256(baseSlot) + index
 	var tmp uint256.Int
 	return tmp.SetBytes(crypto.Keccak256(tmp.SetUint64(baseSlot).PaddedBytes(32))).
-		AddUint64(&tmp, index).ToBig()
+		AddUint64(&tmp, index)
 }
 
 func (u *PoolsListUpdater) calculateDexId(dexKey *DexKey) DexId {

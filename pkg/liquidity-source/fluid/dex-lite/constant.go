@@ -19,7 +19,7 @@ const (
 	TokensDecimalsPrecision = 9 // FluidDexLite uses 9 decimal precision internally
 	DefaultExponentSize     = 8
 
-	defaultGas = 82651
+	defaultGas = 75171
 
 	MaxBatchSize = 100
 

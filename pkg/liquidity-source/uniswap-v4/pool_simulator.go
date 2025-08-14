@@ -19,10 +19,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	defaultGas = uniswapv3.Gas{BaseGas: 75000, CrossInitTickGas: 21000}
-)
-
 type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
 	staticExtra   StaticExtra

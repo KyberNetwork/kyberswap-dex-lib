@@ -27,7 +27,7 @@ const (
 
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
 )
 
 var (

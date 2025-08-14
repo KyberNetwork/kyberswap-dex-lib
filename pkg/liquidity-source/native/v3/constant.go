@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
 
 	ErrPoolLocked      = errors.New("pool is locked")
 	ErrOverflow        = errors.New("bigInt overflow int/uint256")
