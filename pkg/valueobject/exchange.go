@@ -25,6 +25,7 @@ const (
 	ExchangeArenaDexV2                 = "arenadex-v2"
 	ExchangeAstroSwap                  = "astroswap"
 	ExchangeAtlantis                   = "atlantis"
+	ExchangeAtlantis2                  = "atlantis-2"
 	ExchangeAxial                      = "axial"
 	ExchangeBMX                        = "bmx"
 	ExchangeBMXGLP                     = "bmx-glp"
@@ -465,6 +466,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArenaDexV2:                 {},
 	ExchangeAstroSwap:                  {},
 	ExchangeAtlantis:                   {},
+	ExchangeAtlantis2:                  {},
 	ExchangeAxial:                      {},
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},

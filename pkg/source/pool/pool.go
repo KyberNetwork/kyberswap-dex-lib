@@ -1,14 +1,17 @@
 package pool
 
 import (
+	"context"
 	"math/big"
+	"time"
 
-	"github.com/KyberNetwork/logger"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
-	ErrCalcAmountOutPanic = errors.New("calcAmountOut panicked")
+	errLogSampler = &zerolog.BurstSampler{Burst: 2, Period: 15 * time.Second}
 )
 
 type Pool struct {
@@ -148,16 +151,13 @@ type CalcAmountInResult struct {
 }
 
 // CalcAmountOut wraps pool.CalcAmountOut and catch panic
-func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
+func CalcAmountOut(ctx context.Context, pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string,
 	limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = errors.WithStack(ErrCalcAmountOutPanic)
-			logger.WithFields(
-				logger.Fields{
-					"recover":     r,
-					"poolAddress": pool.GetAddress(),
-				}).Debug(err.Error())
+			err = errors.Errorf("calcAmountOut panicked: %v", r)
+			lg := log.Ctx(ctx).Sample(errLogSampler)
+			lg.Warn().Stack().Err(err).Str("pool", pool.GetAddress()).Send()
 		}
 	}()
 
