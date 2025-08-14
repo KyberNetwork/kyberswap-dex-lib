@@ -10,10 +10,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-const (
-	_FEE_OVERRIDE_BEFORE_SWAP_GAS = 100000
-)
-
 type feeOverrideHooklet struct {
 	HookletExtra
 }
@@ -79,13 +75,12 @@ func (h *feeOverrideHooklet) BeforeSwap(params *SwapParams) (
 	fee *uint256.Int,
 	priceOverridden bool,
 	sqrtPriceX96 *uint256.Int,
-	gas int64,
 ) {
 	if params.ZeroForOne {
-		return h.OverrideZeroToOne, h.FeeZeroToOne, false, u256.U0, _FEE_OVERRIDE_BEFORE_SWAP_GAS
+		return h.OverrideZeroToOne, h.FeeZeroToOne, false, u256.U0
 	}
 
-	return h.OverrideOneToZero, h.FeeOneToZero, false, u256.U0, _FEE_OVERRIDE_BEFORE_SWAP_GAS
+	return h.OverrideOneToZero, h.FeeOneToZero, false, u256.U0
 }
 
 func (h *feeOverrideHooklet) AfterSwap(_ *SwapParams) {}

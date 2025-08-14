@@ -102,7 +102,7 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		h.BlockTimestamp = uint32(time.Now().Unix())
 	}
 
-	feeOverridden, feeOverride, priceOverridden, sqrtPriceX96Override, hookletBeforeSwapGas :=
+	feeOverridden, feeOverride, priceOverridden, sqrtPriceX96Override :=
 		h.hooklet.BeforeSwap(&hooklet.SwapParams{
 			ZeroForOne: params.ZeroForOne,
 		})
@@ -300,7 +300,13 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	var hookHandleSwapOutputAmount uint256.Int
 
 	var result = uniswapv4.BeforeSwapResult{
-		Gas: _BEFORE_SWAP_GAS + hookletBeforeSwapGas,
+		Gas: _BEFORE_SWAP_GAS,
+	}
+
+	for _, vault := range h.Vaults {
+		if !valueobject.IsZeroAddress(vault.Address) {
+			result.Gas += _PREVIEW_REDEEM_GAS
+		}
 	}
 
 	if useAmAmmFee {
