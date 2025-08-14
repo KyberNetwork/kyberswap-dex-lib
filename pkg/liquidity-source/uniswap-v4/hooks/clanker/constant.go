@@ -17,10 +17,10 @@ var (
 	FEE_CONTROL_DENOMINATOR = uint256.NewInt(10_000_000_000)
 	maxUint24               = uint64(1<<24 - 1)
 
-	ClankerAddressByChain = map[valueobject.ChainID]common.Address{
-		valueobject.ChainIDBase:        common.HexToAddress("0xE85A59c628F7d27878ACeB4bf3b35733630083a9"),
-		valueobject.ChainIDUnichain:    common.HexToAddress("0xE85A59c628F7d27878ACeB4bf3b35733630083a9"),
-		valueobject.ChainIDArbitrumOne: common.HexToAddress("0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f"),
+	ClankerAddressByChain = map[valueobject.ChainID]string{
+		valueobject.ChainIDBase:        "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
+		valueobject.ChainIDUnichain:    "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
+		valueobject.ChainIDArbitrumOne: "0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f",
 	}
 
 	DynamicFeeHookAddresses = []common.Address{
