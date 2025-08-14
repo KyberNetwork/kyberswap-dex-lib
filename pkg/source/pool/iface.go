@@ -44,6 +44,11 @@ type IPoolTracker interface {
 	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 }
 
+type IInactivePoolTracker interface {
+	IsInactive(p *entity.Pool, currentTimestamp, inactiveTimeThresholdInSecond int64) bool
+	GetInactivePools(ctx context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error)
+}
+
 type IPoolTrackerWithDependencies interface {
 	GetDependencies(ctx context.Context, p entity.Pool) ([]string, bool, error)
 }

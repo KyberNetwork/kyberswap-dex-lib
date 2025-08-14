@@ -124,7 +124,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 	}
 	pool.Extra = string(extraBytes)
 	pool.BlockNumber = blockNumber.Uint64()
-	pool.Timestamp = time.Now().Unix()
+	pool.Timestamp = int64(reserveData.BlockTimestampLast)
+	pool.IsInactive = d.IsInactive(&pool, time.Now().Unix(), int64(d.config.InactiveTimeThreshold.Seconds()))
 
 	return pool, nil
 }
@@ -158,8 +159,9 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	}
 
 	return ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
+		Reserve0:           getReservesResult.Reserve0,
+		Reserve1:           getReservesResult.Reserve1,
+		BlockTimestampLast: getReservesResult.BlockTimestampLast,
 	}, resp.BlockNumber, nil
 }
 
@@ -169,4 +171,39 @@ func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.I
 	}
 
 	return d.logDecoder.Decode(logs)
+}
+
+func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp, inactiveTimeThresholdInSecond int64) bool {
+	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
+}
+
+func (d *PoolTracker) GetInactivePools(ctx context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error) {
+	if len(pools) == 0 {
+		return nil, nil
+	}
+
+	inactiveTimeThresholdInSecond := int64(d.config.InactiveTimeThreshold.Seconds())
+	inactivePools := make([]string, 0)
+	reservesList := make([]ReserveData, len(pools))
+
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	for _, p := range pools {
+		req.AddCall(&ethrpc.Call{
+			ABI:    uniswapV2PairABI,
+			Target: p.Address,
+			Method: pairMethodGetReserves,
+		}, []any{&reservesList})
+	}
+	_, err := req.TryAggregate()
+	if err != nil {
+		return nil, err
+	}
+
+	for i, reserves := range reservesList {
+		if currentTimestamp-int64(reserves.BlockTimestampLast) > inactiveTimeThresholdInSecond {
+			inactivePools = append(inactivePools, pools[i].Address)
+		}
+	}
+
+	return inactivePools, nil
 }

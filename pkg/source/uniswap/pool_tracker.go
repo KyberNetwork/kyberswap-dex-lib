@@ -2,8 +2,8 @@ package uniswap
 
 import (
 	"context"
+	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -50,6 +50,8 @@ func (d *PoolTracker) GetNewPoolState(
 				"poolAddress": p.Address,
 				"error":       err,
 			}).Error("Fail to fetch reserves from node")
+		} else {
+			p.Timestamp = int64(reserves.BlockTimestampLast)
 		}
 	} else {
 		logger.WithFields(logger.Fields{
@@ -63,6 +65,8 @@ func (d *PoolTracker) GetNewPoolState(
 				"event":       latestSyncEvent,
 				"error":       err,
 			}).Error("Fail to decode sync event")
+		} else {
+			p.Timestamp = int64(params.BlockHeaders[latestSyncEvent.BlockNumber].Timestamp)
 		}
 	}
 
@@ -70,7 +74,6 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		reserveString(reserves.Reserve0),
 		reserveString(reserves.Reserve1),
@@ -91,7 +94,6 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 		ABI:    uniswapV2PairABI,
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
-		Params: nil,
 	}, []interface{}{&reserves})
 
 	_, err := rpcRequest.Call()
@@ -99,6 +101,8 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", poolAddress, err)
 		return Reserves{}, err
 	}
+
+	fmt.Println("reserves", reserves.BlockTimestampLast)
 
 	return reserves, nil
 }

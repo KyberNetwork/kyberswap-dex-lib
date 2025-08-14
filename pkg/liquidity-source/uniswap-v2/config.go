@@ -1,13 +1,18 @@
 package uniswapv2
 
+import (
+	"time"
+)
+
 type Config struct {
-	DexID             string         `json:"dexID"`
-	FactoryAddress    string         `json:"factoryAddress"`
-	OldReserveMethods bool           `json:"oldReserveMethods"`
-	Fee               uint64         `json:"fee"`
-	FeePrecision      uint64         `json:"feePrecision"`
-	FeeTracker        *FeeTrackerCfg `json:"feeTracker"`
-	NewPoolLimit      int            `json:"newPoolLimit"`
+	DexID                 string         `json:"dexID"`
+	FactoryAddress        string         `json:"factoryAddress"`
+	OldReserveMethods     bool           `json:"oldReserveMethods"`
+	Fee                   uint64         `json:"fee"`
+	FeePrecision          uint64         `json:"feePrecision"`
+	FeeTracker            *FeeTrackerCfg `json:"feeTracker"`
+	NewPoolLimit          int            `json:"newPoolLimit"`
+	InactiveTimeThreshold time.Duration  `json:"inactiveTimeThreshold"`
 }
 
 type FeeTrackerCfg struct {
