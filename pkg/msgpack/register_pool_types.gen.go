@@ -156,7 +156,6 @@ import (
 	pkg_source_syncswap_syncswapclassic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
 	pkg_source_syncswap_syncswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
 	pkg_source_synthetix "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
-	pkg_source_uniswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	pkg_source_uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	pkg_source_usdfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	pkg_source_velocimeter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
@@ -317,7 +316,6 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapclassic.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_synthetix.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_uniswap.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_uniswapv3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_usdfi.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_velocimeter.PoolSimulator{})
