@@ -19,7 +19,7 @@ func MulDiv(a, b, x *big.Int, rounding Rounding) *big.Int {
 	if rounding == Ceil {
 		remainder := new(big.Int).Mul(a, b)
 		remainder.Mod(remainder, x)
-		if remainder.Cmp(big.NewInt(0)) > 0 {
+		if remainder.Sign() > 0 {
 			res.Add(res, big.NewInt(1))
 		}
 	}

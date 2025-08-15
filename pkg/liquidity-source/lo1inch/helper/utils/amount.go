@@ -6,7 +6,7 @@ import "github.com/holiman/uint256"
 func CalcTakingAmount(swapMakerAmount, orderMakerAmount, orderTakerAmount *uint256.Int) *uint256.Int {
 	amount := new(uint256.Int).Mul(swapMakerAmount, orderTakerAmount)
 	amount.Add(amount, orderMakerAmount)
-	amount.Sub(amount, uint256.NewInt(1))
+	amount.SubUint64(amount, 1)
 	return amount.Div(amount, orderMakerAmount)
 }
 
