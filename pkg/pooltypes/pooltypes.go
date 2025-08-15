@@ -108,6 +108,7 @@ import (
 	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/xsolvbtc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -332,6 +333,7 @@ type Types struct {
 	AngleTransmuter            string
 	GenericArm                 string
 	ArenaBC                    string
+	XsolvBTC                   string
 }
 
 var (
@@ -507,5 +509,6 @@ var (
 		AngleTransmuter:            angletransmuter.DexType,
 		GenericArm:                 genericarm.DexType,
 		ArenaBC:                    arenabc.DexType,
+		XsolvBTC:                   xsolvbtc.DexType,
 	}
 )

@@ -9,8 +9,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -56,10 +56,6 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	return hook
 }, HookAddresses...)
 
-func (h *Hook) GetReserves(_ context.Context, _ *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
-}
-
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
 	var extra RenzoExtra
 	if param.HookExtra != "" {
@@ -67,20 +63,20 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 			return "", err
 		}
 	}
+
+	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	if extra.RateProviderAddress == (common.Address{}) {
-		req := param.RpcClient.NewRequest().SetContext(ctx)
 		req.AddCall(&ethrpc.Call{
 			ABI:    renzoHookABI,
 			Target: h.hook,
 			Method: "rateProvider",
 		}, []any{&extra.RateProviderAddress})
-		_, err := req.Aggregate()
-		if err != nil {
-			return "", err
-		}
 	}
 
-	req := param.RpcClient.NewRequest().SetContext(ctx)
 	var rate, minFeeBps, maxFeeBps *big.Int
 	req.AddCall(&ethrpc.Call{
 		ABI:    rateProviderABI,
@@ -97,6 +93,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		Target: h.hook,
 		Method: "maxFeeBps",
 	}, []any{&maxFeeBps})
+
 	_, err := req.Aggregate()
 	if err != nil {
 		return "", err
@@ -109,10 +106,11 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	if err != nil {
 		return "", err
 	}
+
 	return string(extraBytes), nil
 }
 
-func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.poolSqrtPriceX96 == nil || h.rate == nil {
 		return nil, errors.New("sqrtPriceX96 or rate is not set")
 	}
@@ -129,13 +127,11 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapHookParams) (*unis
 			fee = h.maxFeeBps
 		}
 	}
-	return &uniswapv4.BeforeSwapHookResult{
-		SwapFee: uniswapv4.FeeAmount(fee.Uint64()),
+	return &uniswapv4.BeforeSwapResult{
+		DeltaSpecific:   bignumber.ZeroBI,
+		DeltaUnSpecific: bignumber.ZeroBI,
+		SwapFee:         uniswapv4.FeeAmount(fee.Uint64()),
 	}, nil
-}
-
-func (h *Hook) AfterSwap(_ *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return nil
 }
 
 func exchangeRateToSqrtPriceX96(rate *big.Int) *big.Int {

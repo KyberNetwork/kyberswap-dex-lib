@@ -91,7 +91,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
-	fee = fee.Div(fee, SIX_DECIMALS)
+	fee = fee.Div(fee, SixDecimals)
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
@@ -114,7 +114,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &pool.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
-		Gas:            defaultGas.Swap,
+		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
@@ -170,14 +170,14 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)
-	fee = fee.Div(fee, SIX_DECIMALS)
+	fee = fee.Div(fee, SixDecimals)
 
 	amountInAfterFee := new(big.Int).Add(tokenAmountIn, fee)
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
 		Fee:           &pool.TokenAmount{Token: param.TokenIn, Amount: fee},
-		Gas:           defaultGas.Swap,
+		Gas:           defaultGas,
 		SwapInfo: SwapInfo{
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
@@ -534,7 +534,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TWO_DECIMALS)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TwoDecimals)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, ErrInsufficientMaxPrice
@@ -602,7 +602,7 @@ func swapIn(
 ) (*big.Int, error) {
 	amountInAdjusted := toAdjustedAmount(amountIn, inDecimals)
 
-	if amountInAdjusted.Cmp(SIX_DECIMALS) < 0 || amountIn.Cmp(TWO_DECIMALS) < 0 {
+	if amountInAdjusted.Cmp(SixDecimals) < 0 || amountIn.Cmp(TwoDecimals) < 0 {
 		return nil, ErrInvalidAmountIn
 	}
 
@@ -822,7 +822,7 @@ func swapOutAdjusted(
 		}
 	}
 	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TWO_DECIMALS)
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, MaxPriceDiff), TwoDecimals)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, ErrInsufficientMaxPrice

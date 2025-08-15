@@ -24,9 +24,10 @@ import (
 type PoolSimulator struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool
-	Gas     Gas
-	tickMin int
-	tickMax int
+	Gas             Gas
+	tickMin         int
+	tickMax         int
+	allowEmptyTicks bool
 }
 
 var _ = pool.RegisterFactory1(DexTypeUniswapV3, NewPoolSimulator)
@@ -37,11 +38,11 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
-	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra)
+	return NewPoolSimulatorWithExtra(entityPool, chainID, &extra, false)
 }
 
 func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.ChainID,
-	extra *ExtraTickU256) (*PoolSimulator, error) {
+	extra *ExtraTickU256, allowEmptyTicks bool) (*PoolSimulator, error) {
 	if extra.Tick == nil {
 		return nil, ErrTickNil
 	}
@@ -79,7 +80,8 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	}
 
 	// if the tick list is empty, the pool should be ignored
-	if len(v3Ticks) == 0 {
+	// for some uniswap-v4 hooks, we want to bypass this check due to some hooks has no ticks
+	if !allowEmptyTicks && len(v3Ticks) == 0 {
 		return nil, ErrV3TicksEmpty
 	}
 
@@ -111,8 +113,11 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 		return nil, err
 	}
 
-	tickMin := v3Ticks[0].Index
-	tickMax := v3Ticks[len(v3Ticks)-1].Index
+	tickMin, tickMax := v3Utils.MinTick, v3Utils.MaxTick
+	if len(v3Ticks) > 0 {
+		tickMin = v3Ticks[0].Index
+		tickMax = v3Ticks[len(v3Ticks)-1].Index
+	}
 
 	var info = pool.PoolInfo{
 		Address:  strings.ToLower(entityPool.Address),
@@ -124,11 +129,12 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	}
 
 	return &PoolSimulator{
-		Pool:    pool.Pool{Info: info},
-		V3Pool:  v3Pool,
-		Gas:     defaultGas,
-		tickMin: tickMin,
-		tickMax: tickMax,
+		Pool:            pool.Pool{Info: info},
+		V3Pool:          v3Pool,
+		Gas:             defaultGas,
+		tickMin:         tickMin,
+		tickMax:         tickMax,
+		allowEmptyTicks: allowEmptyTicks,
 	}, nil
 }
 
@@ -163,9 +169,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	amountInBI := amountIn.Quotient()
-	if amountInBI.Sign() <= 0 {
-		return nil, errors.New("amountIn is 0")
+	if !p.allowEmptyTicks {
+		if amountInBI.Sign() <= 0 {
+			return nil, errors.New("amountIn is 0")
+		}
 	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -216,10 +225,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
 		}
 	}
+
 	amountOut := amountOutResult.ReturnedAmount
-	if amountOut.Sign() <= 0 {
-		return nil, errors.New("amountOut is 0")
+	if !p.allowEmptyTicks {
+		if amountOut.Sign() <= 0 {
+			return nil, errors.New("amountOut is 0")
+		}
 	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,

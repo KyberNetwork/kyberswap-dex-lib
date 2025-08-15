@@ -1,7 +1,6 @@
 package solidlyv3
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
+	ErrTickNil      = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 )
 
 type PoolSimulator struct {

@@ -1,7 +1,6 @@
 package elastic
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	ErrTickNil           = errors.New("tick is nil")
-	ErrElasticTicksEmpty = errors.New("elastic ticks empty")
+	ErrTickNil           = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrElasticTicksEmpty = errors.WithMessage(pool.ErrUnsupported, "elastic ticks empty")
 )
 
 type PoolSimulator struct {

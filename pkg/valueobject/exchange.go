@@ -25,6 +25,7 @@ const (
 	ExchangeArenaDexV2                 = "arenadex-v2"
 	ExchangeAstroSwap                  = "astroswap"
 	ExchangeAtlantis                   = "atlantis"
+	ExchangeAtlantis2                  = "atlantis-2"
 	ExchangeAxial                      = "axial"
 	ExchangeBMX                        = "bmx"
 	ExchangeBMXGLP                     = "bmx-glp"
@@ -439,6 +440,7 @@ const (
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
+	ExchangeXSolvBTC                   = "xsolvbtc"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -464,6 +466,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArenaDexV2:                 {},
 	ExchangeAstroSwap:                  {},
 	ExchangeAtlantis:                   {},
+	ExchangeAtlantis2:                  {},
 	ExchangeAxial:                      {},
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},
@@ -862,6 +865,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZyberSwapV3:                {},
 	ExchangeAngleTransmuterUSD:         {},
 	ExchangeAngleTransmuterEUR:         {},
+	ExchangeXSolvBTC:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

@@ -18,11 +18,11 @@ var (
 func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, error)) (ret R, err error) {
 	if concurrentFactor <= 0 {
 		panic("n must > 0")
-	}
-
-	if !israce.Enabled {
+	} else if !israce.Enabled {
 		panic("race detector must be enabled, please run/build with -race options")
 	}
+
+	t.Helper()
 
 	var (
 		wg      sync.WaitGroup
@@ -54,6 +54,7 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t testing.TB, f func() (R, err
 //
 // * produces the same output
 func MustConcurrentSafe[R any](t testing.TB, f func() (R, error)) (R, error) {
+	t.Helper()
 	if israce.Enabled {
 		return mustReturnSameOutputAndConcurrentSafe[R](t, f)
 	}

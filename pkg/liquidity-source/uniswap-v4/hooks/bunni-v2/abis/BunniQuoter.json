@@ -1,0 +1,454 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "contract IBunniHub",
+                "name": "hub_",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            }
+        ],
+        "name": "getExcessLiquidity",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "idleBalance",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "willRebalanceToken0",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "shouldRebalance",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "thresholdBalance",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "inputAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "outputAmount",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            }
+        ],
+        "name": "getTotalLiquidity",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "Currency",
+                                "name": "currency0",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "Currency",
+                                "name": "currency1",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "uint24",
+                                "name": "fee",
+                                "type": "uint24"
+                            },
+                            {
+                                "internalType": "int24",
+                                "name": "tickSpacing",
+                                "type": "int24"
+                            },
+                            {
+                                "internalType": "contract IHooks",
+                                "name": "hooks",
+                                "type": "address"
+                            }
+                        ],
+                        "internalType": "struct PoolKey",
+                        "name": "poolKey",
+                        "type": "tuple"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "refundRecipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount0Desired",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount1Desired",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount0Min",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount1Min",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "vaultFee0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "vaultFee1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deadline",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct IBunniHub.DepositParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "quoteDeposit",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "shares",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "components": [
+                    {
+                        "internalType": "bool",
+                        "name": "zeroForOne",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "int256",
+                        "name": "amountSpecified",
+                        "type": "int256"
+                    },
+                    {
+                        "internalType": "uint160",
+                        "name": "sqrtPriceLimitX96",
+                        "type": "uint160"
+                    }
+                ],
+                "internalType": "struct IPoolManager.SwapParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "quoteSwap",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint160",
+                "name": "updatedSqrtPriceX96",
+                "type": "uint160"
+            },
+            {
+                "internalType": "int24",
+                "name": "updatedTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "inputAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "outputAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint24",
+                "name": "swapFee",
+                "type": "uint24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "sender",
+                "type": "address"
+            },
+            {
+                "components": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "Currency",
+                                "name": "currency0",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "Currency",
+                                "name": "currency1",
+                                "type": "address"
+                            },
+                            {
+                                "internalType": "uint24",
+                                "name": "fee",
+                                "type": "uint24"
+                            },
+                            {
+                                "internalType": "int24",
+                                "name": "tickSpacing",
+                                "type": "int24"
+                            },
+                            {
+                                "internalType": "contract IHooks",
+                                "name": "hooks",
+                                "type": "address"
+                            }
+                        ],
+                        "internalType": "struct PoolKey",
+                        "name": "poolKey",
+                        "type": "tuple"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "shares",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount0Min",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "amount1Min",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deadline",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "useQueuedWithdrawal",
+                        "type": "bool"
+                    }
+                ],
+                "internalType": "struct IBunniHub.WithdrawParams",
+                "name": "params",
+                "type": "tuple"
+            }
+        ],
+        "name": "quoteWithdraw",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount0",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount1",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

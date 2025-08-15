@@ -1,11 +1,13 @@
 package pancakev3
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
+	"github.com/pkg/errors"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -26,7 +28,7 @@ const (
 
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+	defaultGas = Gas{BaseGas: 109334, CrossInitTickGas: 21492}
 
 	TickSpacings = lo.Assign(constants.TickSpacings, map[constants.FeeAmount]int{
 		constants.Fee2500: 50,
@@ -34,6 +36,6 @@ var (
 
 	ErrOverflow       = errors.New("bigInt overflow int/uint256")
 	ErrInvalidFeeTier = errors.New("invalid feeTier")
-	ErrTickNil        = errors.New("tick is nil")
-	ErrV3TicksEmpty   = errors.New("v3Ticks empty")
+	ErrTickNil        = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty   = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 )
