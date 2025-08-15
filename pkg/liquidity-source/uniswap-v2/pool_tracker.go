@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -124,7 +125,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 	}
 	pool.Extra = string(extraBytes)
 	pool.BlockNumber = blockNumber.Uint64()
-	pool.Timestamp = time.Now().Unix()
+	pool.Timestamp = int64(reserveData.BlockTimestampLast)
+	pool.IsInactive = d.IsInactive(&pool, time.Now().Unix())
 
 	return pool, nil
 }
@@ -132,34 +134,21 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
 	var getReservesResult ReserveData
 
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	if d.config.OldReserveMethods {
-		getReservesRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodReserve0,
-		}, []any{&getReservesResult.Reserve0}).AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodReserve1,
-		}, []any{&getReservesResult.Reserve1})
-	} else {
-		getReservesRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodGetReserves,
-		}, []any{&getReservesResult})
-	}
-
-	resp, err := getReservesRequest.TryBlockAndAggregate()
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{
+		ABI:    uniswapV2PairABI,
+		Target: poolAddress,
+		Method: pairMethodGetReserves,
+	}, []any{&getReservesResult})
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return ReserveData{}, nil, err
 	}
 
 	return ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
+		Reserve0:           getReservesResult.Reserve0,
+		Reserve1:           getReservesResult.Reserve1,
+		BlockTimestampLast: getReservesResult.BlockTimestampLast,
 	}, resp.BlockNumber, nil
 }
 
@@ -169,4 +158,29 @@ func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.I
 	}
 
 	return d.logDecoder.Decode(logs)
+}
+
+func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp int64) bool {
+	if !d.config.TrackInactivePools.Enabled {
+		return false
+	}
+
+	inactiveTimeThresholdInSecond := int64(d.config.TrackInactivePools.TimeThreshold.Seconds())
+	if inactiveTimeThresholdInSecond <= 0 {
+		return false
+	}
+
+	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
+}
+
+func (d *PoolTracker) GetInactivePools(_ context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error) {
+	if len(pools) == 0 {
+		return nil, nil
+	}
+
+	inactivePools := lo.Filter(pools, func(p entity.Pool, _ int) bool {
+		return d.IsInactive(&p, currentTimestamp)
+	})
+
+	return lo.Map(inactivePools, func(p entity.Pool, _ int) string { return p.Address }), nil
 }

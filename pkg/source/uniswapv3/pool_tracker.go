@@ -158,11 +158,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Liquidity:                  rpcData.Liquidity,
+		TickSpacing:                rpcData.TickSpacing.Uint64(),
+		SqrtPriceX96:               rpcData.Slot0.SqrtPriceX96,
+		Tick:                       rpcData.Slot0.Tick,
+		Ticks:                      ticks,
+		ObservationsBlockTimestamp: uint32(rpcData.ObservationsBlockTimestamp),
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -172,12 +173,13 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = rpcData.ObservationsBlockTimestamp
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
+	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 
@@ -191,11 +193,12 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	})
 
 	var (
-		liquidity   *big.Int
-		slot0       Slot0
-		tickSpacing *big.Int
-		reserve0    = zeroBI
-		reserve1    = zeroBI
+		liquidity    *big.Int
+		slot0        Slot0
+		tickSpacing  *big.Int
+		reserve0     = zeroBI
+		reserve1     = zeroBI
+		observations Observations
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
@@ -248,12 +251,27 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 
+	_, err = d.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    uniswapV3PoolABI,
+			Target: p.Address,
+			Method: methodObservations,
+			Params: []any{big.NewInt(int64(slot0.ObservationIndex))},
+		}, []any{&observations}).Call()
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to get observations")
+		return nil, err
+	}
+
 	return &FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		TickSpacing: tickSpacing,
-		Reserve0:    reserve0,
-		Reserve1:    reserve1,
+		Liquidity:                  liquidity,
+		Slot0:                      slot0,
+		TickSpacing:                tickSpacing,
+		Reserve0:                   reserve0,
+		Reserve1:                   reserve1,
+		ObservationsBlockTimestamp: int64(observations.BlockTimestamp),
 	}, err
 }
 
@@ -309,4 +327,29 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	}
 
 	return ticks, nil
+}
+
+func (d *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp int64) bool {
+	if !d.config.TrackInactivePools.Enabled {
+		return false
+	}
+
+	inactiveTimeThresholdInSecond := int64(d.config.TrackInactivePools.TimeThreshold.Seconds())
+	if inactiveTimeThresholdInSecond <= 0 {
+		return false
+	}
+
+	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
+}
+
+func (d *PoolTracker) GetInactivePools(_ context.Context, currentTimestamp int64, pools ...entity.Pool) ([]string, error) {
+	if len(pools) == 0 {
+		return nil, nil
+	}
+
+	inactivePools := lo.Filter(pools, func(p entity.Pool, _ int) bool {
+		return d.IsInactive(&p, currentTimestamp)
+	})
+
+	return lo.Map(inactivePools, func(p entity.Pool, _ int) string { return p.Address }), nil
 }
