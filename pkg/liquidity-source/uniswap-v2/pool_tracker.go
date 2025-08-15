@@ -134,27 +134,13 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
 	var getReservesResult ReserveData
 
-	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	if d.config.OldReserveMethods {
-		getReservesRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodReserve0,
-		}, []any{&getReservesResult.Reserve0}).AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodReserve1,
-		}, []any{&getReservesResult.Reserve1})
-	} else {
-		getReservesRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
-			Target: poolAddress,
-			Method: pairMethodGetReserves,
-		}, []any{&getReservesResult})
-	}
-
-	resp, err := getReservesRequest.TryBlockAndAggregate()
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+	req.AddCall(&ethrpc.Call{
+		ABI:    uniswapV2PairABI,
+		Target: poolAddress,
+		Method: pairMethodGetReserves,
+	}, []any{&getReservesResult})
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return ReserveData{}, nil, err
 	}

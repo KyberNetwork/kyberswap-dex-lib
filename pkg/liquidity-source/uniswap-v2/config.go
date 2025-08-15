@@ -5,14 +5,13 @@ import (
 )
 
 type Config struct {
-	DexID              string                    `json:"dexID"`
-	FactoryAddress     string                    `json:"factoryAddress"`
-	OldReserveMethods  bool                      `json:"oldReserveMethods"`
-	Fee                uint64                    `json:"fee"`
-	FeePrecision       uint64                    `json:"feePrecision"`
-	FeeTracker         *FeeTrackerCfg            `json:"feeTracker"`
-	NewPoolLimit       int                       `json:"newPoolLimit"`
-	TrackInactivePools *TrackInactivePoolsConfig `json:"trackInactivePools,omitempty"`
+	DexID              string                   `json:"dexID"`
+	FactoryAddress     string                   `json:"factoryAddress"`
+	Fee                uint64                   `json:"fee"`
+	FeePrecision       uint64                   `json:"feePrecision"`
+	FeeTracker         *FeeTrackerCfg           `json:"feeTracker"`
+	NewPoolLimit       int                      `json:"newPoolLimit"`
+	TrackInactivePools TrackInactivePoolsConfig `json:"trackInactivePools"`
 }
 
 type FeeTrackerCfg struct {
