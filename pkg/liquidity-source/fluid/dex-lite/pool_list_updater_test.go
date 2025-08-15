@@ -282,7 +282,7 @@ func TestSimpleContractCall(t *testing.T) {
 		defer client.Close()
 
 		// Encode the function call data
-		callData, err := minimalABI.Pack("readFromStorage", common.BigToHash(dexListSlot))
+		callData, err := minimalABI.Pack("readFromStorage", common.BigToHash(dexListSlot.ToBig()))
 		if err != nil {
 			logger.Debugf("❌ Failed to pack call data: %v", err)
 			return
@@ -290,7 +290,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 		logger.Debugf("📦 Call data: %s", common.Bytes2Hex(callData))
 		logger.Debugf("🎯 Target: %s", config.DexLiteAddress)
-		logger.Debugf("📍 Slot: %s", common.BigToHash(dexListSlot).Hex())
+		logger.Debugf("📍 Slot: %s", common.BigToHash(dexListSlot.ToBig()).Hex())
 
 		// Create the contract call message
 		contractAddr := common.HexToAddress(config.DexLiteAddress)
@@ -313,7 +313,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 				// Continue reading token1 and salt...
 				logger.Debugf("📞 Reading Token1...")
-				token1Slot := new(big.Int).Add(dexListSlot, big.NewInt(1))
+				token1Slot := new(big.Int).Add(dexListSlot.ToBig(), big.NewInt(1))
 				callData1, _ := minimalABI.Pack("readFromStorage", common.BigToHash(token1Slot))
 
 				callMsg1 := ethereum.CallMsg{
@@ -330,7 +330,7 @@ func TestSimpleContractCall(t *testing.T) {
 
 					// Read salt
 					logger.Debugf("📞 Reading Salt...")
-					saltSlot := new(big.Int).Add(dexListSlot, big.NewInt(2))
+					saltSlot := new(big.Int).Add(dexListSlot.ToBig(), big.NewInt(2))
 					callData2, _ := minimalABI.Pack("readFromStorage", common.BigToHash(saltSlot))
 
 					callMsg2 := ethereum.CallMsg{

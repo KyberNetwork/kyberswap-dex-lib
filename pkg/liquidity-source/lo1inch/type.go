@@ -3,6 +3,9 @@ package lo1inch
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -37,12 +40,25 @@ type Order struct {
 	RemainingTakerAmount *uint256.Int `json:"-"`
 	RateWithGasFee       float64      `json:"-"`
 	Rate                 float64      `json:"-"`
+
+	// for calc taking & making amount after fee
+	ExtensionInstance *helper.Extension         `json:"-"`
+	FeeTakerExtension *helper.FeeTakerExtension `json:"-"`
+
+	MakerTraitsInstance *helper.MakerTraits `json:"-"`
 }
 
 type StaticExtra struct {
 	Token0        string `json:"token0"`
 	Token1        string `json:"token1"`
 	RouterAddress string `json:"routerAddress"`
+	// TakerAddress should be whitelisted by 1inch team
+	// for example: the 1inch team mine a NFT to the executor contract, so takerAddress = Executor Address
+	TakerAddress string `json:"takerAddress"`
+	// TakerTargetInteraction
+	// Call back target interaction, use in case that we don't use KS Aggregator to check min amount out.
+	// It's should be the reserve fund contract address.
+	TakerTargetInteraction string `json:"takerTargetInteraction"`
 }
 
 type Extra struct {
@@ -87,7 +103,8 @@ type FilledOrderInfo struct {
 }
 
 type MetaInfo struct {
-	ApprovalAddress string `json:"approvalAddress"`
+	ApprovalAddress        string `json:"approvalAddress"`
+	TakerTargetInteraction string `json:"takerTargetInteraction"`
 }
 
 func (o *Order) GetMakerAsset() string {
@@ -140,4 +157,67 @@ func (o *Order) GetRate() float64 {
 
 func (o *Order) SetRate(r float64) {
 	o.Rate = r
+}
+
+func (o *Order) CalcTakingAmount(
+	taker common.Address,
+	makingAmount *uint256.Int,
+) (*uint256.Int, error) {
+	// if the order only allow full fill, we need to return error
+	if o.MakerTraitsInstance != nil && !o.MakerTraitsInstance.IsPartialFillAllowed() {
+		if makingAmount.Cmp(o.MakingAmount) != 0 {
+			return nil, ErrOnlyAllowFullFill
+		}
+
+		return o.TakingAmount, nil
+	}
+
+	takingAmount := utils.CalcTakingAmount(
+		makingAmount,
+		o.MakingAmount,
+		o.TakingAmount,
+	)
+
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() || o.FeeTakerExtension == nil {
+		return takingAmount, nil
+	}
+
+	return uint256.MustFromBig(
+		o.FeeTakerExtension.GetTakingAmount(
+			taker,
+			takingAmount.ToBig(),
+		),
+	), nil
+}
+
+func (o *Order) CalcMakingAmount(
+	taker common.Address,
+	takingAmount *uint256.Int,
+) (*uint256.Int, error) {
+	// if the order only allow full fill, we need to return error
+	if o.MakerTraitsInstance != nil && !o.MakerTraitsInstance.IsPartialFillAllowed() {
+		if takingAmount.Cmp(o.TakingAmount) != 0 {
+			return nil, ErrOnlyAllowFullFill
+		}
+
+		return o.MakingAmount, nil
+	}
+
+	makingAmount := utils.CalcMakingAmount(
+		takingAmount,
+		o.MakingAmount,
+		o.TakingAmount,
+	)
+
+	// if there is no extension, we can return the making amount trivially
+	if o.ExtensionInstance == nil || o.ExtensionInstance.IsEmpty() || o.FeeTakerExtension == nil {
+		return makingAmount, nil
+	}
+
+	return uint256.MustFromBig(
+		o.FeeTakerExtension.GetMakingAmount(
+			taker,
+			makingAmount.ToBig(),
+		),
+	), nil
 }
