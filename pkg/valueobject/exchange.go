@@ -168,6 +168,7 @@ const (
 	ExchangeHybraV3                    = "hybra-v3"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
+	ExchangeHyperBrickLB               = "hyperbrick-lb"
 	ExchangeHyperCat                   = "hypercat"
 	ExchangeHyperSwapV2                = "hyperswap-v2"
 	ExchangeHyperSwapV3                = "hyperswap-v3"
@@ -604,6 +605,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHybraV3:                    {},
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
+	ExchangeHyperBrickLB:               {},
 	ExchangeHyperCat:                   {},
 	ExchangeHyperSwapV2:                {},
 	ExchangeHyperSwapV3:                {},
