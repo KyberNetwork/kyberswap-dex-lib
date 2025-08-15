@@ -2,6 +2,7 @@ package uniswapv4
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -13,20 +14,54 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type BeforeSwapHookParams struct {
+type BeforeSwapParams struct {
 	ExactIn         bool
 	ZeroForOne      bool
 	AmountSpecified *big.Int
 }
 
-type BeforeSwapHookResult struct {
+type BeforeSwapResult struct {
 	DeltaSpecific   *big.Int
 	DeltaUnSpecific *big.Int
 	SwapFee         FeeAmount
+	Gas             int64
 }
 
-type AfterSwapHookParams struct {
-	*BeforeSwapHookParams
+func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
+	if result == nil {
+		return errors.New("before swap result is nil")
+	}
+
+	if result.DeltaSpecific == nil {
+		return errors.New("delta specified is nil")
+	}
+
+	if result.DeltaUnSpecific == nil {
+		return errors.New("delta unspecified is nil")
+	}
+
+	return nil
+}
+
+type AfterSwapResult struct {
+	HookFee *big.Int
+	Gas     int64
+}
+
+func ValidateAfterSwapResult(result *AfterSwapResult) error {
+	if result == nil {
+		return errors.New("after swap result is nil")
+	}
+
+	if result.HookFee == nil {
+		return errors.New("hook fee is nil")
+	}
+
+	return nil
+}
+
+type AfterSwapParams struct {
+	*BeforeSwapParams
 	AmountIn  *big.Int
 	AmountOut *big.Int
 }
@@ -74,8 +109,10 @@ type Hook interface {
 	GetExchange() string
 	GetReserves(context.Context, *HookParam) (entity.PoolReserves, error)
 	Track(context.Context, *HookParam) (string, error)
-	BeforeSwap(swapHookParams *BeforeSwapHookParams) (*BeforeSwapHookResult, error)
-	AfterSwap(swapHookParams *AfterSwapHookParams) (hookFeeAmt *big.Int)
+	BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error)
+	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
+	CanBeforeSwap(address common.Address) bool
+	CanAfterSwap(address common.Address) bool
 	CloneState() Hook
 }
 
@@ -85,6 +122,7 @@ type HookParam struct {
 	Pool        *entity.Pool
 	HookExtra   string
 	HookAddress common.Address
+	BlockNumber *big.Int
 }
 
 type HookFactory func(param *HookParam) Hook
@@ -139,14 +177,26 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(_ *BeforeSwapHookParams) (*BeforeSwapHookResult, error) {
-	return &BeforeSwapHookResult{
-		SwapFee:         0,
+func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error) {
+	return &BeforeSwapResult{
 		DeltaSpecific:   bignumber.ZeroBI,
 		DeltaUnSpecific: bignumber.ZeroBI,
+		SwapFee:         0,
+		Gas:             0,
 	}, nil
 }
 
-func (h *BaseHook) AfterSwap(_ *AfterSwapHookParams) (hookFeeAmt *big.Int) {
-	return bignumber.ZeroBI
+func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
+	return &AfterSwapResult{
+		HookFee: bignumber.ZeroBI,
+		Gas:     0,
+	}, nil
+}
+
+func (h *BaseHook) CanBeforeSwap(address common.Address) bool {
+	return hasPermission(address, BeforeSwap)
+}
+
+func (h *BaseHook) CanAfterSwap(address common.Address) bool {
+	return hasPermission(address, AfterSwap)
 }

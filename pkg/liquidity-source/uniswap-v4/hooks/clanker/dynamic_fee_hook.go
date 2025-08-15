@@ -7,12 +7,10 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
@@ -26,7 +24,6 @@ type DynamicFeeHook struct {
 	uniswapv4.Hook
 
 	hook            string
-	clankerCaller   *ClankerCaller
 	poolSim         *uniswapv3.PoolSimulator
 	protocolFee     *big.Int
 	poolFVars       *PoolDynamicFeeVars
@@ -84,6 +81,15 @@ type PoolDynamicFeeVarsRPC struct {
 	}
 }
 
+type ClankerDeploymentInfo struct {
+	Data struct {
+		Token      common.Address
+		Hook       common.Address
+		Locker     common.Address
+		Extensions []common.Address
+	}
+}
+
 var _ = uniswapv4.RegisterHooksFactory(NewDynamicFeeHook, DynamicFeeHookAddresses...)
 
 func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
@@ -113,11 +119,6 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
 	}
 
-	if param.RpcClient != nil {
-		hook.clankerCaller, _ = NewClankerCaller(ClankerAddressByChain[chainID],
-			param.RpcClient.GetETHClient())
-	}
-
 	return hook
 }
 
@@ -142,13 +143,19 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	}
 
 	poolBytes := eth.StringToBytes32(param.Pool.Address)
+	token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
 
 	var (
 		poolCVars PoolDynamicConfigVarsRPC
 		poolFVars PoolDynamicFeeVarsRPC
+		info      ClankerDeploymentInfo
 	)
 
 	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    dynamicFeeHookABI,
 		Target: h.hook,
@@ -166,6 +173,15 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 		Method: "poolFeeVars",
 		Params: []any{poolBytes},
 	}, []any{&poolFVars})
+
+	if !extra.ClankerTracked {
+		req.AddCall(&ethrpc.Call{
+			ABI:    clankerABI,
+			Target: ClankerAddressByChain[valueobject.ChainID(param.Cfg.ChainID)],
+			Method: "tokenDeploymentInfo",
+			Params: []any{token0},
+		}, []any{&info})
+	}
 
 	if _, err := req.Aggregate(); err != nil {
 		return "", err
@@ -191,18 +207,8 @@ func (h *DynamicFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) 
 	}
 
 	if !extra.ClankerTracked {
-		if h.clankerCaller == nil {
-			return "", ErrClankerCallerIsNil
-		}
-
-		token0 := common.HexToAddress(param.Pool.Tokens[0].Address)
-		info, err := h.clankerCaller.TokenDeploymentInfo(&bind.CallOpts{Context: ctx}, token0)
-		if err != nil {
-			return "", err
-		}
-
 		extra.ClankerTracked = true
-		extra.ClankerIsToken0 = info.Token.Cmp(token0) == 0
+		extra.ClankerIsToken0 = info.Data.Token.Cmp(token0) == 0
 	}
 
 	extraBytes, err := json.Marshal(&extra)
@@ -242,9 +248,9 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne,
 	} else if new(uint256.Int).Add(h.poolFVars.ResetTickTimestamp, h.poolCVars.ResetPeriod).Lt(blockTime) {
 		var resetTickDifference int64
 		if tickBefore > h.poolFVars.ResetTick {
-			resetTickDifference = int64(tickBefore - h.poolFVars.ResetTick)
+			resetTickDifference = tickBefore - h.poolFVars.ResetTick
 		} else {
-			resetTickDifference = int64(h.poolFVars.ResetTick - tickBefore)
+			resetTickDifference = h.poolFVars.ResetTick - tickBefore
 		}
 
 		if resetTickDifference > h.poolCVars.ResetTickFilter {
@@ -305,7 +311,7 @@ func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
 	return fee.Uint64()
 }
 
-func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*uniswapv4.BeforeSwapHookResult, error) {
+func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	if h.poolSim == nil {
 		return nil, ErrPoolSimIsNil
 	}
@@ -326,7 +332,7 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 	swapFee := uniswapv4.FeeAmount(lpFee)
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
-		return &uniswapv4.BeforeSwapHookResult{
+		return &uniswapv4.BeforeSwapResult{
 			DeltaSpecific:   bignumber.ZeroBI,
 			DeltaUnSpecific: bignumber.ZeroBI,
 			SwapFee:         swapFee,
@@ -348,18 +354,21 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapHookParams) (*un
 	fee.Mul(params.AmountSpecified, &scaledProtocolFee)
 	fee.Div(&fee, bignumber.BONE)
 
-	return &uniswapv4.BeforeSwapHookResult{
+	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   &fee,
 		DeltaUnSpecific: bignumber.ZeroBI,
 		SwapFee:         swapFee,
 	}, nil
 }
 
-func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookFeeAmt *big.Int) {
+func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && swappingForClanker || !params.ExactIn && !swappingForClanker {
-		return big.NewInt(0)
+		return &uniswapv4.AfterSwapResult{
+			HookFee: new(big.Int),
+			Gas:     0,
+		}, nil
 	}
 
 	var delta big.Int
@@ -371,11 +380,10 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapHookParams) (hookF
 		delta.Mul(params.AmountIn, h.protocolFee)
 	}
 	delta.Div(&delta, FEE_DENOMINATOR)
-	return &delta
-}
-
-func (h *DynamicFeeHook) GetReserves(_ context.Context, _ *uniswapv4.HookParam) (entity.PoolReserves, error) {
-	return nil, nil
+	return &uniswapv4.AfterSwapResult{
+		HookFee: &delta,
+		Gas:     0,
+	}, nil
 }
 
 func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exactIn bool) (swapInfo uniswapv3.SwapInfo, err error) {

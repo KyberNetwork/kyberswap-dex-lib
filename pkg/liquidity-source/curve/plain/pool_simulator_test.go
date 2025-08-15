@@ -1,6 +1,7 @@
 package plain
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -15,6 +16,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+)
+
+var (
+	ctx = context.Background()
 )
 
 func TestCalcAmountOutPlain(t *testing.T) {
@@ -152,7 +157,7 @@ func TestCalcAmountOutPlainError(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
 			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return pool.CalcAmountOut(p, pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out, nil)
+				return pool.CalcAmountOut(ctx, p, pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out, nil)
 			})
 			if out != nil && out.TokenAmountOut != nil {
 				fmt.Println(out.TokenAmountOut.Amount)

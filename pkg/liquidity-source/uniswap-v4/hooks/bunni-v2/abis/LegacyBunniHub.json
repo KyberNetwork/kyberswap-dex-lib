@@ -1,0 +1,123 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "PoolId",
+                "name": "poolId",
+                "type": "bytes32"
+            }
+        ],
+        "name": "poolState",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "contract ILiquidityDensityFunction",
+                        "name": "liquidityDensityFunction",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "contract IBunniToken",
+                        "name": "bunniToken",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "contract IHooklet",
+                        "name": "hooklet",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "twapSecondsAgo",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "bytes32",
+                        "name": "ldfParams",
+                        "type": "bytes32"
+                    },
+                    {
+                        "internalType": "bytes",
+                        "name": "hookParams",
+                        "type": "bytes"
+                    },
+                    {
+                        "internalType": "contract ERC4626",
+                        "name": "vault0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "contract ERC4626",
+                        "name": "vault1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "enum LDFType",
+                        "name": "ldfType",
+                        "type": "uint8"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "minRawTokenRatio0",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "targetRawTokenRatio0",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "maxRawTokenRatio0",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "minRawTokenRatio1",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "targetRawTokenRatio1",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "maxRawTokenRatio1",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rawBalance0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "rawBalance1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "reserve0",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "reserve1",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "IdleBalance",
+                        "name": "idleBalance",
+                        "type": "bytes32"
+                    }
+                ],
+                "internalType": "struct PoolState",
+                "name": "",
+                "type": "tuple"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

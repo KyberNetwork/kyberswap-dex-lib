@@ -127,7 +127,7 @@ func (s *TimepointStorage) getTickCumulativeAt(time, secondsAgo uint32, tick int
 
 	timestampAfter, tickCumulativeAfter := atOrAfter.BlockTimestamp, atOrAfter.TickCumulative
 
-	if target == timestampAfter {
+	if target == timestampAfter || timestampAfter == timestampBefore {
 		return tickCumulativeAfter, indexBeforeOrAt + 1, nil
 	}
 
@@ -383,7 +383,7 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 	atOrAfter = beforeOrAt
 
 	firstIteration := true
-	for {
+	for left <= right {
 		initializedBefore, timestampBefore := beforeOrAt.Initialized, beforeOrAt.BlockTimestamp
 		if initializedBefore {
 			if lteConsideringOverflow(timestampBefore, target, currentTime) {
@@ -414,6 +414,7 @@ func (s *TimepointStorage) binarySearchInternal(currentTime, target, left, right
 		beforeOrAt = s.Get(uint16(indexBeforeOrAt))
 		firstIteration = false
 	}
+	return beforeOrAt, beforeOrAt, indexBeforeOrAt
 }
 
 func (p *PoolSimulator) calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (*SlidingFeeConfig, error) {

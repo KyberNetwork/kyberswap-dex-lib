@@ -1,8 +1,11 @@
 package nuriv2
 
 import (
-	"errors"
 	"math/big"
+
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 const (
@@ -31,6 +34,6 @@ var (
 )
 
 var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
+	ErrTickNil      = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
+	ErrV3TicksEmpty = errors.WithMessage(pool.ErrUnsupported, "v3Ticks empty")
 )
