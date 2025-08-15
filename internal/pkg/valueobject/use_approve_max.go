@@ -67,6 +67,7 @@ var useApproveMaxFunctionSet = map[string]bool{
 	l1executor.FunctionSelectorDaiUsds.RawName:      true,
 	l1executor.FunctionSelectorLO1inch.RawName:      false,
 	l1executor.FunctionSelectorFluidDex.RawName:     false,
+	l1executor.FunctionSelectorFluidDexCb.RawName:   false,
 	l1executor.FunctionSelectorOndoUSDY.RawName:     true,
 	l1executor.FunctionSelectorRingSwap.RawName:     false,
 
