@@ -60,11 +60,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		req.AddCall(&ethrpc.Call{
 			ABI:    dodov2.V2PoolABI,
 			Target: poolAddress,
-			Method: dodov2.DodoV2MethodGetBaseToken,
+			Method: "_BASE_TOKEN_",
 		}, []any{&baseToken[i]}).AddCall(&ethrpc.Call{
 			ABI:    dodov2.V2PoolABI,
 			Target: poolAddress,
-			Method: dodov2.DodoV2MethodGetQuoteToken,
+			Method: "_QUOTE_TOKEN_",
 		}, []any{&quoteToken[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {

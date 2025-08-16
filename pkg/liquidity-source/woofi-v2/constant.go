@@ -7,6 +7,7 @@ const (
 
 	integrationHelperMethodAllBaseTokens = "allBaseTokens"
 
+	wooPPV2MethodPaused     = "paused"
 	wooPPV2MethodQuoteToken = "quoteToken"
 	wooPPV2MethodTokenInfos = "tokenInfos"
 	wooPPV2MethodWooracle   = "wooracle"

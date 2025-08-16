@@ -93,7 +93,6 @@ type (
 		R         *uint256.Int `json:"R"`
 		MtFeeRate *uint256.Int `json:"mtFeeRate"`
 		LpFeeRate *uint256.Int `json:"lpFeeRate"`
-		Swappable bool         `json:"swappable"`
 	}
 
 	V2Meta struct {

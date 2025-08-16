@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
@@ -83,6 +84,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		start = 2
 	}
 
+	var vaultRPCs = [2]VaultRPC{}
 	for i := start; i < len(p.Tokens); i++ {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
@@ -99,6 +101,33 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 				Params: nil,
 			}, []any{&underlyingTokens[i-start]})
 		}
+
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    lpTokenABI,
+			Target: p.Tokens[i].Address,
+			Method: lpTokenMethodMinDeposit,
+			Params: nil,
+		}, []any{&vaultRPCs[i-start].MinDeposit})
+
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    lpTokenABI,
+			Target: p.Tokens[i].Address,
+			Method: lpTokenMethodDepositPaused,
+			Params: nil,
+		}, []any{&vaultRPCs[i-start].DepositPaused})
+
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    lpTokenABI,
+			Target: p.Tokens[i].Address,
+			Method: lpTokenMethodRedeemPaused,
+			Params: nil,
+		}, []any{&vaultRPCs[i-start].RedeemPaused})
+
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    lpTokenABI,
+			Target: p.Tokens[i].Address,
+			Method: lpTokenMethodExchangeRate,
+		}, []any{&vaultRPCs[i-start].ExchangeRate})
 	}
 
 	res, err := rpcRequest.TryBlockAndAggregate()
@@ -109,12 +138,21 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 
+	var vaults = [2]Vault{}
+	for i, v := range vaultRPCs {
+		vaults[i].DepositPaused = v.DepositPaused
+		vaults[i].RedeemPaused = v.RedeemPaused
+		vaults[i].MinDeposit = uint256.MustFromBig(v.MinDeposit)
+		vaults[i].ExchangeRate = uint256.MustFromBig(v.ExchangeRate)
+	}
+
 	return &FetchRPCResult{
 		Liquidity:        liquidity,
 		Slot0:            slot0,
 		Reserves:         reserves,
 		UnderlyingTokens: underlyingTokens,
 		BlockNumber:      res.BlockNumber.Uint64(),
+		Vaults:           vaults,
 	}, nil
 }
 
@@ -192,6 +230,7 @@ func (d *PoolTracker) GetNewPoolState(
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
+		Vaults:       rpcData.Vaults,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{

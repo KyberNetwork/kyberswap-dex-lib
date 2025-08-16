@@ -7,10 +7,11 @@ import (
 
 type (
 	Extra struct {
-		QuoteToken string               `json:"quoteToken"`
+		QuoteToken string               `json:"quoteToken,"`
 		TokenInfos map[string]TokenInfo `json:"tokenInfos"`
 		Wooracle   Wooracle             `json:"wooracle"`
 		Cloracle   map[string]Cloracle  `json:"cloracle"`
+		IsPaused   bool                 `json:"isPaused"`
 	}
 
 	Wooracle struct {

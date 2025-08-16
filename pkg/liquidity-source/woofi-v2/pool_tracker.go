@@ -64,6 +64,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var (
+		isPaused                 bool
 		quoteToken, wooracle     common.Address
 		timestamp, staleDuration *big.Int
 		bound                    uint64
@@ -80,22 +81,28 @@ func (d *PoolTracker) GetNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
+		Method: wooPPV2MethodPaused,
+		Params: nil,
+	}, []any{&isPaused})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    WooPPV2ABI,
+		Target: p.Address,
 		Method: wooPPV2MethodQuoteToken,
 		Params: nil,
-	}, []interface{}{&quoteToken})
+	}, []any{&quoteToken})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: p.Address,
 		Method: wooPPV2MethodWooracle,
 		Params: nil,
-	}, []interface{}{&wooracle})
+	}, []any{&wooracle})
 	for i, token := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    WooPPV2ABI,
 			Target: p.Address,
 			Method: wooPPV2MethodTokenInfos,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&tokenInfos[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&tokenInfos[i]})
 	}
 
 	callsResult, err := calls.TryBlockAndAggregate()
@@ -107,6 +114,22 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	if isPaused {
+		extraBytes, err := json.Marshal(&Extra{
+			IsPaused: true,
+		})
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"err":         err,
+			}).Errorf("failed to marshal extra data")
+			return entity.Pool{}, err
+		}
+
+		p.Extra = string(extraBytes)
+		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
+	}
+
 	blockNumber := callsResult.BlockNumber
 
 	oracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
@@ -115,38 +138,38 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: wooracle.Hex(),
 		Method: wooracleMethodTimestamp,
 		Params: nil,
-	}, []interface{}{&timestamp})
+	}, []any{&timestamp})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodStaleDuration,
 		Params: nil,
-	}, []interface{}{&staleDuration})
+	}, []any{&staleDuration})
 	oracleCalls.AddCall(&ethrpc.Call{
 		ABI:    WooracleV2ABI,
 		Target: wooracle.Hex(),
 		Method: wooracleMethodBound,
 		Params: nil,
-	}, []interface{}{&bound})
+	}, []any{&bound})
 	for i, token := range p.Tokens {
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodWoState,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&woState[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&woState[i]})
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodDecimals,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&priceTokenDecimals[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&priceTokenDecimals[i]})
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
 			Target: wooracle.Hex(),
 			Method: wooracleMethodClOracles,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&clOracles[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&clOracles[i]})
 	}
 	if _, err := oracleCalls.TryBlockAndAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -175,7 +198,7 @@ func (d *PoolTracker) GetNewPoolState(
 				Target: clOracles[i].Oracle.Hex(),
 				Method: cloracleMethodLatestRoundData,
 				Params: nil,
-			}, []interface{}{&latestRoundData[i]})
+			}, []any{&latestRoundData[i]})
 		}
 		if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
 			logger.WithFields(logger.Fields{
@@ -241,6 +264,7 @@ func (d *PoolTracker) GetNewPoolState(
 			Bound:         bound,
 		},
 		Cloracle: poolCloracle,
+		IsPaused: false,
 	})
 
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
@@ -29,6 +29,7 @@ type (
 		SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 		Tick         *big.Int `json:"tick"`
 		Ticks        []Tick   `json:"ticks"`
+		Vaults       [2]Vault `json:"vaults"`
 	}
 
 	StaticExtra struct {
@@ -47,6 +48,7 @@ type (
 		SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
 		Tick         *int         `json:"tick"`
 		Ticks        []TickU256   `json:"ticks"`
+		Vaults       [2]Vault     `json:"vaults"`
 	}
 
 	FetchRPCResult struct {
@@ -55,6 +57,21 @@ type (
 		Slot0            Slot0
 		Reserves         [2]*big.Int
 		UnderlyingTokens []common.Address
+		Vaults           [2]Vault
+	}
+
+	VaultRPC struct {
+		DepositPaused bool
+		RedeemPaused  bool
+		MinDeposit    *big.Int
+		ExchangeRate  *big.Int
+	}
+
+	Vault struct {
+		DepositPaused bool
+		RedeemPaused  bool
+		MinDeposit    *uint256.Int
+		ExchangeRate  *uint256.Int
 	}
 
 	Slot0 struct {

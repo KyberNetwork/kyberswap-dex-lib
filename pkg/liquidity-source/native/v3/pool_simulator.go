@@ -12,7 +12,10 @@ import (
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -24,7 +27,10 @@ type PoolSimulator struct {
 	pool.Pool
 
 	V3Pool *v3Entities.Pool
-	Gas    Gas
+
+	vaults [2]Vault
+
+	Gas Gas
 
 	unlocked bool
 	tickMin  int
@@ -173,22 +179,46 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrTokenOutInvalid
 	}
 
-	totalGas := p.Gas.BaseGas
-	// Add unwrap gas cost if tokenIn is not a LP token
 	if tokenInIndex < 2 {
-		totalGas += WrapGasCost
+		vaultIn := p.vaults[tokenInIndex+2]
+
+		if vaultIn.DepositPaused {
+			return nil, ErrDepositPaused
+		}
 	}
+
+	var (
+		totalGas      = p.Gas.BaseGas
+		amountOutU256 = uint256.MustFromBig(tokenAmountOut.Amount)
+		err           error
+	)
+
 	// Add unwrap gas cost if tokenOut is not a LP token
 	if tokenOutIndex < 2 {
-		totalGas += WrapGasCost
+		vaultOut := p.vaults[tokenOutIndex+2]
+
+		if vaultOut.RedeemPaused {
+			return nil, ErrRedeemPaused
+		}
+
+		amountOutU256, err = v3Utils.MulDivRoundingUp(amountOutU256, vaultOut.ExchangeRate, u256.BONE)
+		if err != nil {
+			return nil, ErrInvalidExchangeRate
+		}
+
+		totalGas += UnwrapGasCost
 	}
 
 	zeroForOne := tokenInIndex%2 == 0
-	amountOut := coreEntities.FromRawAmount(lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
-		tokenAmountOut.Amount)
+
+	amountOut := coreEntities.FromRawAmount(
+		lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
+		amountOutU256.ToBig(),
+	)
+
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
-		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
+		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
 
 	amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
@@ -196,14 +226,30 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
 	}
 
-	amountInBI := amountIn.Quotient()
-	if amountInBI.Sign() <= 0 {
+	amountInU256 := uint256.MustFromBig(amountIn.Quotient())
+	if amountInU256.Sign() <= 0 {
 		return nil, ErrAmountInZero
 	}
+
+	if tokenInIndex < 2 {
+		vaultIn := p.vaults[tokenInIndex+2]
+
+		if amountInU256.Lt(vaultIn.MinDeposit) {
+			return nil, ErrInsufficientAmountIn
+		}
+
+		amountInU256, err = v3Utils.MulDivRoundingUp(amountInU256, u256.BONE, vaultIn.ExchangeRate)
+		if err != nil {
+			return nil, ErrInvalidExchangeRate
+		}
+
+		totalGas += WrapGasCost
+	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
-			Amount: amountInBI,
+			Amount: amountInU256.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
@@ -234,28 +280,46 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrTokenOutInvalid
 	}
 
-	gasCost := p.Gas.BaseGas
-	// Add unwrap gas cost if tokenIn is not a LP token
-	if tokenInIndex < 2 {
-		gasCost += UnwrapGasCost
-	}
-	// Add wrap gas cost if tokenOut is not a LP token
-	if tokenOutIndex < 2 {
-		gasCost += WrapGasCost
-	}
+	var (
+		gasCost      = p.Gas.BaseGas
+		amountInU256 = uint256.MustFromBig(tokenAmountIn.Amount)
+		err          error
+	)
 
-	var amountIn v3Utils.Int256
-	if overflow := amountIn.SetFromBig(tokenAmountIn.Amount); overflow {
-		return nil, ErrOverflow
+	// Add wrap gas cost if tokenIn is not a LP token
+	if tokenInIndex < 2 {
+		vaultIn := p.vaults[tokenInIndex+2]
+
+		if vaultIn.DepositPaused {
+			return nil, ErrDepositPaused
+		}
+
+		if amountInU256.Lt(vaultIn.MinDeposit) {
+			return nil, ErrInsufficientAmountIn
+		}
+
+		// deposit
+		amountInU256, err = v3Utils.MulDivRoundingUp(amountInU256, u256.BONE, vaultIn.ExchangeRate)
+		if err != nil {
+			return nil, ErrInvalidExchangeRate
+		}
+
+		gasCost += WrapGasCost
 	}
 
 	zeroForOne := tokenInIndex%2 == 0
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
-		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
+		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
 	}
 
-	amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
+	var amountIn v3Utils.Int256
+	err = v3Utils.ToInt256(amountInU256, &amountIn)
+	if err != nil {
+		return nil, ErrInvalidExchangeRate
+	}
+
+	result, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 	if err != nil {
 		return nil, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 	}
@@ -264,15 +328,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Token:  tokenIn,
 		Amount: bignumber.ZeroBI,
 	}
-	if amountOutResult.RemainingAmountIn != nil {
-		if amountOutResult.RemainingAmountIn.Sign() == 0 {
-			amountOutResult.RemainingAmountIn = nil
+	if result.RemainingAmountIn != nil {
+		if result.RemainingAmountIn.Sign() == 0 {
+			result.RemainingAmountIn = nil
 		} else {
-			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+			remainingTokenAmountIn.Amount = result.RemainingAmountIn.ToBig()
 		}
 	}
-	amountOut := amountOutResult.ReturnedAmount
-	if amountOut.Sign() <= 0 {
+
+	var amountOut v3Utils.Uint256
+	err = v3Utils.ToUInt256(result.ReturnedAmount, &amountOut)
+	if err != nil || amountOut.Sign() <= 0 {
 		return nil, ErrAmountOutZero
 	}
 
@@ -282,8 +348,25 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		lpTokenIn, lpTokenOut = p.Info.Tokens[numTokens-1], p.Info.Tokens[numTokens-2]
 	}
 
+	// Add unwrap gas cost if tokenOut is not a LP token
+	if tokenOutIndex < 2 {
+		vaultOut := p.vaults[tokenOutIndex+2]
+
+		if vaultOut.RedeemPaused {
+			return nil, ErrRedeemPaused
+		}
+
+		// redeem
+		err := v3Utils.MulDivRoundingUpV2(&amountOut, vaultOut.ExchangeRate, u256.BONE, &amountOut)
+		if err != nil {
+			return nil, ErrInvalidExchangeRate
+		}
+
+		gasCost += UnwrapGasCost
+	}
+
 	// Add cross tick gas cost
-	gasCost += p.Gas.CrossInitTickGas * int64(amountOutResult.CrossInitTickLoops)
+	gasCost += p.Gas.CrossInitTickGas * int64(result.CrossInitTickLoops)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -298,10 +381,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		SwapInfo: SwapInfo{
 			LpTokenIn:             lpTokenIn,
 			LpTokenOut:            lpTokenOut,
-			RemainingAmountIn:     amountOutResult.RemainingAmountIn,
-			NextStateSqrtRatioX96: amountOutResult.SqrtRatioX96,
-			nextStateLiquidity:    amountOutResult.Liquidity,
-			nextStateTickCurrent:  amountOutResult.CurrentTick,
+			RemainingAmountIn:     result.RemainingAmountIn,
+			NextStateSqrtRatioX96: result.SqrtRatioX96,
+			nextStateLiquidity:    result.Liquidity,
+			nextStateTickCurrent:  result.CurrentTick,
 		},
 	}, nil
 }
