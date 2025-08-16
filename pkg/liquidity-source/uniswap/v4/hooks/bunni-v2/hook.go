@@ -188,8 +188,14 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	}
 
 	if (params.ZeroForOne && currentActiveBalance1.IsZero()) ||
-		(!params.ZeroForOne && currentActiveBalance0.IsZero()) ||
-		totalLiquidity.IsZero() ||
+		(!params.ZeroForOne && currentActiveBalance0.IsZero()) {
+		return &uniswapv4.BeforeSwapResult{
+			DeltaSpecific:   params.AmountSpecified,
+			DeltaUnSpecific: bignumber.ZeroBI,
+		}, nil
+	}
+
+	if totalLiquidity.IsZero() ||
 		(!params.ExactIn &&
 			lo.Ternary(params.ZeroForOne, currentActiveBalance1, currentActiveBalance0).Lt(amountSpecified)) {
 		return nil, fmt.Errorf("BunniHook__RequestedOutputExceedsBalance")

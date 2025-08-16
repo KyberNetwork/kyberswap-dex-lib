@@ -311,8 +311,7 @@ func Test_MergeSwap(t *testing.T) {
 	var consecutiveTotalAmountOut *big.Int
 
 	// n consecutive swaps
-	for i := 0; i < n; i++ {
-		log.Println("-------", i)
+	for i := range n {
 		result, err := pSim1.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  tokenIn,
@@ -364,7 +363,7 @@ func Test_MergeSwap(t *testing.T) {
 	percentageBps := new(big.Int).Mul(diff, big.NewInt(10000))
 	percentageBps.Div(percentageBps, singleAmountOut)
 
-	// Assert that the difference is small (less than 1BPS)
+	// Assert that the diff is smaller than 1BPS
 	assert.LessOrEqual(t, percentageBps.Int64(), int64(1),
 		fmt.Sprintf("Difference too large for n=%d: %s basis points", n, percentageBps.String()))
 }

@@ -111,12 +111,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			}
 		}
 
-		if swapResult.TokenAmountOut.Amount.Sign() <= 0 {
+		swapResult.Gas += wrapAdditionalGas
+
+		if swapResult.TokenAmountOut.Amount.Sign() < 0 {
 			swapResult = nil
 			err = errors.New("amount out is invalid")
 		}
-
-		swapResult.Gas += wrapAdditionalGas
 	}()
 
 	// Wrap/unwrap tokens if needed and calculate wrap gas
@@ -244,12 +244,12 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			}
 		}
 
-		if swapResult.TokenAmountIn.Amount.Sign() <= 0 {
+		swapResult.Gas += wrapAdditionalGas
+
+		if swapResult.TokenAmountIn.Amount.Sign() < 0 {
 			swapResult = nil
 			err = errors.New("amount in is invalid")
 		}
-
-		swapResult.Gas += wrapAdditionalGas
 	}()
 
 	// Wrap/unwrap tokens if needed and calculate wrap gas
