@@ -571,8 +571,8 @@ func (h *Hook) updateVaultReserveViaClaimTokens(
 	absAmount := math.Abs(rawBalanceChange)
 
 	var (
-		reserveChange          *int256.Int
-		actualRawBalanceChange *int256.Int
+		reserveChange          int256.Int
+		actualRawBalanceChange int256.Int
 	)
 
 	if rawBalanceChange.Sign() < 0 {
@@ -590,11 +590,11 @@ func (h *Hook) updateVaultReserveViaClaimTokens(
 
 		// deposit
 		depositedAmt := math.MulDivUp(absAmount, h.Vaults[index].DepositRate, WAD)
-		reserveChange = i256.SafeToInt256(depositedAmt)
+		reserveChange.Set(i256.SafeToInt256(depositedAmt))
 
 		// expect deposited amount to be equal to absAmount
-		actualRawBalanceChange = i256.SafeToInt256(absAmount)
-		actualRawBalanceChange.Neg(actualRawBalanceChange)
+		actualRawBalanceChange.Set(i256.SafeToInt256(absAmount))
+		actualRawBalanceChange.Neg(&actualRawBalanceChange)
 
 	} else if rawBalanceChange.Sign() > 0 {
 		if h.isNative[index] {
@@ -606,16 +606,16 @@ func (h *Hook) updateVaultReserveViaClaimTokens(
 			// withdraw
 			withdrawAmt := math.MulDivUp(absAmount, h.Vaults[index].WithdrawRate, WAD)
 			withdrawAmtInt := i256.SafeToInt256(withdrawAmt)
-			reserveChange = withdrawAmtInt.Neg(withdrawAmtInt)
+			reserveChange.Set(withdrawAmtInt.Neg(withdrawAmtInt))
 
-			actualRawBalanceChange = i256.SafeToInt256(absAmount)
+			actualRawBalanceChange.Set(i256.SafeToInt256(absAmount))
 		} else {
 			// withdraw tokens to poolManager
 			h.PoolManagerReserves[index].Add(h.PoolManagerReserves[index], absAmount)
 		}
 	}
 
-	return reserveChange, actualRawBalanceChange, nil
+	return &reserveChange, &actualRawBalanceChange, nil
 }
 
 type BunniComputeSwapInput struct {
