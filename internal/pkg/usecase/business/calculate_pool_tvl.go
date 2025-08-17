@@ -8,7 +8,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
+	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"

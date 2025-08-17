@@ -10,7 +10,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
+	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	uni "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/goccy/go-json"
