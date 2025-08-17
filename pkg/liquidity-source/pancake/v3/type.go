@@ -67,11 +67,12 @@ type TickU256 struct {
 }
 
 type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
+	Liquidity         *big.Int `json:"liquidity"`
+	SqrtPriceX96      *big.Int `json:"sqrtPriceX96"`
+	TickSpacing       uint64   `json:"tickSpacing"`
+	Tick              *big.Int `json:"tick"`
+	Ticks             []Tick   `json:"ticks"`
+	ObsBlockTimestamp uint32   `json:"blockTimestamp"`
 }
 
 type ExtraTickU256 struct {
@@ -92,12 +93,20 @@ type Slot0 struct {
 	Unlocked                   bool     `json:"unlocked"`
 }
 
+type Observations struct {
+	BlockTimestamp                    uint32   `json:"blockTimestamp"`
+	TickCumulative                    *big.Int `json:"tickCumulative"`
+	SecondsPerLiquidityCumulativeX128 *big.Int `json:"secondsPerLiquidityCumulativeX128"`
+	Initialized                       bool     `json:"initialized"`
+}
+
 type FetchRPCResult struct {
-	Liquidity   *big.Int `json:"liquidity"`
-	Slot0       Slot0    `json:"slot0"`
-	TickSpacing *big.Int `json:"tickSpacing"`
-	Reserve0    *big.Int `json:"reserve0"`
-	Reserve1    *big.Int `json:"reserve1"`
+	Liquidity         *big.Int `json:"liquidity"`
+	Slot0             Slot0    `json:"slot0"`
+	TickSpacing       *big.Int `json:"tickSpacing"`
+	Reserve0          *big.Int `json:"reserve0"`
+	Reserve1          *big.Int `json:"reserve1"`
+	ObsBlockTimestamp uint32   `json:"obsBlockTimestamp"`
 }
 
 type PoolMeta struct {

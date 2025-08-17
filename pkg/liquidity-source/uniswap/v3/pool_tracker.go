@@ -24,6 +24,8 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+
+	*pooltrack.InactivePoolTracker
 }
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewPoolTracker)
@@ -39,9 +41,10 @@ func NewPoolTracker(
 	}
 
 	return &PoolTracker{
-		config:        initializedCfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:              initializedCfg,
+		ethrpcClient:        ethrpcClient,
+		graphqlClient:       graphqlClient,
+		InactivePoolTracker: pooltrack.NewInactivePoolTracker(cfg.TrackInactivePools),
 	}, nil
 }
 
@@ -158,11 +161,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		TickSpacing:  rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Liquidity:         rpcData.Liquidity,
+		TickSpacing:       rpcData.TickSpacing.Uint64(),
+		SqrtPriceX96:      rpcData.Slot0.SqrtPriceX96,
+		Tick:              rpcData.Slot0.Tick,
+		Ticks:             ticks,
+		ObsBlockTimestamp: rpcData.ObsBlockTimestamp,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -172,12 +176,13 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = int64(rpcData.ObsBlockTimestamp)
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
+	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 
@@ -191,11 +196,12 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	})
 
 	var (
-		liquidity   *big.Int
-		slot0       Slot0
-		tickSpacing *big.Int
-		reserve0    = zeroBI
-		reserve1    = zeroBI
+		liquidity    *big.Int
+		slot0        Slot0
+		tickSpacing  *big.Int
+		reserve0     = zeroBI
+		reserve1     = zeroBI
+		observations Observations
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
@@ -248,12 +254,27 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		return nil, err
 	}
 
+	_, err = d.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    uniswapV3PoolABI,
+			Target: p.Address,
+			Method: methodObservations,
+			Params: []any{big.NewInt(int64(slot0.ObservationIndex))},
+		}, []any{&observations}).Call()
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to get observations")
+		return nil, err
+	}
+
 	return &FetchRPCResult{
-		Liquidity:   liquidity,
-		Slot0:       slot0,
-		TickSpacing: tickSpacing,
-		Reserve0:    reserve0,
-		Reserve1:    reserve1,
+		Liquidity:         liquidity,
+		Slot0:             slot0,
+		TickSpacing:       tickSpacing,
+		Reserve0:          reserve0,
+		Reserve1:          reserve1,
+		ObsBlockTimestamp: observations.BlockTimestamp,
 	}, err
 }
 
