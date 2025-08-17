@@ -43,10 +43,10 @@ func TestSerialization_DecodeFullToken(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			token, err := token.DecodeToken[entity.Token](context.TODO(), test.member, test.key)
+			entityToken, err := token.DecodeToken[*entity.Token](context.TODO(), test.member, test.key)
 
 			assert.NoError(t, err)
-			assert.Equal(t, test.expectedToken, token)
+			assert.Equal(t, test.expectedToken, entityToken)
 		})
 	}
 }
@@ -80,10 +80,10 @@ func TestSerialization_DecodeToken(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			token, err := token.DecodeToken[entity.SimplifiedToken](context.TODO(), test.member, test.key)
+			entityToken, err := token.DecodeToken[*entity.SimplifiedToken](context.TODO(), test.member, test.key)
 
 			assert.NoError(t, err)
-			assert.Equal(t, test.expectedToken, token)
+			assert.Equal(t, test.expectedToken, entityToken)
 		})
 	}
 }

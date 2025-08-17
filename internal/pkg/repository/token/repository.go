@@ -17,7 +17,7 @@ type IToken interface {
 	GetAddress() string
 }
 
-type repository[T IToken] struct {
+type Repository[T IToken] struct {
 	redisClient redis.UniversalClient
 	httpClient  ITokenAPI
 	config      RedisRepositoryConfig
@@ -25,18 +25,18 @@ type repository[T IToken] struct {
 }
 
 func NewSimplifiedTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig,
-	tokenAPI ITokenAPI) *repository[entity.SimplifiedToken] {
-	return &repository[entity.SimplifiedToken]{
-		redisClient: redisClient,
-		config:      config,
-		keyTokens:   utils.Join(config.Prefix, KeyTokens),
-		httpClient:  tokenAPI,
-	}
+	tokenAPI ITokenAPI) *Repository[*entity.SimplifiedToken] {
+	return NewRepository[*entity.SimplifiedToken](redisClient, config, tokenAPI)
 }
 
 func NewFullTokenRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig,
-	tokenAPI ITokenAPI) *repository[entity.Token] {
-	return &repository[entity.Token]{
+	tokenAPI ITokenAPI) *Repository[*entity.Token] {
+	return NewRepository[*entity.Token](redisClient, config, tokenAPI)
+}
+
+func NewRepository[T IToken](redisClient redis.UniversalClient, config RedisRepositoryConfig,
+	tokenAPI ITokenAPI) *Repository[T] {
+	return &Repository[T]{
 		redisClient: redisClient,
 		config:      config,
 		keyTokens:   utils.Join(config.Prefix, KeyTokens),
@@ -45,7 +45,7 @@ func NewFullTokenRepository(redisClient redis.UniversalClient, config RedisRepos
 }
 
 // FindByAddresses returns tokens by their addresses
-func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string) ([]*T, error) {
+func (r *Repository[T]) FindByAddresses(ctx context.Context, addresses []string) ([]T, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "token.repository.FindByAddresses")
 	defer span.End()
 
@@ -58,7 +58,7 @@ func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string)
 		return nil, err
 	}
 
-	tokens := make([]*T, 0, len(tokenDataList))
+	tokens := make([]T, 0, len(tokenDataList))
 	for i, tokenData := range tokenDataList {
 		if tokenData == nil {
 			continue
@@ -81,7 +81,7 @@ func (r *repository[T]) FindByAddresses(ctx context.Context, addresses []string)
 	return tokens, nil
 }
 
-func (r *repository[T]) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID,
+func (r *Repository[T]) FindTokenInfoByAddress(ctx context.Context, chainID valueobject.ChainID,
 	addresses []string) ([]*routerEntity.TokenInfo, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "token.repository.FindTokenInfoByAddress")
 	defer span.End()

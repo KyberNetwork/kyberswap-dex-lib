@@ -16,6 +16,6 @@ func EncodeToken[T entity.SimplifiedToken | entity.Token](token T) (string, erro
 	return string(bytes), nil
 }
 
-func DecodeToken[T IToken](ctx context.Context, data string, addr string) (*T, error) {
+func DecodeToken[T IToken](ctx context.Context, data string, addr string) (T, error) {
 	return decodeToken[T](ctx, data, addr)
 }
