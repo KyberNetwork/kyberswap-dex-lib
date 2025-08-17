@@ -180,7 +180,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex+2]
+		vaultIn := p.vaults[tokenInIndex]
 
 		if vaultIn.DepositPaused {
 			return nil, ErrDepositPaused
@@ -195,7 +195,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	// Add unwrap gas cost if tokenOut is not a LP token
 	if tokenOutIndex < 2 {
-		vaultOut := p.vaults[tokenOutIndex+2]
+		vaultOut := p.vaults[tokenOutIndex]
 
 		if vaultOut.RedeemPaused {
 			return nil, ErrRedeemPaused
@@ -232,7 +232,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex+2]
+		vaultIn := p.vaults[tokenInIndex]
 
 		if amountInU256.Lt(vaultIn.MinDeposit) {
 			return nil, ErrInsufficientAmountIn
@@ -288,7 +288,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// Add wrap gas cost if tokenIn is not a LP token
 	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex+2]
+		vaultIn := p.vaults[tokenInIndex]
 
 		if vaultIn.DepositPaused {
 			return nil, ErrDepositPaused
@@ -350,7 +350,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// Add unwrap gas cost if tokenOut is not a LP token
 	if tokenOutIndex < 2 {
-		vaultOut := p.vaults[tokenOutIndex+2]
+		vaultOut := p.vaults[tokenOutIndex]
 
 		if vaultOut.RedeemPaused {
 			return nil, ErrRedeemPaused
