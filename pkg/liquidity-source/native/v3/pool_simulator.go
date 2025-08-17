@@ -148,6 +148,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		unlocked: extra.Unlocked,
 		tickMin:  tickMin,
 		tickMax:  tickMax,
+		vaults:   extra.Vaults,
 	}, nil
 }
 
