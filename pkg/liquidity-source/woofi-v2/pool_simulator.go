@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	ErrPoolPaused      = errors.New("WooPPV2: pool is paused")
 	ErrInvalidAmountIn = errors.New("invalid amountIn")
 
 	ErrBaseTokenIsQuoteToken = errors.New("WooPPV2: baseToken==quoteToken")
@@ -35,6 +36,7 @@ type (
 		decimals   map[string]uint8
 		wooracle   Wooracle
 		cloracle   map[string]Cloracle
+		isPaused   bool
 
 		gas Gas
 	}
@@ -88,12 +90,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		decimals:   decimals,
 		wooracle:   extra.Wooracle,
 		cloracle:   extra.Cloracle,
+		isPaused:   extra.IsPaused,
 
 		gas: DefaultGas,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if s.isPaused {
+		return nil, ErrPoolPaused
+	}
+
 	tokenAmountIn := params.TokenAmountIn
 	tokenOut := params.TokenOut
 	tokenInIndex := s.GetTokenIndex(tokenAmountIn.Token)
@@ -176,7 +183,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 // _sellBase
 // https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L361

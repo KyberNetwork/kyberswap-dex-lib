@@ -79,63 +79,63 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		Target: p.Address,
 		Method: dodoV1MethodGetExpectedTarget,
 		Params: nil,
-	}, []interface{}{&targetReserve})
+	}, []any{&targetReserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodK,
 		Params: nil,
-	}, []interface{}{&k})
+	}, []any{&k})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodRStatus,
 		Params: nil,
-	}, []interface{}{&rStatus})
+	}, []any{&rStatus})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodGetOraclePrice,
 		Params: nil,
-	}, []interface{}{&i})
+	}, []any{&i})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodLpFeeRate,
 		Params: nil,
-	}, []interface{}{&lpFeeRate})
+	}, []any{&lpFeeRate})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodMtFeeRate,
 		Params: nil,
-	}, []interface{}{&mtFeeRate})
+	}, []any{&mtFeeRate})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodBaseBalance,
 		Params: nil,
-	}, []interface{}{&baseReserve})
+	}, []any{&baseReserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodQuoteBalance,
 		Params: nil,
-	}, []interface{}{&quoteReserve})
+	}, []any{&quoteReserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    v1PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodTradeAllowed,
 		Params: nil,
-	}, []interface{}{&tradeAllowed})
+	}, []any{&tradeAllowed})
 
 	if d.config.ChainID != valueobject.ChainIDEthereum && p.Type != string(valueobject.ExchangeDodoClassical) {
 		calls.AddCall(&ethrpc.Call{
@@ -143,14 +143,14 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 			Target: p.Address,
 			Method: dodoV1MethodSellingAllowed,
 			Params: nil,
-		}, []interface{}{&sellingAllowed})
+		}, []any{&sellingAllowed})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    v1PoolABI,
 			Target: p.Address,
 			Method: dodoV1MethodBuyingAllowed,
 			Params: nil,
-		}, []interface{}{&buyingAllowed})
+		}, []any{&buyingAllowed})
 	} else {
 		sellingAllowed = true
 		buyingAllowed = true
@@ -205,10 +205,6 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 
 	_, ok := d.blackList.Get(p.Address)
 	if ok {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-		}).Error(ErrPoolAddressBanned.Error())
-
 		return entity.Pool{}, ErrPoolAddressBanned
 	}
 
@@ -219,22 +215,26 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-
 	calls.AddCall(&ethrpc.Call{
 		ABI:    V2PoolABI,
 		Target: p.Address,
 		Method: dodoV2MethodGetPMMStateForCall,
 		Params: nil,
-	}, []interface{}{&state})
-
+	}, []any{&state})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    V2PoolABI,
 		Target: p.Address,
 		Method: dodoV1MethodLpFeeRate,
 		Params: nil,
-	}, []interface{}{&lpFeeRate})
+	}, []any{&lpFeeRate})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    V2PoolABI,
+		Target: p.Address,
+		Method: dodoV2MethodGetUserFeeRate,
+		Params: []any{common.HexToAddress(p.Address)},
+	}, []any{&feeRate})
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryBlockAndAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -247,33 +247,9 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		return entity.Pool{}, err
 	}
 
-	// Some DPP pools have an issue with `getUserFeeRate` function, so we need to separately call
-	calls = d.ethrpcClient.NewRequest()
-	calls.AddCall(&ethrpc.Call{
-		ABI:    V2PoolABI,
-		Target: p.Address,
-		Method: dodoV2MethodGetUserFeeRate,
-		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []interface{}{&feeRate})
-	if _, err := calls.Call(); err != nil {
-		// retry 1 time before adding to blacklist
-		if _, errRetry := calls.Call(); errRetry != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       errRetry,
-			}).Errorf("[DodoV2] failed to call getUserFeeRate, add pool address to blacklist")
-			d.blackList.Set(p.Address, true)
-
-			return entity.Pool{}, err
-		}
-	}
-
 	if state.B == nil && state.Q == nil &&
 		state.B0 == nil && state.Q0 == nil &&
 		state.I == nil && state.K == nil && state.R == nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-		}).Errorf("get pool state failed")
 
 		return entity.Pool{}, fmt.Errorf("get pool state failed")
 	}
@@ -281,17 +257,14 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	if feeRate.MtFeeRate == nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
-		}).Errorf("get pool feeRate failed")
+			"exchange":    p.Exchange,
+		}).Errorf("[DodoV2] added pool to blacklist")
+
+		if state.K.Sign() == 0 && (state.B.Sign() == 0 || state.Q.Sign() == 0) {
+			d.blackList.Set(p.Address, struct{}{})
+		}
 
 		return entity.Pool{}, fmt.Errorf("get pool feeRate failed")
-	}
-
-	if lpFeeRate == nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-		}).Errorf("get pool lpFeeRate failed")
-
-		return entity.Pool{}, fmt.Errorf("get pool lpFeeRate failed")
 	}
 
 	extra := V2Extra{
@@ -304,7 +277,6 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		R:         number.SetFromBig(state.R),
 		MtFeeRate: number.SetFromBig(feeRate.MtFeeRate),
 		LpFeeRate: number.SetFromBig(lpFeeRate),
-		Swappable: true,
 	}
 
 	extraBytes, err := json.Marshal(extra)

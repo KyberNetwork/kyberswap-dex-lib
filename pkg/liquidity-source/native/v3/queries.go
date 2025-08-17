@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"text/template"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
 type (

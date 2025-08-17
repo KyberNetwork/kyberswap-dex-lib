@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -112,6 +113,22 @@ func (d *PoolTracker) GetNewPoolState(
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
 		return p, err
+	}
+
+	if isPaused {
+		extraBytes, err := json.Marshal(&Extra{
+			IsPaused: true,
+		})
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"err":         err,
+			}).Errorf("failed to marshal extra data")
+			return entity.Pool{}, err
+		}
+
+		p.Extra = string(extraBytes)
+		p.Reserves = lo.Map(p.Reserves, func(_ string, _ int) string { return "0" })
 	}
 
 	blockNumber := callsResult.BlockNumber
@@ -262,7 +279,7 @@ func (d *PoolTracker) GetNewPoolState(
 			Bound:         bound,
 		},
 		Cloracle: poolCloracle,
-		IsPaused: isPaused,
+		IsPaused: false,
 	})
 
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 	v3EntitiesBigInt "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
 type int24 = int32
