@@ -212,6 +212,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.elasticPool.NearestCurrentTick = si.nextStateNearestCurrentTick
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }

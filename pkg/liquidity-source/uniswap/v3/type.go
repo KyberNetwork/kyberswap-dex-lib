@@ -68,11 +68,12 @@ type TickU256 struct {
 }
 
 type Extra struct {
-	Liquidity    *big.Int `json:"liquidity"`
-	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  uint64   `json:"tickSpacing"`
-	Tick         *big.Int `json:"tick"`
-	Ticks        []Tick   `json:"ticks"`
+	Liquidity        *big.Int `json:"liquidity"`
+	SqrtPriceX96     *big.Int `json:"sqrtPriceX96"`
+	TickSpacing      uint64   `json:"tickSpacing"`
+	Tick             *big.Int `json:"tick"`
+	Ticks            []Tick   `json:"ticks"`
+	ObservationIndex uint16   `json:"obsIndex"`
 }
 
 type ExtraTickU256 struct {
@@ -84,8 +85,16 @@ type ExtraTickU256 struct {
 }
 
 type Slot0 struct {
-	SqrtPriceX96 *big.Int
-	Tick         *big.Int
+	SqrtPriceX96     *big.Int
+	Tick             *big.Int
+	ObservationIndex uint16
+}
+
+type Observations struct {
+	BlockTimestamp                    uint32   `json:"blockTimestamp"`
+	TickCumulative                    *big.Int `json:"tickCumulative"`
+	SecondsPerLiquidityCumulativeX128 *big.Int `json:"secondsPerLiquidityCumulativeX128"`
+	Initialized                       bool     `json:"initialized"`
 }
 
 type preGenesisPool struct {

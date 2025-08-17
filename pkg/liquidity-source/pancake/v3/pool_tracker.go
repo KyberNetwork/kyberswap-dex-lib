@@ -23,6 +23,8 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+
+	*pooltrack.InactivePoolTracker
 }
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypePancakeV3, NewPoolTracker)
@@ -33,9 +35,10 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:              cfg,
+		ethrpcClient:        ethrpcClient,
+		graphqlClient:       graphqlClient,
+		InactivePoolTracker: pooltrack.NewInactivePoolTracker(cfg.TrackInactivePools),
 	}, nil
 }
 
@@ -134,12 +137,13 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
+	p.Timestamp = d.predictLastActiveTimestamp(ctx, &p, rpcData.Slot0.ObservationIndex, &param)
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
+	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 
@@ -172,37 +176,34 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodGetLiquidity,
-		Params: nil,
-	}, []interface{}{&liquidity})
+	}, []any{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodGetSlot0,
-		Params: nil,
-	}, []interface{}{&slot0})
+	}, []any{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
-		Params: nil,
-	}, []interface{}{&tickSpacing})
+	}, []any{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve0})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&reserve1})
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()
@@ -266,4 +267,29 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	}
 
 	return ticks, nil
+}
+
+func (d *PoolTracker) predictLastActiveTimestamp(ctx context.Context, p *entity.Pool, observationIndex uint16,
+	param *sourcePool.GetNewPoolStateParams) int64 {
+	if len(param.Logs) > 0 {
+		latestLog := param.Logs[len(param.Logs)-1]
+		if blockHeader, ok := param.BlockHeaders[latestLog.BlockNumber]; ok {
+			return max(p.Timestamp, int64(blockHeader.Timestamp))
+		}
+	}
+
+	var observations Observations
+	_, err := d.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    pancakeV3PoolABI,
+			Target: p.Address,
+			Method: methodObservations,
+			Params: []any{big.NewInt(int64(observationIndex))},
+		}, []any{&observations}).Call()
+	if err != nil {
+		logger.Errorf("failed to call observations: %v", err)
+		return time.Now().Unix()
+	}
+
+	return max(p.Timestamp, int64(observations.BlockTimestamp))
 }

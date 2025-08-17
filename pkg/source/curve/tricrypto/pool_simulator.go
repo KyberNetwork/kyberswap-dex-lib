@@ -164,7 +164,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	_, _ = t.Exchange(inputIndex, outputIndex, inputAmount)
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

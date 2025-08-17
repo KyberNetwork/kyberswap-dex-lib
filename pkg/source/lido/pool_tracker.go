@@ -81,14 +81,12 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, e
 		ABI:    wstETHABI,
 		Target: p.Address,
 		Method: wstETHMethodStEthPerToken,
-		Params: nil,
-	}, []interface{}{&stEthPerToken})
+	}, []any{&stEthPerToken})
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    wstETHABI,
 		Target: p.Address,
 		Method: wstETHMethodTokensPerStEth,
-		Params: nil,
-	}, []interface{}{&tokensPerStEth})
+	}, []any{&tokensPerStEth})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -118,15 +116,14 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 				ABI:    erc20ABI,
 				Target: token.Address,
 				Method: erc20MethodTotalSupply,
-				Params: nil,
-			}, []interface{}{&reserves[i]})
+			}, []any{&reserves[i]})
 		} else {
 			rpcRequest.AddCall(&ethrpc.Call{
 				ABI:    erc20ABI,
 				Target: token.Address,
 				Method: erc20MethodBalanceOf,
-				Params: []interface{}{common.HexToAddress(p.Address)},
-			}, []interface{}{&reserves[i]})
+				Params: []any{common.HexToAddress(p.Address)},
+			}, []any{&reserves[i]})
 		}
 	}
 

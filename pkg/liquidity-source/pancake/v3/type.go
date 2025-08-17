@@ -92,6 +92,13 @@ type Slot0 struct {
 	Unlocked                   bool     `json:"unlocked"`
 }
 
+type Observations struct {
+	BlockTimestamp                    uint32   `json:"blockTimestamp"`
+	TickCumulative                    *big.Int `json:"tickCumulative"`
+	SecondsPerLiquidityCumulativeX128 *big.Int `json:"secondsPerLiquidityCumulativeX128"`
+	Initialized                       bool     `json:"initialized"`
+}
+
 type FetchRPCResult struct {
 	Liquidity   *big.Int `json:"liquidity"`
 	Slot0       Slot0    `json:"slot0"`

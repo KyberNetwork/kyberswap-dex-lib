@@ -114,6 +114,6 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
