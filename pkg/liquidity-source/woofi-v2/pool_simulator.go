@@ -183,13 +183,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return struct {
-		BlockNumber uint64 `json:"blockNumber"`
-	}{
-		BlockNumber: s.Info.BlockNumber,
-	}
-}
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 // _sellBase
 // https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L361
