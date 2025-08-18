@@ -14,6 +14,12 @@ var bunniHookABIJson []byte
 //go:embed abis/BunniQuoter.json
 var bunniQuoterABIJson []byte
 
+//go:embed abis/OracleUniGeoDistribution.json
+var oracleUniGeoABIJson []byte
+
+//go:embed abis/PriceOracle.json
+var priceOracleABIJson []byte
+
 //go:embed abis/ERC4626.json
 var erc4626ABIJson []byte
 

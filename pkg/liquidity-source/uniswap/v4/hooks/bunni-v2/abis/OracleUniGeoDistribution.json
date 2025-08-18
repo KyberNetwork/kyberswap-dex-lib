@@ -1,0 +1,875 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "hub_",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "hook_",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "quoter_",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "initialOwner_",
+                "type": "address"
+            },
+            {
+                "internalType": "contract IOracle",
+                "name": "oracle_",
+                "type": "address"
+            },
+            {
+                "internalType": "Currency",
+                "name": "bond_",
+                "type": "address"
+            },
+            {
+                "internalType": "Currency",
+                "name": "stablecoin_",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "AlreadyInitialized",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "GuardedCall",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidLdfParams",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NewOwnerIsZeroAddress",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NoHandoverRequest",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "Unauthorized",
+        "type": "error"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnershipHandoverCanceled",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnershipHandoverRequested",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "oldOwner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "OwnershipTransferred",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "PoolId",
+                "name": "id",
+                "type": "bytes32"
+            },
+            {
+                "indexed": true,
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            }
+        ],
+        "name": "SetLdfParamsOverride",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "bond",
+        "outputs": [
+            {
+                "internalType": "Currency",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "bondLtStablecoin",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "cancelOwnershipHandover",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            }
+        ],
+        "name": "completeOwnershipHandover",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "uint256",
+                "name": "inverseCumulativeAmountInput",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "zeroForOne",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "exactIn",
+                "type": "bool"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "computeSwap",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "success",
+                "type": "bool"
+            },
+            {
+                "internalType": "int24",
+                "name": "roundedTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "cumulativeAmount0_",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "cumulativeAmount1_",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "swapLiquidity",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "int24",
+                "name": "roundedTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "cumulativeAmount0",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "int24",
+                "name": "roundedTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalLiquidity",
+                "type": "uint256"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "int24",
+                "name": "",
+                "type": "int24"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "cumulativeAmount1",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "enum LibOracleUniGeoDistribution.DistributionType",
+                "name": "distributionType",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "oracleIsTickLower",
+                "type": "bool"
+            },
+            {
+                "internalType": "int16",
+                "name": "oracleTickOffset",
+                "type": "int16"
+            },
+            {
+                "internalType": "int24",
+                "name": "nonOracleTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint32",
+                "name": "alpha",
+                "type": "uint32"
+            }
+        ],
+        "name": "encodeLdfParams",
+        "outputs": [
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "floorPriceWad",
+                "type": "uint256"
+            },
+            {
+                "internalType": "int24",
+                "name": "tickSpacing",
+                "type": "int24"
+            }
+        ],
+        "name": "floorPriceToRick",
+        "outputs": [
+            {
+                "internalType": "int24",
+                "name": "rick",
+                "type": "int24"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "uint24",
+                "name": "",
+                "type": "uint24"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "enum LDFType",
+                "name": "ldfType",
+                "type": "uint8"
+            }
+        ],
+        "name": "isValidParams",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "PoolId",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "name": "ldfParamsOverride",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "overridden",
+                "type": "bool"
+            },
+            {
+                "internalType": "bytes12",
+                "name": "ldfParams",
+                "type": "bytes12"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "oracle",
+        "outputs": [
+            {
+                "internalType": "contract IOracle",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "result",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pendingOwner",
+                "type": "address"
+            }
+        ],
+        "name": "ownershipHandoverExpiresAt",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "result",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "int24",
+                "name": "roundedTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "int24",
+                "name": "twapTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "int24",
+                "name": "spotPriceTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfState",
+                "type": "bytes32"
+            }
+        ],
+        "name": "query",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "liquidityDensityX96_",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "cumulativeAmount0DensityX96",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "cumulativeAmount1DensityX96",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "newLdfState",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bool",
+                "name": "shouldSurge",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "requestOwnershipHandover",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "ldfParams",
+                "type": "bytes32"
+            }
+        ],
+        "name": "setLdfParams",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "Currency",
+                        "name": "currency0",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "Currency",
+                        "name": "currency1",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint24",
+                        "name": "fee",
+                        "type": "uint24"
+                    },
+                    {
+                        "internalType": "int24",
+                        "name": "tickSpacing",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "contract IHooks",
+                        "name": "hooks",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct PoolKey",
+                "name": "key",
+                "type": "tuple"
+            },
+            {
+                "internalType": "enum LibOracleUniGeoDistribution.DistributionType",
+                "name": "distributionType",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "oracleIsTickLower",
+                "type": "bool"
+            },
+            {
+                "internalType": "int16",
+                "name": "oracleTickOffset",
+                "type": "int16"
+            },
+            {
+                "internalType": "int24",
+                "name": "nonOracleTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint32",
+                "name": "alpha",
+                "type": "uint32"
+            }
+        ],
+        "name": "setLdfParams",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "stablecoin",
+        "outputs": [
+            {
+                "internalType": "Currency",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+]

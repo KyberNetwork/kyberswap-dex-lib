@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/hooklet"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
@@ -181,13 +182,60 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 	hookExtra.AmAmm = decodeAmmPayload(topBid.Data.Manager, topBid.Data.Payload)
 
 	var (
+		oracleUniGeoParamsOverride ldf.LdfParamsOverride
+		bondLtStablecoin           bool
+		floorPrice                 = big.NewInt(0)
+
 		redeemRates   = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 		depositRates  = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 		maxDeposits   = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 		withdrawRates = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 		maxWithdraws  = [2]*big.Int{big.NewInt(0), big.NewInt(0)}
 	)
+
 	req2 := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
+
+	if IsOracleUniGeoLDF(hookExtra.LDFAddress) {
+		if valueobject.IsZeroAddress(hookExtra.PriceOracle) {
+			_, err := param.RpcClient.
+				NewRequest().
+				SetContext(ctx).
+				SetBlockNumber(res.BlockNumber).
+				AddCall(
+					&ethrpc.Call{
+						ABI:    oracleUniGeoABI,
+						Target: hookExtra.LDFAddress.Hex(),
+						Method: "oracle",
+						Params: nil,
+					}, []any{&hookExtra.PriceOracle}).
+				Call()
+
+			if err != nil {
+				return "", err
+			}
+		}
+
+		req2.AddCall(&ethrpc.Call{
+			ABI:    oracleUniGeoABI,
+			Target: hookExtra.LDFAddress.Hex(),
+			Method: "bondLtStablecoin",
+			Params: nil,
+		}, []any{&bondLtStablecoin})
+		req2.AddCall(&ethrpc.Call{
+			ABI:    oracleUniGeoABI,
+			Target: hookExtra.LDFAddress.Hex(),
+			Method: "ldfParamsOverride",
+			Params: []any{poolId},
+		}, []any{&oracleUniGeoParamsOverride})
+
+		req2.AddCall(&ethrpc.Call{
+			ABI:    priceOracleABI,
+			Target: hookExtra.PriceOracle.Hex(),
+			Method: "getFloorPrice",
+			Params: nil,
+		}, []any{&floorPrice})
+	}
+
 	for i, vault := range []common.Address{poolState.Data.Vault0, poolState.Data.Vault1} {
 		if valueobject.IsZeroAddress(vault) {
 			continue
@@ -227,6 +275,17 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 
 	if _, err := req2.TryBlockAndAggregate(); err != nil {
 		return "", err
+	}
+
+	if IsOracleUniGeoLDF(hookExtra.LDFAddress) {
+		hookExtra.OracleUniGeoParams = &ldf.OracleUniGeoParams{
+			BondLtStablecoin: bondLtStablecoin,
+			FloorPrice:       uint256.MustFromBig(floorPrice),
+			LdfParamOverride: ldf.LdfParamsOverride{
+				Overridden: oracleUniGeoParamsOverride.Overridden,
+				LdfParams:  oracleUniGeoParamsOverride.LdfParams,
+			},
+		}
 	}
 
 	observationHashes, err := h.fetchObservations(

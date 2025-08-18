@@ -4,6 +4,7 @@ import (
 	uniformLib "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/libs/uniform"
 	shiftmode "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf/shift-mode"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/math"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -120,7 +121,7 @@ func (u *UniformDistribution) computeSwap(
 			false,
 		)
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -143,7 +144,7 @@ func (u *UniformDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -166,7 +167,7 @@ func (u *UniformDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	} else {
 
@@ -179,7 +180,7 @@ func (u *UniformDistribution) computeSwap(
 			false,
 		)
 		if !success {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), nil
+			return false, 0, u256.U0, u256.U0, u256.U0, nil
 		}
 
 		if exactIn {
@@ -202,7 +203,7 @@ func (u *UniformDistribution) computeSwap(
 
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 
 		if exactIn {
@@ -225,11 +226,11 @@ func (u *UniformDistribution) computeSwap(
 			)
 		}
 		if err != nil {
-			return false, 0, uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0), err
+			return false, 0, u256.U0, u256.U0, u256.U0, err
 		}
 	}
 
-	swapLiquidity = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
+	swapLiquidity = uniformLib.LiquidityDensityX96(u.tickSpacing, roundedTick, tickLower, tickUpper)
 	swapLiquidity.Mul(swapLiquidity, totalLiquidity)
 	swapLiquidity.Rsh(swapLiquidity, 96)
 
@@ -245,7 +246,7 @@ func (u *UniformDistribution) query(
 	cumulativeAmount1DensityX96 *uint256.Int,
 	err error,
 ) {
-	liquidityDensityX96 = uniformLib.LiquidityDensityX96(roundedTick, u.tickSpacing, tickLower, tickUpper)
+	liquidityDensityX96 = uniformLib.LiquidityDensityX96(u.tickSpacing, roundedTick, tickLower, tickUpper)
 
 	length := (tickUpper - tickLower) / u.tickSpacing
 

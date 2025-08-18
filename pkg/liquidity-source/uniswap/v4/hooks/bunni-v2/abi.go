@@ -11,6 +11,8 @@ var (
 	bunniHubABI       abi.ABI
 	bunniHookABI      abi.ABI
 	bunniQuoterABI    abi.ABI
+	oracleUniGeoABI   abi.ABI
+	priceOracleABI    abi.ABI
 	erc4626ABI        abi.ABI
 	erc20ABI          abi.ABI
 )
@@ -24,6 +26,8 @@ func init() {
 		{&bunniHubABI, bunniHubABIJson},
 		{&bunniHookABI, bunniHookABIJson},
 		{&bunniQuoterABI, bunniQuoterABIJson},
+		{&oracleUniGeoABI, oracleUniGeoABIJson},
+		{&priceOracleABI, priceOracleABIJson},
 		{&erc4626ABI, erc4626ABIJson},
 		{&erc20ABI, erc20ABIJson},
 	}
