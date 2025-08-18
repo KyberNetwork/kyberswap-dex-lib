@@ -258,6 +258,8 @@ def calculate_liquidity_scores(trade_data_file: entities.TradeDataGenerationFile
             print(f'exception while calculate entropy values {e}, back to save all scores {liquidity_scores_output.scores}')
             # when exception occurs here, we don't need to filter score
             result.extend(liquidity_scores_output.scores)
+    else:
+        result.extend(liquidity_scores_output.scores)
     
     result.extend(liquidity_scores_output.direct_scores.values())
     
