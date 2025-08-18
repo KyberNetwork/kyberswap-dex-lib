@@ -10,6 +10,11 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
+type SwapInfo struct {
+	PoolSwapInfo any
+	HookSwapInfo any
+}
+
 type SubgraphToken struct {
 	ID       string `json:"id"`
 	Decimals string `json:"decimals"`

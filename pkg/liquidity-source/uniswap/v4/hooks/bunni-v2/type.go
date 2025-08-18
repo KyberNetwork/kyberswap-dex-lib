@@ -8,24 +8,38 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type SwapInfo struct {
+	newSlot0               Slot0
+	newRawBalance0         *uint256.Int
+	newRawBalance1         *uint256.Int
+	newReserve0            *uint256.Int
+	newReserve1            *uint256.Int
+	newVaultSharePrice0    *uint256.Int
+	newVaultSharePrice1    *uint256.Int
+	newPoolManagerReserve0 *uint256.Int
+	newPoolManagerReserve1 *uint256.Int
+	newLdfState            [32]byte
+	newIdleBalance         [32]byte
+}
+
 type HookExtra struct {
-	HookletExtra           string                `json:"he"`
-	HookletAddress         common.Address        `json:"ha"`
-	LDFAddress             common.Address        `json:"la"`
-	HookFee                *uint256.Int          `json:"hf"`
-	PoolManagerReserves    [2]*uint256.Int       `json:"pmr"`
-	LdfState               [32]byte              `json:"ls"`
-	Vaults                 [2]Vault              `json:"v"`
-	AmAmm                  AmAmm                 `json:"aa"`
-	ObservationState       ObservationState      `json:"os"`
-	CuratorFees            CuratorFees           `json:"cf"`
-	Observations           []*oracle.Observation `json:"o"`
-	HookParams             HookParams            `json:"hp"`
-	Slot0                  Slot0                 `json:"s0"`
-	BunniState             PoolState             `json:"bs"`
-	VaultSharePrices       VaultSharePrices      `json:"vsp"`
-	RebalanceOrderDeadline uint32                `json:"rod"`
-	BlockTimestamp         uint32                `json:"bt"`
+	HookletExtra           string               `json:"he"`
+	HookletAddress         common.Address       `json:"ha"`
+	LDFAddress             common.Address       `json:"la"`
+	HookFee                *uint256.Int         `json:"hf"`
+	PoolManagerReserves    [2]*uint256.Int      `json:"pmr"`
+	LdfState               [32]byte             `json:"ls"`
+	Vaults                 [2]Vault             `json:"v"`
+	AmAmm                  AmAmm                `json:"aa"`
+	ObservationState       ObservationState     `json:"os"`
+	CuratorFees            CuratorFees          `json:"cf"`
+	Observations           []oracle.Observation `json:"o"`
+	HookParams             HookParams           `json:"hp"`
+	Slot0                  Slot0                `json:"s0"`
+	BunniState             PoolState            `json:"bs"`
+	VaultSharePrices       VaultSharePrices     `json:"vsp"`
+	RebalanceOrderDeadline uint32               `json:"rod"`
+	BlockTimestamp         uint32               `json:"bt"`
 }
 
 type LdfState struct {
@@ -44,10 +58,10 @@ type Vault struct {
 }
 
 type ObservationState struct {
-	Index                   uint32              `json:"i"`
-	Cardinality             uint32              `json:"c"`
-	CardinalityNext         uint32              `json:"cn"`
-	IntermediateObservation *oracle.Observation `json:"io"`
+	Index                   uint32             `json:"i"`
+	Cardinality             uint32             `json:"c"`
+	CardinalityNext         uint32             `json:"cn"`
+	IntermediateObservation oracle.Observation `json:"io"`
 }
 
 type VaultSharePrices struct {

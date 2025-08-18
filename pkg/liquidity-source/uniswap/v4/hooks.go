@@ -25,6 +25,7 @@ type BeforeSwapResult struct {
 	DeltaUnSpecific *big.Int
 	SwapFee         FeeAmount
 	Gas             int64
+	SwapInfo        any
 }
 
 func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
@@ -113,6 +114,7 @@ type Hook interface {
 	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
 	CanBeforeSwap(address common.Address) bool
 	CanAfterSwap(address common.Address) bool
+	UpdateBalance(swapInfo any)
 	CloneState() Hook
 }
 
@@ -192,6 +194,8 @@ func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
 		Gas:     0,
 	}, nil
 }
+
+func (h *BaseHook) UpdateBalance(_ any) {}
 
 func (h *BaseHook) CanBeforeSwap(address common.Address) bool {
 	return hasPermission(address, BeforeSwap)
