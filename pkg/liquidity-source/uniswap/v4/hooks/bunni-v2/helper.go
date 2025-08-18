@@ -48,8 +48,8 @@ func decodeHookParams(data []byte) HookParams {
 	return result
 }
 
-func decodeObservations(data []common.Hash) []*oracle.Observation {
-	observations := make([]*oracle.Observation, len(data))
+func decodeObservations(data []common.Hash) []oracle.Observation {
+	observations := make([]oracle.Observation, len(data))
 
 	for i, raw := range data {
 		bt := binary.BigEndian.Uint32(raw[28:32])
@@ -79,7 +79,7 @@ func decodeObservations(data []common.Hash) []*oracle.Observation {
 
 		initialized := raw[17] == 1
 
-		observations[i] = &oracle.Observation{
+		observations[i] = oracle.Observation{
 			BlockTimestamp: bt,
 			PrevTick:       int(prevTick),
 			TickCumulative: tickCumulative,
@@ -172,7 +172,7 @@ func decodeObservationState(data []common.Hash) ObservationState {
 		Index:           index,
 		Cardinality:     cardinality,
 		CardinalityNext: cardinalityNext,
-		IntermediateObservation: &oracle.Observation{
+		IntermediateObservation: oracle.Observation{
 			BlockTimestamp: uint32(blockTimestamp),
 			PrevTick:       int(prevTick),
 			TickCumulative: tickCumulative,

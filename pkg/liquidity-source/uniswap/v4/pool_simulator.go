@@ -97,18 +97,28 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			swapResult.TokenAmountOut.Token = originalTokenOut
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
 				swapResult.Gas += beforeSwapResult.Gas
-			}
-		}
+				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
 
-		if swapResult.RemainingTokenAmountIn != nil {
-			swapResult.RemainingTokenAmountIn.Token = originalTokenIn
+				v4SwapInfo := SwapInfo{
+					PoolSwapInfo: swapResult.SwapInfo,
+				}
+
+				if beforeSwapResult.SwapInfo != nil {
+					v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+				}
+
+				swapResult.SwapInfo = v4SwapInfo
+			}
 
 			if afterSwapResult != nil {
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, afterSwapResult.HookFee)
 				swapResult.Gas += afterSwapResult.Gas
 			}
+		}
+
+		if swapResult.RemainingTokenAmountIn != nil {
+			swapResult.RemainingTokenAmountIn.Token = originalTokenIn
 		}
 
 		swapResult.Gas += wrapAdditionalGas
@@ -230,18 +240,28 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			swapResult.TokenAmountIn.Token = originalTokenIn
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
 				swapResult.Gas += beforeSwapResult.Gas
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
+
+				v4SwapInfo := SwapInfo{
+					PoolSwapInfo: swapResult.SwapInfo,
+				}
+
+				if beforeSwapResult.SwapInfo != nil {
+					v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+				}
+
+				swapResult.SwapInfo = v4SwapInfo
+			}
+
+			if afterSwapResult != nil {
+				swapResult.Gas += afterSwapResult.Gas
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
 			}
 		}
 
 		if swapResult.RemainingTokenAmountOut != nil {
 			swapResult.RemainingTokenAmountOut.Token = originalTokenOut
-
-			if afterSwapResult != nil {
-				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
-				swapResult.Gas += afterSwapResult.Gas
-			}
 		}
 
 		swapResult.Gas += wrapAdditionalGas
@@ -498,5 +518,21 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		HookData:          []byte{},
 		PriceLimit:        &priceLimit,
 		TokenWrapMetadata: wrapMetadata,
+	}
+}
+
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if params.SwapInfo != nil {
+		v4SwapInfo, ok := params.SwapInfo.(SwapInfo)
+		if !ok {
+			return
+		}
+
+		if p.hook != nil {
+			p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
+		}
+
+		params.SwapInfo = v4SwapInfo.PoolSwapInfo
+		p.PoolSimulator.UpdateBalance(params)
 	}
 }
