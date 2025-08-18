@@ -32,3 +32,10 @@ func EncodeState(twapTick int) (state [32]byte) {
 
 	return
 }
+
+func SignExtend24to32(val uint32) uint32 {
+	if val&0x800000 != 0 {
+		return val | 0xFF000000
+	}
+	return val & 0x00FFFFFF
+}

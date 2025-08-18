@@ -61,7 +61,12 @@ func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 
 			hook.isNative = poolStaticExtra.IsNative
 			hook.tickSpacing = int(poolStaticExtra.TickSpacing)
-			hook.ldf = InitLDF(hookExtra.LDFAddress, hook.tickSpacing)
+
+			if hookExtra.OracleUniGeoParams != nil {
+				hook.ldf = InitOracleUniGeoLDF(hookExtra.LDFAddress, hook.tickSpacing, hookExtra.OracleUniGeoParams)
+			} else {
+				hook.ldf = InitLDF(hookExtra.LDFAddress, hook.tickSpacing)
+			}
 		}
 	}
 

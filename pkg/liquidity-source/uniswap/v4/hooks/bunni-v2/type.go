@@ -3,6 +3,7 @@ package bunniv2
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/ldf"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/hooks/bunni-v2/oracle"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -23,23 +24,25 @@ type SwapInfo struct {
 }
 
 type HookExtra struct {
-	HookletExtra           string               `json:"he"`
-	HookletAddress         common.Address       `json:"ha"`
-	LDFAddress             common.Address       `json:"la"`
-	HookFee                *uint256.Int         `json:"hf"`
-	PoolManagerReserves    [2]*uint256.Int      `json:"pmr"`
-	LdfState               [32]byte             `json:"ls"`
-	Vaults                 [2]Vault             `json:"v"`
-	AmAmm                  AmAmm                `json:"aa"`
-	ObservationState       ObservationState     `json:"os"`
-	CuratorFees            CuratorFees          `json:"cf"`
-	Observations           []oracle.Observation `json:"o"`
-	HookParams             HookParams           `json:"hp"`
-	Slot0                  Slot0                `json:"s0"`
-	BunniState             PoolState            `json:"bs"`
-	VaultSharePrices       VaultSharePrices     `json:"vsp"`
-	RebalanceOrderDeadline uint32               `json:"rod"`
-	BlockTimestamp         uint32               `json:"bt"`
+	HookletExtra           string                  `json:"he"`
+	HookletAddress         common.Address          `json:"ha"`
+	LDFAddress             common.Address          `json:"la"`
+	HookFee                *uint256.Int            `json:"hf"`
+	PoolManagerReserves    [2]*uint256.Int         `json:"pmr"`
+	LdfState               [32]byte                `json:"ls"`
+	Vaults                 [2]Vault                `json:"v"`
+	AmAmm                  AmAmm                   `json:"aa"`
+	ObservationState       ObservationState        `json:"os"`
+	CuratorFees            CuratorFees             `json:"cf"`
+	Observations           []oracle.Observation    `json:"o"`
+	HookParams             HookParams              `json:"hp"`
+	Slot0                  Slot0                   `json:"s0"`
+	BunniState             PoolState               `json:"bs"`
+	VaultSharePrices       VaultSharePrices        `json:"vsp"`
+	RebalanceOrderDeadline uint32                  `json:"rod"`
+	BlockTimestamp         uint32                  `json:"bt"`
+	OracleUniGeoParams     *ldf.OracleUniGeoParams `json:"oug,omitempty"`
+	PriceOracle            common.Address          `json:"po,omitempty"`
 }
 
 type LdfState struct {

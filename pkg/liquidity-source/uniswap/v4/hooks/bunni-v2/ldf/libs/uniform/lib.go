@@ -52,7 +52,12 @@ func DecodeParams(
 }
 
 // LiquidityDensityX96 computes the liquidity density at a given tick
-func LiquidityDensityX96(roundedTick, tickSpacing, tickLower, tickUpper int) *uint256.Int {
+func LiquidityDensityX96(
+	tickSpacing,
+	roundedTick,
+	tickLower,
+	tickUpper int,
+) *uint256.Int {
 	if roundedTick < tickLower || roundedTick >= tickUpper {
 		return uint256.NewInt(0)
 	}
