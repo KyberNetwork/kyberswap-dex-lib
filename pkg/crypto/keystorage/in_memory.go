@@ -29,7 +29,7 @@ func NewInMemoryStorage(db map[string]*crypto.KeyPairInfo) *inMemoryStorage {
 	}
 }
 
-func (i *inMemoryStorage) Get(ctx context.Context, id string) (*crypto.KeyPairInfo, error) {
+func (i *inMemoryStorage) Get(_ context.Context, id string) (*crypto.KeyPairInfo, error) {
 	keyPairInfo, ok := i.db[id]
 	if !ok {
 		return nil, crypto.NewKeyPairNotFoundError(id)
@@ -47,7 +47,9 @@ func loadDataFromFile(path string) (map[string]*crypto.KeyPairInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer jsonFile.Close()
+	defer func(jsonFile *os.File) {
+		_ = jsonFile.Close()
+	}(jsonFile)
 	bytesValue, err := io.ReadAll(jsonFile)
 	if err != nil {
 		return nil, err

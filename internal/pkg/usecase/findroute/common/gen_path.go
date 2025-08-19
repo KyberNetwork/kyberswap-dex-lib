@@ -245,7 +245,7 @@ func getNextLayerFromToken(
 		}
 	}
 
-	wg.Wait()
+	_ = wg.Wait()
 
 	for itr, param := range intermediateParams {
 		_result, ok := intermediateResults.Load(itr)
@@ -331,7 +331,7 @@ func getKthPathAtTokenOut(
 		})
 	}
 
-	wg.Wait()
+	_ = wg.Wait()
 
 	for kthPath := range nodeInfoAtTokenOut {
 		if path := intermediateResults[kthPath]; path != nil {

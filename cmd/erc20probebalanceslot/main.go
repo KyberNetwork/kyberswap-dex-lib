@@ -160,19 +160,19 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		}
 
 		for i := 0; i < len(keyValues); i += 2 {
-			pool := new(dexentity.Pool)
+			p := new(dexentity.Pool)
 			// ignore failed to unmarshal pools
-			if err := json.Unmarshal([]byte(keyValues[i+1]), pool); err != nil {
+			if err := json.Unmarshal([]byte(keyValues[i+1]), p); err != nil {
 				continue
 			}
 			// ignore non-addressable pools
-			if !common.IsHexAddress(pool.Address) {
+			if !common.IsHexAddress(p.Address) {
 				continue
 			}
 
-			for _, token := range pool.Tokens {
-				tokenAddr := common.HexToAddress(token.Address)
-				poolsByToken[tokenAddr] = append(poolsByToken[tokenAddr], pool)
+			for _, t := range p.Tokens {
+				tokenAddr := common.HexToAddress(t.Address)
+				poolsByToken[tokenAddr] = append(poolsByToken[tokenAddr], p)
 			}
 		}
 
@@ -192,15 +192,15 @@ func probeBalanceSlotAction(c *cli.Context) error {
 
 	tokens := make(map[common.Address]struct{})
 	if len(c.StringSlice("tokens")) > 0 {
-		for _, token := range c.StringSlice("tokens") {
-			tokens[common.HexToAddress(token)] = struct{}{}
+		for _, t := range c.StringSlice("tokens") {
+			tokens[common.HexToAddress(t)] = struct{}{}
 		}
 	} else {
 		tokensList := poolRedisClient.Client.HKeys(context.Background(),
 			utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
-		for _, token := range tokensList {
-			if common.IsHexAddress(token) {
-				tokens[common.HexToAddress(token)] = struct{}{}
+		for _, t := range tokensList {
+			if common.IsHexAddress(t) {
+				tokens[common.HexToAddress(t)] = struct{}{}
 			}
 		}
 	}
@@ -211,11 +211,11 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 
 	if c.Bool("skip-existing-tokens") {
-		for token, bl := range balanceSlots {
+		for t, bl := range balanceSlots {
 			if bl.Found {
-				delete(tokens, token)
+				delete(tokens, t)
 			} else if !retryNotFoundTokens {
-				delete(tokens, token)
+				delete(tokens, t)
 			}
 		}
 	}
@@ -235,22 +235,22 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	)
 	for w := 0; w < numThreads; w++ {
 		group.Go(func() error {
-			for token := range tokenCh {
-				oldBl := balanceSlots[token]
+			for t := range tokenCh {
+				oldBl := balanceSlots[t]
 				extraParams := &erc20balanceslotuc.MultipleStrategyExtraParams{}
-				if pools, ok := poolsByToken[token]; ok {
+				if pools, ok := poolsByToken[t]; ok {
 					if len(pools) > 0 {
 						extraParams.DoubleFromSource = &erc20balanceslotuc.DoubleFromSourceStrategyExtraParams{
 							Source: common.HexToAddress(pools[0].Address),
 						}
 					}
 				}
-				bl, err := probe.ProbeBalanceSlot(context.Background(), token, oldBl, extraParams)
+				bl, err := probe.ProbeBalanceSlot(context.Background(), t, oldBl, extraParams)
 				if err != nil {
 					log.Ctx(c.Context).Err(err).Msg("probe.ProbeBalanceSlot")
 				} else {
 					log.Ctx(c.Context).Info().Msgf("(%d/%d) %s : %+v\n",
-						numProbed.Add(1), len(tokens), token, bl)
+						numProbed.Add(1), len(tokens), t, bl)
 					if err := balanceSlotRepo.Put(context.Background(), bl); err != nil {
 						return fmt.Errorf("could not PUT: %w", err)
 					}
@@ -260,8 +260,8 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		})
 	}
 
-	for token := range tokens {
-		tokenCh <- token
+	for t := range tokens {
+		tokenCh <- t
 	}
 	close(tokenCh)
 
@@ -322,7 +322,9 @@ func convertToEmbeddedAction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()
+	defer func(outputFile *os.File) {
+		_ = outputFile.Close()
+	}(outputFile)
 	if _, err := outputFile.Write(serialized); err != nil {
 		return err
 	}

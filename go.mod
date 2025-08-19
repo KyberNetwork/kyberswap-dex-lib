@@ -1,6 +1,6 @@
 module github.com/KyberNetwork/router-service
 
-go 1.23.9
+go 1.25.0
 
 replace github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.2
 
@@ -9,16 +9,16 @@ require (
 	github.com/IBM/sarama v1.45.1
 	github.com/KyberNetwork/aevm v1.2.4-0.20250522103952-5e23055eb42c
 	github.com/KyberNetwork/aggregation-stats v0.2.0
-	github.com/KyberNetwork/aggregator-encoding v0.56.14
+	github.com/KyberNetwork/aggregator-encoding v0.57.0
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.2-0.20241123202223-0b77d465adc4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
 	github.com/KyberNetwork/ethrpc v0.7.4
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
-	github.com/KyberNetwork/kutils v0.4.1
+	github.com/KyberNetwork/kutils v0.4.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.115.4
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.14.17
+	github.com/KyberNetwork/kyberswap-dex-lib v0.116.0
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.15.0
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pathfinder-lib v0.1.29
@@ -54,7 +54,7 @@ require (
 	github.com/oleiade/lane v1.0.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
-	github.com/redis/go-redis/v9 v9.12.1
+	github.com/redis/go-redis/v9 v9.11.0
 	github.com/rs/zerolog v1.34.0
 	github.com/samber/lo v1.49.1
 	github.com/shopspring/decimal v1.4.0
@@ -70,7 +70,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0
 	go.opentelemetry.io/otel/trace v1.34.0
 	go.uber.org/automaxprocs v1.6.0
-	go.uber.org/mock v0.5.2
+	go.uber.org/mock v0.6.0
 	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 	golang.org/x/sync v0.16.0
 	google.golang.org/grpc v1.70.0
@@ -209,3 +209,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
+
+tool go.uber.org/mock/mockgen

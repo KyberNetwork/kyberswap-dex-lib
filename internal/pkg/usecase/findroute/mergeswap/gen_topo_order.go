@@ -24,10 +24,7 @@ func generateTokenTopoOrder(ctx context.Context, params entity.FinderParams, rou
 
 	topoOrder := []string{}
 
-	for {
-		if tokenNoIncomingDegree.Cardinality() == 0 {
-			break
-		}
+	for tokenNoIncomingDegree.Cardinality() != 0 {
 
 		targetToken, _ := tokenNoIncomingDegree.Pop()
 

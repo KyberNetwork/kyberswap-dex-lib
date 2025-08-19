@@ -323,7 +323,7 @@ func (gen *TradeDataGenerator) handleRFQDexes(ctx context.Context,
 			filename := fmt.Sprintf("Chunk_%s.txt_%s", dex, jobID)
 			fileNames, removalScores, err := gen.writeTradeData(ctx, result, filename, indexBlacklistPools)
 			if len(removalScores) != 0 {
-				gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
+				_ = gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
 			}
 			log.Ctx(ctx).Info().
 				Str("struct", "TradeDataGenerator").
@@ -391,7 +391,7 @@ func (gen *TradeDataGenerator) handlePools(ctx context.Context,
 			} else {
 				fileNames = fileNames.Union(files)
 				if len(removalScores) != 0 {
-					gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
+					_ = gen.poolRankRepo.RemoveScoreToSortedSets(ctx, removalScores)
 				}
 			}
 			blacklistPools = blacklistPools.Union(result.Blacklist)
@@ -421,7 +421,9 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 				Str("method", "writeTradeData").
 				Msg("init failed buffer failed")
 		}
-		defer failedFile.Close()
+		defer func(failedFile *os.File) {
+			_ = failedFile.Close()
+		}(failedFile)
 		failedBuffer = bufio.NewWriter(failedFile)
 	}
 
@@ -440,11 +442,13 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 				if err != nil {
 					return names, removalScores, err
 				}
-				defer whitelistFile.Close()
+				defer func(whitelistFile *os.File) {
+					_ = whitelistFile.Close()
+				}(whitelistFile)
 				names.Add(whitelistFileName)
 				whitelistBuffer = bufio.NewWriter(whitelistFile)
 			}
-			whitelistBuffer.WriteString(fmt.Sprintf("%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr))
+			_, _ = fmt.Fprintf(whitelistBuffer, "%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr)
 			continue
 		}
 
@@ -454,11 +458,13 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 			if err != nil {
 				return names, removalScores, err
 			}
-			defer file.Close()
+			defer func(file *os.File) {
+				_ = file.Close()
+			}(file)
 			names.Add(name)
 			successedBuffer = bufio.NewWriter(file)
 		}
-		successedBuffer.WriteString(fmt.Sprintf("%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr))
+		_, _ = fmt.Fprintf(successedBuffer, "%s,%s,%s\n", tradeDataId.Type, tradeDataId.Pool, jsonStr)
 	}
 
 	for p, errTrades := range output.Failed {
@@ -468,7 +474,7 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 		}
 		// push logs to grafana
 		if gen.config.ExportFailedTrade {
-			failedBuffer.Write([]byte(fmt.Sprintf("%s:%s\n", p, jsonErr)))
+			_, _ = fmt.Fprintf(failedBuffer, "%s:%s\n", p, jsonErr)
 		} else if gen.config.LogError {
 			log.Ctx(ctx).Error().Msgf("Generate trade data failed %s:%s", p, jsonErr)
 		}
@@ -487,11 +493,11 @@ func (gen *TradeDataGenerator) writeTradeData(ctx context.Context, output Trades
 	}
 
 	if successedBuffer != nil {
-		successedBuffer.Flush()
+		_ = successedBuffer.Flush()
 	}
 
 	if whitelistBuffer != nil {
-		whitelistBuffer.Flush()
+		_ = whitelistBuffer.Flush()
 	}
 
 	return names, removalScores, nil

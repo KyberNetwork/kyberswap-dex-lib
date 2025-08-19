@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRistrettoRepository_Get(t *testing.T) {
@@ -98,7 +99,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		for i, r := range routes {
 			encodedRoute, _ := route.EncodeRoute(*r)
 			key := genKey(cacheKeys[i], "ethereum")
-			redisServer.Set(key, encodedRoute)
+			_ = redisServer.Set(key, encodedRoute)
 			repo.Cache().SetWithTTL(key, r, 1, 10*time.Second)
 		}
 		invalidKey := valueobject.RouteCacheKeyTTL{
@@ -115,13 +116,13 @@ func TestRistrettoRepository_Get(t *testing.T) {
 			TTL: time.Second * 10,
 		}
 		invalidKeyHash := strconv.FormatUint(invalidKey.Key.Hash("ethereum"), 10)
-		redisServer.Set(invalidKeyHash, "invalidRoute")
+		_ = redisServer.Set(invalidKeyHash, "invalidRoute")
 		repo.Cache().SetWithTTL(invalidKeyHash, "invalidRoute", 1, time.Second*10)
 		repo.Cache().Wait()
 
 		cacheKeys = append(cacheKeys, invalidKey)
 		results, err := repo.Get(context.Background(), cacheKeys)
-		resultList := []*valueobject.SimpleRouteWithExtraData{}
+		var resultList []*valueobject.SimpleRouteWithExtraData
 		for _, v := range results {
 			resultList = append(resultList, v)
 		}
@@ -241,7 +242,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		for i, r := range routes {
 			encodedRoute, _ := route.EncodeRoute(*r)
 			key := genKey(cacheKeys[i], "ethereum")
-			redisServer.Set(key, encodedRoute)
+			_ = redisServer.Set(key, encodedRoute)
 		}
 		repo.Cache().SetWithTTL(genKey(cacheKeys[0], "ethereum"), routes[0], 1, 10*time.Second)
 

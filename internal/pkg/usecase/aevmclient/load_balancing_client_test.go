@@ -10,7 +10,6 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/aevm/types"
-	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -42,11 +41,11 @@ func (c *testClient) SingleCall(context.Context, *types.SingleCallParams) (*type
 }
 
 func (c *testClient) StorePreparedPools(context.Context,
-	*aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+	*types.StorePreparedPoolsParams) (*types.StorePreparedPoolsResult, error) {
 	panic("unreachable")
 }
 
-func (c *testClient) FindRoute(context.Context, *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
+func (c *testClient) FindRoute(context.Context, *types.FindRouteParams) (*types.FindRouteResult, error) {
 	panic("unreachable")
 }
 
@@ -86,7 +85,7 @@ func TestApplyConfig(t *testing.T) {
 			if firstCalled.CompareAndSwap(false, true) {
 				close(waitForFirstCall)
 			}
-			c.MultipleCall(context.TODO(), nil)
+			_, _ = c.MultipleCall(context.TODO(), nil)
 		}()
 	}
 

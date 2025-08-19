@@ -359,7 +359,7 @@ func (cl *ConfigLoader) setLog(logCfg valueobject.Log) {
 	if logCfg.ConsoleLevel == "" {
 		return
 	}
-	cl.config.Log.Configuration.ConsoleLevel = logCfg.ConsoleLevel
+	cl.config.Log.ConsoleLevel = logCfg.ConsoleLevel
 	_ = klog.SetLogLevel(context.Background(), logCfg.ConsoleLevel)
 	log.Logger = log.Logger.Level(parseLevel(logCfg.ConsoleLevel))
 }

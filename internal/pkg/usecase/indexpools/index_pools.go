@@ -107,10 +107,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		u.config.ChunkSize, command.UsePoolAddresses, command.PoolAddresses,
 	)
 
-	for {
-		if getChunkPoolCommand.IsLastCommand {
-			break
-		}
+	for !getChunkPoolCommand.IsLastCommand {
 
 		chunkPool, failedPoolAddresses, err := u.getChunkPool(ctx, &getChunkPoolCommand)
 		if err != nil {

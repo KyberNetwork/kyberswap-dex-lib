@@ -130,9 +130,10 @@ func (c *correlatedPairs) Aggregate(
 
 	var routes finderEntity.BestRoutes
 
-	if additionHops == 1 {
+	switch additionHops {
+	case 1:
 		routes, err = c.oneAdditionHopFinderEngine.Find(ctx, findRouteParams)
-	} else if additionHops == 2 {
+	case 2:
 		routes, err = c.twoAdditionHopsFinderEngine.Find(ctx, findRouteParams)
 	}
 

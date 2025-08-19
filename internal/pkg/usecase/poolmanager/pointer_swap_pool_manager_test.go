@@ -333,7 +333,9 @@ func loadPoolsFromFile(fileName string) []*entity.Pool {
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	scanner := bufio.NewScanner(file)
 	var res []*entity.Pool

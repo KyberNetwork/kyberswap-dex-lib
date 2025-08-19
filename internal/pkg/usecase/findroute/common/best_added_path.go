@@ -48,7 +48,7 @@ func BestPathAmongAddedPaths(
 		})
 	}
 
-	wg.Wait()
+	_ = wg.Wait()
 
 	for itr, path := range addedPaths {
 		_amountOut, ok := intermediateResults.Load(itr)

@@ -218,7 +218,7 @@ func TestFindRoute(t *testing.T) {
 				// expect no path found
 				if err == nil && len(allRoutes) > 0 {
 					routesStr, _ := json.MarshalIndent(allRoutes, "", " ")
-					fmt.Println("unexpected route", routesStr)
+					fmt.Println("unexpected route", string(routesStr))
 					t.FailNow()
 				}
 				return

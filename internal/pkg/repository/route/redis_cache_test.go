@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/stretchr/testify/assert"
 )
 
 func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
@@ -108,8 +109,8 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 		dbData := []*valueobject.SimpleRouteWithExtraData{}
 		for _, key := range cacheKeys {
 			dbResult, _ := redisServer.Get(genKey(key, "ethereum"))
-			route, _ := route.DecodeRoute(dbResult)
-			dbData = append(dbData, route)
+			r, _ := route.DecodeRoute(dbResult)
+			dbData = append(dbData, r)
 		}
 		assert.ElementsMatch(t, cachedRoutes, dbData)
 
@@ -240,7 +241,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 
 		for i, k := range cacheKeys {
 			encoded, _ := route.EncodeRoute(*routes[i])
-			redisServer.Set(genKey(k, "ethereum"), encoded)
+			_ = redisServer.Set(genKey(k, "ethereum"), encoded)
 		}
 
 		cache := route.NewRedisRepository(
@@ -253,7 +254,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 		// verify result
-		resultList := []*valueobject.SimpleRouteWithExtraData{}
+		var resultList []*valueobject.SimpleRouteWithExtraData
 		for _, v := range result {
 			resultList = append(resultList, v)
 		}
@@ -541,7 +542,7 @@ func TestRedisCacheRepository_Del(t *testing.T) {
 
 		for i, k := range cacheKeys {
 			encoded, _ := route.EncodeRoute(*routes[i])
-			redisServer.Set(genKey(k, "ethereum"), encoded)
+			_ = redisServer.Set(genKey(k, "ethereum"), encoded)
 		}
 
 		cache := route.NewRedisRepository(

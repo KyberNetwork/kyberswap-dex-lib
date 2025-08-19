@@ -35,10 +35,7 @@ func NewFixRatePoolWithID(id, token0, token1 string, rate float64, exchange dexl
 }
 
 func (p *FixRatePool) CalcAmountOut(params dexlibPool.CalcAmountOutParams) (*dexlibPool.CalcAmountOutResult, error) {
-	swapInToOut := true
-	if params.TokenAmountIn.Token == p.Token1 {
-		swapInToOut = false
-	}
+	swapInToOut := params.TokenAmountIn.Token != p.Token1
 
 	rate := p.Rate
 	if !swapInToOut {

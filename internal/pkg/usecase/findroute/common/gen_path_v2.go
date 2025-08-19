@@ -201,7 +201,7 @@ func getNextLayerFromTokenV2(
 		}
 	}
 
-	wg.Wait()
+	_ = wg.Wait()
 
 	for itr, param := range intermediateParams {
 		_result, ok := intermediateResults.Load(itr)

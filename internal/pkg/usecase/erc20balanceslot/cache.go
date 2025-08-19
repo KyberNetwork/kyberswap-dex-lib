@@ -67,12 +67,12 @@ func (c *Cache) PreloadMany(ctx context.Context, tokens []common.Address) error 
 
 	redisCount, err := c.repo.Count(ctx)
 	if err != nil {
-		return fmt.Errorf("Count returns error: %w", err)
+		return fmt.Errorf("count returns error: %w", err)
 	}
 
 	var entries map[common.Address]*types.ERC20BalanceSlot
 	// If the number of ERC20 balance slots in Redis is less than the number of querying addresses,
-	// it's might faster to GetAll from Redis instead of GetMany.
+	// it might be faster to GetAll from Redis instead of GetMany.
 	if redisCount < len(preloadingTokens) {
 		entries, err = c.repo.GetAll(ctx)
 		if err != nil {

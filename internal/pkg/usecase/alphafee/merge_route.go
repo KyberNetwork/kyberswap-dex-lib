@@ -120,10 +120,7 @@ func (c *AlphaFeeV2Calculation) calculateDefaultAlphaFeeMergeRoute(_ context.Con
 	lo := 0
 	hi := 10000
 
-	for {
-		if lo > hi {
-			break
-		}
+	for lo <= hi {
 
 		mid := (lo + hi) / 2
 		isValid, swapReductions := isValidReduction(param.RouteSummary, mid, alphaFee)

@@ -105,7 +105,9 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 	if err != nil {
 		return err
 	}
-	defer input.Close()
+	defer func(input *os.File) {
+		_ = input.Close()
+	}(input)
 	count := 0
 	errorCount := 0
 
