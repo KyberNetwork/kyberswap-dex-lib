@@ -6,7 +6,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestUint256Refactor(t *testing.T) {
@@ -18,14 +18,14 @@ func TestUint256Refactor(t *testing.T) {
 				new(uint256.Int).Mul(
 					new(uint256.Int).Div(
 						new(uint256.Int).Mul(
-							new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, D), gamma), _g1k0,
+							new(uint256.Int).Div(new(uint256.Int).Mul(big256.BONE, D), gamma), _g1k0,
 						), gamma,
 					),
 					_g1k0,
 				),
 				AMultiplier,
 			), ANN,
-		), mul1.Mul(constant.BONE, D).Div(mul1, gamma).Mul(mul1, _g1k0).Div(mul1, gamma).Mul(mul1, _g1k0).Mul(mul1, AMultiplier).Div(mul1, ANN), "fail")
+		), mul1.Mul(big256.BONE, D).Div(mul1, gamma).Mul(mul1, _g1k0).Div(mul1, gamma).Mul(mul1, _g1k0).Mul(mul1, AMultiplier).Div(mul1, ANN), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6))
 
 	func(nCoinsBi, K0, _g1k0 *uint256.Int) {
@@ -33,26 +33,26 @@ func TestUint256Refactor(t *testing.T) {
 		assert.Equal(t, new(uint256.Int).Div(
 			new(uint256.Int).Mul(
 				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.U2, constant.BONE), nCoinsBi,
+					new(uint256.Int).Mul(big256.U2, big256.BONE), nCoinsBi,
 				), K0,
 			), _g1k0,
-		), mul2.Mul(constant.U2, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0), "fail")
+		), mul2.Mul(big256.U2, big256.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4))
 
 	func(S, mul2, mul1, nCoinsBi, K0, D *uint256.Int) {
 		var negFprime = new(uint256.Int)
 		assert.Equal(t, new(uint256.Int).Sub(
 			new(uint256.Int).Add(
-				new(uint256.Int).Add(S, new(uint256.Int).Div(new(uint256.Int).Mul(S, mul2), constant.BONE)),
+				new(uint256.Int).Add(S, new(uint256.Int).Div(new(uint256.Int).Mul(S, mul2), big256.BONE)),
 				new(uint256.Int).Div(new(uint256.Int).Mul(mul1, nCoinsBi), K0),
 			),
-			new(uint256.Int).Div(new(uint256.Int).Mul(mul2, D), constant.BONE),
-		), negFprime.Mul(S, mul2).Div(negFprime, constant.BONE).Add(S, negFprime).Add(
+			new(uint256.Int).Div(new(uint256.Int).Mul(mul2, D), big256.BONE),
+		), negFprime.Mul(S, mul2).Div(negFprime, big256.BONE).Add(S, negFprime).Add(
 			new(uint256.Int).Set(negFprime),
 			negFprime.Mul(mul1, nCoinsBi).Div(negFprime, K0),
 		).Sub(
 			new(uint256.Int).Set(negFprime),
-			negFprime.Mul(mul2, D).Div(negFprime, constant.BONE),
+			negFprime.Mul(mul2, D).Div(negFprime, big256.BONE),
 		), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6), uint256.NewInt(7))
 
@@ -74,14 +74,14 @@ func TestUint256Refactor(t *testing.T) {
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(
 					new(uint256.Int).Div(
-						new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), constant.BONE,
-					), new(uint256.Int).Sub(constant.BONE, K0),
+						new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), big256.BONE,
+					), new(uint256.Int).Sub(big256.BONE, K0),
 				),
 				K0,
 			),
 		), DMinus.Add(new(
 			uint256.Int).Set(DMinus),
-			DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, constant.BONE).Mul(DMinus, new(uint256.Int).Sub(constant.BONE, K0)).Div(DMinus, K0),
+			DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, big256.BONE).Mul(DMinus, new(uint256.Int).Sub(big256.BONE, K0)).Div(DMinus, K0),
 		), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6))
 
@@ -91,14 +91,14 @@ func TestUint256Refactor(t *testing.T) {
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(
 					new(uint256.Int).Div(
-						new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), constant.BONE,
-					), new(uint256.Int).Sub(K0, constant.BONE),
+						new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), big256.BONE,
+					), new(uint256.Int).Sub(K0, big256.BONE),
 				),
 				K0,
 			),
 		), DMinus.Add(new(
 			uint256.Int).Set(DMinus),
-			DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, constant.BONE).Mul(DMinus, new(uint256.Int).Sub(K0, constant.BONE)).Div(DMinus, K0),
+			DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, big256.BONE).Mul(DMinus, new(uint256.Int).Sub(K0, big256.BONE)).Div(DMinus, K0),
 		), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6))
 
@@ -107,10 +107,10 @@ func TestUint256Refactor(t *testing.T) {
 		assert.Equal(t, new(uint256.Int).Add(
 			new(uint256.Int).Div(
 				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.U2, constant.BONE), K0,
+					new(uint256.Int).Mul(big256.U2, big256.BONE), K0,
 				), _g1k0,
-			), constant.BONE,
-		), mul2.Mul(constant.U2, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE), "fail")
+			), big256.BONE,
+		), mul2.Mul(big256.U2, big256.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, big256.BONE), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3))
 
 	func(gamma, ETHER, xp0, xp1, f *uint256.Int) {
@@ -121,20 +121,20 @@ func TestUint256Refactor(t *testing.T) {
 		assert.Equal(t, new(uint256.Int).Div(
 			new(uint256.Int).Mul(
 				gamma,
-				constant.BONE,
+				big256.BONE,
 			),
 			new(uint256.Int).Sub(
 				new(uint256.Int).Add(
 					gamma,
-					constant.BONE,
+					big256.BONE,
 				),
 				new(uint256.Int).Div(
 					new(uint256.Int).Mul(
 						new(uint256.Int).Div(
 							new(uint256.Int).Mul(
 								new(uint256.Int).Mul(
-									constant.BONE,
-									constant.U4,
+									big256.BONE,
+									big256.U4,
 								),
 								xp0,
 							),
@@ -145,10 +145,10 @@ func TestUint256Refactor(t *testing.T) {
 					f,
 				),
 			),
-		), f.Mul(constant.BONE, constant.U4).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
-			new(uint256.Int).Add(gamma, constant.BONE), f,
+		), f.Mul(big256.BONE, big256.U4).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
+			new(uint256.Int).Add(gamma, big256.BONE), f,
 		).Div(
-			new(uint256.Int).Mul(gamma, constant.BONE), f,
+			new(uint256.Int).Mul(gamma, big256.BONE), f,
 		), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6))
 
@@ -162,11 +162,11 @@ func TestUint256Refactor(t *testing.T) {
 				new(uint256.Int).Mul(
 					maxFee,
 					new(uint256.Int).Sub(
-						constant.BONE, f,
+						big256.BONE, f,
 					),
 				),
 			),
-			constant.BONE,
-		), fee.Sub(constant.BONE, f).Mul(maxFee, fee).Add(fee, new(uint256.Int).Mul(minFee, f)).Div(fee, constant.BONE), "fail")
+			big256.BONE,
+		), fee.Sub(big256.BONE, f).Mul(maxFee, fee).Add(fee, new(uint256.Int).Mul(minFee, f)).Div(fee, big256.BONE), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4))
 }

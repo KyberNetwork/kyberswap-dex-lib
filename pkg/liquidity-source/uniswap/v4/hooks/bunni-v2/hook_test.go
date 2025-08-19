@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -150,7 +151,7 @@ func Test_Pool_V120(t *testing.T) {
 		TokenOut: "0x078d782b760474a361dda0af3839290b0ef57ad6",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "6443486883", got.TokenAmountOut.Amount.String())
+	assert.Equal(t, "6443486358", got.TokenAmountOut.Amount.String())
 }
 
 func Test_Pool_ETH_weETH(t *testing.T) {

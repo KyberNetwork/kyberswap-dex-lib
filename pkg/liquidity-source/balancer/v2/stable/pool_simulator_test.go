@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -25,8 +24,8 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("8897791020011100123456", 10)
 
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
+			Pool: pool.Pool{
+				Info: pool.PoolInfo{
 					Reserves: reserves,
 					Tokens: []string{
 						"0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -43,13 +42,13 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := pool.TokenAmount{
 			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 			Amount: new(big.Int).SetUint64(99999910000000),
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
-		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		_, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -65,8 +64,8 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("13288977911102200123456", 10)
 
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
+			Pool: pool.Pool{
+				Info: pool.PoolInfo{
 					Reserves: reserves,
 					Tokens: []string{
 						"0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -83,7 +82,7 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := pool.TokenAmount{
 			Token:  "0x6b175474e89094c44da98b954eedeac495271d0f",
 			Amount: new(big.Int).SetUint64(12000000000000000000),
 		}
@@ -93,8 +92,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "1000000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -113,8 +112,8 @@ func TestCalcAmountOut(t *testing.T) {
 		reserves[2], _ = new(big.Int).SetString("1328897131447911102200123456", 10)
 
 		s := PoolSimulator{
-			Pool: poolpkg.Pool{
-				Info: poolpkg.PoolInfo{
+			Pool: pool.Pool{
+				Info: pool.PoolInfo{
 					Reserves: reserves,
 					Tokens: []string{
 						"0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -131,7 +130,7 @@ func TestCalcAmountOut(t *testing.T) {
 			poolTypeVer: 1,
 		}
 
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := pool.TokenAmount{
 			Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 			Amount: new(big.Int).SetUint64(12111222333444555666),
 		}
@@ -141,8 +140,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "590000000000000000"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -184,14 +183,14 @@ func TestCalcAmountOut(t *testing.T) {
 			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"scalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
 			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		  }`
-		var pool entity.Pool
-		err := json.Unmarshal([]byte(poolStr), &pool)
+		var entityPool entity.Pool
+		err := json.Unmarshal([]byte(poolStr), &entityPool)
 		assert.Nil(t, err)
 
-		s, err := NewPoolSimulator(pool, nil)
+		s, err := NewPoolSimulator(entityPool, nil)
 		assert.Nil(t, err)
 
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := pool.TokenAmount{
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			Amount: big.NewInt(73183418984294781),
 		}
@@ -201,8 +200,8 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "63551050657042642"
 
 		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return s.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -225,8 +224,8 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		params  poolpkg.CalcAmountInParams
-		want    *poolpkg.CalcAmountInResult
+		params  pool.CalcAmountInParams
+		want    *pool.CalcAmountInResult
 		wantErr error
 	}{
 		{
@@ -272,8 +271,8 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"Stable\",\"poolTypeVersion\":1,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 					}`,
 			},
-			params: poolpkg.CalcAmountInParams{
-				TokenAmountOut: poolpkg.TokenAmount{
+			params: pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{
 					Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 					Amount: big.NewInt(999999100000),
 				},
@@ -316,15 +315,15 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 					}`,
 			},
-			params: poolpkg.CalcAmountInParams{
-				TokenAmountOut: poolpkg.TokenAmount{
+			params: pool.CalcAmountInParams{
+				TokenAmountOut: pool.TokenAmount{
 					Token:  "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
 					Amount: big.NewInt(63551050657042642),
 				},
 				TokenIn: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			},
-			want: &poolpkg.CalcAmountInResult{
-				TokenAmountIn: &poolpkg.TokenAmount{
+			want: &pool.CalcAmountInResult{
+				TokenAmountIn: &pool.TokenAmount{
 					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Amount: big.NewInt(73154145616700748),
 				},
@@ -335,14 +334,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var pool entity.Pool
-			err := json.Unmarshal([]byte(tt.fields.poolStr), &pool)
+			var entityPool entity.Pool
+			err := json.Unmarshal([]byte(tt.fields.poolStr), &entityPool)
 			assert.Nil(t, err)
 
-			simulator, err := NewPoolSimulator(pool, nil)
+			simulator, err := NewPoolSimulator(entityPool, nil)
 			assert.Nil(t, err)
 
-			got, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
+			got, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
 				return simulator.CalcAmountIn(tt.params)
 			})
 			if err != nil {

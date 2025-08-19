@@ -112,12 +112,13 @@ func (p *PoolSimulator) _RAboveBackToOne() *uint256.Int {
 func (p *PoolSimulator) getExpectedTarget() (baseTarget, quoteTarget *uint256.Int) {
 	Q := p.Q
 	B := p.B
-	if p.RStatus == rStatusOne {
+	switch p.RStatus {
+	case rStatusOne:
 		return p.B0, p.Q0
-	} else if p.RStatus == rStatusBelowOne {
+	case rStatusBelowOne:
 		payQuoteToken := p._RBelowBackToOne()
 		return p.B0, libv1.SafeAdd(Q, payQuoteToken)
-	} else if p.RStatus == rStatusAboveOne {
+	case rStatusAboveOne:
 		payBaseToken := p._RAboveBackToOne()
 		return libv1.SafeAdd(B, payBaseToken), p.Q0
 	}

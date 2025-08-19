@@ -32,10 +32,11 @@ func (p *PoolSimulator) _querySellBaseToken(amount *uint256.Int) (
 
 	sellBaseAmount := amount
 
-	if p.RStatus == rStatusOne {
+	switch p.RStatus {
+	case rStatusOne:
 		receiveQuote = p._ROneSellBaseToken(sellBaseAmount, newQuoteTarget)
 		newRStatus = rStatusBelowOne
-	} else if p.RStatus == rStatusAboveOne {
+	case rStatusAboveOne:
 		backToOnePayBase := libv1.SafeSub(newBaseTarget, p.B)
 		backToOneReceiveQuote := libv1.SafeSub(p.Q, newQuoteTarget)
 		if sellBaseAmount.Cmp(backToOnePayBase) < 0 {
@@ -54,7 +55,7 @@ func (p *PoolSimulator) _querySellBaseToken(amount *uint256.Int) (
 			)
 			newRStatus = rStatusBelowOne
 		}
-	} else {
+	default:
 		receiveQuote = p._RBelowSellBaseToken(sellBaseAmount, p.Q, newQuoteTarget)
 		newRStatus = rStatusBelowOne
 	}
@@ -98,13 +99,14 @@ func (p *PoolSimulator) _queryBuyBaseToken(amount *uint256.Int) (
 		mtFeeBase,
 	)
 
-	if p.RStatus == rStatusOne {
+	switch p.RStatus {
+	case rStatusOne:
 		payQuote = p._ROneBuyBaseToken(buyBaseAmount, newBaseTarget)
 		newRStatus = rStatusAboveOne
-	} else if p.RStatus == rStatusAboveOne {
+	case rStatusAboveOne:
 		payQuote = p._RAboveBuyBaseToken(buyBaseAmount, p.B, newBaseTarget)
 		newRStatus = rStatusAboveOne
-	} else if p.RStatus == rStatusBelowOne {
+	case rStatusBelowOne:
 		backToOnePayQuote := libv1.SafeSub(newQuoteTarget, p.Q)
 		backToOneReceiveBase := libv1.SafeSub(p.B, newBaseTarget)
 		if buyBaseAmount.Cmp(backToOneReceiveBase) < 0 {

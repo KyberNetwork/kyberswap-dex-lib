@@ -11,7 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -37,7 +37,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		gas:                       defaultGas,
@@ -53,7 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 // reference: https://github.com/bancorprotocol/contracts-solidity/blob/dc378ab9d57d1b4a41dfa95fc5142fac2f4ee307/contracts/converter/types/standard-pool/StandardPoolConverter.sol#L1082
 func crossReserveTargetAmount(sourceReserveBalance, targetReserveBalance, sourceAmount *big.Int) (*big.Int, error) {
 	// Ensure that both source and target reserve balances are greater than 0
-	if sourceReserveBalance.Cmp(utils.ZeroBI) != 1 || targetReserveBalance.Cmp(utils.ZeroBI) != 1 {
+	if sourceReserveBalance.Cmp(bignumber.ZeroBI) != 1 || targetReserveBalance.Cmp(bignumber.ZeroBI) != 1 {
 		return nil, ErrInvalidReserve
 	}
 
@@ -176,7 +176,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMetaInner{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

@@ -41,11 +41,12 @@ func (p *PoolSimulator) querySellQuoteToken(amount *uint256.Int) (
 	state.B = p.B
 	state.K = p.K
 
-	if p.RStatus == rStatusOne {
+	switch p.RStatus {
+	case rStatusOne:
 		boughtAmount = p._ROneSellQuoteToken(amount, &state)
-	} else if p.RStatus == rStatusAboveOne {
+	case rStatusAboveOne:
 		boughtAmount = p._RAboveSellQuoteToken(amount, &state)
-	} else {
+	default:
 		backOneBase := libv1.SafeSub(state.B, state.BaseTarget)
 		backOneQuote := libv1.SafeSub(state.QuoteTarget, state.Q)
 		if amount.Cmp(backOneQuote) <= 0 {

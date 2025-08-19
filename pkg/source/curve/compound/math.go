@@ -3,7 +3,7 @@ package compound
 import (
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func _xp(
@@ -17,7 +17,7 @@ func _xp(
 		return nil, ErrBalancesMustMatchMultipliers
 	}
 	for i := 0; i < numTokens; i += 1 {
-		xp = append(xp, new(big.Int).Div(new(big.Int).Mul(balances[i], new(big.Int).Mul(rates[i], tokenPrecisionMultipliers[i])), constant.BONE))
+		xp = append(xp, new(big.Int).Div(new(big.Int).Mul(balances[i], new(big.Int).Mul(rates[i], tokenPrecisionMultipliers[i])), bignumber.BONE))
 	}
 
 	return xp, nil
@@ -42,7 +42,7 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		for j := 0; j < numTokens; j++ {
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), constant.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
 		prevD = d
@@ -98,7 +98,7 @@ func getY(
 		} else {
 			continue
 		}
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrZero
 		}
 		s = new(big.Int).Add(s, _x)
@@ -107,7 +107,7 @@ func getY(
 			new(big.Int).Mul(_x, numTokensBI),
 		)
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -127,7 +127,7 @@ func getY(
 			new(big.Int).Add(new(big.Int).Mul(y, y), c),
 			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
 		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}

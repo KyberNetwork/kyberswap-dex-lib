@@ -9,8 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -19,7 +18,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	testCases := []struct {
 		name              string
 		poolSimulator     PoolSimulator
-		tokenAmountIn     poolpkg.TokenAmount
+		tokenAmountIn     pool.TokenAmount
 		tokenOut          string
 		expectedAmountOut *big.Int
 		expectedError     error
@@ -50,16 +49,16 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 				},
 			},
-			tokenAmountIn:     poolpkg.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: utils.NewBig("81275824825923290")},
+			tokenAmountIn:     pool.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: bignumber.NewBig("81275824825923290")},
 			tokenOut:          "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
-			expectedAmountOut: utils.NewBig("437981"),
+			expectedAmountOut: bignumber.NewBig("437981"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
+				return tc.poolSimulator.CalcAmountOut(pool.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
 			})
 
 			assert.ErrorIs(t, err, tc.expectedError)
@@ -75,7 +74,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	testCases := []struct {
 		name               string
 		poolSimulator      PoolSimulator
-		params             poolpkg.UpdateBalanceParams
+		params             pool.UpdateBalanceParams
 		expectedBalanceIn  *uint256.Int
 		expectedBalanceOut *uint256.Int
 	}{
@@ -105,9 +104,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 				},
 			},
-			params: poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: utils.NewBig("81275824825923290")},
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Amount: utils.NewBig("437981")},
+			params: pool.UpdateBalanceParams{
+				TokenAmountIn:  pool.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: bignumber.NewBig("81275824825923290")},
+				TokenAmountOut: pool.TokenAmount{Token: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599", Amount: bignumber.NewBig("437981")},
 			},
 			expectedBalanceIn:  number.NewUint256("181534614959320309052"),
 			expectedBalanceOut: number.NewUint256("981746315"),

@@ -56,7 +56,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrPoolPaused
 	}
 
-	if params.TokenAmountIn.Token != s.Pool.Info.Tokens[0] {
+	if params.TokenAmountIn.Token != s.Info.Tokens[0] {
 		return nil, ErrInvalidTokenIn
 	}
 
@@ -92,7 +92,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

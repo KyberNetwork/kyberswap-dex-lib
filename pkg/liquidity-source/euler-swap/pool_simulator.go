@@ -103,8 +103,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:            DefaultGas,
 		SwapInfo:       swapInfo,
 	}, nil
@@ -140,8 +140,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		TokenAmountIn: &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:           DefaultGas,
 		SwapInfo:      swapInfo,
 	}, nil

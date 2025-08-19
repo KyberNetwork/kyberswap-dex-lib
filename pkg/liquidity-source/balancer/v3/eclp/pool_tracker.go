@@ -92,7 +92,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra.DecimalScalingFactors = shared.FromBigs(res.PoolData.DecimalScalingFactors)
 	extra.TokenRates = shared.FromBigs(res.PoolData.TokenRates)
 	extra.Buffers = res.Buffers()
-	extra.ECLPParams = res.ECLPParamsRpc.toInt256()
+	extra.ECLPParams = res.toInt256()
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

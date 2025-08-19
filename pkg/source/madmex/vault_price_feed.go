@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type VaultPriceFeed struct {
@@ -189,7 +189,7 @@ func (pf *VaultPriceFeed) GetPrice(token string, maximise bool, includeAmmPrice 
 
 	adjustmentBps := pf.AdjustmentBasisPoints[token]
 
-	if adjustmentBps.Cmp(constant.ZeroBI) > 0 {
+	if adjustmentBps.Cmp(bignumber.ZeroBI) > 0 {
 		isAdditive := pf.IsAdjustmentAdditive[token]
 
 		if isAdditive {
@@ -222,7 +222,7 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 
 	if includeAmmPrice && pf.IsAmmEnabled {
 		ammPrice := pf.getAmmPrice(token)
-		if ammPrice.Cmp(constant.ZeroBI) > 0 {
+		if ammPrice.Cmp(bignumber.ZeroBI) > 0 {
 			if maximise && ammPrice.Cmp(price) > 0 {
 				price = ammPrice
 			}
@@ -352,7 +352,7 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 		}
 	}
 
-	price := constant.ZeroBI
+	price := bignumber.ZeroBI
 	roundID := priceFeed.LatestRound()
 
 	for i := big.NewInt(0); i.Cmp(pf.PriceSampleSpace) < 0; i = new(big.Int).Add(i, big.NewInt(1)) {
@@ -361,21 +361,21 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 		}
 
 		var p *big.Int
-		if i.Cmp(constant.ZeroBI) == 0 {
+		if i.Cmp(bignumber.ZeroBI) == 0 {
 			p = priceFeed.LatestAnswer()
 
-			if p.Cmp(constant.ZeroBI) <= 0 {
+			if p.Cmp(bignumber.ZeroBI) <= 0 {
 				return nil, ErrVaultPriceFeedInvalidPrice
 			}
 		} else {
-			_, p, _, _, _ = priceFeed.GetRoundData(new(big.Int).Sub(roundID, constant.One))
+			_, p, _, _, _ = priceFeed.GetRoundData(new(big.Int).Sub(roundID, bignumber.One))
 
-			if p.Cmp(constant.ZeroBI) <= 0 {
+			if p.Cmp(bignumber.ZeroBI) <= 0 {
 				return nil, ErrVaultPriceFeedInvalidPrice
 			}
 		}
 
-		if price.Cmp(constant.ZeroBI) == 0 {
+		if price.Cmp(bignumber.ZeroBI) == 0 {
 			price = p
 			continue
 		}
@@ -385,7 +385,7 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 		}
 	}
 
-	if price.Cmp(constant.ZeroBI) <= 0 {
+	if price.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrVaultPriceFeedCouldNotFetchPrice
 	}
 
@@ -424,12 +424,12 @@ func (pf *VaultPriceFeed) getAmmPrice(token string) *big.Int {
 		return new(big.Int).Div(new(big.Int).Mul(price0, price1), PricePrecision)
 	}
 
-	return constant.ZeroBI
+	return bignumber.ZeroBI
 }
 
 func (pf *VaultPriceFeed) getAmmPriceV2(token string, maximise bool, primaryPrice *big.Int) *big.Int {
 	ammPrice := pf.getAmmPrice(token)
-	if ammPrice.Cmp(constant.ZeroBI) == 0 {
+	if ammPrice.Cmp(bignumber.ZeroBI) == 0 {
 		return primaryPrice
 	}
 
@@ -462,15 +462,15 @@ func (pf *VaultPriceFeed) getPairPrice(pair *PancakePair, divByReserve0 bool) *b
 	reserve0, reserve1, _ := pair.GetReserves()
 
 	if divByReserve0 {
-		if reserve0.Cmp(constant.ZeroBI) == 0 {
-			return constant.ZeroBI
+		if reserve0.Cmp(bignumber.ZeroBI) == 0 {
+			return bignumber.ZeroBI
 		}
 
 		return new(big.Int).Div(new(big.Int).Mul(reserve1, PricePrecision), reserve0)
 	}
 
-	if reserve1.Cmp(constant.ZeroBI) == 0 {
-		return constant.ZeroBI
+	if reserve1.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI
 	}
 
 	return new(big.Int).Div(new(big.Int).Mul(reserve0, PricePrecision), reserve1)

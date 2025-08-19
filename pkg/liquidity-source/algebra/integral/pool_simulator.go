@@ -232,7 +232,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
 	priceLimit, _ := p.getSqrtPriceLimit(zeroForOne)
 	return PoolMeta{
-		BlockNumber: p.Pool.Info.BlockNumber,
+		BlockNumber: p.Info.BlockNumber,
 		PriceLimit:  priceLimit,
 	}
 }

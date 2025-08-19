@@ -73,7 +73,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	pools, metadataRes, _ := ts.updater.GetNewPools(context.Background(), metadataBytes)
 
 	for _, p := range pools {
-		assert.NotNil(ts.Suite.T(), p.Address)
+		assert.NotNil(ts.T(), p.Address)
 	}
 	compare := min(length.Int64(), length.Int64()-int64(metadata.Offset))
 
@@ -81,7 +81,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	var savedMetadataRes PoolListUpdaterMetadata
 	err = json.Unmarshal(metadataRes, &savedMetadataRes)
 	if err != nil {
-		assert.Fail(ts.Suite.T(), "Error when unmarshal metadata after fetch")
+		assert.Fail(ts.T(), "Error when unmarshal metadata after fetch")
 	}
 	assert.Equal(ts.T(), int(compare+int64(metadata.Offset)), savedMetadataRes.Offset)
 

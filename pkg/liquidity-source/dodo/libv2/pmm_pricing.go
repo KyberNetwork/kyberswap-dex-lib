@@ -26,12 +26,13 @@ type PMMState struct {
 
 // SellBaseToken https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/lib/PMMPricing.sol#L39
 func SellBaseToken(state PMMState, payBaseAmount *uint256.Int) (receiveQuoteAmount *uint256.Int, newR RState) {
-	if state.R == RStateOne {
+	switch state.R {
+	case RStateOne:
 		// case 1: R=1
 		// R falls below one
 		receiveQuoteAmount = _ROneSellBaseToken(state, payBaseAmount)
 		newR = RStateBelowOne
-	} else if state.R == RStateAboveOne {
+	case RStateAboveOne:
 		backToOnePayBase := SafeSub(state.B0, state.B)
 		backToOneReceiveQuote := SafeSub(state.Q, state.Q0)
 		// case 2: R>1
@@ -56,7 +57,7 @@ func SellBaseToken(state PMMState, payBaseAmount *uint256.Int) (receiveQuoteAmou
 			)
 			newR = RStateBelowOne
 		}
-	} else {
+	default:
 		// state.R == RState.BELOW_ONE
 		// case 3: R<1
 		receiveQuoteAmount = _RBelowSellBaseToken(state, payBaseAmount)
@@ -68,13 +69,14 @@ func SellBaseToken(state PMMState, payBaseAmount *uint256.Int) (receiveQuoteAmou
 
 // SellQuoteToken https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/lib/PMMPricing.sol#L82
 func SellQuoteToken(state PMMState, payQuoteAmount *uint256.Int) (receiveBaseAmount *uint256.Int, newR RState) {
-	if state.R == RStateOne {
+	switch state.R {
+	case RStateOne:
 		receiveBaseAmount = _ROneSellQuoteToken(state, payQuoteAmount)
 		newR = RStateAboveOne
-	} else if state.R == RStateAboveOne {
+	case RStateAboveOne:
 		receiveBaseAmount = _RAboveSellQuoteToken(state, payQuoteAmount)
 		newR = RStateAboveOne
-	} else {
+	default:
 		backToOnePayQuote := SafeSub(state.Q0, state.Q)
 		backToOneReceiveBase := SafeSub(state.B, state.B0)
 		if payQuoteAmount.Cmp(backToOnePayQuote) < 0 {
@@ -173,14 +175,15 @@ func _RAboveSellQuoteToken(state PMMState, payQuoteAmount *uint256.Int) *uint256
 
 // AdjustedTarget https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/lib/PMMPricing.sol#L226
 func AdjustedTarget(state *PMMState) {
-	if state.R == RStateBelowOne {
+	switch state.R {
+	case RStateBelowOne:
 		state.Q0 = SolveQuadraticFunctionForTarget(
 			state.Q,
 			SafeSub(state.B, state.B0),
 			state.I,
 			state.K,
 		)
-	} else if state.R == RStateAboveOne {
+	case RStateAboveOne:
 		state.B0 = SolveQuadraticFunctionForTarget(
 			state.B,
 			SafeSub(state.Q, state.Q0),

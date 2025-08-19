@@ -11,7 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -96,9 +96,9 @@ func TestAddLiquidity(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			res, err := p.AddLiquidity(lo.Map(tc.amounts, func(s string, _ int) *big.Int { return utils.NewBig10(s) }))
+			res, err := p.AddLiquidity(lo.Map(tc.amounts, func(s string, _ int) *big.Int { return bignumber.NewBig10(s) }))
 			require.Nil(t, err)
-			assert.Equal(t, utils.NewBig10(tc.expectedLp), res)
+			assert.Equal(t, bignumber.NewBig10(tc.expectedLp), res)
 			fmt.Println(p.Info.Reserves)
 		})
 	}
@@ -135,24 +135,24 @@ func TestGetDyVirtualPrice(t *testing.T) {
 
 	v, dCached, err := p.GetVirtualPrice()
 	require.Nil(t, err)
-	assert.Equal(t, utils.NewBig10("1077638023314146944"), v)
+	assert.Equal(t, bignumber.NewBig10("1077638023314146944"), v)
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			dy, err := testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
-				dy, _, err := p.GetDy(tc.i, tc.j, utils.NewBig10(tc.dx), nil)
+				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), nil)
 				return dy, err
 			})
 			require.Nil(t, err)
-			assert.Equal(t, utils.NewBig10(tc.expOut), dy)
+			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
 
 			// test using cached D
 			dy, err = testutil.MustConcurrentSafe(t, func() (*big.Int, error) {
-				dy, _, err := p.GetDy(tc.i, tc.j, utils.NewBig10(tc.dx), dCached)
+				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), dCached)
 				return dy, err
 			})
 			require.Nil(t, err)
-			assert.Equal(t, utils.NewBig10(tc.expOut), dy)
+			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
 		})
 	}
 }

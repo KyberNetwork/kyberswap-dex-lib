@@ -73,7 +73,7 @@ func Pow(x, y *uint256.Int) (*uint256.Int, error) {
 
 	logx_times_y = logx_times_y.Quo(logx_times_y, i1e18)
 
-	if !(IMinNaturalExponent.Cmp(logx_times_y) <= 0 && logx_times_y.Cmp(IMaxNaturalExponent) <= 0) {
+	if IMinNaturalExponent.Cmp(logx_times_y) > 0 || logx_times_y.Cmp(IMaxNaturalExponent) > 0 {
 		return nil, ErrProductOutOfBounds
 	}
 

@@ -94,7 +94,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrUnsupportedArmType
 	}
 
-	reserveOut := uint256.MustFromBig(p.Pool.Info.Reserves[indexOut])
+	reserveOut := uint256.MustFromBig(p.Info.Reserves[indexOut])
 	if p.hasWithdrawalQueue && common.HexToAddress(tokenOut).Cmp(p.LiquidityAsset) == 0 {
 		//uint256 outstandingWithdrawals = withdrawsQueued - withdrawsClaimed;
 		//amount + outstandingWithdrawals <= IERC20(liquidityAsset).balanceOf(address(this)),
@@ -124,8 +124,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	p.Pool.Info.Reserves[indexIn] = new(big.Int).Add(p.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	p.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(p.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	p.Info.Reserves[indexIn] = new(big.Int).Add(p.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {

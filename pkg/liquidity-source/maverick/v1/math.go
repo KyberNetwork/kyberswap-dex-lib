@@ -6,7 +6,7 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/holiman/uint256"
 
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L72
@@ -213,7 +213,7 @@ func computeSwapExactOut(
 	feeBasis, err := mulDiv(
 		binAmountIn,
 		state.Fee,
-		new(uint256.Int).Sub(bignumber.BONE, state.Fee),
+		new(uint256.Int).Sub(big256.BONE, state.Fee),
 		true,
 	)
 	if err != nil {
@@ -262,12 +262,12 @@ func computeSwapExactIn(
 
 	var feeBasis *uint256.Int
 
-	tmp, err := mul(amountIn, new(uint256.Int).Sub(bignumber.BONE, state.Fee))
+	tmp, err := mul(amountIn, new(uint256.Int).Sub(big256.BONE, state.Fee))
 	if err != nil {
 		return nil, err
 	}
 	if tmp.Cmp(binAmountIn) >= 0 {
-		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(uint256.Int).Sub(bignumber.BONE, state.Fee), true)
+		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(uint256.Int).Sub(big256.BONE, state.Fee), true)
 		if err != nil {
 			return nil, err
 		}
@@ -282,7 +282,7 @@ func computeSwapExactIn(
 			delta.Excess = clip(amountIn, delta.DeltaInErc)
 		}
 	} else {
-		binAmountIn, err = mul(amountIn, new(uint256.Int).Sub(bignumber.BONE, state.Fee))
+		binAmountIn, err = mul(amountIn, new(uint256.Int).Sub(big256.BONE, state.Fee))
 		if err != nil {
 			return nil, err
 		}
@@ -328,7 +328,7 @@ func computeSwapExactIn(
 // https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L252
 func amountToBin(deltaInErc, feeBases *uint256.Int, state *MaverickPoolState) (*uint256.Int, error) {
 	if !state.ProtocolFeeRatio.IsZero() {
-		tmp := bignumber.TenPow(15)
+		tmp := big256.TenPow(15)
 		tmpMul, err := mul(feeBases, tmp.Mul(state.ProtocolFeeRatio, tmp))
 		if err != nil {
 			return nil, err
@@ -494,7 +494,7 @@ func TickPrice(tickSpacing int32, activeTick int32) (*uint256.Int, error) {
 		ratio.Div(MaxUint256, ratio)
 	}
 
-	ratio.Mul(ratio, bignumber.BONE).
+	ratio.Mul(ratio, big256.BONE).
 		Rsh(ratio, 128)
 
 	return ratio, nil
@@ -949,14 +949,14 @@ func scaleFromAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) 
 	var scalingFactor uint256.Int
 	if decimals > 18 {
 		scalingFactor.Mul(
-			bignumber.BONE,
-			bignumber.TenPow(decimals-18),
+			big256.BONE,
+			big256.TenPow(decimals-18),
 		)
 		return sDivDownFixed(amount, &scalingFactor)
 	} else {
 		scalingFactor.Mul(
-			bignumber.BONE,
-			bignumber.TenPow(18-decimals),
+			big256.BONE,
+			big256.TenPow(18-decimals),
 		)
 		return sMulUpFixed(amount, &scalingFactor)
 	}
@@ -970,14 +970,14 @@ func ScaleToAmount(amount *uint256.Int, decimals uint8) (*uint256.Int, error) {
 	var scalingFactor uint256.Int
 	if decimals > 18 {
 		scalingFactor.Mul(
-			bignumber.BONE,
-			bignumber.TenPow(decimals-18),
+			big256.BONE,
+			big256.TenPow(decimals-18),
 		)
 		return sMulUpFixed(amount, &scalingFactor)
 	} else {
 		scalingFactor.Mul(
-			bignumber.BONE,
-			bignumber.TenPow(18-decimals),
+			big256.BONE,
+			big256.TenPow(18-decimals),
 		)
 		return sDivDownFixed(amount, &scalingFactor)
 	}

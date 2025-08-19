@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -48,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-				Reserves: []*big.Int{utils.NewBig10(entityPool.Reserves[0]), utils.NewBig10(entityPool.Reserves[1])},
+				Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
 			},
 		},
 		decimals: []uint8{entityPool.Tokens[0].Decimals, entityPool.Tokens[1].Decimals},

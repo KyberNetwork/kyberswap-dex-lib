@@ -97,8 +97,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		shares := p.convertToShares(assetAmount, assetIndex)
 		amountOut, feeShares, _ := p.getHoneyMintedFromShares(shares, assetIndex)
 		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-			Fee:            &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
+			TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+			Fee:            &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
 			Gas:            defaultGas,
 			SwapInfo:       SwapInfo{deltaShares: amountOut, assetIndex: assetIndex},
 		}, nil
@@ -113,8 +113,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 		redeemedAssets := p.convertToAssets(shares, assetIndex)
 		return &pool.CalcAmountOutResult{
-			TokenAmountOut: &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexOut], Amount: redeemedAssets.ToBig()},
-			Fee:            &pool.TokenAmount{Token: p.Pool.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
+			TokenAmountOut: &pool.TokenAmount{Token: p.Info.Tokens[indexOut], Amount: redeemedAssets.ToBig()},
+			Fee:            &pool.TokenAmount{Token: p.Info.Tokens[indexIn], Amount: feeShares.ToBig()},
 			Gas:            defaultGas,
 			SwapInfo:       SwapInfo{deltaShares: new(uint256.Int).Neg(amountIn), assetIndex: assetIndex},
 		}, nil

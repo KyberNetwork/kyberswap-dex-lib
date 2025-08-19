@@ -60,7 +60,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 		return nil
 	}
 
-	swapToTokens := make([]string, 0, len(p.Pool.Info.Tokens)-1)
+	swapToTokens := make([]string, 0, len(p.Info.Tokens)-1)
 
 	for _, pairs := range p.extra.Pairs {
 		var swapToSymbol string

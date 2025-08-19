@@ -56,24 +56,24 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Pool.Info.Tokens[1]})
+		return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Info.Tokens[1]})
 	}
 
-	return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Pool.Info.Tokens[0]})
+	return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Info.Tokens[0]})
 }
 
 func (s *PoolSimulator) CanSwapTo(address string) []string {
 	if s.GetTokenIndex(address) == 0 {
-		return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Pool.Info.Tokens[1]})
+		return lo.Ternary(s.extra.IsSupplyPaused, []string{}, []string{s.Info.Tokens[1]})
 	}
 
-	return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Pool.Info.Tokens[0]})
+	return lo.Ternary(s.extra.IsWithdrawPaused, []string{}, []string{s.Info.Tokens[0]})
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }

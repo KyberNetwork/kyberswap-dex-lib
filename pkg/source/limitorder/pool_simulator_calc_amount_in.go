@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -157,8 +157,8 @@ func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount
 
 	// makingAmountBeforeFee = makingAmount * BasisPoint / (BasisPoint - feePct)
 	makingAmountBeforeFee = divCeil(
-		new(big.Int).Mul(makingAmount, constant.BasisPoint),
-		new(big.Int).Sub(constant.BasisPoint, big.NewInt(int64(feePct))),
+		new(big.Int).Mul(makingAmount, bignumber.BasisPoint),
+		new(big.Int).Sub(bignumber.BasisPoint, big.NewInt(int64(feePct))),
 	)
 
 	// fee = makingAmount - makingAmountBeforeFee

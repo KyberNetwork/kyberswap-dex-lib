@@ -66,12 +66,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientInputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
@@ -87,8 +87,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
 	}, nil
 }
@@ -105,14 +105,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		Fee:          s.fee.Uint64(),
 		FeePrecision: s.feePrecision.Uint64(),
-		BlockNumber:  s.Pool.Info.BlockNumber,
+		BlockNumber:  s.Info.BlockNumber,
 	}
 }

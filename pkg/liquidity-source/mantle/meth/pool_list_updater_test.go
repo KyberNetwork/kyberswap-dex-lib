@@ -39,16 +39,16 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	pools, _, _ := ts.updater.GetNewPools(context.Background(), nil)
 
 	ts.Require().NotNil(pools)
-	require.NotNil(ts.Suite.T(), pools)
-	require.Equal(ts.Suite.T(), 1, len(pools))
-	require.Equal(ts.Suite.T(), MantleLSPStaking, pools[0].Address)
-	require.Equal(ts.Suite.T(), DexType, pools[0].Exchange)
-	require.Equal(ts.Suite.T(), DexType, pools[0].Type)
-	require.Equal(ts.Suite.T(), 2, len(pools[0].Tokens))
-	require.Equal(ts.Suite.T(), uint8(18), pools[0].Tokens[0].Decimals)
-	require.Equal(ts.Suite.T(), uint8(18), pools[0].Tokens[1].Decimals)
-	require.Equal(ts.Suite.T(), strings.ToLower(WETH), pools[0].Tokens[0].Address)
-	require.Equal(ts.Suite.T(), strings.ToLower(METH), pools[0].Tokens[1].Address)
+	require.NotNil(ts.T(), pools)
+	require.Equal(ts.T(), 1, len(pools))
+	require.Equal(ts.T(), MantleLSPStaking, pools[0].Address)
+	require.Equal(ts.T(), DexType, pools[0].Exchange)
+	require.Equal(ts.T(), DexType, pools[0].Type)
+	require.Equal(ts.T(), 2, len(pools[0].Tokens))
+	require.Equal(ts.T(), uint8(18), pools[0].Tokens[0].Decimals)
+	require.Equal(ts.T(), uint8(18), pools[0].Tokens[1].Decimals)
+	require.Equal(ts.T(), strings.ToLower(WETH), pools[0].Tokens[0].Address)
+	require.Equal(ts.T(), strings.ToLower(METH), pools[0].Tokens[1].Address)
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {

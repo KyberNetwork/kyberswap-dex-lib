@@ -22,9 +22,10 @@ func (p *PoolSimulator) UpdateStateSellBase(amountIn *uint256.Int, amountOut *ui
 	p.B = number.Add(p.B, amountIn)
 	p.Q = number.Sub(p.Q, amountOut)
 
-	if p.R == libv2.RStateOne {
+	switch p.R {
+	case libv2.RStateOne:
 		p.R = libv2.RStateBelowOne
-	} else if p.R == libv2.RStateAboveOne {
+	case libv2.RStateAboveOne:
 		backToOnePayBase := number.Sub(p.B0, p.B)
 
 		if amountIn.Cmp(backToOnePayBase) < 0 {
@@ -34,7 +35,7 @@ func (p *PoolSimulator) UpdateStateSellBase(amountIn *uint256.Int, amountOut *ui
 		} else {
 			p.R = libv2.RStateBelowOne
 		}
-	} else {
+	default:
 		p.R = libv2.RStateBelowOne
 	}
 }
@@ -45,11 +46,12 @@ func (p *PoolSimulator) UpdateStateSellQuote(amountIn *uint256.Int, amountOut *u
 	p.B = number.Sub(p.B, amountOut)
 	p.Q = number.Add(p.Q, amountIn)
 
-	if p.R == libv2.RStateOne {
+	switch p.R {
+	case libv2.RStateOne:
 		p.R = libv2.RStateAboveOne
-	} else if p.R == libv2.RStateAboveOne {
+	case libv2.RStateAboveOne:
 		p.R = libv2.RStateAboveOne
-	} else {
+	default:
 		backToOnePayQuote := number.Sub(p.Q0, p.Q)
 
 		if amountIn.Cmp(backToOnePayQuote) < 0 {

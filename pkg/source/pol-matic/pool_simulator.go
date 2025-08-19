@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -43,7 +43,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-				Reserves: lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+				Reserves: lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
 		gas: defaultGas,
@@ -60,15 +60,15 @@ func (s *PoolSimulator) CalcAmountOut(
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
 	)
-	if tokenAmountIn.Token == s.Pool.Info.Tokens[0] {
-		if tokenAmountIn.Amount.Cmp(s.Pool.Info.Reserves[1]) > 0 {
+	if tokenAmountIn.Token == s.Info.Tokens[0] {
+		if tokenAmountIn.Amount.Cmp(s.Info.Reserves[1]) > 0 {
 			return nil, ErrInsufficientLiquidity
 		}
 
 		isMigrate = true
 		gas = s.gas.Migrate
 	} else {
-		if tokenAmountIn.Amount.Cmp(s.Pool.Info.Reserves[0]) > 0 {
+		if tokenAmountIn.Amount.Cmp(s.Info.Reserves[0]) > 0 {
 			return nil, ErrInsufficientLiquidity
 		}
 

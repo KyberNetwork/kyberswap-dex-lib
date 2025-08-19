@@ -53,7 +53,7 @@ func TestNewPoolSimulator(t *testing.T) {
 	poolSimulator := createTestPoolSimulator()
 
 	assert.NotNil(t, poolSimulator)
-	assert.Equal(t, "0xc321c3a7f730608b51e4747b72aeb18e0a3d32c4", poolSimulator.Pool.Info.Address)
+	assert.Equal(t, "0xc321c3a7f730608b51e4747b72aeb18e0a3d32c4", poolSimulator.Info.Address)
 	assert.Equal(t, uint256.NewInt(5), poolSimulator.buyTax)
 	assert.Equal(t, uint256.NewInt(10), poolSimulator.sellTax)
 	assert.Equal(t, uint256.NewInt(1500000), poolSimulator.kLast)
@@ -193,8 +193,8 @@ func TestUpdateBalance(t *testing.T) {
 
 	poolSimulator.UpdateBalance(params)
 
-	assert.Equal(t, newReserveA.ToBig(), poolSimulator.Pool.Info.Reserves[0])
-	assert.Equal(t, newReserveB.ToBig(), poolSimulator.Pool.Info.Reserves[1])
+	assert.Equal(t, newReserveA.ToBig(), poolSimulator.Info.Reserves[0])
+	assert.Equal(t, newReserveB.ToBig(), poolSimulator.Info.Reserves[1])
 	assert.Equal(t, newReserveA, poolSimulator.reserveA)
 	assert.Equal(t, newReserveB, poolSimulator.reserveB)
 }

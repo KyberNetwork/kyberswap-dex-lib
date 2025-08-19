@@ -224,12 +224,12 @@ func (s *PoolSimulator) OnExit(tokenOut string, bptAmountIn *uint256.Int) (*uint
 func (s *PoolSimulator) OnSwap(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, error) {
 	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
 
-	balanceIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	balanceIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	balanceOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	balanceOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
@@ -600,12 +600,12 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, ErrTokenNotRegistered
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}

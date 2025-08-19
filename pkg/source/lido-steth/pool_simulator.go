@@ -56,7 +56,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	stEth := p.Info.Tokens[1]
 	// can only swap from ETH to stETH
 	if !valueobject.IsWrappedNative(tokenAmountIn.Token, p.chainID) || !strings.EqualFold(tokenOut, stEth) {
-		return nil, fmt.Errorf("Invalid tokenIn/Out %v %v", tokenAmountIn.Token, tokenOut)
+		return nil, fmt.Errorf("invalid tokenIn/Out %v %v", tokenAmountIn.Token, tokenOut)
 	}
 
 	/*

@@ -37,10 +37,11 @@ func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount strin
 	require.Nil(b, json.Unmarshal([]byte(basepoolRedis), &poolEntity))
 	var baseSim pool.IPoolSimulator
 	var err error
-	if poolEntity.Exchange == stableng.DexType {
+	switch poolEntity.Exchange {
+	case stableng.DexType:
 		baseSim, err = stableng.NewPoolSimulator(poolEntity)
 		require.Nil(b, err)
-	} else if poolEntity.Exchange == plain.DexType {
+	case plain.DexType:
 		baseSim, err = plain.NewPoolSimulator(poolEntity)
 		require.Nil(b, err)
 	}

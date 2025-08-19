@@ -21,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -80,7 +79,7 @@ func TestCalcAmountOut(t *testing.T) {
 			out, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  tc.tokenIn,
-					Amount: utils.NewBig10(tc.amountIn),
+					Amount: bignumber.NewBig10(tc.amountIn),
 				},
 				TokenOut: tc.tokenOut,
 			})
@@ -119,7 +118,7 @@ func TestMergeSwap(t *testing.T) {
 		amountRaw = "1000000000000000000000" // 1_000 BUSD
 	)
 
-	amountIn := utils.NewBig10(amountRaw)
+	amountIn := bignumber.NewBig10(amountRaw)
 	amountInTotal := new(big.Int).Mul(amountIn, big.NewInt(int64(loop)))
 
 	var amountOutSingle *big.Int

@@ -107,9 +107,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,
@@ -199,9 +199,9 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
+		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			WTokenIn:    wTokenIn,
@@ -219,8 +219,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn%2] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn%2], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut%2] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut%2], params.TokenAmountOut.Amount)
+	s.Info.Reserves[indexIn%2] = new(big.Int).Add(s.Info.Reserves[indexIn%2], params.TokenAmountIn.Amount)
+	s.Info.Reserves[indexOut%2] = new(big.Int).Sub(s.Info.Reserves[indexOut%2], params.TokenAmountOut.Amount)
 
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
@@ -257,16 +257,16 @@ func (s *PoolSimulator) GetApprovalAddress(tokenIn, _ string) string {
 func (s *PoolSimulator) getReserves(indexIn, indexOut int) (*uint256.Int, *uint256.Int, error) {
 	reserveInIndex, reserveOutIndex := indexIn%2, indexOut%2
 
-	if reserveInIndex >= len(s.Pool.Info.Reserves) || reserveOutIndex >= len(s.Pool.Info.Reserves) {
+	if reserveInIndex >= len(s.Info.Reserves) || reserveOutIndex >= len(s.Info.Reserves) {
 		return nil, nil, ErrReserveIndexOutOfBounds
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveInIndex])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[reserveInIndex])
 	if overflow {
 		return nil, nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[reserveOutIndex])
 	if overflow {
 		return nil, nil, uniswapv2.ErrInvalidReserve
 	}
@@ -282,11 +282,11 @@ func (s *PoolSimulator) getWrappedTokens(indexIn, indexOut int) (wTokenIn, wToke
 	wTokenInIndex := indexIn%2 + 2
 	wTokenOutIndex := indexOut%2 + 2
 
-	if wTokenInIndex >= len(s.Pool.Info.Tokens) || wTokenOutIndex >= len(s.Pool.Info.Tokens) {
+	if wTokenInIndex >= len(s.Info.Tokens) || wTokenOutIndex >= len(s.Info.Tokens) {
 		return "", "", ErrTokenIndexOutOfBounds
 	}
 
-	return s.Pool.Info.Tokens[wTokenInIndex], s.Pool.Info.Tokens[wTokenOutIndex], nil
+	return s.Info.Tokens[wTokenInIndex], s.Info.Tokens[wTokenOutIndex], nil
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {

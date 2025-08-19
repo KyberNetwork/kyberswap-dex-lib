@@ -96,9 +96,9 @@ func (t *PoolTracker) getNewPoolState(
 	if staticExtra.HookType == shared.StableSurgeHookType {
 		extra.MaxSurgeFeePercentage, _ = uint256.FromBig(res.MaxSurgeFeePercentage)
 		extra.SurgeThresholdPercentage, _ = uint256.FromBig(res.SurgeThresholdPercentage)
-		res.IsPoolDisabled = res.IsPoolDisabled || extra.SurgePercentages.IsRisky()
+		res.IsPoolDisabled = res.IsPoolDisabled || extra.IsRisky()
 	}
-	extra.AmplificationParameter, _ = uint256.FromBig(res.AmplificationParameterRpc.Value)
+	extra.AmplificationParameter, _ = uint256.FromBig(res.Value)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

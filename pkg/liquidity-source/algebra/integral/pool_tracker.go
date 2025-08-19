@@ -353,7 +353,7 @@ func (d *PoolTracker) getDynamicFeeData(req *ethrpc.Request, pluginAddress strin
 	}, []any{&result.OneToZero})
 
 	return &result, func(resp *ethrpc.Response) error {
-		if !(resp.Result[callsFrom] || resp.Result[callsFrom+1] && resp.Result[callsFrom+2]) {
+		if !resp.Result[callsFrom] && (!resp.Result[callsFrom+1] || !resp.Result[callsFrom+2]) {
 			return errors.New("failed to fetch DynamicFeeConfig")
 		}
 		return nil

@@ -10,7 +10,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -68,19 +67,19 @@ func TestCalcAmountOut(t *testing.T) {
 					{\"price\":0.0002650316307629569,\"level\":3590.1837399765}
 				],\"priceTolerance\":10}"
 		  }`
-		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		var entityPool entity.Pool
+		err := json.Unmarshal([]byte(p), &entityPool)
 		assert.Nil(t, err)
 		// expected amount
 		expectedAmountOut := "1257859620"
 
 		// calculation
-		simulator, err := NewPoolSimulator(pool)
+		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 		amountIn, _ := new(big.Int).SetString("334332318571851640", 10)
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: poolpkg.TokenAmount{
+		result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
 					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 					Amount: amountIn,
 				},

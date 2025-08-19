@@ -15,10 +15,9 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -434,7 +433,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	_ = p.GetSqrtPriceLimit(zeroForOne, &priceLimit)
 
 	return PoolMeta{
-		SwapFee:         uint32(p.Pool.Info.SwapFee.Int64()),
+		SwapFee:         uint32(p.Info.SwapFee.Int64()),
 		PriceLimit:      &priceLimit,
 		BlockNumber:     p.Info.BlockNumber,
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),

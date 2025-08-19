@@ -6,30 +6,30 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestNewtonY(t *testing.T) {
 	t.Parallel()
 	var precisions = []*big.Int{
-		utils.NewBig10("1000000000000"),
-		utils.NewBig10("10000000000"),
-		utils.NewBig10("1"),
+		bignumber.NewBig10("1000000000000"),
+		bignumber.NewBig10("10000000000"),
+		bignumber.NewBig10("1"),
 	}
-	var precision = utils.NewBig10("1000000000000000000")
-	var ann = utils.NewBig10("1707629")
-	var gamma = utils.NewBig10("11809167828997")
-	var D = utils.NewBig10("659307468228931998580648112")
+	var precision = bignumber.NewBig10("1000000000000000000")
+	var ann = bignumber.NewBig10("1707629")
+	var gamma = bignumber.NewBig10("11809167828997")
+	var D = bignumber.NewBig10("659307468228931998580648112")
 	var priceScale = []*big.Int{
-		utils.NewBig10("55192676963173615208913"),
-		utils.NewBig10("3485034192326999988769"),
+		bignumber.NewBig10("55192676963173615208913"),
+		bignumber.NewBig10("3485034192326999988769"),
 	}
 	var balances = []*big.Int{
-		utils.NewBig10("220406131330584"),
-		utils.NewBig10("393490059984"),
-		utils.NewBig10("63624729793505614488987"),
+		bignumber.NewBig10("220406131330584"),
+		bignumber.NewBig10("393490059984"),
+		bignumber.NewBig10("63624729793505614488987"),
 	}
-	var dx = utils.NewBig10("12345000000")
+	var dx = bignumber.NewBig10("12345000000")
 	var i = 0
 
 	var xp = make([]*big.Int, 3)

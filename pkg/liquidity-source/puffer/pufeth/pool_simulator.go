@@ -60,7 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	// NOTE: only support tokenIn = stETH, wstETH and tokenOut is pufETH
-	if !((params.TokenAmountIn.Token == s.Info.Tokens[1] || params.TokenAmountIn.Token == s.Info.Tokens[2]) && params.TokenOut == s.Info.Tokens[0]) {
+	if params.TokenAmountIn.Token != s.Info.Tokens[1] && params.TokenAmountIn.Token != s.Info.Tokens[2] || params.TokenOut != s.Info.Tokens[0] {
 		return nil, ErrUnsupportedSwap
 	}
 
@@ -122,7 +122,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

@@ -10,8 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -67,19 +66,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	precisions := make([]*big.Int, numTokens)
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
-		precisions[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		precisions[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 	}
 
-	packedPrice := utils.NewBig10(extraStr.PriceScale)
-	lastPricesPacked := utils.NewBig10(extraStr.LastPrices)
-	priceOraclePacked := utils.NewBig10(extraStr.PriceOracle)
+	packedPrice := bignumber.NewBig10(extraStr.PriceScale)
+	lastPricesPacked := bignumber.NewBig10(extraStr.LastPrices)
+	priceOraclePacked := bignumber.NewBig10(extraStr.PriceOracle)
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  constant.ZeroBI,
+				SwapFee:  bignumber.ZeroBI,
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   tokens,
@@ -87,30 +86,30 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		Precisions: precisions,
-		A:          utils.NewBig10(extraStr.A),
-		D:          utils.NewBig10(extraStr.D),
-		Gamma:      utils.NewBig10(extraStr.Gamma),
-		FeeGamma:   utils.NewBig10(extraStr.FeeGamma),
-		MidFee:     utils.NewBig10(extraStr.MidFee),
-		OutFee:     utils.NewBig10(extraStr.OutFee),
+		A:          bignumber.NewBig10(extraStr.A),
+		D:          bignumber.NewBig10(extraStr.D),
+		Gamma:      bignumber.NewBig10(extraStr.Gamma),
+		FeeGamma:   bignumber.NewBig10(extraStr.FeeGamma),
+		MidFee:     bignumber.NewBig10(extraStr.MidFee),
+		OutFee:     bignumber.NewBig10(extraStr.OutFee),
 
 		PriceScalePacked:  packedPrice,
 		LastPricesPacked:  lastPricesPacked,
 		PriceOraclePacked: priceOraclePacked,
 
 		FutureAGammaTime:  extraStr.FutureAGammaTime,
-		FutureAGamma:      utils.NewBig10(extraStr.FutureAGamma),
+		FutureAGamma:      bignumber.NewBig10(extraStr.FutureAGamma),
 		InitialAGammaTime: extraStr.InitialAGammaTime,
-		InitialAGamma:     utils.NewBig10(extraStr.InitialAGamma),
+		InitialAGamma:     bignumber.NewBig10(extraStr.InitialAGamma),
 
 		LastPricesTimestamp: extraStr.LastPricesTimestamp,
 		LpToken:             staticExtra.LpToken,
-		LpSupply:            utils.NewBig10(extraStr.LpSupply),
-		XcpProfit:           utils.NewBig10(extraStr.XcpProfit),
-		VirtualPrice:        utils.NewBig10(extraStr.VirtualPrice),
-		AllowedExtraProfit:  utils.NewBig10(extraStr.AllowedExtraProfit),
-		AdjustmentStep:      utils.NewBig10(extraStr.AdjustmentStep),
-		MaHalfTime:          utils.NewBig10(extraStr.MaHalfTime),
+		LpSupply:            bignumber.NewBig10(extraStr.LpSupply),
+		XcpProfit:           bignumber.NewBig10(extraStr.XcpProfit),
+		VirtualPrice:        bignumber.NewBig10(extraStr.VirtualPrice),
+		AllowedExtraProfit:  bignumber.NewBig10(extraStr.AllowedExtraProfit),
+		AdjustmentStep:      bignumber.NewBig10(extraStr.AdjustmentStep),
+		MaHalfTime:          bignumber.NewBig10(extraStr.MaHalfTime),
 		NotAdjusted:         false,
 		gas:                 DefaultGas,
 	}, nil
@@ -131,7 +130,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -172,7 +171,7 @@ func (t *PoolSimulator) Swap(
 			Amount: amountOut,
 		}, &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: constant.ZeroBI,
+			Amount: bignumber.ZeroBI,
 		}, t.gas.Exchange, nil
 }
 

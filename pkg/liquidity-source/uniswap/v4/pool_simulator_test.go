@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -32,10 +32,10 @@ func TestPoolSimulator(t *testing.T) {
 	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: utils.NewBig10("1000000000000000000"),
+			Amount: bignumber.NewBig10("1000000000000000000"),
 		},
 		TokenOut: "0xbeab712832112bd7664226db7cd025b153d3af55",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, utils.NewBig10("415003200864711604166794"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("415003200864711604166794"), got.TokenAmountOut.Amount)
 }

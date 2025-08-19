@@ -67,7 +67,7 @@ func (l *fixedPoint) DivUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error)
 
 	aInflated := new(uint256.Int).Mul(a, l.ONE)
 
-	if !(a.IsZero() || new(uint256.Int).Div(aInflated, a).Eq(l.ONE)) {
+	if !a.IsZero() && !new(uint256.Int).Div(aInflated, a).Eq(l.ONE) {
 		return nil, ErrDivInternal
 	}
 
@@ -86,7 +86,7 @@ func (l *fixedPoint) DivDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, erro
 
 	aInflated := new(uint256.Int).Mul(a, l.ONE)
 
-	if !(a.IsZero() || new(uint256.Int).Div(aInflated, a).Eq(l.ONE)) {
+	if !a.IsZero() && !new(uint256.Int).Div(aInflated, a).Eq(l.ONE) {
 		return nil, ErrDivInternal
 	}
 
@@ -212,7 +212,7 @@ func (l *fixedPoint) PowUpV1(x *uint256.Int, y *uint256.Int) (*uint256.Int, erro
 func (l *fixedPoint) MulDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
+	if !a.IsZero() && !new(uint256.Int).Div(product, a).Eq(b) {
 		return nil, ErrMulOverflow
 	}
 
@@ -223,7 +223,7 @@ func (l *fixedPoint) MulDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, erro
 func (l *fixedPoint) MulUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
+	if !a.IsZero() && !new(uint256.Int).Div(product, a).Eq(b) {
 		return nil, ErrMulOverflow
 	}
 

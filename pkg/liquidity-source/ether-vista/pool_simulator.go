@@ -10,7 +10,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -37,7 +36,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 			Tokens: lo.Map(entityPool.Tokens,
 				func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves: lo.Map(entityPool.Reserves,
-				func(item string, index int) *big.Int { return utils.NewBig(item) }),
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		chainID: chainID,
@@ -71,12 +70,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientInputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
@@ -98,9 +97,9 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		Fee: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas: s.gas.Swap,
 	}, nil
 }
@@ -111,14 +110,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		RouterAddress:   s.extra.RouterAddress,
-		BlockNumber:     s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }

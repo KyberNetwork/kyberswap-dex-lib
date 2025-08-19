@@ -274,7 +274,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	var priceLimit v3Utils.Uint160
 	_ = p.GetSqrtPriceLimit(tokenIn == p.Info.Tokens[0], &priceLimit)
 	return PoolMeta{
-		SwapFee:    uint32(p.Pool.Info.SwapFee.Int64()),
+		SwapFee:    uint32(p.Info.SwapFee.Int64()),
 		PriceLimit: &priceLimit,
 	}
 }

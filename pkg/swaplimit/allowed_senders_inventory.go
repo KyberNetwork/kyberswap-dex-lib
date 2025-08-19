@@ -36,7 +36,7 @@ func (i *InventoryWithAllowedSenders) UpdateLimit(
 	decreaseTokenAddress, increaseTokenAddress string,
 	decreaseDelta, increaseDelta *big.Int,
 ) (*big.Int, *big.Int, error) {
-	return i.Inventory.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
+	return i.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
 func (i *InventoryWithAllowedSenders) Clone() pool.SwapLimit {

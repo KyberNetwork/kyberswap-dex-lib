@@ -105,14 +105,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
 func (s *PoolSimulator) isDeposit(tokenIn, tokenOut string) (bool, error) {
-	if tokenIn == s.Pool.Info.Tokens[0] && tokenOut == s.Pool.Info.Tokens[1] {
+	if tokenIn == s.Info.Tokens[0] && tokenOut == s.Info.Tokens[1] {
 		return true, nil // frxETH -> sfrxETH
-	} else if tokenIn == s.Pool.Info.Tokens[1] && tokenOut == s.Pool.Info.Tokens[0] {
+	} else if tokenIn == s.Info.Tokens[1] && tokenOut == s.Info.Tokens[0] {
 		return false, nil // sfrxETH -> frxETH
 	}
 	return false, ErrInvalidSwap

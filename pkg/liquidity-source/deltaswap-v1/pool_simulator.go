@@ -14,7 +14,7 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -44,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		dsFee:                    uint256.NewInt(uint64(extra.DsFee)),
@@ -78,12 +78,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -103,8 +103,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -133,12 +133,12 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -198,8 +198,8 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:           defaultGas,
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
@@ -215,14 +215,14 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 
 	s._updateLiquidityTradedEMA(params.SwapInfo.(SwapInfo).TradeLiquidity)
 
-	blockNumber := s.Pool.Info.BlockNumber
+	blockNumber := s.Info.BlockNumber
 	if blockNumber != s.lastLiquidityBlockNumber {
-		var temp = new(big.Int).Mul(s.Pool.Info.Reserves[indexIn], s.Pool.Info.Reserves[indexOut])
+		var temp = new(big.Int).Mul(s.Info.Reserves[indexIn], s.Info.Reserves[indexOut])
 		temp.Sqrt(temp)
 		s.liquidityEMA = calcEMA(uint256.MustFromBig(temp), s.liquidityEMA, uint256.NewInt(max(blockNumber-s.lastLiquidityBlockNumber, 10)))
 		s.lastLiquidityBlockNumber = blockNumber
@@ -276,7 +276,7 @@ func (s *PoolSimulator) calcPairTradingFee(amountIn, reserveIn, reserveOut *uint
 }
 
 func (s *PoolSimulator) estimateTradingFee(tradeLiquidity *uint256.Int) *uint256.Int {
-	_tradeLiquidityEMA, _, _ := s._getTradeLiquidityEMA(tradeLiquidity, s.Pool.Info.BlockNumber)
+	_tradeLiquidityEMA, _, _ := s._getTradeLiquidityEMA(tradeLiquidity, s.Info.BlockNumber)
 	return s.calcTradingFee(tradeLiquidity, _tradeLiquidityEMA, s.liquidityEMA)
 }
 
@@ -318,12 +318,12 @@ func (s *PoolSimulator) _getLastTradeLiquidityEMA(blockDiff uint64) *uint256.Int
 }
 
 func (s *PoolSimulator) _updateLiquidityTradedEMA(tradeLiquidity *uint256.Int) {
-	_tradeLiquidityEMA, _, tradeLiquiditySum := s._getTradeLiquidityEMA(tradeLiquidity, s.Pool.Info.BlockNumber)
+	_tradeLiquidityEMA, _, tradeLiquiditySum := s._getTradeLiquidityEMA(tradeLiquidity, s.Info.BlockNumber)
 	s.lastTradeLiquiditySum = tradeLiquiditySum
 	s.tradeLiquidityEMA = _tradeLiquidityEMA
 
-	if s.lastTradeBlockNumber != s.Pool.Info.BlockNumber {
-		s.lastTradeBlockNumber = s.Pool.Info.BlockNumber
+	if s.lastTradeBlockNumber != s.Info.BlockNumber {
+		s.lastTradeBlockNumber = s.Info.BlockNumber
 	}
 }
 

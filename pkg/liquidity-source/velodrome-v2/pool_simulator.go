@@ -13,7 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -70,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Tokens: lo.Map(entityPool.Tokens,
 				func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves: lo.Map(entityPool.Reserves,
-				func(item string, index int) *big.Int { return utils.NewBig(item) }),
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
@@ -147,16 +147,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
-	p.Pool.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(p.Pool.Info.Reserves[indexIn],
+	p.Info.Reserves[indexIn] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[indexIn],
 		params.TokenAmountIn.Amount), params.Fee.Amount)
-	p.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(p.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		Fee:          p.fee.Uint64(),
 		FeePrecision: p.feePrecision.Uint64(),
-		BlockNumber:  p.Pool.Info.BlockNumber,
+		BlockNumber:  p.Info.BlockNumber,
 	}
 }
 

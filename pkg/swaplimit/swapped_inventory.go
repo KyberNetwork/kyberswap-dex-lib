@@ -54,7 +54,7 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	swappedIn = swappedIn.Add(swappedIn, increaseDelta)
 	k.swapped[increaseTokenAddress] = swappedIn
 
-	return k.Inventory.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
+	return k.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
 }
 
 func (k *SwappedInventory) Clone() pool.SwapLimit {

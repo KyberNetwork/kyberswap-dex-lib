@@ -29,13 +29,13 @@ type (
 
 	// BaseCurrency 's structure is identical to uniswapentities.BaseCurrency
 	BaseCurrency struct {
-		currency Currency `msgpack:"-"` // nolint:golint,unused
-		isNative bool     //nolint:golint,unused
-		isToken  bool     //nolint:golint,unused
-		chainId  uint     //nolint:golint,unused
-		decimals uint     //nolint:golint,unused
-		symbol   string   //nolint:golint,unused
-		name     string   //nolint:golint,unused
+		currency Currency `msgpack:"-"` // nolint:unused
+		isNative bool     // nolint:unused
+		isToken  bool     // nolint:unused
+		chainId  uint     // nolint:unused
+		decimals uint     // nolint:unused
+		symbol   string   // nolint:unused
+		name     string   // nolint:unused
 	}
 
 	// token2's structure is identical to uniswapentities.Token
@@ -104,9 +104,9 @@ func init() {
 			// set the pointer alias to reconstruct the cycle
 			// v is allocated before this function so we can alias to it
 			if v.Addr().CanInterface() {
-				reinterpreted.BaseCurrency.currency = v.Addr().Interface().(*uniswapentities.Token)
+				reinterpreted.currency = v.Addr().Interface().(*uniswapentities.Token)
 			} else {
-				reinterpreted.BaseCurrency.currency = exportValue(v).Addr().Interface().(*uniswapentities.Token)
+				reinterpreted.currency = exportValue(v).Addr().Interface().(*uniswapentities.Token)
 			}
 			// convert back to uniswapentities.Token
 			token := *reinterpretToken2AsToken(reinterpreted)
@@ -140,9 +140,9 @@ func init() {
 			// set the pointer alias to reconstruct the cycle
 			// v is allocated before this function so we can alias to it
 			if v.Addr().CanInterface() {
-				reinterpreted.BaseCurrency.currency = v.Addr().Interface().(*uniswapentities.Ether)
+				reinterpreted.currency = v.Addr().Interface().(*uniswapentities.Ether)
 			} else {
-				reinterpreted.BaseCurrency.currency = exportValue(v).Addr().Interface().(*uniswapentities.Ether)
+				reinterpreted.currency = exportValue(v).Addr().Interface().(*uniswapentities.Ether)
 			}
 			// convert back to uniswapentities.Ether
 			ether := *reinterpretEther2AsEther(reinterpreted)
@@ -176,9 +176,9 @@ func init() {
 			// set the pointer alias to reconstruct the cycle
 			// v is allocated before this function so we can alias to it
 			if v.Addr().CanInterface() {
-				reinterpreted.BaseCurrency.currency = v.Addr().Interface().(*uniswapentities.Native)
+				reinterpreted.currency = v.Addr().Interface().(*uniswapentities.Native)
 			} else {
-				reinterpreted.BaseCurrency.currency = exportValue(v).Addr().Interface().(*uniswapentities.Native)
+				reinterpreted.currency = exportValue(v).Addr().Interface().(*uniswapentities.Native)
 			}
 			// convert back to uniswapentities.Native
 			native := *reinterpretNative2AsNative(reinterpreted)
