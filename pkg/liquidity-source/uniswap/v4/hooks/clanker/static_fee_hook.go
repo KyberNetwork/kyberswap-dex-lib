@@ -126,6 +126,10 @@ func (h *StaticFeeHook) Track(ctx context.Context, param *uniswapv4.HookParam) (
 }
 
 func (h *StaticFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	if h.protocolFee == nil {
+		return nil, ErrPoolIsNotTracked
+	}
+
 	swappingForClanker := params.ZeroForOne != h.clankerIsToken0
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
