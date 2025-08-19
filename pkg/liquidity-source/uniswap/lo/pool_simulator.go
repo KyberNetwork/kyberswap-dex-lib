@@ -72,9 +72,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		// convert to wrapped if is native token
 		if entityPool.Tokens[i].Address == valueobject.ZeroAddress {
 			tokens[i] = strings.ToLower(valueobject.WrappedNativeMap[chainID])
-			if i == 0 {
+			switch i {
+			case 0:
 				isNativeToken0 = true
-			} else if i == 1 {
+			case 1:
 				isNativeToken1 = true
 			}
 		} else {

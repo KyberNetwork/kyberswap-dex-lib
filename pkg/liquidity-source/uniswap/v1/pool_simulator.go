@@ -71,8 +71,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
 	}, nil
 }
@@ -100,8 +100,8 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
-		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:           defaultGas,
 	}, nil
 }
@@ -124,7 +124,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
-		BlockNumber:     s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }

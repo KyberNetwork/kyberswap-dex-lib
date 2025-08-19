@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -29,18 +29,18 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  Beets_Staked_Sonic_Address,
 						Tokens:   []string{Beets_Staked_Sonic_Address, strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDSonic])},
-						Reserves: []*big.Int{utils.NewBig(defaultReserve), utils.NewBig(defaultReserve)},
+						Reserves: []*big.Int{bignumber.NewBig(defaultReserve), bignumber.NewBig(defaultReserve)},
 					},
 				},
-				totalSupply: utils.NewUint256("55239936004195121896978015"),
-				totalAssets: utils.NewUint256("55319744731539794782367353"),
+				totalSupply: bignumber.NewUint256("55239936004195121896978015"),
+				totalAssets: bignumber.NewUint256("55319744731539794782367353"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: big.NewInt(1e18),
 				Token:  strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDSonic]),
 			},
 			tokenOut:          Beets_Staked_Sonic_Address,
-			expectedAmountOut: utils.NewBig("998557319312806390"),
+			expectedAmountOut: bignumber.NewBig("998557319312806390"),
 			expectedError:     nil,
 		},
 		{
@@ -50,18 +50,18 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  Beets_Staked_Sonic_Address,
 						Tokens:   []string{Beets_Staked_Sonic_Address, strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDSonic])},
-						Reserves: []*big.Int{utils.NewBig(defaultReserve), utils.NewBig(defaultReserve)},
+						Reserves: []*big.Int{bignumber.NewBig(defaultReserve), bignumber.NewBig(defaultReserve)},
 					},
 				},
-				totalSupply: utils.NewUint256("0"),
-				totalAssets: utils.NewUint256("0"),
+				totalSupply: bignumber.NewUint256("0"),
+				totalAssets: bignumber.NewUint256("0"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig(defaultReserve),
+				Amount: bignumber.NewBig(defaultReserve),
 				Token:  strings.ToLower(valueobject.WrappedNativeMap[valueobject.ChainIDSonic]),
 			},
 			tokenOut:          Beets_Staked_Sonic_Address,
-			expectedAmountOut: utils.NewBig(defaultReserve),
+			expectedAmountOut: bignumber.NewBig(defaultReserve),
 			expectedError:     nil,
 		},
 	}

@@ -161,7 +161,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	}
 
 	tokenIn := param.TokenAmountIn.Token
-	zeroForOne := p.Pool.GetTokenIndex(tokenIn) == 0
+	zeroForOne := p.GetTokenIndex(tokenIn) == 0
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {
@@ -304,7 +304,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 	}
 
 	tokenOut := param.TokenAmountOut.Token
-	zeroForOne := p.Pool.GetTokenIndex(tokenOut) == 1
+	zeroForOne := p.GetTokenIndex(tokenOut) == 1
 	amountOut := new(big.Int).Set(param.TokenAmountOut.Amount)
 
 	if p.hook.CanBeforeSwap(p.staticExtra.HooksAddress) {

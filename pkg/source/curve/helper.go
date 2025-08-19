@@ -68,7 +68,7 @@ func getAPrecisions(aList, aPreciseList []*big.Int) ([]*big.Int, error) {
 		} else if aList[i] != nil {
 			aPrecisions[i] = big.NewInt(1)
 		} else {
-			return nil, errors.New("A data did not get")
+			return nil, errors.New("missing A data")
 		}
 	}
 

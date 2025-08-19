@@ -132,8 +132,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: big.NewInt(0)},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: big.NewInt(0)},
 		Gas:            lo.Ternary(isRedeem, s.gas.Redeem, s.gas.Issue),
 
 		SwapInfo: SwapInfo{

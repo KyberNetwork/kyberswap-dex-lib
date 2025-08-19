@@ -10,7 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Gas struct {
@@ -206,7 +206,7 @@ func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) err
 
 	maxUsdgAmount := p.vault.MaxUSDGAmounts[token]
 
-	if maxUsdgAmount.Cmp(constant.ZeroBI) == 0 {
+	if maxUsdgAmount.Cmp(bignumber.ZeroBI) == 0 {
 		return nil
 	}
 

@@ -98,6 +98,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }

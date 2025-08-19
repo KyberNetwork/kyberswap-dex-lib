@@ -4,8 +4,9 @@ import (
 	"fmt"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/holiman/uint256"
+
+	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 )
 
 func (t *PoolSimulator) GetDyUnderlying(
@@ -105,7 +106,7 @@ func (t *PoolSimulator) GetDyUnderlying(
 	}
 
 	// perform normal swap at meta pool
-	err := t.PoolSimulator.GetDyByX(metaSwapInfo.TokenInIndex, metaSwapInfo.TokenOutIndex, x, xp, nil, &metaSwapInfo.AmountOut, &metaSwapInfo.AdminFee)
+	err := t.GetDyByX(metaSwapInfo.TokenInIndex, metaSwapInfo.TokenOutIndex, x, xp, nil, &metaSwapInfo.AmountOut, &metaSwapInfo.AdminFee)
 	if err != nil {
 		return err
 	}

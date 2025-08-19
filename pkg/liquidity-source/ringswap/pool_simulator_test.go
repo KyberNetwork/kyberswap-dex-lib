@@ -12,7 +12,7 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -39,26 +39,26 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
-						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("10089138480746"), bignumber.NewBig("10066716097576"), big.NewInt(1), big.NewInt(1)},
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("10089138480746"),
-					Reserve1: utils.NewBig("10066716097576"),
+					Reserve0: bignumber.NewBig("10089138480746"),
+					Reserve1: bignumber.NewBig("10066716097576"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("10089138480746"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("10066716097576"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("10089138480746"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("10066716097576"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("125224746"),
+				Amount: bignumber.NewBig("125224746"),
 				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84",
 			},
 			tokenOut:          "0x4300000000000000000000000000000000000004",
-			expectedAmountOut: utils.NewBig("124570062"),
+			expectedAmountOut: bignumber.NewBig("124570062"),
 			expectedError:     nil,
 		},
 		{
@@ -73,26 +73,26 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
-						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("70361282326226590645832"), bignumber.NewBig("54150601005"), big.NewInt(1), big.NewInt(1)},
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("70361282326226590645832"),
-					Reserve1: utils.NewBig("54150601005"),
+					Reserve0: bignumber.NewBig("70361282326226590645832"),
+					Reserve1: bignumber.NewBig("54150601005"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("54150601005"),
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("70361282326226590645832"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("54150601005"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("70361282326226590645832"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("124570062"),
+				Amount: bignumber.NewBig("124570062"),
 				Token:  "0x4300000000000000000000000000000000000004",
 			},
 			tokenOut:          "0x25f233c3e3676f9e900a89644a3fe5404d643c84",
-			expectedAmountOut: utils.NewBig("161006857684289764421"),
+			expectedAmountOut: bignumber.NewBig("161006857684289764421"),
 			expectedError:     nil,
 		},
 		{
@@ -101,7 +101,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -111,22 +111,22 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("5000000000"),
-					Reserve1: utils.NewBig("3000000000"),
+					Reserve0: bignumber.NewBig("5000000000"),
+					Reserve1: bignumber.NewBig("3000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("5000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("3000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("5000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("3000000000"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("5000000"),
+				Amount: bignumber.NewBig("5000000"),
 				Token:  "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 			},
 			tokenOut:          "0x4300000000000000000000000000000000000004", // Original token 1
-			expectedAmountOut: utils.NewBig("2988020"),
+			expectedAmountOut: bignumber.NewBig("2988020"),
 			expectedError:     nil,
 		},
 		{
@@ -135,7 +135,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -145,22 +145,22 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("5000000000"),
-					Reserve1: utils.NewBig("3000000000"),
+					Reserve0: bignumber.NewBig("5000000000"),
+					Reserve1: bignumber.NewBig("3000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("5000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("3000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("5000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("3000000000"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("2000000"),
+				Amount: bignumber.NewBig("2000000"),
 				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 			},
 			tokenOut:          "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
-			expectedAmountOut: utils.NewBig("1195923"),
+			expectedAmountOut: bignumber.NewBig("1195923"),
 			expectedError:     nil,
 		},
 		{
@@ -169,7 +169,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -179,18 +179,18 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("5000000000"),
-					Reserve1: utils.NewBig("3000000000"),
+					Reserve0: bignumber.NewBig("5000000000"),
+					Reserve1: bignumber.NewBig("3000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("5000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("3000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("5000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("3000000000"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("5000000"),
+				Amount: bignumber.NewBig("5000000"),
 				Token:  "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 			},
 			tokenOut:          "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
@@ -203,7 +203,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -213,18 +213,18 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("5000000000"),
-					Reserve1: utils.NewBig("3000000000"),
+					Reserve0: bignumber.NewBig("5000000000"),
+					Reserve1: bignumber.NewBig("3000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("5000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("3000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("5000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("3000000000"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("1000000"),
+				Amount: bignumber.NewBig("1000000"),
 				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 			},
 			tokenOut:          "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
@@ -237,7 +237,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -247,22 +247,22 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("5000000000"),
-					Reserve1: utils.NewBig("1000000"), // smaller than expected amountOut (1195923)
+					Reserve0: bignumber.NewBig("5000000000"),
+					Reserve1: bignumber.NewBig("1000000"), // smaller than expected amountOut (1195923)
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("5000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("5000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000"),
 			}),
 			tokenAmountIn: poolpkg.TokenAmount{
-				Amount: utils.NewBig("2000000"),
+				Amount: bignumber.NewBig("2000000"),
 				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 			},
 			tokenOut:          "0x4300000000000000000000000000000000000004", // Original token 1
-			expectedAmountOut: utils.NewBig("1195923"),
+			expectedAmountOut: bignumber.NewBig("1195923"),
 			expectedError:     uniswapv2.ErrInsufficientLiquidity,
 		},
 	}
@@ -309,26 +309,26 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
-						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("100000000"), bignumber.NewBig("100000000"), bignumber.One, bignumber.One},
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("100000000"),
-					Reserve1: utils.NewBig("100000000"),
+					Reserve0: bignumber.NewBig("100000000"),
+					Reserve1: bignumber.NewBig("100000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("100000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("100000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("100000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("100000000"),
 			}),
 			tokenAmountOut: poolpkg.TokenAmount{
-				Amount: utils.NewBig("20000000"),
+				Amount: bignumber.NewBig("20000000"),
 				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 			},
 			tokenIn:          "0xdac17f958d2ee523a2206206994597c13d831ec7",
-			expectedAmountIn: utils.NewBig("25075226"),
+			expectedAmountIn: bignumber.NewBig("25075226"),
 			expectedError:    nil,
 		},
 		{
@@ -343,26 +343,26 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
-						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000000000000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("100000000000000000000"), bignumber.NewBig("100000000000000000000"), bignumber.One, bignumber.One},
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("100000000000000000000"),
-					Reserve1: utils.NewBig("100000000000000000000"),
+					Reserve0: bignumber.NewBig("100000000000000000000"),
+					Reserve1: bignumber.NewBig("100000000000000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("100000000000000000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("100000000000000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("100000000000000000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("100000000000000000000"),
 			}),
 			tokenAmountOut: poolpkg.TokenAmount{
-				Amount: utils.NewBig("20000000"),
+				Amount: bignumber.NewBig("20000000"),
 				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 			},
 			tokenIn:          "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			expectedAmountIn: utils.NewBig("20060181"),
+			expectedAmountIn: bignumber.NewBig("20060181"),
 			expectedError:    nil,
 		},
 		{
@@ -371,7 +371,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
+						Reserves: []*big.Int{bignumber.NewBig("5000000000"), bignumber.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
@@ -381,22 +381,22 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 					},
 				},
 				originalReserves: uniswapv2.ReserveData{
-					Reserve0: utils.NewBig("1000000"), // smaller than expected amountOut (2000000)
-					Reserve1: utils.NewBig("5000000000"),
+					Reserve0: bignumber.NewBig("1000000"), // smaller than expected amountOut (2000000)
+					Reserve1: bignumber.NewBig("5000000000"),
 				},
 				fee:          number.NewUint256("3"),
 				feePrecision: number.NewUint256("1000"),
 			},
 			swapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000"),
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("5000000000"),
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000"),
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("5000000000"),
 			}),
 			tokenAmountOut: poolpkg.TokenAmount{
-				Amount: utils.NewBig("2000000"),
+				Amount: bignumber.NewBig("2000000"),
 				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 			},
 			tokenIn:          "0x4300000000000000000000000000000000000004", // Original token 1
-			expectedAmountIn: utils.NewBig("1195923"),
+			expectedAmountIn: bignumber.NewBig("1195923"),
 			expectedError:    uniswapv2.ErrInsufficientLiquidity,
 		},
 	}
@@ -439,7 +439,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped USDC
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped USDT
 						},
-						Reserves: []*big.Int{utils.NewBig("10000000000000"), utils.NewBig("10000000000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("10000000000000"), bignumber.NewBig("10000000000000"), bignumber.One, bignumber.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -453,21 +453,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
 				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-					"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"),
-					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"),
+					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
+					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: utils.NewBig("1000000")},
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: utils.NewBig("995000")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: bignumber.NewBig("1000000")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: bignumber.NewBig("995000")},
 			},
 			expectedFwReserves: [4]*big.Int{
-				utils.NewBig("10000001000000"), // Initial + amountIn
-				utils.NewBig("9999999005000"),  // Initial - amountOut
-				utils.One,
-				utils.One,
+				bignumber.NewBig("10000001000000"), // Initial + amountIn
+				bignumber.NewBig("9999999005000"),  // Initial - amountOut
+				bignumber.One,
+				bignumber.One,
 			},
 			expectedSwapLimits: map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000001000000"), // Initial + amountIn
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("999999005000"),  // Initial - amountOut
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000001000000"), // Initial + amountIn
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("999999005000"),  // Initial - amountOut
 			},
 		},
 		{
@@ -482,7 +482,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped USDC
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped USDT
 						},
-						Reserves: []*big.Int{utils.NewBig("10000000000000"), utils.NewBig("10000000000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("10000000000000"), bignumber.NewBig("10000000000000"), bignumber.One, bignumber.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -496,21 +496,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
 				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-					"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"),
-					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"),
+					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
+					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x18755d2cec785ab87680edb8e117615e4b005430", Amount: utils.NewBig("1000000")},
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", Amount: utils.NewBig("995000")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x18755d2cec785ab87680edb8e117615e4b005430", Amount: bignumber.NewBig("1000000")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", Amount: bignumber.NewBig("995000")},
 			},
 			expectedFwReserves: [4]*big.Int{
-				utils.NewBig("10000001000000"),
-				utils.NewBig("9999999005000"),
-				utils.One,
-				utils.One,
+				bignumber.NewBig("10000001000000"),
+				bignumber.NewBig("9999999005000"),
+				bignumber.One,
+				bignumber.One,
 			},
 			expectedSwapLimits: map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"), // No changes
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"), // No changes
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"), // No changes
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"), // No changes
 			},
 		},
 		{
@@ -525,7 +525,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped USDC
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped USDT
 						},
-						Reserves: []*big.Int{utils.NewBig("10000000000000"), utils.NewBig("10000000000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("10000000000000"), bignumber.NewBig("10000000000000"), bignumber.One, bignumber.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -539,21 +539,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
 				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-					"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"),
-					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"),
+					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
+					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: utils.NewBig("1000000")},
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", Amount: utils.NewBig("995000")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: bignumber.NewBig("1000000")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", Amount: bignumber.NewBig("995000")},
 			},
 			expectedFwReserves: [4]*big.Int{
-				utils.NewBig("10000001000000"),
-				utils.NewBig("9999999005000"),
-				utils.One,
-				utils.One,
+				bignumber.NewBig("10000001000000"),
+				bignumber.NewBig("9999999005000"),
+				bignumber.One,
+				bignumber.One,
 			},
 			expectedSwapLimits: map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000001000000"), // Initial + amountIn
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"), // No changes
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000001000000"), // Initial + amountIn
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"), // No changes
 			},
 		},
 		{
@@ -568,7 +568,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped USDC
 							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped USDT
 						},
-						Reserves: []*big.Int{utils.NewBig("10000000000000"), utils.NewBig("10000000000000"), utils.One, utils.One},
+						Reserves: []*big.Int{bignumber.NewBig("10000000000000"), bignumber.NewBig("10000000000000"), bignumber.One, bignumber.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -582,21 +582,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					WTokenOut:   "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1",
 				},
 				SwapLimit: swaplimit.NewInventory("ringswap", map[string]*big.Int{
-					"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"),
-					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("1000000000000"),
+					"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"),
+					"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("1000000000000"),
 				}),
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x18755d2cec785ab87680edb8e117615e4b005430", Amount: utils.NewBig("1000000")},
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: utils.NewBig("995000")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x18755d2cec785ab87680edb8e117615e4b005430", Amount: bignumber.NewBig("1000000")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: bignumber.NewBig("995000")},
 			},
 			expectedFwReserves: [4]*big.Int{
-				utils.NewBig("10000001000000"),
-				utils.NewBig("9999999005000"),
-				utils.One,
-				utils.One,
+				bignumber.NewBig("10000001000000"),
+				bignumber.NewBig("9999999005000"),
+				bignumber.One,
+				bignumber.One,
 			},
 			expectedSwapLimits: map[string]*big.Int{
-				"0x18755d2cec785ab87680edb8e117615e4b005430": utils.NewBig("1000000000000"), // No changes
-				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": utils.NewBig("999999005000"),  // Initial - amountOut
+				"0x18755d2cec785ab87680edb8e117615e4b005430": bignumber.NewBig("1000000000000"), // No changes
+				"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1": bignumber.NewBig("999999005000"),  // Initial - amountOut
 			},
 		},
 	}

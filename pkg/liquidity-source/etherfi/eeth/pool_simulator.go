@@ -72,7 +72,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	// NOTE: only support tokenIn is WETH and tokenOut is eETH
-	if param.TokenAmountIn.Token != s.Pool.Info.Tokens[0] || param.TokenOut != s.Pool.Info.Tokens[1] {
+	if param.TokenAmountIn.Token != s.Info.Tokens[0] || param.TokenOut != s.Info.Tokens[1] {
 		return nil, ErrUnsupportedSwap
 	}
 
@@ -86,8 +86,8 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	amountOut := s.amountForShare(share, amount)
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[1], Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[0], Amount: bignumber.ZeroBI},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[1], Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[0], Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Deposit,
 	}, nil
 }
@@ -99,7 +99,7 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

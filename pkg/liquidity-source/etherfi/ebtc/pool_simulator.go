@@ -10,8 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -54,7 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     entityPool.Address,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
@@ -85,7 +84,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	shares, err := p.erc20Deposit(tokenIn, amountIn, utils.U0, asset)
+	shares, err := p.erc20Deposit(tokenIn, amountIn, big256.U0, asset)
 	if err != nil {
 		return nil, err
 	}
@@ -94,9 +93,9 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: shares.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: shares.ToBig()},
+		Fee:            &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
 		Gas:            p.gas.Deposit,
 	}, nil
 }
@@ -133,8 +132,8 @@ func (p *PoolSimulator) erc20Deposit(
 	}
 	if asset.SharePremium > 0 {
 		shares, overflow = shares.MulDivOverflow(
-			shares, uint256.NewInt(utils.UBasisPoint.Uint64()-uint64(asset.SharePremium)),
-			utils.UBasisPoint,
+			shares, uint256.NewInt(big256.UBasisPoint.Uint64()-uint64(asset.SharePremium)),
+			big256.UBasisPoint,
 		)
 		if overflow {
 			return nil, ErrMulDivOverflow
@@ -175,9 +174,9 @@ func (p *PoolSimulator) changeDecimals(amount *uint256.Int, fromDecimals, toDeci
 	if fromDecimals == toDecimals {
 		return amount
 	} else if fromDecimals < toDecimals {
-		return amount.Mul(amount, utils.TenPow(toDecimals-fromDecimals))
+		return amount.Mul(amount, big256.TenPow(toDecimals-fromDecimals))
 	} else {
-		return amount.Div(amount, utils.TenPow(fromDecimals-toDecimals))
+		return amount.Div(amount, big256.TenPow(fromDecimals-toDecimals))
 	}
 }
 
@@ -193,7 +192,7 @@ func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber:     p.Pool.Info.BlockNumber,
+		BlockNumber:     p.Info.BlockNumber,
 		ApprovalAddress: p.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }
@@ -203,11 +202,11 @@ func (p *PoolSimulator) GetApprovalAddress(_, tokenOut string) string {
 }
 
 func (p *PoolSimulator) CanSwapTo(token string) []string {
-	if token != p.Pool.Info.Tokens[0] {
+	if token != p.Info.Tokens[0] {
 		return []string{}
 	}
-	tokens := make([]string, 0, len(p.Pool.Info.Tokens)-1)
-	for _, t := range p.Pool.Info.Tokens {
+	tokens := make([]string, 0, len(p.Info.Tokens)-1)
+	for _, t := range p.Info.Tokens {
 		if !strings.EqualFold(t, token) && p.assets[t].AllowDeposits {
 			tokens = append(tokens, t)
 		}
@@ -217,7 +216,7 @@ func (p *PoolSimulator) CanSwapTo(token string) []string {
 
 func (p *PoolSimulator) CanSwapFrom(token string) []string {
 	if asset, ok := p.assets[token]; ok && asset.AllowDeposits {
-		return []string{p.Pool.Info.Tokens[0]}
+		return []string{p.Info.Tokens[0]}
 	}
 	return []string{}
 }

@@ -73,7 +73,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInsufficientInputAmount
 	}
 
-	isMint := indexOut == len(s.Pool.Info.Tokens)-1
+	isMint := indexOut == len(s.Info.Tokens)-1
 	var oracleValue *uint256.Int
 	minRatio := uint256.NewInt(0)
 	var err error

@@ -6,22 +6,21 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestCalculateSwap(t *testing.T) {
 	t.Parallel()
 	nTokens := 3
 	var tokenBalances = []*big.Int{
-		utils.NewBig10("263829355937719884193312195"),
-		utils.NewBig10("253026496012159712668944640"),
-		utils.NewBig10("215587136525270574976035964"),
+		bignumber.NewBig10("263829355937719884193312195"),
+		bignumber.NewBig10("253026496012159712668944640"),
+		bignumber.NewBig10("215587136525270574976035964"),
 	}
 	var tokenPrecisions = []*big.Int{
-		utils.NewBig10("1"),
-		utils.NewBig10("1"),
-		utils.NewBig10("1"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1"),
 	}
 
 	balances := make([]*big.Int, 0)
@@ -30,7 +29,7 @@ func TestCalculateSwap(t *testing.T) {
 		balances = append(balances, tokenBalances[i])
 		precisions = append(precisions, tokenPrecisions[i])
 	}
-	var amountIn = utils.NewBig10("10000000000000000000000")
+	var amountIn = bignumber.NewBig10("10000000000000000000000")
 
 	initialA := big.NewInt(1500)
 	futureA := big.NewInt(1500)
@@ -57,12 +56,12 @@ func TestCalculateSwap2(t *testing.T) {
 	t.Parallel()
 	nTokens := 2
 	var tokenBalances = []*big.Int{
-		utils.NewBig10("300524667948860812161452556"),
-		utils.NewBig10("307909381422032691082033859"),
+		bignumber.NewBig10("300524667948860812161452556"),
+		bignumber.NewBig10("307909381422032691082033859"),
 	}
 	var tokenPrecisions = []*big.Int{
-		utils.NewBig10("1"),
-		utils.NewBig10("1"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1"),
 	}
 
 	balances := make([]*big.Int, 0)
@@ -71,7 +70,7 @@ func TestCalculateSwap2(t *testing.T) {
 		balances = append(balances, tokenBalances[i])
 		precisions = append(precisions, tokenPrecisions[i])
 	}
-	var amountIn = utils.NewBig10("10000000000000000000000")
+	var amountIn = bignumber.NewBig10("10000000000000000000000")
 
 	initialA := big.NewInt(60000)
 	futureA := big.NewInt(60000)
@@ -97,25 +96,25 @@ func TestCalculateSwap2(t *testing.T) {
 func TestCalculateWithdrawOneToken(t *testing.T) {
 	t.Parallel()
 	var balances = []*big.Int{
-		utils.NewBig10("264038322528061367790859241"),
-		utils.NewBig10("253311544042014270158626065"),
-		utils.NewBig10("216304364840015899371623343"),
+		bignumber.NewBig10("264038322528061367790859241"),
+		bignumber.NewBig10("253311544042014270158626065"),
+		bignumber.NewBig10("216304364840015899371623343"),
 	}
 	var tokenPrecisionMultipliers = []*big.Int{
-		utils.NewBig10("1"),
-		utils.NewBig10("1"),
-		utils.NewBig10("1"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1"),
 	}
-	lpSupply := utils.NewBig10("706595268772543216633613610")
+	lpSupply := bignumber.NewBig10("706595268772543216633613610")
 	initialA := big.NewInt(1500)
 	futureA := big.NewInt(1500)
 	initialATime := int64(0)
 	futureATime := int64(0)
 	swapFee := big.NewInt(4000000)
 	nCoins := big.NewInt(3)
-	withdrawFee := new(big.Int).Div(new(big.Int).Mul(swapFee, nCoins), new(big.Int).Mul(constant.Four, new(big.Int).Sub(nCoins, constant.One)))
+	withdrawFee := new(big.Int).Div(new(big.Int).Mul(swapFee, nCoins), new(big.Int).Mul(bignumber.Four, new(big.Int).Sub(nCoins, bignumber.One)))
 	logrus.Info(withdrawFee.String())
-	amount := utils.NewBig10("10000000000000000000000")
+	amount := bignumber.NewBig10("10000000000000000000000")
 
 	dy, dySwapFee, err := calculateWithdrawOneToken(
 		balances,
@@ -125,7 +124,7 @@ func TestCalculateWithdrawOneToken(t *testing.T) {
 		initialATime,
 		initialA,
 		swapFee,
-		constant.ZeroBI,
+		bignumber.ZeroBI,
 		//vmath.NewBig10("5000000"),
 		lpSupply,
 		0,
@@ -144,14 +143,14 @@ func TestCalculateWithdrawOneToken(t *testing.T) {
 func TestCalculateTokenAmount(t *testing.T) {
 	t.Parallel()
 	var balances = []*big.Int{
-		utils.NewBig10("1762846108183174838018939"),
-		utils.NewBig10("3674225304303"),
-		utils.NewBig10("3196888988762"),
+		bignumber.NewBig10("1762846108183174838018939"),
+		bignumber.NewBig10("3674225304303"),
+		bignumber.NewBig10("3196888988762"),
 	}
 	var tokenPrecisionMultipliers = []*big.Int{
-		utils.NewBig10("1"),
-		utils.NewBig10("1000000000000"),
-		utils.NewBig10("1000000000000"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1000000000000"),
+		bignumber.NewBig10("1000000000000"),
 	}
 	dy, err := calculateTokenAmount(
 		balances,
@@ -160,12 +159,12 @@ func TestCalculateTokenAmount(t *testing.T) {
 		big.NewInt(80000),
 		0,
 		big.NewInt(80000),
-		utils.NewBig10("5000000"),
-		utils.NewBig10("8580021119487881426822908"),
+		bignumber.NewBig10("5000000"),
+		bignumber.NewBig10("8580021119487881426822908"),
 		[]*big.Int{
-			utils.NewBig10("0"),
-			utils.NewBig10("0"),
-			utils.NewBig10("1000000"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("1000000"),
 		},
 		true,
 	)
@@ -180,19 +179,19 @@ func TestCalculateTokenAmount(t *testing.T) {
 func TestGetDyUnderlying(t *testing.T) {
 	t.Parallel()
 	var balances = []*big.Int{
-		utils.NewBig10("70382246141748845587674511"),
-		utils.NewBig10("164292114057107"),
-		utils.NewBig10("205974869965084"),
+		bignumber.NewBig10("70382246141748845587674511"),
+		bignumber.NewBig10("164292114057107"),
+		bignumber.NewBig10("205974869965084"),
 	}
 	var tokenPrecisionMultipliers = []*big.Int{
-		utils.NewBig10("1"),
-		utils.NewBig10("1000000000000"),
-		utils.NewBig10("1000000000000"),
+		bignumber.NewBig10("1"),
+		bignumber.NewBig10("1000000000000"),
+		bignumber.NewBig10("1000000000000"),
 	}
 
 	var tokenIndexFrom = 0
 	var tokenIndexTo = 2
-	var dx = utils.NewBig10("1234567890000000000")
+	var dx = bignumber.NewBig10("1234567890000000000")
 
 	dy, fee, err := GetDyUnderlying(
 		balances,

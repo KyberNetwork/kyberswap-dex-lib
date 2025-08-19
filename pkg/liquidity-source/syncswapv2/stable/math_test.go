@@ -6,7 +6,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestUint256Refactor(t *testing.T) {
@@ -26,12 +26,12 @@ func TestUint256Refactor(t *testing.T) {
 			),
 		), num.Mul(A, s).Add(
 			num,
-			new(uint256.Int).Mul(constant.U2, dp),
+			new(uint256.Int).Mul(big256.U2, dp),
 		).Mul(num, d).Div(
 			num,
-			den.Sub(A, constant.U1).Mul(den, d).Add(
+			den.Sub(A, big256.U1).Mul(den, d).Add(
 				den,
-				new(uint256.Int).Mul(constant.U3, dp),
+				new(uint256.Int).Mul(big256.U3, dp),
 			),
 		), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5))
@@ -51,7 +51,7 @@ func TestUint256Refactor(t *testing.T) {
 			amountIn.Sub(x, adjustedReserveIn).Mul(amountIn, MaxFee).Div(
 				amountIn,
 				new(uint256.Int).Sub(MaxFee, swapFee),
-			).Add(amountIn, constant.U1).Div(amountIn, tokenInPrecisionMultiplier), "fail")
+			).Add(amountIn, big256.U1).Div(amountIn, tokenInPrecisionMultiplier), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4), uint256.NewInt(5), uint256.NewInt(6))
 
 	func(d, xp0, xp1 *uint256.Int) {
@@ -61,6 +61,6 @@ func TestUint256Refactor(t *testing.T) {
 				new(uint256.Int).Mul(
 					new(uint256.Int).Div(
 						new(uint256.Int).Mul(d, d), xp0), d), xp1), uint256.NewInt(4)),
-			dp.Set(d).Mul(dp, d).Div(dp, xp0).Mul(dp, d).Div(dp, xp1).Div(dp, constant.U4), "fail")
+			dp.Set(d).Mul(dp, d).Div(dp, xp0).Mul(dp, d).Div(dp, xp1).Div(dp, big256.U4), "fail")
 	}(uint256.NewInt(2), uint256.NewInt(3), uint256.NewInt(4))
 }

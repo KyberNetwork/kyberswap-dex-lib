@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -50,34 +50,34 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	t.Parallel()
 	t.Run("it should return correct amount out", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
-			a:      utils.NewBig("1000000000000000"),
-			lpFee:  utils.NewBig("100000000000000"),
+			a:      bignumber.NewBig("1000000000000000"),
+			lpFee:  bignumber.NewBig("100000000000000"),
 			paused: false,
 
 			assetByToken: map[string]Asset{
 				"0x176211869ca2b568f2a7d4ee941e073a821ee1ff": {
-					Cash:        utils.NewBig("109755508503386757517651"),
-					Liability:   utils.NewBig("111705981295320099096585"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("111566749817365287931821"),
+					Cash:        bignumber.NewBig("109755508503386757517651"),
+					Liability:   bignumber.NewBig("111705981295320099096585"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("111566749817365287931821"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0x176211869ca2b568f2a7d4ee941e073a821ee1ff"),
 					Active:      true,
 				},
 				"0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5": {
-					Cash:        utils.NewBig("31982154523056912809541"),
-					Liability:   utils.NewBig("32315214600033595639643"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("32294182514254242328808"),
+					Cash:        bignumber.NewBig("31982154523056912809541"),
+					Liability:   bignumber.NewBig("32315214600033595639643"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("32294182514254242328808"),
 					Decimals:    18,
 					Token:       common.HexToAddress("0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"),
 					Active:      true,
 				},
 				"0xa219439258ca9da29e9cc4ce5596924745e12b93": {
-					Cash:        utils.NewBig("108295197536453495651912"),
-					Liability:   utils.NewBig("106011578468650285163146"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("105904081724488185350374"),
+					Cash:        bignumber.NewBig("108295197536453495651912"),
+					Liability:   bignumber.NewBig("106011578468650285163146"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("105904081724488185350374"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0xa219439258ca9da29e9cc4ce5596924745e12b93"),
 					Active:      true,
@@ -96,7 +96,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("1000000"),
+					Amount: bignumber.NewBig("1000000"),
 				},
 				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
 				Limit:    nil,
@@ -104,7 +104,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		})
 
 		assert.Nil(t, err)
-		assert.Equal(t, result.TokenAmountOut.Amount.Cmp(utils.NewBig("999914863605742941")), 0)
+		assert.Equal(t, result.TokenAmountOut.Amount.Cmp(bignumber.NewBig("999914863605742941")), 0)
 	})
 
 	t.Run("it returns correct error when the pool is paused", func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("1000000"),
+					Amount: bignumber.NewBig("1000000"),
 				},
 				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
 				Limit:    nil,
@@ -136,7 +136,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("1000000"),
+					Amount: bignumber.NewBig("1000000"),
 				},
 				TokenOut: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
 				Limit:    nil,
@@ -156,7 +156,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("-1"),
+					Amount: bignumber.NewBig("-1"),
 				},
 				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
 				Limit:    nil,
@@ -169,34 +169,34 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	t.Run("it returns correct errors when tokenIn is inactive", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
-			a:      utils.NewBig("1000000000000000"),
-			lpFee:  utils.NewBig("100000000000000"),
+			a:      bignumber.NewBig("1000000000000000"),
+			lpFee:  bignumber.NewBig("100000000000000"),
 			paused: false,
 
 			assetByToken: map[string]Asset{
 				"0x176211869ca2b568f2a7d4ee941e073a821ee1ff": {
-					Cash:        utils.NewBig("109755508503386757517651"),
-					Liability:   utils.NewBig("111705981295320099096585"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("111566749817365287931821"),
+					Cash:        bignumber.NewBig("109755508503386757517651"),
+					Liability:   bignumber.NewBig("111705981295320099096585"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("111566749817365287931821"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0x176211869ca2b568f2a7d4ee941e073a821ee1ff"),
 					Active:      false,
 				},
 				"0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5": {
-					Cash:        utils.NewBig("31982154523056912809541"),
-					Liability:   utils.NewBig("32315214600033595639643"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("32294182514254242328808"),
+					Cash:        bignumber.NewBig("31982154523056912809541"),
+					Liability:   bignumber.NewBig("32315214600033595639643"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("32294182514254242328808"),
 					Decimals:    18,
 					Token:       common.HexToAddress("0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"),
 					Active:      true,
 				},
 				"0xa219439258ca9da29e9cc4ce5596924745e12b93": {
-					Cash:        utils.NewBig("108295197536453495651912"),
-					Liability:   utils.NewBig("106011578468650285163146"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("105904081724488185350374"),
+					Cash:        bignumber.NewBig("108295197536453495651912"),
+					Liability:   bignumber.NewBig("106011578468650285163146"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("105904081724488185350374"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0xa219439258ca9da29e9cc4ce5596924745e12b93"),
 					Active:      true,
@@ -215,7 +215,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("1000000"),
+					Amount: bignumber.NewBig("1000000"),
 				},
 				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
 				Limit:    nil,
@@ -228,34 +228,34 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	t.Run("it returns correct errors when tokenOut is inactive", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
-			a:      utils.NewBig("1000000000000000"),
-			lpFee:  utils.NewBig("100000000000000"),
+			a:      bignumber.NewBig("1000000000000000"),
+			lpFee:  bignumber.NewBig("100000000000000"),
 			paused: false,
 
 			assetByToken: map[string]Asset{
 				"0x176211869ca2b568f2a7d4ee941e073a821ee1ff": {
-					Cash:        utils.NewBig("109755508503386757517651"),
-					Liability:   utils.NewBig("111705981295320099096585"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("111566749817365287931821"),
+					Cash:        bignumber.NewBig("109755508503386757517651"),
+					Liability:   bignumber.NewBig("111705981295320099096585"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("111566749817365287931821"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0x176211869ca2b568f2a7d4ee941e073a821ee1ff"),
 					Active:      true,
 				},
 				"0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5": {
-					Cash:        utils.NewBig("31982154523056912809541"),
-					Liability:   utils.NewBig("32315214600033595639643"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("32294182514254242328808"),
+					Cash:        bignumber.NewBig("31982154523056912809541"),
+					Liability:   bignumber.NewBig("32315214600033595639643"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("32294182514254242328808"),
 					Decimals:    18,
 					Token:       common.HexToAddress("0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"),
 					Active:      false,
 				},
 				"0xa219439258ca9da29e9cc4ce5596924745e12b93": {
-					Cash:        utils.NewBig("108295197536453495651912"),
-					Liability:   utils.NewBig("106011578468650285163146"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("105904081724488185350374"),
+					Cash:        bignumber.NewBig("108295197536453495651912"),
+					Liability:   bignumber.NewBig("106011578468650285163146"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("105904081724488185350374"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0xa219439258ca9da29e9cc4ce5596924745e12b93"),
 					Active:      true,
@@ -274,7 +274,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-					Amount: utils.NewBig("1000000"),
+					Amount: bignumber.NewBig("1000000"),
 				},
 				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
 				Limit:    nil,
@@ -290,34 +290,34 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	t.Parallel()
 	t.Run("it should update pool state correctly", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
-			a:      utils.NewBig("1000000000000000"),
-			lpFee:  utils.NewBig("100000000000000"),
+			a:      bignumber.NewBig("1000000000000000"),
+			lpFee:  bignumber.NewBig("100000000000000"),
 			paused: false,
 
 			assetByToken: map[string]Asset{
 				"0x176211869ca2b568f2a7d4ee941e073a821ee1ff": {
-					Cash:        utils.NewBig("109755508503386757517651"),
-					Liability:   utils.NewBig("111705981295320099096585"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("111566749817365287931821"),
+					Cash:        bignumber.NewBig("109755508503386757517651"),
+					Liability:   bignumber.NewBig("111705981295320099096585"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("111566749817365287931821"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0x176211869ca2b568f2a7d4ee941e073a821ee1ff"),
 					Active:      true,
 				},
 				"0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5": {
-					Cash:        utils.NewBig("31982154523056912809541"),
-					Liability:   utils.NewBig("32315214600033595639643"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("32294182514254242328808"),
+					Cash:        bignumber.NewBig("31982154523056912809541"),
+					Liability:   bignumber.NewBig("32315214600033595639643"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("32294182514254242328808"),
 					Decimals:    18,
 					Token:       common.HexToAddress("0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"),
 					Active:      true,
 				},
 				"0xa219439258ca9da29e9cc4ce5596924745e12b93": {
-					Cash:        utils.NewBig("108295197536453495651912"),
-					Liability:   utils.NewBig("106011578468650285163146"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("105904081724488185350374"),
+					Cash:        bignumber.NewBig("108295197536453495651912"),
+					Liability:   bignumber.NewBig("106011578468650285163146"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("105904081724488185350374"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0xa219439258ca9da29e9cc4ce5596924745e12b93"),
 					Active:      true,
@@ -337,13 +337,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			TokenAmountOut: poolpkg.TokenAmount{Token: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5", Amount: big.NewInt(937047)},
 			Fee:            poolpkg.TokenAmount{Token: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5", Amount: big.NewInt(12)},
 			SwapInfo: vooiSwapInfo{
-				newFromAssetCash: utils.NewBig10("109756508503386757517651"),
-				newToAssetCash:   utils.NewBig10("31981154708194793575825"),
+				newFromAssetCash: bignumber.NewBig10("109756508503386757517651"),
+				newToAssetCash:   bignumber.NewBig10("31981154708194793575825"),
 			},
 		})
 
-		assert.Equal(t, poolSimulator.assetByToken["0x176211869ca2b568f2a7d4ee941e073a821ee1ff"].Cash.Cmp(utils.NewBig("109756508503386757517651")), 0)
-		assert.Equal(t, poolSimulator.assetByToken["0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"].Cash.Cmp(utils.NewBig("31981154708194793575825")), 0)
+		assert.Equal(t, poolSimulator.assetByToken["0x176211869ca2b568f2a7d4ee941e073a821ee1ff"].Cash.Cmp(bignumber.NewBig("109756508503386757517651")), 0)
+		assert.Equal(t, poolSimulator.assetByToken["0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"].Cash.Cmp(bignumber.NewBig("31981154708194793575825")), 0)
 	})
 }
 
@@ -351,34 +351,34 @@ func TestPoolSimulator_GetMetaInfo(t *testing.T) {
 	t.Parallel()
 	t.Run("it should return correct meta", func(t *testing.T) {
 		poolSimulator := PoolSimulator{
-			a:      utils.NewBig("1000000000000000"),
-			lpFee:  utils.NewBig("100000000000000"),
+			a:      bignumber.NewBig("1000000000000000"),
+			lpFee:  bignumber.NewBig("100000000000000"),
 			paused: false,
 
 			assetByToken: map[string]Asset{
 				"0x176211869ca2b568f2a7d4ee941e073a821ee1ff": {
-					Cash:        utils.NewBig("109755508503386757517651"),
-					Liability:   utils.NewBig("111705981295320099096585"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("111566749817365287931821"),
+					Cash:        bignumber.NewBig("109755508503386757517651"),
+					Liability:   bignumber.NewBig("111705981295320099096585"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("111566749817365287931821"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0x176211869ca2b568f2a7d4ee941e073a821ee1ff"),
 					Active:      true,
 				},
 				"0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5": {
-					Cash:        utils.NewBig("31982154523056912809541"),
-					Liability:   utils.NewBig("32315214600033595639643"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("32294182514254242328808"),
+					Cash:        bignumber.NewBig("31982154523056912809541"),
+					Liability:   bignumber.NewBig("32315214600033595639643"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("32294182514254242328808"),
 					Decimals:    18,
 					Token:       common.HexToAddress("0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"),
 					Active:      true,
 				},
 				"0xa219439258ca9da29e9cc4ce5596924745e12b93": {
-					Cash:        utils.NewBig("108295197536453495651912"),
-					Liability:   utils.NewBig("106011578468650285163146"),
-					MaxSupply:   utils.NewBig("1000000000000000000000000000"),
-					TotalSupply: utils.NewBig("105904081724488185350374"),
+					Cash:        bignumber.NewBig("108295197536453495651912"),
+					Liability:   bignumber.NewBig("106011578468650285163146"),
+					MaxSupply:   bignumber.NewBig("1000000000000000000000000000"),
+					TotalSupply: bignumber.NewBig("105904081724488185350374"),
 					Decimals:    6,
 					Token:       common.HexToAddress("0xa219439258ca9da29e9cc4ce5596924745e12b93"),
 					Active:      true,

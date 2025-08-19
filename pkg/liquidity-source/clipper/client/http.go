@@ -22,7 +22,7 @@ var (
 	ErrQuoteFailed = errors.New("quote failed")
 	ErrSignFailed  = errors.New("sign failed")
 
-	ErrQuoteConflict = errors.New(errQuoteConflictText)
+	ErrQuoteConflict = errors.New(errQuoteConflictText) // nolint:staticcheck
 )
 
 type httpClient struct {

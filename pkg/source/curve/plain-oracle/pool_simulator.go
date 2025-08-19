@@ -11,8 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -52,21 +51,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
-		multipliers[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 		rates[i] = extra.Rates[i]
 	}
 
-	var aPrecision = constant.One
+	var aPrecision = bignumber.One
 	if len(staticExtra.APrecision) > 0 {
-		aPrecision = utils.NewBig10(staticExtra.APrecision)
+		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
 	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  utils.NewBig10(extra.SwapFee),
+				SwapFee:  bignumber.NewBig10(extra.SwapFee),
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   tokens,
@@ -75,13 +74,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		Multipliers:  multipliers,
 		Rates:        rates,
-		InitialA:     utils.NewBig10(extra.InitialA),
-		FutureA:      utils.NewBig10(extra.FutureA),
+		InitialA:     bignumber.NewBig10(extra.InitialA),
+		FutureA:      bignumber.NewBig10(extra.FutureA),
 		InitialATime: extra.InitialATime,
 		FutureATime:  extra.FutureATime,
-		AdminFee:     utils.NewBig10(extra.AdminFee),
+		AdminFee:     bignumber.NewBig10(extra.AdminFee),
 		LpToken:      staticExtra.LpToken,
-		LpSupply:     utils.NewBig10(entityPool.Reserves[numTokens]),
+		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:   aPrecision,
 		gas:          DefaultGas,
 	}, nil
@@ -104,7 +103,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			return nil, err
 		}
 
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,

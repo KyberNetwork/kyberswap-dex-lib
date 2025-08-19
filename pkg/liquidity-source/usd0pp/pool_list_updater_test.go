@@ -40,26 +40,26 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	pools, _, _ := ts.updater.GetNewPools(context.Background(), nil)
 
-	require.NotNil(ts.Suite.T(), pools)
-	require.Equal(ts.Suite.T(), 1, len(pools))
-	require.Equal(ts.Suite.T(), USD0PP, pools[0].Address)
-	require.Equal(ts.Suite.T(), DexType, pools[0].Exchange)
-	require.Equal(ts.Suite.T(), DexType, pools[0].Type)
-	require.Equal(ts.Suite.T(), 2, len(pools[0].Tokens))
-	require.Equal(ts.Suite.T(), uint8(18), pools[0].Tokens[0].Decimals)
-	require.Equal(ts.Suite.T(), uint8(18), pools[0].Tokens[1].Decimals)
-	require.Equal(ts.Suite.T(), strings.ToLower(USD0), pools[0].Tokens[0].Address)
-	require.Equal(ts.Suite.T(), strings.ToLower(USD0PP), pools[0].Tokens[1].Address)
+	require.NotNil(ts.T(), pools)
+	require.Equal(ts.T(), 1, len(pools))
+	require.Equal(ts.T(), USD0PP, pools[0].Address)
+	require.Equal(ts.T(), DexType, pools[0].Exchange)
+	require.Equal(ts.T(), DexType, pools[0].Type)
+	require.Equal(ts.T(), 2, len(pools[0].Tokens))
+	require.Equal(ts.T(), uint8(18), pools[0].Tokens[0].Decimals)
+	require.Equal(ts.T(), uint8(18), pools[0].Tokens[1].Decimals)
+	require.Equal(ts.T(), strings.ToLower(USD0), pools[0].Tokens[0].Address)
+	require.Equal(ts.T(), strings.ToLower(USD0PP), pools[0].Tokens[1].Address)
 
 	var poolExtra PoolExtra
 	if err := json.Unmarshal([]byte(pools[0].Extra), &poolExtra); err != nil {
-		require.NoError(ts.Suite.T(), err)
+		require.NoError(ts.T(), err)
 	}
 
-	require.Equal(ts.Suite.T(), int64(1718105400), poolExtra.StartTime)
-	require.Equal(ts.Suite.T(), int64(1844335800), poolExtra.EndTime)
-	require.Equal(ts.Suite.T(), false, poolExtra.Paused)
-	require.Equal(ts.Suite.T(), int64(126230400), poolExtra.EndTime-poolExtra.StartTime)
+	require.Equal(ts.T(), int64(1718105400), poolExtra.StartTime)
+	require.Equal(ts.T(), int64(1844335800), poolExtra.EndTime)
+	require.Equal(ts.T(), false, poolExtra.Paused)
+	require.Equal(ts.T(), int64(126230400), poolExtra.EndTime-poolExtra.StartTime)
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {

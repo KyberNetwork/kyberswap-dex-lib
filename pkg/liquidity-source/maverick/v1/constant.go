@@ -3,7 +3,7 @@ package maverickv1
 import (
 	"github.com/holiman/uint256"
 
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -75,5 +75,5 @@ var (
 
 	MulConst49_17, _ = uint256.FromDecimal("499999999999999999")
 
-	Bone = bignumber.BONE
+	Bone = big256.BONE
 )

@@ -104,7 +104,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 		newPool := entity.Pool{
 			Address:   poolAddress,
-			Exchange:  d.PoolsListUpdater.Config.DexID,
+			Exchange:  d.Config.DexID,
 			Type:      PoolTypeSyncSwapV2Aqua,
 			Timestamp: time.Now().Unix(),
 			Reserves:  entity.PoolReserves{reserveZero, reserveZero},

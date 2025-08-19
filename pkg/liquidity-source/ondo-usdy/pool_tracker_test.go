@@ -56,7 +56,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	var poolExtra PoolExtra
 	if err := json.Unmarshal([]byte(newPoolState.Extra), &poolExtra); err != nil {
-		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
+		require.Fail(ts.T(), "Failed to unmarshal pool extra %e", err)
 	}
 }
 

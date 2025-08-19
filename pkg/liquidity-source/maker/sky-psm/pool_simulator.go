@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -38,7 +37,7 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+		Pool: pool.Pool{Info: pool.PoolInfo{
 			Address:     p.Address,
 			Exchange:    p.Exchange,
 			Type:        p.Type,
@@ -67,9 +66,9 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &poolpkg.TokenAmount{Token: params.TokenAmountIn.Token, Amount: integer.Zero()},
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:            p.gas.SwapExactIn,
 	}, nil
 }
@@ -94,7 +93,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return p
 }
 
-func (p *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {}
+func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
 	return PoolMeta{

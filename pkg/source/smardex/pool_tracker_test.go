@@ -49,23 +49,23 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	var pair SmardexPair
 	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
-		assert.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
+		assert.Fail(ts.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	assert.NotNil(ts.Suite.T(), pair.PairFee.FeesLP)
-	assert.NotNil(ts.Suite.T(), pair.PairFee.FeesPool)
-	assert.NotNil(ts.Suite.T(), pair.FictiveReserve.FictiveReserve0)
-	assert.NotNil(ts.Suite.T(), pair.FictiveReserve.FictiveReserve1)
-	assert.NotNil(ts.Suite.T(), pair.PriceAverage.PriceAverage0)
-	assert.NotNil(ts.Suite.T(), pair.PriceAverage.PriceAverage1)
-	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.Fees0)
-	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.Fees1)
+	assert.NotNil(ts.T(), pair.PairFee.FeesLP)
+	assert.NotNil(ts.T(), pair.PairFee.FeesPool)
+	assert.NotNil(ts.T(), pair.FictiveReserve.FictiveReserve0)
+	assert.NotNil(ts.T(), pair.FictiveReserve.FictiveReserve1)
+	assert.NotNil(ts.T(), pair.PriceAverage.PriceAverage0)
+	assert.NotNil(ts.T(), pair.PriceAverage.PriceAverage1)
+	assert.NotNil(ts.T(), pair.FeeToAmount.Fees0)
+	assert.NotNil(ts.T(), pair.FeeToAmount.Fees1)
 	if ts.tracker.config.ChainID == 1 {
-		assert.Equal(ts.Suite.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE_ETHEREUM), 0)
+		assert.Equal(ts.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE_ETHEREUM), 0)
 	} else {
-		assert.Equal(ts.Suite.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE), 0)
+		assert.Equal(ts.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE), 0)
 	}
-	assert.NotNil(ts.Suite.T(), pool.Reserves)
+	assert.NotNil(ts.T(), pool.Reserves)
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {

@@ -142,7 +142,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				amount, isToken1 = amount0, false
 			}
 
-			quote, err := p.FullRangePool.quoteWithLimitAndOverride(amount, isToken1, nextSqrtRatio, fullRangePoolSwapStateOverride)
+			quote, err := p.quoteWithLimitAndOverride(amount, isToken1, nextSqrtRatio, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
@@ -159,7 +159,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 				amount, isToken1 = amount1, true
 			}
 
-			quote, err := p.FullRangePool.quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
+			quote, err := p.quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
@@ -183,7 +183,6 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 	}
 
 	finalQuote, err := p.
-		FullRangePool.
 		quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
 	if err != nil {
 		return nil, fmt.Errorf("final full range pool quote: %w", err)

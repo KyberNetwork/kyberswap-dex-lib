@@ -96,12 +96,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	scalingFactorTokenIn, scalingFactorTokenOut := s.scalingFactors[indexIn], s.scalingFactors[indexOut]
 
-	balanceTokenIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	balanceTokenIn, overflow := uint256.FromBig(s.Info.Reserves[indexIn])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	balanceTokenOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	balanceTokenOut, overflow := uint256.FromBig(s.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}

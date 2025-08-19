@@ -21,7 +21,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -46,12 +45,12 @@ func TestCalcAmountOut(t *testing.T) {
 	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
-			Amount: utils.NewBig10("1000000000000000000"),
+			Amount: bignumber.NewBig10("1000000000000000000"),
 		},
 		TokenOut: "0x55d398326f99059ff775485246999027b3197955",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, utils.NewBig10("609097871894318314148"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("609097871894318314148"), got.TokenAmountOut.Amount)
 }
 
 func TestCalcAmountIn(t *testing.T) {

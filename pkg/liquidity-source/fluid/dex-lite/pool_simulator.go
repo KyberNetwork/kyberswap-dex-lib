@@ -133,9 +133,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
-		BlockNumber:     s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
 		DexKey:          s.DexKey,
-		ApprovalAddress: s.StaticExtra.DexLiteAddress,
+		ApprovalAddress: s.DexLiteAddress,
 	}
 }
 
@@ -431,7 +431,8 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 			lastInteractionTimestamp := tmp.And(centerPriceShift, X33)
 			timeElapsed.Sub(timeElapsed.SetUint64(blockTimestamp), lastInteractionTimestamp)
 
-			if rebalancingStatus == 2 {
+			switch rebalancingStatus {
+			case 2:
 				// Price shifting towards upper range
 				if timeElapsed.Cmp(shiftingTime) < 0 {
 					// Partial shift: centerPrice + ((upperRangePrice - centerPrice) * timeElapsed) / shiftingTime
@@ -442,7 +443,7 @@ func (s *PoolSimulator) getPricesAndReservesWithState(dexVars *UnpackedDexVariab
 					// 100% price shifted
 					centerPrice.Set(&upperRangePrice)
 				}
-			} else if rebalancingStatus == 3 {
+			case 3:
 				// Price shifting towards lower range
 				if timeElapsed.Cmp(shiftingTime) < 0 {
 					// Partial shift: centerPrice - ((centerPrice - lowerRangePrice) * timeElapsed) / shiftingTime

@@ -75,7 +75,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

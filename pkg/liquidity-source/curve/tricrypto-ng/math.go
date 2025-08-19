@@ -7,8 +7,9 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 // from contracts/main/CurveCryptoMathOptimized3.vy
@@ -300,13 +301,14 @@ func get_y(
 
 	j := 0
 	k := 0
-	if i == 0 {
+	switch i {
+	case 0:
 		j = 1
 		k = 2
-	} else if i == 1 {
+	case 1:
 		j = 0
 		k = 2
-	} else if i == 2 {
+	case 2:
 		j = 0
 		k = 1
 	}

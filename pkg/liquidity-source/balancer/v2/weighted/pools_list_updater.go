@@ -16,7 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/shared"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	bignumber "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -143,7 +143,7 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 		if !ok {
 			return entity.Pool{}, ErrInvalidWeight
 		}
-		weight, _ := new(big.Float).Mul(w, bignumber.BoneFloat).Uint64()
+		weight, _ := new(big.Float).Mul(w, big256.BoneFloat).Uint64()
 		normalizedWeights[j] = uint256.NewInt(weight)
 
 		poolTokens[j] = &entity.PoolToken{
@@ -151,9 +151,9 @@ func (u *PoolsListUpdater) initPool(subgraphPool *shared.SubgraphPool, vault str
 			Swappable: token.IsAllowed,
 		}
 		reserves[j] = "0"
-		scalingFactors[j] = bignumber.TenPow(18 - uint8(token.Decimals))
+		scalingFactors[j] = big256.TenPow(18 - uint8(token.Decimals))
 		if subgraphPool.Version > poolTypeVer1 {
-			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], bignumber.BONE)
+			scalingFactors[j] = new(uint256.Int).Mul(scalingFactors[j], big256.BONE)
 		}
 
 		if token.NestedPool.Address != "" {

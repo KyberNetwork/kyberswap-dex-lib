@@ -117,11 +117,12 @@ func TestCalcAmountOut(t *testing.T) {
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
 		require.Nil(t, err)
 
-		if poolEntity.Exchange == stableng.DexType {
+		switch poolEntity.Exchange {
+		case stableng.DexType:
 			p, err := stableng.NewPoolSimulator(poolEntity)
 			require.Nil(t, err)
 			baseSimsByAddress[poolEntity.Address] = p
-		} else if poolEntity.Exchange == plain.DexType {
+		case plain.DexType:
 			p, err := plain.NewPoolSimulator(poolEntity)
 			require.Nil(t, err)
 			baseSimsByAddress[poolEntity.Address] = p
@@ -483,11 +484,12 @@ func TestUpdateBalance(t *testing.T) {
 		err := json.Unmarshal([]byte(basePool), &poolEntity)
 		require.Nil(t, err)
 
-		if poolEntity.Exchange == stableng.DexType {
+		switch poolEntity.Exchange {
+		case stableng.DexType:
 			p, err := stableng.NewPoolSimulator(poolEntity)
 			require.Nil(t, err)
 			baseSimsByAddress[poolEntity.Address] = p
-		} else if poolEntity.Exchange == plain.DexType {
+		case plain.DexType:
 			p, err := plain.NewPoolSimulator(poolEntity)
 			require.Nil(t, err)
 			baseSimsByAddress[poolEntity.Address] = p

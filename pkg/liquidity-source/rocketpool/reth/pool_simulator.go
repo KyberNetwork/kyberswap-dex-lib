@@ -115,7 +115,7 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber:     s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }

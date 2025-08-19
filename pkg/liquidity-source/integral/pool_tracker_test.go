@@ -59,20 +59,20 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	var pair Extra
 	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
-		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
+		require.Fail(ts.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	require.NotNil(ts.Suite.T(), pair)
+	require.NotNil(ts.T(), pair)
 
-	require.NotEqual(ts.Suite.T(), number.Zero, pair.Price)
+	require.NotEqual(ts.T(), number.Zero, pair.Price)
 
-	require.Equal(ts.Suite.T(), 2, len(pool.Reserves))
-	require.NotEqual(ts.Suite.T(), "", pool.Reserves[0])
-	require.NotEqual(ts.Suite.T(), "", pool.Reserves[1])
+	require.Equal(ts.T(), 2, len(pool.Reserves))
+	require.NotEqual(ts.T(), "", pool.Reserves[0])
+	require.NotEqual(ts.T(), "", pool.Reserves[1])
 
-	require.Equal(ts.Suite.T(), 2, len(pool.Tokens))
-	require.NotEqual(ts.Suite.T(), "", pool.Tokens[0])
-	require.NotEqual(ts.Suite.T(), "", pool.Tokens[1])
+	require.Equal(ts.T(), 2, len(pool.Tokens))
+	require.NotEqual(ts.T(), "", pool.Tokens[0])
+	require.NotEqual(ts.T(), "", pool.Tokens[1])
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {

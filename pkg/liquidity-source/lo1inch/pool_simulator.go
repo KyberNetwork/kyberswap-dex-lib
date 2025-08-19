@@ -16,7 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	helper1inch "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -125,14 +125,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		takeToken0OrdersMapping[takeToken0Order.OrderHash] = i
 
 		// get min(balance, allowance) for this maker:makerAsset pair
-		minBalanceAllowanceByMakerAndAsset[newMakerAndAsset(takeToken0Order.Maker, takeToken0Order.MakerAsset)] = utils.Min(takeToken0Order.MakerBalance, takeToken0Order.MakerAllowance)
+		minBalanceAllowanceByMakerAndAsset[newMakerAndAsset(takeToken0Order.Maker, takeToken0Order.MakerAsset)] = big256.Min(takeToken0Order.MakerBalance, takeToken0Order.MakerAllowance)
 	}
 
 	for i, takeToken1Order := range extra.TakeToken1Orders {
 		takeToken1OrdersMapping[takeToken1Order.OrderHash] = i
 
 		// get min(balance, allowance) for this maker:makerAsset pair
-		minBalanceAllowanceByMakerAndAsset[newMakerAndAsset(takeToken1Order.Maker, takeToken1Order.MakerAsset)] = utils.Min(takeToken1Order.MakerBalance, takeToken1Order.MakerAllowance)
+		minBalanceAllowanceByMakerAndAsset[newMakerAndAsset(takeToken1Order.Maker, takeToken1Order.MakerAsset)] = big256.Min(takeToken1Order.MakerBalance, takeToken1Order.MakerAllowance)
 	}
 
 	return &PoolSimulator{
@@ -303,8 +303,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				totalMakingAmount.Add(totalMakingAmount, orderRemainingMakingAmount)
 				filledOrderInfo := newFilledOrderInfo(
 					order,
-					utils.U0,
-					utils.U0,
+					big256.U0,
+					big256.U0,
 				)
 				filledOrderInfo.IsBackup = true
 				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)

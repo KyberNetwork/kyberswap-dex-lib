@@ -55,7 +55,7 @@ func main() {
 	emitf(outFileBuf, "func init() {\n")
 	for _, path := range paths {
 		file := fileByPath[path]
-		emitf(outFileBuf, "\tmsgpack.RegisterConcreteType(&%s.%s{})\n", nameByFile[file], structByFile[file])
+		emitf(outFileBuf, "\t_ = msgpack.RegisterConcreteType(&%s.%s{})\n", nameByFile[file], structByFile[file])
 	}
 	emitf(outFileBuf, "}\n")
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
@@ -53,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
 			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
@@ -91,12 +90,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrInsufficientInputAmount
 	}
 
-	balanceA, overflow := uint256.FromBig(s.Pool.Info.Reserves[0])
+	balanceA, overflow := uint256.FromBig(s.Info.Reserves[0])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	balanceB, overflow := uint256.FromBig(s.Pool.Info.Reserves[1])
+	balanceB, overflow := uint256.FromBig(s.Info.Reserves[1])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
@@ -146,13 +145,13 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
+		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            gas,
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
 			BondingAddress: s.bondingAddress,
-			TokenAddress:   s.Pool.Info.Tokens[0],
+			TokenAddress:   s.Info.Tokens[0],
 			NewReserveA:    newReserveA,
 			NewReserveB:    newReserveB,
 			NewBalanceA:    newBalanceA,
@@ -181,12 +180,12 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrInsufficientInputAmount
 	}
 
-	balanceA, overflow := uint256.FromBig(s.Pool.Info.Reserves[0])
+	balanceA, overflow := uint256.FromBig(s.Info.Reserves[0])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
 
-	balanceB, overflow := uint256.FromBig(s.Pool.Info.Reserves[1])
+	balanceB, overflow := uint256.FromBig(s.Info.Reserves[1])
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
@@ -237,13 +236,13 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountInNeeded.ToBig()},
-		Fee:           &pool.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: bignumber.ZeroBI},
+		TokenAmountIn: &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: amountInNeeded.ToBig()},
+		Fee:           &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: bignumber.ZeroBI},
 		Gas:           s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
 			BondingAddress: s.bondingAddress,
-			TokenAddress:   s.Pool.Info.Tokens[0],
+			TokenAddress:   s.Info.Tokens[0],
 			NewReserveA:    newReserveA,
 			NewReserveB:    newReserveB,
 			NewBalanceA:    newBalanceA,
@@ -253,17 +252,17 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && len(s.Pool.GetReserves()) == 2 {
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok && len(s.GetReserves()) == 2 {
 		s.reserveA = swapInfo.NewReserveA
 		s.reserveB = swapInfo.NewReserveB
-		s.Pool.Info.Reserves[0] = swapInfo.NewBalanceA.ToBig()
-		s.Pool.Info.Reserves[1] = swapInfo.NewBalanceB.ToBig()
+		s.Info.Reserves[0] = swapInfo.NewBalanceA.ToBig()
+		s.Info.Reserves[1] = swapInfo.NewBalanceB.ToBig()
 	}
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

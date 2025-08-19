@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (

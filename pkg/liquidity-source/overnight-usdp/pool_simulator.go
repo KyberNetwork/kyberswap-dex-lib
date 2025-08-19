@@ -39,11 +39,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
 		isPaused:        extra.IsPaused,
@@ -65,11 +67,12 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	var amountOut, feeAmount *big.Int
-	if params.TokenAmountIn.Token == s.Pool.Info.Tokens[0] {
+	switch params.TokenAmountIn.Token {
+	case s.Info.Tokens[0]:
 		amountOut, feeAmount = s.takeFee(s.mint(params.TokenAmountIn.Amount), true)
-	} else if params.TokenAmountIn.Token == s.Pool.Info.Tokens[1] {
+	case s.Info.Tokens[1]:
 		amountOut, feeAmount = s.takeFee(s.redeem(params.TokenAmountIn.Amount), false)
-	} else {
+	default:
 		return nil, ErrorInvalidTokenIn
 	}
 
@@ -90,7 +93,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		Asset:       s.Info.Tokens[0],
 		UsdPlus:     s.Info.Tokens[1],
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

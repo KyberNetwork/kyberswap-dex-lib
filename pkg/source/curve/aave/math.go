@@ -1,16 +1,14 @@
 package aave
 
 import (
-
 	// "errors"
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var FeeDenominator = utils.NewBig10("10000000000")
+var FeeDenominator = bignumber.NewBig10("10000000000")
 
 const MaxLoopLimit = 256
 
@@ -115,7 +113,7 @@ func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		for j := 0; j < numTokens; j++ {
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), constant.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
 		prevD = d
@@ -192,7 +190,7 @@ func getY(
 		} else {
 			continue
 		}
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrZero
 		}
 		s = new(big.Int).Add(s, _x)
@@ -201,7 +199,7 @@ func getY(
 			new(big.Int).Mul(_x, numTokensBI),
 		)
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -220,7 +218,7 @@ func getY(
 			new(big.Int).Add(new(big.Int).Mul(y, y), c),
 			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
 		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
@@ -262,7 +260,7 @@ func _calculateSwap(
 	if err != nil {
 		return nil, nil, err
 	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[tokenIndexTo], y), constant.One)
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[tokenIndexTo], y), bignumber.One)
 	var dyFee = new(big.Int).Div(new(big.Int).Mul(dy, swapFee), FeeDenominator)
 	dy = new(big.Int).Div(new(big.Int).Sub(dy, dyFee), tokenPrecisionMultipliers[tokenIndexTo])
 	return dy, dyFee, nil
@@ -337,7 +335,7 @@ func getYD(
 			)
 		}
 	}
-	if nA.Cmp(constant.ZeroBI) == 0 {
+	if nA.Cmp(bignumber.ZeroBI) == 0 {
 		return nil, ErrZero
 	}
 	c = new(big.Int).Div(
@@ -365,13 +363,13 @@ func getYD(
 			),
 			new(big.Int).Sub(
 				new(big.Int).Add(
-					new(big.Int).Mul(y, constant.Two),
+					new(big.Int).Mul(y, bignumber.Two),
 					b,
 				),
 				d,
 			),
 		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(constant.One) <= 0 {
+		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
@@ -393,8 +391,8 @@ func _feePerToken(
 			numTokensBI,
 		),
 		new(big.Int).Mul(
-			new(big.Int).Sub(numTokensBI, constant.One),
-			constant.Four,
+			new(big.Int).Sub(numTokensBI, bignumber.One),
+			bignumber.Four,
 		),
 	)
 }
@@ -472,7 +470,7 @@ func calculateWithdrawOneTokenDy(
 	}
 	var dy = new(big.Int).Sub(xpReduced[tokenIndex], yd)
 	dy = new(big.Int).Div(
-		new(big.Int).Sub(dy, constant.One),
+		new(big.Int).Sub(dy, bignumber.One),
 		tokenPrecisionMultipliers[tokenIndex],
 	)
 	return dy, newY, nil
@@ -657,7 +655,7 @@ func CalculateAddLiquidityOneToken(
 		lpSupply,
 		amounts,
 		true)
-	return amount, constant.ZeroBI, err
+	return amount, bignumber.ZeroBI, err
 }
 
 func _dynamicFee(
@@ -679,7 +677,7 @@ func _dynamicFee(
 						new(big.Int).Mul(
 							new(big.Int).Mul(
 								new(big.Int).Sub(_feemul, FeeDenominator),
-								constant.Four),
+								bignumber.Four),
 							xpi),
 						xpj),
 					xps2,
@@ -727,8 +725,8 @@ func GetDyUnderlying(
 		tokenPrecisionMultipliers[tokenIndexTo],
 	)
 	var dynamicFee = _dynamicFee(
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexFrom], x), constant.Two),
-		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexTo], y), constant.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexFrom], x), bignumber.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[tokenIndexTo], y), bignumber.Two),
 		swapFee,
 		offPegFeeMultiplier,
 	)

@@ -52,7 +52,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	// NOTE: only allow to mint USD0PP from USD0, so tokenIn has to be USD0 and tokenOut has to be USD0++
-	if params.TokenAmountIn.Token != s.Pool.Info.Tokens[0] && params.TokenOut != s.Info.Tokens[1] {
+	if params.TokenAmountIn.Token != s.Info.Tokens[0] && params.TokenOut != s.Info.Tokens[1] {
 		return nil, ErrorInvalidTokenIn
 	}
 
@@ -81,7 +81,7 @@ func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

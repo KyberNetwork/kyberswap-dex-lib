@@ -13,8 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -45,7 +44,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	var contractAddress string
@@ -340,7 +339,7 @@ func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount
 		return big.NewInt(0)
 	}
 	amount := new(big.Int).Mul(filledMakingAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
-	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), constant.One), valueobject.BasisPoint)
+	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), bignumber.One), valueobject.BasisPoint)
 }
 
 // given total takingAmount, calculate fee and takingAmountAfterFee

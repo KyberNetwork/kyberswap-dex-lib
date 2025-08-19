@@ -34,7 +34,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 
 	var swapInfo SwapInfo
 	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
-		return nil, InvalidSwapInfo
+		return nil, ErrInvalidSwapInfo
 	}
 
 	for _, o := range swapInfo.FilledOrders {

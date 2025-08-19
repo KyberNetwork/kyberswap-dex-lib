@@ -64,24 +64,24 @@ func (s *PoolSimulator) CanSwapTo(token string) []string {
 }
 
 func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if !s.Extra.IsVisible || s.Extra.PoolStatus != poolStatusActive {
+	if !s.IsVisible || s.PoolStatus != poolStatusActive {
 		return nil, ErrPoolNotAvailable
 	}
 
-	if param.TokenAmountIn.Amount.Cmp(s.Extra.PublicAmountAvailable) > 0 {
+	if param.TokenAmountIn.Amount.Cmp(s.PublicAmountAvailable) > 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	if s.Extra.RateToETH.Sign() == 0 {
+	if s.RateToETH.Sign() == 0 {
 		return nil, ErrInvalidRateToETH
 	}
 
 	amountOut := new(big.Int).Set(param.TokenAmountIn.Amount)
 	amountOut.Mul(amountOut, bignumber.BONE)
-	amountOut.Div(amountOut, s.Extra.RateToETH)
+	amountOut.Div(amountOut, s.RateToETH)
 
 	var boostPrice big.Int
-	boostPrice.Mul(amountOut, big.NewInt(int64(s.Extra.BoostPriceBps)))
+	boostPrice.Mul(amountOut, big.NewInt(int64(s.BoostPriceBps)))
 	boostPrice.Div(&boostPrice, bignumber.BasisPoint)
 
 	amountOut.Add(amountOut, &boostPrice)
@@ -100,11 +100,11 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	s.Extra.PublicAmountAvailable = new(big.Int).Sub(s.Extra.PublicAmountAvailable, params.TokenAmountOut.Amount)
+	s.PublicAmountAvailable = new(big.Int).Sub(s.PublicAmountAvailable, params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
-	return MetaInfo{Exchange: s.Extra.Exchange}
+	return MetaInfo{Exchange: s.Exchange}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }

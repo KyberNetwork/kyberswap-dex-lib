@@ -69,8 +69,8 @@ func TestSimpleSwaps_USDC_USDT(t *testing.T) {
 	require.True(t, ok)
 
 	// Store state before UpdateBalance
-	beforeUpdateReserveA := new(big.Int).Set(poolSim.Pool.Info.Reserves[0])
-	beforeUpdateReserveB := new(big.Int).Set(poolSim.Pool.Info.Reserves[1])
+	beforeUpdateReserveA := new(big.Int).Set(poolSim.Info.Reserves[0])
+	beforeUpdateReserveB := new(big.Int).Set(poolSim.Info.Reserves[1])
 
 	// Test UpdateBalance
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{

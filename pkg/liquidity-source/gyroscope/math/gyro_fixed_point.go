@@ -43,7 +43,7 @@ func (l *gyroFixedPoint) Sub(a, b *uint256.Int) (*uint256.Int, error) {
 func (l *gyroFixedPoint) MulUp(a, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
+	if !a.IsZero() && !new(uint256.Int).Div(product, a).Eq(b) {
 		return nil, ErrMulOverflow
 	}
 
@@ -69,7 +69,7 @@ func (l *gyroFixedPoint) MulUpU(a, b *uint256.Int) *uint256.Int {
 func (l *gyroFixedPoint) MulDown(a, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
+	if !a.IsZero() && !new(uint256.Int).Div(product, a).Eq(b) {
 		return nil, ErrMulOverflow
 	}
 

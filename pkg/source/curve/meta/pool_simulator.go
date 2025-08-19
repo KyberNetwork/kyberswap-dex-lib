@@ -10,8 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool
@@ -75,30 +74,30 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	rates := make([]*big.Int, numTokens)
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = utils.NewBig10(entityPool.Reserves[i])
-		multipliers[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
-		rates[i] = utils.NewBig10(staticExtra.Rates[i])
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
+		rates[i] = bignumber.NewBig10(staticExtra.Rates[i])
 	}
 
-	aPrecision := constant.One
+	aPrecision := bignumber.One
 	if len(staticExtra.APrecision) > 0 {
-		aPrecision = utils.NewBig10(staticExtra.APrecision)
+		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
 	}
 
-	rateMultiplier := utils.NewBig10(staticExtra.RateMultiplier)
+	rateMultiplier := bignumber.NewBig10(staticExtra.RateMultiplier)
 	// Handle a specific case for the RAI Curve-Meta pool,
 	// since this pool uses a different contract version, leading the "rates"
 	// is calculated using contract data.
 	if entityPool.Address == curve.RAIMetaPool {
 		rateMultiplier.Set(extraStr.SnappedRedemptionPrice)
-		rateMultiplier.Div(rateMultiplier, utils.TenPowInt(9))
+		rateMultiplier.Div(rateMultiplier, bignumber.TenPowInt(9))
 	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  strings.ToLower(entityPool.Address),
-				SwapFee:  utils.NewBig10(extraStr.SwapFee),
+				SwapFee:  bignumber.NewBig10(extraStr.SwapFee),
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   tokens,
@@ -107,13 +106,13 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 		},
 		basePool:       basePool,
 		RateMultiplier: rateMultiplier,
-		InitialA:       utils.NewBig10(extraStr.InitialA),
-		FutureA:        utils.NewBig10(extraStr.FutureA),
+		InitialA:       bignumber.NewBig10(extraStr.InitialA),
+		FutureA:        bignumber.NewBig10(extraStr.FutureA),
 		InitialATime:   extraStr.InitialATime,
 		FutureATime:    extraStr.FutureATime,
-		AdminFee:       utils.NewBig10(extraStr.AdminFee),
+		AdminFee:       bignumber.NewBig10(extraStr.AdminFee),
 		LpToken:        staticExtra.LpToken,
-		LpSupply:       utils.NewBig10(entityPool.Reserves[numTokens]),
+		LpSupply:       bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:     aPrecision,
 		gas:            DefaultGas,
 	}, nil
@@ -149,7 +148,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -182,7 +181,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(constant.ZeroBI) > 0 {
+		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,

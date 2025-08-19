@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (t *PoolSimulator) _xp_mem(_balances []*big.Int, vPrice *big.Int) ([]*big.Int, error) {
@@ -32,7 +32,7 @@ func (t *PoolSimulator) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	for i := 0; i < MaxLoopLimit; i++ {
 		var dP = new(big.Int).Set(d)
 		for j := 0; j < numTokens; j++ {
-			if xp[j].Cmp(constant.ZeroBI) == 0 {
+			if xp[j].Cmp(bignumber.ZeroBI) == 0 {
 				return nil, ErrDenominatorZero
 			}
 			dP = new(big.Int).Div(
@@ -130,7 +130,7 @@ func (t *PoolSimulator) _get_y(
 		return nil, err
 	}
 	var c = new(big.Int).Set(d)
-	var s = constant.ZeroBI
+	var s = bignumber.ZeroBI
 	var Ann = new(big.Int).Mul(a, nCoins)
 	var _x *big.Int
 	var y_prev *big.Int
@@ -163,7 +163,7 @@ func (t *PoolSimulator) _get_y(
 			new(big.Int).Add(new(big.Int).Mul(y, y), c),
 			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
 		)
-		if new(big.Int).Sub(y, y_prev).CmpAbs(constant.One) <= 0 {
+		if new(big.Int).Sub(y, y_prev).CmpAbs(bignumber.One) <= 0 {
 			return y, nil
 		}
 	}
@@ -185,7 +185,7 @@ func (t *PoolSimulator) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big
 	if err != nil {
 		return nil, nil, err
 	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), constant.One)
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), bignumber.One)
 	var fee = new(big.Int).Div(new(big.Int).Mul(t.GetInfo().SwapFee, dy), FeeDenominator)
 	dy = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(dy, fee), Precision), rates[j])
 	return dy, fee, nil
@@ -230,7 +230,7 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *
 		if base_j < 0 {
 			var base_inputs = make([]*big.Int, baseNCoins)
 			for k := 0; k < baseNCoins; k += 1 {
-				base_inputs[k] = constant.ZeroBI
+				base_inputs[k] = bignumber.ZeroBI
 			}
 			base_inputs[base_i] = _dx
 			var temp, err = t.basePool.CalculateTokenAmount(base_inputs, true)
@@ -238,7 +238,7 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *
 				return nil, nil, err
 			}
 			x = new(big.Int).Div(new(big.Int).Mul(temp, rates[maxCoin]), Precision)
-			x = new(big.Int).Sub(x, new(big.Int).Div(new(big.Int).Mul(x, t.basePool.GetInfo().SwapFee), new(big.Int).Mul(constant.Two, FeeDenominator)))
+			x = new(big.Int).Sub(x, new(big.Int).Div(new(big.Int).Mul(x, t.basePool.GetInfo().SwapFee), new(big.Int).Mul(bignumber.Two, FeeDenominator)))
 			x = new(big.Int).Add(x, xp[maxCoin])
 		} else {
 			return t.basePool.GetDy(base_i, base_j, _dx, D)
@@ -248,7 +248,7 @@ func (t *PoolSimulator) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *
 	if err != nil {
 		return nil, nil, err
 	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[meta_j], y), constant.One)
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[meta_j], y), bignumber.One)
 	var dy_fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, dy), FeeDenominator)
 	dy = new(big.Int).Sub(dy, dy_fee)
 	//dy = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(dy, dy_fee), Precision), rates[meta_j])
@@ -285,7 +285,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), constant.One)
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), bignumber.One)
 	var dy_fee = new(big.Int).Div(new(big.Int).Mul(dy, t.Info.SwapFee), FeeDenominator)
 	dy = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(dy, dy_fee), Precision), rates[j])
 	var dy_admin_fee = new(big.Int).Div(new(big.Int).Mul(dy_fee, t.AdminFee), FeeDenominator)
@@ -333,7 +333,7 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int,
 		} else {
 			var base_inputs = make([]*big.Int, baseNCoins)
 			for k := 0; k < baseNCoins; k += 1 {
-				base_inputs[k] = constant.ZeroBI
+				base_inputs[k] = bignumber.ZeroBI
 			}
 			base_inputs[base_i] = dx
 			var temp, err = t.basePool.AddLiquidity(base_inputs)
@@ -348,7 +348,7 @@ func (t *PoolSimulator) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int,
 		if err != nil {
 			return nil, err
 		}
-		dy = new(big.Int).Sub(new(big.Int).Sub(xp[meta_j], y), constant.One)
+		dy = new(big.Int).Sub(new(big.Int).Sub(xp[meta_j], y), bignumber.One)
 		var dy_fee = new(big.Int).Div(new(big.Int).Mul(dy, t.Info.SwapFee), FeeDenominator)
 		dy = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(dy, dy_fee), Precision), rates[meta_j])
 		var dy_admin_fee = new(big.Int).Div(new(big.Int).Mul(dy_fee, t.AdminFee), FeeDenominator)

@@ -10,7 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -65,7 +65,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31229966656506421921"), utils.NewBig10("63506727363")},
+						Reserves: []*big.Int{bignumber.NewBig10("31229966656506421921"), bignumber.NewBig10("63506727363")},
 					},
 				},
 				isPaused:     false,
@@ -75,10 +75,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("33762029")},
+			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("33762029")},
 			tokenOut:          "0x4200000000000000000000000000000000000006",
-			expectedAmountOut: utils.NewBig10("16585646993362100"),
-			expectedFee:       utils.NewBig10("16881"),
+			expectedAmountOut: bignumber.NewBig10("16585646993362100"),
+			expectedFee:       bignumber.NewBig10("16881"),
 		},
 		{
 			name: "[volatile][0to1] it should return correct amount",
@@ -87,7 +87,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31220354779450883153"), utils.NewBig10("63526279313")},
+						Reserves: []*big.Int{bignumber.NewBig10("31220354779450883153"), bignumber.NewBig10("63526279313")},
 					},
 				},
 				isPaused:     false,
@@ -97,10 +97,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("3655170221820867")},
+			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: bignumber.NewBig10("3655170221820867")},
 			tokenOut:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-			expectedAmountOut: utils.NewBig10("7432846"),
-			expectedFee:       utils.NewBig10("1827585110910"),
+			expectedAmountOut: bignumber.NewBig10("7432846"),
+			expectedFee:       bignumber.NewBig10("1827585110910"),
 		},
 		{
 			name: "[stable][1to0] it should return correct amount",
@@ -109,7 +109,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
 						Tokens:   []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607", "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
-						Reserves: []*big.Int{utils.NewBig10("2052127179"), utils.NewBig10("1705017421")},
+						Reserves: []*big.Int{bignumber.NewBig10("2052127179"), bignumber.NewBig10("1705017421")},
 					},
 				},
 				isPaused:     false,
@@ -119,10 +119,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: utils.NewBig10("36283954")},
+			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: bignumber.NewBig10("36283954")},
 			tokenOut:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-			expectedAmountOut: utils.NewBig10("36307464"),
-			expectedFee:       utils.NewBig10("18141"),
+			expectedAmountOut: bignumber.NewBig10("36307464"),
+			expectedFee:       bignumber.NewBig10("18141"),
 		},
 		{
 			name: "[stable][0to1] it should return correct amount",
@@ -131,7 +131,7 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
 						Tokens:   []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607", "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
-						Reserves: []*big.Int{utils.NewBig10("6110873648"), utils.NewBig10("6651345170")},
+						Reserves: []*big.Int{bignumber.NewBig10("6110873648"), bignumber.NewBig10("6651345170")},
 					},
 				},
 				isPaused:     false,
@@ -141,10 +141,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("302268108")},
+			tokenAmountIn:     poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("302268108")},
 			tokenOut:          "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58",
-			expectedAmountOut: utils.NewBig10("302127234"),
-			expectedFee:       utils.NewBig10("151134"),
+			expectedAmountOut: bignumber.NewBig10("302127234"),
+			expectedFee:       bignumber.NewBig10("151134"),
 		},
 	}
 
@@ -183,7 +183,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31229966656506421921"), utils.NewBig10("63506727363")},
+						Reserves: []*big.Int{bignumber.NewBig10("31229966656506421921"), bignumber.NewBig10("63506727363")},
 					},
 				},
 				isPaused:     false,
@@ -193,10 +193,10 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("33762029")},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("33762029")},
 			tokenIn:          "0x4200000000000000000000000000000000000006",
-			expectedAmountIn: utils.NewBig10("16619902530526859"),
-			expectedFee:      utils.NewBig10("0"),
+			expectedAmountIn: bignumber.NewBig10("16619902530526859"),
+			expectedFee:      bignumber.NewBig10("0"),
 		},
 		{
 			name: "[volatile][1to0] it should return correct amount",
@@ -205,7 +205,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31220354779450883153"), utils.NewBig10("63526279313")},
+						Reserves: []*big.Int{bignumber.NewBig10("31220354779450883153"), bignumber.NewBig10("63526279313")},
 					},
 				},
 				isPaused:     false,
@@ -215,10 +215,10 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 				fee:          uint256.NewInt(5),
 				feePrecision: uint256.NewInt(10000),
 			},
-			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("3655170221820867")},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: bignumber.NewBig10("3655170221820867")},
 			tokenIn:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
-			expectedAmountIn: utils.NewBig10("7442028"),
-			expectedFee:      utils.NewBig10("0"),
+			expectedAmountIn: bignumber.NewBig10("7442028"),
+			expectedFee:      bignumber.NewBig10("0"),
 		},
 	}
 
@@ -255,7 +255,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31229966656506421921"), utils.NewBig10("63506727363")},
+						Reserves: []*big.Int{bignumber.NewBig10("31229966656506421921"), bignumber.NewBig10("63506727363")},
 					},
 				},
 				isPaused:     false,
@@ -266,11 +266,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				feePrecision: uint256.NewInt(10000),
 			},
 			params: poolpkg.UpdateBalanceParams{
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("16585646993362100")},
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("33762029")},
-				Fee:            poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("16881")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: bignumber.NewBig10("16585646993362100")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("33762029")},
+				Fee:            poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("16881")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig10("31213381009513059821"), utils.NewBig10("63540472511")},
+			expectedReserves: []*big.Int{bignumber.NewBig10("31213381009513059821"), bignumber.NewBig10("63540472511")},
 		},
 		{
 			name: "[volatile][0to1] it should update reserve correctly",
@@ -279,7 +279,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
 						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
-						Reserves: []*big.Int{utils.NewBig10("31220354779450883153"), utils.NewBig10("63526279313")},
+						Reserves: []*big.Int{bignumber.NewBig10("31220354779450883153"), bignumber.NewBig10("63526279313")},
 					},
 				},
 				isPaused:     false,
@@ -290,11 +290,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				feePrecision: uint256.NewInt(10000),
 			},
 			params: poolpkg.UpdateBalanceParams{
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("7432846")},
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("3655170221820867")},
-				Fee:            poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("1827585110910")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("7432846")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: bignumber.NewBig10("3655170221820867")},
+				Fee:            poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: bignumber.NewBig10("1827585110910")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig10("31224008122087593110"), utils.NewBig10("63518846467")},
+			expectedReserves: []*big.Int{bignumber.NewBig10("31224008122087593110"), bignumber.NewBig10("63518846467")},
 		},
 		{
 			name: "[stable][1to0] it should update reserve correctly",
@@ -303,7 +303,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
 						Tokens:   []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607", "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
-						Reserves: []*big.Int{utils.NewBig10("2052127179"), utils.NewBig10("1705017421")},
+						Reserves: []*big.Int{bignumber.NewBig10("2052127179"), bignumber.NewBig10("1705017421")},
 					},
 				},
 				isPaused:     false,
@@ -314,11 +314,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				feePrecision: uint256.NewInt(10000),
 			},
 			params: poolpkg.UpdateBalanceParams{
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("36307464")},
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: utils.NewBig10("36283954")},
-				Fee:            poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: utils.NewBig10("18141")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("36307464")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: bignumber.NewBig10("36283954")},
+				Fee:            poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: bignumber.NewBig10("18141")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig10("2015819715"), utils.NewBig10("1741283234")},
+			expectedReserves: []*big.Int{bignumber.NewBig10("2015819715"), bignumber.NewBig10("1741283234")},
 		},
 		{
 			name: "[stable][0to1] it should update reserve correctly",
@@ -327,7 +327,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					Info: poolpkg.PoolInfo{
 						Address:  "0xe08d427724d8a2673fe0be3a81b7db17be835b36",
 						Tokens:   []string{"0x7f5c764cbc14f9669b88837ca1490cca17c31607", "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"},
-						Reserves: []*big.Int{utils.NewBig10("6110873648"), utils.NewBig10("6651345170")},
+						Reserves: []*big.Int{bignumber.NewBig10("6110873648"), bignumber.NewBig10("6651345170")},
 					},
 				},
 				isPaused:     false,
@@ -338,11 +338,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				feePrecision: uint256.NewInt(10000),
 			},
 			params: poolpkg.UpdateBalanceParams{
-				TokenAmountOut: poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: utils.NewBig10("302127234")},
-				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("302268108")},
-				Fee:            poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("151134")},
+				TokenAmountOut: poolpkg.TokenAmount{Token: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58", Amount: bignumber.NewBig10("302127234")},
+				TokenAmountIn:  poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("302268108")},
+				Fee:            poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: bignumber.NewBig10("151134")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig10("6412990622"), utils.NewBig10("6349217936")},
+			expectedReserves: []*big.Int{bignumber.NewBig10("6412990622"), bignumber.NewBig10("6349217936")},
 		},
 	}
 

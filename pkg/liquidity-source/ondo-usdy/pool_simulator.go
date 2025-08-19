@@ -69,7 +69,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		gas       int64
 	)
 
-	if s.Pool.GetAddress() == tokenOut {
+	if s.GetAddress() == tokenOut {
 		amountOut = s.wrap(uint256.MustFromBig(tokenAmountIn.Amount))
 		gas = s.gas.Wrap
 	} else {
@@ -89,7 +89,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if s.Pool.GetAddress() == params.TokenAmountOut.Token {
+	if s.GetAddress() == params.TokenAmountOut.Token {
 		shares := new(uint256.Int).Mul(uint256.MustFromBig(params.TokenAmountIn.Amount), common.BasisPoints)
 		s.totalShares.Add(s.totalShares, shares)
 	} else {
@@ -131,6 +131,6 @@ func (s *PoolSimulator) getSharesByRUSDY(rUSDYAmount *uint256.Int) *uint256.Int 
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }

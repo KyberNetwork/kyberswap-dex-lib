@@ -8,7 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -47,12 +47,12 @@ func TestGetAmountOut(t *testing.T) {
 			},
 			tokenAmountIn: poolPkg.TokenAmount{
 				Token:  "0x2aa69e007c32cf6637511353b89dce0b473851a9",
-				Amount: utils.NewBig("100000000000000000000"),
+				Amount: bignumber.NewBig("100000000000000000000"),
 			},
 			tokenOut: "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
 			expectedAmountOut: &poolPkg.TokenAmount{
 				Token:  "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
-				Amount: utils.NewBig("118248315577"),
+				Amount: bignumber.NewBig("118248315577"),
 			},
 			expectedErr: nil,
 		},
@@ -80,12 +80,12 @@ func TestGetAmountOut(t *testing.T) {
 			},
 			tokenAmountIn: poolPkg.TokenAmount{
 				Token:  "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
-				Amount: utils.NewBig("10000000000000"),
+				Amount: bignumber.NewBig("10000000000000"),
 			},
 			tokenOut: "0x2aa69e007c32cf6637511353b89dce0b473851a9",
 			expectedAmountOut: &poolPkg.TokenAmount{
 				Token:  "0x2aa69e007c32cf6637511353b89dce0b473851a9",
-				Amount: utils.NewBig("6906646455383488382692"),
+				Amount: bignumber.NewBig("6906646455383488382692"),
 			},
 			expectedErr: nil,
 		},
@@ -144,12 +144,12 @@ func TestGetAmountIn(t *testing.T) {
 			},
 			tokenAmountOut: poolPkg.TokenAmount{
 				Token:  "0x2aa69e007c32cf6637511353b89dce0b473851a9",
-				Amount: utils.NewBig("100000000000000000000"),
+				Amount: bignumber.NewBig("100000000000000000000"),
 			},
 			tokenIn: "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
 			expectedAmountIn: &poolPkg.TokenAmount{
 				Token:  "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
-				Amount: utils.NewBig("119335360391"),
+				Amount: bignumber.NewBig("119335360391"),
 			},
 			expectedErr: nil,
 		},
@@ -177,12 +177,12 @@ func TestGetAmountIn(t *testing.T) {
 			},
 			tokenAmountOut: poolPkg.TokenAmount{
 				Token:  "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
-				Amount: utils.NewBig("10000000000000"),
+				Amount: bignumber.NewBig("10000000000000"),
 			},
 			tokenIn: "0x2aa69e007c32cf6637511353b89dce0b473851a9",
 			expectedAmountIn: &poolPkg.TokenAmount{
 				Token:  "0x2aa69e007c32cf6637511353b89dce0b473851a9",
-				Amount: utils.NewBig("10770787930182619874183"),
+				Amount: bignumber.NewBig("10770787930182619874183"),
 			},
 			expectedErr: nil,
 		},

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -39,7 +39,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Info: pool.PoolInfo{
 						Address:  "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
 						Tokens:   []string{"0x4c9edd5852cd905f086c759e8383e09bff1e68b3", "0x9d39a5de30e57443bff2a8307a4256c8797a3497"},
-						Reserves: []*big.Int{utils.NewBig10("2006133174155182059108575912"), utils.NewBig10("1796588169625826666184796333")},
+						Reserves: []*big.Int{bignumber.NewBig10("2006133174155182059108575912"), bignumber.NewBig10("1796588169625826666184796333")},
 					},
 				},
 				totalAssets: uint256.MustFromDecimal("2006133174155182059108575912"),
@@ -49,21 +49,21 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
-						Amount: utils.NewBig10("100000000000000000000"),
+						Amount: bignumber.NewBig10("100000000000000000000"),
 					},
 					TokenOut: "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
-						Amount: utils.NewBig10("100000000000000000000"),
+						Amount: bignumber.NewBig10("100000000000000000000"),
 					},
 					TokenOut: "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x4c9edd5852cd905f086c759e8383e09bff1e68b3",
-						Amount: utils.NewBig10("100000000000000000000"),
+						Amount: bignumber.NewBig10("100000000000000000000"),
 					},
 					TokenOut: "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
 				},
@@ -73,7 +73,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
-							Amount: utils.NewBig10("89554780947301842139"),
+							Amount: bignumber.NewBig10("89554780947301842139"),
 						},
 					},
 					totalAssets: uint256.MustFromDecimal("2006133174155182059108575912"),
@@ -84,7 +84,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
-							Amount: utils.NewBig10("89554780947301842139"),
+							Amount: bignumber.NewBig10("89554780947301842139"),
 						},
 					},
 					totalAssets: uint256.MustFromDecimal("2006133274155182059108575912"),
@@ -95,7 +95,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x9d39a5de30e57443bff2a8307a4256c8797a3497",
-							Amount: utils.NewBig10("89554780947301842139"),
+							Amount: bignumber.NewBig10("89554780947301842139"),
 						},
 					},
 					totalAssets: uint256.MustFromDecimal("2006133374155182059108575912"),

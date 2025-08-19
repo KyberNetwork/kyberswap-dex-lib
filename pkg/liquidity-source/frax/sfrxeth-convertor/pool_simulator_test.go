@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -39,7 +39,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Info: pool.PoolInfo{
 						Address:  "0xac3e018457b222d93114458476f3e3416abbe38f",
 						Tokens:   []string{"0x5e8422345238f34275888049021821e8e08caa1f", "0xac3e018457b222d93114458476f3e3416abbe38f"},
-						Reserves: []*big.Int{utils.NewBig10("117954317618747599936548"), utils.NewBig10("106794914919235920539073")},
+						Reserves: []*big.Int{bignumber.NewBig10("117954317618747599936548"), bignumber.NewBig10("106794914919235920539073")},
 					},
 				},
 				totalAssets: uint256.MustFromDecimal("117954317618747599936548"),
@@ -49,21 +49,21 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-						Amount: utils.NewBig10("100000000000000"),
+						Amount: bignumber.NewBig10("100000000000000"),
 					},
 					TokenOut: "0xac3e018457b222d93114458476f3e3416abbe38f",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-						Amount: utils.NewBig10("100000000000000"),
+						Amount: bignumber.NewBig10("100000000000000"),
 					},
 					TokenOut: "0xac3e018457b222d93114458476f3e3416abbe38f",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-						Amount: utils.NewBig10("100000000000000"),
+						Amount: bignumber.NewBig10("100000000000000"),
 					},
 					TokenOut: "0xac3e018457b222d93114458476f3e3416abbe38f",
 				},
@@ -73,7 +73,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-							Amount: utils.NewBig10("90539216431584"),
+							Amount: bignumber.NewBig10("90539216431584"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: true,
@@ -87,7 +87,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-							Amount: utils.NewBig10("90539216431584"),
+							Amount: bignumber.NewBig10("90539216431584"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: true,
@@ -101,7 +101,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-							Amount: utils.NewBig10("90539216431584"),
+							Amount: bignumber.NewBig10("90539216431584"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: true,
@@ -121,7 +121,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Info: pool.PoolInfo{
 						Address:  "0xac3e018457b222d93114458476f3e3416abbe38f",
 						Tokens:   []string{"0x5e8422345238f34275888049021821e8e08caa1f", "0xac3e018457b222d93114458476f3e3416abbe38f"},
-						Reserves: []*big.Int{utils.NewBig10("117954432267012196091328"), utils.NewBig10("106794914919235920539073")},
+						Reserves: []*big.Int{bignumber.NewBig10("117954432267012196091328"), bignumber.NewBig10("106794914919235920539073")},
 					},
 				},
 				totalAssets: uint256.MustFromDecimal("117954432267012196091328"),
@@ -131,28 +131,28 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-						Amount: utils.NewBig10("1000000000000000"),
+						Amount: bignumber.NewBig10("1000000000000000"),
 					},
 					TokenOut: "0x5e8422345238f34275888049021821e8e08caa1f",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-						Amount: utils.NewBig10("1000000000000000"),
+						Amount: bignumber.NewBig10("1000000000000000"),
 					},
 					TokenOut: "0x5e8422345238f34275888049021821e8e08caa1f",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-						Amount: utils.NewBig10("1000000000000000"),
+						Amount: bignumber.NewBig10("1000000000000000"),
 					},
 					TokenOut: "0x5e8422345238f34275888049021821e8e08caa1f",
 				},
 				{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "0xac3e018457b222d93114458476f3e3416abbe38f",
-						Amount: utils.NewBig10("1000000000000000"),
+						Amount: bignumber.NewBig10("1000000000000000"),
 					},
 					TokenOut: "0x5e8422345238f34275888049021821e8e08caa1f",
 				},
@@ -162,7 +162,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-							Amount: utils.NewBig10("1104494838131719"),
+							Amount: bignumber.NewBig10("1104494838131719"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: false,
@@ -176,7 +176,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-							Amount: utils.NewBig10("1104494838131719"),
+							Amount: bignumber.NewBig10("1104494838131719"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: false,
@@ -190,7 +190,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-							Amount: utils.NewBig10("1104494838131719"),
+							Amount: bignumber.NewBig10("1104494838131719"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: false,
@@ -204,7 +204,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					calcAmountOutResult: pool.CalcAmountOutResult{
 						TokenAmountOut: &pool.TokenAmount{
 							Token:  "0x5e8422345238f34275888049021821e8e08caa1f",
-							Amount: utils.NewBig10("1104494838131719"),
+							Amount: bignumber.NewBig10("1104494838131719"),
 						},
 						SwapInfo: SwapInfo{
 							IsDeposit: false,

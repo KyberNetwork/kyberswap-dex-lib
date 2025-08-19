@@ -211,15 +211,15 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// Update pool reserves
 	tokenAmountIn := params.TokenAmountIn
 	tokenAmountOut := params.TokenAmountOut
-	isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0])
+	isTokenAIn := strings.EqualFold(tokenAmountIn.Token, p.Info.Tokens[0])
 
 	// Update reserves based on swap direction
 	if isTokenAIn {
-		p.Pool.Info.Reserves[0] = new(big.Int).Add(p.Pool.Info.Reserves[0], tokenAmountIn.Amount)
-		p.Pool.Info.Reserves[1] = new(big.Int).Sub(p.Pool.Info.Reserves[1], tokenAmountOut.Amount)
+		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], tokenAmountIn.Amount)
+		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], tokenAmountOut.Amount)
 	} else {
-		p.Pool.Info.Reserves[0] = new(big.Int).Sub(p.Pool.Info.Reserves[0], tokenAmountOut.Amount)
-		p.Pool.Info.Reserves[1] = new(big.Int).Add(p.Pool.Info.Reserves[1], tokenAmountIn.Amount)
+		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], tokenAmountOut.Amount)
+		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], tokenAmountIn.Amount)
 	}
 }
 

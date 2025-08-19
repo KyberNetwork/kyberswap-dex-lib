@@ -11,7 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -102,11 +102,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			fmt.Println(p.Info.Reserves)
 			for i, expPoolAmount := range tc.expPoolAmounts {
 				tok := p.vault.WhitelistedTokens[i]
-				assert.Equal(t, utils.NewBig10(expPoolAmount), p.vault.PoolAmounts[tok])
+				assert.Equal(t, bignumber.NewBig10(expPoolAmount), p.vault.PoolAmounts[tok])
 			}
 			for i, expUsdg := range tc.expUsdg {
 				tok := p.vault.WhitelistedTokens[i]
-				assert.Equal(t, utils.NewBig10(expUsdg), p.vault.USDGAmounts[tok])
+				assert.Equal(t, bignumber.NewBig10(expUsdg), p.vault.USDGAmounts[tok])
 			}
 		})
 	}

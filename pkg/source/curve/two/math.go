@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func sortArray(A0 []*big.Int) []*big.Int {
@@ -42,24 +42,24 @@ func geometricMean(unsortedX []*big.Int, sort bool) (*big.Int, error) {
 		x = sortArray(unsortedX)
 	}
 	var D = x[0]
-	var diff = constant.ZeroBI
+	var diff = bignumber.ZeroBI
 	for i := 0; i < 255; i += 1 {
 		var DPrev = D
-		var tmp = constant.BONE
+		var tmp = bignumber.BONE
 		for _, _x := range x {
 			tmp = new(big.Int).Div(new(big.Int).Mul(tmp, _x), D)
 		}
 		D = new(big.Int).Div(
 			new(big.Int).Mul(
-				D, new(big.Int).Add(new(big.Int).Mul(big.NewInt(int64(nCoins-1)), constant.BONE), tmp),
-			), new(big.Int).Mul(nCoinsBi, constant.BONE),
+				D, new(big.Int).Add(new(big.Int).Mul(big.NewInt(int64(nCoins-1)), bignumber.BONE), tmp),
+			), new(big.Int).Mul(nCoinsBi, bignumber.BONE),
 		)
 		if D.Cmp(DPrev) > 0 {
 			diff = new(big.Int).Sub(D, DPrev)
 		} else {
 			diff = new(big.Int).Sub(DPrev, D)
 		}
-		if diff.Cmp(constant.One) <= 0 || new(big.Int).Mul(diff, constant.BONE).Cmp(D) < 0 {
+		if diff.Cmp(bignumber.One) <= 0 || new(big.Int).Mul(diff, bignumber.BONE).Cmp(D) < 0 {
 			return D, nil
 		}
 	}
@@ -67,17 +67,17 @@ func geometricMean(unsortedX []*big.Int, sort bool) (*big.Int, error) {
 }
 
 func sqrtInt(x *big.Int) (*big.Int, error) {
-	if x.Cmp(constant.ZeroBI) == 0 {
-		return constant.ZeroBI, nil
+	if x.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI, nil
 	}
-	var z = new(big.Int).Div(new(big.Int).Add(x, constant.BONE), constant.Two)
+	var z = new(big.Int).Div(new(big.Int).Add(x, bignumber.BONE), bignumber.Two)
 	var y = x
 	for i := 0; i < 256; i += 1 {
 		if z.Cmp(y) == 0 {
 			return y, nil
 		}
 		y = z
-		z = new(big.Int).Div(new(big.Int).Add(new(big.Int).Div(new(big.Int).Mul(x, constant.BONE), z), z), constant.Two)
+		z = new(big.Int).Div(new(big.Int).Add(new(big.Int).Div(new(big.Int).Mul(x, bignumber.BONE), z), z), bignumber.Two)
 	}
 	return nil, errors.New("sqrt_int did not converge")
 }
@@ -89,12 +89,12 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 	var nCoins = len(xUnsorted)
 	var nCoinsBi = big.NewInt(int64(nCoins))
 	var x = sortArray(xUnsorted)
-	if x[0].Cmp(constant.TenPowInt(9)) < 0 || x[0].Cmp(constant.TenPowInt(33)) > 0 {
+	if x[0].Cmp(bignumber.TenPowInt(9)) < 0 || x[0].Cmp(bignumber.TenPowInt(33)) > 0 {
 		return nil, errors.New("unsafe values x[0]")
 	}
 	for i := 1; i < nCoins; i += 1 {
-		var frac = new(big.Int).Div(new(big.Int).Mul(x[i], constant.BONE), x[0])
-		if frac.Cmp(constant.TenPowInt(11)) < 0 {
+		var frac = new(big.Int).Div(new(big.Int).Mul(x[i], bignumber.BONE), x[0])
+		if frac.Cmp(bignumber.TenPowInt(11)) < 0 {
 			return nil, errors.New("unsafe values x[i]")
 		}
 	}
@@ -103,28 +103,28 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 		return nil, err
 	}
 	var D = new(big.Int).Mul(nCoinsBi, mean)
-	var S = constant.ZeroBI
+	var S = bignumber.ZeroBI
 	for _, xI := range x {
 		S = new(big.Int).Add(S, xI)
 	}
 	for i := 0; i < 255; i += 1 {
 		var DPrev = D
-		var K0 = constant.BONE
+		var K0 = bignumber.BONE
 		for _, _x := range x {
 			K0 = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K0, _x), nCoinsBi), D)
 		}
-		var _g1k0 = new(big.Int).Add(gamma, constant.BONE)
+		var _g1k0 = new(big.Int).Add(gamma, bignumber.BONE)
 		if _g1k0.Cmp(K0) > 0 {
-			_g1k0 = new(big.Int).Add(new(big.Int).Sub(_g1k0, K0), constant.One)
+			_g1k0 = new(big.Int).Add(new(big.Int).Sub(_g1k0, K0), bignumber.One)
 		} else {
-			_g1k0 = new(big.Int).Add(new(big.Int).Sub(K0, _g1k0), constant.One)
+			_g1k0 = new(big.Int).Add(new(big.Int).Sub(K0, _g1k0), bignumber.One)
 		}
 		var mul1 = new(big.Int).Div(
 			new(big.Int).Mul(
 				new(big.Int).Mul(
 					new(big.Int).Div(
 						new(big.Int).Mul(
-							new(big.Int).Div(new(big.Int).Mul(constant.BONE, D), gamma), _g1k0,
+							new(big.Int).Div(new(big.Int).Mul(bignumber.BONE, D), gamma), _g1k0,
 						), gamma,
 					),
 					_g1k0,
@@ -135,27 +135,27 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 		var mul2 = new(big.Int).Div(
 			new(big.Int).Mul(
 				new(big.Int).Mul(
-					new(big.Int).Mul(constant.Two, constant.BONE), nCoinsBi,
+					new(big.Int).Mul(bignumber.Two, bignumber.BONE), nCoinsBi,
 				), K0,
 			), _g1k0,
 		)
 		var negFprime = new(big.Int).Sub(
 			new(big.Int).Add(
-				new(big.Int).Add(S, new(big.Int).Div(new(big.Int).Mul(S, mul2), constant.BONE)),
+				new(big.Int).Add(S, new(big.Int).Div(new(big.Int).Mul(S, mul2), bignumber.BONE)),
 				new(big.Int).Div(new(big.Int).Mul(mul1, nCoinsBi), K0),
 			),
-			new(big.Int).Div(new(big.Int).Mul(mul2, D), constant.BONE),
+			new(big.Int).Div(new(big.Int).Mul(mul2, D), bignumber.BONE),
 		)
 		var DPlus = new(big.Int).Div(new(big.Int).Mul(D, new(big.Int).Add(negFprime, S)), negFprime)
 		var DMinus = new(big.Int).Div(new(big.Int).Mul(D, D), negFprime)
-		if constant.BONE.Cmp(K0) > 0 {
+		if bignumber.BONE.Cmp(K0) > 0 {
 			DMinus = new(big.Int).Add(
 				DMinus,
 				new(big.Int).Div(
 					new(big.Int).Mul(
 						new(big.Int).Div(
-							new(big.Int).Mul(D, new(big.Int).Div(mul1, negFprime)), constant.BONE,
-						), new(big.Int).Sub(constant.BONE, K0),
+							new(big.Int).Mul(D, new(big.Int).Div(mul1, negFprime)), bignumber.BONE,
+						), new(big.Int).Sub(bignumber.BONE, K0),
 					),
 					K0,
 				),
@@ -166,8 +166,8 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 				new(big.Int).Div(
 					new(big.Int).Mul(
 						new(big.Int).Div(
-							new(big.Int).Mul(D, new(big.Int).Div(mul1, negFprime)), constant.BONE,
-						), new(big.Int).Sub(K0, constant.BONE),
+							new(big.Int).Mul(D, new(big.Int).Div(mul1, negFprime)), bignumber.BONE,
+						), new(big.Int).Sub(K0, bignumber.BONE),
 					),
 					K0,
 				),
@@ -176,7 +176,7 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 		if DPlus.Cmp(DMinus) > 0 {
 			D = new(big.Int).Sub(DPlus, DMinus)
 		} else {
-			D = new(big.Int).Div(new(big.Int).Sub(DMinus, DPlus), constant.Two)
+			D = new(big.Int).Div(new(big.Int).Sub(DMinus, DPlus), bignumber.Two)
 		}
 		var diff *big.Int
 		if D.Cmp(DPrev) > 0 {
@@ -184,14 +184,14 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 		} else {
 			diff = new(big.Int).Sub(DPrev, D)
 		}
-		var temp = constant.TenPowInt(16)
+		var temp = bignumber.TenPowInt(16)
 		if D.Cmp(temp) > 0 {
 			temp = D
 		}
-		if new(big.Int).Mul(diff, constant.TenPowInt(14)).Cmp(temp) < 0 {
+		if new(big.Int).Mul(diff, bignumber.TenPowInt(14)).Cmp(temp) < 0 {
 			for _, _x := range x {
-				var frac = new(big.Int).Div(new(big.Int).Mul(_x, constant.BONE), D)
-				if frac.Cmp(constant.TenPowInt(16)) < 0 || frac.Cmp(constant.TenPowInt(20)) > 0 {
+				var frac = new(big.Int).Div(new(big.Int).Mul(_x, bignumber.BONE), D)
+				if frac.Cmp(bignumber.TenPowInt(16)) < 0 || frac.Cmp(bignumber.TenPowInt(20)) > 0 {
 					return nil, errors.New("unsafe values x[i]")
 				}
 			}
@@ -203,34 +203,34 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 
 func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*big.Int, error) {
 	// Reference: https://github.com/curvefi/curve-crypto-contract/blob/master/contracts/two/CurveCryptoSwap2ETH.vy#L346-L349
-	if ann.Cmp(new(big.Int).Sub(MinA, constant.One)) <= 0 || ann.Cmp(new(big.Int).Add(MaxA, constant.One)) >= 0 {
+	if ann.Cmp(new(big.Int).Sub(MinA, bignumber.One)) <= 0 || ann.Cmp(new(big.Int).Add(MaxA, bignumber.One)) >= 0 {
 		return nil, errors.New("unsafe values A")
 	}
 
-	if gamma.Cmp(new(big.Int).Sub(MinGamma, constant.One)) <= 0 || gamma.Cmp(new(big.Int).Add(MaxGamma, constant.One)) >= 0 {
+	if gamma.Cmp(new(big.Int).Sub(MinGamma, bignumber.One)) <= 0 || gamma.Cmp(new(big.Int).Add(MaxGamma, bignumber.One)) >= 0 {
 		return nil, errors.New("unsafe values gamma")
 	}
 
-	if D.Cmp(new(big.Int).Sub(constant.TenPowInt(17), constant.One)) <= 0 {
+	if D.Cmp(new(big.Int).Sub(bignumber.TenPowInt(17), bignumber.One)) <= 0 {
 		return nil, errors.New("unsafe values D")
 	}
-	if D.Cmp(new(big.Int).Add(new(big.Int).Mul(constant.TenPowInt(15), constant.TenPowInt(18)), constant.One)) >= 0 {
+	if D.Cmp(new(big.Int).Add(new(big.Int).Mul(bignumber.TenPowInt(15), bignumber.TenPowInt(18)), bignumber.One)) >= 0 {
 		return nil, errors.New("unsafe values D")
 	}
 
 	var nCoins = len(x)
 	var nCoinBi = big.NewInt(int64(nCoins))
 	var y = new(big.Int).Div(D, nCoinBi)
-	var K0i = constant.BONE
-	var Si = constant.ZeroBI
+	var K0i = bignumber.BONE
+	var Si = bignumber.ZeroBI
 
 	var xSorted = make([]*big.Int, nCoins)
 	for j := 0; j < nCoins; j += 1 {
 		xSorted[j] = x[j]
 	}
-	xSorted[i] = constant.ZeroBI
+	xSorted[i] = bignumber.ZeroBI
 	xSorted = sortArray(xSorted)
-	var tenPow14 = constant.TenPowInt(14)
+	var tenPow14 = bignumber.TenPowInt(14)
 	var convergenceLimit = new(big.Int).Div(xSorted[0], tenPow14)
 	var temp = new(big.Int).Div(D, tenPow14)
 	if temp.Cmp(convergenceLimit) > 0 {
@@ -242,7 +242,7 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 
 	for j := 2; j < nCoins+1; j += 1 {
 		var _x = xSorted[nCoins-j]
-		if _x.Cmp(constant.ZeroBI) == 0 {
+		if _x.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrDenominatorZero
 		}
 		y = new(big.Int).Div(new(big.Int).Mul(y, D), new(big.Int).Mul(_x, nCoinBi))
@@ -255,17 +255,17 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 		var yPrev = y
 		var K0 = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K0i, y), nCoinBi), D)
 		var S = new(big.Int).Add(Si, y)
-		var _g1k0 = new(big.Int).Add(gamma, constant.BONE)
+		var _g1k0 = new(big.Int).Add(gamma, bignumber.BONE)
 		if _g1k0.Cmp(K0) > 0 {
-			_g1k0 = new(big.Int).Add(new(big.Int).Sub(_g1k0, K0), constant.One)
+			_g1k0 = new(big.Int).Add(new(big.Int).Sub(_g1k0, K0), bignumber.One)
 		} else {
-			_g1k0 = new(big.Int).Add(new(big.Int).Sub(K0, _g1k0), constant.One)
+			_g1k0 = new(big.Int).Add(new(big.Int).Sub(K0, _g1k0), bignumber.One)
 		}
 		var mul1 = new(big.Int).Div(
 			new(big.Int).Mul(
 				new(big.Int).Div(
 					new(big.Int).Mul(
-						new(big.Int).Div(new(big.Int).Mul(constant.BONE, D), gamma),
+						new(big.Int).Div(new(big.Int).Mul(bignumber.BONE, D), gamma),
 						_g1k0,
 					), gamma,
 				),
@@ -275,46 +275,46 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 		var mul2 = new(big.Int).Add(
 			new(big.Int).Div(
 				new(big.Int).Mul(
-					new(big.Int).Mul(constant.Two, constant.BONE), K0,
+					new(big.Int).Mul(bignumber.Two, bignumber.BONE), K0,
 				), _g1k0,
-			), constant.BONE,
+			), bignumber.BONE,
 		)
 		var yfprime = new(big.Int).Add(
-			new(big.Int).Add(new(big.Int).Mul(constant.BONE, y), new(big.Int).Mul(S, mul2)), mul1,
+			new(big.Int).Add(new(big.Int).Mul(bignumber.BONE, y), new(big.Int).Mul(S, mul2)), mul1,
 		)
 		var _dyfprime = new(big.Int).Mul(D, mul2)
 		if yfprime.Cmp(_dyfprime) < 0 {
-			y = new(big.Int).Div(yPrev, constant.Two)
+			y = new(big.Int).Div(yPrev, bignumber.Two)
 			continue
 		} else {
 			yfprime = new(big.Int).Sub(yfprime, _dyfprime)
 		}
 
-		if y.Cmp(constant.ZeroBI) == 0 {
+		if y.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrDenominatorZero
 		}
 
 		var fprime = new(big.Int).Div(yfprime, y)
 
-		if fprime.Cmp(constant.ZeroBI) == 0 {
+		if fprime.Cmp(bignumber.ZeroBI) == 0 {
 			return nil, ErrDenominatorZero
 		}
 
 		var yMinus = new(big.Int).Div(mul1, fprime)
 		var yPlus = new(big.Int).Add(
 			new(big.Int).Div(
-				new(big.Int).Add(yfprime, new(big.Int).Mul(constant.BONE, D)),
+				new(big.Int).Add(yfprime, new(big.Int).Mul(bignumber.BONE, D)),
 				fprime,
 			),
-			new(big.Int).Div(new(big.Int).Mul(yMinus, constant.BONE), K0),
+			new(big.Int).Div(new(big.Int).Mul(yMinus, bignumber.BONE), K0),
 		)
-		yMinus = new(big.Int).Add(yMinus, new(big.Int).Div(new(big.Int).Mul(constant.BONE, S), fprime))
+		yMinus = new(big.Int).Add(yMinus, new(big.Int).Div(new(big.Int).Mul(bignumber.BONE, S), fprime))
 		if yPlus.Cmp(yMinus) < 0 {
-			y = new(big.Int).Div(yPrev, constant.Two)
+			y = new(big.Int).Div(yPrev, bignumber.Two)
 		} else {
 			y = new(big.Int).Sub(yPlus, yMinus)
 		}
-		var diff = constant.ZeroBI
+		var diff = bignumber.ZeroBI
 		if y.Cmp(yPrev) > 0 {
 			diff = new(big.Int).Sub(y, yPrev)
 		} else {
@@ -325,8 +325,8 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 			t = convergenceLimit
 		}
 		if diff.Cmp(t) < 0 {
-			var frac = new(big.Int).Div(new(big.Int).Mul(y, constant.BONE), D)
-			if frac.Cmp(constant.TenPowInt(16)) < 0 || frac.Cmp(constant.TenPowInt(20)) > 0 {
+			var frac = new(big.Int).Div(new(big.Int).Mul(y, bignumber.BONE), D)
+			if frac.Cmp(bignumber.TenPowInt(16)) < 0 || frac.Cmp(bignumber.TenPowInt(20)) > 0 {
 				return nil, errors.New("unsafe value for y")
 			}
 			return y, nil
@@ -337,53 +337,53 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 
 func reductionCoefficient(x []*big.Int, feeGamma *big.Int) *big.Int {
 	var nCoinsBi = big.NewInt(int64(len(x)))
-	var K = constant.BONE
-	var S = constant.ZeroBI
+	var K = bignumber.BONE
+	var S = bignumber.ZeroBI
 	for _, xi := range x {
 		S = new(big.Int).Add(S, xi)
 	}
 	for _, xi := range x {
 		K = new(big.Int).Div(new(big.Int).Mul(new(big.Int).Mul(K, nCoinsBi), xi), S)
 	}
-	if feeGamma.Cmp(constant.ZeroBI) > 0 {
+	if feeGamma.Cmp(bignumber.ZeroBI) > 0 {
 		K = new(big.Int).Div(
-			new(big.Int).Mul(feeGamma, constant.BONE), new(big.Int).Sub(new(big.Int).Add(feeGamma, constant.BONE), K),
+			new(big.Int).Mul(feeGamma, bignumber.BONE), new(big.Int).Sub(new(big.Int).Add(feeGamma, bignumber.BONE), K),
 		)
 	}
 	return K
 }
 
 func halfpow(power *big.Int, precision *big.Int) (*big.Int, error) {
-	var intpow = new(big.Int).Div(power, constant.BONE)
-	var otherpow = new(big.Int).Sub(power, new(big.Int).Mul(intpow, constant.BONE))
+	var intpow = new(big.Int).Div(power, bignumber.BONE)
+	var otherpow = new(big.Int).Sub(power, new(big.Int).Mul(intpow, bignumber.BONE))
 	if intpow.Cmp(big.NewInt(59)) > 0 {
-		return constant.ZeroBI, nil
+		return bignumber.ZeroBI, nil
 	}
-	var result = new(big.Int).Div(constant.BONE, new(big.Int).Exp(constant.Two, intpow, nil))
-	if otherpow.Cmp(constant.ZeroBI) == 0 {
+	var result = new(big.Int).Div(bignumber.BONE, new(big.Int).Exp(bignumber.Two, intpow, nil))
+	if otherpow.Cmp(bignumber.ZeroBI) == 0 {
 		return result, nil
 	}
-	var term = constant.BONE
-	var x = new(big.Int).Mul(constant.Five, constant.TenPowInt(17))
-	var S = constant.BONE
+	var term = bignumber.BONE
+	var x = new(big.Int).Mul(bignumber.Five, bignumber.TenPowInt(17))
+	var S = bignumber.BONE
 	var neg = false
 	for i := 1; i < 256; i += 1 {
-		var K = new(big.Int).Mul(big.NewInt(int64(i)), constant.BONE)
-		var c = new(big.Int).Sub(K, constant.BONE)
+		var K = new(big.Int).Mul(big.NewInt(int64(i)), bignumber.BONE)
+		var c = new(big.Int).Sub(K, bignumber.BONE)
 		if otherpow.Cmp(c) > 0 {
 			c = new(big.Int).Sub(otherpow, c)
 			neg = !neg
 		} else {
 			c = new(big.Int).Sub(c, otherpow)
 		}
-		term = new(big.Int).Div(new(big.Int).Mul(term, new(big.Int).Div(new(big.Int).Mul(c, x), constant.BONE)), K)
+		term = new(big.Int).Div(new(big.Int).Mul(term, new(big.Int).Div(new(big.Int).Mul(c, x), bignumber.BONE)), K)
 		if neg {
 			S = new(big.Int).Sub(S, term)
 		} else {
 			S = new(big.Int).Add(S, term)
 		}
 		if term.Cmp(precision) < 0 {
-			return new(big.Int).Div(new(big.Int).Mul(result, S), constant.BONE), nil
+			return new(big.Int).Div(new(big.Int).Mul(result, S), bignumber.BONE), nil
 		}
 	}
 	return nil, errors.New("did not converge")
@@ -438,8 +438,8 @@ func (t *PoolSimulator) FeeCalc(xp []*big.Int) *big.Int {
 	var f = reductionCoefficient(xp, t.FeeGamma)
 	var ret = new(big.Int).Div(
 		new(big.Int).Add(
-			new(big.Int).Mul(t.MidFee, f), new(big.Int).Mul(t.OutFee, new(big.Int).Sub(constant.BONE, f)),
-		), constant.BONE,
+			new(big.Int).Mul(t.MidFee, f), new(big.Int).Mul(t.OutFee, new(big.Int).Sub(bignumber.BONE, f)),
+		), bignumber.BONE,
 	)
 	return ret
 }
@@ -455,7 +455,7 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, er
 
 	var priceScale = new(big.Int).Mul(t.PriceScalePacked, t.Precisions[1])
 
-	var xp = []*big.Int{t.Pool.Info.Reserves[0], t.Pool.Info.Reserves[1]} // xp: uint256[N_COINS] = self.balances
+	var xp = []*big.Int{t.Info.Reserves[0], t.Info.Reserves[1]} // xp: uint256[N_COINS] = self.balances
 	xp[i] = new(big.Int).Add(xp[i], dx)
 	xp[0] = new(big.Int).Mul(xp[0], t.Precisions[0])
 	xp[1] = new(big.Int).Div(new(big.Int).Mul(xp[1], priceScale), Precision)
@@ -466,7 +466,7 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, er
 		return nil, nil, err
 	}
 
-	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), constant.One) // dy: uint256 = xp[j] - y - 1
+	var dy = new(big.Int).Sub(new(big.Int).Sub(xp[j], y), bignumber.One) // dy: uint256 = xp[j] - y - 1
 	xp[j] = y
 	if j > 0 {
 		dy = new(big.Int).Div(new(big.Int).Mul(dy, Precision), priceScale) // dy = dy * PRECISION / price_scale
@@ -475,7 +475,7 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, er
 	}
 	// dy -= self._fee(xp) * dy / 10**10
 	var fee = t.FeeCalc(xp)
-	dy = new(big.Int).Sub(dy, new(big.Int).Div(new(big.Int).Mul(fee, dy), constant.TenPowInt(10)))
+	dy = new(big.Int).Sub(dy, new(big.Int).Div(new(big.Int).Mul(fee, dy), bignumber.TenPowInt(10)))
 
 	return dy, fee, nil
 }
@@ -488,7 +488,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	if i >= nCoins || j >= nCoins || i < 0 || j < 0 {
 		return nil, errors.New("coin index out of range")
 	}
-	if dx.Cmp(constant.ZeroBI) <= 0 {
+	if dx.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, errors.New("do not exchange 0 coins")
 	}
 
@@ -498,8 +498,8 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 		xp[k] = t.Info.Reserves[k]
 	}
 	var ix = j
-	var p = constant.ZeroBI
-	var dy = constant.ZeroBI
+	var p = bignumber.ZeroBI
+	var dy = bignumber.ZeroBI
 
 	var y = xp[j]
 	var x0 = xp[i]
@@ -544,12 +544,12 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	}
 	dy = new(big.Int).Sub(xp[j], temp)
 	xp[j] = new(big.Int).Sub(xp[j], dy)
-	dy = new(big.Int).Sub(dy, constant.One)
+	dy = new(big.Int).Sub(dy, bignumber.One)
 	if j > 0 {
 		dy = new(big.Int).Div(new(big.Int).Mul(dy, Precision), priceScale[j-1])
 	}
 	dy = new(big.Int).Div(dy, t.Precisions[j])
-	dy = new(big.Int).Sub(dy, new(big.Int).Div(new(big.Int).Mul(t.FeeCalc(xp), dy), constant.TenPowInt(10)))
+	dy = new(big.Int).Sub(dy, new(big.Int).Div(new(big.Int).Mul(t.FeeCalc(xp), dy), bignumber.TenPowInt(10)))
 	// assert dy >= min_dy, "Slippage"
 	y = new(big.Int).Sub(y, dy)
 	t.Info.Reserves[j] = y
@@ -558,7 +558,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 		y = new(big.Int).Div(new(big.Int).Mul(y, priceScale[j-1]), Precision)
 	}
 	xp[j] = y
-	if dx.Cmp(constant.TenPowInt(5)) > 0 && dy.Cmp(constant.TenPowInt(5)) > 0 {
+	if dx.Cmp(bignumber.TenPowInt(5)) > 0 && dy.Cmp(bignumber.TenPowInt(5)) > 0 {
 		var _dx = new(big.Int).Mul(dx, t.Precisions[i])
 		var _dy = new(big.Int).Mul(dy, t.Precisions[j])
 		if i != 0 && j != 0 {
@@ -572,13 +572,13 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 				), _dy,
 			)
 		} else if i == 0 {
-			p = new(big.Int).Div(new(big.Int).Mul(_dx, constant.BONE), _dy)
+			p = new(big.Int).Div(new(big.Int).Mul(_dx, bignumber.BONE), _dy)
 		} else {
-			p = new(big.Int).Div(new(big.Int).Mul(_dy, constant.BONE), _dx)
+			p = new(big.Int).Div(new(big.Int).Mul(_dy, bignumber.BONE), _dx)
 			ix = i
 		}
 	}
-	err = t.tweakPrice(AGamma, xp, ix, p, constant.ZeroBI)
+	err = t.tweakPrice(AGamma, xp, ix, p, bignumber.ZeroBI)
 	return dy, err
 }
 
@@ -607,18 +607,18 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 		var maHalfTime = t.MaHalfTime
 		var alpha, _ = halfpow(
 			new(big.Int).Div(
-				new(big.Int).Mul(big.NewInt(blockTimestamp-lastPricesTimestamp), constant.BONE), maHalfTime,
+				new(big.Int).Mul(big.NewInt(blockTimestamp-lastPricesTimestamp), bignumber.BONE), maHalfTime,
 			),
-			constant.TenPowInt(10),
+			bignumber.TenPowInt(10),
 		)
-		packedPrices = constant.ZeroBI
+		packedPrices = bignumber.ZeroBI
 		for k := 0; k < nCoins-1; k += 1 {
 			priceOracle[k] = new(big.Int).Div(
 				new(big.Int).Add(
-					new(big.Int).Mul(lastPrices[k], new(big.Int).Sub(constant.BONE, alpha)),
+					new(big.Int).Mul(lastPrices[k], new(big.Int).Sub(bignumber.BONE, alpha)),
 					new(big.Int).Mul(priceOracle[k], alpha),
 				),
-				constant.BONE,
+				bignumber.BONE,
 			)
 		}
 		for k := 0; k < nCoins-1; k += 1 {
@@ -630,7 +630,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 		t.LastPricesTimestamp = blockTimestamp
 	}
 	var DUnadjusted = newD
-	if newD.Cmp(constant.ZeroBI) == 0 {
+	if newD.Cmp(bignumber.ZeroBI) == 0 {
 		DUnadjusted, _ = newtonD(AGamma[0], AGamma[1], _xp)
 	}
 	packedPrices = t.PriceScalePacked
@@ -638,12 +638,12 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 		priceScale[k] = new(big.Int).And(packedPrices, PriceMask)
 		packedPrices = new(big.Int).Rsh(packedPrices, PriceSize)
 	}
-	if pI.Cmp(constant.ZeroBI) > 0 {
+	if pI.Cmp(bignumber.ZeroBI) > 0 {
 		if i > 0 {
 			lastPrices[i-1] = pI
 		} else {
 			for k := 0; k < nCoins-1; k += 1 {
-				lastPrices[k] = new(big.Int).Div(new(big.Int).Mul(lastPrices[k], constant.BONE), pI)
+				lastPrices[k] = new(big.Int).Div(new(big.Int).Mul(lastPrices[k], bignumber.BONE), pI)
 			}
 		}
 	} else {
@@ -651,7 +651,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 		for k := 0; k < nCoins; k += 1 {
 			__xp[k] = new(big.Int).Set(_xp[k])
 		}
-		var dxPrice = new(big.Int).Div(__xp[0], constant.TenPowInt(6))
+		var dxPrice = new(big.Int).Div(__xp[0], bignumber.TenPowInt(6))
 		__xp[0] = new(big.Int).Add(__xp[0], dxPrice)
 		for k := 0; k < nCoins-1; k += 1 {
 			var temp, err = newtonY(AGamma[0], AGamma[1], __xp, DUnadjusted, k+1)
@@ -663,7 +663,7 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 			)
 		}
 	}
-	packedPrices = constant.ZeroBI
+	packedPrices = bignumber.ZeroBI
 	for k := 0; k < nCoins-1; k += 1 {
 		packedPrices = new(big.Int).Lsh(packedPrices, PriceSize)
 		var p = lastPrices[nCoins-2-k]
@@ -678,17 +678,17 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 	xp[0] = new(big.Int).Div(DUnadjusted, nCoinsBi)
 	for k := 0; k < nCoins-1; k += 1 {
 		xp[k+1] = new(big.Int).Div(
-			new(big.Int).Mul(DUnadjusted, constant.BONE), new(big.Int).Mul(nCoinsBi, priceScale[k]),
+			new(big.Int).Mul(DUnadjusted, bignumber.BONE), new(big.Int).Mul(nCoinsBi, priceScale[k]),
 		)
 	}
-	var xcpProfit = constant.BONE
-	var virtualPrice = constant.BONE
-	if oldVirtualPrice.Cmp(constant.ZeroBI) > 0 {
+	var xcpProfit = bignumber.BONE
+	var virtualPrice = bignumber.BONE
+	if oldVirtualPrice.Cmp(bignumber.ZeroBI) > 0 {
 		var xcp, err = geometricMean(xp, true)
 		if err != nil {
 			return err
 		}
-		virtualPrice = new(big.Int).Div(new(big.Int).Mul(constant.BONE, xcp), totalSupply)
+		virtualPrice = new(big.Int).Div(new(big.Int).Mul(bignumber.BONE, xcp), totalSupply)
 		xcpProfit = new(big.Int).Div(new(big.Int).Mul(oldXcpProfit, virtualPrice), oldVirtualPrice)
 		var aGammaTime = t.FutureAGammaTime
 		if virtualPrice.Cmp(oldVirtualPrice) < 0 && aGammaTime == 0 {
@@ -700,21 +700,21 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 	}
 	t.XcpProfit = xcpProfit
 	var needsAdjustment = t.NotAdjusted
-	if new(big.Int).Sub(new(big.Int).Mul(virtualPrice, constant.Two), constant.BONE).Cmp(
-		new(big.Int).Add(xcpProfit, new(big.Int).Mul(constant.Two, t.AllowedExtraProfit)),
+	if new(big.Int).Sub(new(big.Int).Mul(virtualPrice, bignumber.Two), bignumber.BONE).Cmp(
+		new(big.Int).Add(xcpProfit, new(big.Int).Mul(bignumber.Two, t.AllowedExtraProfit)),
 	) > 0 {
 		needsAdjustment = true
 		t.NotAdjusted = true
 	}
 	if needsAdjustment {
 		var adjustmentStep = t.AdjustmentStep
-		var norm = constant.ZeroBI
+		var norm = bignumber.ZeroBI
 		for k := 0; k < nCoins-1; k += 1 {
-			var ratio = new(big.Int).Div(new(big.Int).Mul(priceOracle[k], constant.BONE), priceScale[k])
-			if ratio.Cmp(constant.BONE) > 0 {
-				ratio = new(big.Int).Sub(ratio, constant.BONE)
+			var ratio = new(big.Int).Div(new(big.Int).Mul(priceOracle[k], bignumber.BONE), priceScale[k])
+			if ratio.Cmp(bignumber.BONE) > 0 {
+				ratio = new(big.Int).Sub(ratio, bignumber.BONE)
 			} else {
-				ratio = new(big.Int).Sub(constant.BONE, ratio)
+				ratio = new(big.Int).Sub(bignumber.BONE, ratio)
 			}
 			norm = new(big.Int).Add(norm, new(big.Int).Mul(ratio, ratio))
 		}
@@ -722,8 +722,8 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 			new(big.Int).Mul(
 				adjustmentStep, adjustmentStep,
 			),
-		) > 0 && oldVirtualPrice.Cmp(constant.ZeroBI) > 0 {
-			var temp, err = sqrtInt(new(big.Int).Div(norm, constant.BONE))
+		) > 0 && oldVirtualPrice.Cmp(bignumber.ZeroBI) > 0 {
+			var temp, err = sqrtInt(new(big.Int).Div(norm, bignumber.BONE))
 			if err != nil {
 				return err
 			}
@@ -749,19 +749,19 @@ func (t *PoolSimulator) tweakPrice(AGamma []*big.Int, _xp []*big.Int, i int, pI 
 
 			xp[0] = new(big.Int).Div(D, nCoinsBi)
 			for k := 0; k < nCoins-1; k += 1 {
-				xp[k+1] = new(big.Int).Div(new(big.Int).Mul(D, constant.BONE), new(big.Int).Mul(nCoinsBi, pNew[k]))
+				xp[k+1] = new(big.Int).Div(new(big.Int).Mul(D, bignumber.BONE), new(big.Int).Mul(nCoinsBi, pNew[k]))
 			}
 			temp, err = geometricMean(xp, true)
 			if err != nil {
 				return err
 			}
-			oldVirtualPrice = new(big.Int).Div(new(big.Int).Mul(constant.BONE, temp), totalSupply)
-			if oldVirtualPrice.Cmp(constant.BONE) > 0 && new(big.Int).Sub(
+			oldVirtualPrice = new(big.Int).Div(new(big.Int).Mul(bignumber.BONE, temp), totalSupply)
+			if oldVirtualPrice.Cmp(bignumber.BONE) > 0 && new(big.Int).Sub(
 				new(big.Int).Mul(
-					constant.Two, oldVirtualPrice,
-				), constant.BONE,
+					bignumber.Two, oldVirtualPrice,
+				), bignumber.BONE,
 			).Cmp(xcpProfit) > 0 {
-				packedPrices = constant.ZeroBI
+				packedPrices = bignumber.ZeroBI
 				for k := 0; k < nCoins-1; k += 1 {
 					packedPrices = new(big.Int).Lsh(packedPrices, PriceSize)
 					packedPrices = new(big.Int).Or(pNew[nCoins-2-k], packedPrices)

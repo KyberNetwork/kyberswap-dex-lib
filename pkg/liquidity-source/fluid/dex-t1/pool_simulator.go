@@ -90,7 +90,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	// fee is applied on token in
-	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
+	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Info.SwapFee)
 	fee = fee.Div(fee, SixDecimals)
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
@@ -169,7 +169,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	// fee is applied on token in
-	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)
+	fee := new(big.Int).Mul(tokenAmountIn, s.Info.SwapFee)
 	fee = fee.Div(fee, SixDecimals)
 
 	amountInAfterFee := new(big.Int).Add(tokenAmountIn, fee)
@@ -212,7 +212,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 	return PoolMeta{
-		BlockNumber:     s.Pool.Info.BlockNumber,
+		BlockNumber:     s.Info.BlockNumber,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),
 	}
 }

@@ -61,7 +61,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrSubmitPaused
 	}
 
-	if params.TokenAmountIn.Token != s.Pool.Info.Tokens[0] || params.TokenOut != s.Pool.Info.Tokens[1] {
+	if params.TokenAmountIn.Token != s.Info.Tokens[0] || params.TokenOut != s.Info.Tokens[1] {
 		return nil, ErrInvalidToken
 	}
 
@@ -93,20 +93,20 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
 func (s *PoolSimulator) CanSwapTo(token string) []string {
-	if token == s.Pool.Info.Tokens[1] {
-		return []string{s.Pool.Info.Tokens[0]}
+	if token == s.Info.Tokens[1] {
+		return []string{s.Info.Tokens[0]}
 	}
 	return []string{}
 }
 
 func (s *PoolSimulator) CanSwapFrom(token string) []string {
-	if token == s.Pool.Info.Tokens[0] {
-		return []string{s.Pool.Info.Tokens[1]}
+	if token == s.Info.Tokens[0] {
+		return []string{s.Info.Tokens[1]}
 	}
 	return []string{}
 }

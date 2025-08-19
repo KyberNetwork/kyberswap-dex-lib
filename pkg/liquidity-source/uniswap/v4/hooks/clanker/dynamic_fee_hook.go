@@ -415,7 +415,7 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exac
 		amountForSim = new(big.Int).Add(amountSpecified, &fee)
 	}
 
-	tokenIn, tokenOut := h.poolSim.Pool.GetTokens()[0], h.poolSim.Pool.GetTokens()[1]
+	tokenIn, tokenOut := h.poolSim.GetTokens()[0], h.poolSim.GetTokens()[1]
 	if !zeroForOne {
 		tokenIn, tokenOut = tokenOut, tokenIn
 	}
