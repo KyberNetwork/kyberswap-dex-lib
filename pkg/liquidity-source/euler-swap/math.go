@@ -29,7 +29,7 @@ func _Sqrt(a *uint256.Int, roundingUp bool) (*uint256.Int, error) {
 	if roundingUp {
 		var square uint256.Int
 		square.Mul(&result, &result)
-		if square.Cmp(a) < 0 {
+		if square.Lt(a) {
 			result.AddUint64(&result, 1)
 		}
 	}
@@ -101,37 +101,39 @@ func f(x, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 // / @return x The output reserve value corresponding to input `y`, guaranteed to satisfy `1 <= x <= x0`.
 func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	// term1 = int256(Math.mulDiv(py * 1e18, y - y0, px, Math.Rounding.Ceil))
-	term1 := new(uint256.Int).Mul(py, big256.BONE)
+	var term1 uint256.Int
+	term1.Mul(py, big256.BONE)
 
 	var tmp uint256.Int
 	tmp.Sub(y, y0)
 
-	term1, overflow := term1.MulDivOverflow(term1, &tmp, px)
-	if overflow {
-		return nil, ErrOverflow
+	err := v3Utils.MulDivRoundingUpV2(&term1, &tmp, px, &term1)
+	if err != nil {
+		return nil, err
 	}
 
 	// term2 = (2 * int256(c) - int256(1e18)) * int256(x0)
-	var term2 uint256.Int
-	term2.Mul(c, big256.U2)
-	term2.Sub(&term2, big256.BONE)
-	term2.Mul(&term2, x0)
+	var term2 int256.Int
+	term2.Mul(i256.SafeToInt256(c), i256.Number_2)
+	term2.Sub(&term2, e18Int)
+	term2.Mul(&term2, i256.SafeToInt256(x0))
 
 	// B = (term1 - term2) / int256(1e18)
-	B := i256.SafeToInt256(term1)
-	B.Sub(B, i256.SafeToInt256(&term2))
+	B := i256.SafeToInt256(&term1)
+	B.Sub(B, &term2)
 	B.Quo(B, e18Int)
 
 	// C = Math.mulDiv(1e18 - c, x0 * x0, 1e18, Math.Rounding.Ceil)
-	tmp.Sub(big256.BONE, c)
-	term2.Mul(x0, x0)
-	C, err := v3Utils.MulDivRoundingUp(&tmp, &term2, big256.BONE)
+	x0Squared := term1.Mul(x0, x0) // reuse
+
+	e18MinusC := tmp.Sub(big256.BONE, c) // reuse
+	C, err := v3Utils.MulDivRoundingUp(e18MinusC, x0Squared, big256.BONE)
 	if err != nil {
 		return nil, err
 	}
 
 	// fourAC = Math.mulDiv(4 * c, C, 1e18, Math.Rounding.Ceil)
-	tmp.Mul(c, big256.U4)
+	tmp.Mul(c, big256.U4) // reuse
 	fourAC, err := v3Utils.MulDivRoundingUp(&tmp, C, big256.BONE)
 	if err != nil {
 		return nil, err
@@ -142,12 +144,14 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	bigB.Abs(bigB)
 	absB.SetFromBig(bigB)
 
+	tmp2 := x0Squared // reuse
+
 	var sqrt *uint256.Int
-	if absB.Cmp(e36) < 0 {
+	if absB.Lt(e36) {
 		// B^2 cannot be calculated directly at 1e18 scale without overflowing
-		tmp.Mul(&absB, &absB)
-		tmp.Add(&tmp, fourAC)
-		sqrt, err = _Sqrt(&tmp, true)
+		squaredB := tmp.Mul(&absB, &absB)
+		discriminant := squaredB.Add(squaredB, fourAC)
+		sqrt, err = _Sqrt(discriminant, true)
 		if err != nil {
 			return nil, err
 		}
@@ -162,10 +166,10 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 		}
 
 		tmp.Mul(scale, scale)
-		term2.Div(fourAC, &tmp)
+		tmp2.Div(fourAC, &tmp)
 
-		tmp.Add(squaredB, &term2)
-		sqrt, err = _Sqrt(&tmp, true)
+		discriminant := tmp.Add(squaredB, tmp2)
+		sqrt, err = _Sqrt(discriminant, true)
 		if err != nil {
 			return nil, err
 		}
@@ -176,19 +180,18 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	if B.Sign() <= 0 {
 		// use the regular quadratic formula solution (-b + sqrt(b^2 - 4ac)) / 2a
 		tmp.Add(&absB, sqrt)
-		term2.Mul(c, big256.U2)
+		tmp2.Mul(c, big256.U2)
 
-		x, err = v3Utils.MulDivRoundingUp(&tmp, big256.BONE, &term2)
+		x, err = v3Utils.MulDivRoundingUp(&tmp, big256.BONE, tmp2)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		// use the "citardauq" quadratic formula solution 2c / (-b - sqrt(b^2 - 4ac))
 		tmp.Add(&absB, sqrt)
-		term2.Mul(C, big256.U2)
+		tmp2.Mul(C, big256.U2)
 
-		var err error
-		x, err = _CeilDiv(&term2, &tmp)
+		x, err = _CeilDiv(tmp2, &tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +200,7 @@ func fInverse(y, px, py, x0, y0, c *uint256.Int) (*uint256.Int, error) {
 	x.AddUint64(x, 1)
 
 	if x.Cmp(x0) >= 0 {
-		return new(uint256.Int).Set(x0), nil
+		return x0.Clone(), nil
 	}
 
 	return x, nil
