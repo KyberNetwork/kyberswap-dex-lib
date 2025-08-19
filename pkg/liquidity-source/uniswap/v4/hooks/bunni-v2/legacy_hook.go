@@ -12,8 +12,10 @@ import (
 )
 
 var (
+	// consider implementing exact formula or completely deprecating this version in the future
 	LegacyHookAddresses = []common.Address{
-		common.HexToAddress("0x0010d0d5db05933fa0d9f7038d365e1541a41888"),
+		// v1.0.0 all chains
+		// common.HexToAddress("0x0010d0d5db05933fa0d9f7038d365e1541a41888"),
 		// common.HexToAddress("0x0000fe59823933ac763611a69c88f91d45f81888"),
 	}
 

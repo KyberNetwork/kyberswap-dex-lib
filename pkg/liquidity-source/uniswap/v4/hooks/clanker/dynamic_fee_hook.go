@@ -312,6 +312,10 @@ func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
 }
 
 func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
+	if h.protocolFee == nil {
+		return nil, ErrPoolIsNotTracked
+	}
+
 	if h.poolSim == nil {
 		return nil, ErrPoolSimIsNil
 	}

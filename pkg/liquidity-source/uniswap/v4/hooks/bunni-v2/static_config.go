@@ -39,7 +39,6 @@ var (
 		common.HexToAddress("0x000000007cA9919151b275FABEA64A4f557Aa1F6"): ldf.NewCarpetedGeometricDistribution,
 		common.HexToAddress("0x000000000b757686c9596caDA54fa28f8C429E0d"): ldf.NewCarpetedDoubleGeometricDistribution,
 		common.HexToAddress("0x00000000a7A466ca990dE359E77B9E492d8a2d05"): ldf.NewBuyTheDipGeometricDistribution,
-		common.HexToAddress("0x00000000B5cd5d1e09a5c1Fb166d26D1cEf0C33c"): ldf.NewUniformDistribution,
 
 		// Arbitrum (v1.2.1) + Unichain (v1.2.0)
 		common.HexToAddress("0x000000d93DF3306877eCc66c6526c6DfC163D8b4"): ldf.NewUniformDistribution,

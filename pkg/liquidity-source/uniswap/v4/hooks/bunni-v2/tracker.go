@@ -281,10 +281,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		hookExtra.OracleUniGeoParams = &ldf.OracleUniGeoParams{
 			BondLtStablecoin: bondLtStablecoin,
 			FloorPrice:       uint256.MustFromBig(floorPrice),
-			LdfParamOverride: ldf.LdfParamsOverride{
-				Overridden: oracleUniGeoParamsOverride.Overridden,
-				LdfParams:  oracleUniGeoParamsOverride.LdfParams,
-			},
+			LdfParamOverride: oracleUniGeoParamsOverride,
 		}
 	}
 
