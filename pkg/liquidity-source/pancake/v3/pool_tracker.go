@@ -123,11 +123,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.Liquidity,
-		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
-		TickSpacing:  rpcData.TickSpacing.Uint64(),
-		Tick:         rpcData.Slot0.Tick,
-		Ticks:        ticks,
+		Liquidity:        rpcData.Liquidity,
+		SqrtPriceX96:     rpcData.Slot0.SqrtPriceX96,
+		TickSpacing:      rpcData.TickSpacing.Uint64(),
+		Tick:             rpcData.Slot0.Tick,
+		Ticks:            ticks,
+		ObservationIndex: rpcData.Slot0.ObservationIndex,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
