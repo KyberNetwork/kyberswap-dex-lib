@@ -17,7 +17,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.4.11-0.20250210085147-bb7d0bb84dac
 	github.com/KyberNetwork/kutils v0.4.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.116.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.116.3
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.15.0
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -74,7 +74,6 @@ require (
 	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 	golang.org/x/sync v0.16.0
 	google.golang.org/grpc v1.70.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.5
 	k8s.io/apimachinery v0.32.2
 )
