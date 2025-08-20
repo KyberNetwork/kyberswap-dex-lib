@@ -2,7 +2,6 @@ package stableng
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -70,73 +69,91 @@ func (t *PoolSimulator) _A() *uint256.Int {
 
 // D invariant calculation in non-overflowing integer operations iteratively
 // - `D`: output
-func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) error {
+func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int) error {
 	var S uint256.Int
-	S.Clear()
+
 	for i := range xp {
 		if xp[i].IsZero() {
-			// this will cause div by zero down below
 			return ErrZero
 		}
 		S.Add(&S, &xp[i])
 	}
+
 	if S.IsZero() {
 		D.Clear()
 		return nil
 	}
 
-	var D_P, Ann, Ann_mul_S_div_APrec, Ann_sub_APrec, Dprev uint256.Int
-
-	// D: uint256 = S
 	D.Set(&S)
 
-	// Ann: uint256 = amp * N_COINS
-	Ann.Mul(a, &t.NumTokensU256)
+	var Ann uint256.Int
+	Ann.Mul(amp, &t.NumTokensU256)
 
-	// pre-calculate some values to be used in the loop
-	// Ann * S / A_PRECISION
-	Ann_mul_S_div_APrec.Div(number.Mul(&Ann, &S), t.StaticExtra.APrecision)
-	// Ann - A_PRECISION
-	Ann_sub_APrec.Sub(&Ann, t.StaticExtra.APrecision)
+	var temp1, temp2, temp3, D_P, Dprev uint256.Int
 
-	numTokensPlus1 := uint256.NewInt(uint64(t.NumTokens + 1))
-	numTokensPow := uint256.NewInt(uint64(math.Pow(float64(t.NumTokens), float64(t.NumTokens))))
+	nCoinsPow := t.calculateNCoinsPow()
+	var nCoinsPlus1 uint256.Int
+	nCoinsPlus1.AddUint64(&t.NumTokensU256, 1)
 
-	for i := 0; i < MaxLoopLimit; i++ {
-		// D_P: uint256 = D
-		D_P.Set(D)
-
-		// for x in _xp: D_P = D_P * D / x
-		for j := range xp {
-			D_P.Div(
-				number.SafeMul(&D_P, D),
-				&xp[j],
-			)
-		}
-		// D_P /= pow_mod256(N_COINS, N_COINS)
-		D_P.Div(&D_P, numTokensPow)
-
-		// Dprev = D
+	for i := 0; i < 255; i++ {
 		Dprev.Set(D)
 
-		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
-		D.Div(
-			number.SafeMul(
-				number.SafeAdd(&Ann_mul_S_div_APrec, number.SafeMul(&D_P, &t.NumTokensU256)),
-				D,
-			),
-			number.SafeAdd(
-				number.Div(number.SafeMul(&Ann_sub_APrec, D), t.StaticExtra.APrecision),
-				number.SafeMul(&D_P, numTokensPlus1),
-			),
-		)
+		D_P.Set(D)
 
-		// calc abs(D - Dprev) and compare against 1
-		if number.WithinDelta(D, &Dprev, 1) {
+		for j := range xp {
+			D_P.Mul(&D_P, D)
+			D_P.Div(&D_P, &xp[j])
+		}
+
+		D_P.Div(&D_P, nCoinsPow)
+
+		// (Ann * S / A_PRECISION + D_P * N_COINS) * D
+		temp1.Mul(&Ann, &S)
+		temp1.Div(&temp1, t.StaticExtra.APrecision)
+
+		temp2.Mul(&D_P, &t.NumTokensU256)
+
+		temp1.Add(&temp1, &temp2)
+		temp1.Mul(&temp1, D)
+
+		// (Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P
+		temp2.Sub(&Ann, t.StaticExtra.APrecision)
+		temp2.Mul(&temp2, D)
+		temp2.Div(&temp2, t.StaticExtra.APrecision)
+
+		// (N_COINS + 1) * D_P
+		temp3.Mul(&nCoinsPlus1, &D_P)
+		temp2.Add(&temp2, &temp3)
+
+		D.Div(&temp1, &temp2)
+
+		if D.Gt(&Dprev) {
+			temp1.Sub(D, &Dprev)
+		} else {
+			temp1.Sub(&Dprev, D)
+		}
+
+		if temp1.CmpUint64(1) <= 0 {
 			return nil
 		}
 	}
+
 	return ErrDDoesNotConverge
+}
+
+// Helper func to calculate N_COINS^N_COINS
+func (t *PoolSimulator) calculateNCoinsPow() *uint256.Int {
+	result := uint256.NewInt(1)
+	if t.NumTokens <= 1 {
+		return result
+	}
+
+	base := uint256.NewInt(uint64(t.NumTokens))
+	for i := 0; i < t.NumTokens; i++ {
+		result.Mul(result, base)
+	}
+
+	return result
 }
 
 // Calculate x[j] if one makes x[i] = x
