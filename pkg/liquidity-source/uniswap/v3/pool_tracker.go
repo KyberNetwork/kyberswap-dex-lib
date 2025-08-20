@@ -176,7 +176,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = d.predictLastActiveTimestamp(ctx, &p, rpcData.Slot0.ObservationIndex, &param)
+	p.Timestamp = d.estimateLastActivityTime(ctx, &p, rpcData.Slot0.ObservationIndex, &param)
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
@@ -316,7 +316,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	return ticks, nil
 }
 
-func (d *PoolTracker) predictLastActiveTimestamp(ctx context.Context, p *entity.Pool, observationIndex uint16,
+func (d *PoolTracker) estimateLastActivityTime(ctx context.Context, p *entity.Pool, observationIndex uint16,
 	param *sourcePool.GetNewPoolStateParams) int64 {
 	if len(param.Logs) > 0 {
 		latestLog := param.Logs[len(param.Logs)-1]
