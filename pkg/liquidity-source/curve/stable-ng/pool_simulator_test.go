@@ -355,3 +355,29 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 		require.Nil(b, err)
 	}
 }
+
+func Test_PanicCase(t *testing.T) {
+	t.Parallel()
+	poolData := `{"address":"0x126331661101057c3a5879ac6af3f30cac6c66e2","amplifiedTvl":146.0167623887021,"exchange":"curve-stable-ng","type":"curve-stable-ng","timestamp":1755684283,"reserves":["119939676640073155282621801","29312707","26131114","29544061845500753036","16147198280723800","17557865949750060591","141230171454148761985"],"tokens":[{"address":"0x5905c0290e59afbdc42a5480add9bd7b20cb3759","symbol":"BLX","decimals":18,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x6b175474e89094c44da98b954eedeac495271d0f","symbol":"DAI","decimals":18,"swappable":true},{"address":"0x0000000000085d4780b73119b644ae5ecd22b376","symbol":"TUSD","decimals":18,"swappable":true},{"address":"0x4fabb145d64652a948d72533023f6e7a623c7c53","symbol":"BUSD","decimals":18,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\",\"RateMultipliers\":[\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000\"]}","staticExtra":"{\"APrecision\":\"100\",\"OffpegFeeMultiplier\":\"20000000000\",\"IsNativeCoins\":[false,false,false,false,false,false]}","blockNumber":23181576}`
+
+	var poolEntity entity.Pool
+	err := json.Unmarshal([]byte(poolData), &poolEntity)
+	require.Nil(t, err)
+	p, err := NewPoolSimulator(poolEntity)
+	require.Nil(t, err)
+
+	out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
+		return p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+				Amount: big.NewInt(1000000),
+			},
+			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Limit:    nil,
+		})
+	})
+	if out != nil && out.TokenAmountOut != nil {
+		fmt.Println(out.TokenAmountOut.Amount)
+	}
+	require.NotNil(t, err)
+}
