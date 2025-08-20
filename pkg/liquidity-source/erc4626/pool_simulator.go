@@ -53,11 +53,17 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var amountOut *uint256.Int
 	if isDeposit {
+		if s.DepositRate == nil {
+			return nil, ErrInvalidDepositRate
+		}
 		if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		}
 		amountOut, err = v3Utils.MulDiv(amountIn, s.DepositRate, UWad)
 	} else {
+		if s.RedeemRate == nil {
+			return nil, ErrInvalidRedeemRate
+		}
 		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
 			return nil, ErrERC4626RedeemMoreThanMax
 		}

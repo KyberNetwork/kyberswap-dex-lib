@@ -59,10 +59,13 @@ func (t *PoolSimulator) GetDy(
 	if err != nil {
 		return err
 	}
-	number.SafeSubZ(&xp[j], &y, dy)
-	if dy.Sign() <= 0 {
+
+	if xp[j].Cmp(&y) < 0 {
 		return ErrExchange0Coins
 	}
+
+	dy.Sub(&xp[j], &y)
+
 	dy.SubUint64(dy, 1)
 	xp[j] = y
 	if j > 0 {

@@ -72,7 +72,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		operatorDelegatorAllocations: extra.OperatorDelegatorAllocations,
 		tokenStrategyMapping:         extra.TokenStrategyMapping,
 		totalSupply:                  extra.TotalSupply,
-		maxDepositTVL:                extra.MaxDepositTVL,
+		maxDepositTVL:                lo.Ternary(extra.MaxDepositTVL != nil, extra.MaxDepositTVL, bignumber.ZeroBI),
 		tokenOracleLookup:            extra.TokenOracleLookup,
 		collateralTokenTvlLimits:     extra.CollateralTokenTvlLimits,
 	}, nil
@@ -146,7 +146,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (s *PoolSimulator) depositETH(amountIn *big.Int) (*big.Int, error) {
-	if s.maxDepositTVL.Cmp(bignumber.ZeroBI) != 0 && new(big.Int).Add(s.totalTVL, amountIn).Cmp(s.maxDepositTVL) > 0 {
+	if s.maxDepositTVL.Sign() != 0 && new(big.Int).Add(s.totalTVL, amountIn).Cmp(s.maxDepositTVL) > 0 {
 		return nil, ErrMaxTVLReached
 	}
 
@@ -164,20 +164,21 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 		return nil, err
 	}
 
-	if s.maxDepositTVL.Cmp(bignumber.ZeroBI) != 0 && new(big.Int).Add(s.totalTVL, collateralTokenValue).Cmp(s.maxDepositTVL) > 0 {
+	var tmp big.Int
+
+	if s.maxDepositTVL.Sign() != 0 && tmp.Add(s.totalTVL, collateralTokenValue).Cmp(s.maxDepositTVL) > 0 {
 		return nil, ErrMaxTVLReached
 	}
 
-	if s.collateralTokenTvlLimits[collateralToken].Cmp(bignumber.ZeroBI) != 0 {
-		currentTokenTVL := bignumber.ZeroBI
-
+	if s.collateralTokenTvlLimits[collateralToken].Sign() != 0 {
 		odLength := len(s.operatorDelegatorTVLs)
 
+		var currentTokenTVL big.Int
 		for i := 0; i < odLength; i++ {
-			currentTokenTVL = new(big.Int).Add(currentTokenTVL, s.operatorDelegatorTokenTVLs[i][tokenIndex])
+			currentTokenTVL.Add(&currentTokenTVL, s.operatorDelegatorTokenTVLs[i][tokenIndex])
 		}
 
-		if new(big.Int).Add(currentTokenTVL, collateralTokenValue).Cmp(s.collateralTokenTvlLimits[collateralToken]) > 0 {
+		if tmp.Add(&currentTokenTVL, collateralTokenValue).Cmp(s.collateralTokenTvlLimits[collateralToken]) > 0 {
 			return nil, ErrMaxTokenTVLReached
 		}
 	}
@@ -199,7 +200,7 @@ func (s *PoolSimulator) calculateMintAmount(
 	newValueAdded *big.Int,
 	existingEzETHSupply *big.Int,
 ) (*big.Int, error) {
-	if currentValueInProtocol.Cmp(bignumber.ZeroBI) == 0 || existingEzETHSupply.Cmp(bignumber.ZeroBI) == 0 {
+	if currentValueInProtocol.Sign() == 0 || existingEzETHSupply.Sign() == 0 {
 		return newValueAdded, nil
 	}
 
@@ -213,9 +214,9 @@ func (s *PoolSimulator) calculateMintAmount(
 		new(big.Int).Sub(SCALE_FACTOR, inflationPercentage),
 	)
 
-	mintAmount := new(big.Int).Sub(newEzETHSupply, existingEzETHSupply)
+	mintAmount := newEzETHSupply.Sub(newEzETHSupply, existingEzETHSupply)
 
-	if mintAmount.Cmp(bignumber.ZeroBI) == 0 {
+	if mintAmount.Sign() == 0 {
 		return nil, ErrInvalidTokenAmount
 	}
 
@@ -238,11 +239,14 @@ func (s *PoolSimulator) lookupTokenValue(
 		return nil, ErrOracleExpired
 	}
 
-	if price.Cmp(bignumber.ZeroBI) <= 0 {
+	if price.Sign() <= 0 {
 		return nil, ErrInvalidOraclePrice
 	}
 
-	return new(big.Int).Div(new(big.Int).Mul(value, price), SCALE_FACTOR), nil
+	result := price.Mul(value, price)
+	result.Div(result, SCALE_FACTOR)
+
+	return result, nil
 }
 
 func (s *PoolSimulator) checkAbleToDeposit(collateralToken string, amount *big.Int) error {
@@ -263,7 +267,7 @@ func (s *PoolSimulator) checkAbleToDeposit(collateralToken string, amount *big.I
 	if _, exist := tokenStrategyMapping[collateralToken]; !exist {
 		return ErrRevertInvalidZeroInput
 	}
-	if amount.Cmp(bignumber.ZeroBI) == 0 {
+	if amount.Sign() == 0 {
 		return ErrRevertInvalidZeroInput
 	}
 
@@ -288,7 +292,7 @@ func (s *PoolSimulator) chooseOperatorDelegatorForDeposit() (int, error) {
 		)
 		operatorDelegatorAllocationValue.Div(
 			&operatorDelegatorAllocationValue,
-			big.NewInt(10000),
+			bignumber.BasisPoint,
 		)
 
 		if s.operatorDelegatorTVLs[i].Cmp(&operatorDelegatorAllocationValue) < 0 {

@@ -91,7 +91,10 @@ func (d *PoolTracker) getPoolData(
 	var (
 		isPaused          bool
 		fee               *big.Int
-		getReservesResult GetReservesResult
+		getReservesResult = GetReservesResult{
+			Reserve0: big.NewInt(0),
+			Reserve1: big.NewInt(0),
+		}
 	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
@@ -101,19 +104,19 @@ func (d *PoolTracker) getPoolData(
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolFactoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodGetFee,
-		Params: []interface{}{common.HexToAddress(poolAddress), stable},
-	}, []interface{}{&fee})
+		Params: []any{common.HexToAddress(poolAddress), stable},
+	}, []any{&fee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
