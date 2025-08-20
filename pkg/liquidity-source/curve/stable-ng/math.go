@@ -99,7 +99,6 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 		Dprev.Set(D)
 
 		D_P.Set(D)
-
 		for j := range xp {
 			D_P.Mul(&D_P, D)
 			D_P.Div(&D_P, &xp[j])
@@ -127,13 +126,7 @@ func (t *PoolSimulator) getD(xp []uint256.Int, amp *uint256.Int, D *uint256.Int)
 
 		D.Div(&temp1, &temp2)
 
-		if D.Gt(&Dprev) {
-			temp1.Sub(D, &Dprev)
-		} else {
-			temp1.Sub(&Dprev, D)
-		}
-
-		if temp1.CmpUint64(1) <= 0 {
+		if number.WithinDelta(D, &Dprev, 1) {
 			return nil
 		}
 	}
