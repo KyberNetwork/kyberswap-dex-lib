@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
@@ -94,23 +95,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 		if swapResult == nil {
 			return
 		}
+		v4SwapInfo := SwapInfo{
+			PoolSwapInfo: swapResult.SwapInfo,
+		}
 
 		if swapResult.TokenAmountOut != nil {
 			swapResult.TokenAmountOut.Token = originalTokenOut
 
 			if beforeSwapResult != nil {
-				swapResult.Gas += beforeSwapResult.Gas
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
-
-				v4SwapInfo := SwapInfo{
-					PoolSwapInfo: swapResult.SwapInfo,
-				}
-
-				if beforeSwapResult.SwapInfo != nil {
-					v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
-				}
-
-				swapResult.SwapInfo = v4SwapInfo
+				swapResult.Gas += beforeSwapResult.Gas
+				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
@@ -118,6 +113,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 				swapResult.Gas += afterSwapResult.Gas
 			}
 		}
+		swapResult.SwapInfo = v4SwapInfo
 
 		if swapResult.RemainingTokenAmountIn != nil {
 			swapResult.RemainingTokenAmountIn.Token = originalTokenIn
@@ -237,30 +233,25 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 		if swapResult == nil {
 			return
 		}
+		v4SwapInfo := SwapInfo{
+			PoolSwapInfo: swapResult.SwapInfo,
+		}
 
 		if swapResult.TokenAmountIn != nil {
 			swapResult.TokenAmountIn.Token = originalTokenIn
 
 			if beforeSwapResult != nil {
-				swapResult.Gas += beforeSwapResult.Gas
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
-
-				v4SwapInfo := SwapInfo{
-					PoolSwapInfo: swapResult.SwapInfo,
-				}
-
-				if beforeSwapResult.SwapInfo != nil {
-					v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
-				}
-
-				swapResult.SwapInfo = v4SwapInfo
+				swapResult.Gas += beforeSwapResult.Gas
+				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
-				swapResult.Gas += afterSwapResult.Gas
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, afterSwapResult.HookFee)
+				swapResult.Gas += afterSwapResult.Gas
 			}
 		}
+		swapResult.SwapInfo = v4SwapInfo
 
 		if swapResult.RemainingTokenAmountOut != nil {
 			swapResult.RemainingTokenAmountOut.Token = originalTokenOut
@@ -519,7 +510,7 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          []byte{},
 		PriceLimit:        &priceLimit,
-		TokenWrapMetadata: wrapMetadata,
+		TokenWrapMetadata: lo.Ternary(wrapMetadata.ShouldWrap || wrapMetadata.ShouldUnwrap, &wrapMetadata, nil),
 	}
 }
 
