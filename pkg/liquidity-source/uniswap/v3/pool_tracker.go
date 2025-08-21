@@ -161,12 +161,11 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:        rpcData.Liquidity,
-		TickSpacing:      rpcData.TickSpacing.Uint64(),
-		SqrtPriceX96:     rpcData.Slot0.SqrtPriceX96,
-		Tick:             rpcData.Slot0.Tick,
-		Ticks:            ticks,
-		ObservationIndex: rpcData.Slot0.ObservationIndex,
+		Liquidity:    rpcData.Liquidity,
+		TickSpacing:  rpcData.TickSpacing.Uint64(),
+		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
+		Tick:         rpcData.Slot0.Tick,
+		Ticks:        ticks,
 	})
 	if err != nil {
 		l.WithFields(logger.Fields{
@@ -176,7 +175,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Timestamp = d.estimateLastActivityTime(ctx, &p, rpcData.Slot0.ObservationIndex, &param)
+	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
@@ -314,29 +313,4 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	}
 
 	return ticks, nil
-}
-
-func (d *PoolTracker) estimateLastActivityTime(ctx context.Context, p *entity.Pool, observationIndex uint16,
-	param *sourcePool.GetNewPoolStateParams) int64 {
-	if len(param.Logs) > 0 {
-		latestLog := param.Logs[len(param.Logs)-1]
-		if blockHeader, ok := param.BlockHeaders[latestLog.BlockNumber]; ok {
-			return max(p.Timestamp, int64(blockHeader.Timestamp))
-		}
-	}
-
-	var observations Observations
-	_, err := d.ethrpcClient.NewRequest().SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    uniswapV3PoolABI,
-			Target: p.Address,
-			Method: methodObservations,
-			Params: []any{big.NewInt(int64(observationIndex))},
-		}, []any{&observations}).Call()
-	if err != nil {
-		logger.Errorf("failed to call observations: %v", err)
-		return time.Now().Unix()
-	}
-
-	return max(p.Timestamp, int64(observations.BlockTimestamp))
 }
