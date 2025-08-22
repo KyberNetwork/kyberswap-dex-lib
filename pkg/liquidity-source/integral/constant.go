@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -26,6 +27,8 @@ var (
 	defaultGas = Gas{Swap: 400000}
 
 	precision = u256.TenPow(18)
+
+	safetyBufferPercent = uint256.NewInt(80) // 80%
 )
 
 var (

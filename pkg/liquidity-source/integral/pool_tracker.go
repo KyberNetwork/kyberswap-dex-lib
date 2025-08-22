@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -163,9 +164,21 @@ func (u *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	if poolState.LimitMax0 != nil && poolState.LimitMax1 != nil {
+		p.Reserves = []string{
+			poolState.LimitMax0.
+				Mul(poolState.LimitMax0, token0LimitMaxMultiplier).
+				Div(poolState.LimitMax0, bignumber.BONE).String(),
+			poolState.LimitMax1.
+				Mul(poolState.LimitMax1, token1LimitMaxMultiplier).
+				Div(poolState.LimitMax1, bignumber.BONE).String(),
+		}
+	} else {
+		p.Reserves = []string{"0", "0"}
+	}
+
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = []string{poolState.LimitMax0.String(), poolState.LimitMax1.String()}
 
 	fee, _ := poolState.Fee.Float64()
 	p.SwapFee = fee / precision.Float64()
