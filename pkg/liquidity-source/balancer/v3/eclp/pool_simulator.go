@@ -54,7 +54,8 @@ func (p *PoolSimulator) OnSwap(param shared.PoolSwapParams) (amountOutScaled18 *
 			return nil, err
 		}
 
-		invariant.X = new(int256.Int).Add(
+		invariant.X = new(int256.Int)
+		invariant.X = invariant.X.Add(
 			currentInvariant,
 			invariant.X.Mul(math.I2, invErr),
 		)
