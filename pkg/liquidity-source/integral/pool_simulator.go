@@ -59,7 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
 	}
 
-	// apply safety buffer to limit max multiplier (80% for now)
+	// apply safety buffer to limit max multiplier (85% for now)
 	extra.Token0LimitMaxMultiplier.
 		Mul(extra.Token0LimitMaxMultiplier, safetyBufferPercent).
 		Div(extra.Token0LimitMaxMultiplier, u256.U100)

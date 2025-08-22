@@ -28,7 +28,7 @@ var (
 
 	precision = u256.TenPow(18)
 
-	safetyBufferPercent = uint256.NewInt(80) // 80%
+	safetyBufferPercent = uint256.NewInt(85) // 85%
 )
 
 var (
