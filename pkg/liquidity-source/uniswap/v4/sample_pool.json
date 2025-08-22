@@ -1,31 +1,28 @@
 {
-  "address": "0x6b77c5119ea25b4b46ec79166075eed433bf8ad4bfe907490bb06305e3c0012a",
+  "address": "0xe7e64a776c0c57da08b21758e556a6704857c0a6f566f60f583ffe261b13baef",
   "swapFee": 10000,
   "exchange": "uniswap-v4",
   "type": "uniswap-v4",
-  "timestamp": 1740505720,
+  "timestamp": 1755791653,
   "reserves": [
-    "34108148620398263803",
-    "14712973759485496110807304"
+    "10429174516196654660038723",
+    "134122165777"
   ],
   "tokens": [
     {
-      "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-      "name": "Ethereum",
-      "symbol": "",
+      "address": "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
+      "symbol": "REZ",
       "decimals": 18,
-      "weight": 0,
       "swappable": true
     },
     {
-      "address": "0xbeab712832112bd7664226db7cd025b153d3af55",
-      "name": "Bright Union",
-      "symbol": "",
-      "decimals": 18,
-      "weight": 0,
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "symbol": "USDC",
+      "decimals": 6,
       "swappable": true
     }
   ],
-  "extra": "{\"liquidity\":22401613683762852555294,\"sqrtPriceX96\":52035620850364617933510828773179,\"tickSpacing\":200,\"tick\":129753,\"ticks\":[{\"index\":122000,\"liquidityGross\":22401613683762852555294,\"liquidityNet\":22401613683762852555294},{\"index\":130200,\"liquidityGross\":22401613683762852555294,\"liquidityNet\":-22401613683762852555294}]}",
-  "staticExtra": "{\"0x0\":[true,false],\"fee\":10000,\"tS\":200,\"hooks\":\"0x0000000000000000000000000000000000000000\",\"uR\":\"0x66a9893cc07d91d95644aedd05d03f95e1dba8af\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}"
+  "extra": "{\"liquidity\":1182701768570168124,\"sqrtPriceX96\":8984727197791407790010,\"tickSpacing\":200,\"tick\":-319863,\"ticks\":[{\"index\":-325600,\"liquidityGross\":1182701768570168124,\"liquidityNet\":1182701768570168124},{\"index\":-322400,\"liquidityGross\":34241911044973312936,\"liquidityNet\":34241911044973312936},{\"index\":-320600,\"liquidityGross\":34241911044973312936,\"liquidityNet\":-34241911044973312936},{\"index\":-315400,\"liquidityGross\":1193498000626205695,\"liquidityNet\":-1171905536514130553},{\"index\":-281400,\"liquidityGross\":10796232056037571,\"liquidityNet\":-10796232056037571}]}",
+  "staticExtra": "{\"0x0\":[false,false],\"fee\":10000,\"tS\":200,\"hooks\":\"0x0000000000000000000000000000000000000000\",\"uR\":\"0x66a9893cc07d91d95644aedd05d03f95e1dba8af\",\"pm2\":\"0x000000000022d473030f116ddee9f6b43ac78ba3\",\"mc3\":\"0xca11bde05977b3631167028862be2a173976ca11\"}",
+  "blockNumber": 23190483
 }

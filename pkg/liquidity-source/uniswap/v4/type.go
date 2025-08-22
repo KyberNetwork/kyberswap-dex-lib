@@ -78,7 +78,7 @@ type PoolMetaInfo struct {
 	HookData    []byte         `json:"hookData"`
 	PriceLimit  *uint256.Int   `json:"priceLimit"`
 
-	TokenWrapMetadata TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
+	TokenWrapMetadata *TokenWrapMetadata `json:"tokenWrapMetadata,omitempty"`
 }
 
 type TokenWrapMetadata struct {
