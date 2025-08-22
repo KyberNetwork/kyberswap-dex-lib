@@ -9,10 +9,8 @@ import (
 var (
 	ErrUnmarshalVolLiq     = errors.New("failed to unmarshal volumePerLiquidityInBlock")
 	ErrMaxBinarySearchLoop = errors.New("max binary search loop reached")
-	ErrStaleTimepoints     = errors.New("getting stale timepoint data")
-	ErrTickNil             = errors.WithMessage(pool.ErrUnsupported, "tick is nil")
 	ErrTickInvalid         = errors.New("tick is invalid")
-	ErrTicksEmpty          = errors.New("ticks list is empty")
+	ErrTicksEmpty          = errors.WithMessage(pool.ErrUnsupported, "ticks list is empty")
 	ErrInvalidToken        = errors.New("invalid token")
 	ErrZeroAmountIn        = errors.New("amountIn is 0")
 	ErrZeroAmountOut       = errors.New("amountOut is 0")
