@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
@@ -183,7 +184,7 @@ func (s *PoolSimulator) _sellQuote(
 		Number_1e5,
 	)
 
-	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
+	quoteAmount.Sub(quoteAmount, swapFee)
 
 	state := s._wooracleV2State(baseToken)
 
@@ -192,8 +193,10 @@ func (s *PoolSimulator) _sellQuote(
 		return nil, nil, nil, err
 	}
 
+	safetyBaseAmount, _ := quoteAmount.MulDivOverflow(baseAmount, safetyBufferPercent, u256.U100)
+
 	// tokenInfos[baseToken].reserve = uint192(tokenInfos[baseToken].reserve - baseAmount);
-	if s.tokenInfos[baseToken].Reserve.Lt(baseAmount) {
+	if s.tokenInfos[baseToken].Reserve.Lt(safetyBaseAmount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -226,10 +229,13 @@ func (s *PoolSimulator) _sellBase(
 		Number_1e5,
 	)
 
-	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
+	quoteAmount.Sub(quoteAmount, swapFee)
+
+	safetyQuoteAmount := baseAmount.Add(quoteAmount, swapFee)
+	safetyQuoteAmount.MulDivOverflow(safetyQuoteAmount, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(new(uint256.Int).Add(quoteAmount, swapFee)) {
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(safetyQuoteAmount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -271,10 +277,12 @@ func (s *PoolSimulator) _swapBaseToBase(
 		Number_1e5,
 	)
 
-	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
+	quoteAmount.Sub(quoteAmount, swapFee)
+
+	safetySwapFee, _ := base1Amount.MulDivOverflow(swapFee, safetyBufferPercent, u256.U100)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(swapFee) {
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(safetySwapFee) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -283,8 +291,10 @@ func (s *PoolSimulator) _swapBaseToBase(
 		return nil, nil, nil, err
 	}
 
+	safetyBase2Amount, _ := base1Amount.MulDivOverflow(base2Amount, safetyBufferPercent, u256.U100)
+
 	// tokenInfos[baseToken2].reserve = uint192(tokenInfos[baseToken2].reserve - base2Amount);
-	if s.tokenInfos[baseToken2].Reserve.Lt(base2Amount) {
+	if s.tokenInfos[baseToken2].Reserve.Lt(safetyBase2Amount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 

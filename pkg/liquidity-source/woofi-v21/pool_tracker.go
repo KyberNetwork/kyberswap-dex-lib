@@ -264,7 +264,8 @@ func (d *PoolTracker) GetNewPoolState(
 			WoFeasible: woState[i].WoFeasible,
 		}
 		extraDecimals[token.Address] = priceTokenDecimals[i]
-		reserves[i] = tokenInfos[i].Reserve.String()
+
+		reserves[i] = lo.Ternary(tokenInfos[i].Reserve != nil, tokenInfos[i].Reserve.String(), "0")
 	}
 
 	extraBytes, err := json.Marshal(&Extra{

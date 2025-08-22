@@ -38,8 +38,8 @@ func New(hook hooks.IHook, hooksConfig shared.HooksConfig,
 
 func (v *Vault) CloneState() *Vault {
 	cloned := *v
-	v.balancesLiveScaled18 = lo.Map(v.balancesLiveScaled18, func(v *uint256.Int, _ int) *uint256.Int {
-		return v.Clone()
+	cloned.balancesLiveScaled18 = lo.Map(v.balancesLiveScaled18, func(b *uint256.Int, _ int) *uint256.Int {
+		return b.Clone()
 	})
 	return &cloned
 }

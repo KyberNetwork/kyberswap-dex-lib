@@ -33,9 +33,11 @@ type swapper interface {
 func NewPoolSimulator(entityPool entity.Pool, extra *shared.Extra, staticExtra *shared.StaticExtra, swapper swapper,
 	hook hooks.IHook) (*PoolSimulator,
 	error) {
-	if extra == nil {
-		return nil, shared.ErrInvalidExtra
-	} else if extra.Buffers == nil {
+	if err := validateExtra(extra); err != nil {
+		return nil, err
+	}
+
+	if extra.Buffers == nil {
 		extra.Buffers = make([]*shared.ExtraBuffer, len(entityPool.Tokens))
 	}
 

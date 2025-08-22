@@ -24,9 +24,7 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 
-		Fee      *big.Int
-		Reserve0 *big.Int
-		Reserve1 *big.Int
+		Fee *big.Int
 
 		gas Gas
 	}
@@ -70,10 +68,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
-		Fee:      extra.Fee,
-		Reserve0: extra.Reserve0,
-		Reserve1: extra.Reserve1,
-		gas:      DefaultGas,
+		Fee: extra.Fee,
+		gas: DefaultGas,
 	}, nil
 }
 
@@ -85,9 +81,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	)
 
 	if strings.EqualFold(tokenAmountIn.Token, p.Info.Tokens[0]) {
-		reserveOut = p.Reserve1
+		reserveOut = p.Info.Reserves[1]
 	} else {
-		reserveOut = p.Reserve0
+		reserveOut = p.Info.Reserves[0]
 	}
 
 	amountOut, err := p.getAmountOut(tokenAmountIn.Amount, tokenAmountIn.Token)
@@ -134,14 +130,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	)
 
 	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[0]) {
-		p.Reserve0 = new(big.Int).Add(p.Reserve0, amountIn)
-		p.Reserve1 = new(big.Int).Sub(p.Reserve1, amountOut)
+		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], amountIn)
+		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], amountOut)
 
 		return
 	}
 
-	p.Reserve0 = new(big.Int).Sub(p.Reserve0, amountOut)
-	p.Reserve1 = new(big.Int).Add(p.Reserve1, amountIn)
+	p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], amountOut)
+	p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], amountIn)
 }
 
 func (p *PoolSimulator) GetLpToken() string {
@@ -199,9 +195,9 @@ func (p *PoolSimulator) getAmountOut(amountIn *big.Int, tokenIn string) (*big.In
 	)
 
 	if strings.EqualFold(tokenIn, p.Info.Tokens[0]) {
-		reserveIn, reserveOut = p.Reserve0, p.Reserve1
+		reserveIn, reserveOut = p.Info.Reserves[0], p.Info.Reserves[1]
 	} else {
-		reserveIn, reserveOut = p.Reserve1, p.Reserve0
+		reserveIn, reserveOut = p.Info.Reserves[1], p.Info.Reserves[0]
 	}
 
 	if amountIn.Cmp(bignumber.ZeroBI) <= 0 {
