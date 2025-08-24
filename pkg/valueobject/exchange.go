@@ -186,6 +186,7 @@ const (
 	ExchangeKinetixV2                  = "kinetix-v2"
 	ExchangeKinetixV3                  = "kinetix-v3"
 	ExchangeKittenswap                 = "kittenswap"
+	ExchangeKittenswapV2               = "kittenswap-v2"
 	ExchangeKittenswapCL               = "kittenswap-cl"
 	ExchangeKodiakV2                   = "kodiak-v2"
 	ExchangeKodiakV3                   = "kodiak-v3"
@@ -623,6 +624,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
 	ExchangeKittenswap:                 {},
+	ExchangeKittenswapV2:               {},
 	ExchangeKittenswapCL:               {},
 	ExchangeKodiakV2:                   {},
 	ExchangeKodiakV3:                   {},
