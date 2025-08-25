@@ -9,6 +9,7 @@ import (
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -111,10 +112,17 @@ func (uc *BuildRouteUseCase) monitorFaultyPools(ctx context.Context, trackers []
 
 	results, err := uc.poolRepository.TrackFaultyPools(ctx, trackers)
 	if err != nil {
+		pools := lo.Map(trackers, func(item routerEntities.FaultyPoolTracker, _ int) string {
+			return item.Address
+		})
+
 		log.Ctx(ctx).Err(err).Bytes("stack", debug.Stack()).
-			Strs("trackPools", results).
+			Strs("trackPools", pools).
 			Msg("failed to add faulty pools")
 	}
+
+	log.Ctx(ctx).Debug().Strs("trackPools", results).
+		Msg("added faulty pools")
 }
 
 func (uc *BuildRouteUseCase) createAMMPoolTrackers(
