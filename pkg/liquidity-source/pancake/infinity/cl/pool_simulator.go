@@ -24,6 +24,7 @@ type PoolSimulator struct {
 	*uniswapv3.PoolSimulator
 	staticExtra StaticExtra
 	hook        Hook
+	exchange    string
 }
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
@@ -54,11 +55,12 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
+		exchange:      strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1),
 	}, nil
 }
 
 func (p *PoolSimulator) GetExchange() string {
-	return p.hook.GetExchange()
+	return p.exchange
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
