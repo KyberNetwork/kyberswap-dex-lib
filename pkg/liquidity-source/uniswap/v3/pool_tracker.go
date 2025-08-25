@@ -24,6 +24,8 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
+
+	*pooltrack.InactivePoolTracker
 }
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewPoolTracker)
@@ -39,9 +41,10 @@ func NewPoolTracker(
 	}
 
 	return &PoolTracker{
-		config:        initializedCfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
+		config:              initializedCfg,
+		ethrpcClient:        ethrpcClient,
+		graphqlClient:       graphqlClient,
+		InactivePoolTracker: pooltrack.NewInactivePoolTracker(cfg.TrackInactivePools),
 	}, nil
 }
 
@@ -178,6 +181,7 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
+	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 

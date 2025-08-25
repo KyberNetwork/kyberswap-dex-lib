@@ -52,8 +52,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		ABI:    dmmFactoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodAllPoolsLength,
-		Params: nil,
-	}, []interface{}{&lengthBI})
+	}, []any{&lengthBI})
 
 	if _, err := getNumPoolsRequest.Call(); err != nil {
 		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
@@ -79,8 +78,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    dmmFactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodGetPool,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 
 	if _, err := getPairAddressRequest.Aggregate(); err != nil {
@@ -126,15 +125,13 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			ABI:    dmmPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken0,
-			Params: nil,
-		}, []interface{}{&token0Addresses[i]})
+		}, []any{&token0Addresses[i]})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    dmmPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken1,
-			Params: nil,
-		}, []interface{}{&token1Addresses[i]})
+		}, []any{&token1Addresses[i]})
 	}
 
 	if _, err := rpcRequest.Aggregate(); err != nil {

@@ -47,35 +47,28 @@ func (d *PoolTracker) GetNewPoolState(
 		poolAddress = common.HexToAddress(p.Address)
 	)
 
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: poolMethodGetReserves,
-		Params: nil,
-	}, []interface{}{&reserve})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodStableFee,
-		Params: nil,
-	}, []interface{}{&stableFee})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodVolatileFee,
-		Params: nil,
-	}, []interface{}{&volatileFee})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodGetRealFee,
-		Params: []interface{}{poolAddress},
-	}, []interface{}{&realFee})
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    pairABI,
+			Target: p.Address,
+			Method: poolMethodGetReserves,
+		}, []any{&reserve}).
+		AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: poolFactoryMethodStableFee,
+		}, []any{&stableFee}).
+		AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: poolFactoryMethodVolatileFee,
+		}, []any{&volatileFee}).
+		AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: poolFactoryMethodGetRealFee,
+			Params: []any{poolAddress},
+		}, []any{&realFee})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -83,7 +76,7 @@ func (d *PoolTracker) GetNewPoolState(
 			"error":       err,
 		}).Errorf("failed to aggregate to get pool data")
 
-		return entity.Pool{}, err
+		return p, err
 	}
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}

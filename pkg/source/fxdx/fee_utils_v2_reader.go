@@ -48,14 +48,14 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		ABI:    r.abi,
 		Target: address,
 		Method: feeUtilsV2IsInitialized,
-	}, []interface{}{&isInitialized})
+	}, []any{&isInitialized})
 
 	request.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
 		Method: feeUtilsV2MethodGetStates,
-		Params: []interface{}{tokens},
-	}, []interface{}{&getStateResponse})
+		Params: []any{tokens},
+	}, []any{&getStateResponse})
 
 	if _, err := request.Aggregate(); err != nil {
 		return nil, err

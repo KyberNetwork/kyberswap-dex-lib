@@ -167,7 +167,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.assetByToken[params.TokenAmountOut.Token] = toAsset
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return PoolSimulatorMetadata{
 		FromID: s.indexByToken[tokenIn],
 		ToID:   s.indexByToken[tokenOut],

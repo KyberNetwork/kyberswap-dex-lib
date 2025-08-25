@@ -82,45 +82,40 @@ func (d *PoolTracker) getNewPoolState(
 		ABI:    PoolV2ABI,
 		Target: p.Address,
 		Method: poolMethodAmpFactor,
-		Params: nil,
-	}, []interface{}{&ampFactor})
+	}, []any{&ampFactor})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    PoolV2ABI,
 		Target: p.Address,
 		Method: poolMethodHaircutRate,
-		Params: nil,
-	}, []interface{}{&haircutRate})
+	}, []any{&haircutRate})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    PoolV2ABI,
 		Target: p.Address,
 		Method: poolMethodStartCovRatio,
-		Params: nil,
-	}, []interface{}{&startCovRatio})
+	}, []any{&startCovRatio})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    PoolV2ABI,
 		Target: p.Address,
 		Method: poolMethodEndCovRatio,
-		Params: nil,
-	}, []interface{}{&endcovRatio})
+	}, []any{&endcovRatio})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    PoolV2ABI,
 		Target: p.Address,
 		Method: poolMethodPaused,
-		Params: nil,
-	}, []interface{}{&paused})
+	}, []any{&paused})
 	for i, token := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    PoolV2ABI,
 			Target: p.Address,
 			Method: poolMethodAddressOfAsset,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&assetAddresses[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&assetAddresses[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    PoolV2ABI,
 			Target: p.Address,
 			Method: poolMethodIsPaused,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&isAssetPaused[i]})
+			Params: []any{common.HexToAddress(token.Address)},
+		}, []any{&isAssetPaused[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -147,20 +142,17 @@ func (d *PoolTracker) getNewPoolState(
 				ABI:    DynamicAssetABI,
 				Target: assetAddress.Hex(),
 				Method: assetMethodCash,
-				Params: nil,
-			}, []interface{}{&cashes[i]})
+			}, []any{&cashes[i]})
 			assetCalls.AddCall(&ethrpc.Call{
 				ABI:    DynamicAssetABI,
 				Target: assetAddress.Hex(),
 				Method: assetMethodLiability,
-				Params: nil,
-			}, []interface{}{&liabilities[i]})
+			}, []any{&liabilities[i]})
 			assetCalls.AddCall(&ethrpc.Call{
 				ABI:    DynamicAssetABI,
 				Target: assetAddress.Hex(),
 				Method: assetMethodGetRelativePrice,
-				Params: nil,
-			}, []interface{}{&relativePrices[i]})
+			}, []any{&relativePrices[i]})
 		}
 	}
 	if _, err := assetCalls.TryAggregate(); err != nil {

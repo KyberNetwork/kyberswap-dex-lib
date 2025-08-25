@@ -104,8 +104,8 @@ func GetPoolTicksFromSC(
 				ABI:    tickLensABI,
 				Target: tickLensAddress,
 				Method: tickLensMethodGetPopulatedTicksInWord,
-				Params: []interface{}{common.HexToAddress(pool.Address), wordIndex},
-			}, []interface{}{&populatedTicks[i]})
+				Params: []any{common.HexToAddress(pool.Address), wordIndex},
+			}, []any{&populatedTicks[i]})
 		}
 
 		resp, err := rpcRequest.TryAggregate()

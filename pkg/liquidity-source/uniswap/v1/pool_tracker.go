@@ -124,15 +124,15 @@ func (d *PoolTracker) getReserves(
 				ABI:    multicallABI,
 				Target: d.config.MulticallContractAddress,
 				Method: multicallGetEthBalanceMethod,
-				Params: []interface{}{common.HexToAddress(poolAddress)},
-			}, []interface{}{&reserves[i]})
+				Params: []any{common.HexToAddress(poolAddress)},
+			}, []any{&reserves[i]})
 		} else {
 			req.AddCall(&ethrpc.Call{
 				ABI:    erc20ABI,
 				Target: token.Address,
 				Method: erc20BalanceOfMethod,
-				Params: []interface{}{common.HexToAddress(poolAddress)},
-			}, []interface{}{&reserves[i]})
+				Params: []any{common.HexToAddress(poolAddress)},
+			}, []any{&reserves[i]})
 		}
 	}
 

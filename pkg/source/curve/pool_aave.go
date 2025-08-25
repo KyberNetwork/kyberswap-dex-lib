@@ -33,29 +33,29 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&coins[i]})
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&underlyingCoins[i]})
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&underlyingCoins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderDecimals,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&decimals[i]})
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&decimals[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&lpAddresses[i]})
+			Params: []any{poolAndRegistry.PoolAddress},
+		}, []any{&lpAddresses[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call to get pool data, err: %v", err)
@@ -126,65 +126,57 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodInitialA,
-		Params: nil,
-	}, []interface{}{&initialA})
+	}, []any{&initialA})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []interface{}{&futureA})
+	}, []any{&futureA})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []interface{}{&initialATime})
+	}, []any{&initialATime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []interface{}{&futureATime})
+	}, []any{&futureATime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []interface{}{&adminFee})
+	}, []any{&adminFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aaveABI,
 		Target: p.Address,
 		Method: aaveMethodOffpegFeeMultiplier,
-		Params: nil,
-	}, []interface{}{&offpegFee})
+	}, []any{&offpegFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&lpSupply})
+	}, []any{&lpSupply})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    aaveABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

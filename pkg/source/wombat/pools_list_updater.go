@@ -203,14 +203,12 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 		ABI:    DynamicAssetABI,
 		Target: assetAddress,
 		Method: assetMethodGetRelativePrice,
-		Params: nil,
-	}, []interface{}{&relativePrice})
+	}, []any{&relativePrice})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    CrossChainPoolABI,
 		Target: p.ID,
 		Method: poolMethodCreditForTokensHaircut,
-		Params: nil,
-	}, []interface{}{&creditForTokensHaircut})
+	}, []any{&creditForTokensHaircut})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
