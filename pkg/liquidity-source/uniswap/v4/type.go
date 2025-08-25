@@ -10,9 +10,11 @@ import (
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
+type PoolSwapInfo = uniswapv3.SwapInfo
+
 type SwapInfo struct {
-	PoolSwapInfo any
-	HookSwapInfo any
+	PoolSwapInfo
+	hookSwapInfo any
 }
 
 type SubgraphToken struct {
@@ -82,11 +84,16 @@ type PoolMetaInfo struct {
 }
 
 type TokenWrapMetadata struct {
-	ShouldWrap bool     `json:"shouldWrap,omitempty"`
-	WrapInfo   WrapInfo `json:"wrapInfo,omitempty"`
+	WrapInfo   *WrapInfo `json:"wrapInfo,omitempty"`
+	UnwrapInfo *WrapInfo `json:"unwrapInfo,omitempty"`
+}
 
-	ShouldUnwrap bool     `json:"shouldUnwrap,omitempty"`
-	UnwrapInfo   WrapInfo `json:"unwrapInfo,omitempty"`
+func (t *TokenWrapMetadata) ShouldWrap() bool {
+	return t != nil && t.WrapInfo != nil
+}
+
+func (t *TokenWrapMetadata) ShouldUnwrap() bool {
+	return t != nil && t.UnwrapInfo != nil
 }
 
 type WrapInfo struct {

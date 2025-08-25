@@ -1,12 +1,13 @@
 package integral
 
 import (
-	"errors"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
-	ErrStaleTimepoints      = errors.New("getting stale timepoint data")
-	ErrTicksEmpty           = errors.New("ticks list is empty")
+	ErrTicksEmpty           = errors.WithMessage(pool.ErrUnsupported, "ticks list is empty")
 	ErrInvalidToken         = errors.New("invalid token info")
 	ErrZeroAmountCalculated = errors.New("zero amount calculated")
 

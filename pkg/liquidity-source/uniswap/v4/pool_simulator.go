@@ -10,7 +10,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
@@ -81,22 +80,17 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
-	originalTokenIn := param.TokenAmountIn.Token
-	originalTokenOut := param.TokenOut
+	originalTokenIn, originalTokenOut := param.TokenAmountIn.Token, param.TokenOut
+	var wrapAdditionalGas int64
+	var beforeSwapResult *BeforeSwapResult
+	var afterSwapResult *AfterSwapResult
 
-	var (
-		wrapAdditionalGas int64
-		beforeSwapResult  *BeforeSwapResult
-		afterSwapResult   *AfterSwapResult
-	)
-
-	// modify result before return
-	defer func() {
+	defer func() { // modify result before return
 		if swapResult == nil {
 			return
 		}
 		v4SwapInfo := SwapInfo{
-			PoolSwapInfo: swapResult.SwapInfo,
+			PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo),
 		}
 
 		if swapResult.TokenAmountOut != nil {
@@ -105,7 +99,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			if beforeSwapResult != nil {
 				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
 				swapResult.Gas += beforeSwapResult.Gas
-				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
@@ -222,19 +216,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult *pool.CalcAmountInResult, err error) {
-	originalTokenOut := param.TokenAmountOut.Token
-	originalTokenIn := param.TokenIn
-	wrapAdditionalGas := int64(0)
+	originalTokenOut, originalTokenIn := param.TokenAmountOut.Token, param.TokenIn
+	var wrapAdditionalGas int64
 	var beforeSwapResult *BeforeSwapResult
 	var afterSwapResult *AfterSwapResult
 
-	// modify result before return
-	defer func() {
+	defer func() { // modify result before return
 		if swapResult == nil {
 			return
 		}
 		v4SwapInfo := SwapInfo{
-			PoolSwapInfo: swapResult.SwapInfo,
+			PoolSwapInfo: swapResult.SwapInfo.(PoolSwapInfo),
 		}
 
 		if swapResult.TokenAmountIn != nil {
@@ -243,7 +235,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			if beforeSwapResult != nil {
 				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
 				swapResult.Gas += beforeSwapResult.Gas
-				v4SwapInfo.HookSwapInfo = beforeSwapResult.SwapInfo
+				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
 			}
 
 			if afterSwapResult != nil {
@@ -434,24 +426,18 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 // GetMetaInfo
 // adapt from https://github.com/KyberNetwork/kyberswap-dex-lib-private/blob/c1877a8c19759faeb7d82b6902ed335f0657ce3e/pkg/liquidity-source/uniswap-v4/pool_simulator.go#L201
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	tokenInAfterWrap := tokenIn
-	tokenOutBeforeUnwrap := tokenOut
+	tokenInAfterWrap, tokenOutBeforeUnwrap := tokenIn, tokenOut
+	var wrapMetadata *TokenWrapMetadata
 
-	var wrapMetadata TokenWrapMetadata
-
-	tokenInIndex := p.GetTokenIndex(tokenIn)
-	if tokenInIndex == -1 {
+	if p.GetTokenIndex(tokenIn) == -1 {
 		for _, wrapper := range p.tokenWrappers {
-			metadata, canWrap := wrapper.CanWrap(p.chainID, tokenIn)
-			if canWrap {
-				wrapMetadata.ShouldWrap = true
+			if metadata, canWrap := wrapper.CanWrap(p.chainID, tokenIn); canWrap {
 				tokenInAfterWrap = metadata.GetWrapToken()
-				tokenIn := tokenIn
 				if metadata.IsUnwrapNative() {
 					tokenIn = NativeTokenAddress.Hex()
 				}
 
-				wrapMetadata.WrapInfo = WrapInfo{
+				wrapMetadata = &TokenWrapMetadata{WrapInfo: &WrapInfo{
 					TokenIn:     tokenIn,
 					TokenOut:    metadata.GetWrapToken(),
 					HookAddress: metadata.GetHook(),
@@ -459,26 +445,25 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 					TickSpacing: metadata.GetTickSpacing(),
 					Fee:         metadata.GetFee(),
 					HookData:    metadata.GetHookData(),
-				}
+				}}
 				break
 			}
 		}
 	}
 
-	tokenOutIndex := p.GetTokenIndex(tokenOut)
-	if tokenOutIndex == -1 {
+	if p.GetTokenIndex(tokenOut) == -1 {
 		for _, wrapper := range p.tokenWrappers {
-			metadata, canUnwrap := wrapper.CanWrap(p.chainID, tokenOut)
-			if canUnwrap {
-				wrapMetadata.ShouldUnwrap = true
+			if metadata, canUnwrap := wrapper.CanWrap(p.chainID, tokenOut); canUnwrap {
 				tokenOutBeforeUnwrap = metadata.GetWrapToken()
-				tokenOut := tokenOut
 				if metadata.IsUnwrapNative() {
 					tokenOut = NativeTokenAddress.Hex()
 				}
 
-				wrapMetadata.UnwrapInfo = WrapInfo{
-					TokenIn:     metadata.GetWrapToken(),
+				if wrapMetadata == nil {
+					wrapMetadata = &TokenWrapMetadata{}
+				}
+				wrapMetadata.UnwrapInfo = &WrapInfo{
+					TokenIn:     tokenOutBeforeUnwrap,
 					TokenOut:    tokenOut,
 					HookAddress: metadata.GetHook(),
 					PoolAddress: metadata.GetPool(),
@@ -510,22 +495,21 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		HookAddress:       p.staticExtra.HooksAddress,
 		HookData:          []byte{},
 		PriceLimit:        &priceLimit,
-		TokenWrapMetadata: lo.Ternary(wrapMetadata.ShouldWrap || wrapMetadata.ShouldUnwrap, &wrapMetadata, nil),
+		TokenWrapMetadata: wrapMetadata,
 	}
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if params.SwapInfo != nil {
-		v4SwapInfo, ok := params.SwapInfo.(SwapInfo)
-		if !ok {
-			return
-		}
-
-		if p.hook != nil {
-			p.hook.UpdateBalance(v4SwapInfo.HookSwapInfo)
-		}
-
-		params.SwapInfo = v4SwapInfo.PoolSwapInfo
-		p.PoolSimulator.UpdateBalance(params)
+	if params.SwapInfo == nil {
+		return
 	}
+	v4SwapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+	if p.hook != nil {
+		p.hook.UpdateBalance(v4SwapInfo.hookSwapInfo)
+	}
+	params.SwapInfo = v4SwapInfo.PoolSwapInfo
+	p.PoolSimulator.UpdateBalance(params)
 }
