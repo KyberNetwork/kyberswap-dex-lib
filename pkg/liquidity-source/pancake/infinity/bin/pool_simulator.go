@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"slices"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,7 +26,8 @@ var (
 
 type PoolSimulator struct {
 	pool.Pool
-	hook Hook
+	hook     Hook
+	exchange string
 
 	vault, binPoolManager, permit2, hookAddress common.Address
 	parameters                                  string
@@ -41,7 +43,7 @@ type PoolSimulator struct {
 
 var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal static extra: %w", err)
@@ -77,6 +79,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
 		hook:           hook,
+		exchange:       strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1),
 		activeId:       extra.ActiveBinID,
 		binStep:        staticExtra.BinStep,
 		isNative:       staticExtra.IsNative,
@@ -84,7 +87,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) GetExchange() string {
-	return p.hook.GetExchange()
+	return p.exchange
 }
 
 func (p *PoolSimulator) swap(exactIn, swapForY bool, amountIn *big.Int) (*swapResult, error) {
