@@ -253,6 +253,9 @@ func (c *AlphaFeeV3Calculation) getReductionPerSwap(
 				if math.IsNaN(reduceAmountF) {
 					reduceAmountF = 0
 				}
+				if math.IsNaN(reduceAmountUsd) {
+					reduceAmountUsd = 0
+				}
 				var reduceAmountBF big.Float
 				reduceAmount, _ := reduceAmountBF.SetFloat64(reduceAmountF).Int(nil)
 				swapReductions = append(swapReductions, routerEntity.AlphaFeeV2SwapReduction{
