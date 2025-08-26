@@ -27,8 +27,6 @@ func BuildRoute(validator IBuildRouteParamsValidator, useCase IBuildRouteUseCase
 		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "BuildRoute")
 		defer span.End()
 
-		clientIDFromHeader := clientid.ExtractClientID(ginCtx)
-
 		var bodyParams params.BuildRouteParams
 		if err := ginCtx.ShouldBindJSON(&bodyParams); err != nil {
 			RespondFailure(
@@ -38,11 +36,6 @@ func BuildRoute(validator IBuildRouteParamsValidator, useCase IBuildRouteUseCase
 					"[BuildRoute] err: [%v]", err),
 			)
 			return
-		}
-
-		// if source param is empty, use clientID from header as the source
-		if bodyParams.Source == "" {
-			bodyParams.Source = clientIDFromHeader
 		}
 
 		if err := validator.Validate(ctx, bodyParams); err != nil {
@@ -86,10 +79,14 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 	}
 
 	source := params.Source
+	var clientID string
 	if ginCtx != nil {
+		clientID = clientid.ExtractClientID(ginCtx)
 		normalizedClientIp := strings.ReplaceAll(ginCtx.ClientIP(), ".", "_")
 		if forcedSource, ok := cfg.ForceSourceByIp[normalizedClientIp]; ok {
 			source = forcedSource
+		} else if source == "" { // if source param is empty, use clientID from header as the source
+			source = clientID
 		}
 	}
 
@@ -98,12 +95,13 @@ func transformBuildRouteParams(ginCtx *gin.Context, params params.BuildRoutePara
 		OriginalAmountOut:   routeSummary.GetTotalAmountOut(cfg.ChainID),
 		Sender:              params.Sender,
 		Recipient:           params.Recipient,
+		Origin:              params.Origin,
 		Permit:              common.FromHex(params.Permit),
 		Deadline:            deadline,
 		SlippageTolerance:   params.SlippageTolerance,
 		EnableGasEstimation: params.EnableGasEstimation,
+		ClientId:            clientID,
 		Source:              source,
-		Origin:              params.Origin,
 		Referral:            params.Referral,
 	}, nil
 }

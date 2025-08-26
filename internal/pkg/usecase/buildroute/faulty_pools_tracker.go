@@ -238,12 +238,7 @@ func (uc *BuildRouteUseCase) shouldTrackTokens(ctx context.Context, tokens mapse
 
 }
 
-func (uc *BuildRouteUseCase) IsValidToTrackFaultyPools(routeTimestamp int64) bool {
-	now := time.Now().Unix()
-	secondElapsed := time.Duration(now-routeTimestamp) * time.Second
-	return secondElapsed <= valueobject.DefaultDeadline
-}
-
 func (uc *BuildRouteUseCase) IsValidChecksum(route *valueobject.RouteSummary) bool {
-	return route.Checksum(uc.config.Salt) == route.OriginalChecksum
+	return time.Since(time.Unix(route.Timestamp, 0)) <= valueobject.DefaultDeadline &&
+		route.Checksum(uc.config.Salt) == route.OriginalChecksum
 }

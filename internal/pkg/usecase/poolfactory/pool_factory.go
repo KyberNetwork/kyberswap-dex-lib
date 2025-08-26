@@ -143,11 +143,10 @@ func (f *PoolFactory) newPool(ctx context.Context, entityPool entity.Pool, facto
 	factoryParams.EntityPool = entityPool
 
 	if poolFactory := poolpkg.Factory(entityPool.Type); poolFactory != nil {
-		if pool, err = poolFactory(factoryParams); err == nil {
-			return pool, nil
-		} else if !errors.Is(err, poolpkg.ErrUnsupported) {
-			lg.Err(err).Msg("failed to create dex-lib pool")
+		if pool, err = poolFactory(factoryParams); err == nil || errors.Is(err, poolpkg.ErrUnsupported) {
+			return pool, err
 		}
+		lg.Err(err).Msg("failed to create dex-lib pool")
 	}
 
 	if f.config.UseAEVM && f.config.DexUseAEVM[entityPool.Type] {

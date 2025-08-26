@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -25,13 +24,13 @@ func New(skipPathSet map[string]struct{}) gin.HandlerFunc {
 		startTime := time.Now()
 		requestID := requestid.ExtractRequestID(c)
 		ja4 := requestid.ExtractJa4(c)
+		botScore := requestid.ExtractBotScore(c)
 		clientID := clientid.ExtractClientID(c)
 
 		ctx := c.Request.Context()
-		span := trace.SpanFromContext(ctx)
 
 		// build child logger with requestId and set to context to be used across the request scope
-		lg := log.With().Str("request.id", requestID).Logger()
+		lg := log.With().Str("req.id", requestID).Logger()
 		if c.Request.Header.Get(constant.DebugHeader) != "" {
 			lg = lg.Level(zerolog.DebugLevel)
 		}
@@ -44,18 +43,18 @@ func New(skipPathSet map[string]struct{}) gin.HandlerFunc {
 		defer func() {
 			status := c.Writer.Status()
 			lg.Info().
-				Str("request.method", c.Request.Method).
-				Str("request.uri", c.Request.URL.RequestURI()).
-				Stringer("request.body", &reqBodyBuffer).
-				Str("request.client_ip", c.ClientIP()).
-				Str("request.user_agent", c.Request.UserAgent()).
-				Str("request.ja4", ja4).
-				Str("client.id", clientID).
-				Stringer("span.id", span.SpanContext().TraceID()).
-				Int("response.status", status).
-				Stringer("response.body", &respBodyBuffer).
-				Dur("response.duration_ms", time.Since(startTime)).
-				Msg("handled request")
+				Str("req.method", c.Request.Method).
+				Str("req.uri", c.Request.URL.RequestURI()).
+				Stringer("req.body", &reqBodyBuffer).
+				Str("req.ip", c.ClientIP()).
+				Str("req.ua", c.Request.UserAgent()).
+				Str("req.ja4", ja4).
+				Int("req.bot", botScore).
+				Str("req.client", clientID).
+				Int("resp.status", status).
+				Stringer("resp.body", &respBodyBuffer).
+				Dur("resp.ms", time.Since(startTime)).
+				Msg("handled api")
 			metrics.CountRequest(c, clientID, ja4, status)
 		}()
 

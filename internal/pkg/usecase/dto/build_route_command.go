@@ -20,6 +20,7 @@ type BuildRouteCommand struct {
 	SlippageTolerance   float64
 	EnableGasEstimation bool
 
+	ClientId string
 	Source   string
 	Referral string
 }

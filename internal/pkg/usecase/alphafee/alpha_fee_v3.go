@@ -7,16 +7,15 @@ import (
 	"runtime/debug"
 	"slices"
 
+	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
-	"github.com/samber/lo"
-
-	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"

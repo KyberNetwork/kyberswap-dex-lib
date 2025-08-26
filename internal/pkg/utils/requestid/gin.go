@@ -8,8 +8,7 @@ import (
 const (
 	HeaderKeyRequestID = "X-Request-Id"
 	HeaderKeyJa4       = "X-Ja4"
-
-	QueryKeyBotScore = "x_bot_score"
+	HeaderKeyBotScore  = "X-Bot-Score"
 )
 
 func ExtractRequestID(c *gin.Context) string {
@@ -21,7 +20,7 @@ func ExtractJa4(c *gin.Context) string {
 }
 
 func ExtractBotScore(c *gin.Context) int {
-	score, err := kutils.Atoi[int](c.Query(QueryKeyBotScore))
+	score, err := kutils.Atoi[int](c.GetHeader(HeaderKeyBotScore))
 	if err != nil {
 		return 100
 	}
