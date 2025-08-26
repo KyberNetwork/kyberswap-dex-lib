@@ -2,6 +2,8 @@ package uniswapv4
 
 import (
 	"time"
+
+	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 )
 
 type Config struct {
@@ -15,11 +17,18 @@ type Config struct {
 	NewPoolLimit           int    `json:"newPoolLimit"`
 	AllowSubgraphError     bool   `json:"allowSubgraphError"`
 
-	TimeThresholdByPool map[string]time.Duration `json:"timeThreshold"` // blocks swap after any event
+	TimeThresholdByPool map[string]time.Duration  `json:"timeThreshold"` // blocks swap after any event
+	TrackInactivePools  *TrackInactivePoolsConfig `json:"trackInactivePools"`
 
 	FetchTickFromStateView bool // instead of fetching from subgraph
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
 	return c.AllowSubgraphError
+}
+
+type TrackInactivePoolsConfig struct {
+	Enabled               bool                  `json:"enabled"`
+	TimeThreshold         durationjson.Duration `json:"timeThreshold"`
+	ZoraHookTimeThreshold durationjson.Duration `json:"zoraHookTimeThreshold"`
 }
