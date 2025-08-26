@@ -105,7 +105,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	var swapFee uint32
 	if strings.EqualFold(tokenIn, p.Info.Tokens[0]) {
 		swapFee = uint32(p.Token0FeePercent.Uint64())

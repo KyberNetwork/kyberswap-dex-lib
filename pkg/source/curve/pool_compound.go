@@ -34,29 +34,29 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&underlyingCoins[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&underlyingCoins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderDecimals,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&decimals[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&lpAddresses[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&lpAddresses[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -130,34 +130,37 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 		ABI:    baseABI,
 		Target: p.Address,
 		Method: poolMethodA,
-	}, []any{&a})
+		Params: nil,
+	}, []interface{}{&a})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    compoundABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-	}, []any{&swapFee})
+		Params: nil,
+	}, []interface{}{&swapFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    compoundABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-	}, []any{&adminFee})
+		Params: nil,
+	}, []interface{}{&adminFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mainRegistryABI,
 		Target: d.config.MainRegistryAddress,
 		Method: registryOrFactoryMethodGetRates,
-		Params: []any{common.HexToAddress(p.Address)},
-	}, []any{&rates8})
+		Params: []interface{}{common.HexToAddress(p.Address)},
+	}, []interface{}{&rates8})
 
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    compoundABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&balances[i]})
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&balances[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

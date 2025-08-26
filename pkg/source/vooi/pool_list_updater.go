@@ -121,8 +121,8 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 				ABI:    poolABI,
 				Target: address,
 				Method: poolMethodIndexToAsset,
-				Params: []any{big.NewInt(int64(i))},
-			}, []any{&assets[i]})
+				Params: []interface{}{big.NewInt(int64(i))},
+			}, []interface{}{&assets[i]})
 	}
 
 	getPoolState.AddCall(&ethrpc.Call{
@@ -209,7 +209,8 @@ func (u *PoolsListUpdater) getLastIndex(_ context.Context, address string) (int,
 		ABI:    poolABI,
 		Target: address,
 		Method: poolMethodLastIndex,
-	}, []any{&lastIndex})
+		Params: nil,
+	}, []interface{}{&lastIndex})
 
 	if _, err := getLastIndexRequest.Call(); err != nil {
 		logger.

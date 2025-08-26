@@ -152,7 +152,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
 
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
 	if !p.vault.IsSwapEnabled {

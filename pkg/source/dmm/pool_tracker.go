@@ -47,7 +47,8 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    dmmPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetTradeInfo,
-	}, []any{&tradeInfo})
+		Params: nil,
+	}, []interface{}{&tradeInfo})
 
 	_, err := rpcRequest.Call()
 	if err != nil {

@@ -155,7 +155,7 @@ func (t *PoolSimulator) GetLpToken() string {
 	return t.LpToken
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

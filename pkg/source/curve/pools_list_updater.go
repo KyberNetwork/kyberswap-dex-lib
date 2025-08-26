@@ -372,7 +372,8 @@ func (d *PoolsListUpdater) getPoolAddresses(
 		ABI:    registryOrFactoryABI,
 		Target: registryOrFactoryAddress,
 		Method: registryOrFactoryMethodPoolCount,
-	}, []any{&lengthBI}).Call(); err != nil {
+		Params: nil,
+	}, []interface{}{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get pool count")
@@ -395,8 +396,8 @@ func (d *PoolsListUpdater) getPoolAddresses(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodPoolList,
-			Params: []any{big.NewInt(int64(currentOffset + i))},
-		}, []any{&poolAddresses[i]})
+			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
+		}, []interface{}{&poolAddresses[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

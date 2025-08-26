@@ -1,8 +1,6 @@
 package equalizer
 
-import (
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-)
+import "math/big"
 
 const (
 	DexTypeEqualizer = "equalizer"
@@ -22,5 +20,5 @@ const (
 var (
 	DefaultGas = Gas{Swap: 227000}
 
-	bps = bignum.TenPowInt(18)
+	bps = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )

@@ -32,21 +32,22 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&coins[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolAndRegistry.RegistryOrFactoryABI,
 			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
-			Params: []any{poolAndRegistry.PoolAddress},
-		}, []any{&decimals[i]})
+			Params: []interface{}{poolAndRegistry.PoolAddress},
+		}, []interface{}{&decimals[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: poolAndRegistry.PoolAddress.Hex(),
 			Method: poolMethodToken,
-		}, []any{&lpTokens[i]})
+			Params: nil,
+		}, []interface{}{&lpTokens[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {
@@ -118,115 +119,134 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodA,
-	}, []any{&a})
+		Params: nil,
+	}, []interface{}{&a})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodD,
-	}, []any{&dExtra})
+		Params: nil,
+	}, []interface{}{&dExtra})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodGamma,
-	}, []any{&gamma})
+		Params: nil,
+	}, []interface{}{&gamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodFeeGamma,
-	}, []any{&feeGamma})
+		Params: nil,
+	}, []interface{}{&feeGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodMidFee,
-	}, []any{&midFee})
+		Params: nil,
+	}, []interface{}{&midFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodOutFee,
-	}, []any{&outFee})
+		Params: nil,
+	}, []interface{}{&outFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGammaTime,
-	}, []any{&futureAGammaTime})
+		Params: nil,
+	}, []interface{}{&futureAGammaTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGamma,
-	}, []any{&futureAGamma})
+		Params: nil,
+	}, []interface{}{&futureAGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGammaTime,
-	}, []any{&initialAGammaTime})
+		Params: nil,
+	}, []interface{}{&initialAGammaTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGamma,
-	}, []any{&initialAGamma})
+		Params: nil,
+	}, []interface{}{&initialAGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodLastPricesTimestamp,
-	}, []any{&lastPriceTimestamp})
+		Params: nil,
+	}, []interface{}{&lastPriceTimestamp})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodXcpProfit,
-	}, []any{&xcpProfit})
+		Params: nil,
+	}, []interface{}{&xcpProfit})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodVirtualPrice,
-	}, []any{&virtualPrice})
+		Params: nil,
+	}, []interface{}{&virtualPrice})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodAllowedExtraProfit,
-	}, []any{&allowedExtraProfit})
+		Params: nil,
+	}, []interface{}{&allowedExtraProfit})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
-	}, []any{&adjustmentStep})
+		Params: nil,
+	}, []interface{}{&adjustmentStep})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodMaHalfTime,
-	}, []any{&maHalfTime})
+		Params: nil,
+	}, []interface{}{&maHalfTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodPriceScale,
-	}, []any{&priceScale})
+		Params: nil,
+	}, []interface{}{&priceScale})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodPriceOracle,
-	}, []any{&priceOracle})
+		Params: nil,
+	}, []interface{}{&priceOracle})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    twoABI,
 		Target: p.Address,
 		Method: poolMethodLastPrices,
-	}, []any{&lastPrices})
+		Params: nil,
+	}, []interface{}{&lastPrices})
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {
@@ -234,7 +254,8 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 			ABI:    erc20ABI,
 			Target: lpToken,
 			Method: erc20MethodTotalSupply,
-		}, []any{&lpSupply})
+			Params: nil,
+		}, []interface{}{&lpSupply})
 	}
 
 	for i := range p.Tokens {
@@ -242,8 +263,8 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 			ABI:    twoABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&balances[i]})
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&balances[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

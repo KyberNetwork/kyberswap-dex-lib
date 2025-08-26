@@ -175,7 +175,7 @@ func (t *PoolSimulator) Swap(
 		}, t.gas.Exchange, nil
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return curve.Meta{

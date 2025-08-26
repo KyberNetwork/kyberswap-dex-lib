@@ -71,7 +71,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    swapABI,
 			Target: pool.ID,
 			Method: methodGetSwapStorage,
-		}, []any{&swapStorage})
+			Params: nil,
+		}, []interface{}{&swapStorage})
 
 		if _, err := rpcRequest.Call(); err != nil {
 			log.Errorf("failed to get swap storage, err: %v", err)

@@ -104,17 +104,20 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 				ABI:    camelotPairABI,
 				Target: pairAddr.Hex(),
 				Method: pairMethodToken0,
-			}, []any{&token0Addresses[i]}).
+				Params: nil,
+			}, []interface{}{&token0Addresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    camelotPairABI,
 				Target: pairAddr.Hex(),
 				Method: pairMethodToken1,
-			}, []any{&token1Addresses[i]}).
+				Params: nil,
+			}, []interface{}{&token1Addresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    camelotPairABI,
 				Target: pairAddr.Hex(),
 				Method: pairMethodFeeDenominator,
-			}, []any{&feeDenominators[i]})
+				Params: nil,
+			}, []interface{}{&feeDenominators[i]})
 	}
 
 	_, err := req.Aggregate()
@@ -179,8 +182,8 @@ func (d *PoolListsUpdater) getPairAddresses(ctx context.Context, offset uint64, 
 			ABI:    camelotFactoryABI,
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodAllPairs,
-			Params: []any{big.NewInt(int64(i))},
-		}, []any{&pairAddresses[i-start]})
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&pairAddresses[i-start]})
 	}
 
 	_, err := req.Aggregate()
@@ -205,7 +208,8 @@ func (d *PoolListsUpdater) getPairCount(ctx context.Context) (uint64, error) {
 			ABI:    camelotFactoryABI,
 			Target: d.cfg.FactoryAddress,
 			Method: factoryMethodAllPairsLength,
-		}, []any{&pairCount})
+			Params: nil,
+		}, []interface{}{&pairCount})
 
 	_, err := req.Call()
 	if err != nil {

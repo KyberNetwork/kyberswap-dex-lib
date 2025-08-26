@@ -126,28 +126,30 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool) (*FetchR
 		ABI:    elasticPoolABI,
 		Target: p.Address,
 		Method: methodGetLiquidityState,
-	}, []any{&liquidityState})
+		Params: nil,
+	}, []interface{}{&liquidityState})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    elasticPoolABI,
 		Target: p.Address,
 		Method: methodGetPoolState,
-	}, []any{&poolState})
+		Params: nil,
+	}, []interface{}{&poolState})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve0})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve1})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()

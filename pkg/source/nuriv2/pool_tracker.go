@@ -149,40 +149,44 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    nuriV2PoolABI,
 		Target: p.Address,
 		Method: methodGetLiquidity,
-	}, []any{&liquidity})
+		Params: nil,
+	}, []interface{}{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    nuriV2PoolABI,
 		Target: p.Address,
 		Method: methodGetSlot0,
-	}, []any{&slot0})
+		Params: nil,
+	}, []interface{}{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    nuriV2PoolABI,
 		Target: p.Address,
 		Method: methodCurrentFee,
-	}, []any{&feeTier})
+		Params: nil,
+	}, []interface{}{&feeTier})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    nuriV2PoolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
-	}, []any{&tickSpacing})
+		Params: nil,
+	}, []interface{}{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve0})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve1})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()

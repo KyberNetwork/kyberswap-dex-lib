@@ -260,7 +260,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	fromId, toId := t.GetTokenIndex(tokenIn), t.GetTokenIndex(tokenOut)
 	if fromId >= 0 && toId >= 0 {
 		return curve.Meta{
