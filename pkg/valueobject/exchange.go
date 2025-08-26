@@ -187,6 +187,7 @@ const (
 	ExchangeKinetixV3                  = "kinetix-v3"
 	ExchangeKittenswap                 = "kittenswap"
 	ExchangeKittenswapCL               = "kittenswap-cl"
+	ExchangeKittenswapV4               = "kittenswap-v4"
 	ExchangeKodiakV2                   = "kodiak-v2"
 	ExchangeKodiakV3                   = "kodiak-v3"
 	ExchangeKoiCL                      = "koi-cl"
@@ -255,6 +256,10 @@ const (
 	ExchangeNuri                       = "nuri"
 	ExchangeNuriV2                     = "nuri-v2"
 	ExchangeOETH                       = "oeth"
+	ExchangeOmniBin                    = "omni-bin"
+	ExchangeOmniCL                     = "omni-cl"
+	ExchangeOmniV2                     = "omni-v2"
+	ExchangeOmniV3                     = "omni-v3"
 	ExchangeOndoUSDY                   = "ondo-usdy"
 	ExchangeOneSwap                    = "oneswap"
 	ExchangeOpx                        = "opx"
@@ -624,6 +629,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKinetixV3:                  {},
 	ExchangeKittenswap:                 {},
 	ExchangeKittenswapCL:               {},
+	ExchangeKittenswapV4:               {},
 	ExchangeKodiakV2:                   {},
 	ExchangeKodiakV3:                   {},
 	ExchangeKoiCL:                      {},
@@ -688,6 +694,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNuri:                       {},
 	ExchangeNuriV2:                     {},
 	ExchangeOETH:                       {},
+	ExchangeOmniBin:                    {},
+	ExchangeOmniCL:                     {},
+	ExchangeOmniV2:                     {},
+	ExchangeOmniV3:                     {},
 	ExchangeOndoUSDY:                   {},
 	ExchangeOneSwap:                    {},
 	ExchangeOpx:                        {},

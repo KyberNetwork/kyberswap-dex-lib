@@ -20,7 +20,7 @@ func getAmountOut(
 	stable bool,
 ) *big.Int {
 	var amountAfterFee = calAmountAfterFee(amountIn, swapFee)
-	if amountAfterFee.Cmp(bignumber.ZeroBI) <= 0 {
+	if amountAfterFee.Sign() <= 0 {
 		return bignumber.ZeroBI
 	}
 
@@ -37,7 +37,7 @@ func getExactQuote(
 ) *big.Int {
 	amountOut := big.NewInt(0)
 
-	if amountIn.Cmp(bignumber.ZeroBI) <= 0 {
+	if amountIn.Sign() <= 0 {
 		return amountOut
 	}
 
@@ -54,7 +54,7 @@ func getExactQuote(
 		numerator := new(big.Int).Mul(amountIn, reserveOut)
 		denominator := new(big.Int).Add(reserveIn, amountIn)
 
-		if denominator.Cmp(bignumber.ZeroBI) > 0 {
+		if denominator.Sign() > 0 {
 			amountOut = new(big.Int).Div(numerator, denominator)
 		}
 	}
@@ -103,6 +103,11 @@ func _get_y(x0, xy, y *big.Int) *big.Int {
 
 		k := _f(x0, _y)
 		d := _d(x0, _y)
+
+		if d.Sign() == 0 {
+			break
+		}
+
 		if k.Cmp(xy) < 0 {
 			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(xy, k), bignumber.BONE), d)
 			_y.Add(_y, dy)
@@ -112,8 +117,8 @@ func _get_y(x0, xy, y *big.Int) *big.Int {
 		}
 
 		diff := new(big.Int).Sub(_y, y_prev)
-		if diff.CmpAbs(big.NewInt(1)) <= 0 {
-			return _y
+		if diff.CmpAbs(bignumber.One) <= 0 {
+			break
 		}
 	}
 

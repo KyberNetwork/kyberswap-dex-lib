@@ -29,13 +29,31 @@ func TestPoolSimulator(t *testing.T) {
 	pSim, err := NewPoolSimulator(poolEnt, valueobject.ChainID(chainID))
 	assert.NoError(t, err)
 
+	tokenAmountIn := pool.TokenAmount{
+		Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+		Amount: bignumber.NewBig10("15497045801"),
+	}
 	got, err := pSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: bignumber.NewBig10("1000000000000000000"),
-		},
-		TokenOut: "0xbeab712832112bd7664226db7cd025b153d3af55",
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, bignumber.NewBig10("415003200864711604166794"), got.TokenAmountOut.Amount)
+	assert.Equal(t, bignumber.NewBig10("1070524829112273927801315"), got.TokenAmountOut.Amount)
+
+	pSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenAmountOut: *got.TokenAmountOut,
+		Fee: *got.Fee,
+		SwapInfo: got.SwapInfo,
+	})
+
+	got, err = pSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Amount: bignumber.NewBig10("15500255685"),
+		},
+		TokenOut:      "0x3b50805453023a91a8bf641e279401a0b23fa6f9",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig10("871374850342807317560423"), got.TokenAmountOut.Amount)
 }

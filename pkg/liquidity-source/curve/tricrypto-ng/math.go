@@ -286,7 +286,7 @@ func get_y(
 	}
 
 	if _D.Cmp(MinD) < 0 || _D.Cmp(MaxD) > 0 {
-		return ErrUnsafeGamma
+		return ErrUnsafeD
 	}
 
 	for k := 0; k < NumTokens; k++ {

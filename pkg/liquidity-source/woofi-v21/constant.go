@@ -2,6 +2,7 @@ package woofiv21
 
 import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/holiman/uint256"
 )
 
 const (
@@ -27,6 +28,7 @@ const (
 )
 
 var (
-	DefaultGas = Gas{Swap: 300000}
-	Number_1e5 = number.TenPow(5)
+	DefaultGas          = Gas{Swap: 300000}
+	Number_1e5          = number.TenPow(5)
+	safetyBufferPercent = uint256.NewInt(80) // 80%
 )
