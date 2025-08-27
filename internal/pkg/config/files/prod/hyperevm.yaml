@@ -30,7 +30,6 @@ common:
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - hyperswap-v2
-    - kittenswap
     - manaswap
     - hybra-v2
     - woofi-v3
@@ -38,7 +37,9 @@ common:
     - hyperswap-v3
     - hybra-v3
     - laminar
+    - kittenswap
     - kittenswap-cl
+    - kittenswap-v4
     - gliquid
     - hypercat
   excludedSourcesByClient: &excludedSourcesByClient
