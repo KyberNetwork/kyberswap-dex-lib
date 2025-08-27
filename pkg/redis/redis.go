@@ -18,14 +18,15 @@ type Redis struct {
 
 func New(cfg *Config) (*Redis, error) {
 	rdb := client.NewRedisClient(context.Background(), &redis.UniversalOptions{
-		Addrs:         cfg.Addresses,
-		DB:            cfg.DBNumber,
-		Password:      cfg.Password,
-		MasterName:    cfg.MasterName,
-		ReadTimeout:   cfg.ReadTimeout,
-		WriteTimeout:  cfg.WriteTimeout,
-		ReadOnly:      cfg.ReadOnly,
-		RouteRandomly: cfg.RouteRandomly,
+		Addrs:            cfg.Addresses,
+		DB:               cfg.DBNumber,
+		Password:         cfg.Password,
+		SentinelPassword: cfg.SentinelPassword,
+		MasterName:       cfg.MasterName,
+		ReadTimeout:      cfg.ReadTimeout,
+		WriteTimeout:     cfg.WriteTimeout,
+		ReadOnly:         cfg.ReadOnly,
+		RouteRandomly:    cfg.RouteRandomly,
 	})
 
 	if _, err := rdb.Ping(context.Background()).Result(); err != nil {

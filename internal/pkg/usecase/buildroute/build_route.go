@@ -175,18 +175,14 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}
 
 	log.Ctx(ctx).Debug().Msgf("isValidChecksum: %v", isValidChecksum)
-	source := command.Source
-	if !isValidChecksum && uc.config.ValidateChecksumBySource[source] {
+	if !isValidChecksum && uc.config.ValidateChecksumBySource[command.ClientId] {
 		return nil, ErrInvalidRouteChecksum
 	}
 
 	// Notice: must check route summary to track faulty pools at the beginning of the handle func to avoid route modification during execution
-	var isFaultyPoolTrackEnable bool
-	if isValidChecksum && uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
-		isFaultyPoolTrackEnable = uc.IsValidToTrackFaultyPools(routeSummary.Timestamp)
-	}
+	isFaultyPoolTrackEnable := isValidChecksum && uc.config.FeatureFlags.IsFaultyPoolDetectorEnable
 
-	executorAddress := strings.ToLower(uc.encoder.GetExecutorAddress(source))
+	executorAddress := strings.ToLower(uc.encoder.GetExecutorAddress(command.Source))
 
 	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, routeSummary)
 	if err != nil {

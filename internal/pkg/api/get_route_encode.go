@@ -33,8 +33,6 @@ func GetRouteEncode(cfg buildroute.Config, validator IGetRouteEncodeParamsValida
 
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())
 
-		clientIDFromHeader := clientid.ExtractClientID(ginCtx)
-
 		var queryParams params.GetRouteEncodeParams
 		if err := ginCtx.ShouldBindQuery(&queryParams); err != nil {
 			RespondFailure(
@@ -49,10 +47,11 @@ func GetRouteEncode(cfg buildroute.Config, validator IGetRouteEncodeParamsValida
 			return
 		}
 
+		queryParams.ClientID = clientid.ExtractClientID(ginCtx)
 		// if source param is empty, use clientID from header as the source
 		if queryParams.ClientData.Source == "" {
 			queryParams.ClientData = params.ClientData{
-				Source: clientIDFromHeader,
+				Source: queryParams.ClientID,
 			}
 		}
 
@@ -190,7 +189,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		GasPrice:            gasPrice,
 		ExtraFee:            extraFee,
 		ExcludedPools:       mapset.NewThreadUnsafeSet[string](),
-		ClientId:            params.ClientData.Source,
+		ClientId:            params.ClientID,
 	}, nil
 }
 
@@ -200,16 +199,22 @@ func buildBuildRouteCommand(params params.GetRouteEncodeParams, getRoutesResult 
 	if params.Deadline == 0 {
 		deadline = nowFunc().Add(valueobject.DefaultDeadline).Unix()
 	}
+	origin, recipient := params.Origin, utils.CleanUpParam(params.To)
+	if origin == "" {
+		origin = recipient
+	}
 
 	return dto.BuildRouteCommand{
 		RouteSummary:      getRoutesResult.RouteSummary,
 		OriginalAmountOut: getRoutesResult.RouteSummary.GetTotalAmountOut(cfg.ChainID),
-		Recipient:         utils.CleanUpParam(params.To),
+		Recipient:         recipient,
+		Origin:            origin,
 		Permit:            common.FromHex(params.Permit),
 		Deadline:          deadline,
 		SlippageTolerance: params.SlippageTolerance,
-		Referral:          params.Referral,
+		ClientId:          params.ClientID,
 		Source:            params.ClientData.Source,
+		Referral:          params.Referral,
 	}, nil
 }
 

@@ -19,7 +19,9 @@ type GetRouteEncodeParams struct {
 	IsInBps              bool                    `form:"isInBps"`
 	FeeAmount            string                  `form:"feeAmount"`
 	Deadline             int64                   `form:"deadline"`
+	Origin               string                  `form:"origin"` // address that submits the transaction
 	To                   string                  `form:"to"`
+	ClientID             string                  `form:"-"`
 	ClientData           ClientData              `form:"clientData"`
 	Referral             string                  `form:"referral"`
 	Permit               string                  `form:"permit"`

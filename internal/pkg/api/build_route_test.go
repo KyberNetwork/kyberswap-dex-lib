@@ -71,9 +71,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, nil, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, nil, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader("{}"),
 					RespHTTPStatus: http.StatusBadRequest,
 					RespBody:       errResponse,
@@ -100,9 +101,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:  http.MethodPost,
-					ReqURL:     "/api/v1/route/build",
-					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody: strings.NewReader(`{
 						"routeSummary": {
 							"tokenIn": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
@@ -166,9 +168,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, nil, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, nil, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader(`{"route":{}}`),
 					RespHTTPStatus: http.StatusBadRequest,
 					RespBody:       errResponse,
@@ -195,9 +198,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}}}`),
 					RespHTTPStatus: http.StatusInternalServerError,
 					RespBody:       errResponse,
@@ -226,9 +230,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:  http.MethodPost,
-					ReqURL:     "/api/v1/route/build",
-					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody: strings.NewReader(`{
 						"routeSummary": {
 							"tokenIn": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
@@ -339,9 +344,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":""}}}`),
 					RespHTTPStatus: http.StatusOK,
 					RespBody:       resp,
@@ -373,9 +379,10 @@ func TestBuildRoute(t *testing.T) {
 				}
 
 				return test.HTTPTestCase{
-					ReqMethod:  http.MethodPost,
-					ReqURL:     "/api/v1/route/build",
-					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody: strings.NewReader(`{
 						"routeSummary": {
 							"tokenIn": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
@@ -475,7 +482,8 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
 				mockBuildRouteUseCase.EXPECT().
 					Handle(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
+					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult,
+						error) {
 						argCommand = command
 						return &dto.BuildRouteResult{Data: "data", RouterAddress: "addr"}, nil
 					})
@@ -527,9 +535,10 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 						TransactionValue: "",
 					}}
 				check := test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader(tc.requestBody),
 					RespHTTPStatus: http.StatusOK,
 					RespBody:       resp,
@@ -1090,7 +1099,8 @@ func TestBuildRoute_transactionValue(t *testing.T) {
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
 				mockBuildRouteUseCase.EXPECT().
 					Handle(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
+					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult,
+						error) {
 						argCommand = command
 						return &dto.BuildRouteResult{Data: "data", RouterAddress: "addr"}, nil
 					})
@@ -1142,9 +1152,10 @@ func TestBuildRoute_transactionValue(t *testing.T) {
 						TransactionValue: "",
 					}}
 				check := test.HTTPTestCase{
-					ReqMethod:      http.MethodPost,
-					ReqURL:         "/api/v1/route/build",
-					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{}, timeutil.NowFunc),
+					ReqMethod: http.MethodPost,
+					ReqURL:    "/api/v1/route/build",
+					ReqHandler: BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, buildroute.Config{},
+						timeutil.NowFunc),
 					ReqBody:        strings.NewReader(tc.requestBody),
 					RespHTTPStatus: http.StatusOK,
 					RespBody:       resp,

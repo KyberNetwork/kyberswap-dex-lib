@@ -119,6 +119,7 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
+  sentinelPassword: ""
   prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
