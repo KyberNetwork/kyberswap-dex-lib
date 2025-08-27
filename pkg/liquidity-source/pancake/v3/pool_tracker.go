@@ -172,13 +172,15 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodGetLiquidity,
-	}, []any{&liquidity})
+		Params: nil,
+	}, []interface{}{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodGetSlot0,
-	}, []any{&slot0})
+		Params: nil,
+	}, []interface{}{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pancakeV3PoolABI,
