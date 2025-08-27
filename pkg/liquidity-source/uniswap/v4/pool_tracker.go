@@ -14,7 +14,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -25,7 +24,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -215,7 +213,6 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = rpcData.Reserves
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
-	p.IsInactive = t.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 	return p, nil
@@ -388,46 +385,4 @@ func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,
 	}, nil
-}
-
-func (t *PoolTracker) IsInactive(p *entity.Pool, currentTimestamp int64) bool {
-	if t.config.TrackInactivePools == nil || !t.config.TrackInactivePools.Enabled {
-		return false
-	}
-
-	var staticExtra StaticExtra
-	var hookAddress common.Address
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		logger.Errorf("failed to unmarshal static extra data")
-	} else {
-		hookAddress = staticExtra.HooksAddress
-	}
-
-	hookParam := &HookParam{Cfg: t.config, RpcClient: t.ethrpcClient, Pool: p}
-	hook, _ := GetHook(hookAddress, hookParam)
-
-	var inactiveTimeThresholdInSecond int64
-	switch hook.GetExchange() {
-	case valueobject.ExchangeUniswapV4Kem, valueobject.ExchangeUniswapV4FairFlow:
-		return false
-	case valueobject.ExchangeUniswapV4Zora:
-		inactiveTimeThresholdInSecond = int64(t.config.TrackInactivePools.ZoraHookTimeThreshold.Seconds())
-	default:
-		inactiveTimeThresholdInSecond = int64(t.config.TrackInactivePools.TimeThreshold.Seconds())
-	}
-
-	return currentTimestamp-p.Timestamp > inactiveTimeThresholdInSecond
-}
-
-func (d *PoolTracker) GetInactivePools(_ context.Context, currentTimestamp int64,
-	pools ...entity.Pool) ([]string, error) {
-	if len(pools) == 0 {
-		return nil, nil
-	}
-
-	inactivePools := lo.Filter(pools, func(p entity.Pool, _ int) bool {
-		return d.IsInactive(&p, currentTimestamp)
-	})
-
-	return lo.Map(inactivePools, func(p entity.Pool, _ int) string { return p.Address }), nil
 }

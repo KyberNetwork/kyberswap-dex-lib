@@ -23,8 +23,6 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
-
-	*pooltrack.InactivePoolTracker
 }
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypePancakeV3, NewPoolTracker)
@@ -35,10 +33,9 @@ func NewPoolTracker(
 	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
-		config:              cfg,
-		ethrpcClient:        ethrpcClient,
-		graphqlClient:       graphqlClient,
-		InactivePoolTracker: pooltrack.NewInactivePoolTracker(cfg.TrackInactivePools),
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}, nil
 }
 
@@ -143,7 +140,6 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve1.String(),
 	}
 	p.BlockNumber = blockNumber
-	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	l.Infof("Finish updating state of pool")
 
@@ -188,22 +184,23 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ABI:    pancakeV3PoolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
-	}, []any{&tickSpacing})
+		Params: nil,
+	}, []interface{}{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve0})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []any{common.HexToAddress(p.Address)},
-		}, []any{&reserve1})
+			Params: []interface{}{common.HexToAddress(p.Address)},
+		}, []interface{}{&reserve1})
 	}
 
 	_, err := rpcRequest.TryAggregate()

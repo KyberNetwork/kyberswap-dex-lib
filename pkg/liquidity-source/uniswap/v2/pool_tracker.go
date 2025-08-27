@@ -20,8 +20,6 @@ type (
 		ethrpcClient *ethrpc.Client
 		logDecoder   ILogDecoder
 		feeTracker   IFeeTracker
-
-		*pooltrack.InactivePoolTracker
 	}
 )
 
@@ -32,10 +30,9 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	tracker := &PoolTracker{
-		config:              config,
-		ethrpcClient:        ethrpcClient,
-		logDecoder:          NewLogDecoder(),
-		InactivePoolTracker: pooltrack.NewInactivePoolTracker(config.TrackInactivePools),
+		config:       config,
+		ethrpcClient: ethrpcClient,
+		logDecoder:   NewLogDecoder(),
 	}
 	if feeTrackerCfg := config.FeeTracker; feeTrackerCfg != nil {
 		tracker.feeTracker = NewGenericFeeTracker(ethrpcClient, feeTrackerCfg)
@@ -128,7 +125,6 @@ func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uin
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber.Uint64()
 	p.Timestamp = int64(reserveData.BlockTimestampLast)
-	p.IsInactive = d.IsInactive(&p, time.Now().Unix())
 
 	return p, nil
 }

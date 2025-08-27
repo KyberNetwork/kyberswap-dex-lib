@@ -1,9 +1,5 @@
 package uniswapv2
 
-import (
-	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-)
-
 type Config struct {
 	DexID          string         `json:"dexID"`
 	FactoryAddress string         `json:"factoryAddress"`
@@ -11,8 +7,6 @@ type Config struct {
 	FeePrecision   uint64         `json:"feePrecision"`
 	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`
 	NewPoolLimit   int            `json:"newPoolLimit"`
-
-	TrackInactivePools *pooltrack.TrackInactivePoolsConfig `json:"trackInactivePools"`
 }
 
 type FeeTrackerCfg struct {
