@@ -26,9 +26,6 @@ type PoolExtra struct {
 	// ezETH.totalSupply
 	TotalSupply *big.Int `json:"totalSupply"`
 
-	// RestakeManager.maxDepositTVL
-	MaxDepositTVL *big.Int `json:"maxDepositTvl"`
-
 	// renzoOracle.tokenOracleLookup
 	TokenOracleLookup map[string]Oracle `json:"tokenOracleLookup"`
 

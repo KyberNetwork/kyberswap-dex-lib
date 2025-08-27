@@ -37,9 +37,6 @@ type PoolSimulator struct {
 	// ezETH.totalSupply
 	totalSupply *big.Int
 
-	// RestakeManager.maxDepositTVL
-	maxDepositTVL *big.Int
-
 	// renzoOracle.tokenOracleLookup
 	tokenOracleLookup map[string]Oracle
 
@@ -72,7 +69,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		operatorDelegatorAllocations: extra.OperatorDelegatorAllocations,
 		tokenStrategyMapping:         extra.TokenStrategyMapping,
 		totalSupply:                  extra.TotalSupply,
-		maxDepositTVL:                lo.Ternary(extra.MaxDepositTVL != nil, extra.MaxDepositTVL, bignumber.ZeroBI),
 		tokenOracleLookup:            extra.TokenOracleLookup,
 		collateralTokenTvlLimits:     extra.CollateralTokenTvlLimits,
 	}, nil
@@ -146,10 +142,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (s *PoolSimulator) depositETH(amountIn *big.Int) (*big.Int, error) {
-	if s.maxDepositTVL.Sign() != 0 && new(big.Int).Add(s.totalTVL, amountIn).Cmp(s.maxDepositTVL) > 0 {
-		return nil, ErrMaxTVLReached
-	}
-
 	return s.calculateMintAmount(s.totalTVL, amountIn, s.totalSupply)
 }
 
@@ -164,12 +156,6 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 		return nil, err
 	}
 
-	var tmp big.Int
-
-	if s.maxDepositTVL.Sign() != 0 && tmp.Add(s.totalTVL, collateralTokenValue).Cmp(s.maxDepositTVL) > 0 {
-		return nil, ErrMaxTVLReached
-	}
-
 	if s.collateralTokenTvlLimits[collateralToken].Sign() != 0 {
 		odLength := len(s.operatorDelegatorTVLs)
 
@@ -178,7 +164,7 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 			currentTokenTVL.Add(&currentTokenTVL, s.operatorDelegatorTokenTVLs[i][tokenIndex])
 		}
 
-		if tmp.Add(&currentTokenTVL, collateralTokenValue).Cmp(s.collateralTokenTvlLimits[collateralToken]) > 0 {
+		if currentTokenTVL.Add(&currentTokenTVL, collateralTokenValue).Cmp(s.collateralTokenTvlLimits[collateralToken]) > 0 {
 			return nil, ErrMaxTokenTVLReached
 		}
 	}
@@ -204,23 +190,15 @@ func (s *PoolSimulator) calculateMintAmount(
 		return newValueAdded, nil
 	}
 
-	inflationPercentage := new(big.Int).Div(
-		new(big.Int).Mul(SCALE_FACTOR, newValueAdded),
-		new(big.Int).Add(currentValueInProtocol, newValueAdded),
-	)
-
-	newEzETHSupply := new(big.Int).Div(
-		new(big.Int).Mul(existingEzETHSupply, SCALE_FACTOR),
-		new(big.Int).Sub(SCALE_FACTOR, inflationPercentage),
-	)
-
-	mintAmount := newEzETHSupply.Sub(newEzETHSupply, existingEzETHSupply)
+	var mintAmount big.Int
+	mintAmount.Mul(existingEzETHSupply, newValueAdded)
+	mintAmount.Div(&mintAmount, currentValueInProtocol)
 
 	if mintAmount.Sign() == 0 {
 		return nil, ErrInvalidTokenAmount
 	}
 
-	return mintAmount, nil
+	return &mintAmount, nil
 }
 
 // lookupTokenValue: renzoOracle.lookupTokenValue
@@ -243,10 +221,11 @@ func (s *PoolSimulator) lookupTokenValue(
 		return nil, ErrInvalidOraclePrice
 	}
 
-	result := price.Mul(value, price)
-	result.Div(result, SCALE_FACTOR)
+	var result big.Int
+	result.Mul(value, price)
+	result.Div(&result, SCALE_FACTOR)
 
-	return result, nil
+	return &result, nil
 }
 
 func (s *PoolSimulator) checkAbleToDeposit(collateralToken string, amount *big.Int) error {
