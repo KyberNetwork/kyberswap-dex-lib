@@ -20,7 +20,7 @@ func TestNewPoolSimulator(t *testing.T) {
 	t.Run("it should init pool simulator correctly", func(t *testing.T) {
 		var pool *entity.Pool
 		jsonPool := `{"address":"0xf9c642d206e7974d7d01758568d3e30019c7f022","timestamp":1756356175,"reserves":["228695083172926728","155298192376701482337"],"extra":"{\"isPaused\":false,\"fee\":100}","staticExtra":"{\"stable\":false}"}`
-		err := json.Unmarshal([]byte(jsonPool), &pool)
+		json.Unmarshal([]byte(jsonPool), &pool)
 
 		poolSimulator, err := velodromev1.NewPoolSimulator(*pool)
 
