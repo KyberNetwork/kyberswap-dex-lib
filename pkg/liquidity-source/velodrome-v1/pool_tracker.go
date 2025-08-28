@@ -16,14 +16,12 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
 
-type (
-	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-		logDecoder   uniswapv2.ILogDecoder
-		feeTracker   IFeeTracker
-	}
-)
+type PoolTracker struct {
+	config       *Config
+	ethrpcClient *ethrpc.Client
+	logDecoder   uniswapv2.ILogDecoder
+	feeTracker   IFeeTracker
+}
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
 
@@ -72,8 +70,10 @@ func (d *PoolTracker) GetNewPoolState(
 
 	reserveData := d.getReserves(req, p.Address, params.Logs)
 
-	var fee uint64
-	req = d.feeTracker.AddGetFeeCall(req, d.config.FactoryAddress, p.Address, staticExtra.Stable, &fee)
+	fee := d.config.Fee
+	if d.feeTracker != nil {
+		req = d.feeTracker.AddGetFeeCall(req, d.config.FactoryAddress, p.Address, staticExtra.Stable, &fee)
+	}
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {

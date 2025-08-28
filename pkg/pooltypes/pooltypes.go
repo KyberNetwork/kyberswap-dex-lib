@@ -144,7 +144,6 @@ import (
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
@@ -364,7 +363,6 @@ var (
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
 		Pearl:                      pearl.DexTypePearl,
-		Ramses:                     ramses.DexTypeRamses,
 		RamsesV2:                   ramsesv2.DexTypeRamsesV2,
 		Dystopia:                   dystopia.DexTypeDystopia,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
