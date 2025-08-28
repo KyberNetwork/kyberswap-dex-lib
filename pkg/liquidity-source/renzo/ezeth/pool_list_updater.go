@@ -110,7 +110,6 @@ func getExtra(
 		}
 		collateralTokenLength *big.Int
 		totalSupply           *big.Int
-		maxDepositTVL         *big.Int
 		paused                bool
 		strategyManagerPaused *big.Int
 		renzoOracle           common.Address
@@ -144,12 +143,6 @@ func getExtra(
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
-		Method: RestakeManagerMethodMaxDepositTVL,
-		Params: []interface{}{},
-	}, []interface{}{&maxDepositTVL})
-	getPoolStateRequest.AddCall(&ethrpc.Call{
-		ABI:    RestakeManagerABI,
-		Target: RestakeManager,
 		Method: RestakeManagerMethodPaused,
 		Params: []interface{}{},
 	}, []interface{}{&paused})
@@ -172,7 +165,7 @@ func getExtra(
 		Params: []interface{}{},
 	}, []interface{}{&strategyManagerPaused})
 
-	resp, err := getPoolStateRequest.TryAggregate()
+	resp, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -199,7 +192,7 @@ func getExtra(
 			Params: []interface{}{big.NewInt(int64(i))},
 		}, []interface{}{&collaterals[i]})
 	}
-	resp, err = getCollateralsRequest.TryAggregate()
+	resp, err = getCollateralsRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -239,7 +232,7 @@ func getExtra(
 			Params: []interface{}{collaterals[i]},
 		}, []interface{}{&collateralTokenTvlLimits[i]})
 	}
-	resp, err = operatorDelegatorsRequest.TryAggregate()
+	resp, err = operatorDelegatorsRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -286,7 +279,7 @@ func getExtra(
 		}, []interface{}{&oracleInfo[i]})
 	}
 
-	resp, err = operatorDelegatorInfoRequest.TryAggregate()
+	resp, err = operatorDelegatorInfoRequest.TryBlockAndAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
@@ -324,7 +317,6 @@ func getExtra(
 		OperatorDelegatorAllocations: operatorDelegatorAllocations,
 		TokenStrategyMapping:         tokenStrategyMapping,
 		TotalSupply:                  totalSupply,
-		MaxDepositTVL:                maxDepositTVL,
 		TokenOracleLookup:            tokenOracleLookup,
 		CollateralTokenTvlLimits:     collateralTokenTvlLimitsMap,
 		collaterals: lo.Map(collaterals,

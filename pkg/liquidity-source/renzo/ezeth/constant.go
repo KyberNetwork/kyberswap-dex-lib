@@ -26,7 +26,6 @@ const (
 	RestakeManagerMethodCollateralTokenTvlLimits  = "collateralTokenTvlLimits"
 	RestakeManagerMethodCollateralTokens          = "collateralTokens"
 	RestakeManagerMethodGetCollateralTokensLength = "getCollateralTokensLength"
-	RestakeManagerMethodMaxDepositTVL             = "maxDepositTVL"
 	RestakeManagerMethodPaused                    = "paused"
 	RestakeManagerMethodRenzoOracle               = "renzoOracle"
 

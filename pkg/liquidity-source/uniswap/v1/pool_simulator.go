@@ -108,7 +108,7 @@ func (s *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
-	cloned.Info.Reserves = slices.Clone(s.Info.Reserves)
+	cloned.reserves = slices.Clone(s.reserves)
 	return &cloned
 }
 
