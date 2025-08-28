@@ -1,11 +1,9 @@
 package velodromev1
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -16,39 +14,20 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrPoolIsPaused             = errors.New("pool is paused")
-	ErrInvalidAmountIn          = errors.New("invalid amountIn")
-	ErrInvalidAmountOut         = errors.New("invalid amountOut")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
-	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-	ErrK                        = errors.New("K")
-	ErrUnimplemented            = errors.New("unimplemented")
-)
+type PoolSimulator struct {
+	pool.Pool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+	stable       bool
+	decimals0    *uint256.Int
+	decimals1    *uint256.Int
+	feePrecision *uint256.Int
 
-		Stable       bool
-		Decimals0    *uint256.Int
-		Decimals1    *uint256.Int
-		FeePrecision *uint256.Int
-
-		IsPaused bool
-		Fee      *uint256.Int
-
-		Gas Gas
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+	isPaused bool
+	fee      *uint256.Int
+}
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory0(DexTypeRamses, NewPoolSimulator) // for old unmigrated pools
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra PoolStaticExtra
@@ -73,20 +52,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
-		Stable:       staticExtra.Stable,
-		Decimals0:    staticExtra.Decimal0,
-		Decimals1:    staticExtra.Decimal1,
-		FeePrecision: uint256.NewInt(staticExtra.FeePrecision),
+		stable:       staticExtra.Stable,
+		decimals0:    staticExtra.Decimal0,
+		decimals1:    staticExtra.Decimal1,
+		feePrecision: uint256.NewInt(staticExtra.FeePrecision),
 
-		IsPaused: extra.IsPaused,
-		Fee:      uint256.NewInt(extra.Fee),
-
-		Gas: defaultGas,
+		isPaused: extra.IsPaused,
+		fee:      uint256.NewInt(extra.Fee),
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if p.IsPaused {
+	if p.isPaused {
 		return nil, ErrPoolIsPaused
 	}
 
@@ -95,27 +72,24 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidAmountIn
 	}
 
-	var FeeAmount uint256.Int
-	FeeAmount.Div(FeeAmount.Mul(amountIn, p.Fee), p.FeePrecision)
-	amountInAfterFee := new(uint256.Int).Sub(amountIn, &FeeAmount)
+	var feeAmount uint256.Int
+	feeAmount.Div(feeAmount.Mul(amountIn, p.fee), p.feePrecision)
+	amountInAfterFee := amountIn.Sub(amountIn, &feeAmount)
 
-	amountOut, err := p.getAmountOut(
-		amountInAfterFee,
-		params.TokenAmountIn.Token,
-	)
+	amountOut, err := p.getAmountOut(amountInAfterFee, params.TokenAmountIn.Token)
 	if err != nil {
 		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
-		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: FeeAmount.ToBig()},
-		Gas:            p.Gas.Swap,
+		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()},
+		Gas:            defaultGas,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	if p.IsPaused {
+	if p.isPaused {
 		return nil, ErrPoolIsPaused
 	}
 
@@ -134,9 +108,9 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
-		// NOTE: we don't use Fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()},
-		Gas: p.Gas.Swap,
+		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
+		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
+		Gas: defaultGas,
 	}, nil
 }
 
@@ -153,8 +127,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		Fee:          p.Fee.Uint64(),
-		FeePrecision: p.FeePrecision.Uint64(),
+		Fee:          p.fee.Uint64(),
+		FeePrecision: p.feePrecision.Uint64(),
 		BlockNumber:  p.Info.BlockNumber,
 	}
 }
@@ -220,12 +194,12 @@ func (p *PoolSimulator) _getAmountOut(
 	_reserve0 *uint256.Int,
 	_reserve1 *uint256.Int,
 ) (*uint256.Int, error) {
-	if p.Stable {
+	if p.stable {
 		xy := p._k(_reserve0, _reserve1)
 		var _reserveA, _reserveB uint256.Int
-		_reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.Decimals0)
-		_reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.Decimals1)
-		decimalsA, decimalsB := p.Decimals0, p.Decimals1
+		_reserveA.Div(_reserveA.Mul(_reserve0, number.Number_1e18), p.decimals0)
+		_reserveB.Div(_reserveB.Mul(_reserve1, number.Number_1e18), p.decimals1)
+		decimalsA, decimalsB := p.decimals0, p.decimals1
 
 		if tokenIn != p.Info.Tokens[0] {
 			_reserveA, _reserveB = _reserveB, _reserveA
@@ -303,7 +277,7 @@ func (p *PoolSimulator) _getAmountIn(
 	_reserve0 *uint256.Int,
 	_reserve1 *uint256.Int,
 ) (amountIn *uint256.Int, err error) {
-	if p.Stable {
+	if p.stable {
 		return nil, ErrUnimplemented
 	}
 
@@ -328,21 +302,21 @@ func (p *PoolSimulator) _getAmountIn(
 
 	numerator := SafeMul(
 		SafeMul(reserveIn, amountOut),
-		p.FeePrecision,
+		p.feePrecision,
 	)
 	denominator := SafeMul(
 		SafeSub(reserveOut, amountOut),
-		SafeSub(p.FeePrecision, p.Fee),
+		SafeSub(p.feePrecision, p.fee),
 	)
 
 	return SafeAdd(numerator.Div(numerator, denominator), number.Number_1), nil
 }
 
 func (p *PoolSimulator) _k(x *uint256.Int, y *uint256.Int) *uint256.Int {
-	if p.Stable {
+	if p.stable {
 		var _x, _y, _a uint256.Int
-		_x.Div(_x.Mul(x, number.Number_1e18), p.Decimals0)
-		_y.Div(_y.Mul(y, number.Number_1e18), p.Decimals1)
+		_x.Div(_x.Mul(x, number.Number_1e18), p.decimals0)
+		_y.Div(_y.Mul(y, number.Number_1e18), p.decimals1)
 		_a.Div(_a.Mul(&_x, &_y), number.Number_1e18)
 		_b := _x.Add(
 			_x.Div(
