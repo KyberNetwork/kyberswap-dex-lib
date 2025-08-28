@@ -21,7 +21,8 @@ type ramsesMetadata struct {
 }
 
 type StaticExtra struct {
-	Stable bool `json:"stable"`
+	Stable       bool  `json:"stable"`
+	FeePrecision int64 `json:"feePrecision,omitempty"`
 }
 
 type Reserves struct {

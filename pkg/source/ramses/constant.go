@@ -5,6 +5,7 @@ const (
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"
+	poolFactoryMethodIsPaused      = "isPaused"
 
 	poolMethodMetadata    = "metadata"
 	poolMethodGetReserves = "getReserves"
@@ -12,6 +13,6 @@ const (
 	poolMethodVolatileFee = "volatileFee"
 	poolMethodPairFee     = "pairFee"
 
-	reserveZero         = "0"
-	bps         float64 = 10000
+	reserveZero       = "0"
+	bps         int64 = 10000
 )

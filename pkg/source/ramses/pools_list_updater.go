@@ -12,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
@@ -162,7 +163,8 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 		}
 
 		staticExtra := StaticExtra{
-			Stable: poolMetadata[i].St,
+			Stable:       poolMetadata[i].St,
+			FeePrecision: bps,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
@@ -172,6 +174,28 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 			return nil, err
 		}
 
+		var isPaused bool
+		calls.AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: poolFactoryMethodIsPaused,
+		}, []any{&isPaused})
+
+		var pairFee *big.Int
+		calls.AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: poolMethodPairFee,
+			Params: []interface{}{common.HexToAddress(poolAddress)},
+		}, []interface{}{&pairFee})
+
+		poolExtra := velodrome.PoolExtra{
+			IsPaused: isPaused,
+			Fee:      uint64(pairFee.Int64()),
+		}
+
+		poolExtraBytes, _ := json.Marshal(poolExtra)
+
 		newPool := entity.Pool{
 			Address:     poolAddress,
 			Exchange:    d.config.DexID,
@@ -180,6 +204,7 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 			Reserves:    []string{reserveZero, reserveZero},
 			Tokens:      []*entity.PoolToken{&token0, &token1},
 			StaticExtra: string(staticExtraBytes),
+			Extra:       string(poolExtraBytes),
 		}
 
 		pools = append(pools, newPool)

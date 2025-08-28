@@ -1,8 +1,16 @@
 [
   {
-    "inputs": [],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "version",
+        "type": "uint8"
+      }
+    ],
+    "name": "Initialized",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -42,7 +50,115 @@
     "type": "event"
   },
   {
-    "inputs": [],
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "stable",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetFee",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toFeesOld",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toTreasuryOld",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toFeesNew",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toTreasuryNew",
+        "type": "uint8"
+      }
+    ],
+    "name": "SetFeeSplit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "pair",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "SetPairFee",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toFeesOld",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toTreasuryOld",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toFeesNew",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "toTreasuryNew",
+        "type": "uint8"
+      }
+    ],
+    "name": "SetPoolFeeSplit",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      
+    ],
     "name": "MAX_FEE",
     "outputs": [
       {
@@ -55,16 +171,24 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "acceptFeeManager",
-    "outputs": [],
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "acceptPauser",
-    "outputs": [],
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -88,7 +212,9 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "allPairsLength",
     "outputs": [
       {
@@ -130,13 +256,30 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "feeManager",
     "outputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
+    "name": "feeSplit",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -156,29 +299,6 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getInitializable",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -217,6 +337,66 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "getPoolFeeSplit",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "_poolFeeSplit",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_proxyAdmin",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_pairImplementation",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "msig",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
+    "name": "initializeTreasury",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "",
         "type": "address"
       }
@@ -233,7 +413,9 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "isPaused",
     "outputs": [
       {
@@ -246,7 +428,9 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "pairCodeHash",
     "outputs": [
       {
@@ -255,11 +439,47 @@
         "type": "bytes32"
       }
     ],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "pairFee",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fee",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
+    "name": "pairImplementation",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
     "name": "pauser",
     "outputs": [
       {
@@ -272,7 +492,9 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "pendingFeeManager",
     "outputs": [
       {
@@ -285,8 +507,25 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
     "name": "pendingPauser",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
+    "name": "proxyAdmin",
     "outputs": [
       {
         "internalType": "address",
@@ -311,7 +550,9 @@
       }
     ],
     "name": "setFee",
-    "outputs": [],
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -324,7 +565,64 @@
       }
     ],
     "name": "setFeeManager",
-    "outputs": [],
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "_toFees",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_toTreasury",
+        "type": "uint8"
+      }
+    ],
+    "name": "setFeeSplit",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_implementation",
+        "type": "address"
+      }
+    ],
+    "name": "setImplementation",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_fee",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPairFee",
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -337,7 +635,9 @@
       }
     ],
     "name": "setPause",
-    "outputs": [],
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -350,12 +650,56 @@
       }
     ],
     "name": "setPauser",
-    "outputs": [],
+    "outputs": [
+      
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_toFees",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "_toTreasury",
+        "type": "uint8"
+      }
+    ],
+    "name": "setPoolFeeSplit",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_treasury",
+        "type": "address"
+      }
+    ],
+    "name": "setTreasury",
+    "outputs": [
+      
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
     "name": "stableFee",
     "outputs": [
       {
@@ -368,7 +712,24 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      
+    ],
+    "name": "treasury",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
     "name": "volatileFee",
     "outputs": [
       {
@@ -382,18 +743,14 @@
   },
   {
     "inputs": [
+      
+    ],
+    "name": "voter",
+    "outputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
-      }
-    ],
-    "name": "pairFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",

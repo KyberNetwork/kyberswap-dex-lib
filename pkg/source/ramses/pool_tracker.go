@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 )
@@ -69,8 +70,15 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolMethodPairFee,
-		Params: []interface{}{common.HexToAddress(p.Address)},
+		Params: []interface{}{common.HexToHash(p.Address)},
 	}, []interface{}{&pairFee})
+
+	var isPaused bool
+	calls.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: d.config.FactoryAddress,
+		Method: poolFactoryMethodIsPaused,
+	}, []any{&isPaused})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -90,6 +98,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 		return entity.Pool{}, err
 	}
+	if staticExtra.FeePrecision == 0 {
+		staticExtra.FeePrecision = bps
+	}
 
 	var swapFee = pairFee.Int64()
 	if pairFee.Int64() == 0 {
@@ -100,8 +111,19 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
-	p.SwapFee = float64(swapFee) / bps
+	p.SwapFee = float64(swapFee / bps)
 	p.Timestamp = time.Now().Unix()
+
+	poolExtra := velodrome.PoolExtra{
+		IsPaused: isPaused,
+		Fee:      uint64(swapFee),
+	}
+
+	poolExtraBytes, err := json.Marshal(poolExtra)
+	if err != nil {
+		return p, err
+	}
+	p.Extra = string(poolExtraBytes)
 
 	return p, nil
 }
