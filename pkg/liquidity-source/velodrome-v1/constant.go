@@ -5,8 +5,7 @@ import (
 )
 
 const (
-	DexType       = "velodrome"
-	DexTypeRamses = "ramses"
+	DexType = "velodrome"
 
 	pairFactoryMethodIsPaused       = "isPaused"
 	pairFactoryMethodAllPairs       = "allPairs"

@@ -115,7 +115,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dystopia"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
@@ -139,7 +138,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
@@ -187,10 +185,7 @@ type Types struct {
 	Velodrome                  string
 	VelodromeV2                string
 	Velocimeter                string
-	Pearl                      string
-	Ramses                     string
 	RamsesV2                   string
-	Dystopia                   string
 	PlatypusBase               string
 	PlatypusPure               string
 	PlatypusAvax               string
@@ -362,9 +357,7 @@ var (
 		Velodrome:                  velodrome.DexType,
 		VelodromeV2:                velodromev2.DexType,
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
-		Pearl:                      pearl.DexTypePearl,
 		RamsesV2:                   ramsesv2.DexTypeRamsesV2,
-		Dystopia:                   dystopia.DexTypeDystopia,
 		PlatypusBase:               platypus.PoolTypePlatypusBase,
 		PlatypusPure:               platypus.PoolTypePlatypusPure,
 		PlatypusAvax:               platypus.PoolTypePlatypusAvax,

@@ -27,7 +27,6 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
-var _ = pool.RegisterFactory0(DexTypeRamses, NewPoolSimulator) // for old unmigrated pools
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra PoolStaticExtra
