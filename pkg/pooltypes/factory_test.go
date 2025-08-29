@@ -40,11 +40,11 @@ func TestCanCalcAmountIn(t *testing.T) {
 	dexes := []string{"algebra-integral", "algebra-v1", "balancer-v2-composable-stable", "balancer-v2-stable",
 		"balancer-v2-weighted", "balancer-v3-eclp", "balancer-v3-stable", "balancer-v3-weighted", "bancor-v3",
 		"curve-compound", "curve-lending", "curve-llamma", "curve-stable-meta-ng", "curve-stable-ng",
-		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "dystopia",
-		"ekubo", "euler-swap", "fluid-dex-t1", "hashflow-v3", "iziswap", "limit-order", "liquiditybook-v21",
-		"maverick-v1", "muteswitch", "pancake-v3", "pearl", "ramses", "ringswap", "sky-psm", "slipstream", "solidly-v2",
-		"solidly-v3", "swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable",
-		"uniswap-v1", "uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
+		"curve-stable-plain", "curve-tricrypto-ng", "curve-twocrypto-ng", "deltaswap-v1", "dodo-classical", "ekubo",
+		"euler-swap", "fluid-dex-t1", "hashflow-v3", "iziswap", "limit-order", "liquiditybook-v21", "maverick-v1",
+		"muteswitch", "pancake-v3", "ringswap", "sky-psm", "slipstream", "solidly-v2", "solidly-v3",
+		"swap-x-v2", "syncswap-classic", "syncswap-stable", "syncswapv2-classic", "syncswapv2-stable", "uniswap-v1",
+		"uniswap-v2", "uniswap-v4", "uniswapv3", "velodrome", "velodrome-v2", "virtual-fun"}
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.CanCalcAmountIn, tt)
@@ -55,12 +55,12 @@ func TestCanCalcAmountIn(t *testing.T) {
 func TestPoolListerFactory(t *testing.T) {
 	t.Parallel()
 	poolListers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
-		"muteswitch", "ramses", "ramses-v2", "solidly-v2", "solidly-v3", "platypus", "biswap", "maker-psm", "curve",
+		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "platypus", "biswap", "maker-psm", "curve",
 		"curve-stable-plain", "curve-stable-ng", "curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng",
-		"oneswap", "saddle", "dodo-classical", "dodo-dpp", "dodo-dsp", "dodo-dvm", "nerve", "synthetix", "dystopia",
+		"oneswap", "saddle", "dodo-classical", "dodo-dpp", "dodo-dsp", "dodo-dvm", "nerve", "synthetix",
 		"metavault", "camelot", "lido", "lido-steth", "gmx", "fraxswap", "madmex", "polydex", "iron-stable",
 		"limit-order", "syncswap", "syncswapv2-classic", "syncswapv2-stable", "syncswapv2-aqua", "pancake-v3",
-		"maverick-v1", "pearl", "iziswap", "wombat", "kokonut-crypto", "woofi-v2", "woofi-v21", "equalizer",
+		"maverick-v1", "iziswap", "wombat", "kokonut-crypto", "woofi-v2", "woofi-v21", "equalizer",
 		"mantisswap", "gmx-glp", "swapbased-perp", "usdfi", "vooi", "pol-matic", "liquiditybook-v21",
 		"liquiditybook-v20", "smardex", "integral", "fxdx", "uniswap-v1", "uniswap-v2", "quickperps", "balancer-v1",
 		"balancer-v2-weighted", "balancer-v2-stable", "balancer-v2-composable-stable", "balancer-v3-stable",
@@ -85,12 +85,12 @@ func TestPoolListerFactory(t *testing.T) {
 func TestPoolTrackerFactory(t *testing.T) {
 	t.Parallel()
 	poolTrackers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
-		"muteswitch", "ramses", "ramses-v2", "solidly-v2", "solidly-v3", "dodo-classical", "dodo-dpp", "dodo-dsp",
+		"muteswitch", "ramses-v2", "solidly-v2", "solidly-v3", "dodo-classical", "dodo-dpp", "dodo-dsp",
 		"dodo-dvm", "biswap", "platypus", "maker-psm", "curve", "curve-stable-plain", "curve-stable-ng",
-		"curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng", "oneswap", "saddle", "nerve", "dystopia",
+		"curve-stable-meta-ng", "curve-tricrypto-ng", "curve-twocrypto-ng", "oneswap", "saddle", "nerve",
 		"synthetix", "metavault", "camelot", "lido", "lido-steth", "gmx", "fraxswap", "madmex", "polydex",
 		"iron-stable", "limit-order", "syncswap", "syncswapv2-classic", "syncswapv2-stable", "syncswapv2-aqua",
-		"pancake-v3", "maverick-v1", "pearl", "iziswap", "kokonut-crypto", "wombat", "woofi-v2", "woofi-v21",
+		"pancake-v3", "maverick-v1", "iziswap", "kokonut-crypto", "wombat", "woofi-v2", "woofi-v21",
 		"equalizer", "mantisswap", "gmx-glp", "swapbased-perp", "usdfi", "vooi", "pol-matic", "liquiditybook-v21",
 		"liquiditybook-v20", "smardex", "integral", "fxdx", "uniswap-v1", "uniswap-v2", "quickperps", "balancer-v1",
 		"fulcrom", "balancer-v2-weighted", "balancer-v2-stable", "balancer-v2-composable-stable", "balancer-v3-stable",

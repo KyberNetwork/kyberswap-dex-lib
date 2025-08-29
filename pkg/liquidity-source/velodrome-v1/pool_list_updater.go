@@ -193,13 +193,19 @@ func (u *PoolsListUpdater) initPools(
 		return nil, err
 	}
 
-	req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
-	for i, pairAddress := range pairAddresses {
-		u.feeTracker.AddGetFeeCall(req, u.config.FactoryAddress, pairAddress.Hex(), metadataList[i].St,
-			&metadataList[i].Fee)
-	}
-	if _, err = req.Aggregate(); err != nil {
-		return nil, err
+	if u.feeTracker != nil {
+		req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+		for i, pairAddress := range pairAddresses {
+			u.feeTracker.AddGetFeeCall(req, u.config.FactoryAddress, pairAddress.Hex(), metadataList[i].St,
+				&metadataList[i].Fee)
+		}
+		if _, err = req.Aggregate(); err != nil {
+			return nil, err
+		}
+	} else {
+		for i := range metadataList {
+			metadataList[i].Fee = u.config.Fee
+		}
 	}
 
 	pools := make([]entity.Pool, 0, len(pairAddresses))
@@ -259,7 +265,6 @@ func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []com
 			ABI:    pairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodMetadata,
-			Params: nil,
 		}, []any{&metadataList[i]})
 	}
 

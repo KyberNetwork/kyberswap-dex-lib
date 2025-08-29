@@ -1,9 +1,7 @@
 package velodromev1
 
 import (
-	"context"
 	"encoding/binary"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -13,8 +11,6 @@ import (
 
 type (
 	IFeeTracker interface {
-		GetFee(ctx context.Context, factoryAddress, poolAddress string, isStable bool,
-			blockNumber *big.Int) (uint64, error)
 		AddGetFeeCall(request *ethrpc.Request, factoryAddress, poolAddress string, isStable bool,
 			feeOutput *uint64) *ethrpc.Request
 	}
@@ -66,19 +62,6 @@ func getGenericInput(input, poolAddress, factoryAddress string, isStable bool) s
 	default:
 		return input
 	}
-}
-
-func (t *GenericFeeTracker) GetFee(ctx context.Context, factoryAddress, poolAddress string, isStable bool,
-	blockNumber *big.Int) (fee uint64, err error) {
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).AddCall(&ethrpc.Call{
-		ABI:    t.abi,
-		Target: getGenericInput(t.target, poolAddress, factoryAddress, isStable),
-		Method: genericMethodFee,
-		Params: lo.Map(t.args, func(arg string, _ int) any {
-			return common.HexToHash(getGenericInput(arg, poolAddress, factoryAddress, isStable))
-		}),
-	}, []any{&fee}).Call()
-	return fee, err
 }
 
 func (t *GenericFeeTracker) AddGetFeeCall(request *ethrpc.Request,

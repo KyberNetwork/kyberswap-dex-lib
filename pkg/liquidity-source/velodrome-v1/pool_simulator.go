@@ -1,11 +1,9 @@
 package velodromev1
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -16,37 +14,17 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-var (
-	ErrPoolIsPaused             = errors.New("pool is paused")
-	ErrInvalidAmountIn          = errors.New("invalid amountIn")
-	ErrInvalidAmountOut         = errors.New("invalid amountOut")
-	ErrInvalidReserve           = errors.New("invalid reserve")
-	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
-	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
-	ErrK                        = errors.New("K")
-	ErrUnimplemented            = errors.New("unimplemented")
-)
+type PoolSimulator struct {
+	pool.Pool
 
-type (
-	PoolSimulator struct {
-		pool.Pool
+	stable       bool
+	decimals0    *uint256.Int
+	decimals1    *uint256.Int
+	feePrecision *uint256.Int
 
-		stable       bool
-		decimals0    *uint256.Int
-		decimals1    *uint256.Int
-		feePrecision *uint256.Int
-
-		isPaused bool
-		fee      *uint256.Int
-
-		gas Gas
-	}
-
-	Gas struct {
-		Swap int64
-	}
-)
+	isPaused bool
+	fee      *uint256.Int
+}
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
@@ -80,8 +58,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		isPaused: extra.IsPaused,
 		fee:      uint256.NewInt(extra.Fee),
-
-		gas: defaultGas,
 	}, nil
 }
 
@@ -97,12 +73,9 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var feeAmount uint256.Int
 	feeAmount.Div(feeAmount.Mul(amountIn, p.fee), p.feePrecision)
-	amountInAfterFee := new(uint256.Int).Sub(amountIn, &feeAmount)
+	amountInAfterFee := amountIn.Sub(amountIn, &feeAmount)
 
-	amountOut, err := p.getAmountOut(
-		amountInAfterFee,
-		params.TokenAmountIn.Token,
-	)
+	amountOut, err := p.getAmountOut(amountInAfterFee, params.TokenAmountIn.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +83,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: params.TokenAmountIn.Token, Amount: feeAmount.ToBig()},
-		Gas:            p.gas.Swap,
+		Gas:            defaultGas,
 	}, nil
 }
 
@@ -135,8 +108,8 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{Token: params.TokenIn, Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: integer.Zero()},
-		Gas: p.gas.Swap,
+		Fee: &pool.TokenAmount{Token: params.TokenAmountOut.Token, Amount: bignumber.ZeroBI},
+		Gas: defaultGas,
 	}, nil
 }
 
