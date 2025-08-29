@@ -289,6 +289,7 @@ const (
 	ExchangePlatypus                   = "platypus"
 	ExchangePmm1                       = "pmm-1"
 	ExchangePmm2                       = "pmm-2"
+	ExchangePmm3                       = "pmm-3"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolyDex                    = "polydex"
 	ExchangePolycat                    = "polycat"
@@ -898,6 +899,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeNativeV2:   {},
 	ExchangePmm1:       {},
 	ExchangePmm2:       {},
+	ExchangePmm3:       {},
 	ExchangeUniswapLO:  {},
 	ExchangeSwaapV2:    {},
 }
