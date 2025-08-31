@@ -2,11 +2,12 @@ package brownfiv2
 
 import (
 	"math/big"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -14,18 +15,29 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	decimals [2]uint8
-	reserves [2]*uint256.Int
-	limits   [2]*uint256.Int
-	oPrices  [2]*uint256.Int
-	fee      *uint256.Int
-	lambda   *uint256.Int
-	kappa    *uint256.Int
+	approvalInfo    pool.ApprovalInfo
+	decimals        [2]uint8
+	reserves        [2]*uint256.Int
+	limits          [2]*uint256.Int
+	oPrices         [2]*uint256.Int
+	fee             *uint256.Int
+	lambda          *uint256.Int
+	kappa           *uint256.Int
+	priceUpdateData []byte
 }
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
+	entityPool := params.EntityPool
+	if time.Since(time.Unix(entityPool.Timestamp, 0)) > time.Minute {
+		return nil, ErrInvalidPrices
+	}
+	router, ok := Router[params.ChainID]
+	if !ok {
+		return nil, pool.ErrUnsupported
+	}
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -65,13 +77,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		decimals: decimals,
-		reserves: uReserves,
-		limits:   limits,
-		fee:      uint256.NewInt(extra.Fee),
-		lambda:   uint256.NewInt(extra.Lambda),
-		kappa:    extra.Kappa,
-		oPrices:  extra.OPrices,
+		approvalInfo:    pool.ApprovalInfo{ApprovalAddress: hexutil.Encode(router[:])},
+		decimals:        decimals,
+		reserves:        uReserves,
+		limits:          limits,
+		fee:             uint256.NewInt(extra.Fee),
+		lambda:          uint256.NewInt(extra.Lambda),
+		kappa:           extra.Kappa,
+		oPrices:         extra.OPrices,
+		priceUpdateData: extra.PriceUpdateData,
 	}, nil
 }
 
@@ -106,6 +120,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
+		SwapInfo:       Extra{PriceUpdateData: s.priceUpdateData},
 	}, nil
 }
 
@@ -162,6 +177,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		Fee: s.fee.Uint64(),
+		ApprovalInfo: s.approvalInfo,
+		Fee:          s.fee.Uint64(),
 	}
 }

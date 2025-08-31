@@ -1,7 +1,12 @@
 package brownfiv2
 
+import (
+	"github.com/KyberNetwork/kutils"
+)
+
 type Config struct {
-	DexID          string `json:"dexID"`
-	FactoryAddress string `json:"factoryAddress"`
-	NewPoolLimit   int    `json:"newPoolLimit"`
+	DexID          string         `json:"dexID"`
+	FactoryAddress string         `json:"factoryAddress"`
+	NewPoolLimit   int            `json:"newPoolLimit"`
+	Pyth           kutils.HttpCfg `json:"pyth"`
 }
