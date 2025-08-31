@@ -1,6 +1,8 @@
 package brownfi
 
-import "math/big"
+import (
+	"math/big"
+)
 
 type GetReservesResult struct {
 	Reserve0           *big.Int

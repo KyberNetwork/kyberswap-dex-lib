@@ -118,7 +118,6 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 		ABI:    brownFiV2FactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
-		Params: nil,
 	}, []any{&allPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {

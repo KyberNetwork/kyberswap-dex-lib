@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	// TwoPow128 2^128
+	TwoPow64  = new(uint256.Int).Lsh(U1, 64)
 	TwoPow128 = new(uint256.Int).Lsh(U1, 128)
 	UMax      = new(uint256.Int).SetAllOne()
 
