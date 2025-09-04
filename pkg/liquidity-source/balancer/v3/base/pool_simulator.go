@@ -1,6 +1,7 @@
 package base
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
@@ -75,12 +76,71 @@ func NewPoolSimulator(entityPool entity.Pool, extra *shared.Extra, staticExtra *
 	}, nil
 }
 
+// ResolveToken resolves a token address to its index and whether it's an underlying token
+// Returns: (index, isUnderlyingToken, error)
+func (p *PoolSimulator) ResolveToken(token string) (int, bool, error) {
+	// Try main tokens first
+	if index := p.GetTokenIndex(token); index >= 0 {
+		// Only return true if there's a valid buffer at this index
+		// In this case the pool token is an underlying token with a buffer
+		if index < len(p.buffers) && p.buffers[index] != nil {
+			return index, true, nil
+		}
+		// If no valid buffer, return index with false (not underlying token)
+		// In this case the pool token is either a wrapped token that can't be unwrapped or a vanilla ERC20
+		return index, false, nil
+	}
+
+	// Try buffer tokens (these are the wrapped tokens if they exist)
+	for i, bufferToken := range p.bufferTokens {
+		if bufferToken == token {
+			return i, false, nil
+		}
+	}
+
+	return -1, false, shared.ErrInvalidToken
+}
+
+// isBufferSwap checks if this is a same-index underlying/wrapped token conversion
+func (p *PoolSimulator) isBufferSwap(indexIn, indexOut int, isTokenInUnderlying, isTokenOutUnderlying bool) bool {
+	return indexIn == indexOut && isTokenInUnderlying != isTokenOutUnderlying
+}
+
+// handleBufferConversion handles the conversion between underlying and wrapped tokens of the same index
+func (p *PoolSimulator) handleBufferConversion(index int, amount *uint256.Int, isUnderlyingToken bool) (*uint256.Int, error) {
+	if index >= len(p.buffers) || p.buffers[index] == nil {
+		return nil, fmt.Errorf("buffer not found for token at index %d", index)
+	}
+
+	var convertedAmount *uint256.Int
+	var err error
+
+	if isUnderlyingToken {
+		// Converting from underlying to wrapped: underlying -> shares -> wrapped
+		convertedAmount, err = p.buffers[index].ConvertToShares(amount)
+	} else {
+		// Converting from wrapped to underlying: wrapped -> assets -> underlying
+		convertedAmount, err = p.buffers[index].ConvertToAssets(amount)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return convertedAmount, nil
+}
+
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
-	indexIn, indexOut := p.GetTokenIndex(tokenAmountIn.Token), p.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrInvalidToken
+	indexIn, isTokenInUnderlying, err1 := p.ResolveToken(tokenAmountIn.Token)
+	if err1 != nil {
+		return nil, err1
+	}
+
+	indexOut, isTokenOutUnderlying, err2 := p.ResolveToken(tokenOut)
+	if err2 != nil {
+		return nil, err2
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
@@ -88,10 +148,39 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, shared.ErrInvalidAmountIn
 	}
 
+	// Check if this is a same-index underlying/wrapped token conversion
+	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
+		gas := p.BaseGas()
+
+		amountOut, err := p.handleBufferConversion(indexIn, amountIn, isTokenInUnderlying)
+		if err != nil {
+			return nil, err
+		}
+		gas += bufferGas
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: amountOut.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: big.NewInt(0), // No swap fee for direct conversions
+			},
+			SwapInfo: shared.SwapInfo{
+				AggregateFee: big.NewInt(0), // No aggregate fee for direct conversions
+			},
+			Gas: gas,
+		}, nil
+	}
+
 	gas := p.BaseGas()
 	var err error
-	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
-		amountIn, err = bufferIn.ConvertToShares(amountIn)
+	if isTokenInUnderlying {
+		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenAmountIn.Token, indexIn)
+		}
+		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn)
 		if err != nil {
 			return nil, err
 		}
@@ -108,8 +197,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
-		amountOut, err = bufferOut.ConvertToAssets(amountOut)
+	if isTokenOutUnderlying {
+		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
+		}
+		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut)
 		if err != nil {
 			return nil, err
 		}
@@ -135,9 +227,14 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
 
-	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenAmountOut.Token)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, shared.ErrInvalidToken
+	indexIn, isTokenInUnderlying, err1 := p.ResolveToken(tokenIn)
+	if err1 != nil {
+		return nil, err1
+	}
+
+	indexOut, isTokenOutUnderlying, err2 := p.ResolveToken(tokenAmountOut.Token)
+	if err2 != nil {
+		return nil, err2
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
@@ -145,10 +242,39 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, shared.ErrInvalidAmountOut
 	}
 
+	// Check if this is a same-index underlying/wrapped token conversion
+	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
+		gas := p.BaseGas()
+
+		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenOutUnderlying)
+		if err != nil {
+			return nil, err
+		}
+		gas += bufferGas
+
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountIn.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: big.NewInt(0), // No swap fee for direct conversions
+			},
+			SwapInfo: shared.SwapInfo{
+				AggregateFee: big.NewInt(0), // No aggregate fee for direct conversions
+			},
+			Gas: gas,
+		}, nil
+	}
+
 	gas := p.BaseGas()
 	var err error
-	if bufferOut := p.buffers[indexOut]; bufferOut != nil {
-		amountOut, err = bufferOut.ConvertToShares(amountOut)
+	if isTokenOutUnderlying {
+		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenAmountOut.Token, indexOut)
+		}
+		amountOut, err = p.buffers[indexOut].ConvertToShares(amountOut)
 		if err != nil {
 			return nil, err
 		}
@@ -165,8 +291,11 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, err
 	}
 
-	if bufferIn := p.buffers[indexIn]; bufferIn != nil {
-		amountIn, err = bufferIn.ConvertToAssets(amountIn)
+	if isTokenInUnderlying {
+		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
+		}
+		amountIn, err = p.buffers[indexIn].ConvertToAssets(amountIn)
 		if err != nil {
 			return nil, err
 		}
