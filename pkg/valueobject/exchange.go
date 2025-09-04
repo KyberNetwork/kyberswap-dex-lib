@@ -429,6 +429,7 @@ const (
 	ExchangeWasabi                     = "wasabi"
 	ExchangeWault                      = "wault"
 	ExchangeWigoSwap                   = "wigo-swap"
+	ExchangeWinnieSwapV3               = "winnieswap-v3"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWooFiV3                    = "woofi-v3"
@@ -861,6 +862,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWasabi:                     {},
 	ExchangeWault:                      {},
 	ExchangeWigoSwap:                   {},
+	ExchangeWinnieSwapV3:               {},
 	ExchangeWombat:                     {},
 	ExchangeWooFiV2:                    {},
 	ExchangeWooFiV3:                    {},
