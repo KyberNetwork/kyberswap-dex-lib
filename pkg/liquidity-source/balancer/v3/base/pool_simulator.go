@@ -370,3 +370,40 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
 		BufferTokenOut: p.bufferTokens[tokenOutIdx],
 	}
 }
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	// Check if address exists in pool tokens
+	poolTokenIndex := s.GetTokenIndex(address)
+	// Check if address exists in buffer tokens
+	bufferTokenIndex := -1
+	for i, bufferToken := range s.bufferTokens {
+		if bufferToken == address {
+			bufferTokenIndex = i
+			break
+		}
+	}
+
+	// Return nil if address doesn't exist in either collection
+	if poolTokenIndex == -1 && bufferTokenIndex == -1 {
+		return nil
+	}
+
+	// Collect all tokens (pool tokens + buffer tokens) excluding the input address
+	var result []string
+
+	// Add all pool tokens except the input address
+	for _, token := range s.Info.Tokens {
+		if token != address {
+			result = append(result, token)
+		}
+	}
+
+	// Add all buffer tokens except the input address
+	for _, bufferToken := range s.bufferTokens {
+		if bufferToken != address {
+			result = append(result, bufferToken)
+		}
+	}
+
+	return result
+}

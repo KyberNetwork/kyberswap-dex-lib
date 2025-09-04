@@ -537,3 +537,30 @@ func TestBufferSwaps(t *testing.T) {
 		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
 	})
 }
+
+func TestCanSwapTo(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Underlying Swap",
+			input:    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			expected: []string{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"},
+		},
+		{
+			name:     "Wrapped Swap",
+			input:    "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
+			expected: []string{"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := poolSim.CanSwapTo(tc.input)
+			assert.ElementsMatch(t, tc.expected, result)
+		})
+	}
+}
