@@ -172,6 +172,7 @@ const (
 	ExchangeHyperCat                   = "hypercat"
 	ExchangeHyperSwapV2                = "hyperswap-v2"
 	ExchangeHyperSwapV3                = "hyperswap-v3"
+	ExchangeHyperpieV2                 = "hyperpie-v2"
 	ExchangeIZiSwap                    = "iziswap"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
@@ -614,6 +615,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHyperCat:                   {},
 	ExchangeHyperSwapV2:                {},
 	ExchangeHyperSwapV3:                {},
+	ExchangeHyperpieV2:                 {},
 	ExchangeIZiSwap:                    {},
 	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},

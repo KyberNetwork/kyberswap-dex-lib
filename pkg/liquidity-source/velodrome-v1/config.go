@@ -3,6 +3,7 @@ package velodromev1
 type Config struct {
 	DexID          string         `json:"dexID"`
 	FactoryAddress string         `json:"factoryAddress"`
+	ManualMetadata bool           `json:"manualMetadata"`
 	Fee            uint64         `json:"fee"`
 	FeePrecision   uint64         `json:"feePrecision"`
 	FeeTracker     *FeeTrackerCfg `json:"feeTracker"`

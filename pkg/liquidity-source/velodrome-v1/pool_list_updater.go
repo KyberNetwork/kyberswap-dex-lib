@@ -2,20 +2,19 @@ package velodromev1
 
 import (
 	"context"
-	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
@@ -210,7 +209,10 @@ func (u *PoolsListUpdater) initPools(
 
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 	for i, pairAddress := range pairAddresses {
-		staticExtra, err := u.newStaticExtra(metadataList[i])
+		staticExtra, err := json.Marshal(PoolStaticExtra{
+			FeePrecision: u.config.FeePrecision,
+			Stable:       metadataList[i].St,
+		})
 		if err != nil {
 			logger.
 				WithFields(logger.Fields{"pair_address": pairAddress, "dex_id": u.config.DexID, "err": err}).
@@ -218,7 +220,10 @@ func (u *PoolsListUpdater) initPools(
 			continue
 		}
 
-		extra, err := u.newExtra(metadataList[i], pairFactoryData)
+		extra, err := json.Marshal(PoolExtra{
+			IsPaused: pairFactoryData.IsPaused,
+			Fee:      metadataList[i].Fee,
+		})
 		if err != nil {
 			logger.
 				WithFields(logger.Fields{"pair_address": pairAddress, "dex_id": u.config.DexID, "err": err}).
@@ -227,21 +232,15 @@ func (u *PoolsListUpdater) initPools(
 		}
 
 		newPool := entity.Pool{
-			Address:     strings.ToLower(pairAddress.Hex()),
+			Address:     hexutil.Encode(pairAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: blockNumber.Uint64(),
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{metadataList[i].R0.String(), metadataList[i].R1.String()},
 			Tokens: []*entity.PoolToken{
-				{
-					Address:   strings.ToLower(metadataList[i].T0.String()),
-					Swappable: true,
-				},
-				{
-					Address:   strings.ToLower(metadataList[i].T1.String()),
-					Swappable: true,
-				},
+				{Address: hexutil.Encode(metadataList[i].T0[:]), Swappable: true},
+				{Address: hexutil.Encode(metadataList[i].T1[:]), Swappable: true},
 			},
 			Extra:       string(extra),
 			StaticExtra: string(staticExtra),
@@ -261,11 +260,30 @@ func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []com
 	listMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, pairAddress := range pairAddresses {
-		listMetadataRequest.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
-			Target: pairAddress.Hex(),
-			Method: pairMethodMetadata,
-		}, []any{&metadataList[i]})
+		pairHex := hexutil.Encode(pairAddress[:])
+		if u.config.ManualMetadata {
+			metadataList[i].R0 = bignumber.ZeroBI
+			metadataList[i].R1 = bignumber.ZeroBI
+			listMetadataRequest.AddCall(&ethrpc.Call{
+				ABI:    pairABI,
+				Target: pairHex,
+				Method: pairMethodStable,
+			}, []any{&metadataList[i].St}).AddCall(&ethrpc.Call{
+				ABI:    pairABI,
+				Target: pairHex,
+				Method: pairMethodToken0,
+			}, []any{&metadataList[i].T0}).AddCall(&ethrpc.Call{
+				ABI:    pairABI,
+				Target: pairHex,
+				Method: pairMethodToken1,
+			}, []any{&metadataList[i].T1})
+		} else {
+			listMetadataRequest.AddCall(&ethrpc.Call{
+				ABI:    pairABI,
+				Target: pairHex,
+				Method: pairMethodMetadata,
+			}, []any{&metadataList[i]})
+		}
 	}
 
 	resp, err := listMetadataRequest.TryBlockAndAggregate()
@@ -287,34 +305,6 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	}
 
 	return metadataBytes, nil
-}
-
-func (u *PoolsListUpdater) newStaticExtra(pairMetadata PairMetadata) ([]byte, error) {
-	decimal0, overflow := uint256.FromBig(pairMetadata.Dec0)
-	if overflow {
-		return nil, errors.New("dec0 overflow")
-	}
-
-	decimal1, overflow := uint256.FromBig(pairMetadata.Dec1)
-	if overflow {
-		return nil, errors.New("dec1 overflow")
-	}
-
-	staticExtra := PoolStaticExtra{
-		FeePrecision: u.config.FeePrecision,
-		Decimal0:     decimal0,
-		Decimal1:     decimal1,
-		Stable:       pairMetadata.St,
-	}
-
-	return json.Marshal(staticExtra)
-}
-
-func (u *PoolsListUpdater) newExtra(pairMetadata PairMetadata, factoryData PairFactoryData) ([]byte, error) {
-	return json.Marshal(PoolExtra{
-		IsPaused: factoryData.IsPaused,
-		Fee:      pairMetadata.Fee,
-	})
 }
 
 // getBatchSize
