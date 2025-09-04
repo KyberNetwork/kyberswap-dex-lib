@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	// TwoPow128 2^128
 	TwoPow128 = new(big.Int).Exp(Two, big.NewInt(128), nil)
 
 	ZeroBI = big.NewInt(0)
