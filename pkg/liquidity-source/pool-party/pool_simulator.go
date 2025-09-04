@@ -99,6 +99,11 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	return &cloned
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.PublicAmountAvailable = new(big.Int).Sub(s.PublicAmountAvailable, params.TokenAmountOut.Amount)
 }
@@ -106,5 +111,3 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{Exchange: s.Exchange}
 }
-
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
