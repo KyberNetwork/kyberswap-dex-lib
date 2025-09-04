@@ -4,27 +4,26 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolStaticExtra struct {
-	FeePrecision uint64       `json:"feePrecision"`
-	Decimal0     *uint256.Int `json:"decimal0"`
-	Decimal1     *uint256.Int `json:"decimal1"`
-	Stable       bool         `json:"stable"`
+	FeePrecision uint64 `json:"feePrecision"`
+	Stable       bool   `json:"stable,omitempty"`
 }
 
 type PoolExtra struct {
-	IsPaused bool   `json:"isPaused"`
+	IsPaused bool   `json:"isPaused,omitempty"`
 	Fee      uint64 `json:"fee"`
 }
 
 type PoolMeta struct {
-	Fee          uint64 `json:"fee"`
-	FeePrecision uint64 `json:"feePrecision"`
-	BlockNumber  uint64 `json:"blockNumber"`
+	Fee          uint64 `json:"f"`
+	FeePrecision uint64 `json:"p"`
+	Stable       bool   `json:"s,omitempty"`
+	pool.ApprovalInfo
 }
 
 type PairMetadata struct {
