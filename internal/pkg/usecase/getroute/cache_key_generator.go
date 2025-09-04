@@ -113,15 +113,16 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 	for _, cachePoint := range g.config.TTLByAmount {
 		if utils.Float64AlmostEqual(cachePoint.Amount, amountInWithoutDecimalsFloat64) {
 			return &valueobject.RouteCacheKey{
-				CacheMode:                 valueobject.RouteCacheModePoint,
 				TokenIn:                   params.TokenIn.Address,
 				TokenOut:                  params.TokenOut.Address,
-				AmountIn:                  strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
 				OnlySinglePath:            params.OnlySinglePath,
-				GasInclude:                params.GasInclude,
+				CacheMode:                 valueobject.RouteCacheModePoint,
+				AmountIn:                  strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
 				Dexes:                     params.Sources,
+				GasInclude:                params.GasInclude,
 				ExcludedPools:             setToSlice(params.ExcludedPools),
-				Index:                     string(params.Index),
+				ForcePoolsForToken:        params.ForcePoolsForToken,
+				Index:                     params.Index,
 				UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 				IsScaleHelperClient:       params.IsScaleHelperClient,
 				PoolIds:                   params.PoolIds,
@@ -144,15 +145,16 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams, a
 
 	return mapset.NewThreadUnsafeSet(valueobject.RouteCacheKeyTTL{
 		Key: &valueobject.RouteCacheKey{
-			CacheMode:                 valueobject.RouteCacheModeRangeByUSD,
 			TokenIn:                   params.TokenIn.Address,
 			TokenOut:                  params.TokenOut.Address,
-			AmountIn:                  strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
 			OnlySinglePath:            params.OnlySinglePath,
-			GasInclude:                params.GasInclude,
+			CacheMode:                 valueobject.RouteCacheModeRangeByUSD,
+			AmountIn:                  strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
 			Dexes:                     params.Sources,
+			GasInclude:                params.GasInclude,
 			ExcludedPools:             setToSlice(params.ExcludedPools),
-			Index:                     string(params.Index),
+			ForcePoolsForToken:        params.ForcePoolsForToken,
+			Index:                     params.Index,
 			UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 			IsScaleHelperClient:       params.IsScaleHelperClient,
 			PoolIds:                   params.PoolIds,
@@ -187,15 +189,16 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 			seenAmount.Add(amount)
 			shrunkAmountInSet.Add(valueobject.RouteCacheKeyTTL{
 				Key: &valueobject.RouteCacheKey{
-					CacheMode:                 valueobject.RouteCacheModeRangeByAmount,
 					TokenIn:                   params.TokenIn.Address,
 					TokenOut:                  params.TokenOut.Address,
-					AmountIn:                  amount,
 					OnlySinglePath:            params.OnlySinglePath,
-					GasInclude:                params.GasInclude,
+					CacheMode:                 valueobject.RouteCacheModeRangeByAmount,
+					AmountIn:                  amount,
 					Dexes:                     params.Sources,
+					GasInclude:                params.GasInclude,
 					ExcludedPools:             setToSlice(params.ExcludedPools),
-					Index:                     string(params.Index),
+					ForcePoolsForToken:        params.ForcePoolsForToken,
+					Index:                     params.Index,
 					UseKyberPrivateLimitOrder: params.KyberLimitOrderAllowedSenders != "",
 					IsScaleHelperClient:       params.IsScaleHelperClient,
 					PoolIds:                   params.PoolIds,
@@ -228,7 +231,7 @@ func (g *routeKeyGenerator) applyConfig(config Config) {
 		} else {
 			g.amountInUsdShrinkFunc = amountInUsdShrinkFunc
 		}
-		amountInShrinkFuncList := []ShrinkFunc{}
+		var amountInShrinkFuncList []ShrinkFunc
 		for _, c := range config.Cache.ShrinkAmountInConfigs {
 			if amountInShrinkFunc, err := ShrinkFuncFactory(ShrinkFuncName(c.ShrinkFuncName), map[ShrinkFuncConfig]float64{
 				ShrinkDecimalBase:    c.ShrinkFuncConstant,

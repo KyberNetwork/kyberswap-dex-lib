@@ -17,9 +17,7 @@ var (
 		l1executor.FunctionSelectorMuteSwitch.RawName:     {},
 		l1executor.FunctionSelectorTraderJoeV2.RawName:    {},
 		l1executor.FunctionSelectorNomiswapStable.RawName: {},
-		l1executor.FunctionSelectorWooFiV2.RawName:        {},
 		l1executor.FunctionSelectorMaverickV2.RawName:     {},
-		l1executor.FunctionSelectorKTX.RawName:            {},
 		l1executor.FunctionSelectorSolidlyV2.RawName:      {},
 		l1executor.FunctionSelectorMemebox.RawName:        {},
 		l1executor.FunctionSelectorEulerSwap.RawName:      {},
@@ -31,9 +29,7 @@ var (
 		l2executor.FunctionSelectorFraxSwap.RawName:    {},
 		l2executor.FunctionSelectorCamelotSwap.RawName: {},
 		l2executor.FunctionSelectorTraderJoeV2.RawName: {},
-		l2executor.FunctionSelectorWooFiV2.RawName:     {},
 		l2executor.FunctionSelectorMaverickV2.RawName:  {},
-		l2executor.FunctionSelectorKTX.RawName:         {},
 		l2executor.FunctionSelectorMemebox.RawName:     {},
 		l2executor.FunctionSelectorEulerSwap.RawName:   {},
 
@@ -41,8 +37,10 @@ var (
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively
 		// without transferring token back to executor.
 		// We disable gmx exchanges here to reduce ad-hoc logic on back end side (do not allow two consecutive gmx swap)
-		// l1executor.FunctionSelectorGMX.RawName:        {},
-		// l2executor.FunctionSelectorGMX.RawName:        {},
+		// l1executor.FunctionSelectorGMX.RawName:            {},
+		// l1executor.FunctionSelectorKTX.RawName:            {},
+		// l2executor.FunctionSelectorGMX.RawName:         {},
+		// l2executor.FunctionSelectorKTX.RawName:         {},
 	}
 
 	// `canReceiveTokenBeforeSwapExchangeSet` defines exchanges that can receive token before calling swap.

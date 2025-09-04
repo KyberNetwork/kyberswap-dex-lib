@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"runtime/debug"
+	"slices"
+	"strings"
 
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
@@ -131,7 +133,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			if err != nil {
 				return nil, errors.WithMessagef(
 					finderFinalizer.ErrInvalidSwap,
-					"[finalizer.safetyQuote] invalid swap. pool: [%s] err: [%v]",
+					"[FeeReductionRouteFinalizer] invalid swap. pool: [%s] err: [%v]",
 					pool.GetAddress(), err,
 				)
 			}
@@ -143,7 +145,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 				res.TokenAmountOut.Amount.Sign() == 0 {
 				return nil, errors.WithMessagef(
 					finderFinalizer.ErrCalcAmountOutEmpty,
-					"[finalizer.safetyQuote] calc amount out empty. pool: [%s]",
+					"[FeeReductionRouteFinalizer] calc amount out empty. pool: [%s]",
 					pool.GetAddress(),
 				)
 			}
@@ -249,6 +251,13 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 
 	if alphaFee != nil {
 		alphafee.LogAlphaFeeV2Info(alphaFee, routeId, bestAmmRoute, "route has alpha fee")
+	} else if slices.ContainsFunc(constructRoute.Paths, func(path *finderCommon.ConstructPath) bool {
+		return slices.ContainsFunc(path.PoolsOrder, func(poolAddr string) bool {
+			pool := simulatorBucket.GetPool(poolAddr)
+			return pool != nil && strings.Contains(pool.GetExchange(), "fairflow")
+		})
+	}) {
+		log.Ctx(ctx).Info().Stringer("bestAmmRoute", bestAmmRoute).Msg("fairflow route has no alpha fee")
 	}
 
 	route = &finderEntity.Route{

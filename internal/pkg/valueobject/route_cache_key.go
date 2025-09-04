@@ -37,7 +37,7 @@ type RouteCacheKey struct {
 	GasInclude                bool
 	ExcludedPools             []string
 	ForcePoolsForToken        map[string][]string
-	Index                     string
+	Index                     IndexType
 	UseKyberPrivateLimitOrder bool
 	IsScaleHelperClient       bool
 	PoolIds                   []string
@@ -62,7 +62,7 @@ func (k *RouteCacheKey) String() string {
 		}), ","),
 	}
 	if k.Index != "" {
-		args = append(args, k.Index)
+		args = append(args, string(k.Index))
 	}
 	return utils.Join(args...)
 }
@@ -79,7 +79,7 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	_, _ = d.WriteString(k.CacheMode)
 	_, _ = d.WriteString(k.AmountIn)
 	if k.Index != "" {
-		_, _ = d.WriteString(k.Index)
+		_, _ = d.WriteString(string(k.Index))
 	}
 	var unorderedHash uint64
 	for _, dex := range k.Dexes {
