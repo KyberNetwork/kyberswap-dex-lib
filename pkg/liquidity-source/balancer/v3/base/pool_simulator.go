@@ -329,34 +329,54 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	tokenIndexIn := p.GetTokenIndex(params.TokenAmountIn.Token)
-	tokenIndexOut := p.GetTokenIndex(params.TokenAmountOut.Token)
+	indexIn, isTokenInUnderlying, _ := p.ResolveToken(params.TokenAmountIn.Token)
+
+	indexOut, isTokenOutUnderlying, _ := p.ResolveToken(params.TokenAmountOut.Token)
+
+	// Buffer swaps do not affect pool reserves as they interact with ERC4626 and buffer tokens directly
+	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
+		return
+	}
 
 	swapInfo, ok := params.SwapInfo.(shared.SwapInfo)
 	if !ok {
 		return
 	}
 
+	amountIn := params.TokenAmountIn.Amount
+	if isTokenInUnderlying {
+		// If token in is underlying we must use the converted shares amount for the balance update
+		convertedAmount, _ := p.buffers[indexIn].ConvertToShares(uint256.MustFromBig(params.TokenAmountIn.Amount))
+		amountIn = convertedAmount.ToBig()
+	}
+
 	updatedRawBalanceIn := new(big.Int)
-	updatedRawBalanceIn.Add(p.Info.Reserves[tokenIndexIn], params.TokenAmountIn.Amount)
+	updatedRawBalanceIn.Add(p.Info.Reserves[indexIn], amountIn)
 	updatedRawBalanceIn.Sub(updatedRawBalanceIn, swapInfo.AggregateFee)
-	p.Info.Reserves[tokenIndexIn] = updatedRawBalanceIn
+	p.Info.Reserves[indexIn] = updatedRawBalanceIn
 
 	amountGivenRaw := uint256.MustFromBig(updatedRawBalanceIn)
 
-	_, err := p.vault.UpdateLiveBalance(tokenIndexIn, amountGivenRaw, shared.RoundDown)
+	_, err := p.vault.UpdateLiveBalance(indexIn, amountGivenRaw, shared.RoundDown)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for pool %s", p.GetExchange(), p.Info.Address)
 		return
 	}
 
+	amountOut := params.TokenAmountOut.Amount
+	if isTokenOutUnderlying {
+		// If token out is underlying we must use the converted shares amount for the balance update
+		convertedAmount, _ := p.buffers[indexOut].ConvertToShares(uint256.MustFromBig(params.TokenAmountOut.Amount))
+		amountOut = convertedAmount.ToBig()
+	}
+
 	updatedRawBalanceOut := new(big.Int)
-	updatedRawBalanceOut.Sub(p.Info.Reserves[tokenIndexOut], params.TokenAmountOut.Amount)
-	p.Info.Reserves[tokenIndexOut] = updatedRawBalanceOut
+	updatedRawBalanceOut.Sub(p.Info.Reserves[indexOut], amountOut)
+	p.Info.Reserves[indexOut] = updatedRawBalanceOut
 
 	amountGivenRaw.SetFromBig(updatedRawBalanceOut)
 
-	_, err = p.vault.UpdateLiveBalance(tokenIndexOut, amountGivenRaw, shared.RoundDown)
+	_, err = p.vault.UpdateLiveBalance(indexOut, amountGivenRaw, shared.RoundDown)
 	if err != nil {
 		logger.Warnf("[%s] failed to UpdateBalance for pool %s", p.GetExchange(), p.Info.Address)
 		return

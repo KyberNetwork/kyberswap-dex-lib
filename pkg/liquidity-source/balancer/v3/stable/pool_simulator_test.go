@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/vault"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -561,6 +563,146 @@ func TestCanSwapTo(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := poolSim.CanSwapTo(tc.input)
 			assert.ElementsMatch(t, tc.expected, result)
+		})
+	}
+}
+
+func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
+
+	testPool := poolSim.CloneState().(*base.PoolSimulator)
+	// Update reserves for straightforward test examples
+	testPool.Info.Reserves[0] = big.NewInt(2e18)
+	testPool.Info.Reserves[1] = big.NewInt(4e18)
+
+	testcases := []struct {
+		name             string
+		tokenIn          string
+		tokenInAmount    *big.Int
+		tokenOut         string
+		tokenOutAmount   *big.Int
+		expectedReserves []*big.Int
+		aggregateFee     *big.Int
+	}{
+		// buffer swap -> directly swaps/un/wraps on buffer/ERC4626 and does not affect pool reserves
+		{
+			name:             "Buffer Swap - Wrap",
+			tokenIn:          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
+			tokenInAmount:    big.NewInt(1e18),
+			tokenOut:         "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenOutAmount:   big.NewInt(2e18),
+			expectedReserves: testPool.GetReserves(), // Reserves remain unchanged
+			aggregateFee:     big.NewInt(1e15),       // 0.001 (Not relevant for this test)
+		},
+		{
+			name:             "Buffer Swap - Unwrap",
+			tokenIn:          "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenInAmount:    big.NewInt(1e18),
+			tokenOut:         "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenOutAmount:   big.NewInt(2e18),
+			expectedReserves: testPool.GetReserves(), // Reserves remain unchanged
+			aggregateFee:     big.NewInt(1e15),       // 0.001 (Not relevant for this test)
+		},
+		// swap -> amounts directly
+		{
+			name:           "Swap",
+			tokenIn:        "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(1e18), // waEthLidoWETH reserve - out
+				big.NewInt(6e18), // waEthLidowstETH reserve + in
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for straightforward test examples
+		},
+		// wrap>swap -> amount in will have rates
+		{
+			name:           "Wrap>Swap - underlyingIn[wrap]wrappedIn[swap]wrappedOut",
+			tokenIn:        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // weth
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(3e18), // waEthLidoWETH + in/ERC4626rate
+				big.NewInt(3e18), // waEthLidowstETH reserve - out
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for straightforward test examples
+		},
+		// swap>unwrap -> amount out will have rates
+		{
+			name:           "Swap>Unwrap - wrappedIn[swap]wrappedOut[unwrap]underlyingOut",
+			tokenIn:        "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(4e18),   // waEthLidoWETH + in
+				big.NewInt(3.5e18), // waEthLidowstETH reserve - out/ERC4626rate
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for straightforward test examples
+		},
+		// Wrap>Swap>Unwrap -> amount in & out will have rates
+		{
+			name:           "Wrap>Swap>Unwrap - wrappedIn[swap]wrappedOut[unwrap]underlyingOut",
+			tokenIn:        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // weth
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(3e18),   // waEthLidoWETH + in/ERC4626rate
+				big.NewInt(3.5e18), // waEthLidowstETH reserve - out/ERC4626rate
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for straightforward test examples
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Clone the pool simulator for each test to avoid state pollution
+			clonedPool := testPool.CloneState()
+
+			// Create token amounts
+			tokenAmountIn := poolpkg.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: tc.tokenInAmount,
+			}
+
+			tokenAmountOut := poolpkg.TokenAmount{
+				Token:  tc.tokenOut,
+				Amount: tc.tokenOutAmount,
+			}
+
+			// Create swap info
+			swapInfo := shared.SwapInfo{
+				Buffers:      []*shared.ExtraBuffer{},
+				AggregateFee: tc.aggregateFee,
+			}
+
+			// Create empty fee as it doesn't matter
+			emptyFee := poolpkg.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: big.NewInt(0),
+			}
+
+			// Create update balance params
+			params := poolpkg.UpdateBalanceParams{
+				TokenAmountIn:  tokenAmountIn,
+				TokenAmountOut: tokenAmountOut,
+				Fee:            emptyFee,
+				SwapInfo:       swapInfo,
+			}
+			// Update balance
+			clonedPool.UpdateBalance(params)
+
+			// Get updated reserves
+			updatedReserves := clonedPool.GetReserves()
+
+			// Verify that all reserves match expected values
+			assert.Equal(t, len(tc.expectedReserves), len(updatedReserves), "Expected reserves array length should match actual reserves")
+			for i, expectedReserve := range tc.expectedReserves {
+				assert.Equal(t, expectedReserve, updatedReserves[i], "Reserve %d should match expected value", i)
+			}
 		})
 	}
 }
