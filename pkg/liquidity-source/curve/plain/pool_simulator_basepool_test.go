@@ -3,6 +3,7 @@ package plain
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -48,10 +49,12 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		{"C", 30, "B", 29},
 	}
 	base, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243", "352290453972395231054279357"},
-		Tokens:      []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6}, {Address: "C", Decimals: 6}},
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243",
+			"352290453972395231054279357"},
+		Tokens: []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6},
+			{Address: "C", Decimals: 6}},
 		Extra:       "{\"initialA\":\"5000\",\"futureA\":\"2000\",\"initialATime\":1653559305,\"futureATime\":1654158027,\"swapFee\":\"1000000\",\"adminFee\":\"5000000000\"}",
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})
@@ -89,6 +92,67 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 	}
 }
 
+// cpu: AMD Ryzen 7 5800H with Radeon Graphics
+// BenchmarkCalcAmountOutAsBasePool
+// BenchmarkCalcAmountOutAsBasePool-16    	     476	   2242857 ns/op
+// after changing to uint256
+// BenchmarkCalcAmountOutAsBasePool-16    	    1407	    826824 ns/op
+// after optimizing allocation
+// BenchmarkCalcAmountOutAsBasePool-16    	    1507	    752280 ns/op
+func BenchmarkCalcAmountOutAsBasePool(b *testing.B) {
+	base, err := NewPoolSimulator(entity.Pool{
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243",
+			"352290453972395231054279357"},
+		Tokens: []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6},
+			{Address: "C", Decimals: 6}},
+		Extra:       "{\"initialA\":\"5000\",\"futureA\":\"2000\",\"initialATime\":1653559305,\"futureATime\":1654158027,\"swapFee\":\"1000000\",\"adminFee\":\"5000000000\"}",
+		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
+	})
+	require.Nil(b, err)
+	basePoolMap := map[string]pool.IPoolSimulator{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7": base}
+
+	p, err := meta.NewPoolSimulator(entity.Pool{
+		Exchange:    "",
+		Type:        "",
+		Reserves:    entity.PoolReserves{"4763102571534863472313821", "15272752439110430673281", "0"},
+		Tokens:      []*entity.PoolToken{{Address: "Am"}, {Address: "Bm"}},
+		Extra:       "{\"initialA\":\"10000\",\"futureA\":\"25000\",\"initialATime\":1649327847,\"futureATime\":1649925962,\"swapFee\":\"4000000\",\"adminFee\":\"0\"}",
+		StaticExtra: "{\"lpToken\":\"LPMeta\",\"basePool\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"rateMultiplier\":\"1000000000000000000\",\"aPrecision\":\"100\",\"underlyingTokens\":[\"0x674c6ad92fd080e4004b2312b45f796a192d27a0\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"precisionMultipliers\":[\"1\",\"1\"],\"rates\":[\"\",\"\"]}",
+	}, basePoolMap)
+	require.Nil(b, err)
+
+	tc := make(map[int]map[int]map[string]string, 5)
+	for i := range 5 {
+		tc[i] = make(map[int]map[string]string, 5)
+		for j := range 5 {
+			tc[i][j] = make(map[string]string, 10)
+		}
+	}
+	b.ResetTimer()
+	tokens := p.GetTokens()
+	var tmpI big.Int
+	var tmpF big.Float
+	for range b.N {
+		rnd := rand.New(rand.NewSource(int64(b.N)))
+		for _, tokenIn := range tokens {
+			for _, tokenOut := range p.CanSwapFrom(tokenIn) {
+				for range 10 {
+					tmpF.SetFloat64(rnd.ExpFloat64()/1e293 + 1e3).Int(&tmpI)
+					_, _ = p.CalcAmountOut(pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{
+							Token:  tokenIn,
+							Amount: &tmpI,
+						},
+						TokenOut: tokenOut,
+					})
+				}
+			}
+		}
+	}
+}
+
 func TestUpdateBalanceAsBasePool(t *testing.T) {
 	t.Parallel()
 	// test data from https://etherscan.io/address/0x0f9cb53ebe405d49a0bbdbd291a65ff571bc83e1#readContract
@@ -98,15 +162,17 @@ func TestUpdateBalanceAsBasePool(t *testing.T) {
 		out              string
 		expectedBalances []string
 	}{
-		{"Am", 1000, "Bm", []string{"4763102571534863472314821", "15272752439110430673250"}},
-		{"Am", 1000000000000000, "B", []string{"4763102572534863472314821", "15272752407518134109468"}},
-		{"C", 2, "Am", []string{"4763102572473232773721712", "15272752409466747992850"}},
+		{"Am", 1000, "Bm", []string{"4763102571534863472314821", "15272752439110430673281"}},
+		{"Am", 1000000000000000, "B", []string{"4763102572534863472314821", "15272752407518134109499"}},
+		{"C", 2, "Am", []string{"4763102572473232773721712", "15272752409466747992881"}},
 	}
 	base, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		Reserves:    entity.PoolReserves{"93650900813860355891321787", "92392098150103", "175345980953129", "352170672490633463630226070"},
-		Tokens:      []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6}, {Address: "C", Decimals: 6}},
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"93650900813860355891321787", "92392098150103", "175345980953129",
+			"352170672490633463630226070"},
+		Tokens: []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6},
+			{Address: "C", Decimals: 6}},
 		Extra:       "{\"initialA\":\"5000\",\"futureA\":\"2000\",\"initialATime\":1653559305,\"futureATime\":1654158027,\"swapFee\":\"1000000\",\"adminFee\":\"5000000000\"}",
 		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\"}",
 	})

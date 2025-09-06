@@ -53,6 +53,11 @@ func TenPow[T constraints.Integer](decimal T) *uint256.Int {
 	return tmp.Exp(U10, tmp)
 }
 
+func New(s string) *uint256.Int {
+	res, _ := uint256.FromDecimal(s)
+	return res
+}
+
 func NewUint256(s string) (res *uint256.Int, err error) {
 	res = new(uint256.Int)
 	err = res.SetFromDecimal(s)
