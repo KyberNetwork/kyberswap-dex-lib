@@ -154,10 +154,10 @@ encoder:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
       randomReturnAmountInflation: 0.00006
     llamaswap:
-      receiver:
-      percent:
-      feeMode:
-      feeSharingAddress:
+      receiver: 0xa4587899c58e7Cc2e54303188F56aceCAea47794
+      percent: 5000
+      feeMode: 1 # custody
+      feeSharingAddress: 0x48B8419B2Bc0fB63Ee96e3a370e30B200cC2e672
     kyberswap:
       feeSharingAddress: 0x4f82e73edb06d29ff62c91ec8f5ff06571bdeb29
       feeReferralAddress: 0xb826162fbeb7c631d1bfb5fbff8b77442432b826
@@ -171,6 +171,11 @@ encoder:
     app_safe_global:
       receiver:
       feeSharingAddress: 0x55602F3057be52BFB6F98fFE799CFDec58Af5130
+    Hyperbeat_MasterSwap:
+      receiver: 0x723849CE0994125Db9AB3E6BfA22F0bBc87DD9D8
+      percent: 5000
+      feeMode: 0 # direct
+      feeSharingAddress: 0x8fe83dab1D17185f091569b440B9e3C7EAd1453d
 useCase:
   getRoute:
     chainId: *chainId
