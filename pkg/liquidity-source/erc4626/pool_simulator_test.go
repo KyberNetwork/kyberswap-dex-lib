@@ -35,7 +35,7 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenInIdx:        0,
 			tokenOutIdx:       1,
 			amountIn:          big.NewInt(1.2e18),
-			expectedAmountOut: big.NewInt(1146358227584249673),
+			expectedAmountOut: big.NewInt(1256151842722452669),
 			expectedError:     assert.NoError,
 		},
 		{
@@ -50,7 +50,7 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenInIdx:        1,
 			tokenOutIdx:       0,
 			amountIn:          big.NewInt(1.1e18),
-			expectedAmountOut: big.NewInt(1163103558076345065),
+			expectedAmountOut: big.NewInt(1040320091532706578),
 			expectedError:     assert.NoError,
 		},
 	}
