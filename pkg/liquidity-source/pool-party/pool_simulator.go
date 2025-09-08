@@ -68,10 +68,6 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrPoolNotAvailable
 	}
 
-	if param.TokenAmountIn.Amount.Cmp(s.PublicAmountAvailable) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
 	if s.RateToETH.Sign() == 0 {
 		return nil, ErrInvalidRateToETH
 	}
@@ -85,6 +81,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	boostPrice.Div(&boostPrice, bignumber.BasisPoint)
 
 	amountOut.Add(amountOut, &boostPrice)
+
+	if amountOut.Cmp(s.PublicAmountAvailable) > 0 {
+		return nil, ErrInsufficientLiquidity
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
