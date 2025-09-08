@@ -15,7 +15,7 @@ import (
 
 var (
 	entityPool entity.Pool
-	_          = json.Unmarshal([]byte(`{"address":"0xd9a442856c234a39a81a089c06451ebaa4306a72","exchange":"erc4626","type":"erc4626","timestamp":1752514780,"reserves":["0","0"],"tokens":[{"address":"0xd9a442856c234a39a81a089c06451ebaa4306a72","symbol":"pufETH","decimals":18,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"g\":{\"d\":115994,\"r\":135937},\"sT\":3,\"mR\":\"1200300400200300400\",\"dR\":\"951485661606130293\",\"rR\":\"1040582165189625200\"}"}`),
+	_          = json.Unmarshal([]byte(`{"address":"0xd9a442856c234a39a81a089c06451ebaa4306a72","exchange":"erc4626","type":"erc4626","timestamp":1757342856,"reserves":["0","32876264515566662491485"],"tokens":[{"address":"0xd9a442856c234a39a81a089c06451ebaa4306a72","symbol":"pufETH","decimals":18,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"g\":{\"d\":115994,\"r\":135937},\"sT\":3,\"mR\":\"1200300400200300400\",\"dR\":[\"5\",\"945745537757\",\"945745537757005980\",\"945745537757005980110202\",\"945745537757005980110202556790\"],\"rR\":[\"5\",\"1046793202268\",\"1046793202268710558\",\"1046793202268710559026277\",\"1046793202268710559026277755099\"]}","blockNumber":23319067}`),
 		&entityPool)
 	poolSim = lo.Must(NewPoolSimulator(entityPool))
 	tokens  = entityPool.Tokens
@@ -35,7 +35,7 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenInIdx:        0,
 			tokenOutIdx:       1,
 			amountIn:          big.NewInt(1.2e18),
-			expectedAmountOut: big.NewInt(1248698598227550240),
+			expectedAmountOut: big.NewInt(1146358227584249673),
 			expectedError:     assert.NoError,
 		},
 		{
@@ -50,7 +50,7 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenInIdx:        1,
 			tokenOutIdx:       0,
 			amountIn:          big.NewInt(1.1e18),
-			expectedAmountOut: big.NewInt(1046634227766743322),
+			expectedAmountOut: big.NewInt(1163103558076345065),
 			expectedError:     assert.NoError,
 		},
 	}
