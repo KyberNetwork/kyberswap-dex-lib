@@ -45,6 +45,5 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int) (*uint256.Int, er
 	}
 
 	amount.MulDivOverflow(amount, rate, PrefetchAmounts[bestId])
-
 	return amount, nil
 }
