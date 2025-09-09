@@ -304,7 +304,7 @@ func (c *cache) summarizeSimpleRoute(
 	var err error
 	constructRoute := c.convertSimpleRouteToConstructRoute(simpleRoute, params)
 
-	findRouteParams := ConvertToPathfinderParams(
+	findRouteParams := ConvertToPathfinderParamsWithoutFeeReduction(
 		nil,
 		params,
 		tokenByAddress,
@@ -442,7 +442,7 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 		AMMBestRoute: ammConstructRoute,
 	}
 
-	findRouteParams := ConvertToPathfinderParams(
+	findRouteParams := ConvertToPathfinderParamsWithoutFeeReduction(
 		nil,
 		params,
 		tokenMap,

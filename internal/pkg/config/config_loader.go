@@ -127,7 +127,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
 	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
-	c.UseCase.BuildRoute.TokenGroups = c.UseCase.GetRoute.SafetyQuoteConfig.TokenGroupConfig
+	c.UseCase.BuildRoute.TokenGroups = c.UseCase.GetRoute.Aggregator.SafetyQuoteConfig.TokenGroupConfig
 	c.UseCase.BuildRoute.Salt = c.UseCase.GetRoute.Salt
 	fmt.Println("ENV:", viper.GetString("ENV"))
 	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
@@ -408,13 +408,13 @@ func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.Fault
 }
 
 func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.SafetyQuoteReductionConfig) {
-	cl.config.UseCase.GetRoute.SafetyQuoteConfig.ExcludeOneSwapEnable = safetyQuoteConf.ExcludeOneSwapEnable
-	cl.config.UseCase.GetRoute.SafetyQuoteConfig.Factor = safetyQuoteConf.Factor
-	cl.config.UseCase.GetRoute.SafetyQuoteConfig.WhitelistedClient = safetyQuoteConf.WhitelistedClient
+	cl.config.UseCase.GetRoute.Aggregator.SafetyQuoteConfig.ExcludeOneSwapEnable = safetyQuoteConf.ExcludeOneSwapEnable
+	cl.config.UseCase.GetRoute.Aggregator.SafetyQuoteConfig.Factor = safetyQuoteConf.Factor
+	cl.config.UseCase.GetRoute.Aggregator.SafetyQuoteConfig.WhitelistedClient = safetyQuoteConf.WhitelistedClient
 }
 
 func (cl *ConfigLoader) setAlphaFeeConfig(alphaFeeConfig valueobject.AlphaFeeConfig) {
-	cl.config.UseCase.GetRoute.AlphaFeeConfig = alphaFeeConfig
+	cl.config.UseCase.GetRoute.Aggregator.AlphaFeeConfig = alphaFeeConfig
 	cl.config.UseCase.BuildRoute.AlphaFeeConfig = alphaFeeConfig
 	if duration, err := time.ParseDuration(alphaFeeConfig.TTL); err == nil {
 		cl.config.Repository.AlphaFee.Redis.TTL = duration
@@ -443,6 +443,6 @@ func (cl *ConfigLoader) setWhitelistedPrices(whitelistedPrices []string) {
 		return price, true
 	})
 
-	cl.config.UseCase.GetRoute.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
-	cl.config.UseCase.GetRoute.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
+	cl.config.UseCase.GetRoute.Aggregator.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
+	cl.config.UseCase.GetRoute.Aggregator.AlphaFeeConfig.WhitelistPrices = whitelistedPricesMap
 }

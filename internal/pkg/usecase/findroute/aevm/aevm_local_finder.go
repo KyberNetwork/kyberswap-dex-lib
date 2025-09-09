@@ -5,7 +5,6 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmpool "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool"
-	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 
@@ -27,7 +26,7 @@ func NewAEVMLocalFinder(baseFinder finderEngine.IFinder, aevmClient aevmclient.C
 	}
 }
 
-func (f *AEVMLocalFinder) Find(ctx context.Context, params finderEntity.FinderParams) (*finderCommon.BestRouteResult, error) {
+func (f *AEVMLocalFinder) Find(ctx context.Context, params finderCommon.FinderParams) (*finderCommon.BestRouteResult, error) {
 	useAEVMPool := f.opts.LocalUseAEVMPool
 
 	if !useAEVMPool {

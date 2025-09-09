@@ -27,9 +27,12 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+// All fee reduction can be nil due to neccessary of them in typical case
+// Sometimes, we only need to reduce some fees that affect on rate in finding best path step
 type FeeReductionRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.Reduction
 	alphaFeeCalculation  *alphafee.AlphaFeeV3Calculation
+	mergeSwap            *mergeswap.MergeSwap
 
 	finderEntity.ICustomFuncsHolder
 }
@@ -46,13 +49,26 @@ func NewFeeReductionRouteFinalizer(
 	return &FeeReductionRouteFinalizer{
 		safetyQuoteReduction: safetyQuoteReduction,
 		alphaFeeCalculation:  alphaFeeCalculation,
+		mergeSwap:            &mergeswap.MergeSwap{},
+		ICustomFuncsHolder:   &finderEntity.CustomFuncsHolder{ICustomFuncs: customFuncs},
+	}
+}
+
+func NewAlphaFeeReductionRouteFinalizer(
+	alphaFeeCalculation *alphafee.AlphaFeeV3Calculation,
+	customFuncs finderEntity.ICustomFuncs,
+) *FeeReductionRouteFinalizer {
+	return &FeeReductionRouteFinalizer{
+		safetyQuoteReduction: nil,
+		alphaFeeCalculation:  alphaFeeCalculation,
+		mergeSwap:            nil,
 		ICustomFuncsHolder:   &finderEntity.CustomFuncsHolder{ICustomFuncs: customFuncs},
 	}
 }
 
 func (f *FeeReductionRouteFinalizer) Finalize(
 	ctx context.Context,
-	params finderEntity.FinderParams,
+	params finderCommon.FinderParams,
 	constructRoute *finderCommon.ConstructRoute,
 	extraData any,
 ) (route *finderEntity.Route, err error) {
@@ -86,7 +102,7 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 	// Step 1.1: Prepare alpha fee if needed
 	var alphaFee *routerEntity.AlphaFeeV2
 	var bestAmmRoute *finderCommon.ConstructRoute
-	if params.ReturnAMMBestPath {
+	if params.ReturnAMMBestPath && f.alphaFeeCalculation != nil {
 		feeReductionFinalizerExtraData, _ := extraData.(FeeReductionFinalizerExtraData)
 		bestAmmRoute = feeReductionFinalizerExtraData.BestAmmRoute
 		// Pass a new simulator bucket to avoid modifying the original one
@@ -190,17 +206,19 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			}
 
 			// Step 2.1.7: Calculate safety quoting amount and reassign new amount out to next path's amount in
-			safetyQuotingParams := types.SafetyQuotingParams{
-				Address:        pool.GetAddress(),
-				Exchange:       valueobject.Exchange(pool.GetExchange()),
-				PoolType:       pool.GetType(),
-				TokenIn:        tokenAmountIn.Token,
-				TokenOut:       res.TokenAmountOut.Token,
-				Amount:         reducedNextAmountIn,
-				HasOnlyOneSwap: hasOnlyOneSwap(constructRoute),
-				ClientId:       params.ClientId,
+			if f.safetyQuoteReduction != nil {
+				safetyQuotingParams := types.SafetyQuotingParams{
+					Address:        pool.GetAddress(),
+					Exchange:       valueobject.Exchange(pool.GetExchange()),
+					PoolType:       pool.GetType(),
+					TokenIn:        tokenAmountIn.Token,
+					TokenOut:       res.TokenAmountOut.Token,
+					Amount:         reducedNextAmountIn,
+					HasOnlyOneSwap: hasOnlyOneSwap(constructRoute),
+					ClientId:       params.ClientId,
+				}
+				reducedNextAmountIn = f.safetyQuoteReduction.Reduce(safetyQuotingParams)
 			}
-			reducedNextAmountIn = f.safetyQuoteReduction.Reduce(safetyQuotingParams)
 
 			// Step 2.1.8: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn
@@ -280,8 +298,8 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 		ExtraFinalizerData: extra,
 	}
 
-	if !params.SkipMergeSwap {
-		if mergeSwapRoute, err := mergeswap.MergeSwap(ctx, params, constructRoute, route, amountReductionEachSwap,
+	if f.mergeSwap != nil && !params.SkipMergeSwap {
+		if mergeSwapRoute, err := f.mergeSwap.Merge(ctx, params, constructRoute, route, amountReductionEachSwap,
 			f.CustomFuncs(), alphaFee); err == nil {
 			route = mergeSwapRoute
 		}

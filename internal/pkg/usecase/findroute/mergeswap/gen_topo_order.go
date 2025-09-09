@@ -4,14 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	mapset "github.com/deckarep/golang-set/v2"
 )
 
 var ErrGraphHasCycle = errors.New("graph has cycle")
 
-func generateTokenTopoOrder(ctx context.Context, params entity.FinderParams, route *common.ConstructRoute) ([]string, error) {
+func generateTokenTopoOrder(_ context.Context, params common.FinderParams, route *common.ConstructRoute) ([]string, error) {
 	// Kahn's algorithm: https://en.wikipedia.org/wiki/Topological_sorting
 	tokenNoIncomingDegree := mapset.NewThreadUnsafeSet(params.TokenIn)
 	inDegree := make(map[string]int)

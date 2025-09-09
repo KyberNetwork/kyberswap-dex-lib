@@ -258,6 +258,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			priceByAddress,
 			state,
 			a.config.FeatureFlags,
+			&a.config,
 		)
 
 		result, err := a.finderEngine.Find(ctx, findRouteParams)

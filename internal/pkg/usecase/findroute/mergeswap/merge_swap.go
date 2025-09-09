@@ -21,12 +21,14 @@ import (
 var ErrMergeSwapNotBetter = errors.New("merge swap route is not better than the original route")
 var ErrCastFinalizeExtraData = errors.New("failed to cast extraFinalizerData to FinalizeExtraData")
 
+type MergeSwap struct{}
+
 // mergeSwap identifies duplicate swaps in the route and merges them.
 // This function takes an `entityRoute`, which is being finalized by the previous step,
 // to merge any duplicate swaps. Return a new merge swap route, without modifying the original route.
-func MergeSwap(
+func (m *MergeSwap) Merge(
 	ctx context.Context,
-	params finderEntity.FinderParams,
+	params finderCommon.FinderParams,
 	constructRoute *finderCommon.ConstructRoute,
 	entityRoute *finderEntity.Route,
 	amountReductionEachSwap [][]*big.Int,
@@ -55,7 +57,7 @@ func MergeSwap(
 
 func mergeSwap(
 	ctx context.Context,
-	params finderEntity.FinderParams,
+	params finderCommon.FinderParams,
 	constructRoute *finderCommon.ConstructRoute,
 	entityRoute *finderEntity.Route,
 	tokenTopoOrder []string,
@@ -311,7 +313,7 @@ func canMergeSwap(
 	return false
 }
 
-func compareRouteValue(params finderEntity.FinderParams, x, y *finderEntity.Route) int {
+func compareRouteValue(params finderCommon.FinderParams, x, y *finderEntity.Route) int {
 	priceAvailable := x.AmountOutPrice != 0 || y.AmountOutPrice != 0
 
 	if params.GasIncluded && priceAvailable {

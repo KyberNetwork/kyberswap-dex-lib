@@ -103,6 +103,7 @@ func (a *aggregator) findBestRoute(
 		priceByAddress,
 		state,
 		a.config.FeatureFlags,
+		&a.config,
 	)
 
 	routes, err := a.finderEngine.Find(ctx, findRouteParams)

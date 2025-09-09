@@ -256,6 +256,21 @@ useCase:
         localUseAEVMPool: false
       featureFlags:
         isAlphaFeeReductionEnable:
+      safetyQuoteConfig:
+        excludeOneSwapEnable: true
+        tokenGroupConfig:
+        factor:
+          Default: 0
+          Converter: 0
+          StrictlyStable: 0
+          Stable: 0.5
+          Correlated: 1.5
+          LowSlippage: 3
+          NormalSlippage: 10
+          HighSlippage: 50
+        randomJitter: 0.2
+        whitelistedClient:
+      alphaFeeConfig: *alphaFeeConfig
     generateBestPaths:
       gasTokenAddress: 0x4200000000000000000000000000000000000006
       getBestPoolsOptions: *getBestPoolsOptions
@@ -359,20 +374,6 @@ useCase:
           shrinkFuncConstant: 1.5
       shrinkAmountInThreshold: 100000
       minAmountInUSD: 0.9
-    safetyQuoteConfig:
-      excludeOneSwapEnable: true
-      factor:
-        Default: 0
-        Converter: 0
-        StrictlyStable: 0
-        Stable: 0.5
-        Correlated: 1.5
-        LowSlippage: 3
-        NormalSlippage: 10
-        HighSlippage: 50
-      randomJitter: 0.2
-      whitelistedClient:
-    alphaFeeConfig: *alphaFeeConfig
   getCustomRoute:
     aggregator:
       finderOptions:

@@ -6,6 +6,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb/onepercent"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
@@ -78,7 +79,8 @@ func ConvertToPathfinderParams(
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 	featureFlags valueobject.FeatureFlags,
-) finderEntity.FinderParams {
+	config *AggregatorConfig,
+) finderCommon.FinderParams {
 	gasPriceBI, _ := params.GasPrice.Int(nil)
 
 	tokens := lo.MapEntries(tokenByAddress, func(k string, v *entity.SimplifiedToken) (string, entity.SimplifiedToken) {
@@ -99,7 +101,19 @@ func ConvertToPathfinderParams(
 			prices[params.GasToken.Address])
 	}
 
-	findRouteParams := finderEntity.FinderParams{
+	var bestRouteFinalizer finderCommon.IFinalizer
+	if featureFlags.IsAlphaFeeReductionEnable && config != nil {
+		customFuncs := routerpoolpkg.NewCustomFuncs(config.DexUseAEVM)
+		alphaFeeCalculator := alphafee.NewAlphaFeeV3Calculation(
+			alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, customFuncs),
+			config.AlphaFeeConfig,
+			config.SafetyQuoteConfig.TokenGroupConfig,
+			customFuncs,
+		)
+		bestRouteFinalizer = findroute.NewAlphaFeeReductionRouteFinalizer(alphaFeeCalculator, customFuncs)
+	}
+
+	findRouteParams := finderCommon.FinderParams{
 		TokenIn:  params.TokenIn.Address,
 		TokenOut: params.TokenOut.Address,
 		AmountIn: params.AmountIn,
@@ -122,11 +136,25 @@ func ConvertToPathfinderParams(
 		OnlySinglePath:             params.OnlySinglePath,
 		ReturnAMMBestPath:          params.EnableAlphaFee,
 		EnableHillClimbForAlphaFee: params.EnableHillClimbForAlphaFee,
+		BestRouteFinalizer:         bestRouteFinalizer,
 	}
 
 	findRouteParams.SkipMergeSwap = !featureFlags.IsMergeDuplicateSwapEnabled || params.IsScaleHelperClient
 
 	return findRouteParams
+}
+
+func ConvertToPathfinderParamsWithoutFeeReduction(
+	whitelistedTokenSet map[string]bool,
+	params *types.AggregateParams,
+	tokenByAddress map[string]*entity.SimplifiedToken,
+	priceByAddress map[string]*routerEntity.OnchainPrice,
+	state *types.FindRouteState,
+	featureFlags valueobject.FeatureFlags,
+) finderCommon.FinderParams {
+	return ConvertToPathfinderParams(
+		whitelistedTokenSet, params, tokenByAddress,
+		priceByAddress, state, featureFlags, nil)
 }
 
 func CollectTokenPrices(
@@ -260,7 +288,7 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 func InitializeFinderEngine(
 	config Config,
 	aevmClient aevmclient.Client,
-) (finderEngine.IFinder, finderEngine.IFinalizer, error) {
+) (finderEngine.IFinder, finderCommon.IFinalizer, error) {
 	customFuncs := routerpoolpkg.NewCustomFuncs(config.Aggregator.DexUseAEVM)
 
 	finderOptions := config.Aggregator.FinderOptions
@@ -327,13 +355,13 @@ func InitializeFinderEngine(
 	)
 
 	alphaFeeCalculator := alphafee.NewAlphaFeeV3Calculation(
-		alphafee.NewAlphaFeeV2Calculation(config.AlphaFeeConfig, customFuncs),
-		config.AlphaFeeConfig,
-		config.SafetyQuoteConfig.TokenGroupConfig,
+		alphafee.NewAlphaFeeV2Calculation(config.Aggregator.AlphaFeeConfig, customFuncs),
+		config.Aggregator.AlphaFeeConfig,
+		config.Aggregator.SafetyQuoteConfig.TokenGroupConfig,
 		customFuncs,
 	)
 	routeFinalizer := findroute.NewFeeReductionRouteFinalizer(
-		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
+		safetyquote.NewSafetyQuoteReduction(config.Aggregator.SafetyQuoteConfig),
 		alphaFeeCalculator,
 		customFuncs,
 	)

@@ -15,13 +15,11 @@ type Config struct {
 	ExcludedSourcesByClient    map[string][]string            `mapstructure:"excludedSourcesByClient" json:"excludedSourcesByClient"`
 	ForcePoolsForTokenByClient map[string]map[string][]string `mapstructure:"forcePoolsForTokenByClient" json:"forcePoolsForTokenByClient"`
 
-	Aggregator        AggregatorConfig                        `mapstructure:"aggregator" json:"aggregator"`
-	Cache             valueobject.CacheConfig                 `mapstructure:"cache" json:"cache"`
-	SafetyQuoteConfig *valueobject.SafetyQuoteReductionConfig `mapstructure:"safetyQuoteConfig" json:"safetyQuoteConfig"`
-	AlphaFeeConfig    valueobject.AlphaFeeConfig              `mapstructure:"alphaFeeConfig" json:"alphaFeeConfig"`
-	CorrelatedPairs   map[string]string                       `mapstructure:"correlatedPairs" json:"correlatedPairs"`
-	DefaultPoolsIndex string                                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
-	Salt              string                                  `mapstructure:"salt" json:"salt"`
+	Aggregator        AggregatorConfig        `mapstructure:"aggregator" json:"aggregator"`
+	Cache             valueobject.CacheConfig `mapstructure:"cache" json:"cache"`
+	CorrelatedPairs   map[string]string       `mapstructure:"correlatedPairs" json:"correlatedPairs"`
+	DefaultPoolsIndex string                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
+	Salt              string                  `mapstructure:"salt" json:"salt"`
 
 	FeatureFlags valueobject.FeatureFlags `mapstructure:"featureFlags" json:"featureFlags"`
 }
@@ -32,5 +30,7 @@ type AggregatorConfig struct {
 	FinderOptions       valueobject.FinderOptions       `mapstructure:"finderOptions" json:"finderOptions"`
 	FeatureFlags        valueobject.FeatureFlags        `mapstructure:"featureFlags"`
 
-	DexUseAEVM map[string]bool `mapstructure:"dexUseAEVM"`
+	DexUseAEVM        map[string]bool                         `mapstructure:"dexUseAEVM"`
+	SafetyQuoteConfig *valueobject.SafetyQuoteReductionConfig `mapstructure:"safetyQuoteConfig" json:"safetyQuoteConfig"`
+	AlphaFeeConfig    valueobject.AlphaFeeConfig              `mapstructure:"alphaFeeConfig" json:"alphaFeeConfig"`
 }

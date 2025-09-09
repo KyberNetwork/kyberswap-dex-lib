@@ -287,10 +287,9 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 					"0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202": true,
 				},
-				FinderOptions: finderOptions,
+				FinderOptions:     finderOptions,
+				SafetyQuoteConfig: &valueobject.SafetyQuoteReductionConfig{},
 			},
-
-			SafetyQuoteConfig: &valueobject.SafetyQuoteReductionConfig{},
 		},
 		poolRankRepository,
 		tokenRepository,
