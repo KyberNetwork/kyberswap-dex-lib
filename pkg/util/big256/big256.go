@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	// TwoPow128 2^128
+	TwoPow64  = new(uint256.Int).Lsh(U1, 64)
 	TwoPow128 = new(uint256.Int).Lsh(U1, 128)
 	UMax      = new(uint256.Int).SetAllOne()
 
@@ -51,6 +51,11 @@ func TenPow[T constraints.Integer](decimal T) *uint256.Int {
 	}
 	tmp := uint256.NewInt(uint64(decimal))
 	return tmp.Exp(U10, tmp)
+}
+
+func New(s string) *uint256.Int {
+	res, _ := uint256.FromDecimal(s)
+	return res
 }
 
 func NewUint256(s string) (res *uint256.Int, err error) {

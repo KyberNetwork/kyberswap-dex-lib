@@ -52,6 +52,8 @@ const (
 	ExchangeBeefySonic                 = "beefy-sonic"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
+	ExchangeBeethovenXV3ECLP           = "beethovenx-v3-eclp"
+	ExchangeBeethovenXV3QuantAMM       = "beethovenx-v3-quantamm"
 	ExchangeBeethovenXV3Stable         = "beethovenx-v3-stable"
 	ExchangeBeethovenXV3Weighted       = "beethovenx-v3-weighted"
 	ExchangeBeethovenXWeighted         = "beethovenx-weighted"
@@ -172,6 +174,7 @@ const (
 	ExchangeHyperCat                   = "hypercat"
 	ExchangeHyperSwapV2                = "hyperswap-v2"
 	ExchangeHyperSwapV3                = "hyperswap-v3"
+	ExchangeHyperpieV2                 = "hyperpie-v2"
 	ExchangeIZiSwap                    = "iziswap"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
@@ -428,6 +431,7 @@ const (
 	ExchangeWasabi                     = "wasabi"
 	ExchangeWault                      = "wault"
 	ExchangeWigoSwap                   = "wigo-swap"
+	ExchangeWinnieSwapV3               = "winnieswap-v3"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWooFiV3                    = "woofi-v3"
@@ -498,6 +502,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeefySonic:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
+	ExchangeBeethovenXV3ECLP:           {},
+	ExchangeBeethovenXV3QuantAMM:       {},
 	ExchangeBeethovenXV3Stable:         {},
 	ExchangeBeethovenXV3Weighted:       {},
 	ExchangeBeethovenXWeighted:         {},
@@ -614,6 +620,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHyperCat:                   {},
 	ExchangeHyperSwapV2:                {},
 	ExchangeHyperSwapV3:                {},
+	ExchangeHyperpieV2:                 {},
 	ExchangeIZiSwap:                    {},
 	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
@@ -859,6 +866,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWasabi:                     {},
 	ExchangeWault:                      {},
 	ExchangeWigoSwap:                   {},
+	ExchangeWinnieSwapV3:               {},
 	ExchangeWombat:                     {},
 	ExchangeWooFiV2:                    {},
 	ExchangeWooFiV3:                    {},

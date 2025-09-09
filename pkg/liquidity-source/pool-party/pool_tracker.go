@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -107,12 +108,23 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	var prevExtra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &prevExtra); err != nil {
+		return p, err
+	}
+
+	newPublicAmountAvailable := lo.Ternary(
+		subgraphPool.PublicAmountAvailable != "",
+		bignumber.NewBig10(subgraphPool.PublicAmountAvailable),
+		prevExtra.PublicAmountAvailable,
+	)
+
 	extra := Extra{
 		PoolStatus:            subgraphPool.PoolStatus,
 		IsVisible:             subgraphPool.IsVisible,
 		BoostPriceBps:         d.config.BoostPriceBps,
 		RateToETH:             rateToETH,
-		PublicAmountAvailable: bignumber.NewBig10(subgraphPool.PublicAmountAvailable),
+		PublicAmountAvailable: newPublicAmountAvailable,
 		Exchange:              d.config.Exchange,
 	}
 	extraBytes, _ := json.Marshal(extra)

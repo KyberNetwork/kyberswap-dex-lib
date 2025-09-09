@@ -68,10 +68,6 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, ErrPoolNotAvailable
 	}
 
-	if param.TokenAmountIn.Amount.Cmp(s.PublicAmountAvailable) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
 	if s.RateToETH.Sign() == 0 {
 		return nil, ErrInvalidRateToETH
 	}
@@ -86,6 +82,10 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	amountOut.Add(amountOut, &boostPrice)
 
+	if amountOut.Cmp(s.PublicAmountAvailable) > 0 {
+		return nil, ErrInsufficientLiquidity
+	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  s.Info.Tokens[1],
@@ -99,6 +99,11 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	return &cloned
+}
+
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.PublicAmountAvailable = new(big.Int).Sub(s.PublicAmountAvailable, params.TokenAmountOut.Amount)
 }
@@ -106,5 +111,3 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return MetaInfo{Exchange: s.Exchange}
 }
-
-func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }

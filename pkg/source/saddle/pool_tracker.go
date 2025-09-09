@@ -56,6 +56,7 @@ func (d *PoolTracker) getNewPoolState(
 
 	var (
 		lpSupply    *big.Int
+		paused      bool
 		swapStorage SwapStorage
 		balances    = make([]*big.Int, len(p.Tokens))
 	)
@@ -73,6 +74,13 @@ func (d *PoolTracker) getNewPoolState(
 			Params: []interface{}{uint8(i)},
 		}, []interface{}{&balances[i]})
 	}
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    swapFlashLoanABI,
+		Target: p.Address,
+		Method: "paused",
+		Params: nil,
+	}, []interface{}{&paused})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    swapFlashLoanABI,
@@ -104,6 +112,7 @@ func (d *PoolTracker) getNewPoolState(
 		FutureATime:  swapStorage.FutureATime.Int64(),
 		SwapFee:      swapStorage.SwapFee.String(),
 		AdminFee:     swapStorage.AdminFee.String(),
+		Paused:       paused,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
