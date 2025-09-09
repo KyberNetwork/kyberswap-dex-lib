@@ -1,6 +1,7 @@
 package erc4626
 
 import (
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/holiman/uint256"
 )
 
@@ -18,20 +19,25 @@ func GetClosestRate(rates []*uint256.Int, amount *uint256.Int) (*uint256.Int, er
 			continue
 		}
 
-		if PrefetchAmounts[i].Gt(amount) {
-			diff.Sub(PrefetchAmounts[i], amount)
+		prefetchAmount := PrefetchAmounts[i]
+
+		// Calculate multiplicative distance
+		if amount.Gt(prefetchAmount) {
+			diff.Div(amount, prefetchAmount)
 		} else {
-			diff.Sub(amount, PrefetchAmounts[i])
+			diff.Div(prefetchAmount, amount)
 		}
 
-		if diff.IsZero() {
+		if diff.Eq(u256.U1) {
 			bestId = i
 			break
 		}
 
+		diff.Sub(diff, u256.U1)
+
 		if bestId == -1 || diff.Lt(bestDiff) {
 			bestId = i
-			bestDiff, diff = diff, bestDiff
+			bestDiff.Set(diff)
 		}
 	}
 
