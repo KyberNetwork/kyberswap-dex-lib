@@ -21,7 +21,7 @@ require (
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.15.2
 	github.com/KyberNetwork/logger v1.0.3
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pathfinder-lib v0.2.3-0.20250908063713-a4a0cf13f3cf
+	github.com/KyberNetwork/pathfinder-lib v0.2.3
 	github.com/KyberNetwork/pool-service v0.93.6
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.8.0
