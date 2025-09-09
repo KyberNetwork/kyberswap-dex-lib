@@ -25,6 +25,7 @@ type PoolSimulator struct {
 	DefaultWithdrawFee *big.Int
 	LpToken            string
 	LpSupply           *big.Int
+	Paused             bool
 	gas                Gas
 }
 
@@ -79,11 +80,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		DefaultWithdrawFee: defaultWithdrawFee,
 		LpToken:            staticExtra.LpToken,
 		LpSupply:           bignumber.NewBig10(entityPool.Reserves[numTokens]),
+		Paused:             extra.Paused,
 		gas:                DefaultGas,
 	}, nil
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if t.Paused {
+		return nil, ErrPoolPaused
+	}
+
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var balances = t.Info.Reserves
@@ -269,5 +275,6 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		TokenInIndex:  fromId,
 		TokenOutIndex: toId,
 		PoolLength:    len(t.Info.Tokens),
+		LpToken:       t.LpToken,
 	}
 }
