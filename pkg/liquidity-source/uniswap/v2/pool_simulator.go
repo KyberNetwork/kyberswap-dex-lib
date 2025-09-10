@@ -126,8 +126,9 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	s.reserves[indexIn] = new(uint256.Int).Add(s.reserves[indexIn], uint256.MustFromBig(params.TokenAmountIn.Amount))
-	s.reserves[indexOut] = new(uint256.Int).Sub(s.reserves[indexOut], uint256.MustFromBig(params.TokenAmountOut.Amount))
+	amtIn, amtOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
+	s.reserves[indexIn] = amtIn.Add(s.reserves[indexIn], amtIn)
+	s.reserves[indexOut] = amtOut.Sub(s.reserves[indexOut], amtOut)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type PoolAndRegistries struct {
@@ -104,13 +105,13 @@ type PoolPlainOracleExtra struct {
 }
 
 type PoolMetaExtra struct {
-	InitialA               string   `json:"initialA"`
-	FutureA                string   `json:"futureA"`
-	InitialATime           int64    `json:"initialATime"`
-	FutureATime            int64    `json:"futureATime"`
-	SwapFee                string   `json:"swapFee"`
-	AdminFee               string   `json:"adminFee"`
-	SnappedRedemptionPrice *big.Int `json:"snappedRedemptionPrice"`
+	InitialA               string       `json:"initialA"`
+	FutureA                string       `json:"futureA"`
+	InitialATime           int64        `json:"initialATime"`
+	FutureATime            int64        `json:"futureATime"`
+	SwapFee                string       `json:"swapFee"`
+	AdminFee               string       `json:"adminFee"`
+	SnappedRedemptionPrice *uint256.Int `json:"snappedRedemptionPrice"`
 }
 
 type PoolAaveExtra struct {
