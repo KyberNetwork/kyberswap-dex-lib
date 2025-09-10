@@ -22,7 +22,7 @@ type PoolSimulator struct {
 	Token1               entity.PoolToken
 	ZeroToOnePriceLevels []PriceLevel
 	OneToZeroPriceLevels []PriceLevel
-	MinIn0, MinIn1       float64
+	MinIn0F, MinIn1F     float64
 
 	timestamp      int64
 	priceTolerance uint
@@ -53,8 +53,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Token1:               *entityPool.Tokens[1],
 		ZeroToOnePriceLevels: extra.ZeroToOnePriceLevels,
 		OneToZeroPriceLevels: extra.OneToZeroPriceLevels,
-		MinIn0:               extra.MinIn0,
-		MinIn1:               extra.MinIn1,
+		MinIn0F:              extra.MinIn0 / math.Pow10(int(entityPool.Tokens[0].Decimals)),
+		MinIn1F:              extra.MinIn1 / math.Pow10(int(entityPool.Tokens[1].Decimals)),
 
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
@@ -65,10 +65,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Token == p.Token0.Address {
 		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1,
-			p.MinIn0, params.Limit.GetLimit(p.Token1.Address), p.ZeroToOnePriceLevels)
+			p.MinIn0F, params.Limit.GetLimit(p.Token1.Address), p.ZeroToOnePriceLevels)
 	} else {
 		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0,
-			p.MinIn1, params.Limit.GetLimit(p.Token0.Address), p.OneToZeroPriceLevels)
+			p.MinIn1F, params.Limit.GetLimit(p.Token0.Address), p.OneToZeroPriceLevels)
 	}
 }
 
