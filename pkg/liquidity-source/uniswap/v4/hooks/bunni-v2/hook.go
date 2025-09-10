@@ -1,7 +1,6 @@
 package bunniv2
 
 import (
-	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -9,6 +8,9 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -19,8 +21,6 @@ import (
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 )
 
 var _ = uniswapv4.RegisterHooksFactory(NewHook, lo.Keys(HookAddresses)...)

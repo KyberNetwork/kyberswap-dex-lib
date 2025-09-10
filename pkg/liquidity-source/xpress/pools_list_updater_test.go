@@ -6,10 +6,13 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPoolsListUpdater_GetNewPools(t *testing.T) {
@@ -31,21 +34,20 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 		},
 		HelperAddress: helperAddress,
 		ChainId:       chainId,
-	}, ethrpc.New(rpcURL).
-		SetMulticallContract(multicallAddress))
+	}, ethrpc.New(rpcURL).SetMulticallContract(multicallAddress))
 
 	pools, poolsMetadataBytes, err := plUpdater.GetNewPools(context.Background(), nil)
 	require.NoError(t, err)
 	require.Greater(t, len(pools), 0)
 
-	for _, p := range pools {
-		tracker, err := NewPoolTracker(plUpdater.config, plUpdater.ethrpcClient)
-		require.NoError(t, err)
+	tracker, err := NewPoolTracker(plUpdater.config, plUpdater.ethrpcClient)
+	require.NoError(t, err)
 
-		pool, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+	for i, p := range pools {
+		pools[i], err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
 	}
+	t.Log(string(lo.Must(json.Marshal(pools[10]))))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), poolsMetadataBytes)
 	require.NoError(t, err)

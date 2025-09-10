@@ -3,9 +3,10 @@ package clanker
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (

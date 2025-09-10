@@ -2,16 +2,20 @@ package xpress
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
+	"slices"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type PoolListUpdater struct {
@@ -39,60 +43,60 @@ func NewPoolListUpdater(
 }
 
 func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	metadata := Metadata{
-		Pools: []common.Address{},
-	}
+	l := logger.WithFields(logger.Fields{
+		"dexID": u.config.DexId,
+	})
+	l.Info("Start getting new pools")
 
+	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
-		if err != nil {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, metadataBytes, err
 		}
 	}
 
 	markets, err := u.getPoolsList(ctx)
 	if err != nil {
-		logger.WithFields(logger.Fields{
+		l.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get pools list")
 		return nil, nil, err
 	}
 
-	numMarkets := len(markets)
-	logger.Infof("got %v markets", numMarkets)
-
-	pools := make([]entity.Pool, 0, len(markets))
-
+	var poolsChecksum common.Address
 	for _, market := range markets {
-		// skip pool if already processed
-		if lo.Contains(metadata.Pools, common.HexToAddress(market.OrderbookAddress)) {
-			continue
+		poolAddr := common.HexToAddress(market.OrderbookAddress)
+		for i := range common.AddressLength {
+			poolsChecksum[i] ^= poolAddr[i]
 		}
+	}
+	if metadata.LastCount == len(markets) && metadata.LastPoolsChecksum == poolsChecksum {
+		return nil, metadataBytes, nil
+	}
+	metadata.LastCount, metadata.LastPoolsChecksum = len(markets), poolsChecksum
+	l.Infof("got %v markets", metadata.LastCount)
 
-		staticExtra, err := u.getLobConfig(ctx, &market)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// TODO: compare scaling factors from staticExtra with market info
-
-		staticExtraBytes, _ := json.Marshal(staticExtra)
-
-		var newPool = entity.Pool{
-			Address:  market.OrderbookAddress,
+	pools := make([]entity.Pool, len(markets))
+	staticExtras, err := u.getLobConfig(ctx, markets)
+	if err != nil {
+		return nil, nil, err
+	}
+	for i, market := range markets {
+		staticExtraBytes, _ := json.Marshal(staticExtras[i])
+		pools[i] = entity.Pool{
+			Address:  strings.ToLower(market.OrderbookAddress),
 			SwapFee:  market.AggressiveFee,
 			Exchange: u.config.DexId,
 			Type:     DexType,
-			//Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   market.BaseToken.ContractAddress,
+					Address:   strings.ToLower(market.BaseToken.ContractAddress), // X
 					Symbol:    market.BaseToken.Symbol,
 					Decimals:  market.BaseToken.Decimals,
 					Swappable: true,
 				},
 				{
-					Address:   market.QuoteToken.ContractAddress,
+					Address:   strings.ToLower(market.QuoteToken.ContractAddress), // Y
 					Symbol:    market.QuoteToken.Symbol,
 					Decimals:  market.QuoteToken.Decimals,
 					Swappable: true,
@@ -102,54 +106,56 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Extra:       "{}",
 			StaticExtra: string(staticExtraBytes),
 		}
-
-		pools = append(pools, newPool)
-
-		metadata.Pools = append(metadata.Pools, common.HexToAddress(market.OrderbookAddress))
 	}
 
-	metadataBytes, err = json.Marshal(metadata)
-	if err != nil {
-		return nil, metadataBytes, err
-	}
-
+	metadataBytes, _ = json.Marshal(metadata)
 	return pools, metadataBytes, nil
 }
 
-func (u *PoolListUpdater) getPoolsList(ctx context.Context) ([]MarketInfo, error) {
-	var result []MarketInfo
-
-	resp, err := u.httpClient.NewRequest().
+func (u *PoolListUpdater) getPoolsList(ctx context.Context) ([]*MarketInfo, error) {
+	var result []*MarketInfo
+	if resp, err := u.httpClient.NewRequest().
 		SetContext(ctx).
 		SetResult(&result).
-		Get("/markets")
-
-	if err != nil {
-		return nil, err
+		Get("/markets"); err != nil || !resp.IsSuccess() {
+		return nil, errors.Errorf("failed to get pools list: %v, resp=%v", err, resp)
 	}
-
-	if !resp.IsSuccess() {
-		return nil, errors.New("failed to get pools list")
-	}
-
 	return result, nil
 }
 
-func (u *PoolListUpdater) getLobConfig(ctx context.Context, market *MarketInfo) (*LobConfig, error) {
-	lobConfig := LobConfig{}
-	rpcRequests := u.ethrpcClient.NewRequest().SetContext(ctx)
+const MaxBatchSize = 64
 
-	rpcRequests.AddCall(&ethrpc.Call{
-		ABI:    onchainClobABI,
-		Target: market.OrderbookAddress,
-		Method: "getConfig",
-		Params: nil,
-	}, []any{&lobConfig})
-
-	_, err := rpcRequests.Call()
-	if err != nil {
-		return nil, err
+func (u *PoolListUpdater) getLobConfig(ctx context.Context, markets []*MarketInfo) ([]*StaticExtra, error) {
+	if len(markets) > MaxBatchSize {
+		staticExtras := make([]*StaticExtra, 0, len(markets))
+		for marketsChunk := range slices.Chunk(markets, MaxBatchSize) {
+			staticExtrasChunk, err := u.getLobConfig(ctx, marketsChunk)
+			if err != nil {
+				return nil, err
+			}
+			staticExtras = append(staticExtras, staticExtrasChunk...)
+		}
+		return staticExtras, nil
 	}
 
-	return &lobConfig, nil
+	lobCfgs := make([]*LobConfig, len(markets))
+	req := u.ethrpcClient.NewRequest().SetContext(ctx)
+	for i, market := range markets {
+		lobCfgs[i] = new(LobConfig)
+		req.AddCall(&ethrpc.Call{
+			ABI:    onchainClobABI,
+			Target: market.OrderbookAddress,
+			Method: "getConfig",
+		}, []any{lobCfgs[i]})
+	}
+	if _, err := req.Aggregate(); err != nil {
+		return nil, err
+	}
+	return lo.Map(lobCfgs, func(lobCfg *LobConfig, _ int) *StaticExtra {
+		return &StaticExtra{
+			ScalingFactorX:    uint256.MustFromBig(lobCfg.ScalingFactorTokenX),
+			ScalingFactorY:    uint256.MustFromBig(lobCfg.ScalingFactorTokenY),
+			SupportsNativeEth: lobCfg.SupportsNativeEth,
+		}
+	}), nil
 }

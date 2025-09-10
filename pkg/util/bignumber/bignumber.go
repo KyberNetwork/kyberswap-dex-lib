@@ -108,27 +108,3 @@ func Min(a, b *big.Int) *big.Int {
 
 	return b
 }
-
-func MulDivUp(x, y, denominator *big.Int) *big.Int {
-	xy := new(big.Int).Mul(x, y)
-	quotient := new(big.Int).Div(xy, denominator)
-	remainder := new(big.Int).Mod(xy, denominator)
-	if remainder.Cmp(ZeroBI) != 0 {
-		quotient.Add(quotient, One)
-	}
-	return quotient
-}
-
-func MulDivDown(x, y, denominator *big.Int) *big.Int {
-	xy := new(big.Int).Mul(x, y)
-	quotient := new(big.Int).Div(xy, denominator)
-	return quotient
-}
-
-func MulWadUp(x, y *big.Int) *big.Int {
-	return MulDivUp(x, y, BONE)
-}
-
-func MulWadDown(x, y *big.Int) *big.Int {
-	return MulDivDown(x, y, BONE)
-}

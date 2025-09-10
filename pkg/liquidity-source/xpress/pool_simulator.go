@@ -1,161 +1,157 @@
 package xpress
 
 import (
-	"encoding/json"
 	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	OrderBook *OrderBook
-	LobConfig *LobConfig
+	swapFee *uint256.Int
+	*OrderBook
+	*StaticExtra
 }
 
-var _ = pool.RegisterFactory1(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var orderBook OrderBook
 	if err := json.Unmarshal([]byte(entityPool.Extra), &orderBook); err != nil {
 		return nil, err
 	}
 
-	var lobConfig LobConfig
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &lobConfig); err != nil {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
-	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
-	var swapFee, _ = swapFeeFl.Int(nil)
-
-	info := pool.PoolInfo{
-		Address:     entityPool.Address,
-		Exchange:    entityPool.Exchange,
-		Type:        entityPool.Type,
-		Tokens:      []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
-		Reserves:    []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]), bignumber.NewBig10(entityPool.Reserves[1])},
-		SwapFee:     swapFee,
-		BlockNumber: entityPool.BlockNumber,
-	}
-
 	return &PoolSimulator{
-		Pool:      pool.Pool{Info: info},
-		OrderBook: &orderBook,
-		LobConfig: &lobConfig,
+		Pool: pool.Pool{Info: pool.PoolInfo{
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+			Reserves: []*big.Int{bignumber.NewBig10(entityPool.Reserves[0]),
+				bignumber.NewBig10(entityPool.Reserves[1])},
+			BlockNumber: entityPool.BlockNumber,
+		}},
+		swapFee:     uint256.NewInt(uint64(entityPool.SwapFee * 1e18)),
+		OrderBook:   &orderBook,
+		StaticExtra: &staticExtra,
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult, err error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-
-	// TODO: check tokenIn and tokenOut is correct
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResult *pool.CalcAmountOutResult,
+	err error) {
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	tokenIn := tokenAmountIn.Token
+	amtIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrInvalidAmount
+	}
+	indexIn, indexOut := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
 
 	// tokenOut is tokenX means buy, tokenOut is tokenY means sell
-	var isBuy = common.HexToAddress(param.TokenOut).Cmp(p.LobConfig.TokenX) == 0
 	var levels *OrderBookLevels
-	var scalingFactorIn *big.Int
-	var scalingFactorOut *big.Int
-
+	var scalingFactorIn, scalingFactorOut *uint256.Int
+	isBuy := indexOut == 0
 	if isBuy {
 		levels = &OrderBookLevels{
-			ArrayPrices: slices.Clone(p.OrderBook.Asks.ArrayPrices),
-			ArrayShares: slices.Clone(p.OrderBook.Asks.ArrayShares),
+			ArrayPrices: slices.Clone(p.Asks.ArrayPrices),
+			ArrayShares: slices.Clone(p.Asks.ArrayShares),
 		}
-		scalingFactorIn = p.LobConfig.ScalingFactorTokenY
-		scalingFactorOut = p.LobConfig.ScalingFactorTokenX
+		scalingFactorIn = p.ScalingFactorY
+		scalingFactorOut = p.ScalingFactorX
 	} else {
 		levels = &OrderBookLevels{
-			ArrayPrices: slices.Clone(p.OrderBook.Bids.ArrayPrices),
-			ArrayShares: slices.Clone(p.OrderBook.Bids.ArrayShares),
+			ArrayPrices: slices.Clone(p.Bids.ArrayPrices),
+			ArrayShares: slices.Clone(p.Bids.ArrayShares),
 		}
-		scalingFactorIn = p.LobConfig.ScalingFactorTokenX
-		scalingFactorOut = p.LobConfig.ScalingFactorTokenY
+		scalingFactorIn = p.ScalingFactorX
+		scalingFactorOut = p.ScalingFactorY
 	}
 
 	// for buys fees deducted from tokenIn (tokenY), for sells fees deducted from result tokenOut (tokenY)
-	var availableAmountIn = new(big.Int).Set(tokenAmountIn.Amount)
-
+	var availableAmountIn, tmp uint256.Int
+	availableAmountIn.Set(amtIn)
 	if isBuy {
-		availableAmountIn.Mul(availableAmountIn, bignumber.BONE)
-		availableAmountIn.Div(availableAmountIn, new(big.Int).Add(bignumber.BONE, p.Info.SwapFee))
+		availableAmountIn.MulDivOverflow(&availableAmountIn, big256.BONE, tmp.Add(big256.BONE, p.swapFee))
 	}
 
-	var scaledAmountIn = new(big.Int).Div(availableAmountIn, scalingFactorIn)
-	var executedScaledAmountOut = new(big.Int)
-	var executedScaledAmountIn = new(big.Int)
+	scaledAmountIn := availableAmountIn.Div(&availableAmountIn, scalingFactorIn)
+	var executedValue, executedScaledAmountOut, executedScaledAmountIn uint256.Int
 
-	for i := 0; i < len(levels.ArrayPrices); i++ {
-		price := levels.ArrayPrices[i]
+	for i, price := range levels.ArrayPrices {
 		shares := levels.ArrayShares[i] // in tokenX
 
-		var maxSharesIn *big.Int
+		var maxSharesIn *uint256.Int
 		if isBuy {
-			maxSharesIn = new(big.Int).Div(scaledAmountIn, price) // in tokenX
+			maxSharesIn = tmp.Div(scaledAmountIn, price) // in tokenX
 		} else {
-			maxSharesIn = scaledAmountIn // in tokenX
+			maxSharesIn = tmp.Set(scaledAmountIn) // in tokenX
+		}
+		executedShares := big256.Min(shares, maxSharesIn) // in tokenX
+		executedValue.Mul(executedShares, price)          // in tokenY
+
+		if isBuy {
+			scaledAmountIn.Sub(scaledAmountIn, &executedValue)                    // in tokenY
+			executedScaledAmountOut.Add(&executedScaledAmountOut, executedShares) // in tokenX
+			executedScaledAmountIn.Add(&executedScaledAmountIn, &executedValue)   // in tokenY
+		} else {
+			scaledAmountIn.Sub(scaledAmountIn, executedShares)                    // in tokenX
+			executedScaledAmountOut.Add(&executedScaledAmountOut, &executedValue) // in tokenY
+			executedScaledAmountIn.Add(&executedScaledAmountIn, executedShares)   // in tokenX
 		}
 
-		executedShares := new(big.Int).Set(bignumber.Min(shares, maxSharesIn)) // in tokenX
-		executedValue := new(big.Int).Mul(executedShares, price)               // in tokenY
+		levels.ArrayShares[i].Sub(shares, executedShares)
 
-		if isBuy {
-			scaledAmountIn.Sub(scaledAmountIn, executedValue)                    // in tokenY
-			executedScaledAmountOut.Add(executedScaledAmountOut, executedShares) // in tokenX
-			executedScaledAmountIn.Add(executedScaledAmountIn, executedValue)    // in tokenY
-		} else {
-			scaledAmountIn.Sub(scaledAmountIn, executedShares)                  // in tokenX
-			executedScaledAmountOut.Add(executedScaledAmountOut, executedValue) // in tokenY
-			executedScaledAmountIn.Add(executedScaledAmountIn, executedShares)  // in tokenX
-		}
-
-		levels.ArrayShares[i] = new(big.Int).Sub(shares, executedShares)
-
-		// check if amountIn is fully executed
-		if scaledAmountIn.Cmp(bignumber.ZeroBI) == 0 {
+		if scaledAmountIn.Sign() == 0 { // fully executed
 			break
 		}
 	}
 
-	executedAmountIn := new(big.Int).Mul(executedScaledAmountIn, scalingFactorIn)
-	executedAmountOut := new(big.Int).Mul(executedScaledAmountOut, scalingFactorOut)
+	executedAmountIn := executedScaledAmountIn.Mul(&executedScaledAmountIn, scalingFactorIn)
+	executedAmountOut := executedScaledAmountOut.Mul(&executedScaledAmountOut, scalingFactorOut)
 
-	var feesTokenY *big.Int
-	var remainingAmountIn *big.Int
+	var feesTokenY, remainingAmountIn *uint256.Int
 	if isBuy {
-		feesTokenY = bignumber.MulWadUp(executedAmountIn, p.Info.SwapFee)
-		remainingAmountIn = new(big.Int).Sub(tokenAmountIn.Amount, new(big.Int).Add(executedAmountIn, feesTokenY))
+		feesTokenY = big256.MulWadUp(&tmp, executedAmountIn, p.swapFee)
+		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn).Sub(amtIn, feesTokenY)
 	} else {
-		feesTokenY = bignumber.MulWadUp(executedAmountOut, p.Info.SwapFee)
-		remainingAmountIn = new(big.Int).Sub(tokenAmountIn.Amount, executedAmountIn)
-
+		feesTokenY = big256.MulWadUp(&tmp, executedAmountOut, p.swapFee)
+		remainingAmountIn = amtIn.Sub(amtIn, executedAmountIn)
 		executedAmountOut.Sub(executedAmountOut, feesTokenY)
 	}
 
 	var updatedOrderBook *OrderBook
 	if isBuy {
 		updatedOrderBook = &OrderBook{
-			Bids: p.OrderBook.Bids,
+			Bids: p.Bids,
 			Asks: *p.removeExecutedLevels(levels),
 		}
 	} else {
 		updatedOrderBook = &OrderBook{
 			Bids: *p.removeExecutedLevels(levels),
-			Asks: p.OrderBook.Asks,
+			Asks: p.Asks,
 		}
 	}
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: executedAmountOut},
-		Fee:                    &pool.TokenAmount{Token: p.LobConfig.TokenY.Hex(), Amount: feesTokenY},
-		RemainingTokenAmountIn: &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: remainingAmountIn},
+		TokenAmountOut:         &pool.TokenAmount{Token: tokenOut, Amount: executedAmountOut.ToBig()},
+		Fee:                    &pool.TokenAmount{Token: p.Info.Tokens[1], Amount: feesTokenY.ToBig()},
+		RemainingTokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: remainingAmountIn.ToBig()},
 		Gas:                    DefaultGas,
 		SwapInfo: SwapInfo{
 			UpdatedOrderBook: updatedOrderBook,
@@ -165,7 +161,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 
 func (p *PoolSimulator) removeExecutedLevels(levels *OrderBookLevels) *OrderBookLevels {
 	for len(levels.ArrayShares) > 0 {
-		if levels.ArrayShares[0].Cmp(bignumber.ZeroBI) == 0 {
+		if levels.ArrayShares[0].IsZero() {
 			levels.ArrayShares = levels.ArrayShares[1:]
 			levels.ArrayPrices = levels.ArrayPrices[1:]
 		} else {
@@ -176,23 +172,18 @@ func (p *PoolSimulator) removeExecutedLevels(levels *OrderBookLevels) *OrderBook
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	clonedOrderBook := OrderBook{
+	cloned := *p
+	cloned.OrderBook = &OrderBook{
 		Bids: OrderBookLevels{
-			ArrayPrices: slices.Clone(p.OrderBook.Bids.ArrayPrices),
-			ArrayShares: slices.Clone(p.OrderBook.Bids.ArrayShares),
+			ArrayPrices: slices.Clone(p.Bids.ArrayPrices),
+			ArrayShares: slices.Clone(p.Bids.ArrayShares),
 		},
 		Asks: OrderBookLevels{
-			ArrayPrices: slices.Clone(p.OrderBook.Asks.ArrayPrices),
-			ArrayShares: slices.Clone(p.OrderBook.Asks.ArrayShares),
+			ArrayPrices: slices.Clone(p.Asks.ArrayPrices),
+			ArrayShares: slices.Clone(p.Asks.ArrayShares),
 		},
 	}
-	clonedLobConfig := *p.LobConfig
-
-	return &PoolSimulator{
-		Pool:      p.Pool,
-		OrderBook: &clonedOrderBook,
-		LobConfig: &clonedLobConfig,
-	}
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -204,6 +195,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.OrderBook = si.UpdatedOrderBook
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
