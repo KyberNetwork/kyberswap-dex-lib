@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -32,7 +33,7 @@ type PoolKey struct {
 type AbiPoolKey struct {
 	Token0 common.Address `json:"token0"`
 	Token1 common.Address `json:"token1"`
-	Config [32]byte       `json:"config"`
+	Config common.Hash    `json:"config"`
 }
 
 func NewPoolKey(token0, token1 common.Address, config PoolConfig) *PoolKey {
@@ -83,14 +84,14 @@ func (k *PoolKey) ToPoolAddress() (string, error) {
 		return "", err
 	}
 
-	return "0x" + common.Bytes2Hex(numId), nil
+	return hexutil.Encode(numId), nil
 }
 
 func (k *PoolKey) ToAbi() AbiPoolKey {
 	return AbiPoolKey{
 		Token0: k.Token0,
 		Token1: k.Token1,
-		Config: [32]byte(k.Config.Compressed()),
+		Config: common.Hash(k.Config.Compressed()),
 	}
 }
 
