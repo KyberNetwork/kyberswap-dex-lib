@@ -170,7 +170,7 @@ const (
 	ExchangeHorizonIntegral            = "horizon-integral"
 	ExchangeHybraV2                    = "hybra-v2"
 	ExchangeHybraV3                    = "hybra-v3"
-	ExchangeHydrex                     = "hydrex"
+	ExchangeHydrexV4                   = "hydrex-v4"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
 	ExchangeHyperBrickLB               = "hyperbrick-lb"
@@ -621,7 +621,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHorizonIntegral:            {},
 	ExchangeHybraV2:                    {},
 	ExchangeHybraV3:                    {},
-	ExchangeHydrex:                     {},
+	ExchangeHydrexV4:                   {},
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
 	ExchangeHyperBrickLB:               {},
