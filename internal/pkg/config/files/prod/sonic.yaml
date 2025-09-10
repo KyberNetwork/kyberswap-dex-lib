@@ -132,6 +132,7 @@ poolRedis:
   routeRandomly: false
 poolEventRedis:
   addresses:
+  sentinelPassword: ""
   masterName: ""
   dbNumber: 0
   password: ""
