@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	defaultpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/default-pmm"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm/client"
 	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading/client"
-	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	clipperclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	dexalotClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
@@ -345,7 +345,7 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4228,
 		Message:    "pmm-1 RFQ failed",
 	},
-	onebit.ErrEmptyOrderList: {
+	defaultpmm.ErrEmptyOrderList: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4228,
 		Message:    "pmm-2 RFQ failed: empty order list",

@@ -3,8 +3,8 @@ package indexpools
 import (
 	"errors"
 
+	defaultpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/default-pmm"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
-	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
@@ -15,9 +15,10 @@ import (
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func (u *TradeDataGenerator) removeZeroReservesPools(pools []*entity.Pool) ([]*entity.Pool, mapset.Set[string]) {
@@ -107,8 +108,8 @@ func (gen *TradeDataGenerator) errAmountInLessThanMinAllowed(dex dexValueObject.
 		return errors.Is(err, dexalot.ErrAmountInIsLessThanLowestPriceLevel)
 	case dexValueObject.ExchangeClipper:
 		return errors.Is(err, clipper.ErrMinAmountInNotEnough)
-	case dexValueObject.ExchangePmm2:
-		return errors.Is(err, onebit.ErrAmountInIsLessThanLowestPriceLevel)
+	case dexValueObject.ExchangePmm2, dexValueObject.ExchangePmm3:
+		return errors.Is(err, defaultpmm.ErrAmountInIsLessThanLowestPriceLevel)
 	case dexValueObject.ExchangePmm1:
 		return errors.Is(err, mxtrading.ErrAmountInIsLessThanLowestPriceLevel)
 	case dexValueObject.ExchangeNativeV1:

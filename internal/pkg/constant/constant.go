@@ -46,6 +46,7 @@ var DexUseSwapLimit = []string{
 	pooltypes.PoolTypes.KyberPMM,
 	pooltypes.PoolTypes.Pmm1,
 	pooltypes.PoolTypes.Pmm2,
+	pooltypes.PoolTypes.Pmm3,
 	pooltypes.PoolTypes.Synthetix,
 	pooltypes.PoolTypes.NativeV1,
 	pooltypes.PoolTypes.LimitOrder,

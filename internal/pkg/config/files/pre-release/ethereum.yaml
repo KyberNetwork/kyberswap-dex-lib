@@ -202,6 +202,7 @@ common:
         kyber-pmm: 5000
         pmm-1: 5000
         pmm-2: 5000
+        pmm-3: 5000
       surplusAllowanceUsd:
       surplusAllowanceUsdByPool:
       maxThresholdPercentageInBps: 8000
@@ -575,6 +576,14 @@ useCase:
             base_url: "https://kyber-eth.myeth.top"
             timeout: 10s
             retry_count: 2
+      pmm-3:
+        handler: tokka
+        properties:
+          http:
+            base_url: "https://kehr54rr.altono.xyz/kyberswap/api/v1"
+            timeout: 10s
+            retry_count: 2
+            chain_id: *chainId
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet

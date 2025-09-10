@@ -4,6 +4,7 @@ import (
 	"context"
 
 	_ "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
+	defaultpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/default-pmm"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm/client"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
@@ -11,6 +12,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	onebitclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit/client"
 	pcsfairflow "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/pancake-infinity/hooks/fairflow"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/tokka"
+	tokkaclient "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/tokka/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4/hooks/fairflow"
 	kem "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/uniswap-v4/hooks/kyber-exclusive-amm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
@@ -25,7 +28,6 @@ import (
 	nativev1client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	swaapv2client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -128,13 +130,19 @@ func NewRFQHandler(rfqCfg buildroute.RFQConfig, poolManager *poolmanager.Pointer
 		return mxtrading.NewRFQHandler(cfg, httpClient), nil
 
 	case onebit.Handler:
-		cfg, err := util.AnyToStruct[onebit.Config](rfqCfg.Properties)
+		cfg, err := util.AnyToStruct[defaultpmm.Config](rfqCfg.Properties)
 		if err != nil {
 			return nil, err
 		}
 		httpClient := onebitclient.NewHTTPClient(&cfg.HTTP)
 		return onebit.NewRFQHandler(cfg, httpClient), nil
-
+	case tokka.Handler:
+		cfg, err := util.AnyToStruct[defaultpmm.Config](rfqCfg.Properties)
+		if err != nil {
+			return nil, err
+		}
+		httpClient := tokkaclient.NewHTTPClient(&cfg.HTTP)
+		return tokka.NewRFQHandler(cfg, httpClient), nil
 	case kem.Handler:
 		cfg, err := util.AnyToStruct[fairflow.RFQConfig](rfqCfg.Properties)
 		if err != nil {

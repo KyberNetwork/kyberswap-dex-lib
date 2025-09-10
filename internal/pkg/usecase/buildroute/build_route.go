@@ -15,9 +15,9 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
 	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kutils"
+	defaultpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/default-pmm"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/kyber-pmm"
 	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/mx-trading"
-	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/onebit"
 	privo "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/valueobject"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -699,9 +699,9 @@ func (uc *BuildRouteUseCase) convertToRouterSwappedEvent(routeSummary *valueobje
 		rfqRouteMsg.TakerAsset = order.TakerAsset
 		rfqRouteMsg.MakerAsset = order.MakerAsset
 
-	case dexValueObject.ExchangePmm2:
+	case dexValueObject.ExchangePmm2, dexValueObject.ExchangePmm3:
 		rfqRouteMsg.RouteType = string(RFQ)
-		onebitExtra, ok := extra.(onebit.RFQExtra)
+		onebitExtra, ok := extra.(defaultpmm.RFQExtra)
 		if !ok {
 			break
 		}
