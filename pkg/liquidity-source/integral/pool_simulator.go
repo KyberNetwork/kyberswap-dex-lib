@@ -228,6 +228,4 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	return limits
 }
 
-func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
-	return lo.ToPtr(*p)
-}
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator { return p }
