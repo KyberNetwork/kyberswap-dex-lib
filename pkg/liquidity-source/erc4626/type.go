@@ -22,12 +22,12 @@ type (
 	}
 
 	Extra struct {
-		Gas         Gas          `json:"g"`
-		SwapTypes   SwapType     `json:"sT,omitempty"`
-		MaxDeposit  *uint256.Int `json:"mD,omitempty"`
-		MaxRedeem   *uint256.Int `json:"mR,omitempty"`
-		DepositRate *uint256.Int `json:"dR,omitempty"`
-		RedeemRate  *uint256.Int `json:"rR,omitempty"`
+		Gas          Gas            `json:"g"`
+		SwapTypes    SwapType       `json:"sT,omitempty"`
+		MaxDeposit   *uint256.Int   `json:"mD,omitempty"`
+		MaxRedeem    *uint256.Int   `json:"mR,omitempty"`
+		DepositRates []*uint256.Int `json:"dR,omitempty"`
+		RedeemRates  []*uint256.Int `json:"rR,omitempty"`
 	}
 
 	Meta struct {
@@ -35,12 +35,12 @@ type (
 	}
 
 	PoolState struct {
-		MaxDeposit  *big.Int
-		MaxRedeem   *big.Int
-		TotalAssets *big.Int
-		TotalSupply *big.Int
-		DepositRate *big.Int
-		RedeemRate  *big.Int
+		MaxDeposit   *big.Int
+		MaxRedeem    *big.Int
+		TotalAssets  *big.Int
+		TotalSupply  *big.Int
+		DepositRates []*big.Int
+		RedeemRates  []*big.Int
 
 		blockNumber uint64
 	}

@@ -453,6 +453,8 @@ const (
 	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
 	ExchangeXSolvBTC                   = "xsolvbtc"
+	ExchangeHydrex                     = "hydrex"
+	ExchangeUpheaval                   = "upheaval"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -889,6 +891,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAngleTransmuterUSD:         {},
 	ExchangeAngleTransmuterEUR:         {},
 	ExchangeXSolvBTC:                   {},
+	ExchangeHydrex:                     {},
+	ExchangeUpheaval:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

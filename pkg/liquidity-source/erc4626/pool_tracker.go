@@ -2,6 +2,7 @@ package erc4626
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -87,12 +88,12 @@ func (t *PoolTracker) getNewPoolState(
 
 func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) error {
 	extraBytes, err := json.Marshal(Extra{
-		Gas:         Gas(vaultCfg.Gas),
-		SwapTypes:   vaultCfg.SwapTypes,
-		MaxDeposit:  uint256.MustFromBig(state.MaxDeposit),
-		MaxRedeem:   uint256.MustFromBig(state.MaxRedeem),
-		DepositRate: uint256.MustFromBig(state.DepositRate),
-		RedeemRate:  uint256.MustFromBig(state.RedeemRate),
+		Gas:          Gas(vaultCfg.Gas),
+		SwapTypes:    vaultCfg.SwapTypes,
+		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
+		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
+		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")
@@ -108,12 +109,17 @@ func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 
 func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultAddr string, vaultCfg VaultCfg,
 	fetchAsset bool, overrides map[common.Address]gethclient.OverrideAccount) (common.Address, *PoolState, error) {
-	var assetToken common.Address
-	var poolState PoolState
+	var (
+		assetToken common.Address
+		poolState  = PoolState{
+			DepositRates: make([]*big.Int, len(PrefetchAmounts)),
+			RedeemRates:  make([]*big.Int, len(PrefetchAmounts)),
+		}
+	)
 
 	req := ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 	if fetchAsset {
-		req = req.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: erc4626MethodAsset,
@@ -130,12 +136,16 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: erc4626MethodTotalAssets,
-		}, []any{&poolState.TotalAssets}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodPreviewDeposit,
-			Params: []any{BiWad},
-		}, []any{&poolState.DepositRate})
+		}, []any{&poolState.TotalAssets})
+
+		for i, amt := range PrefetchAmounts {
+			req.AddCall(&ethrpc.Call{
+				ABI:    ABI,
+				Target: vaultAddr,
+				Method: erc4626MethodPreviewDeposit,
+				Params: []any{amt.ToBig()},
+			}, []any{&poolState.DepositRates[i]})
+		}
 	}
 	if vaultCfg.SwapTypes == Both || vaultCfg.SwapTypes == Redeem {
 		req.AddCall(&ethrpc.Call{
@@ -147,34 +157,29 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, vaultA
 			ABI:    ABI,
 			Target: vaultAddr,
 			Method: erc4626MethodTotalSupply,
-		}, []any{&poolState.TotalSupply}).AddCall(&ethrpc.Call{
-			ABI:    ABI,
-			Target: vaultAddr,
-			Method: erc4626MethodPreviewRedeem,
-			Params: []any{BiWad},
-		}, []any{&poolState.RedeemRate})
+		}, []any{&poolState.TotalSupply})
+
+		for i, amt := range PrefetchAmounts {
+			req.AddCall(&ethrpc.Call{
+				ABI:    ABI,
+				Target: vaultAddr,
+				Method: erc4626MethodPreviewRedeem,
+				Params: []any{amt.ToBig()},
+			}, []any{&poolState.RedeemRates[i]})
+		}
 	}
 
-	resp, err := req.TryAggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return assetToken, nil, err
 	}
 
-	if poolState.DepositRate != nil && poolState.DepositRate.Sign() <= 0 {
-		poolState.DepositRate = nil
+	if poolState.MaxDeposit != nil && poolState.MaxDeposit.Cmp(bignumber.MAX_UINT_128) > 0 {
+		poolState.MaxDeposit = nil
 	}
-	if poolState.RedeemRate != nil && poolState.RedeemRate.Sign() <= 0 {
-		poolState.RedeemRate = nil
-	}
-	if poolState.MaxDeposit == nil || poolState.MaxDeposit.Sign() == 0 {
-		poolState.MaxDeposit = poolState.TotalAssets // fallback to a sensible value
-	} else if poolState.MaxDeposit.Cmp(bignumber.MAX_UINT_128) > 0 {
-		poolState.MaxDeposit = nil // no limit
-	}
-	if poolState.MaxRedeem == nil || poolState.MaxRedeem.Sign() == 0 {
+
+	if poolState.MaxRedeem != nil && poolState.MaxRedeem.Cmp(bignumber.MAX_UINT_128) > 0 {
 		poolState.MaxRedeem = poolState.TotalSupply // fallback to a sensible value
-	} else if poolState.MaxRedeem.Cmp(bignumber.MAX_UINT_128) > 0 {
-		poolState.MaxRedeem = nil // no limit
 	}
 
 	if resp.BlockNumber != nil {
