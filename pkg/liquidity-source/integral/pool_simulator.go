@@ -4,17 +4,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/logger"
-
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -60,13 +58,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	// apply safety buffer to limit max multiplier (85% for now)
-	extra.Token0LimitMaxMultiplier.
-		Mul(extra.Token0LimitMaxMultiplier, safetyBufferPercent).
-		Div(extra.Token0LimitMaxMultiplier, u256.U100)
+	if extra.Token0LimitMaxMultiplier != nil && extra.Token0LimitMaxMultiplier.Sign() > 0 {
+		extra.Token0LimitMaxMultiplier.
+			Mul(extra.Token0LimitMaxMultiplier, safetyBufferPercent).
+			Div(extra.Token0LimitMaxMultiplier, u256.U100)
+	}
 
-	extra.Token1LimitMaxMultiplier.
-		Mul(extra.Token1LimitMaxMultiplier, safetyBufferPercent).
-		Div(extra.Token1LimitMaxMultiplier, u256.U100)
+	if extra.Token1LimitMaxMultiplier != nil && extra.Token1LimitMaxMultiplier.Sign() > 0 {
+		extra.Token1LimitMaxMultiplier.
+			Mul(extra.Token1LimitMaxMultiplier, safetyBufferPercent).
+			Div(extra.Token1LimitMaxMultiplier, u256.U100)
+	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
