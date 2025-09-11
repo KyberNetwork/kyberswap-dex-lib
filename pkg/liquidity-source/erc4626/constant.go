@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -22,6 +23,15 @@ const (
 )
 
 var (
+	// PrefetchAmounts contains predefined amounts for prefetching ERC4626 conversion rates
+	PrefetchAmounts = []*uint256.Int{
+		big256.TenPow(6),
+		big256.TenPow(12),
+		big256.BONE,
+		big256.TenPow(24),
+		big256.TenPow(30),
+	}
+
 	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 
 	BiWad = bignumber.BONE
@@ -32,6 +42,7 @@ var (
 	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
 	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 
+	ErrInvalidRate        = errors.New("invalid rate")
 	ErrInvalidRedeemRate  = errors.New("invalid redeem rate")
 	ErrInvalidDepositRate = errors.New("invalid deposit rate")
 )

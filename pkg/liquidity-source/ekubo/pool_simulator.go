@@ -146,7 +146,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.SetSwapState(params.SwapInfo.(quoting.SwapInfo).SwapStateAfter)
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
 		Core:    p.Core,
 		PoolKey: p.EkuboPool.GetKey().ToAbi(),

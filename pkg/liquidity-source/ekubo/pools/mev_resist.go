@@ -42,6 +42,7 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 	if err != nil {
 		return nil, err
 	}
+	quote.SwapInfo.Forward = &p.key.Config.Extension
 
 	tickAfterSwap := ekubomath.ApproximateSqrtRatioToTick(quote.SwapInfo.SwapStateAfter.(*BasePoolSwapState).SqrtRatio)
 
@@ -78,6 +79,5 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 		calculatedAmount.Add(calculatedAmount, bf.Sub(bf, inputAmount))
 	}
 
-	quote.SwapInfo.Forward = p.key.Config.Extension
 	return quote, nil
 }

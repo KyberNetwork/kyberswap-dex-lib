@@ -3,6 +3,7 @@ package shared
 import (
 	"errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/holiman/uint256"
 )
 
@@ -18,12 +19,7 @@ func (b *ExtraBuffer) ConvertToShares(assets *uint256.Int) (*uint256.Int, error)
 		return nil, ErrWrapAmountTooSmall
 	}
 
-	if b.Rate == nil || b.Rate.IsZero() {
-		return nil, ErrInvalidRate
-	}
-
-	assets.MulDivOverflow(assets, WAD, b.Rate)
-	return assets, nil
+	return erc4626.GetClosestRate(b.DepositRates, assets)
 }
 
 func (b *ExtraBuffer) ConvertToAssets(shares *uint256.Int) (*uint256.Int, error) {
@@ -31,9 +27,5 @@ func (b *ExtraBuffer) ConvertToAssets(shares *uint256.Int) (*uint256.Int, error)
 		return nil, ErrWrapAmountTooSmall
 	}
 
-	if b.Rate == nil || b.Rate.IsZero() {
-		return nil, ErrInvalidRate
-	}
-	shares.MulDivOverflow(shares, b.Rate, WAD)
-	return shares, nil
+	return erc4626.GetClosestRate(b.RedeemRates, shares)
 }

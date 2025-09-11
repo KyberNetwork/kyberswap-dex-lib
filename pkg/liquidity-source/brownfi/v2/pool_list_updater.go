@@ -262,10 +262,7 @@ func (u *PoolsListUpdater) getBatchSize(length int, limit int, offset int) int {
 		limit = length
 	}
 
-	batchSize := length - offset
-	if batchSize > limit {
-		batchSize = limit
-	}
+	batchSize := min(length-offset, limit)
 
 	return batchSize
 }

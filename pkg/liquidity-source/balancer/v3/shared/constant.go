@@ -29,4 +29,5 @@ const (
 	VaultMethodIsPoolInRecoveryMode = "isPoolInRecoveryMode"
 
 	ERC4626MethodConvertToAssets = "convertToAssets"
+	ERC4626MethodConvertToShares = "convertToShares"
 )

@@ -16,6 +16,8 @@ const (
 	ExchangeAlienBaseStableSwap        = "alien-base-stableswap"
 	ExchangeAmbient                    = "ambient"
 	ExchangeAmped                      = "amped"
+	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
+	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeApeSwap                    = "apeswap"
 	ExchangeArbiDex                    = "arbi-dex"
 	ExchangeArbiDexV3                  = "arbidex-v3"
@@ -47,8 +49,8 @@ const (
 	ExchangeBaseSwapV3                 = "baseswap-v3"
 	ExchangeBaso                       = "baso"
 	ExchangeBebop                      = "bebop"
-	ExchangeBedrockUniETH              = "bedrock-unieth"
 	ExchangeBedrockUniBTC              = "bedrock-unibtc"
+	ExchangeBedrockUniETH              = "bedrock-unieth"
 	ExchangeBeefySonic                 = "beefy-sonic"
 	ExchangeBeethovenXComposableStable = "beethovenx-composable-stable"
 	ExchangeBeethovenXStable           = "beethovenx-stable"
@@ -168,6 +170,7 @@ const (
 	ExchangeHorizonIntegral            = "horizon-integral"
 	ExchangeHybraV2                    = "hybra-v2"
 	ExchangeHybraV3                    = "hybra-v3"
+	ExchangeHydrexV4                   = "hydrex-v4"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
 	ExchangeHyperBrickLB               = "hyperbrick-lb"
@@ -292,6 +295,7 @@ const (
 	ExchangePlatypus                   = "platypus"
 	ExchangePmm1                       = "pmm-1"
 	ExchangePmm2                       = "pmm-2"
+	ExchangePmm3                       = "pmm-3"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolyDex                    = "polydex"
 	ExchangePolycat                    = "polycat"
@@ -399,14 +403,16 @@ const (
 	ExchangeUniSwapV3                  = "uniswapv3"
 	ExchangeUniswapLO                  = "uniswap-lo"
 	ExchangeUniswapV4                  = "uniswap-v4"
-	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Aegis             = "uniswap-v4-aegis"
+	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
+	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
-	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
-	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
+	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
+	ExchangeUpheavalV2                 = "upheaval-v2"
+	ExchangeUpheavalV3                 = "upheaval-v3"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
 	ExchangeVVS                        = "vvs"
@@ -430,12 +436,14 @@ const (
 	ExchangeWannaSwap                  = "wannaswap"
 	ExchangeWasabi                     = "wasabi"
 	ExchangeWault                      = "wault"
+	ExchangeWdexV4                     = "wdex-v4"
 	ExchangeWigoSwap                   = "wigo-swap"
 	ExchangeWinnieSwapV3               = "winnieswap-v3"
 	ExchangeWombat                     = "wombat"
 	ExchangeWooFiV2                    = "woofi-v2"
 	ExchangeWooFiV3                    = "woofi-v3"
 	ExchangeXLayerSwap                 = "xlayer-swap"
+	ExchangeXSolvBTC                   = "xsolvbtc"
 	ExchangeYetiSwap                   = "yetiswap"
 	ExchangeYuzuSwap                   = "yuzuswap"
 	ExchangeZKSwap                     = "zkswap"
@@ -448,9 +456,6 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
-	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
-	ExchangeXSolvBTC                   = "xsolvbtc"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -467,6 +472,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseStableSwap:        {},
 	ExchangeAmbient:                    {},
 	ExchangeAmped:                      {},
+	ExchangeAngleTransmuterEUR:         {},
+	ExchangeAngleTransmuterUSD:         {},
 	ExchangeApeSwap:                    {},
 	ExchangeArbiDex:                    {},
 	ExchangeArbiDexV3:                  {},
@@ -475,8 +482,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArenaDex:                   {},
 	ExchangeArenaDexV2:                 {},
 	ExchangeAstroSwap:                  {},
-	ExchangeAtlantis:                   {},
 	ExchangeAtlantis2:                  {},
+	ExchangeAtlantis:                   {},
 	ExchangeAxial:                      {},
 	ExchangeBMX:                        {},
 	ExchangeBMXGLP:                     {},
@@ -497,8 +504,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaseSwap:                   {},
 	ExchangeBaseSwapV3:                 {},
 	ExchangeBaso:                       {},
-	ExchangeBedrockUniETH:              {},
 	ExchangeBedrockUniBTC:              {},
+	ExchangeBedrockUniETH:              {},
 	ExchangeBeefySonic:                 {},
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeBeethovenXStable:           {},
@@ -580,8 +587,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEthenaSusde:                {},
 	ExchangeEtherFieBTC:                {},
 	ExchangeEtherVista:                 {},
-	ExchangeEtherexV2:                  {},
 	ExchangeEtherexCL:                  {},
+	ExchangeEtherexV2:                  {},
 	ExchangeEtherfiEETH:                {},
 	ExchangeEtherfiVampire:             {},
 	ExchangeEtherfiWEETH:               {},
@@ -614,6 +621,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHorizonIntegral:            {},
 	ExchangeHybraV2:                    {},
 	ExchangeHybraV3:                    {},
+	ExchangeHydrexV4:                   {},
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
 	ExchangeHyperBrickLB:               {},
@@ -838,10 +846,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniSwapV3:                  {},
 	ExchangeUniswapV4:                  {},
 	ExchangeUniswapV4BunniV2:           {},
+	ExchangeUniswapV4Clanker:           {},
 	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
-	ExchangeUniswapV4Clanker:           {},
+	ExchangeUpheavalV2:                 {},
+	ExchangeUpheavalV3:                 {},
 	ExchangeUsd0PP:                     {},
 	ExchangeUsdsLitePsm:                {},
 	ExchangeVVS:                        {},
@@ -865,12 +875,14 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWannaSwap:                  {},
 	ExchangeWasabi:                     {},
 	ExchangeWault:                      {},
+	ExchangeWdexV4:                     {},
 	ExchangeWigoSwap:                   {},
 	ExchangeWinnieSwapV3:               {},
 	ExchangeWombat:                     {},
 	ExchangeWooFiV2:                    {},
 	ExchangeWooFiV3:                    {},
 	ExchangeXLayerSwap:                 {},
+	ExchangeXSolvBTC:                   {},
 	ExchangeYetiSwap:                   {},
 	ExchangeYuzuSwap:                   {},
 	ExchangeZKSwap:                     {},
@@ -883,9 +895,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeAngleTransmuterUSD:         {},
-	ExchangeAngleTransmuterEUR:         {},
-	ExchangeXSolvBTC:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -906,6 +915,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeNativeV2:   {},
 	ExchangePmm1:       {},
 	ExchangePmm2:       {},
+	ExchangePmm3:       {},
 	ExchangeUniswapLO:  {},
 	ExchangeSwaapV2:    {},
 }

@@ -3,7 +3,6 @@ package erc4626
 import (
 	"math/big"
 
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
@@ -53,24 +52,21 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var amountOut *uint256.Int
 	if isDeposit {
-		if s.DepositRate == nil {
-			return nil, ErrInvalidDepositRate
-		}
 		if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		}
-		amountOut, err = v3Utils.MulDiv(amountIn, s.DepositRate, UWad)
-	} else {
-		if s.RedeemRate == nil {
-			return nil, ErrInvalidRedeemRate
+		amountOut, err = GetClosestRate(s.DepositRates, amountIn)
+		if err != nil {
+			return nil, ErrInvalidDepositRate
 		}
+	} else {
 		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
 			return nil, ErrERC4626RedeemMoreThanMax
 		}
-		amountOut, err = v3Utils.MulDiv(amountIn, s.RedeemRate, UWad)
-	}
-	if err != nil {
-		return nil, err
+		amountOut, err = GetClosestRate(s.RedeemRates, amountIn)
+		if err != nil {
+			return nil, ErrInvalidRedeemRate
+		}
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -99,16 +95,16 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	var amountIn *uint256.Int
 	if isDeposit {
-		amountIn, err = v3Utils.MulDivRoundingUp(amountOut, UWad, s.DepositRate)
+		amountIn, err = GetClosestRate(s.DepositRates, amountOut)
 		if err != nil {
-			return nil, err
+			return nil, ErrInvalidDepositRate
 		} else if s.MaxDeposit != nil && amountIn.Gt(s.MaxDeposit) {
 			return nil, ErrERC4626DepositMoreThanMax
 		}
 	} else {
-		amountIn, err = v3Utils.MulDivRoundingUp(amountOut, UWad, s.RedeemRate)
+		amountIn, err = GetClosestRate(s.RedeemRates, amountOut)
 		if err != nil {
-			return nil, err
+			return nil, ErrInvalidRedeemRate
 		} else if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
 			return nil, ErrERC4626RedeemMoreThanMax
 		}
