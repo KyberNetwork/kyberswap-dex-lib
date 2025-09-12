@@ -61,17 +61,21 @@ type (
 	}
 
 	VaultRPC struct {
-		DepositPaused bool
-		RedeemPaused  bool
-		MinDeposit    *big.Int
-		ExchangeRate  *big.Int
+		DepositPaused        bool
+		RedeemPaused         bool
+		MinDeposit           *big.Int
+		ExchangeRate         *big.Int
+		MinRedeemInterval    *big.Int
+		RedeemCoolDownExempt bool
 	}
 
 	Vault struct {
-		DepositPaused bool
-		RedeemPaused  bool
-		MinDeposit    *uint256.Int
-		ExchangeRate  *uint256.Int
+		DepositPaused        bool
+		RedeemPaused         bool
+		MinDeposit           *uint256.Int
+		ExchangeRate         *uint256.Int
+		MinRedeemInterval    *uint256.Int
+		RedeemCoolDownExempt bool
 	}
 
 	Slot0 struct {
