@@ -397,6 +397,8 @@ const (
 	ExchangeTsunamiX                   = "tsunami-x"
 	ExchangeUSDFi                      = "usdfi"
 	ExchangeUcsFinance                 = "ucs-finance"
+	ExchangeUltraSolidV2               = "ultrasolid-v2"
+	ExchangeUltraSolidV3               = "ultrasolid-v3"
 	ExchangeUnchainX                   = "unchainx"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniSwapV1                  = "uniswap-v1"
@@ -840,6 +842,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTsunamiX:                   {},
 	ExchangeUSDFi:                      {},
 	ExchangeUcsFinance:                 {},
+	ExchangeUltraSolidV2:               {},
+	ExchangeUltraSolidV3:               {},
 	ExchangeUnchainX:                   {},
 	ExchangeUniSwap:                    {},
 	ExchangeUniSwapV1:                  {},
