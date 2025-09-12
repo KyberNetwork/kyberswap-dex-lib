@@ -165,50 +165,22 @@ func CollectTokenPrices(
 	prices := map[string]float64{}
 
 	for tokenAddress := range tokenByAddress {
-		if tokenAddress == params.TokenIn.Address {
+		switch tokenAddress {
+		case params.TokenIn.Address:
 			prices[tokenAddress] = params.TokenInPriceUSD
-			continue
-		}
-
-		if tokenAddress == params.TokenOut.Address {
+		case params.TokenOut.Address:
 			prices[tokenAddress] = params.TokenOutPriceUSD
-			continue
-		}
-
-		if tokenAddress == params.GasToken.Address {
+		case params.GasToken.Address:
 			prices[tokenAddress] = params.GasTokenPriceUSD
-			continue
-		}
-
-		onChainPrice, ok := priceByAddress[tokenAddress]
-		if ok && onChainPrice != nil && onChainPrice.USDPrice.Buy != nil {
-			tokenPrice, _ := onChainPrice.USDPrice.Buy.Float64()
-			prices[tokenAddress] = tokenPrice
-			continue
+		default:
+			onchainPrice, ok := priceByAddress[tokenAddress]
+			if ok && onchainPrice != nil && onchainPrice.USDPrice.Buy != nil {
+				prices[tokenAddress] = onchainPrice.GetBuyPriceUSD()
+			}
 		}
 	}
 
 	return prices
-}
-
-func GetPrice(
-	tokenAddress string,
-	priceByAddress map[string]*routerEntity.OnchainPrice,
-	isBuyPrice bool,
-) float64 {
-	onChainPrice, ok := priceByAddress[tokenAddress]
-	if ok && onChainPrice != nil {
-		if isBuyPrice && onChainPrice.USDPrice.Buy != nil {
-			tokenPrice, _ := onChainPrice.USDPrice.Buy.Float64()
-			return tokenPrice
-		}
-		if !isBuyPrice && onChainPrice.USDPrice.Sell != nil {
-			tokenPrice, _ := onChainPrice.USDPrice.Sell.Float64()
-			return tokenPrice
-		}
-	}
-
-	return float64(0)
 }
 
 func ConvertToRouteSummaries(params *types.AggregateParams,

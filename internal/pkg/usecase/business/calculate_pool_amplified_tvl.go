@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -17,7 +18,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/goccy/go-json"
 	"github.com/izumiFinance/iZiSwap-SDK-go/library/calc"
 	"github.com/rs/zerolog/log"
@@ -41,13 +41,13 @@ func CalculatePoolAmplifiedTVL(
 		algebrav1.DexTypeAlgebraV1,
 		iziswap.DexTypeiZiSwap,
 		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
-		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
+		liquidityF, sqrtPriceF, err := getLiquidityAndSqrtPrice(p)
 		if err != nil {
 			log.Ctx(ctx).Debug().Err(err).Msgf("failed to get liquidity and sqrt price for pool %s", p.Address)
 			return 0, false, err
 		}
 
-		v, err := calculateAmplifiedTVL(ctx, poolTokens[0].Address, poolTokens[1].Address, liquidity, sqrtPriceBF,
+		v, err := calculateAmplifiedTVL(ctx, poolTokens[0].Address, poolTokens[1].Address, liquidityF, sqrtPriceF,
 			nativePriceByToken)
 		return v, false, err
 
@@ -72,13 +72,15 @@ func CalculatePoolAmplifiedTVL(
 			if token1 == ambient.NativeTokenPlaceholderAddress {
 				token1 = staticExtra.NativeTokenAddress
 			}
-			liquidity := bignumber.NewBig10(pairInfo.Liquidity)
-			sqrtPriceBF := fromSqrtPriceX64(bignumber.NewBig10(pairInfo.SqrtPriceX64))
+
+			liquidityF, _ := strconv.ParseFloat(pairInfo.Liquidity, 64)
+			sqrtPriceF, _ := strconv.ParseFloat(pairInfo.SqrtPriceX64, 64)
+
 			v, err := calculateAmplifiedTVL(ctx,
 				strings.ToLower(token0.String()),
 				strings.ToLower(token1.String()),
-				liquidity,
-				sqrtPriceBF,
+				liquidityF,
+				sqrtPriceF,
 				nativePriceByToken,
 			)
 			if err != nil {
@@ -99,48 +101,44 @@ func CalculatePoolAmplifiedTVL(
 	}
 }
 
-func calculateAmplifiedTVL(ctx context.Context, token0, token1 string, liquidity *big.Int, sqrtPriceBF *big.Float,
-	nativePriceByToken map[string]*routerEntity.OnchainPrice) (float64, error) {
-	if liquidity == nil || sqrtPriceBF == nil {
-		return 0, nil
+func calculateAmplifiedTVL(
+	ctx context.Context,
+	token0, token1 string,
+	liquidityF, sqrtPriceF float64,
+	nativePriceByToken map[string]*routerEntity.OnchainPrice,
+) (float64, error) {
+	if liquidityF == 0.0 || sqrtPriceF == 0.0 {
+		return 0.0, nil
 	}
 
-	if liquidity.Sign() == 0 || sqrtPriceBF.Sign() == 0 {
-		return 0, nil
+	midPrice0 := nativePriceByToken[token0].GetMidPriceNativeRaw()
+	if midPrice0 == 0.0 {
+		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token0 %v", token0)
+		return 0, fmt.Errorf("token has no price %s", token0)
 	}
 
-	liquidityBF := new(big.Float).SetInt(liquidity)
-
-	midPrice0, price0, err := getMidPrice(nativePriceByToken, token0)
-	if err != nil {
-		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token0 %v %v", token0, price0)
-		return 0, err
-	}
-	midPrice1, price1, err := getMidPrice(nativePriceByToken, token1)
-	if err != nil {
-		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token1 %v %v", token1, price1)
-		return 0, err
+	midPrice1 := nativePriceByToken[token1].GetMidPriceNativeRaw()
+	if midPrice1 == 0.0 {
+		log.Ctx(ctx).Debug().Msgf("cannot get mid price for token1 %v", token1)
+		return 0, fmt.Errorf("token has no price %s", token1)
 	}
 
 	// Formula: amplifiedTvl = priceOfXinUSD*Liquidity/SqrtPrice + Liquidity*SqrtPrice*priceOfYinUSD
 	// Doc: https://www.notion.so/kybernetwork/Aggregator-Uniswap-v3-Integration-technical-design-f746167703c448dcaa40f523301e11b4?pvs=4#bd82e866196141dc97566440483afa47
 
 	// first get the 2 virtual reserves
-	virtualRev0 := new(big.Float).Quo(liquidityBF, sqrtPriceBF)
-	virtualRev1 := new(big.Float).Mul(liquidityBF, sqrtPriceBF)
+	virtualRev0 := liquidityF / sqrtPriceF
+	virtualRev1 := liquidityF * sqrtPriceF
 
 	// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
-	virtualRev0 = new(big.Float).Quo(new(big.Float).Mul(virtualRev0, midPrice0), constant.BoneFloat)
-	virtualRev1 = new(big.Float).Quo(new(big.Float).Mul(virtualRev1, midPrice1), constant.BoneFloat)
+	virtualRev0 = (virtualRev0 * midPrice0) / constant.BoneFloat64
+	virtualRev1 = (virtualRev1 * midPrice1) / constant.BoneFloat64
 
-	reserve0, _ := virtualRev0.Float64()
-	reserve1, _ := virtualRev1.Float64()
-
-	return reserve0 + reserve1, nil
+	return virtualRev0 + virtualRev1, nil
 }
 
 // this should return raw sqrtPrice instead of encoded price (x96, d18...)
-func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
+func getLiquidityAndSqrtPrice(p *entity.Pool) (float64, float64, error) {
 	var liquidity *big.Int
 	var sqrtPrice *big.Float
 
@@ -149,7 +147,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := uniswapv3.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.SqrtPriceX96)
@@ -157,7 +155,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := solidlyv3.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.SqrtPriceX96)
@@ -165,7 +163,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := ramsesv2.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.SqrtPriceX96)
@@ -173,7 +171,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := pancakev3.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.SqrtPriceX96)
@@ -181,7 +179,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := maverickv1.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		// maverick actually used D18 representation (sqrtPrice * 1e18)
@@ -190,7 +188,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := algebrav1.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(extra.GlobalState.Price)
@@ -198,7 +196,7 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := liquiditybookv21.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX128(extra.PriceX128)
@@ -207,12 +205,12 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		extra := iziswap.Extra{}
 		var err = json.Unmarshal([]byte(p.Extra), &extra)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		sqrtPriceX96, err := calc.GetSqrtPrice(extra.CurrentPoint)
 		if err != nil {
-			return nil, nil, err
+			return 0.0, 0.0, err
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(sqrtPriceX96)
@@ -220,14 +218,17 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 	}
 
 	if liquidity == nil {
-		return nil, nil, ErrNilLiquidity
+		return 0.0, 0.0, ErrNilLiquidity
 	}
 
 	if sqrtPrice == nil {
-		return nil, nil, ErrNilSqrtPrice
+		return 0.0, 0.0, ErrNilSqrtPrice
 	}
 
-	return liquidity, sqrtPrice, nil
+	sqrtPriceF, _ := sqrtPrice.Float64()
+	liquidityF, _ := liquidity.Float64()
+
+	return liquidityF, sqrtPriceF, nil
 }
 
 var (
@@ -260,11 +261,4 @@ func fromSqrtPriceX128(sqrtPrice *big.Int) *big.Float {
 		return nil
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(sqrtPrice), X128BF)
-}
-
-func fromSqrtPriceX64(sqrtPrice *big.Int) *big.Float {
-	if sqrtPrice == nil {
-		return nil
-	}
-	return new(big.Float).Quo(new(big.Float).SetInt(sqrtPrice), X64BF)
 }

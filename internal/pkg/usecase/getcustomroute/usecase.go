@@ -234,21 +234,12 @@ func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasT
 		return 0, 0, 0, err
 	}
 
-	// use sell price for token in
-	tokenInPriceUSD := 0.0
-	if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
-		tokenInPriceUSD, _ = price.USDPrice.Sell.Float64()
-	}
+	// use mid price for token in & token out
+	tokenInPriceUSD := priceByAddress[tokenIn].GetMidPriceUSD()
+	tokenOutPriceUSD := priceByAddress[tokenOut].GetMidPriceUSD()
 
-	// use buy price for token out and gas
-	tokenOutPriceUSD := 0.0
-	if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
-		tokenOutPriceUSD, _ = price.USDPrice.Buy.Float64()
-	}
-	gasTokenPriceUSD := 0.0
-	if price, ok := priceByAddress[gasToken]; ok && price != nil && price.USDPrice.Buy != nil {
-		gasTokenPriceUSD, _ = price.USDPrice.Buy.Float64()
-	}
+	// use buy price for gas token
+	gasTokenPriceUSD := priceByAddress[gasToken].GetBuyPriceUSD()
 
 	return tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, nil
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -53,30 +53,29 @@ func CalculatePoolTVL(
 					return 0, fmt.Errorf("token has no price %s", token)
 				}
 
-				reserveBF, err := getReserve(ctx, p, i, tokenNativePrice.Decimals)
+				reserveF, err := getReserve(ctx, p, i, tokenNativePrice.Decimals)
 				if err != nil {
 					return 0, err
 				}
-				if reserveBF.Sign() == 0 {
+				if reserveF == 0.0 {
 					continue
 				}
 
-				midPrice, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
-				if err != nil {
+				midPriceF := nativePriceByToken[poolTokens[i].Address].GetMidPriceNativeRaw()
+				if midPriceF == 0.0 {
 					// we need partially calculate tvl if some tokens in a pool have no price in case liquidity score ranking
 					if partialTvl {
-						log.Ctx(ctx).Error().Msgf("cannot get mid price for token %v %v pool %v type %v",
-							poolTokens[i], price, p.Address, p.Type)
+						log.Ctx(ctx).Error().Msgf("cannot get mid price for token %v pool %v type %v",
+							poolTokens[i].Address, p.Address, p.Type)
 						continue
 					}
-					return 0, err
+					return 0, fmt.Errorf("token has no price %s", poolTokens[i].Address)
 				}
 
 				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
-				rawNativeWei := new(big.Float).Mul(reserveBF, midPrice)
-				nativeValue, _ := new(big.Float).Quo(rawNativeWei, constant.BoneFloat).Float64()
+				nativeValue := (reserveF * midPriceF) / constant.BoneFloat64
 
-				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
+				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveF, midPriceF, nativeValue)
 				reserveNative += nativeValue
 			}
 
@@ -111,24 +110,24 @@ func CalculatePoolTVLForTokenPair(
 			var reserveNative = float64(0)
 			for _, i := range indexes {
 				if i < 0 || i >= len(poolTokens) {
-					return 0, errors.New("index is invalid")
+					return 0.0, errors.New("index is invalid")
 				}
-				midPriceBF, price, err := getMidPrice(nativePriceByToken, poolTokens[i].Address)
-				if err != nil {
-					return 0, err
-				}
-				midPrice, _ := midPriceBF.Float64()
 
-				reserveBF, err := getReserve(ctx, p, i, price.Decimals)
-				reserve, _ := reserveBF.Float64()
+				price := nativePriceByToken[poolTokens[i].Address]
+				midPriceF := price.GetMidPriceNativeRaw()
+				if midPriceF == 0.0 {
+					return 0.0, fmt.Errorf("token has no price %s", poolTokens[i].Address)
+				}
+
+				reserveF, err := getReserve(ctx, p, i, price.Decimals)
 				if err != nil {
-					return 0, err
+					return 0.0, err
 				}
 
 				// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
-				nativeValue := reserve * midPrice / constant.BoneFloat64
+				nativeValue := (reserveF * midPriceF) / constant.BoneFloat64
 
-				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveBF, midPrice, nativeValue)
+				log.Ctx(ctx).Debug().Msgf("reserve %v price %v value %v", reserveF, midPriceF, nativeValue)
 				reserveNative += nativeValue
 			}
 
@@ -137,9 +136,9 @@ func CalculatePoolTVLForTokenPair(
 	}
 }
 
-func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*big.Float, error) {
+func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (float64, error) {
 	if i >= len(p.Reserves) {
-		return nil, ErrorInvalidReserve
+		return 0.0, ErrorInvalidReserve
 	}
 
 	switch p.Type {
@@ -148,56 +147,34 @@ func getReserve(ctx context.Context, p *entity.Pool, i int, decimals uint8) (*bi
 		reserveRaw, err := maverickv1.ScaleToAmount(number.NewUint256(p.Reserves[i]), decimals)
 		if err != nil {
 			log.Ctx(ctx).Debug().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
-			return nil, ErrorInvalidReserve
+			return 0.0, ErrorInvalidReserve
 		}
 
-		reserveBF, ok := new(big.Float).SetString(reserveRaw.String())
-		if !ok {
-			return nil, fmt.Errorf("fail to convert pool reserve to big float: %v", p.Reserves[i])
+		reserveF, err := strconv.ParseFloat(reserveRaw.String(), 64)
+		if err != nil {
+			return 0.0, fmt.Errorf("fail to convert pool reserve to float64: %v", p.Reserves[i])
 		}
 
-		return reserveBF, nil
+		return reserveF, nil
 
 	case composablestable.DexType:
 		// need to ignore the pool token itself
 		if p.Tokens[i].Address == p.Address {
-			return big.NewFloat(0), nil
+			return 0.0, nil
 		}
-		if reserveBF, ok := new(big.Float).SetString(p.Reserves[i]); !ok {
+		if reserveF, err := strconv.ParseFloat(p.Reserves[i], 64); err != nil {
 			log.Ctx(ctx).Error().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
-			return nil, ErrorInvalidReserve
+			return 0.0, ErrorInvalidReserve
 		} else {
-			return reserveBF, nil
+			return reserveF, nil
 		}
 
 	default:
-		if reserveBF, ok := new(big.Float).SetString(p.Reserves[i]); !ok {
+		if reserveF, err := strconv.ParseFloat(p.Reserves[i], 64); err != nil {
 			log.Ctx(ctx).Error().Msgf("invalid pool reserve %v %v", p.Address, p.Reserves[i])
-			return nil, ErrorInvalidReserve
+			return 0.0, ErrorInvalidReserve
 		} else {
-			return reserveBF, nil
+			return reserveF, nil
 		}
 	}
-}
-
-// we'll use mid price (or buy price if missing sell price) to calculate TVL
-func getMidPrice(nativePriceByToken map[string]*routerEntity.OnchainPrice, token string) (*big.Float, *routerEntity.OnchainPrice, error) {
-	tokenNativePrice, ok := nativePriceByToken[token]
-	if !ok {
-		return nil, nil, fmt.Errorf("token has no price %s", token)
-	}
-
-	midPrice := tokenNativePrice.NativePriceRaw.Buy
-	if tokenNativePrice.NativePriceRaw.Buy != nil && tokenNativePrice.NativePriceRaw.Sell != nil {
-		midPrice = new(big.Float).Quo(
-			new(big.Float).Add(tokenNativePrice.NativePriceRaw.Buy, tokenNativePrice.NativePriceRaw.Sell),
-			big.NewFloat(2))
-	} else if tokenNativePrice.NativePriceRaw.Sell != nil {
-		// hardly ever getting token with sell price but have no buy price, however we still keep this logic to make code safer.
-		midPrice = tokenNativePrice.NativePriceRaw.Sell
-	}
-	if midPrice == nil {
-		return nil, tokenNativePrice, fmt.Errorf("token has no price %s", token)
-	}
-	return midPrice, tokenNativePrice, nil
 }

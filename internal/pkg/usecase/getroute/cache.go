@@ -1,7 +1,6 @@
 package getroute
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"math/big"
@@ -120,7 +119,8 @@ func (c *cache) ApplyConfig(config Config) {
 	c.config = config.Cache
 }
 
-func (c *cache) getBestRouteFromCache(ctx context.Context,
+func (c *cache) getBestRouteFromCache(
+	ctx context.Context,
 	params *types.AggregateParams,
 	keys []valueobject.RouteCacheKeyTTL,
 ) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRouteWithExtraData, error) {
@@ -195,7 +195,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 		return nil, err
 	}
 
-	priceByAddress, err := c.getPrices(ctx, params, rfqTokens)
+	priceByAddress, err := c.getPrices(ctx, rfqTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +249,11 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	return routeSummaries, nil
 }
 
-func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject.RouteSummaries,
-	keys []valueobject.RouteCacheKeyTTL) {
+func (c *cache) setRouteToCache(
+	ctx context.Context,
+	routeSummaries *valueobject.RouteSummaries,
+	keys []valueobject.RouteCacheKeyTTL,
+) {
 	// We cache the best route before merge swap, instead of the merge swap route,
 	// for easier cache handling and avoid modify too much logic.
 	bestRouteSummary := routeSummaries.GetBestRouteSummary()
@@ -279,13 +282,6 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummaries *valueobject
 		}
 		span.End()
 	}
-}
-
-func setToSlice[T cmp.Ordered](set mapset.Set[T]) []T {
-	if set == nil {
-		return nil
-	}
-	return mapset.Sorted(set)
 }
 
 func (c *cache) summarizeSimpleRoute(
@@ -334,8 +330,11 @@ func (c *cache) getRFQMakerTokenAddresses(route *valueobject.SimpleRoute) mapset
 	return addresses
 }
 
-func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams,
-	addresses []string) (map[string]*entity.SimplifiedToken, error) {
+func (c *cache) getTokens(
+	ctx context.Context,
+	params *types.AggregateParams,
+	addresses []string,
+) (map[string]*entity.SimplifiedToken, error) {
 	tokenByAddress := map[string]*entity.SimplifiedToken{
 		params.TokenIn.Address:  &params.TokenIn,
 		params.TokenOut.Address: &params.TokenOut,
@@ -358,10 +357,9 @@ func (c *cache) getTokens(ctx context.Context, params *types.AggregateParams,
 	return tokenByAddress, nil
 }
 
-func (c *cache) getPrices(ctx context.Context, params *types.AggregateParams,
-	addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
+func (c *cache) getPrices(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error) {
 	priceByAddress := map[string]*routerEntity.OnchainPrice{}
-	if len(addresses) != 0 {
+	if len(addresses) > 0 {
 		prices, err := c.onchainpriceRepository.FindByAddresses(ctx, addresses)
 		if err != nil {
 			return nil, err
@@ -375,29 +373,16 @@ func (c *cache) getPrices(ctx context.Context, params *types.AggregateParams,
 		}
 	}
 
-	priceByAddress[params.TokenIn.Address] = &routerEntity.OnchainPrice{
-		USDPrice: routerEntity.Price{
-			Sell: big.NewFloat(params.TokenInPriceUSD),
-		},
-	}
-	priceByAddress[params.TokenOut.Address] = &routerEntity.OnchainPrice{
-		USDPrice: routerEntity.Price{
-			Buy: big.NewFloat(params.TokenOutPriceUSD),
-		},
-	}
-	priceByAddress[params.GasToken.Address] = &routerEntity.OnchainPrice{
-		USDPrice: routerEntity.Price{
-			Buy: big.NewFloat(params.GasTokenPriceUSD),
-		},
-	}
-
 	return priceByAddress, nil
 }
 
-func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
-	simpleRoute *valueobject.SimpleRouteWithExtraData, params *types.AggregateParams,
+func (c *cache) summarizeSimpleRouteWithExtraData(
+	ctx context.Context,
+	simpleRoute *valueobject.SimpleRouteWithExtraData,
+	params *types.AggregateParams,
 	tokenMap map[string]*entity.SimplifiedToken,
-	priceMap map[string]*routerEntity.OnchainPrice) (*valueobject.RouteSummaries, error) {
+	priceMap map[string]*routerEntity.OnchainPrice,
+) (*valueobject.RouteSummaries, error) {
 	var err error
 	// Step 1: prepare pool data
 	poolAddresses := simpleRoute.BestRoute.ExtractPoolAddresses()
@@ -468,8 +453,10 @@ func (c *cache) summarizeSimpleRouteWithExtraData(ctx context.Context,
 	return ConvertToRouteSummaries(params, finderEntity.BestRoutes{route, ammRoute}), nil
 }
 
-func (c *cache) convertSimpleRouteToConstructRoute(simpleRoute *valueobject.SimpleRoute,
-	params *types.AggregateParams) *finderCommon.ConstructRoute {
+func (c *cache) convertSimpleRouteToConstructRoute(
+	simpleRoute *valueobject.SimpleRoute,
+	params *types.AggregateParams,
+) *finderCommon.ConstructRoute {
 	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
 
 	constructRoute := finderCommon.NewConstructRoute(params.TokenIn.Address, params.TokenOut.Address,

@@ -82,7 +82,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context,
 		if !ok {
 			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenIn: %v", pair.TokenIn)
 		}
-		tokenInPrice := GetPrice(pair.TokenIn, priceByAddress, false)
+		tokenInPrice := priceByAddress[pair.TokenIn].GetMidPriceUSD()
 		pair.AmountInUsd = utils.CalcTokenAmountUsd(pair.AmountIn, tokenIn.Decimals, tokenInPrice)
 		if pair.AmountInUsd > MaxAmountInUSD {
 			return nil, ErrAmountInIsGreaterThanMaxAllowed
@@ -193,7 +193,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 	if !ok {
 		return nil, errors.WithMessagef(ErrInvalidToken, "invalid gasToken: %v", params.GasToken)
 	}
-	gasTokenPrice := GetPrice(params.GasToken, priceByAddress, true)
+	gasTokenPrice := priceByAddress[params.GasToken].GetBuyPriceUSD()
 
 	whitelistedTokenSet := a.config.WhitelistedTokenSet
 	if len(params.ExtraWhitelistedTokens) > 0 {
@@ -212,8 +212,10 @@ func (a *bundledAggregator) findBestBundledRoute(
 		if !ok {
 			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenOut: %v", pair.TokenOut)
 		}
-		tokenInPrice := GetPrice(pair.TokenIn, priceByAddress, false)  // use sell price for tokenIn
-		tokenOutPrice := GetPrice(pair.TokenOut, priceByAddress, true) // use buy price for token out and gas
+
+		// use mid price for both token in and token out
+		tokenInPrice := priceByAddress[pair.TokenIn].GetMidPriceUSD()
+		tokenOutPrice := priceByAddress[pair.TokenOut].GetMidPriceUSD()
 
 		pairParams := types.AggregateParams{
 			TokenIn:                       *tokenIn,
@@ -244,12 +246,8 @@ func (a *bundledAggregator) findBestBundledRoute(
 
 		if lastSwapState != nil {
 			// apply last state before finding route
-			for pid, p := range lastSwapState.UpdatedBalancePools {
-				state.Pools[pid] = p
-			}
-			for pid, p := range lastSwapState.UpdatedSwapLimits {
-				state.SwapLimit[pid] = p
-			}
+			maps.Copy(state.Pools, lastSwapState.UpdatedBalancePools)
+			maps.Copy(state.SwapLimit, lastSwapState.UpdatedSwapLimits)
 		}
 		findRouteParams := ConvertToPathfinderParams(
 			whitelistedTokenSet,

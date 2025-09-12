@@ -6,6 +6,8 @@ import (
 	"github.com/goccy/go-json"
 )
 
+var two = big.NewFloat(2)
+
 type Price struct {
 	// how many quote we need to sell to buy 1 token
 	Buy *big.Float
@@ -33,30 +35,101 @@ func (p *OnchainPrice) String() string {
 	return string(s)
 }
 
-func (p *OnchainPrice) GetBuyPriceIfAny() float64 {
-	buyPrice := p.USDPrice.Buy
-	if buyPrice == nil {
-		buyPrice = p.USDPrice.Sell
+func (p *OnchainPrice) GetSellPriceUSD() float64 {
+	if p != nil && p.USDPrice.Sell != nil {
+		res, _ := p.USDPrice.Sell.Float64()
+		return res
 	}
 
-	if buyPrice == nil {
-		return 0
-	}
-
-	value, _ := buyPrice.Float64()
-	return value
+	return 0.0
 }
 
-func (p *OnchainPrice) GetSellPriceIfAny() float64 {
-	sellPrice := p.USDPrice.Sell
-	if sellPrice == nil {
-		sellPrice = p.USDPrice.Buy
+func (p *OnchainPrice) GetBuyPriceUSD() float64 {
+	if p != nil && p.USDPrice.Buy != nil {
+		res, _ := p.USDPrice.Buy.Float64()
+		return res
 	}
 
-	if sellPrice == nil {
-		return 0
+	return 0.0
+}
+
+func (p *OnchainPrice) GetMidPriceUSD() float64 {
+	if p == nil {
+		return 0.0
 	}
 
-	value, _ := sellPrice.Float64()
-	return value
+	buy := p.USDPrice.Buy
+	sell := p.USDPrice.Sell
+
+	if buy != nil && sell != nil {
+		var sum big.Float
+		sum.Add(buy, sell)
+		sum.Quo(&sum, two)
+		res, _ := sum.Float64()
+		return res
+	}
+
+	// only fall back sell price
+	if sell != nil {
+		res, _ := sell.Float64()
+		return res
+	}
+
+	return 0.0
+}
+
+func (p *OnchainPrice) GetMidPriceNative() float64 {
+	if p == nil {
+		return 0.0
+	}
+
+	buy := p.NativePrice.Buy
+	sell := p.NativePrice.Sell
+
+	if buy != nil && sell != nil {
+		var sum big.Float
+		sum.Add(buy, sell)
+		sum.Quo(&sum, two)
+		res, _ := sum.Float64()
+		return res
+	}
+
+	if buy != nil {
+		res, _ := buy.Float64()
+		return res
+	}
+	if sell != nil {
+		res, _ := sell.Float64()
+		return res
+	}
+
+	return 0.0
+}
+
+func (p *OnchainPrice) GetMidPriceNativeRaw() float64 {
+	if p == nil {
+		return 0.0
+	}
+
+	buy := p.NativePriceRaw.Buy
+	sell := p.NativePriceRaw.Sell
+
+	if buy != nil && sell != nil {
+		var sum big.Float
+		sum.Add(buy, sell)
+		sum.Quo(&sum, two)
+		res, _ := sum.Float64()
+		return res
+	}
+
+	if buy != nil {
+		res, _ := buy.Float64()
+		return res
+	}
+	if sell != nil {
+		res, _ := sell.Float64()
+		return res
+	}
+
+	return 0.0
 }

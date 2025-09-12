@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"math/big"
 	"strconv"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -93,7 +92,7 @@ func (u *getTokensUseCase) buildResultTokens(
 			}
 		} else if price, ok := onchainPriceByAddress[address]; ok {
 			resultPrice = &dto.GetTokensResultPrice{
-				Price: getMidPriceUSD(price),
+				Price: price.GetMidPriceUSD(),
 			}
 		}
 
@@ -112,20 +111,4 @@ func (u *getTokensUseCase) buildResultTokens(
 		})
 	}
 	return resultTokens
-}
-
-func getMidPriceUSD(price *routerEntity.OnchainPrice) float64 {
-	midPrice := price.USDPrice.Buy
-	if price.USDPrice.Buy != nil && price.USDPrice.Sell != nil {
-		midPrice = new(big.Float).Quo(
-			new(big.Float).Add(price.USDPrice.Buy, price.USDPrice.Sell),
-			big.NewFloat(2))
-	}
-
-	if midPrice == nil {
-		return 0
-	}
-
-	res, _ := midPrice.Float64()
-	return res
 }

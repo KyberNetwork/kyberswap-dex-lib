@@ -1,10 +1,14 @@
 package utils
 
-func StringContains(slice []string, target string) bool {
-	for _, s := range slice {
-		if s == target {
-			return true
-		}
+import (
+	"cmp"
+
+	mapset "github.com/deckarep/golang-set/v2"
+)
+
+func SetToSlice[T cmp.Ordered](set mapset.Set[T]) []T {
+	if set == nil {
+		return nil
 	}
-	return false
+	return mapset.Sorted(set)
 }

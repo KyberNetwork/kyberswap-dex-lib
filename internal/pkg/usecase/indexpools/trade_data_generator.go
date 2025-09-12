@@ -667,8 +667,8 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 					}
 				}
 
-				if (prices[tokenI] == nil || prices[tokenI].GetSellPriceIfAny() == 0) &&
-					(prices[tokenJ] == nil || prices[tokenJ].GetBuyPriceIfAny() == 0) {
+				if (prices[tokenI] == nil || prices[tokenI].GetSellPriceUSD() == 0) &&
+					(prices[tokenJ] == nil || prices[tokenJ].GetBuyPriceUSD() == 0) {
 					if gen.config.LogError {
 						log.Ctx(ctx).Info().Msgf("debug prices is nil - direct set tokenI %s tokenJ %s pool %s\n",
 							tokenI, tokenJ, pool.GetAddress())
@@ -896,7 +896,7 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 	// used for tracking number of success trade data, in case rfq we might not generage enough data points to calculate liquidity score
 	successCount := 0
 
-	if prices[tokenIn] == nil || prices[tokenIn].GetSellPriceIfAny() == 0 {
+	if prices[tokenIn] == nil || prices[tokenIn].GetSellPriceUSD() == 0 {
 		amountIn, err = gen.findStartAmount(ctx, tokenIn, tokenOut, tokens, prices, pool, limit,
 			calcAmountOutInstance.CalcAmountOut)
 		if err != nil || amountIn == nil {
@@ -922,7 +922,7 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 			}
 		}
 	} else {
-		amountIn = business.CalcAmountFromUSD(amountInUsd, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceIfAny())
+		amountIn = business.CalcAmountFromUSD(amountInUsd, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceUSD())
 	}
 
 	if gen.poolHasLimitCheck(pool.GetType()) {
@@ -948,8 +948,8 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 			}
 		}
 		amountIn = startAmountIn
-		if prices[tokenIn] != nil && prices[tokenIn].GetSellPriceIfAny() != 0 {
-			amountInUsd, _ = business.CalcAmountUSD(amountIn, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceIfAny()).Float64()
+		if prices[tokenIn] != nil && prices[tokenIn].GetSellPriceUSD() != 0 {
+			amountInUsd, _ = business.CalcAmountUSD(amountIn, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceUSD()).Float64()
 		}
 	}
 
@@ -983,8 +983,8 @@ func (gen *TradeDataGenerator) generateTradeData(ctx context.Context,
 			// use buy price for token out
 			amountOutUsdResult = 0.0
 			priceDifferencePercentage := 0.0
-			if prices[tokenOut] != nil && prices[tokenOut].GetBuyPriceIfAny() != 0 {
-				amountOutUsdResult, _ = business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].GetBuyPriceIfAny()).Float64()
+			if prices[tokenOut] != nil && prices[tokenOut].GetBuyPriceUSD() != 0 {
+				amountOutUsdResult, _ = business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].GetBuyPriceUSD()).Float64()
 
 				if amountOutUsdResult > MAX_AMOUNT_OUT_USD {
 					amountOutUsdResult = 0.0
@@ -1102,7 +1102,7 @@ func (gen *TradeDataGenerator) findStartAmount(
 
 	// start from 1$, if we can not swap 1$ from wl to token at this pool, considered the pool is invalid and ignore
 	amountInUsd := 1.0
-	knownPriceAmountIn := business.CalcAmountFromUSD(amountInUsd, tokens[knownPriceToken].Decimals, prices[knownPriceToken].GetSellPriceIfAny())
+	knownPriceAmountIn := business.CalcAmountFromUSD(amountInUsd, tokens[knownPriceToken].Decimals, prices[knownPriceToken].GetSellPriceUSD())
 	amountOut, err := calcAmountFunc(ctx, pool, poolpkg.TokenAmount{
 		Token:     knownPriceToken,
 		Amount:    knownPriceAmountIn,
@@ -1133,7 +1133,7 @@ func (gen *TradeDataGenerator) findStartAmountForPoolHasLimitCheck(
 	}
 
 	tokenAmountIn := new(big.Int).Mul(amountIn, utils.TenPowDecimals[count])
-	// tokenAmountInUsd := business.CalcAmountUSD(tokenAmountIn, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceIfAny())
+	// tokenAmountInUsd := business.CalcAmountUSD(tokenAmountIn, tokens[tokenIn].Decimals, prices[tokenIn].GetSellPriceUSD())
 	amountOut, err := calcAmountFunc(ctx, pool, poolpkg.TokenAmount{
 		Token:  tokenIn,
 		Amount: tokenAmountIn,
@@ -1220,7 +1220,7 @@ func (gen *TradeDataGenerator) generateExtraDataPointsTradeData(ctx context.Cont
 			continue
 		}
 
-		amountOutUsdResult, _ := business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].GetBuyPriceIfAny()).Float64()
+		amountOutUsdResult, _ := business.CalcAmountUSD(amountOut.TokenAmountOut.Amount, tokens[tokenOut].Decimals, prices[tokenOut].GetBuyPriceUSD()).Float64()
 
 		result = append(result, TradeData{
 			Key:          gen.generateHighestTradeDataKey(amountIn.Token, tokenOut),

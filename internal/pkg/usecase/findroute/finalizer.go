@@ -275,7 +275,11 @@ func (f *FeeReductionRouteFinalizer) Finalize(
 			return pool != nil && strings.Contains(pool.GetExchange(), "fairflow")
 		})
 	}) {
-		log.Ctx(ctx).Info().Stringer("bestAmmRoute", bestAmmRoute).Msg("fairflow route has no alpha fee")
+		lg := log.Ctx(ctx).Info()
+		if bestAmmRoute != nil {
+			lg.Stringer("bestAmmRoute", bestAmmRoute)
+		}
+		lg.Msg("fairflow route has no alpha fee")
 	}
 
 	route = &finderEntity.Route{
