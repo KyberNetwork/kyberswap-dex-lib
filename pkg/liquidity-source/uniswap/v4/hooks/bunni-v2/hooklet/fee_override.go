@@ -2,12 +2,13 @@ package hooklet
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type feeOverrideHooklet struct {
