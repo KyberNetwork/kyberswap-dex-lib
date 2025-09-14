@@ -107,7 +107,8 @@ func (p *PoolSimulator) isBufferSwap(indexIn, indexOut int, isTokenInUnderlying,
 }
 
 // handleBufferConversion handles the conversion between underlying and wrapped tokens of the same index
-func (p *PoolSimulator) handleBufferConversion(index int, amount *uint256.Int, isUnderlyingToken bool) (*uint256.Int, error) {
+func (p *PoolSimulator) handleBufferConversion(index int, amount *uint256.Int, isUnderlyingToken bool) (*uint256.Int,
+	error) {
 	if index >= len(p.buffers) || p.buffers[index] == nil {
 		return nil, fmt.Errorf("buffer not found for token at index %d", index)
 	}
@@ -132,15 +133,17 @@ func (p *PoolSimulator) handleBufferConversion(index int, amount *uint256.Int, i
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
-
-	indexIn, isTokenInUnderlying, err1 := p.ResolveToken(tokenAmountIn.Token)
-	if err1 != nil {
-		return nil, err1
+	tokenIn := tokenAmountIn.Token
+	if tokenIn == tokenOut {
+		return nil, shared.ErrInvalidToken
 	}
-
-	indexOut, isTokenOutUnderlying, err2 := p.ResolveToken(tokenOut)
-	if err2 != nil {
-		return nil, err2
+	indexIn, isTokenInUnderlying, err := p.ResolveToken(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+	indexOut, isTokenOutUnderlying, err := p.ResolveToken(tokenOut)
+	if err != nil {
+		return nil, err
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
@@ -150,13 +153,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	// Check if this is a same-index underlying/wrapped token conversion
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
-		gas := p.BaseGas()
-
 		amountOut, err := p.handleBufferConversion(indexIn, amountIn, isTokenInUnderlying)
 		if err != nil {
 			return nil, err
 		}
-		gas += bufferGas
 
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
@@ -164,21 +164,20 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 				Amount: amountOut.ToBig(),
 			},
 			Fee: &pool.TokenAmount{
-				Token:  tokenAmountIn.Token,
-				Amount: big.NewInt(0), // No swap fee for direct conversions
+				Token:  tokenIn,
+				Amount: bignumber.ZeroBI, // No swap fee for direct conversions
 			},
 			SwapInfo: shared.SwapInfo{
-				AggregateFee: big.NewInt(0), // No aggregate fee for direct conversions
+				AggregateFee: bignumber.ZeroBI, // No aggregate fee for direct conversions
 			},
-			Gas: gas,
+			Gas: bufferGas,
 		}, nil
 	}
 
 	gas := p.BaseGas()
-	var err error
 	if isTokenInUnderlying {
 		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
-			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenAmountIn.Token, indexIn)
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
 		}
 		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn)
 		if err != nil {
@@ -214,7 +213,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  tokenIn,
 			Amount: totalSwapFee.ToBig(),
 		},
 		SwapInfo: shared.SwapInfo{
@@ -226,15 +225,17 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
-
-	indexIn, isTokenInUnderlying, err1 := p.ResolveToken(tokenIn)
-	if err1 != nil {
-		return nil, err1
+	tokenOut := tokenAmountOut.Token
+	if tokenIn == tokenOut {
+		return nil, shared.ErrInvalidToken
 	}
-
-	indexOut, isTokenOutUnderlying, err2 := p.ResolveToken(tokenAmountOut.Token)
-	if err2 != nil {
-		return nil, err2
+	indexIn, isTokenInUnderlying, err := p.ResolveToken(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+	indexOut, isTokenOutUnderlying, err := p.ResolveToken(tokenOut)
+	if err != nil {
+		return nil, err
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
@@ -244,13 +245,10 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 
 	// Check if this is a same-index underlying/wrapped token conversion
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
-		gas := p.BaseGas()
-
 		amountIn, err := p.handleBufferConversion(indexOut, amountOut, isTokenOutUnderlying)
 		if err != nil {
 			return nil, err
 		}
-		gas += bufferGas
 
 		return &pool.CalcAmountInResult{
 			TokenAmountIn: &pool.TokenAmount{
@@ -259,20 +257,19 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenIn,
-				Amount: big.NewInt(0), // No swap fee for direct conversions
+				Amount: bignumber.ZeroBI, // No swap fee for direct conversions
 			},
 			SwapInfo: shared.SwapInfo{
-				AggregateFee: big.NewInt(0), // No aggregate fee for direct conversions
+				AggregateFee: bignumber.ZeroBI, // No aggregate fee for direct conversions
 			},
-			Gas: gas,
+			Gas: bufferGas,
 		}, nil
 	}
 
 	gas := p.BaseGas()
-	var err error
 	if isTokenOutUnderlying {
 		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
-			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenAmountOut.Token, indexOut)
+			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
 		}
 		amountOut, err = p.buffers[indexOut].ConvertToShares(amountOut)
 		if err != nil {
@@ -330,9 +327,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	indexIn, isTokenInUnderlying, _ := p.ResolveToken(params.TokenAmountIn.Token)
-
 	indexOut, isTokenOutUnderlying, _ := p.ResolveToken(params.TokenAmountOut.Token)
-
 	// Buffer swaps do not affect pool reserves as they interact with ERC4626 and buffer tokens directly
 	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
 		return
@@ -383,20 +378,30 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
-	tokenInIdx, tokenOutIdx := p.GetTokenIndex(tokenIn), p.GetTokenIndex(tokenOut)
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+	indexIn, isTokenInUnderlying, _ := p.ResolveToken(tokenIn)
+	indexOut, isTokenOutUnderlying, _ := p.ResolveToken(tokenOut)
+	if p.isBufferSwap(indexIn, indexOut, isTokenInUnderlying, isTokenOutUnderlying) {
+		return shared.PoolMetaInfo{
+			BufferSwap: p.bufferTokens[indexIn],
+		}
+	}
 	return shared.PoolMetaInfo{
-		BufferTokenIn:  p.bufferTokens[tokenInIdx],
-		BufferTokenOut: p.bufferTokens[tokenOutIdx],
+		BufferTokenIn:  p.bufferTokens[indexIn],
+		BufferTokenOut: p.bufferTokens[indexOut],
 	}
 }
 
-func (s *PoolSimulator) CanSwapTo(address string) []string {
+func (p *PoolSimulator) GetTokens() []string {
+	return append(p.Info.Tokens, lo.Compact(p.bufferTokens)...)
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
 	// Check if address exists in pool tokens
-	poolTokenIndex := s.GetTokenIndex(address)
+	poolTokenIndex := p.GetTokenIndex(address)
 	// Check if address exists in buffer tokens
 	bufferTokenIndex := -1
-	for i, bufferToken := range s.bufferTokens {
+	for i, bufferToken := range p.bufferTokens {
 		if bufferToken == address {
 			bufferTokenIndex = i
 			break
@@ -412,18 +417,22 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	var result []string
 
 	// Add all pool tokens except the input address
-	for _, token := range s.Info.Tokens {
+	for _, token := range p.Info.Tokens {
 		if token != address {
 			result = append(result, token)
 		}
 	}
 
 	// Add all buffer tokens except the input address
-	for _, bufferToken := range s.bufferTokens {
+	for _, bufferToken := range p.bufferTokens {
 		if bufferToken != address {
 			result = append(result, bufferToken)
 		}
 	}
 
 	return result
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
 }
