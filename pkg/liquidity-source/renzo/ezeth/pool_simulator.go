@@ -91,14 +91,12 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	if param.TokenAmountIn.Token == WETH {
 		amountOut, err = s.depositETH(param.TokenAmountIn.Amount)
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		amountOut, err = s.deposit(param.TokenAmountIn.Token, param.TokenAmountIn.Amount)
-		if err != nil {
-			return nil, err
-		}
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{

@@ -39,6 +39,7 @@ var (
 		valueobject.ChainIDBerachain:   common.HexToAddress("0x3F0bBeEdEa5E5F63a14cBdA82718d4f25501fBeA"),
 		valueobject.ChainIDBSC:         common.HexToAddress("0xD3F729D909a7E84669A35c3F25b37b4AC3487784"),
 		valueobject.ChainIDHyperEVM:    common.HexToAddress("0x0A461D280891167Ee8391f4F0c03EECaa39ae632"),
+		valueobject.ChainIDLinea:       common.HexToAddress("0x3F0bBeEdEa5E5F63a14cBdA82718d4f25501fBeA"),
 	}
 
 	q64       = big256.TwoPow64

@@ -3,13 +3,14 @@ package meta
 import (
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -37,15 +38,17 @@ type ICurveBasePool interface {
 type PoolSimulator struct {
 	pool.Pool
 	basePool       ICurveBasePool
-	RateMultiplier *big.Int
-	InitialA       *big.Int
-	FutureA        *big.Int
+	Reserves       []*uint256.Int
+	SwapFee        *uint256.Int
+	RateMultiplier *uint256.Int
+	InitialA       *uint256.Int
+	FutureA        *uint256.Int
 	InitialATime   int64
 	FutureATime    int64
-	AdminFee       *big.Int
+	AdminFee       *uint256.Int
 	LpToken        string
-	LpSupply       *big.Int
-	APrecision     *big.Int
+	LpSupply       *uint256.Int
+	APrecision     *uint256.Int
 	gas            curve.Gas
 }
 
@@ -70,33 +73,34 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
+	uReserves := make([]*uint256.Int, numTokens)
 	multipliers := make([]*big.Int, numTokens)
 	rates := make([]*big.Int, numTokens)
-	for i := 0; i < numTokens; i += 1 {
+	for i := range numTokens {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		uReserves[i] = big256.New(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 		rates[i] = bignumber.NewBig10(staticExtra.Rates[i])
 	}
 
-	aPrecision := bignumber.One
+	aPrecision := big256.U1
 	if len(staticExtra.APrecision) > 0 {
-		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
+		aPrecision = big256.New(staticExtra.APrecision)
 	}
 
-	rateMultiplier := bignumber.NewBig10(staticExtra.RateMultiplier)
+	rateMultiplier := big256.New(staticExtra.RateMultiplier)
 	// Handle a specific case for the RAI Curve-Meta pool,
 	// since this pool uses a different contract version, leading the "rates"
 	// is calculated using contract data.
 	if entityPool.Address == curve.RAIMetaPool {
-		rateMultiplier.Set(extraStr.SnappedRedemptionPrice)
-		rateMultiplier.Div(rateMultiplier, bignumber.TenPowInt(9))
+		rateMultiplier.Div(extraStr.SnappedRedemptionPrice, big256.TenPow(9))
 	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
+				Address:  entityPool.Address,
 				SwapFee:  bignumber.NewBig10(extraStr.SwapFee),
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
@@ -105,14 +109,16 @@ func NewPoolSimulator(entityPool entity.Pool, basePoolMap map[string]pool.IPoolS
 			},
 		},
 		basePool:       basePool,
+		Reserves:       uReserves,
+		SwapFee:        big256.New(extraStr.SwapFee),
 		RateMultiplier: rateMultiplier,
-		InitialA:       bignumber.NewBig10(extraStr.InitialA),
-		FutureA:        bignumber.NewBig10(extraStr.FutureA),
+		InitialA:       big256.New(extraStr.InitialA),
+		FutureA:        big256.New(extraStr.FutureA),
 		InitialATime:   extraStr.InitialATime,
 		FutureATime:    extraStr.FutureATime,
-		AdminFee:       bignumber.NewBig10(extraStr.AdminFee),
+		AdminFee:       big256.New(extraStr.AdminFee),
 		LpToken:        staticExtra.LpToken,
-		LpSupply:       bignumber.NewBig10(entityPool.Reserves[numTokens]),
+		LpSupply:       big256.New(entityPool.Reserves[numTokens]),
 		APrecision:     aPrecision,
 		gas:            DefaultGas,
 	}, nil
@@ -129,34 +135,35 @@ func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	// swap from token to token
-	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
-	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	idxIn, idxOut := t.Info.GetTokenIndex(tokenAmountIn.Token), t.Info.GetTokenIndex(tokenOut)
 
-	if (tokenIndexFrom == len(t.Info.Tokens)-1 && tokenIndexTo < 0) || (tokenIndexTo == len(t.Info.Tokens)-1 && tokenIndexFrom < 0) {
-		return &pool.CalcAmountOutResult{}, ErrTokenToUnderLyingNotSupported
+	if idxIn == len(t.Info.Tokens)-1 && idxOut < 0 || idxOut == len(t.Info.Tokens)-1 && idxIn < 0 {
+		return nil, ErrTokenToUnderLyingNotSupported
 	}
 
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+	amtIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrAmountInOverflow
+	}
+	if idxIn >= 0 && idxOut >= 0 {
 		amountOut, fee, err := t.GetDy(
-			tokenIndexFrom,
-			tokenIndexTo,
-			tokenAmountIn.Amount,
+			idxIn,
+			idxOut,
+			amtIn,
 		)
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
+		if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: amountOut,
+					Amount: amountOut.ToBig(),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: fee,
+					Amount: fee.ToBig(),
 				},
 				Gas: t.gas.Exchange,
 			}, nil
@@ -166,30 +173,30 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var baseInputIndex = t.basePool.GetTokenIndex(tokenAmountIn.Token)
 	var baseOutputIndex = t.basePool.GetTokenIndex(tokenOut)
 	var maxCoin = len(t.Info.Tokens) - 1
-	if tokenIndexFrom < 0 && baseInputIndex >= 0 {
-		tokenIndexFrom = maxCoin + baseInputIndex
+	if idxIn < 0 && baseInputIndex >= 0 {
+		idxIn = maxCoin + baseInputIndex
 	}
-	if tokenIndexTo < 0 && baseOutputIndex >= 0 {
-		tokenIndexTo = maxCoin + baseOutputIndex
+	if idxOut < 0 && baseOutputIndex >= 0 {
+		idxOut = maxCoin + baseOutputIndex
 	}
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+	if idxIn >= 0 && idxOut >= 0 {
 		// get_dy_underlying
 		amountOut, fee, err := t.GetDyUnderlying(
-			tokenIndexFrom,
-			tokenIndexTo,
-			tokenAmountIn.Amount)
+			idxIn,
+			idxOut,
+			amtIn)
 		if err != nil {
 			return nil, err
 		}
-		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
+		if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: amountOut,
+					Amount: amountOut.ToBig(),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: fee,
+					Amount: fee.ToBig(),
 				},
 				Gas: t.gas.ExchangeUnderlying,
 			}, nil
@@ -198,32 +205,31 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	return &pool.CalcAmountOutResult{
 		Gas: t.gas.ExchangeUnderlying,
-	}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+	}, fmt.Errorf("idxIn %v or idxOut %v is not correct", idxIn, idxOut)
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var inputIndex = t.GetTokenIndex(input.Token)
-	var outputIndex = t.GetTokenIndex(output.Token)
-	if inputIndex >= 0 && outputIndex >= 0 {
+	inputAmount, _ := uint256.FromBig(input.Amount)
+	idxIn, idxOut := t.GetTokenIndex(input.Token), t.GetTokenIndex(output.Token)
+	if idxIn >= 0 && idxOut >= 0 {
 		// exchange
-		_, _ = t.Exchange(inputIndex, outputIndex, inputAmount)
+		_, _ = t.Exchange(idxIn, idxOut, inputAmount)
 		return
 	}
 	// check exchange_underlying
 	var baseInputIndex = t.basePool.GetTokenIndex(input.Token)
 	var baseOutputIndex = t.basePool.GetTokenIndex(output.Token)
 	var maxCoin = len(t.Info.Tokens) - 1
-	if inputIndex < 0 && baseInputIndex >= 0 {
-		inputIndex = maxCoin + baseInputIndex
+	if idxIn < 0 && baseInputIndex >= 0 {
+		idxIn = maxCoin + baseInputIndex
 	}
-	if outputIndex < 0 && baseOutputIndex >= 0 {
-		outputIndex = maxCoin + baseOutputIndex
+	if idxOut < 0 && baseOutputIndex >= 0 {
+		idxOut = maxCoin + baseOutputIndex
 	}
-	if inputIndex >= 0 && outputIndex >= 0 {
+	if idxIn >= 0 && idxOut >= 0 {
 		// exchange_underlying
-		_, _ = t.ExchangeUnderlying(inputIndex, outputIndex, inputAmount)
+		_, _ = t.ExchangeUnderlying(idxIn, idxOut, inputAmount)
 	}
 }
 

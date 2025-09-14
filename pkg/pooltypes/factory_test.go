@@ -21,6 +21,7 @@ func TestPoolFactory(t *testing.T) {
 		"kyber-pmm",     // private
 		"pmm-1",         // private
 		"pmm-2",         // private
+		"pmm-3",         // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string

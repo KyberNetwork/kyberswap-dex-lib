@@ -273,7 +273,7 @@ func (s *PoolSimulator) calculateSwapOutWithState(idxIn, idxOut int, amountOut *
 	}
 
 	// Convert input back to token decimals
-	amountIn = s.adjustFromInternalDecimals(amountIn, 0)
+	amountIn = s.adjustFromInternalDecimals(amountIn, idxIn)
 
 	// Update dex variables with new supplies
 	newDexVars.Token0TotalSupplyAdjusted = newSupplies[0]

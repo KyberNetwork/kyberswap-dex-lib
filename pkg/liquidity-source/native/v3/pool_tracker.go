@@ -52,6 +52,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		reserves            = [2]*big.Int{common.Big0, common.Big0}
 		underlyingTokens    = make([]common.Address, len(p.Tokens))
 		isUnderlyingScanned = IsUnderlyingScanned(ctx)
+
+		vaultRPCs = [2]VaultRPC{}
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -61,30 +63,28 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		rpcRequest.SetBlockNumber(&blockNumberBI)
 	}
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: p.Address,
-		Method: poolMethodGetLiquidity,
-	}, []any{&liquidity})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: p.Address,
-		Method: poolMethodGetSlot0,
-	}, []any{&slot0})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: p.Address,
-		Method: poolMethodTickSpacing,
-	}, []any{&tickSpacing})
+	rpcRequest.
+		AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: poolMethodGetLiquidity,
+		}, []any{&liquidity}).
+		AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: poolMethodGetSlot0,
+		}, []any{&slot0}).
+		AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: p.Address,
+			Method: poolMethodTickSpacing,
+		}, []any{&tickSpacing})
 
 	start := 0
 	if len(p.Tokens) == 4 {
 		start = 2
 	}
 
-	var vaultRPCs = [2]VaultRPC{}
 	for i := start; i < len(p.Tokens); i++ {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
@@ -102,32 +102,38 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 			}, []any{&underlyingTokens[i-start]})
 		}
 
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    lpTokenABI,
-			Target: p.Tokens[i].Address,
-			Method: lpTokenMethodMinDeposit,
-			Params: nil,
-		}, []any{&vaultRPCs[i-start].MinDeposit})
-
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    lpTokenABI,
-			Target: p.Tokens[i].Address,
-			Method: lpTokenMethodDepositPaused,
-			Params: nil,
-		}, []any{&vaultRPCs[i-start].DepositPaused})
-
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    lpTokenABI,
-			Target: p.Tokens[i].Address,
-			Method: lpTokenMethodRedeemPaused,
-			Params: nil,
-		}, []any{&vaultRPCs[i-start].RedeemPaused})
-
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    lpTokenABI,
-			Target: p.Tokens[i].Address,
-			Method: lpTokenMethodExchangeRate,
-		}, []any{&vaultRPCs[i-start].ExchangeRate})
+		rpcRequest.
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodMinDeposit,
+			}, []any{&vaultRPCs[i-start].MinDeposit}).
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodDepositPaused,
+			}, []any{&vaultRPCs[i-start].DepositPaused}).
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodRedeemPaused,
+			}, []any{&vaultRPCs[i-start].RedeemPaused}).
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodExchangeRate,
+			}, []any{&vaultRPCs[i-start].ExchangeRate}).
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodMinRedeemInterval,
+			}, []any{&vaultRPCs[i-start].MinRedeemInterval}).
+			AddCall(&ethrpc.Call{
+				ABI:    lpTokenABI,
+				Target: p.Tokens[i].Address,
+				Method: lpTokenMethodRedeemCoolDownExempt,
+				Params: []any{common.HexToAddress(d.config.ExecutorAddress)},
+			}, []any{&vaultRPCs[i-start].RedeemCoolDownExempt})
 	}
 
 	res, err := rpcRequest.TryBlockAndAggregate()
@@ -144,6 +150,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		vaults[i].RedeemPaused = v.RedeemPaused
 		vaults[i].MinDeposit = uint256.MustFromBig(v.MinDeposit)
 		vaults[i].ExchangeRate = uint256.MustFromBig(v.ExchangeRate)
+		vaults[i].MinRedeemInterval = uint256.MustFromBig(v.MinRedeemInterval)
+		vaults[i].RedeemCoolDownExempt = v.RedeemCoolDownExempt
 	}
 
 	return &FetchRPCResult{

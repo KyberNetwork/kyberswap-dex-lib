@@ -120,7 +120,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: &pool.TokenAmount{Token: s.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &pool.TokenAmount{Token: s.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas:            defaultGas,
-		SwapInfo:       Extra{PriceUpdateData: s.priceUpdateData},
+		SwapInfo:       SwapInfo{PriceUpdateData: s.priceUpdateData},
 	}, nil
 }
 
