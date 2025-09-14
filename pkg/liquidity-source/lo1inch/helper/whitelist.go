@@ -1,8 +1,10 @@
 package helper
 
 import (
-	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
+	"slices"
+
 	"github.com/ethereum/go-ethereum/common"
+	util "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
 )
 
 type Whitelist struct {
@@ -11,11 +13,5 @@ type Whitelist struct {
 
 func (wl Whitelist) IsWhitelisted(taker common.Address) bool {
 	addressHalf := util.HalfAddressFromAddress(taker)
-	for _, item := range wl.Addresses {
-		if addressHalf == item {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(wl.Addresses, addressHalf)
 }

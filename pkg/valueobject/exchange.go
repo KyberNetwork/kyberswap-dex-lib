@@ -397,6 +397,8 @@ const (
 	ExchangeTsunamiX                   = "tsunami-x"
 	ExchangeUSDFi                      = "usdfi"
 	ExchangeUcsFinance                 = "ucs-finance"
+	ExchangeUltraSolidV2               = "ultrasolid-v2"
+	ExchangeUltraSolidV3               = "ultrasolid-v3"
 	ExchangeUnchainX                   = "unchainx"
 	ExchangeUniSwap                    = "uniswap"
 	ExchangeUniSwapV1                  = "uniswap-v1"
@@ -408,6 +410,7 @@ const (
 	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
+	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
@@ -840,6 +843,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTsunamiX:                   {},
 	ExchangeUSDFi:                      {},
 	ExchangeUcsFinance:                 {},
+	ExchangeUltraSolidV2:               {},
+	ExchangeUltraSolidV3:               {},
 	ExchangeUnchainX:                   {},
 	ExchangeUniSwap:                    {},
 	ExchangeUniSwapV1:                  {},
@@ -850,6 +855,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Kem:               {},
+	ExchangeUniswapV4Flaunch:           {},
 	ExchangeUpheavalV2:                 {},
 	ExchangeUpheavalV3:                 {},
 	ExchangeUsd0PP:                     {},
