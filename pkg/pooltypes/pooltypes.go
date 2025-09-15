@@ -71,6 +71,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mimswap"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native/v1"
@@ -329,6 +330,7 @@ type Types struct {
 	GenericArm                 string
 	ArenaBC                    string
 	XsolvBTC                   string
+	Midas                      string
 }
 
 var (
@@ -503,5 +505,6 @@ var (
 		GenericArm:                 genericarm.DexType,
 		ArenaBC:                    arenabc.DexType,
 		XsolvBTC:                   xsolvbtc.DexType,
+		Midas:                      midas.DexType,
 	}
 )
