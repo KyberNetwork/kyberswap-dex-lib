@@ -343,7 +343,6 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
-	featureFlags.EnableCorrelatedPair = true
 	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && cl.config.AEVMEnabled
 	cl.config.Common.FeatureFlags = featureFlags
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
