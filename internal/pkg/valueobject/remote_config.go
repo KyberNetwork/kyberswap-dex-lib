@@ -66,6 +66,7 @@ type (
 		IsHillClimbEnabledForAMMBestRoute bool `mapstructure:"isHillClimbEnabledForAMMBestRoute" json:"isHillClimbEnabledForAMMBestRoute"`
 		IsOnePercentHillClimbEnabled      bool `mapstructure:"isOnePercentHillClimbEnabled" json:"isOnePercentHillClimbEnabled"`
 		ReturnAlphaFee                    bool `mapstructure:"returnAlphaFee" json:"returnAF"`
+		EnableCorrelatedPair              bool `mapstructure:"enableCorrelatedPair" json:"enableCorrelatedPair"`
 
 		IgnoreAEVM bool `mapstructure:"ignoreAEVM" json:"ignoreAEVM"`
 	}

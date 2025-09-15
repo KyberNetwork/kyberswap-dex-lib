@@ -15,11 +15,11 @@ type Config struct {
 	ExcludedSourcesByClient    map[string][]string            `mapstructure:"excludedSourcesByClient" json:"excludedSourcesByClient"`
 	ForcePoolsForTokenByClient map[string]map[string][]string `mapstructure:"forcePoolsForTokenByClient" json:"forcePoolsForTokenByClient"`
 
-	Aggregator        AggregatorConfig        `mapstructure:"aggregator" json:"aggregator"`
-	Cache             valueobject.CacheConfig `mapstructure:"cache" json:"cache"`
-	CorrelatedPairs   map[string]string       `mapstructure:"correlatedPairs" json:"correlatedPairs"`
-	DefaultPoolsIndex string                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
-	Salt              string                  `mapstructure:"salt" json:"salt"`
+	Aggregator           AggregatorConfig        `mapstructure:"aggregator" json:"aggregator"`
+	Cache                valueobject.CacheConfig `mapstructure:"cache" json:"cache"`
+	DefaultPoolsIndex    string                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
+	Salt                 string                  `mapstructure:"salt" json:"salt"`
+	PriceImpaceThreshold float64                 `mapstructure:"priceImpaceThreshold" json:"priceImpaceThreshold"`
 
 	FeatureFlags valueobject.FeatureFlags `mapstructure:"featureFlags" json:"featureFlags"`
 }

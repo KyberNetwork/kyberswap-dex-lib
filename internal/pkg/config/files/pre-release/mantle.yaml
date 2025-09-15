@@ -185,6 +185,7 @@ useCase:
     excludedSourcesByClient: *excludedSourcesByClient
     defaultPoolsIndex: composite
     salt: &salt
+    priceImpaceThreshold: 0.5
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
@@ -417,6 +418,13 @@ useCase:
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
+    maxGoroutines: 2
+    chunkSize: 1000
+    correlatedPair:
+      chainName: *chainName
+      minLiquidityScore: 1000
+      minLiquidityScoreLevel: 3
+      maxPoolPerPair: 1
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -527,6 +535,14 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      prefix: *chainName
+      indexCardinality:
+        cost: 1
+        ttl: 2h
     setsNeededTobeIndexed: *setsNeededTobeIndexed
   route:
     redis:

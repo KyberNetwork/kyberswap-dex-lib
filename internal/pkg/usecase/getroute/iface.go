@@ -58,6 +58,7 @@ type IPoolRankRepository interface {
 		opt valueobject.GetBestPoolsOptions, index valueobject.IndexType,
 		forcePoolsForToken map[string][]string,
 	) ([]string, error)
+	GetCorrelatedPair(ctx context.Context, pairKeys []string) (map[string]*routerEntity.CorrelatedPairInfo, error)
 }
 
 type IPoolRepository interface {

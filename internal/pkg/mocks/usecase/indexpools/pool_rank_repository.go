@@ -125,3 +125,31 @@ func (mr *MockIPoolRankRepositoryMockRecorder) RemoveScoreToSortedSets(ctx, scor
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveScoreToSortedSets", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveScoreToSortedSets), ctx, scores)
 }
+
+// SaveCorrelatedPair mocks base method.
+func (m *MockIPoolRankRepository) SaveCorrelatedPair(ctx context.Context, correlatedPairs []entity.CorrelatedPairInfo) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveCorrelatedPair", ctx, correlatedPairs)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveCorrelatedPair indicates an expected call of SaveCorrelatedPair.
+func (mr *MockIPoolRankRepositoryMockRecorder) SaveCorrelatedPair(ctx, correlatedPairs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveCorrelatedPair", reflect.TypeOf((*MockIPoolRankRepository)(nil).SaveCorrelatedPair), ctx, correlatedPairs)
+}
+
+// ZCard mocks base method.
+func (m *MockIPoolRankRepository) ZCard(ctx context.Context, keys []string) map[string]int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ZCard", ctx, keys)
+	ret0, _ := ret[0].(map[string]int64)
+	return ret0
+}
+
+// ZCard indicates an expected call of ZCard.
+func (mr *MockIPoolRankRepositoryMockRecorder) ZCard(ctx, keys any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ZCard", reflect.TypeOf((*MockIPoolRankRepository)(nil).ZCard), ctx, keys)
+}

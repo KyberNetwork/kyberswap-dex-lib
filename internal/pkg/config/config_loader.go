@@ -327,6 +327,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.TradeDataGenerator.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.UpdateLiquidityScoreConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.Repository.Token.GoCache.WhitelistedTokenSet = whitelistedTokenSet
 }
 
@@ -342,6 +343,7 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
+	featureFlags.EnableCorrelatedPair = true
 	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && cl.config.AEVMEnabled
 	cl.config.Common.FeatureFlags = featureFlags
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags

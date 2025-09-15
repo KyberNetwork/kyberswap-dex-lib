@@ -52,3 +52,11 @@ func (g *KeyGenerator) joinTokens(token0, token1 string) string {
 
 	return strings.Join([]string{token1, token0}, "-")
 }
+
+func (g *KeyGenerator) CorrelatedPairKeyTokenIn(token string) string {
+	return token + "-*"
+}
+
+func (g *KeyGenerator) CorrelatedPairKeyTokenOut(token string) string {
+	return "*-" + token
+}

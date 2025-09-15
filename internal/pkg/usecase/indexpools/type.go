@@ -6,6 +6,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 )
@@ -88,8 +89,9 @@ func (t *TradeData) KeyError() string {
 type CalculateSwapLimit func(poolSimulator []poolpkg.IPoolSimulator) map[string]map[string]*big.Int
 
 type UpdatePoolScores struct {
-	rankingRepo IPoolRankRepository
-	config      *UpdateLiquidityScoreConfig
+	rankingRepo  IPoolRankRepository
+	config       *UpdateLiquidityScoreConfig
+	keyGenerator poolrank.KeyGenerator
 }
 
 type BlacklistPoolIndex struct {

@@ -2,13 +2,13 @@ package getroute
 
 import (
 	"context"
-	"slices"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/pkg/errors"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 
@@ -29,9 +29,7 @@ type correlatedPairs struct {
 	onchainPriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
 	aevmClient             aevmclient.Client
-
-	// map[token0] -> map[token1] -> poolAddress
-	correlatedPairs map[string]map[string]string
+	keyGenerator           poolrank.KeyGenerator
 }
 
 func NewCorrelatedPairs(
@@ -58,8 +56,6 @@ func NewCorrelatedPairs(
 		onchainPriceRepository: onchainPriceRepository,
 		poolManager:            poolManager,
 		aevmClient:             aevmClient,
-
-		correlatedPairs: convertCorrelatedPairsMap(config.CorrelatedPairs),
 	}
 }
 
@@ -68,27 +64,42 @@ func (c *correlatedPairs) Aggregate(
 	params *types.AggregateParams,
 ) (*valueobject.RouteSummaries, error) {
 	baseRoute, aggregateErr := c.aggregator.Aggregate(ctx, params)
-	if aggregateErr == nil && baseRoute.GetBestRouteSummary() != nil {
-		return baseRoute, nil
+	if !c.config.FeatureFlags.EnableCorrelatedPair {
+		return baseRoute, aggregateErr
+	}
+
+	if aggregateErr == nil && baseRoute != nil && baseRoute.GetBestRouteSummary() != nil {
+		if baseRoute.GetBestRouteSummary().GetPriceImpact() <= c.config.PriceImpaceThreshold {
+			return baseRoute, nil
+		}
 	}
 
 	// BaseAggregator can't find route. We will try to find route with correlated pairs
+	correlatedPairTokenIn, correlatedPairTokenOut := c.findFirstCorrelatedPool(ctx, params.TokenIn.Address, params.TokenOut.Address)
+	tokenMidIn, tokenMidOut := params.TokenIn.Address, params.TokenOut.Address
+	additionPoolAddresses := make([]string, 0, 2)
+	if correlatedPairTokenIn != nil {
+		additionPoolAddresses = append(additionPoolAddresses, correlatedPairTokenIn.Pool)
+		tokenMidIn = correlatedPairTokenIn.Token
+	}
+	if correlatedPairTokenOut != nil {
+		additionPoolAddresses = append(additionPoolAddresses, correlatedPairTokenOut.Pool)
+		tokenMidOut = correlatedPairTokenOut.Token
+	}
+	log.Ctx(ctx).Info().Msgf("correlatedPairTokenIn %v, correlatedPairTokenOut %v additionalPools %v tokenMidIn %v, tokenMidOut %v",
+		correlatedPairTokenIn, correlatedPairTokenOut, additionPoolAddresses, tokenMidIn, tokenMidOut)
 
-	poolInAddress, tokenMidIn := c.findFirstCorrelatedPool(params.TokenIn.Address)
-	poolOutAddress, tokenMidOut := c.findFirstCorrelatedPool(params.TokenOut.Address)
-
-	additionPoolAddresses := slices.DeleteFunc([]string{poolInAddress, poolOutAddress},
-		func(s string) bool { return s == "" })
 	additionHops := len(additionPoolAddresses)
 	if additionHops == 0 {
 		// Can't find any correlated pairs. Return the base result.
-		return nil, aggregateErr
+		return baseRoute, aggregateErr
 	}
 
 	// Initialize find route data
 	state, err := c.getStateByAddress(ctx, params, tokenMidIn, tokenMidOut, additionPoolAddresses)
 	if err != nil {
-		return nil, err
+		log.Ctx(ctx).Info().Msgf("find correlated route failed can not find state: [%v]", err)
+		return baseRoute, aggregateErr
 	}
 
 	tokenAddresses := lo.Keys(c.config.Aggregator.WhitelistedTokenSet)
@@ -103,17 +114,22 @@ func (c *correlatedPairs) Aggregate(
 
 	tokens, err := c.getTokenByAddress(ctx, tokenAddresses)
 	if err != nil {
-		return nil, err
+		log.Ctx(ctx).Info().Msgf("find correlated route failed token not found: [%v]", err)
+		return baseRoute, aggregateErr
 	}
 
 	onchainPrices, err := c.onchainPriceRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
-		return nil, err
+		return baseRoute, aggregateErr
 	}
 
 	whitelistTokens := map[string]bool{}
-	whitelistTokens[tokenMidIn] = true
-	whitelistTokens[tokenMidOut] = true
+	if tokenMidIn != params.TokenIn.Address {
+		whitelistTokens[tokenMidIn] = true
+	}
+	if tokenMidOut != params.TokenOut.Address {
+		whitelistTokens[tokenMidOut] = true
+	}
 	for token := range c.config.Aggregator.WhitelistedTokenSet {
 		whitelistTokens[token] = true
 	}
@@ -139,16 +155,23 @@ func (c *correlatedPairs) Aggregate(
 	}
 
 	if err != nil || routes == nil || routes.GetBestRoute() == nil {
-		return nil, errors.WithMessagef(ErrRouteNotFound, "find route failed: [%v]", err)
+		log.Ctx(ctx).Info().Msgf("find correlated route failed: [%v]", err)
+		return baseRoute, aggregateErr
 	}
 
-	return ConvertToRouteSummaries(params, routes), nil
+	correlatedRouteSummaries := ConvertToRouteSummaries(params, routes)
+	correlatedBestRoute := correlatedRouteSummaries.BestRoute
+
+	if baseRoute == nil || correlatedBestRoute.Cmp(baseRoute.BestRoute, params.GasInclude) > 0 {
+		return correlatedRouteSummaries, nil
+	}
+
+	return baseRoute, aggregateErr
 }
 
 func (c *correlatedPairs) ApplyConfig(config Config) {
 	c.config = config
 
-	c.correlatedPairs = convertCorrelatedPairsMap(config.CorrelatedPairs)
 	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, c.aevmClient)
 	c.oneAdditionHopFinderEngine = oneAdditionHopFinderEngine
 	c.twoAdditionHopsFinderEngine = twoAdditionHopsFinderEngine
@@ -156,15 +179,17 @@ func (c *correlatedPairs) ApplyConfig(config Config) {
 	c.aggregator.ApplyConfig(config)
 }
 
-func (c *correlatedPairs) findFirstCorrelatedPool(token string) (string, string) {
-	// For now, we always config 1 correlatedTokenIn -> 1 correlatedTokenOut through 1 pool.
-	// So return the first possible pool.
-	for tokenOut, poolAddress := range c.correlatedPairs[token] {
-		return poolAddress, tokenOut
+func (c *correlatedPairs) findFirstCorrelatedPool(ctx context.Context,
+	tokenIn, tokenOut string) (*routerEntity.CorrelatedPairInfo, *routerEntity.CorrelatedPairInfo) {
+	correlatedKeyTokenIn := c.keyGenerator.CorrelatedPairKeyTokenIn(tokenIn)
+	correlatedKeyTokenOut := c.keyGenerator.CorrelatedPairKeyTokenOut(tokenOut)
+	correlatedPairs, err := c.poolRankRepository.GetCorrelatedPair(ctx, []string{correlatedKeyTokenIn, correlatedKeyTokenOut})
+
+	if err != nil {
+		return nil, nil
 	}
 
-	// No correlated pairs found. Fallback to same token.
-	return "", token
+	return correlatedPairs[correlatedKeyTokenIn], correlatedPairs[correlatedKeyTokenOut]
 }
 
 func (c *correlatedPairs) getStateByAddress(ctx context.Context, params *types.AggregateParams, tokenMidIn string,

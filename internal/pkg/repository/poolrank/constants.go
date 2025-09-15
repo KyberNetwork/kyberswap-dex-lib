@@ -8,5 +8,6 @@ const (
 )
 
 const (
-	KeyWhitelist = "whitelist"
+	KeyWhitelist   = "whitelist"
+	CorrelatedPair = "correlatedPair"
 )

@@ -668,6 +668,13 @@ useCase:
   updateLiquidityScore:
     meanType: "geometric"
     getBestPoolsOptions: *getBestPoolsOptions
+    maxGoroutines: 2
+    chunkSize: 1000
+    correlatedPair:
+      chainName: *chainName
+      minLiquidityScore: 1000
+      minLiquidityScoreLevel: 3
+      maxPoolPerPair: 1
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -738,7 +745,7 @@ repository:
         cost: 1
         ttl: 30m
   onchainprice:
-    grpc:
+    grpc: 
       base_url: onchain-price.pre-release-cluster.gke.production.internal:80
       timeout: 300ms
       insecure: true
@@ -779,6 +786,14 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      prefix: *chainName
+      indexCardinality:
+        cost: 1
+        ttl: 2h
     setsNeededTobeIndexed: *setsNeededTobeIndexed
   route:
     redis:

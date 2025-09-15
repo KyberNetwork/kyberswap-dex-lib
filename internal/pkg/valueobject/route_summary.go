@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/zeebo/xxh3"
 
@@ -111,6 +112,26 @@ func (rs *RouteSummary) GetTotalAmountOut(chainID ChainID) *big.Int {
 
 func (rs *RouteSummary) GetPriceImpact() float64 {
 	return (rs.AmountInUSD - rs.AmountOutUSD) / rs.AmountInUSD
+}
+
+func (r *RouteSummary) Cmp(y *RouteSummary, gasIncluded bool) int {
+
+	if gasIncluded && r.AmountOutUSD != 0 {
+		xValue := r.AmountOutUSD - r.GasUSD - r.L1FeeUSD
+		yValue := y.AmountOutUSD - y.GasUSD - y.L1FeeUSD
+
+		if util.AlmostEqual(xValue, yValue) {
+			return r.AmountOut.Cmp(y.AmountOut)
+		}
+
+		if xValue < yValue {
+			return -1
+		} else {
+			return 1
+		}
+	}
+
+	return r.AmountOut.Cmp(y.AmountOut)
 }
 
 type RouteSummaries struct {

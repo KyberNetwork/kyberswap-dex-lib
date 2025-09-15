@@ -4,13 +4,18 @@ import (
 	"bufio"
 	"context"
 	"encoding/csv"
+	"fmt"
 	"io"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/rs/zerolog/log"
+	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/iter"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 )
 
 type MeanType string
@@ -18,10 +23,11 @@ type MeanType string
 type FileHeader int
 
 const (
-	HarmonicMean          MeanType = "harmonic"
-	GeometricMean         MeanType = "geometric"
-	ArithmeticMean        MeanType = "arithmetic"
-	WhitelistWhitelistKey          = "liquidityScoreTvl:whitelist"
+	HarmonicMean   MeanType = "harmonic"
+	GeometricMean  MeanType = "geometric"
+	ArithmeticMean MeanType = "arithmetic"
+	WhitelistKey            = "whitelist"
+	IndexName               = "liquidityScoreTvl"
 )
 
 const (
@@ -37,8 +43,9 @@ func NewUpdatePoolsScore(
 	rankingRepo IPoolRankRepository,
 	config *UpdateLiquidityScoreConfig) *UpdatePoolScores {
 	return &UpdatePoolScores{
-		rankingRepo: rankingRepo,
-		config:      config,
+		rankingRepo:  rankingRepo,
+		config:       config,
+		keyGenerator: *poolrank.NewKeyGenerator(config.CorrelatedPairConfig.ChainName),
 	}
 }
 
@@ -78,9 +85,61 @@ func (u *UpdatePoolScores) saveLiquidityScores(ctx context.Context, scoresFileNa
 	}(scoresFileNames)
 
 	count := 0
+	sortedSetPrefix := u.config.CorrelatedPairConfig.ChainName + ":" + IndexName
+	correlatedPairMaxScorePools := map[string]entity.CorrelatedPairInfo{}
+
 	// Process scores and collect errors
 	for scores := range scoresChan {
 		err := handler(ctx, scores)
+		for _, score := range scores {
+			if !strings.Contains(score.Key, WhitelistKey) {
+				tokens := strings.Split(score.Key[len(sortedSetPrefix)+1:], "-")
+				if !u.config.WhitelistedTokenSet[strings.ToLower(tokens[0])] &&
+					!u.config.WhitelistedTokenSet[strings.ToLower(tokens[1])] &&
+					score.LiquidityScore > u.config.CorrelatedPairConfig.MinLiquidityScore && score.Level >= int64(u.config.CorrelatedPairConfig.MinLiquidityScoreLevel) {
+					tokenInWhitelistKey := fmt.Sprintf("%s:%s:%s", sortedSetPrefix, tokens[0], WhitelistKey)
+					whitelistTokenOutKey := fmt.Sprintf("%s:%s:%s", sortedSetPrefix, WhitelistKey, tokens[1])
+					whitelistTokenInKey := fmt.Sprintf("%s:%s:%s", sortedSetPrefix, WhitelistKey, tokens[0])
+
+					cardinality := u.rankingRepo.ZCard(ctx, []string{tokenInWhitelistKey, whitelistTokenOutKey, whitelistTokenInKey})
+
+					encodeScore := score.EncodeScore()
+					/*
+					 * When we can't find any route from token in to whitelist token, but we can find route from token out to whitelist token
+					 * we can definitely sure that this pair of token is correlated pair
+					 * this pair hase key tokenIn-*
+					 */
+					if cardinality[tokenInWhitelistKey] == 0 && cardinality[whitelistTokenOutKey] != 0 {
+						correlatedKey := u.keyGenerator.CorrelatedPairKeyTokenIn(tokens[0])
+						if poolScore, ok := correlatedPairMaxScorePools[correlatedKey]; !ok || poolScore.Score < encodeScore {
+							correlatedPairMaxScorePools[correlatedKey] = entity.CorrelatedPairInfo{
+								Key:   correlatedKey,
+								Token: tokens[1],
+								Pool:  score.Pool,
+								Score: encodeScore,
+							}
+						}
+					}
+
+					/*
+					 * When we can't find any route from whitelist to tokenOut, but we can find route from tokenIn to whitelist
+					 * we can definitely sure that this pair of token is correlated pair
+					 * this pair hase key *-tokenOut
+					 */
+					if cardinality[whitelistTokenInKey] != 0 {
+						correlatedKey := u.keyGenerator.CorrelatedPairKeyTokenOut(tokens[1])
+						if poolScore, ok := correlatedPairMaxScorePools[correlatedKey]; !ok || poolScore.Score < encodeScore {
+							correlatedPairMaxScorePools[correlatedKey] = entity.CorrelatedPairInfo{
+								Key:   correlatedKey,
+								Token: tokens[0],
+								Pool:  score.Pool,
+								Score: encodeScore,
+							}
+						}
+					}
+				}
+			}
+		}
 		if err != nil {
 			result = append(result, err)
 		}
@@ -92,10 +151,12 @@ func (u *UpdatePoolScores) saveLiquidityScores(ctx context.Context, scoresFileNa
 		result = append(result, err)
 	}
 
+	u.updateCorrelatedPairs(ctx, correlatedPairMaxScorePools)
+
 	log.Ctx(ctx).Info().
 		Str("struct", "UpdateLiquidityScore").
 		Str("method", "Handle").
-		Msgf("update liquidity scores total count %d", count)
+		Msgf("update liquidity scores total count %d numOfCorrelatedPair %d", count, len(correlatedPairMaxScorePools))
 
 	return result
 }
@@ -173,4 +234,28 @@ func (u *UpdatePoolScores) readLiquidityScores(ctx context.Context, filename str
 		Msg("read done")
 
 	return nil
+}
+
+func (u *UpdatePoolScores) updateCorrelatedPairs(ctx context.Context, correlatedPairMap map[string]entity.CorrelatedPairInfo) []error {
+	correlatedPairs := lo.MapToSlice(correlatedPairMap, func(_ string, value entity.CorrelatedPairInfo) entity.CorrelatedPairInfo {
+		return value
+	})
+
+	chunks := lo.Chunk(correlatedPairs, 100)
+	mapper := iter.Mapper[[]entity.CorrelatedPairInfo, error]{MaxGoroutines: u.config.MaxGoroutines}
+	errors := mapper.Map(chunks, func(chunk *[]entity.CorrelatedPairInfo) error {
+		err := u.rankingRepo.SaveCorrelatedPair(ctx, *chunk)
+		if err != nil {
+			log.Ctx(ctx).Err(err).
+				Str("struct", "UpdateLiquidityScore").
+				Str("method", "updateCorrelatedPairs").
+				Msg("save to redis error")
+			return err
+		}
+
+		return nil
+	})
+
+	return errors
+
 }

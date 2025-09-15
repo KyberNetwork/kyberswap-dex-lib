@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	valueobject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -54,4 +55,19 @@ func (m *MockIPoolRankRepository) FindBestPoolIDs(ctx context.Context, tokenIn, 
 func (mr *MockIPoolRankRepositoryMockRecorder) FindBestPoolIDs(ctx, tokenIn, tokenOut, amountIn, opt, index, forcePoolsForToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBestPoolIDs", reflect.TypeOf((*MockIPoolRankRepository)(nil).FindBestPoolIDs), ctx, tokenIn, tokenOut, amountIn, opt, index, forcePoolsForToken)
+}
+
+// GetCorrelatedPair mocks base method.
+func (m *MockIPoolRankRepository) GetCorrelatedPair(ctx context.Context, pairKeys []string) (map[string]*entity.CorrelatedPairInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCorrelatedPair", ctx, pairKeys)
+	ret0, _ := ret[0].(map[string]*entity.CorrelatedPairInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCorrelatedPair indicates an expected call of GetCorrelatedPair.
+func (mr *MockIPoolRankRepositoryMockRecorder) GetCorrelatedPair(ctx, pairKeys any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCorrelatedPair", reflect.TypeOf((*MockIPoolRankRepository)(nil).GetCorrelatedPair), ctx, pairKeys)
 }

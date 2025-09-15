@@ -939,8 +939,9 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, aevmClient, balanceSlotsUseCase)
 	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository,
 		poolRankRepo, getPools, aevmClient, poolFactory, &cfg.UseCase.TradeDataGenerator)
+	ristrettoRankingRepo, err := poolrank.NewRistrettoRepository(poolRankRepo, cfg.Repository.PoolRank.Ristretto)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(
-		poolRankRepo,
+		ristrettoRankingRepo,
 		&cfg.UseCase.UpdateLiquidityScoreConfig)
 	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
 	removePoolUsecase := usecase.NewRemovePoolIndexUseCase(poolRankRepo)

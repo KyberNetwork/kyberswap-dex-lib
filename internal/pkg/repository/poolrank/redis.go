@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/redis/go-redis/v9"
@@ -425,4 +426,89 @@ func (r *redisRepository) RemoveScoreToSortedSets(ctx context.Context, scores []
 	)
 
 	return err
+}
+
+func (r *redisRepository) ZCard(ctx context.Context, keys []string) map[string]int64 {
+	if len(keys) == 0 {
+		return nil
+	}
+
+	if len(keys) == 1 {
+		result := map[string]int64{}
+		card, err := r.redisClient.ZCard(ctx, keys[0]).Result()
+		if err != nil {
+			return result
+		}
+		result[keys[0]] = card
+		return result
+	}
+
+	cmders, _ := r.redisClient.Pipelined(
+		ctx, func(tx redis.Pipeliner) error {
+			for _, key := range keys {
+				tx.ZCard(ctx, key)
+			}
+
+			return nil
+		},
+	)
+
+	result := make(map[string]int64, len(keys))
+	for i, cmd := range cmders {
+		cardinality := cmd.(*redis.IntCmd).Val()
+		result[keys[i]] = cardinality
+	}
+
+	return result
+}
+
+func (r *redisRepository) SaveCorrelatedPair(ctx context.Context, correlatedPairs []entity.CorrelatedPairInfo) error {
+	if len(correlatedPairs) == 0 {
+		return nil
+	}
+
+	data := make(map[string]interface{}, len(correlatedPairs))
+	for _, pair := range correlatedPairs {
+		pairVal := encodeCorrelatedPair(pair)
+
+		data[pair.Key] = pairVal
+	}
+
+	hashKey := fmt.Sprintf("%s:%s", r.config.Redis.Prefix, CorrelatedPair)
+	return r.redisClient.HMSet(ctx, hashKey, data).Err()
+}
+
+func (r *redisRepository) GetCorrelatedPair(ctx context.Context, pairKeys []string) (map[string]*entity.CorrelatedPairInfo, error) {
+	if len(pairKeys) == 0 {
+		return nil, nil
+	}
+
+	hashKey := fmt.Sprintf("%s:%s", r.config.Redis.Prefix, CorrelatedPair)
+	result, err := r.redisClient.HMGet(ctx, hashKey, pairKeys...).Result()
+
+	if err != nil {
+		return nil, err
+	}
+
+	pairs := make(map[string]*entity.CorrelatedPairInfo, len(pairKeys))
+	for i, res := range result {
+		if res == nil {
+			continue
+		}
+		pairs[pairKeys[i]] = decodeCorrelatedPair(res.(string))
+	}
+
+	return pairs, nil
+}
+
+func encodeCorrelatedPair(pair entity.CorrelatedPairInfo) string {
+	return fmt.Sprintf("%s-%s", pair.Token, pair.Pool)
+}
+
+func decodeCorrelatedPair(pair string) *entity.CorrelatedPairInfo {
+	info := strings.Split(pair, "-")
+	return &entity.CorrelatedPairInfo{
+		Token: info[0],
+		Pool:  info[1],
+	}
 }

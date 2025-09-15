@@ -37,7 +37,16 @@ type TradeDataGeneratorConfig struct {
 }
 
 type UpdateLiquidityScoreConfig struct {
-	MeanType            string                          `mapstructure:"meanType" json:"meanType"`
-	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
-	ChunkSize           int                             `mapstructure:"chunkSize" json:"chunkSize"`
+	MeanType             string                          `mapstructure:"meanType" json:"meanType"`
+	GetBestPoolsOptions  valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
+	ChunkSize            int                             `mapstructure:"chunkSize" json:"chunkSize"`
+	WhitelistedTokenSet  map[string]bool                 `mapstructure:"whitelistedTokenSet"`
+	MaxGoroutines        int                             `mapstructure:"maxGoroutines"`
+	CorrelatedPairConfig CorrelatedPairConfig            `mapstructure:"correlatedPair" json:"correlatedPair"`
+}
+
+type CorrelatedPairConfig struct {
+	ChainName              string  `mapstructure:"chainName"`
+	MinLiquidityScore      float64 `mapstructure:"minLiquidityScore"`
+	MinLiquidityScoreLevel float64 `mapstructure:"minLiquidityScoreLevel"`
 }

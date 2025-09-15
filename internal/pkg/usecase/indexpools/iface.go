@@ -64,6 +64,8 @@ type IPoolRankRepository interface {
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)
 	AddScoreToSortedSets(ctx context.Context, scores []routerEntity.PoolScore) error
 	RemoveScoreToSortedSets(ctx context.Context, scores []routerEntity.PoolScore) error
+	ZCard(ctx context.Context, keys []string) map[string]int64
+	SaveCorrelatedPair(ctx context.Context, correlatedPairs []routerEntity.CorrelatedPairInfo) error
 }
 
 type IPoolFactory interface {
