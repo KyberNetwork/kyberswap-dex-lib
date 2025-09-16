@@ -17,11 +17,14 @@ const (
 
 	erc20MethodBalanceOf = "balanceOf"
 
-	lpTokenMethodUnderlying    = "underlying"
-	lpTokenMethodMinDeposit    = "minDeposit"
-	lpTokenMethodDepositPaused = "depositPaused"
-	lpTokenMethodRedeemPaused  = "redeemPaused"
-	lpTokenMethodExchangeRate  = "exchangeRate"
+	lpTokenMethodUnderlying           = "underlying"
+	lpTokenMethodMinDeposit           = "minDeposit"
+	lpTokenMethodDepositPaused        = "depositPaused"
+	lpTokenMethodRedeemPaused         = "redeemPaused"
+	lpTokenMethodExchangeRate         = "exchangeRate"
+	lpTokenMethodLastDepositTimestamp = "lastDepositTimestamp"
+	lpTokenMethodMinRedeemInterval    = "minRedeemInterval"
+	lpTokenMethodRedeemCoolDownExempt = "redeemCooldownExempt"
 
 	WrapGasCost   = 80000 // Gas cost for wrapping token
 	UnwrapGasCost = 40000 // Gas cost for unwrapping token
@@ -43,4 +46,5 @@ var (
 	ErrInvalidExchangeRate  = errors.New("invalid exchangeRate")
 	ErrDepositPaused        = errors.New("deposit paused")
 	ErrRedeemPaused         = errors.New("redeem paused")
+	ErrTransferInCoolDown   = errors.New("transfer in cool down")
 )

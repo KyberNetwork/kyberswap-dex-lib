@@ -9,294 +9,275 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/vault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var (
 	entityPool entity.Pool
-	_          = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"},{"address":"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"rate\":\"1000000000000000000\"},{\"rate\":\"1000000000000000000\"}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`), &entityPool)
-	poolSim    = lo.Must(NewPoolSimulator(entityPool))
+	_          = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"},{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"dRate\":[\"976255\",\"976255817341\",\"976255817341645373\",\"976255817341645373456045\",\"976255817341645373456045753577\"],\"rRate\":[\"1024321\",\"1024321681096\",\"1024321681096877127\",\"1024321681096877127977750\",\"1024321681096877127977750950000\"]},{\"dRate\":[\"996629\",\"996629442697\",\"996629442697471179\",\"996629442697471179789157\",\"996629442697471179789157582365\"],\"rRate\":[\"1003381\",\"1003381956380\",\"1003381956380303285\",\"1003381956380303285385258\",\"1003381956380303285385258382000\"]}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`),
+		&entityPool)
+	poolSim = lo.Must(NewPoolSimulator(entityPool))
 )
 
 func TestCalcAmountOut(t *testing.T) {
 	t.Parallel()
-
-	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(1e18),
-		}
-		tokenOut := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
-
-		expectedAmountOut := "847659059612802449"
-		expectedSwapFee := "20000000000000"
-
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Nil(t, err)
-
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
-	})
-
-	t.Run("2. Swap from token 1 to token 0 successful", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		s := poolSim
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(1e18),
-		}
-		tokenOut := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
-
-		expectedAmountOut := "1179670809463600235"
-		expectedSwapFee := "20000000000000"
-
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Nil(t, err)
-
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
-	})
-
-	t.Run("3. AmountIn is too small", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(799999), // less than MinTradeAmount (1000000)
-		}
-		tokenOut := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
-
-		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Error(t, err)
-		assert.Equal(t, vault.ErrAmountInTooSmall, err)
-	})
-
-	t.Run("4. AmountOut is too small", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(840000), // less than MinTradeAmount (1000000)
-		}
-		tokenOut := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
-
-		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Error(t, err)
-		assert.Equal(t, vault.ErrAmountOutTooSmall, err)
-	})
-
-	// Mock state from https://etherscan.io/tx/0x92f38cf0d3c11276c220d4790c57a1f316b99a5e676e182b81d576b71f779012
-	t.Run("5. should return OK", func(t *testing.T) {
-		poolStr := `{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1735816509,"reserves":["619469949959861143118","1841897390394044699179"],"tokens":[{"address":"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9","weight":1,"swappable":true},{"address":"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29","weight":1,"swappable":true}],"extra":"{\"hook\":{\"enableHookAdjustedAmounts\":false,\"shouldCallComputeDynamicSwapFee\":false,\"shouldCallBeforeSwap\":false,\"shouldCallAfterSwap\":false},\"fee\":\"20000000000000\",\"aggrFee\":\"100000000000000000\",\"ampParam\":\"5000000\",\"balsE18\":[\"625134427981060649446\",\"2193655709385971229274\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009146942992102450\",\"1190985849893040213\"]}","staticExtra":"{\"vault\":\"0xba1333333333a1ba1108e8412f11850a5c319ba9\",\"defaultHook\":\"\"}","blockNumber":21536418}`
-
-		var pool entity.Pool
-		err := json.Unmarshal([]byte(poolStr), &pool)
-		assert.Nil(t, err)
-
-		s, err := NewPoolSimulator(pool)
-		assert.Nil(t, err)
-
-		amountIn, _ := new(big.Int).SetString("1189123158260799643", 10)
-
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: amountIn,
-		}
-		tokenOut := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
-
-		// expected
-		expectedAmountOut := "1008017884740935660"
-		expectedSwapFee := "23782463165215"
-
-		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tokenAmountIn,
-				TokenOut:      tokenOut,
-			})
-		})
-
-		assert.Nil(t, err)
-
-		// assert
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
+	testutil.TestCalcAmountOut(t, poolSim, map[int]map[int]map[string]string{
+		0: {
+			0: {
+				"1000000000": "invalid token",
+			},
+			1: { // underlying 0 -> underlying 1
+				"799999":              "amount in is too small",
+				"1000000000":          "830329790",
+				"2000000000000000000": "1660660554496124258",
+			},
+			2: { // underlying 0 -> wrapped 0
+				"799999":              "781003",
+				"1000000000":          "976255000",
+				"2000000000000000000": "1952511634683290746",
+			},
+			3: { // underlying 0 -> wrapped 1
+				"799999":              "amount in is too small",
+				"1000000000":          "827531905",
+				"2000000000000000000": "1655063202937145788",
+			},
+		},
+		1: {
+			0: {
+				"842557":              "amount out is too small",
+				"1000000000":          "1204289875",
+				"2000000000000000000": "2408577306041957034",
+			},
+			1: {
+				"1000000000": "invalid token",
+			},
+			2: {
+				"842557":              "amount out is too small",
+				"1000000000":          "1175694997",
+				"2000000000000000000": "2351387606540529096",
+			},
+			3: {
+				"842557":              "839716",
+				"1000000000":          "996629000",
+				"2000000000000000000": "1993258885394942358",
+			},
+		},
+		2: {
+			0: {
+				"842557":              "863048",
+				"1000000000":          "1024321000",
+				"2000000000000000000": "2048643362193754254",
+			},
+			1: {
+				"842557":              "amount in is too small",
+				"1000000000":          "850525518",
+				"2000000000000000000": "1701050561113724421",
+			},
+			2: {
+				"1000000000": "invalid token",
+			},
+			3: {
+				"842557":              "amount in is too small",
+				"1000000000":          "847659581",
+				"2000000000000000000": "1695317072722991811",
+			},
+		},
+		3: {
+			0: {
+				"842557":              "1018110",
+				"1000000000":          "1208363268",
+				"2000000000000000000": "2416722997438206073",
+			},
+			1: {
+				"842557":              "845405",
+				"1000000000":          "1003381000",
+				"2000000000000000000": "2006763912760606570",
+			},
+			2: {
+				"842557":              "993937",
+				"1000000000":          "1179671670",
+				"2000000000000000000": "2359339885152387011",
+			},
+			3: {
+				"1000000000": "invalid token",
+			},
+		},
 	})
 }
 
 func TestCalcAmountIn(t *testing.T) {
+	testutil.TestCalcAmountIn(t, poolSim, 8)
+}
+
+func TestCanSwapTo(t *testing.T) {
 	t.Parallel()
-	t.Run("1. Swap from token 0 to token 1 successful", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:  "Underlying Swap",
+			input: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			expected: []string{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+				"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"},
+		},
+		{
+			name:  "Wrapped Swap",
+			input: "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
+			expected: []string{"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
+				"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"},
+		},
+	}
 
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(1e18),
-		}
-		tokenIn := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
-
-		expectedAmountIn := "1179719723071294912"
-		expectedSwapFee := "23594394461425"
-
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
-				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := poolSim.CanSwapTo(tc.input)
+			assert.ElementsMatch(t, tc.expected, result)
 		})
+	}
+}
 
-		assert.Nil(t, err)
+func TestUpdateBalance(t *testing.T) {
+	t.Parallel()
 
-		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
-	})
+	testPool := poolSim.CloneState().(*base.PoolSimulator)
+	// Update reserves for test examples
+	testPool.Info.Reserves[0] = big.NewInt(2e18)
+	testPool.Info.Reserves[1] = big.NewInt(4e18)
 
-	t.Run("2. Swap from token 1 to token 0 successful", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
+	testcases := []struct {
+		name             string
+		tokenIn          string
+		tokenInAmount    *big.Int
+		tokenOut         string
+		tokenOutAmount   *big.Int
+		expectedReserves []*big.Int
+		aggregateFee     *big.Int
+	}{
+		// buffer swap -> directly swaps/un/wraps on buffer/ERC4626 and does not affect pool reserves
+		{
+			name:             "Buffer Swap - Wrap",
+			tokenIn:          "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
+			tokenInAmount:    big.NewInt(1e18),
+			tokenOut:         "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenOutAmount:   big.NewInt(2e18),
+			expectedReserves: testPool.GetReserves(), // Reserves remain unchanged
+			aggregateFee:     big.NewInt(1e15),       // 0.001 (Not relevant for this test)
+		},
+		{
+			name:             "Buffer Swap - Unwrap",
+			tokenIn:          "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenInAmount:    big.NewInt(1e18),
+			tokenOut:         "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenOutAmount:   big.NewInt(2e18),
+			expectedReserves: testPool.GetReserves(), // Reserves remain unchanged
+			aggregateFee:     big.NewInt(1e15),       // 0.001 (Not relevant for this test)
+		},
+		// swap -> amounts directly
+		{
+			name:           "Swap",
+			tokenIn:        "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(1e18), // waEthLidoWETH reserve - out
+				big.NewInt(6e18), // waEthLidowstETH reserve + in
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for test examples
+		},
+		// wrap>swap -> amount in will have rates
+		{
+			name:           "Wrap>Swap - underlyingIn[wrap]wrappedIn[swap]wrappedOut",
+			tokenIn:        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // weth
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29", // waEthLidowstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(3952511634683290746), // waEthLidoWETH + in/ERC4626rate
+				big.NewInt(3e18),                // waEthLidowstETH reserve - out
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for test examples
+		},
+		// swap>unwrap -> amount out will have rates
+		{
+			name:           "Swap>Unwrap - wrappedIn[swap]wrappedOut[unwrap]underlyingOut",
+			tokenIn:        "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9", // waEthLidoWETH
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(4e18),                // waEthLidoWETH + in
+				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for test examples
+		},
+		// Wrap>Swap>Unwrap -> amount in & out will have rates
+		{
+			name:           "Wrap>Swap>Unwrap - wrappedIn[swap]wrappedOut[unwrap]underlyingOut",
+			tokenIn:        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // weth
+			tokenInAmount:  big.NewInt(2e18),
+			tokenOut:       "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", // wstETH
+			tokenOutAmount: big.NewInt(1e18),
+			expectedReserves: []*big.Int{
+				big.NewInt(3952511634683290746), // waEthLidoWETH + in/ERC4626rate
+				big.NewInt(3003370557302528821), // waEthLidowstETH reserve - out/ERC4626rate
+			},
+			aggregateFee: big.NewInt(0), // Zero fee for test examples
+		},
+	}
 
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(1e18),
-		}
-		tokenIn := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Clone the pool simulator for each test to avoid state pollution
+			clonedPool := testPool.CloneState()
 
-		expectedAmountIn := "847694017912779289"
-		expectedSwapFee := "16953880358256"
+			// Create token amounts
+			tokenAmountIn := poolpkg.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: tc.tokenInAmount,
+			}
 
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
+			tokenAmountOut := poolpkg.TokenAmount{
+				Token:  tc.tokenOut,
+				Amount: tc.tokenOutAmount,
+			}
+
+			// Create swap info
+			swapInfo := shared.SwapInfo{
+				Buffers:      []*shared.ExtraBuffer{},
+				AggregateFee: tc.aggregateFee,
+			}
+
+			// Create empty fee as it doesn't matter
+			emptyFee := poolpkg.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: big.NewInt(0),
+			}
+
+			// Create update balance params
+			params := poolpkg.UpdateBalanceParams{
+				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
+				Fee:            emptyFee,
+				SwapInfo:       swapInfo,
+			}
+			// Update balance
+			clonedPool.UpdateBalance(params)
+
+			// Get updated reserves
+			updatedReserves := clonedPool.GetReserves()
+
+			// Verify that all reserves match expected values
+			assert.Equal(t, len(tc.expectedReserves), len(updatedReserves),
+				"Expected reserves array length should match actual reserves")
+			for i, expectedReserve := range tc.expectedReserves {
+				assert.Equal(t, expectedReserve, updatedReserves[i], "Reserve %d should match expected value", i)
+			}
 		})
-
-		assert.Nil(t, err)
-
-		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
-	})
-
-	t.Run("3. AmountIn is too small", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9",
-			Amount: big.NewInt(799999), // less than MinTradeAmount (1000000)
-		}
-		tokenIn := "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29"
-
-		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
-				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
-		})
-
-		assert.Error(t, err)
-		assert.Equal(t, vault.ErrAmountInTooSmall, err)
-	})
-
-	t.Run("4. AmountOut is too small", func(t *testing.T) {
-		reserves := make([]*big.Int, 2)
-		reserves[0], _ = new(big.Int).SetString("687804073931103275644", 10)
-		reserves[1], _ = new(big.Int).SetString("1783969556654743519024", 10)
-
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: big.NewInt(840000), // less than MinTradeAmount (1000000)
-		}
-		tokenIn := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
-
-		_, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return poolSim.CalcAmountIn(poolpkg.CalcAmountInParams{
-				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
-		})
-
-		assert.Error(t, err)
-		assert.Equal(t, vault.ErrAmountOutTooSmall, err)
-	})
-
-	// Mock state from https://etherscan.io/tx/0x92f38cf0d3c11276c220d4790c57a1f316b99a5e676e182b81d576b71f779012
-	t.Run("5. should return OK", func(t *testing.T) {
-		poolStr := `{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1735816509,"reserves":["619469949959861143118","1841897390394044699179"],"tokens":[{"address":"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9","weight":1,"swappable":true},{"address":"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29","weight":1,"swappable":true}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"100000000000000000\",\"ampParam\":\"5000000\",\"balsE18\":[\"625134427981060649446\",\"2193655709385971229274\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009146942992102450\",\"1190985849893040213\"],\"isVaultPaused\":false,\"isPoolPaused\":false,\"isPoolInRecoveryMode\":false}","staticExtra":"{\"vault\":\"0xba1333333333a1ba1108e8412f11850a5c319ba9\",\"defaultHook\":\"\"}","blockNumber":21536418}`
-
-		var pool entity.Pool
-		err := json.Unmarshal([]byte(poolStr), &pool)
-		assert.Nil(t, err)
-
-		s, err := NewPoolSimulator(pool)
-		assert.Nil(t, err)
-
-		amountOut, _ := new(big.Int).SetString("1008017884740935660", 10)
-
-		tokenAmountOut := poolpkg.TokenAmount{
-			Token:  "0x775f661b0bd1739349b9a2a3ef60be277c5d2d29",
-			Amount: amountOut,
-		}
-		tokenIn := "0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9"
-
-		// expected
-		expectedAmountIn := "1189123158260799642"
-		expectedSwapFee := "23782463165215"
-
-		// actual
-		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
-			return s.CalcAmountIn(poolpkg.CalcAmountInParams{
-				TokenAmountOut: tokenAmountOut,
-				TokenIn:        tokenIn,
-			})
-		})
-
-		assert.Nil(t, err)
-
-		// assert
-		assert.Equal(t, expectedAmountIn, result.TokenAmountIn.Amount.String())
-		assert.Equal(t, expectedSwapFee, result.Fee.Amount.String())
-	})
+	}
 }
