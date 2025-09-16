@@ -127,8 +127,7 @@ func getAmountOut(amountIn float64, priceLevels []PriceLevel) (amountOut float64
 	for _, currentLevel := range priceLevels {
 		currentLevelAmount := min(currentLevel.Quote, amountIn)
 		amountOut += currentLevelAmount * currentLevel.Price
-		amountIn -= currentLevelAmount
-		if amountIn <= 0 {
+		if amountIn -= currentLevelAmount; amountIn <= 0 {
 			break
 		}
 	}

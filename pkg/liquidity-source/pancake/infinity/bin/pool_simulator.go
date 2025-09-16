@@ -58,6 +58,10 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 	if !ok && staticExtra.HasSwapPermissions {
 		return nil, shared.ErrUnsupportedHook
 	}
+	exchange := entityPool.Exchange
+	if exchange == DexType { // temp fix, won't work for omni-bin morphing into omni-bin-dynamic case
+		exchange = strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1)
+	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
@@ -79,7 +83,7 @@ func NewPoolSimulator(entityPool entity.Pool, _ valueobject.ChainID) (*PoolSimul
 		protocolFee:    extra.ProtocolFee,
 		bins:           extra.Bins,
 		hook:           hook,
-		exchange:       strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1),
+		exchange:       exchange,
 		activeId:       extra.ActiveBinID,
 		binStep:        staticExtra.BinStep,
 		isNative:       staticExtra.IsNative,
