@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/go-resty/resty/v2"
@@ -12,15 +13,13 @@ import (
 )
 
 const (
-	quotePath = "/rfq/quote"
-	signPath  = "/rfq/sign"
+	quoteSignPath = "/rfq/v2/quote-sign/{chain_id}"
 
 	errQuoteConflictText = "Quote conflicts with latest prices. Please request a new quote."
 )
 
 var (
-	ErrQuoteFailed = errors.New("quote failed")
-	ErrSignFailed  = errors.New("sign failed")
+	ErrQuoteSignFailed = errors.New("quote sign failed")
 
 	ErrQuoteConflict = errors.New(errQuoteConflictText) // nolint:staticcheck
 )
@@ -37,7 +36,7 @@ func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 	config.Client.SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
-		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
+		SetHeader("x-api-key", config.BasicAuthKey)
 
 	return &httpClient{
 		client: config.Client,
@@ -47,11 +46,20 @@ func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 
 func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipper.SignResponse, error) {
 	// 1. Call quote endpoint
-	req := c.client.R().SetContext(ctx).SetBody(params)
+	req := c.client.R().SetContext(ctx).
+		SetPathParam("chain_id", strconv.Itoa(int(params.ChainID))).
+		SetQueryParams(map[string]string{
+			"time_in_seconds":     strconv.Itoa(params.TimeInSeconds),
+			"input_amount":        params.InputAmount,
+			"input_asset_symbol":  params.InputAssetSymbol,
+			"output_asset_symbol": params.OutputAssetSymbol,
+			"destination_address": params.DestinationAddress,
+			"sender_address":      params.SenderAddress,
+		})
 
-	var quoteRes clipper.QuoteResponse
+	var quoteSignRes clipper.SignResponse
 	var failRes clipper.FailResponse
-	resp, err := req.SetResult(&quoteRes).SetError(&failRes).Post(quotePath)
+	resp, err := req.SetResult(&quoteSignRes).SetError(&failRes).Get(quoteSignPath)
 	if err != nil {
 		return clipper.SignResponse{}, err
 	}
@@ -62,34 +70,10 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
 			"rfq.status": resp.StatusCode(),
 		}).Error("quote failed")
-		return clipper.SignResponse{}, ErrQuoteFailed
-	}
-
-	// 2. Call sign endpoint with `quote_id` received from step 1
-	req = c.client.R().SetContext(ctx).SetBody(clipper.SignParams{
-		QuoteID:            quoteRes.ID,
-		DestinationAddress: params.DestinationAddress,
-		SenderAddress:      params.SenderAddress,
-		NativeInput:        false,
-		NativeOutput:       false,
-	})
-
-	var signRes clipper.SignResponse
-	resp, err = req.SetResult(&signRes).SetError(&failRes).Post(signPath)
-	if err != nil {
-		return clipper.SignResponse{}, err
-	}
-
-	if !resp.IsSuccess() {
-		klog.WithFields(ctx, klog.Fields{
-			"rfq.client": clipper.DexType,
-			"rfq.resp":   util.MaxBytesToString(resp.Body(), 256),
-			"rfq.status": resp.StatusCode(),
-		}).Error("sign failed")
 		return clipper.SignResponse{}, parseSignError(failRes.ErrorMessage)
 	}
 
-	return signRes, nil
+	return quoteSignRes, nil
 }
 
 func parseSignError(errorMessage string) error {
@@ -97,6 +81,6 @@ func parseSignError(errorMessage string) error {
 	case errQuoteConflictText:
 		return ErrQuoteConflict
 	default:
-		return ErrSignFailed
+		return ErrQuoteSignFailed
 	}
 }
