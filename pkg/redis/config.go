@@ -7,6 +7,7 @@ type Config struct {
 	Addresses        []string      `mapstructure:"addresses" json:"addresses" default:""`
 	DBNumber         int           `mapstructure:"dbNumber" json:"dbNumber" default:"0"`
 	Prefix           string        `mapstructure:"prefix" json:"prefix" default:""`
+	Username         string        `mapstructure:"username" json:"username" default:""`
 	Password         string        `mapstructure:"password" json:"-" default:""`
 	SentinelPassword string        `mapstructure:"sentinelPassword" json:"-" default:""`
 	ReadOnly         bool          `mapstructure:"readOnly" json:"readOnly" default:""`

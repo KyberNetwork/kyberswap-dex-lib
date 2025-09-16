@@ -20,6 +20,7 @@ func New(cfg *Config) (*Redis, error) {
 	rdb := client.NewRedisClient(context.Background(), &redis.UniversalOptions{
 		Addrs:            cfg.Addresses,
 		DB:               cfg.DBNumber,
+		Username:         cfg.Username,
 		Password:         cfg.Password,
 		SentinelPassword: cfg.SentinelPassword,
 		MasterName:       cfg.MasterName,

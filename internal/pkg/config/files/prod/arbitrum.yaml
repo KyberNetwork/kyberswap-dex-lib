@@ -193,6 +193,7 @@ redis:
   addresses:
   masterName: ""
   dbNumber: 0
+  username: ""
   password: ""
   prefix: *chainName
   readTimeout: 3s
@@ -203,6 +204,7 @@ pregenRedis:
   addresses:
   masterName: ""
   dbNumber: 0
+  username: ""
   password: ""
   prefix: *chainName
   readTimeout: 3s
@@ -213,6 +215,7 @@ poolRedis:
   addresses:
   masterName: ""
   dbNumber: 0
+  username: ""
   password: ""
   sentinelPassword: ""
   prefix: *chainName
