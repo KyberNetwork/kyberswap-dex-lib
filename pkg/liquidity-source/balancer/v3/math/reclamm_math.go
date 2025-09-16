@@ -311,12 +311,10 @@ func (r *reClammMath) ComputeVirtualBalancesUpdatingPriceRange(
 	if isPoolAboveCenter {
 		balancesScaledUndervalued = balancesScaled18[0]
 		balancesScaledOvervalued = balancesScaled18[1]
-		virtualBalanceUndervalued = new(uint256.Int).Set(virtualBalanceA)
 		virtualBalanceOvervalued = new(uint256.Int).Set(virtualBalanceB)
 	} else {
 		balancesScaledUndervalued = balancesScaled18[1]
 		balancesScaledOvervalued = balancesScaled18[0]
-		virtualBalanceUndervalued = new(uint256.Int).Set(virtualBalanceB)
 		virtualBalanceOvervalued = new(uint256.Int).Set(virtualBalanceA)
 	}
 
