@@ -169,18 +169,18 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	tokenIn, tokenAmountOut := param.TokenIn, param.TokenAmountOut
 	tokenOut := tokenAmountOut.Token
 
-	tokenInIndex := p.GetTokenIndex(tokenIn)
-	tokenOutIndex := p.GetTokenIndex(tokenOut)
+	indexIn := p.GetTokenIndex(tokenIn)
+	indexOut := p.GetTokenIndex(tokenOut)
 
-	if tokenInIndex < 0 {
+	if indexIn < 0 {
 		return nil, ErrTokenInInvalid
 	}
-	if tokenOutIndex < 0 {
+	if indexOut < 0 {
 		return nil, ErrTokenOutInvalid
 	}
 
-	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex]
+	if indexIn < 2 {
+		vaultIn := p.vaults[indexIn]
 
 		if vaultIn.DepositPaused {
 			return nil, ErrDepositPaused
@@ -194,8 +194,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	)
 
 	// Add unwrap gas cost if tokenOut is not a LP token
-	if tokenOutIndex < 2 {
-		vaultOut := p.vaults[tokenOutIndex]
+	if indexOut < 2 {
+		vaultOut := p.vaults[indexOut]
 
 		if vaultOut.RedeemPaused {
 			return nil, ErrRedeemPaused
@@ -209,7 +209,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		totalGas += UnwrapGasCost
 	}
 
-	zeroForOne := tokenInIndex%2 == 0
+	zeroForOne := indexIn%2 == 0
 
 	amountOut := coreEntities.FromRawAmount(
 		lo.Ternary(zeroForOne, p.V3Pool.Token1, p.V3Pool.Token0),
@@ -231,8 +231,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		return nil, ErrAmountInZero
 	}
 
-	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex]
+	if indexIn < 2 {
+		vaultIn := p.vaults[indexIn]
 
 		if amountInU256.Lt(vaultIn.MinDeposit) {
 			return nil, ErrInsufficientAmountIn
@@ -270,13 +270,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 	tokenIn := tokenAmountIn.Token
-	tokenInIndex := p.GetTokenIndex(tokenIn)
-	tokenOutIndex := p.GetTokenIndex(tokenOut)
+	indexIn := p.GetTokenIndex(tokenIn)
+	indexOut := p.GetTokenIndex(tokenOut)
 
-	if tokenInIndex < 0 {
+	if indexIn < 0 {
 		return nil, ErrTokenInInvalid
 	}
-	if tokenOutIndex < 0 {
+	if indexOut < 0 {
 		return nil, ErrTokenOutInvalid
 	}
 
@@ -287,8 +287,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	)
 
 	// Add wrap gas cost if tokenIn is not a LP token
-	if tokenInIndex < 2 {
-		vaultIn := p.vaults[tokenInIndex]
+	if indexIn < 2 {
+		vaultIn := p.vaults[indexIn]
 
 		if vaultIn.DepositPaused {
 			return nil, ErrDepositPaused
@@ -307,7 +307,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		gasCost += WrapGasCost
 	}
 
-	zeroForOne := tokenInIndex%2 == 0
+	zeroForOne := indexIn%2 == 0
 	var priceLimit v3Utils.Uint160
 	if err := p.GetSqrtPriceLimit(zeroForOne, &priceLimit); err != nil {
 		return nil, fmt.Errorf("can not GetSqrtPriceLimit, err: %+v", err)
@@ -349,8 +349,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	// Add unwrap gas cost if tokenOut is not a LP token
-	if tokenOutIndex < 2 {
-		vaultOut := p.vaults[tokenOutIndex]
+	if indexOut < 2 {
+		vaultOut := p.vaults[indexOut]
 
 		if vaultOut.RedeemPaused {
 			return nil, ErrRedeemPaused
@@ -363,6 +363,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 
 		gasCost += UnwrapGasCost
+	} else {
+		vaultOut := p.vaults[indexOut%2]
+
+		// During cooldown period, user can't transfer shares, but can still redeem
+		if vaultOut.MinRedeemInterval.Sign() > 0 && !vaultOut.RedeemCoolDownExempt {
+			return nil, ErrTransferInCoolDown
+		}
 	}
 
 	// Add cross tick gas cost

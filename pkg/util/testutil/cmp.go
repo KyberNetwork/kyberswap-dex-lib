@@ -93,7 +93,7 @@ func DumpWithNormalizedPointers(v any) string {
 			numPtrs++
 		}
 
-		normalized := []byte(fmt.Sprintf("(0x%010x)", visitedPtr[ptrStr]))
+		normalized := fmt.Appendf(nil, "(0x%010x)", visitedPtr[ptrStr])
 		copy(dump[index[0]:index[1]], normalized)
 	}
 	return string(dump)

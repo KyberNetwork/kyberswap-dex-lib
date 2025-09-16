@@ -10,11 +10,11 @@ type (
 	SwapState = any
 
 	SwapInfo struct {
-		SkipAhead           uint32         `json:"skipAhead"`
-		IsToken1            bool           `json:"isToken1"`
-		Forward             common.Address `json:"forward"`
-		SwapStateAfter      SwapState      `json:"-"`
-		TickSpacingsCrossed uint32         `json:"-"`
+		SkipAhead           uint32          `json:"skipAhead,omitempty"`
+		IsToken1            bool            `json:"isToken1,omitempty"`
+		Forward             *common.Address `json:"forward,omitempty"`
+		SwapStateAfter      SwapState       `json:"-"`
+		TickSpacingsCrossed uint32          `json:"-"`
 	}
 
 	Quote struct {
