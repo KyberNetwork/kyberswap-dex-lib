@@ -955,6 +955,33 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools,
 		removePoolUsecase, poolEventStreamConsumer, &cfg.Job.LiquidityScoreIndexPools)
 
+	ethClient := ethrpc.New(cfg.Common.RPC)
+	ethClient.SetMulticallContract(common.HexToAddress(cfg.Common.MulticallAddress))
+
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
+		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	updateSuggestedGasPriceUseCase := usecase.NewUpdateSuggestedGasPrice(gasRepository)
+	updateSuggestedGasPriceJob := job.NewUpdateSuggestedGasPriceJob(
+		updateSuggestedGasPriceUseCase,
+		cfg.Job.UpdateSuggestedGasPrice,
+	)
+
+	var updateL1FeeJob *job.UpdateL1FeeJob
+	if cfg.Job.UpdateL1Fee.Interval > 0 {
+		l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client,
+			l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
+
+		updateL1FeeUseCase := usecase.NewUpdateL1FeeParams(
+			cfg.Common.ChainID,
+			ethClient,
+			l1FeeParamsRepository,
+		)
+		updateL1FeeJob = job.NewUpdateL1FeeJob(
+			updateL1FeeUseCase,
+			cfg.Job.UpdateL1Fee.Interval,
+		)
+	}
+
 	reloadManager := reload.NewManager()
 
 	// Run hot-reload manager.
@@ -983,9 +1010,20 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	// run jobs
 	g.Go(func() error {
 		indexJob.Run(ctx)
-
 		return nil
 	})
+
+	g.Go(func() error {
+		updateSuggestedGasPriceJob.Run(ctx)
+		return nil
+	})
+
+	if updateL1FeeJob != nil {
+		g.Go(func() error {
+			updateL1FeeJob.Run(ctx)
+			return nil
+		})
+	}
 
 	// Register notifier
 	reloadChan := make(chan string)
