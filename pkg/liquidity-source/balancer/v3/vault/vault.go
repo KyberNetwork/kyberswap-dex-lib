@@ -121,7 +121,7 @@ func (v *Vault) Swap(vaultSwapParams shared.VaultSwapParams, onSwap shared.OnSwa
 			return nil, nil, nil, err
 		}
 
-		if amountCalculated, err = toRawUndoRateRoundDown(amountCalculatedScaled18,
+		if amountCalculated, err = toRawUndoRateRoundUp(amountCalculatedScaled18,
 			v.decimalScalingFactors[poolSwapParams.IndexIn], v.tokenRates[poolSwapParams.IndexIn],
 		); err != nil {
 			return nil, nil, nil, err

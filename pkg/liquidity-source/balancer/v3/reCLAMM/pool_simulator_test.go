@@ -120,6 +120,98 @@ func TestCalcAmountOutOutOfRange(t *testing.T) {
 	}
 }
 
+func TestCalcAmountInInRange(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                    string
+		tokenInIdx, tokenOutIdx int
+		amountOut               *big.Int
+		expectedAmountIn        *big.Int
+		expectedError           assert.ErrorAssertionFunc
+	}{
+		{
+			name:             "0->1 ok",
+			tokenInIdx:       0,
+			tokenOutIdx:      1,
+			amountOut:        big.NewInt(70000000),
+			expectedAmountIn: big.NewInt(59792782),
+			expectedError:    assert.NoError,
+		},
+		{
+			name:             "1->0 ok",
+			tokenInIdx:       1,
+			tokenOutIdx:      0,
+			amountOut:        big.NewInt(100000000),
+			expectedAmountIn: big.NewInt(117180716),
+			expectedError:    assert.NoError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+				return poolSimInRange.CalcAmountIn(pool.CalcAmountInParams{
+					TokenAmountOut: pool.TokenAmount{
+						Token:  entityPoolInRange.Tokens[tc.tokenOutIdx].Address,
+						Amount: tc.amountOut,
+					},
+					TokenIn: entityPoolInRange.Tokens[tc.tokenInIdx].Address,
+				})
+			})
+			tc.expectedError(t, err)
+			if err == nil {
+				assert.Equal(t, tc.expectedAmountIn, result.TokenAmountIn.Amount)
+			}
+		})
+	}
+}
+
+func TestCalcAmountInOutOfRange(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name                    string
+		tokenInIdx, tokenOutIdx int
+		amountOut               *big.Int
+		expectedAmountIn        *big.Int
+		expectedError           assert.ErrorAssertionFunc
+	}{
+		{
+			name:             "0->1 ok",
+			tokenInIdx:       0,
+			tokenOutIdx:      1,
+			amountOut:        big.NewInt(70000),
+			expectedAmountIn: big.NewInt(28320548837365),
+			expectedError:    assert.NoError,
+		},
+		{
+			name:             "1->0 ok",
+			tokenInIdx:       1,
+			tokenOutIdx:      0,
+			amountOut:        big.NewInt(10000000000),
+			expectedAmountIn: big.NewInt(26),
+			expectedError:    assert.NoError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
+				return poolSimOutOfRange.CalcAmountIn(pool.CalcAmountInParams{
+					TokenAmountOut: pool.TokenAmount{
+						Token:  entityPoolOutOfRange.Tokens[tc.tokenOutIdx].Address,
+						Amount: tc.amountOut,
+					},
+					TokenIn: entityPoolOutOfRange.Tokens[tc.tokenInIdx].Address,
+				})
+			})
+			tc.expectedError(t, err)
+			if err == nil {
+				assert.Equal(t, tc.expectedAmountIn, result.TokenAmountIn.Amount)
+			}
+		})
+	}
+}
+
 func TestCalcAmountIn(t *testing.T) {
 	t.Parallel()
 	testutil.TestCalcAmountIn(t, poolSimInRange)
