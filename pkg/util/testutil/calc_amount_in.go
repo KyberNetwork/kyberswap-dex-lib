@@ -64,6 +64,7 @@ func TestCalcAmountIn[TB interface {
 			for range runs {
 				amountOut, _ := big.NewFloat(base * (math.Pow(10, 1+rand.Float64()*maxExp))).Int(nil)
 				tb.Run(fmt.Sprintf("? token%d -> %s token%d", idxIn, amountOut, idxOut), func(tb TB) {
+					tb.Helper()
 					resIn, err := MustConcurrentSafe(tb, func() (*pool.CalcAmountInResult, error) {
 						return poolSim.CalcAmountIn(pool.CalcAmountInParams{
 							TokenAmountOut: pool.TokenAmount{

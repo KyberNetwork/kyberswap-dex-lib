@@ -113,6 +113,15 @@ func (u *PoolsListUpdater) initPools(subgraphPools []*SubgraphPool) ([]entity.Po
 			}
 			reserves[j] = "0"
 		}
+		for _, bufferToken := range bufferTokens {
+			if bufferToken != "" {
+				poolTokens = append(poolTokens, &entity.PoolToken{
+					Address:   bufferToken,
+					Swappable: true,
+				})
+				reserves = append(reserves, "0")
+			}
+		}
 
 		staticExtraBytes, _ := json.Marshal(&StaticExtra{
 			Hook:         subgraphPool.Hook.Address,

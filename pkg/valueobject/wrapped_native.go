@@ -48,8 +48,16 @@ var WrappedNativeMap = map[ChainID]string{
 
 // WrapNativeLower wraps, if applicable, native token to wrapped token; and then lowercase it.
 func WrapNativeLower(token string, chainID ChainID) string {
-	if strings.EqualFold(token, NativeAddress) {
+	if IsNative(token) {
 		token = WrappedNativeMap[chainID]
+	}
+	return strings.ToLower(token)
+}
+
+// UnwrapNativeLower unwraps, if applicable, wrapped token to native token; and then lowercase it.
+func UnwrapNativeLower(token string, chainID ChainID) string {
+	if IsWrappedNative(token, chainID) {
+		token = NativeAddress
 	}
 	return strings.ToLower(token)
 }

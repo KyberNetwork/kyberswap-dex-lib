@@ -2,12 +2,12 @@ package renzo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
