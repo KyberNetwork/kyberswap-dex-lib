@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"golang.org/x/exp/constraints"
@@ -102,4 +103,26 @@ func Max(a, b *uint256.Int) *uint256.Int {
 		return a
 	}
 	return b
+}
+
+// MulDivUp multiplies x and y, then divides by denominator, rounding up, and stores the result in res.
+func MulDivUp(res, x, y, denominator *uint256.Int) *uint256.Int {
+	_ = v3Utils.MulDivRoundingUpV2(x, y, denominator, res)
+	return res
+}
+
+// MulDivDown multiplies x and y, then divides by denominator, rounding down, and stores the result in res.
+func MulDivDown(res, x, y, denominator *uint256.Int) *uint256.Int {
+	res.MulDivOverflow(x, y, denominator)
+	return res
+}
+
+// MulWadUp multiplies x and y, then divides by BONE, rounding up, and stores the result in res.
+func MulWadUp(res, x, y *uint256.Int) *uint256.Int {
+	return MulDivUp(res, x, y, BONE)
+}
+
+// MulWadDown multiplies x and y, then divides by BONE, rounding down, and stores the result in res.
+func MulWadDown(res, x, y *uint256.Int) *uint256.Int {
+	return MulDivDown(res, x, y, BONE)
 }
