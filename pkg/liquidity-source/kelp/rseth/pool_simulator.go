@@ -2,6 +2,7 @@ package rseth
 
 import (
 	"errors"
+	"maps"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -35,8 +36,6 @@ type PoolSimulator struct {
 
 	// rsETHPrice: lrtOracle.rsETHPrice
 	rsETHPrice *big.Int
-
-	gas Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -61,7 +60,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		depositLimitByAsset: extra.DepositLimitByAsset,
 		priceByAsset:        extra.PriceByAsset,
 		rsETHPrice:          extra.RSETHPrice,
-		gas:                 defaultGas,
 	}, nil
 }
 
@@ -78,16 +76,33 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: param.TokenOut, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
-		Gas:            s.gas.DepositAsset,
+		Gas:            defaultGas,
 	}, nil
 }
 
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.totalDepositByAsset = maps.Clone(s.totalDepositByAsset)
+	return &cloned
+}
+
 func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
-	totalDeposit := s.totalDepositByAsset[param.TokenAmountIn.Token]
+	tokenIn := param.TokenAmountIn.Token
+	s.totalDepositByAsset[tokenIn] = new(big.Int).Add(s.totalDepositByAsset[tokenIn], param.TokenAmountIn.Amount)
+}
 
-	newTotalDeposit := new(big.Int).Add(totalDeposit, param.TokenAmountIn.Amount)
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if address == s.Info.Tokens[0] {
+		return s.Info.Tokens[1:]
+	}
+	return nil
+}
 
-	s.totalDepositByAsset[param.TokenAmountIn.Token] = newTotalDeposit
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if address == s.Info.Tokens[0] {
+		return nil
+	}
+	return s.Info.Tokens[:1]
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -100,7 +115,7 @@ func (s *PoolSimulator) _beforeDeposit(
 	asset string,
 	depositAmount *big.Int,
 ) (*big.Int, error) {
-	if depositAmount.Cmp(bignumber.ZeroBI) == 0 || depositAmount.Cmp(s.minAmountToDeposit) < 0 {
+	if depositAmount.Sign() == 0 || depositAmount.Cmp(s.minAmountToDeposit) < 0 {
 		return nil, ErrInvalidAmountToDeposit
 	}
 
@@ -123,5 +138,6 @@ func (s *PoolSimulator) getAssetCurrentLimit(asset string) *big.Int {
 }
 
 func (s *PoolSimulator) getRsETHAmountToMint(asset string, amount *big.Int) *big.Int {
-	return new(big.Int).Div(new(big.Int).Mul(amount, s.priceByAsset[asset]), s.rsETHPrice)
+	var mintAmount big.Int
+	return mintAmount.Div(mintAmount.Mul(amount, s.priceByAsset[asset]), s.rsETHPrice)
 }
