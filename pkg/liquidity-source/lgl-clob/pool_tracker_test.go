@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func TestPoolTracker_GetNewPoolState(t *testing.T) {
 
 	pt := &PoolTracker{
 		config: &Config{
-			DexId:         DexType,
+			DexID:         DexType,
 			HelperAddress: helperAddress,
 			ChainId:       chainId,
 		},

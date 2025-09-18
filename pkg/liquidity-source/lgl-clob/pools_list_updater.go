@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func NewPoolListUpdater(
 
 func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	l := logger.WithFields(logger.Fields{
-		"dexID": u.config.DexId,
+		"dexID": u.config.DexID,
 	})
 	l.Info("Start getting new pools")
 
@@ -86,7 +86,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		pools[i] = entity.Pool{
 			Address:  strings.ToLower(market.OrderbookAddress),
 			SwapFee:  market.AggressiveFee,
-			Exchange: u.config.DexId,
+			Exchange: u.config.DexID,
 			Type:     DexType,
 			Tokens: []*entity.PoolToken{
 				{

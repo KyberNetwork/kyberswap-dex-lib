@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func TestPoolsListUpdater_GetNewPools(t *testing.T) {
 	helperAddress := "0x38e577290CAF18D07B5719CC9DA1E91BD753F8C0"
 
 	plUpdater := NewPoolListUpdater(&Config{
-		DexId: DexType,
+		DexID: DexType,
 		HTTPConfig: HTTPConfig{
 			BaseURL: xpressApiURL,
 		},

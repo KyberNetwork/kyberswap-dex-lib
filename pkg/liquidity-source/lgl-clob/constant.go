@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"errors"
@@ -6,9 +6,7 @@ import (
 )
 
 const (
-	DexType = "xpress"
-
-	DefaultGas = 200000
+	DexType = "lgl-clob"
 
 	maxPriceLevels = 50
 )
@@ -18,4 +16,5 @@ var (
 
 	ErrInvalidToken  = errors.New("invalid token")
 	ErrInvalidAmount = errors.New("invalid amount")
+	ErrEmptyOrders   = errors.New("empty orders")
 )

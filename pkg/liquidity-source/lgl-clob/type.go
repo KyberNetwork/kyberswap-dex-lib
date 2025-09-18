@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"math/big"
@@ -30,14 +30,12 @@ type OrderBookRPC struct {
 type StaticExtra struct {
 	ScalingFactorX    *uint256.Int `json:"sX"`
 	ScalingFactorY    *uint256.Int `json:"sY"`
-	SupportsNativeEth bool         `json:"eth"`
+	SupportsNativeEth bool         `json:"n,omitempty"`
 }
 
 type LobConfig struct {
 	ScalingFactorTokenX           *big.Int
 	ScalingFactorTokenY           *big.Int
-	ScalingFactorX                *uint256.Int
-	ScalingFactorY                *uint256.Int
 	TokenX                        common.Address
 	TokenY                        common.Address
 	SupportsNativeEth             bool
@@ -71,5 +69,8 @@ type MarketInfo struct {
 }
 
 type SwapInfo struct {
-	UpdatedOrderBook *OrderBook `json:"orderBook"`
+	executedLevels     int
+	lastExecutedShares *uint256.Int
+	HasNative          bool         `json:"e,omitempty"`
+	PriceLimit         *uint256.Int `json:"p,omitempty"`
 }

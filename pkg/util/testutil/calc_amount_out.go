@@ -28,6 +28,7 @@ func TestCalcAmountOut[TB interface {
 		for idxOut, expected := range expected {
 			for amtIn, expected := range expected {
 				tb.Run(fmt.Sprintf("%s token%d -> ? token%d", amtIn, idxIn, idxOut), func(tb TB) {
+					tb.Helper()
 					amtOut, err := pool.CalcAmountOut(
 						ctx,
 						poolSim,

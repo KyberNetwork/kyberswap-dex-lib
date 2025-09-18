@@ -447,6 +447,7 @@ const (
 	ExchangeWooFiV3                    = "woofi-v3"
 	ExchangeXLayerSwap                 = "xlayer-swap"
 	ExchangeXSolvBTC                   = "xsolvbtc"
+	ExchangeXpress                     = "xpress"
 	ExchangeYetiSwap                   = "yetiswap"
 	ExchangeYuzuSwap                   = "yuzuswap"
 	ExchangeZKSwap                     = "zkswap"
@@ -889,6 +890,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWooFiV3:                    {},
 	ExchangeXLayerSwap:                 {},
 	ExchangeXSolvBTC:                   {},
+	ExchangeXpress:                     {},
 	ExchangeYetiSwap:                   {},
 	ExchangeYuzuSwap:                   {},
 	ExchangeZKSwap:                     {},

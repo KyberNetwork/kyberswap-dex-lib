@@ -1,4 +1,4 @@
-package xpress
+package lglclob
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
-		"dexID":       t.config.DexId,
+		"dexID":       t.config.DexID,
 	})
 	l.Info("Start getting new state")
 
