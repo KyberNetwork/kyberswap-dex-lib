@@ -6,8 +6,8 @@ type Config struct {
 }
 
 type MTokenConfig struct {
-	DepositVaultType    depositVaultType    `json:"depositVaultType"`
-	DepositVault        string              `json:"depositVault"`
-	RedemptionVaultType redemptionVaultType `json:"redemptionVaultType"`
-	RedemptionVault     string              `json:"redemptionVault"`
+	DepositVaultType    *depositVaultType    `json:"depositVaultType"`
+	DepositVault        string               `json:"depositVault"`
+	RedemptionVaultType *redemptionVaultType `json:"redemptionVaultType"`
+	RedemptionVault     string               `json:"redemptionVault"`
 }

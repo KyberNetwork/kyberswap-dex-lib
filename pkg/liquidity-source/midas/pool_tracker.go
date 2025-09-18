@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -62,6 +63,11 @@ func (t *PoolTracker) getNewPoolState(
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("start getting new state of pool")
+	defer func() {
+		logger.WithFields(logger.Fields{
+			"address": p.Address,
+		}).Infof("finished getting new state of pool")
+	}()
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
@@ -69,21 +75,10 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var (
-		paymentTokens []common.Address
-		tokenConfig   struct {
-			DataFeed  common.Address
-			Fee       *big.Int
-			Allowance *big.Int
-			Stable    bool
-		}
-		depositInstantFnPaused bool
-		redeemInstantFnPaused  bool
-		dailyLimits            *big.Int
-		instantDailyLimit      *big.Int
-		instantFee             *big.Int
-		minAmount              *big.Int
-		tokenRate              *big.Int
-		mTokenRate             *big.Int
+		depositVaultState    VaultStateResponse
+		redemptionVaultState VaultStateResponse
+		tokenRate            *big.Int
+		mTokenRate           *big.Int
 	)
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -92,48 +87,13 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	currentDayNumber := time.Now().Unix() / oneDayInSecond
-	depositVault := t.config.MTokens[p.Tokens[0].Address].DepositVault
+	mToken := p.Tokens[0].Address
+	token := p.Tokens[1].Address
+	depositVault := t.config.MTokens[mToken].DepositVault
 	redemptionVault := t.config.MTokens[p.Address].RedemptionVault
 
 	req.SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultGetPaymentTokensMethod,
-		}, []any{&paymentTokens}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultGetPaymentTokensMethod,
-		}, []any{&paymentTokens}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultTokensConfigMethod,
-			Params: []any{common.HexToAddress(p.Tokens[1].Address)},
-		}, []any{&tokenConfig}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: vaultFnPausedMethod,
-			Params: []any{depositInstantSelector},
-		}, []any{&depositInstantFnPaused}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultInstantDailyLimitMethod,
-		}, []any{&instantDailyLimit}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultDailyLimitsMethod,
-			Params: []any{big.NewInt(currentDayNumber)},
-		}, []any{&dailyLimits}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultInstantFeeMethod,
-		}, []any{&instantFee}).
+		SetRequireSuccess(false).
 		AddCall(&ethrpc.Call{
 			ABI:    dataFeedABI,
 			Target: staticExtra.DataFeed.String(),
@@ -143,20 +103,27 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    dataFeedABI,
 			Target: staticExtra.MTokenDataFeed.String(),
 			Method: dataFeedGetDataInBase18Method,
-		}, []any{&mTokenRate}).
-		AddCall(&ethrpc.Call{
-			ABI:    DepositVaultABI,
-			Target: depositVault,
-			Method: depositVaultMinAmountMethod,
-		}, []any{&minAmount}).
-		AddCall(&ethrpc.Call{
-			ABI:    RedemptionVaultABI,
-			Target: redemptionVault,
-			Method: vaultFnPausedMethod,
-			Params: []any{redeemInstantSelector},
-		}, []any{&redeemInstantFnPaused})
+		}, []any{&mTokenRate})
 
-	resp, err := req.Aggregate()
+	if staticExtra.CanDeposit {
+		req = t.addVaultCalls(req, token, depositVault, &depositVaultState, true, currentDayNumber)
+	}
+	if staticExtra.CanRedeem {
+		req = t.addVaultCalls(req, token, redemptionVault, &redemptionVaultState, false, currentDayNumber)
+
+		switch staticExtra.RedemptionVaultType {
+		case RedemptionVaultWithSwapper:
+			req.AddCall(&ethrpc.Call{
+				ABI:    abi.Erc20ABI,
+				Target: token,
+				Method: abi.Erc20BalanceOfMethod,
+				Params: []any{staticExtra.RedemptionVault},
+			}, []any{&redemptionVaultState.TokenBalance})
+		default:
+		}
+	}
+
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return p, err
 	}
@@ -165,30 +132,11 @@ func (t *PoolTracker) getNewPoolState(
 		p.BlockNumber = resp.BlockNumber.Uint64()
 	}
 
-	tokenRemoved := true
-	for _, token := range paymentTokens {
-		if strings.EqualFold(token.String(), p.Tokens[1].Address) {
-			tokenRemoved = false
-			break
-		}
-	}
-
 	extra := Extra{
-		TokenRemoved: tokenRemoved,
-		TokenConfig: &TokenConfig{
-			DataFeed:  tokenConfig.DataFeed,
-			Fee:       uint256.MustFromBig(tokenConfig.Fee),
-			Allowance: uint256.MustFromBig(tokenConfig.Allowance),
-			Stable:    tokenConfig.Stable,
-		},
-		DepositInstantFnPaused: depositInstantFnPaused,
-		InstantDailyLimit:      uint256.MustFromBig(instantDailyLimit),
-		DailyLimits:            uint256.MustFromBig(dailyLimits),
-		InstantFee:             uint256.MustFromBig(instantFee),
-		TokenRate:              uint256.MustFromBig(tokenRate),
-		MTokenRate:             uint256.MustFromBig(mTokenRate),
-		MinAmount:              uint256.MustFromBig(minAmount),
-		RedeemInstantFnPaused:  redeemInstantFnPaused,
+		DepositVault:    depositVaultState.ToVaultState(token, mTokenRate, tokenRate),
+		RedemptionVault: redemptionVaultState.ToRedemptionVaultState(token, mTokenRate, tokenRate),
+		TokenRate:       uint256.MustFromBig(tokenRate),
+		MTokenRate:      uint256.MustFromBig(mTokenRate),
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -197,8 +145,56 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves{instantDailyLimit.String(), instantDailyLimit.String()}
+	p.Reserves = entity.PoolReserves{
+		redemptionVaultState.InstantDailyLimit.String(),
+		depositVaultState.InstantDailyLimit.String(),
+	}
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func (t *PoolTracker) addVaultCalls(req *ethrpc.Request, token, vault string, vaultState *VaultStateResponse,
+	isDepositVault bool, currentDayNumber int64) *ethrpc.Request {
+	vaultAbi := lo.Ternary(isDepositVault, DepositVaultABI, RedemptionVaultABI)
+	fnSelector := lo.Ternary(isDepositVault, depositInstantSelector, redeemInstantSelector)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultGetPaymentTokensMethod,
+	}, []any{&vaultState.PaymentTokens}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultPausedMethod,
+	}, []any{&vaultState.Paused}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultFnPausedMethod,
+		Params: []any{fnSelector},
+	}, []any{&vaultState.FnPaused}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultInstantDailyLimitMethod,
+	}, []any{&vaultState.InstantDailyLimit}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultDailyLimitsMethod,
+		Params: []any{big.NewInt(currentDayNumber)},
+	}, []any{&vaultState.DailyLimits}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultInstantFeeMethod,
+	}, []any{&vaultState.InstantFee}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultMinAmountMethod,
+	}, []any{&vaultState.MinAmount}).AddCall(&ethrpc.Call{
+		ABI:    vaultAbi,
+		Target: vault,
+		Method: vaultTokensConfigMethod,
+		Params: []any{common.HexToAddress(token)},
+	}, []any{&vaultState.TokenConfig})
+
+	return req
 }

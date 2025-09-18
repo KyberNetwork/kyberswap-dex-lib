@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -43,8 +44,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	for mToken, config := range u.config.MTokens {
 		var (
-			paymentTokens  []common.Address
-			mTokenDataFeed common.Address
+			depositMTokenDataFeed common.Address
+			redeemMTokenDataFeed  common.Address
+
+			depositPaymentTokens []common.Address
+			redeemPaymentTokens  []common.Address
 		)
 		if _, err := u.ethrpcClient.
 			NewRequest().
@@ -52,42 +56,99 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			AddCall(&ethrpc.Call{
 				ABI:    DepositVaultABI,
 				Target: config.DepositVault,
-				Method: depositVaultGetPaymentTokensMethod,
-			}, []any{&paymentTokens}).
+				Method: vaultGetPaymentTokensMethod,
+			}, []any{&depositPaymentTokens}).
 			AddCall(&ethrpc.Call{
 				ABI:    DepositVaultABI,
 				Target: config.DepositVault,
-				Method: depositVaultMTokenDataFeedMethod,
-			}, []any{&mTokenDataFeed}).Aggregate(); err != nil {
+				Method: vaultMTokenDataFeedMethod,
+			}, []any{&depositMTokenDataFeed}).
+			AddCall(&ethrpc.Call{
+				ABI:    RedemptionVaultABI,
+				Target: config.RedemptionVault,
+				Method: vaultGetPaymentTokensMethod,
+			}, []any{&redeemPaymentTokens}).
+			AddCall(&ethrpc.Call{
+				ABI:    RedemptionVaultABI,
+				Target: config.RedemptionVault,
+				Method: vaultMTokenDataFeedMethod,
+			}, []any{&redeemMTokenDataFeed}).
+			Aggregate(); err != nil {
 			return nil, nil, err
 		}
 
-		for _, token := range paymentTokens {
-			var tokenConfig struct {
-				DataFeed  common.Address
-				Fee       *big.Int
-				Allowance *big.Int
-				Stable    bool
-			}
-			if _, err := u.ethrpcClient.
+		if depositMTokenDataFeed != redeemMTokenDataFeed {
+			logger.Errorf("dataFeed mismatch for mToken %s, deposit vault %s, redemption vault %s",
+				mToken, config.DepositVault, config.RedemptionVault)
+			continue
+		}
+
+		uniqueTokens := make([]common.Address, 0, len(depositPaymentTokens)+len(redeemPaymentTokens))
+		uniqueTokens = append(uniqueTokens, depositPaymentTokens...)
+		uniqueTokens = append(uniqueTokens, redeemPaymentTokens...)
+		uniqueTokens = lo.Uniq(uniqueTokens)
+
+		for _, token := range uniqueTokens {
+
+			var (
+				tokenConfig struct {
+					DataFeed  common.Address
+					Fee       *big.Int
+					Allowance *big.Int
+					Stable    bool
+				}
+
+				mTbillRedemptionVault common.Address
+				liquidityProvider     common.Address
+			)
+
+			canDeposit := lo.Contains(depositPaymentTokens, token)
+			canRedeem := lo.Contains(redeemPaymentTokens, token)
+
+			req := u.ethrpcClient.
 				NewRequest().
 				SetContext(ctx).
 				AddCall(&ethrpc.Call{
 					ABI:    DepositVaultABI,
 					Target: config.DepositVault,
-					Method: depositVaultTokensConfigMethod,
+					Method: vaultTokensConfigMethod,
 					Params: []any{token},
-				}, []any{&tokenConfig}).Call(); err != nil {
+				}, []any{&tokenConfig})
+
+			if canRedeem {
+				switch *config.RedemptionVaultType {
+				case RedemptionVaultWithSwapper:
+					req.AddCall(&ethrpc.Call{
+						ABI:    RedemptionVaultABI,
+						Target: config.RedemptionVault,
+						Method: redemptionVaultSwapperMTbillRedemptionVaultMethod,
+					}, []any{&mTbillRedemptionVault})
+					req.AddCall(&ethrpc.Call{
+						ABI:    RedemptionVaultABI,
+						Target: config.RedemptionVault,
+						Method: redemptionVaultSwapperLiquidityProviderMethod,
+					}, []any{&liquidityProvider})
+				default:
+				}
+			}
+
+			if _, err := req.Aggregate(); err != nil {
 				return nil, nil, err
 			}
 
 			staticExtra, err := json.Marshal(StaticExtra{
-				MTokenDataFeed:      mTokenDataFeed,
-				DataFeed:            tokenConfig.DataFeed,
+				MTokenDataFeed: depositMTokenDataFeed,
+				DataFeed:       tokenConfig.DataFeed,
+				CanDeposit:     canDeposit,
+				CanRedeem:      canRedeem,
+
 				DepositVaultType:    config.DepositVaultType,
 				DepositVault:        common.HexToAddress(config.DepositVault),
 				RedemptionVaultType: config.RedemptionVaultType,
 				RedemptionVault:     common.HexToAddress(config.RedemptionVault),
+
+				MTbillRedemptionVault: mTbillRedemptionVault,
+				LiquidityProvider:     liquidityProvider,
 			})
 			if err != nil {
 				return nil, nil, err
