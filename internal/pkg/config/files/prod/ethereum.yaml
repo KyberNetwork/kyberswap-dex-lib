@@ -594,6 +594,7 @@ useCase:
         properties:
           http:
             base_url: "https://kehr54rr.altono.xyz/kyberswap/api/v1"
+            api_key:
             timeout: 10s
             retry_count: 2
             chain_id: *chainId
