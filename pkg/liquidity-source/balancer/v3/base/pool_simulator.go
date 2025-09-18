@@ -60,9 +60,9 @@ func NewPoolSimulator(entityPool entity.Pool, extra *shared.Extra, staticExtra *
 			Address:  entityPool.Address,
 			Exchange: entityPool.Exchange,
 			Type:     entityPool.Type,
-			Tokens: lo.Map(entityPool.Tokens,
+			Tokens: lo.Map(entityPool.Tokens[:len(extra.BalancesLiveScaled18)], // remove placeholder buffer tokens
 				func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves: lo.Map(entityPool.Reserves,
+			Reserves: lo.Map(entityPool.Reserves[:len(extra.BalancesLiveScaled18)],
 				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
