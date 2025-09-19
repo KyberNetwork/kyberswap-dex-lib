@@ -25,11 +25,13 @@ var (
 	U0       = uint256.NewInt(0)
 	U1       = uint256.NewInt(1)
 	U2       = uint256.NewInt(2)
+	U4       = uint256.NewInt(4)
 	U5       = uint256.NewInt(5)
 	U1e18    = uint256.NewInt(1e18)
 	U2e18    = uint256.NewInt(2e18)
 	U4e18    = uint256.NewInt(4e18)
 	U1e20, _ = uint256.FromDecimal("100000000000000000000")
+	U1e36, _ = uint256.FromDecimal("1000000000000000000000000000000000000")
 	U2p254   = new(uint256.Int).Lsh(U1, 254) // 2^254
 
 	UMaxPowRelativeError = uint256.NewInt(10000)               // 10^(-14)

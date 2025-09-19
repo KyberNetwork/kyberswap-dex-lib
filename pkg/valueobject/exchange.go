@@ -41,6 +41,7 @@ const (
 	ExchangeBalancerV2Weighted         = "balancer-v2-weighted"
 	ExchangeBalancerV3ECLP             = "balancer-v3-eclp"
 	ExchangeBalancerV3QuantAMM         = "balancer-v3-quantamm"
+	ExchangeBalancerV3ReCLAMM          = "balancer-v3-reclamm"
 	ExchangeBalancerV3Stable           = "balancer-v3-stable"
 	ExchangeBalancerV3Weighted         = "balancer-v3-weighted"
 	ExchangeBancorV21                  = "bancor-v21"
@@ -56,6 +57,7 @@ const (
 	ExchangeBeethovenXStable           = "beethovenx-stable"
 	ExchangeBeethovenXV3ECLP           = "beethovenx-v3-eclp"
 	ExchangeBeethovenXV3QuantAMM       = "beethovenx-v3-quantamm"
+	ExchangeBeethovenXV3ReCLAMM        = "beethovenx-v3-reclamm"
 	ExchangeBeethovenXV3Stable         = "beethovenx-v3-stable"
 	ExchangeBeethovenXV3Weighted       = "beethovenx-v3-weighted"
 	ExchangeBeethovenXWeighted         = "beethovenx-weighted"
@@ -501,6 +503,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancerV2Weighted:         {},
 	ExchangeBalancerV3ECLP:             {},
 	ExchangeBalancerV3QuantAMM:         {},
+	ExchangeBalancerV3ReCLAMM:          {},
 	ExchangeBalancerV3Stable:           {},
 	ExchangeBalancerV3Weighted:         {},
 	ExchangeBancorV21:                  {},
@@ -515,6 +518,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXV3ECLP:           {},
 	ExchangeBeethovenXV3QuantAMM:       {},
+	ExchangeBeethovenXV3ReCLAMM:        {},
 	ExchangeBeethovenXV3Stable:         {},
 	ExchangeBeethovenXV3Weighted:       {},
 	ExchangeBeethovenXWeighted:         {},

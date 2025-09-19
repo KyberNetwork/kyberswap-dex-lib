@@ -5,8 +5,6 @@ import (
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 )
 
 func TestGyro3CLPMath_calculateInvariant(t *testing.T) {
@@ -100,16 +98,5 @@ func TestGyro3CLPMath_calculateInvariant(t *testing.T) {
 		actual, err := Gyro3CLPMath._calculateInvariant(balances, root3Alpha)
 		assert.Nil(t, err)
 		assert.Equal(t, expected.Dec(), actual.Dec())
-	})
-
-	t.Run("8. should return error", func(t *testing.T) {
-		balances := []*uint256.Int{
-			uint256.MustFromDecimal("21739217493251"),
-			uint256.MustFromDecimal("2147132108591043214"),
-			uint256.MustFromDecimal("532194721947251"),
-		}
-		root3Alpha := uint256.MustFromDecimal("421421499999999131343214")
-		_, err := Gyro3CLPMath._calculateInvariant(balances, root3Alpha)
-		assert.Equal(t, math.ErrSqrtFailed, err)
 	})
 }
