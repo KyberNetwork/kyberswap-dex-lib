@@ -7,5 +7,5 @@ const (
 
 	poolMethodGetReClAMMPoolDynamicData = "getReClammPoolDynamicData"
 
-	baseGas = 237494
+	baseGas = 160661
 )
