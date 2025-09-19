@@ -319,15 +319,10 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "dexalot RFQ failed",
 	},
 
-	clipperclient.ErrQuoteFailed: {
+	clipperclient.ErrQuoteSignFailed: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4228,
-		Message:    "clipper quote failed",
-	},
-	clipperclient.ErrSignFailed: {
-		HTTPStatus: http.StatusUnprocessableEntity,
-		Code:       4228,
-		Message:    "clipper sign failed",
+		Message:    "clipper quote sign failed",
 	},
 	clipperclient.ErrQuoteConflict: {
 		HTTPStatus: http.StatusUnprocessableEntity,

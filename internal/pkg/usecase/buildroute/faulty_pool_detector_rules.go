@@ -56,8 +56,7 @@ func isPMMFaultyPoolError(err error) bool {
 		errors.Is(err, nativev1.ErrRFQAllPricerFailed) ||
 		errors.Is(err, swaapv2.ErrQuoteFailed) ||
 		errors.Is(err, bebopclient.ErrRFQFailed) ||
-		errors.Is(err, clipper.ErrQuoteFailed) ||
-		errors.Is(err, clipper.ErrSignFailed) ||
+		errors.Is(err, clipper.ErrQuoteSignFailed) ||
 		errors.Is(err, dexalot.ErrRFQFailed) ||
 		errors.Is(err, mxtrading.ErrOrderIsTooSmall) ||
 		errors.Is(err, mxtrading.ErrRFQFailed) {
