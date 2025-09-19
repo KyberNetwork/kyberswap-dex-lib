@@ -228,6 +228,7 @@ poolEventRedis:
   sentinelPassword: ""
   masterName: ""
   dbNumber: 0
+  username: ""
   password: ""
   prefix: *chainName
   readTimeout: 3s
