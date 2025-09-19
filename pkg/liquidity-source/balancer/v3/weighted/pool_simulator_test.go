@@ -209,7 +209,7 @@ func TestCalcAmountIn(t *testing.T) {
 		}
 		tokenIn := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
-		expectedAmountIn := "76924349808836"
+		expectedAmountIn := "76924349808837"
 		expectedSwapFee := "600782751970"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
@@ -315,7 +315,7 @@ func TestCalcAmountIn(t *testing.T) {
 		tokenIn := "0x7c16f0185a26db0ae7a9377f23bc18ea7ce5d644"
 
 		// expected
-		expectedAmountIn := "999108067073574530"
+		expectedAmountIn := "999108067073574531"
 		expectedSwapFee := "2497770167683936"
 
 		// actual

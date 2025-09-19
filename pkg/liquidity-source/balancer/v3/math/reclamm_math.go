@@ -688,84 +688,9 @@ func (r *reClammMath) ComputeInGivenOut(
 	return FixPoint.MulDivUp(a, amountOutScaled18, c)
 }
 
-// Uses Newton's method for integer square root calculation
 func (r *reClammMath) Sqrt(valueScaled18 *uint256.Int) (*uint256.Int, error) {
 	// Multiply by WAD to get 36 decimals, then take square root to get 18 decimals
-	valueScaled36, err := FixPoint.MulDown(valueScaled18, U1e18)
-	if err != nil {
-		return nil, err
-	}
-
-	// Handle edge cases when value is 0 or 1
-	if valueScaled36.IsZero() || valueScaled36.Eq(U1e18) {
-		return valueScaled18, nil
-	}
-
-	// Find an initial approximation using bit manipulation
-	// This approximation is close to 2^(log2(a)/2)
-	aa := new(uint256.Int).Set(valueScaled36)
-	xn := uint256.NewInt(1)
-
-	// Check if aa >= 1 << 128
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 128)) {
-		aa.Rsh(aa, 128)
-		xn.Lsh(xn, 64)
-	}
-	// Check if aa >= 1 << 64
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 64)) {
-		aa.Rsh(aa, 64)
-		xn.Lsh(xn, 32)
-	}
-	// Check if aa >= 1 << 32
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 32)) {
-		aa.Rsh(aa, 32)
-		xn.Lsh(xn, 16)
-	}
-	// Check if aa >= 1 << 16
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 16)) {
-		aa.Rsh(aa, 16)
-		xn.Lsh(xn, 8)
-	}
-	// Check if aa >= 1 << 8
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 8)) {
-		aa.Rsh(aa, 8)
-		xn.Lsh(xn, 4)
-	}
-	// Check if aa >= 1 << 4
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 4)) {
-		aa.Rsh(aa, 4)
-		xn.Lsh(xn, 2)
-	}
-	// Check if aa >= 1 << 2
-	if aa.Gt(uint256.NewInt(0).Lsh(uint256.NewInt(1), 2)) {
-		xn.Lsh(xn, 1)
-	}
-
-	// Refine the initial approximation: xn = (3 * xn) >> 1
-	three := uint256.NewInt(3)
-	xn.Mul(xn, three)
-	xn.Rsh(xn, 1)
-
-	// Apply Newton's method iterations
-	// Each iteration approximately doubles the number of correct bits
-	// xn = (xn + a / xn) >> 1
-	for i := 0; i < 6; i++ {
-		// Calculate a / xn
-		quotient := new(uint256.Int).Div(valueScaled36, xn)
-		// Calculate xn + a / xn
-		sum := new(uint256.Int).Add(xn, quotient)
-		// Calculate (xn + a / xn) >> 1
-		xn.Rsh(sum, 1)
-	}
-
-	// Final adjustment: if xn > sqrt(a), decrement by 1
-	// Check if xn > a / xn
-	quotient := new(uint256.Int).Div(valueScaled36, xn)
-	if xn.Gt(quotient) {
-		xn.Sub(xn, uint256.NewInt(1))
-	}
-
-	return xn, nil
+	return new(uint256.Int).Sqrt(valueScaled18), nil
 }
 
 // SqrtScaled18 calculates the square root of a value scaled by 18 decimals
