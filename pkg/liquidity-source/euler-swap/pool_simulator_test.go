@@ -471,6 +471,9 @@ func TestSwapCanBorrow(t *testing.T) {
 		poolSim, err := NewPoolSimulator(pool)
 		require.Nil(t, err)
 
+		poolSim.collateralValue = uint256.NewInt(0)
+		poolSim.liabilityValue = uint256.NewInt(0)
+
 		amountIn, _ := new(big.Int).SetString("1000000", 10) // 1 USDC
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0x078d782b760474a361dda0af3839290b0ef57ad6",
@@ -496,6 +499,9 @@ func TestSwapCanBorrow(t *testing.T) {
 	t.Run("From vault with zero balance and canBorrow=false to vault with canBorrow=true should succeed", func(t *testing.T) {
 		poolSim, err := NewPoolSimulator(pool2)
 		require.Nil(t, err)
+
+		poolSim.collateralValue = uint256.NewInt(0)
+		poolSim.liabilityValue = uint256.NewInt(0)
 
 		amountIn, _ := new(big.Int).SetString("1000000000", 10) // 1000 USDC
 		tokenAmountIn := poolpkg.TokenAmount{
