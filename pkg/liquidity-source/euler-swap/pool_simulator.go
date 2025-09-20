@@ -30,7 +30,8 @@ type PoolSimulator struct {
 	fee, protocolFee     *uint256.Int
 	protocolFeeRecipient common.Address
 
-	vaults []Vault
+	vaults                          []Vault
+	collateralValue, liabilityValue *uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -68,6 +69,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		concentrationX:       staticExtra.ConcentrationX,
 		concentrationY:       staticExtra.ConcentrationY,
 		protocolFeeRecipient: staticExtra.ProtocolFeeRecipient,
+		liabilityValue:       extra.LiabilityValue,
+		collateralValue:      extra.CollateralValue,
 	}
 
 	return p, nil
@@ -173,7 +176,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.vaults[from].Debt.Sub(p.vaults[from].Debt, swapInfo.RepayAmount)
 		p.vaults[from].Cash.Add(p.vaults[from].Cash, swapInfo.DepositAmount)
 		p.vaults[from].EulerAccountAssets.Add(p.vaults[from].EulerAccountAssets, amountOut)
-		p.vaults[from].CollateralValue.Set(swapInfo.NewCollateralValue)
+		p.collateralValue.Set(swapInfo.NewCollateralValue)
 
 		// update state of toVault
 		if p.vaults[to].MaxWithdraw.Gt(swapInfo.WithdrawAmount) {
@@ -185,7 +188,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.vaults[to].TotalBorrows.Add(p.vaults[to].TotalBorrows, swapInfo.BorrowAmount)
 		p.vaults[to].Cash.Sub(p.vaults[to].Cash, amountOut)
 		p.vaults[to].EulerAccountAssets.Sub(p.vaults[to].EulerAccountAssets, amountOut)
-		p.vaults[to].LiabilityValue.Set(swapInfo.NewLiabilityValue)
+		p.liabilityValue.Set(swapInfo.NewLiabilityValue)
 	}
 }
 
@@ -200,6 +203,8 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.reserve0 = p.reserve0.Clone()
 	cloned.reserve1 = p.reserve1.Clone()
+	cloned.collateralValue = p.collateralValue.Clone()
+	cloned.liabilityValue = p.liabilityValue.Clone()
 	cloned.vaults = lo.Map(p.vaults, func(item Vault, _ int) Vault {
 		item.Debt = new(uint256.Int).Set(item.Debt)
 		item.EulerAccountAssets = new(uint256.Int).Set(item.EulerAccountAssets)
@@ -207,8 +212,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 		item.Cash = new(uint256.Int).Set(item.Cash)
 		item.MaxDeposit = new(uint256.Int).Set(item.MaxDeposit)
 		item.MaxWithdraw = new(uint256.Int).Set(item.MaxWithdraw)
-		item.CollateralValue = new(uint256.Int).Set(item.CollateralValue)
-		item.LiabilityValue = new(uint256.Int).Set(item.LiabilityValue)
 		return item
 	})
 	return &cloned
@@ -249,12 +252,12 @@ func (p *PoolSimulator) swap(
 
 	var newLiabilityValue uint256.Int
 	newLiabilityValue.Mul(borrowAmt, toVault.AssetPrice)
-	newLiabilityValue.Add(&newLiabilityValue, toVault.LiabilityValue)
+	newLiabilityValue.Add(&newLiabilityValue, p.liabilityValue)
 
 	var newCollateralValue uint256.Int
 	newCollateralValue.Mul(toShareDown(depositAmt, fromVault.TotalAssets, fromVault.TotalSupply), fromVault.SharePrice)
 	newCollateralValue.MulDivOverflow(&newCollateralValue, toVault.LTV, ConfigScale)
-	newCollateralValue.Add(&newCollateralValue, fromVault.CollateralValue)
+	newCollateralValue.Add(&newCollateralValue, p.collateralValue)
 
 	// Apply a safety buffer (85%) to the collateral value for swap limit checks
 	var bufferedCollateralValue uint256.Int

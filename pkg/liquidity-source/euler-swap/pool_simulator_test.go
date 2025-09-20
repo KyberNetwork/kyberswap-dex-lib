@@ -26,14 +26,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 	// adhocs due to changing data structure
 	for i := range s.vaults {
-		s.vaults[i].LiabilityValue = uint256.NewInt(0)
-		s.vaults[i].CollateralValue = uint256.NewInt(0)
 		s.vaults[i].LTV = uint256.NewInt(0)
 		s.vaults[i].AssetPrice = uint256.NewInt(0)
 		s.vaults[i].SharePrice = uint256.NewInt(0)
 		s.vaults[i].TotalAssets = uint256.NewInt(0)
 		s.vaults[i].TotalSupply = uint256.NewInt(0)
 	}
+	s.liabilityValue = uint256.NewInt(0)
+	s.collateralValue = uint256.NewInt(0)
 
 	t.Run("swap USDC -> WETH", func(t *testing.T) {
 		amountIn, _ := new(big.Int).SetString("1000000", 10)
@@ -133,14 +133,14 @@ func TestCalcAmountIn(t *testing.T) {
 
 	// adhocs due to changing data structure
 	for i := range s.vaults {
-		s.vaults[i].LiabilityValue = uint256.NewInt(0)
-		s.vaults[i].CollateralValue = uint256.NewInt(0)
 		s.vaults[i].LTV = uint256.NewInt(0)
 		s.vaults[i].AssetPrice = uint256.NewInt(0)
 		s.vaults[i].SharePrice = uint256.NewInt(0)
 		s.vaults[i].TotalAssets = uint256.NewInt(0)
 		s.vaults[i].TotalSupply = uint256.NewInt(0)
 	}
+	s.liabilityValue = uint256.NewInt(0)
+	s.collateralValue = uint256.NewInt(0)
 
 	testutil.TestCalcAmountIn(t, s)
 }
@@ -180,14 +180,14 @@ func TestMergeSwaps(t *testing.T) {
 
 			// adhocs due to changing data structure
 			for i := range singlePool.vaults {
-				singlePool.vaults[i].LiabilityValue = uint256.NewInt(0)
-				singlePool.vaults[i].CollateralValue = uint256.NewInt(0)
 				singlePool.vaults[i].LTV = uint256.NewInt(0)
 				singlePool.vaults[i].AssetPrice = uint256.NewInt(0)
 				singlePool.vaults[i].SharePrice = uint256.NewInt(0)
 				singlePool.vaults[i].TotalAssets = uint256.NewInt(0)
 				singlePool.vaults[i].TotalSupply = uint256.NewInt(0)
 			}
+			singlePool.liabilityValue = uint256.NewInt(0)
+			singlePool.collateralValue = uint256.NewInt(0)
 
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{
@@ -209,14 +209,14 @@ func TestMergeSwaps(t *testing.T) {
 
 			// adhocs due to changing data structure
 			for i := range chunkedPool.vaults {
-				chunkedPool.vaults[i].LiabilityValue = uint256.NewInt(0)
-				chunkedPool.vaults[i].CollateralValue = uint256.NewInt(0)
 				chunkedPool.vaults[i].LTV = uint256.NewInt(0)
 				chunkedPool.vaults[i].AssetPrice = uint256.NewInt(0)
 				chunkedPool.vaults[i].SharePrice = uint256.NewInt(0)
 				chunkedPool.vaults[i].TotalAssets = uint256.NewInt(0)
 				chunkedPool.vaults[i].TotalSupply = uint256.NewInt(0)
 			}
+			chunkedPool.liabilityValue = uint256.NewInt(0)
+			chunkedPool.collateralValue = uint256.NewInt(0)
 
 			chunkAmount := new(big.Int).Div(amountIn, big.NewInt(20))
 			var totalAmountOut *big.Int
@@ -354,14 +354,14 @@ func TestSwapEdgeCases(t *testing.T) {
 
 			// adhocs due to changing data structure
 			for i := range poolSim.vaults {
-				poolSim.vaults[i].LiabilityValue = uint256.NewInt(0)
-				poolSim.vaults[i].CollateralValue = uint256.NewInt(0)
 				poolSim.vaults[i].LTV = uint256.NewInt(0)
 				poolSim.vaults[i].AssetPrice = uint256.NewInt(0)
 				poolSim.vaults[i].SharePrice = uint256.NewInt(0)
 				poolSim.vaults[i].TotalAssets = uint256.NewInt(0)
 				poolSim.vaults[i].TotalSupply = uint256.NewInt(0)
 			}
+			poolSim.liabilityValue = uint256.NewInt(0)
+			poolSim.collateralValue = uint256.NewInt(0)
 
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{
@@ -404,14 +404,14 @@ func TestReverseSwap(t *testing.T) {
 
 	// adhocs due to changing data structure
 	for i := range s.vaults {
-		s.vaults[i].LiabilityValue = uint256.NewInt(0)
-		s.vaults[i].CollateralValue = uint256.NewInt(0)
 		s.vaults[i].LTV = uint256.NewInt(0)
 		s.vaults[i].AssetPrice = uint256.NewInt(0)
 		s.vaults[i].SharePrice = uint256.NewInt(0)
 		s.vaults[i].TotalAssets = uint256.NewInt(0)
 		s.vaults[i].TotalSupply = uint256.NewInt(0)
 	}
+	s.liabilityValue = uint256.NewInt(0)
+	s.collateralValue = uint256.NewInt(0)
 
 	// Forward swap: USDC -> USDT
 	amountIn, _ := new(big.Int).SetString("1000000000", 10) // 1000 USDC

@@ -30,8 +30,10 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Pause  uint32  `json:"p"`
-	Vaults []Vault `json:"v"`
+	Pause           uint32       `json:"p"`
+	Vaults          []Vault      `json:"v"`
+	CollateralValue *uint256.Int `json:"cv"`
+	LiabilityValue  *uint256.Int `json:"lv"`
 }
 
 type VaultInfo struct {
@@ -52,8 +54,6 @@ type Vault struct {
 	MaxWithdraw        *uint256.Int
 	TotalBorrows       *uint256.Int
 	EulerAccountAssets *uint256.Int
-	CollateralValue    *uint256.Int
-	LiabilityValue     *uint256.Int
 	AssetPrice         *uint256.Int
 	SharePrice         *uint256.Int
 	TotalAssets        *uint256.Int
@@ -75,7 +75,7 @@ type SwapInfo struct {
 type TrackerData struct {
 	Vaults               []VaultRPC
 	Reserves             ReserveRPC
-	AccountLiquidities   []AccountLiquidityRPC
+	AccountLiquidity     AccountLiquidityRPC
 	AssetPrices          []*big.Int
 	SharePrices          []*big.Int
 	LTV                  []uint16

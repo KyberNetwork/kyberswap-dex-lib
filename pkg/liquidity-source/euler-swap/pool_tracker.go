@@ -119,17 +119,7 @@ func (d *PoolTracker) getPoolData(
 		oracles              = make([]common.Address, 2)
 		unitOfAccounts       = make([]common.Address, 2)
 		ltv                  = make([]uint16, 2)
-
-		accountLiquidities = []AccountLiquidityRPC{
-			{
-				CollateralValue: big.NewInt(0),
-				LiabilityValue:  big.NewInt(0),
-			},
-			{
-				CollateralValue: big.NewInt(0),
-				LiabilityValue:  big.NewInt(0),
-			},
-		}
+		controllers          []common.Address
 	)
 
 	req.AddCall(&ethrpc.Call{
@@ -138,6 +128,12 @@ func (d *PoolTracker) getPoolData(
 		Method: evcMethodIsAccountOperatorAuthorized,
 		Params: []any{common.HexToAddress(eulerAccount), common.HexToAddress(poolAddress)},
 	}, []any{&isOperatorAuthorized})
+	req.AddCall(&ethrpc.Call{
+		ABI:    evcABI,
+		Target: evc,
+		Method: evcMethodGetControllers,
+		Params: []any{common.HexToAddress(eulerAccount)},
+	}, []any{&controllers})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
@@ -197,12 +193,6 @@ func (d *PoolTracker) getPoolData(
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
-			Method: vaultMethodAccountLiquidity,
-			Params: []any{common.HexToAddress(eulerAccount), false},
-		}, []any{&accountLiquidities[i]})
-		req.AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: v.VaultAddress,
 			Method: vaultMethodOracle,
 			Params: nil,
 		}, []any{&oracles[i]})
@@ -233,9 +223,22 @@ func (d *PoolTracker) getPoolData(
 	getQuotesCalls.SetBlockNumber(resp.BlockNumber)
 
 	var (
-		assetQuotes = make([][2]*big.Int, len(vaultList))
-		shareQuotes = make([][2]*big.Int, len(vaultList))
+		assetQuotes      = make([][2]*big.Int, len(vaultList))
+		shareQuotes      = make([][2]*big.Int, len(vaultList))
+		accountLiquidity = AccountLiquidityRPC{
+			CollateralValue: big.NewInt(0),
+			LiabilityValue:  big.NewInt(0),
+		}
 	)
+
+	if len(controllers) > 0 {
+		getQuotesCalls.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: controllers[0].Hex(),
+			Method: vaultMethodAccountLiquidity,
+			Params: []any{common.HexToAddress(eulerAccount), false},
+		}, []any{&accountLiquidity})
+	}
 
 	for i, v := range vaultList {
 		if oracles[i].Cmp(common.Address{}) == 0 {
@@ -279,7 +282,7 @@ func (d *PoolTracker) getPoolData(
 		Vaults:               vaults,
 		AssetPrices:          assetPrices,
 		SharePrices:          sharePrices,
-		AccountLiquidities:   accountLiquidities,
+		AccountLiquidity:     accountLiquidity,
 		LTV:                  ltv,
 		Reserves:             reserves,
 		IsOperatorAuthorized: isOperatorAuthorized,
@@ -307,8 +310,6 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
 			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
-			CollateralValue:    uint256.MustFromBig(data.AccountLiquidities[i].CollateralValue),
-			LiabilityValue:     uint256.MustFromBig(data.AccountLiquidities[i].LiabilityValue),
 			AssetPrice:         uint256.MustFromBig(data.AssetPrices[i]),
 			SharePrice:         uint256.MustFromBig(data.SharePrices[i]),
 			TotalAssets:        uint256.MustFromBig(data.Vaults[i].TotalAssets),
@@ -327,8 +328,10 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		Pause:  status,
-		Vaults: vaults,
+		Pause:           status,
+		Vaults:          vaults,
+		CollateralValue: uint256.MustFromBig(data.AccountLiquidity.CollateralValue),
+		LiabilityValue:  uint256.MustFromBig(data.AccountLiquidity.LiabilityValue),
 	})
 	if err != nil {
 		return entity.Pool{}, err
