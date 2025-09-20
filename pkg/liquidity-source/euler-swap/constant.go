@@ -34,6 +34,7 @@ const (
 	vaultMethodLTVBorrow        = "LTVBorrow"
 
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
+	evcMethodGetControllers              = "getControllers"
 
 	routerMethodGetQuotes = "getQuotes"
 
