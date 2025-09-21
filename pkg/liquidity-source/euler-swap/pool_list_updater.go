@@ -224,7 +224,6 @@ func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []c
 			ABI:    poolABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodGetAssets,
-			Params: nil,
 		}, []any{&poolTokens[i]})
 	}
 
@@ -249,14 +248,12 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetParams,
-		Params: nil,
 	}, []any{&params})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodEVC,
-		Params: nil,
 	}, []any{&evc})
 
 	_, err := req.Aggregate()
@@ -292,7 +289,6 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodPoolsLength,
-		Params: nil,
 	}, []any{&allPoolsLength})
 
 	if _, err := req.Call(); err != nil {

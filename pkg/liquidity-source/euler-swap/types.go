@@ -30,10 +30,10 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Pause           uint32       `json:"p"`
-	Vaults          []Vault      `json:"v"`
-	CollateralValue *uint256.Int `json:"cv"`
-	LiabilityValue  *uint256.Int `json:"lv"`
+	Pause           uint32         `json:"p,omitempty"`  // 0 = unactivated, 1 = unlocked, 2 = locked
+	Vaults          [3]*Vault      `json:"v"`            // vault0, vault1, controllerVault
+	ControllerVault string         `json:"cV,omitempty"` // controller vault address
+	Collaterals     []*uint256.Int `json:"c"`            // collateral amounts across all collateral vaults
 }
 
 type VaultInfo struct {
@@ -42,45 +42,43 @@ type VaultInfo struct {
 	QuoteAmount  *big.Int
 }
 
-type PriceInfo struct {
-	Vault *big.Int
-	Asset *big.Int
+type Vault struct {
+	Cash               *uint256.Int    `json:"c,omitempty"` // ~ totalAssets - totalBorrows
+	Debt               *uint256.Int    `json:"d,omitempty"` // debt of euler account
+	MaxDeposit         *uint256.Int    `json:"mD,omitempty"`
+	MaxWithdraw        *uint256.Int    `json:"mW,omitempty"`
+	TotalBorrows       *uint256.Int    `json:"tB,omitempty"`
+	EulerAccountAssets *uint256.Int    `json:"eAA,omitempty"`
+	DebtPrice          *uint256.Int    `json:"dP,omitempty"`   // quoted debt price against itself
+	ValuePrices        []*uint256.Int  `json:"vP,omitempty"`   // quoted value prices against collaterals
+	VaultValuePrices   [2]*uint256.Int `json:"vVP,omitempty"`  // quoted value prices against v0 + v1
+	LTVs               []uint64        `json:"ltv,omitempty"`  // borrow ltv against each collateral
+	VaultLTVs          [2]uint64       `json:"vLtv,omitempty"` // borrow ltv against v0 + v1
 }
 
-type Vault struct {
-	Cash               *uint256.Int
-	Debt               *uint256.Int
-	MaxDeposit         *uint256.Int
-	MaxWithdraw        *uint256.Int
-	TotalBorrows       *uint256.Int
-	EulerAccountAssets *uint256.Int
-	AssetPrice         *uint256.Int
-	SharePrice         *uint256.Int
-	TotalAssets        *uint256.Int
-	TotalSupply        *uint256.Int
-	LTV                *uint256.Int
-}
 type SwapInfo struct {
-	NewReserve0        *uint256.Int
-	NewReserve1        *uint256.Int
-	NewLiabilityValue  *uint256.Int
-	NewCollateralValue *uint256.Int
-	WithdrawAmount     *uint256.Int
-	BorrowAmount       *uint256.Int
-	DepositAmount      *uint256.Int
-	RepayAmount        *uint256.Int
-	ZeroForOne         bool
+	reserves       [2]*uint256.Int
+	withdrawAmount *uint256.Int // withdrawn collateral asset amount
+	borrowAmount   *uint256.Int // new buy token debt amount
+	depositAmount  *uint256.Int // amount in after fee
+	repayAmount    *uint256.Int // part of amount in after fee used to repay
+	debt           *uint256.Int
+	debtVaultIdx   int
+	ZeroForOne     bool `json:"0f1"`
 }
 
 type TrackerData struct {
 	Vaults               []VaultRPC
 	Reserves             ReserveRPC
-	AccountLiquidity     AccountLiquidityRPC
-	AssetPrices          []*big.Int
-	SharePrices          []*big.Int
-	LTV                  []uint16
+	Controller           string            // controller debt vault, if exist
+	VaultPrices          [3][3][2]*big.Int // other vault -> debt vault -> [bid/value,ask/debt]
+	VaultLtvs            [3][3]uint16      // vault 0/1/controller -> debt vault
+	CollatAmts           []*big.Int        // asset amount of euler account across collateral vaults
+	CollatPrices         [][3][2]*big.Int  // collat -> debt vault -> [bid,ask]
+	CollatLtvs           [][3]uint16       // collat -> debt vault
 	IsOperatorAuthorized bool
 }
+
 type ReserveRPC struct {
 	Reserve0 *big.Int
 	Reserve1 *big.Int
@@ -110,10 +108,8 @@ type VaultRPC struct {
 	MaxDeposit          *big.Int
 	TotalBorrows        *big.Int
 	EulerAccountBalance *big.Int
-	TotalAssets         *big.Int
-	TotalSupply         *big.Int
-	Caps                [2]uint16
 	MaxWithdraw         *big.Int
+	Caps                [2]uint16
 }
 
 type AccountLiquidityRPC struct {
