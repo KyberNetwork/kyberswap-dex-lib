@@ -66,7 +66,7 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			}
 			redemptionVault = NewRedemptionVaultSwapper(extra.RedemptionVault, mTokenDecimals, tokenDecimals)
 		case redemptionVaultUstb:
-			var extra Extra[RedemptionVaultWithUSTBState]
+			var extra Extra[RedemptionVaultWithUstbState]
 			if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
 				return nil, err
 			}

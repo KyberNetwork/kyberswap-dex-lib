@@ -32,6 +32,7 @@ type VaultStateResponse struct {
 		Allowance *big.Int
 		Stable    bool
 	}
+	TokenBalance *big.Int
 }
 
 type VaultState struct {
@@ -45,9 +46,11 @@ type VaultState struct {
 	MinAmount         *uint256.Int `json:"minAmount"`
 	MTokenRate        *uint256.Int `json:"mTokenRate"`
 	TokenRate         *uint256.Int `json:"tokenRate"`
+
+	TokenBalance *uint256.Int `json:"tokenBalance,omitempty"`
 }
 
-type RedemptionVaultWithUSTBState struct {
+type RedemptionVaultWithUstbState struct {
 	VaultState
 	SuperstateToken          common.Address  `json:"superstateToken"`
 	USDC                     common.Address  `json:"usdc"`
@@ -62,7 +65,7 @@ type RedemptionVaultWithUSTBState struct {
 type RedemptionVaultWithSwapperState struct {
 	VaultState
 	TokenBalance          *uint256.Int                  `json:"tokenBalance"`
-	MTbillRedemptionVault *RedemptionVaultWithUSTBState `json:"mTbillRedemptionVault"`
+	MTbillRedemptionVault *RedemptionVaultWithUstbState `json:"mTbillRedemptionVault"`
 }
 
 type ChainlinkPrice struct {
@@ -71,7 +74,7 @@ type ChainlinkPrice struct {
 	Price     *uint256.Int
 }
 
-type Extra[T VaultState | RedemptionVaultWithSwapperState | RedemptionVaultWithUSTBState] struct {
+type Extra[T VaultState | RedemptionVaultWithSwapperState | RedemptionVaultWithUstbState] struct {
 	DepositVault    *VaultState `json:"depositVault,omitempty"`
 	RedemptionVault *T          `json:"redemptionVault,omitempty"`
 }
@@ -136,7 +139,8 @@ func (v *VaultStateResponse) ToVaultState(token string, mTokenRate, tokenRate *b
 			Allowance: uint256.MustFromBig(v.TokenConfig.Allowance),
 			Stable:    v.TokenConfig.Stable,
 		},
-		MTokenRate: uint256.MustFromBig(mTokenRate),
-		TokenRate:  uint256.MustFromBig(tokenRate),
+		MTokenRate:   uint256.MustFromBig(mTokenRate),
+		TokenRate:    uint256.MustFromBig(tokenRate),
+		TokenBalance: uint256.MustFromBig(v.TokenBalance),
 	}
 }

@@ -86,7 +86,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	resp, err := req.TryAggregate()
 	if err != nil {
-		logger.Errorf("failed to aggregate new pool state")
+		logger.WithFields(logger.Fields{
+			"pool":  p.Address,
+			"error": err,
+		}).Errorf("failed to aggregate new pool state")
 		return p, err
 	}
 
@@ -123,8 +126,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			var (
 				mTbillRedemptionVaultState VaultStateResponse
 				ustbRedemption             common.Address
-
-				superstateToken common.Address
+				superstateToken            common.Address
 			)
 
 			req = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
@@ -209,7 +211,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				RedemptionVault: &RedemptionVaultWithSwapperState{
 					VaultState:   *redemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
 					TokenBalance: uint256.MustFromBig(tokenOutBalance),
-					MTbillRedemptionVault: &RedemptionVaultWithUSTBState{
+					MTbillRedemptionVault: &RedemptionVaultWithUstbState{
 						VaultState:      *mTbillRedemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
 						SuperstateToken: superstateToken,
 						USDC:            usdc,
@@ -224,6 +226,124 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 						ChainLinkFeedPrecision:   uint256.MustFromBig(chainLinkFeedPrecision),
 						SuperstateTokenPrecision: uint256.MustFromBig(superstateTokenPrecision),
 					},
+				},
+			}
+
+			extraBytes, err := json.Marshal(extra)
+			if err != nil {
+				return p, err
+			}
+			p.Extra = string(extraBytes)
+
+			skipInitExtra = true
+		case redemptionVaultUstb:
+			var (
+				tokenOutBalance *big.Int
+				ustbRedemption  common.Address
+				superstateToken common.Address
+			)
+
+			req = t.ethrpcClient.
+				NewRequest().
+				SetContext(ctx).
+				SetBlockNumber(blockNumber).
+				AddCall(&ethrpc.Call{
+					ABI:    abi.Erc20ABI,
+					Target: token,
+					Method: abi.Erc20BalanceOfMethod,
+					Params: []any{common.HexToAddress(staticExtra.RedemptionVault)},
+				}, []any{&tokenOutBalance}).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionVaultWithUstbABI,
+					Target: staticExtra.RedemptionVault,
+					Method: redemptionVaultUstbUstbRedemptionMethod,
+				}, []any{&ustbRedemption})
+			_, err = req.TryAggregate()
+			if err != nil {
+				return p, err
+			}
+
+			if _, err = t.ethrpcClient.
+				NewRequest().
+				SetContext(ctx).
+				SetBlockNumber(blockNumber).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionSuperstateTokenMethod,
+				}, []any{&superstateToken}).
+				Call(); err != nil {
+				return p, err
+			}
+
+			var (
+				usdc           common.Address
+				redemptionFee  *big.Int
+				ustbBalance    *big.Int
+				chainlinkPrice struct {
+					IsBadData bool
+					UpdatedAt *big.Int
+					Price     *big.Int
+				}
+				chainLinkFeedPrecision   *big.Int
+				superstateTokenPrecision *big.Int
+			)
+			req = t.ethrpcClient.
+				NewRequest().
+				SetContext(ctx).
+				SetBlockNumber(blockNumber).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionUsdcMethod,
+				}, []any{&usdc}).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionRedemptionFeeMethod,
+				}, []any{&redemptionFee}).
+				AddCall(&ethrpc.Call{
+					ABI:    abi.Erc20ABI,
+					Target: superstateToken.String(),
+					Method: abi.Erc20BalanceOfMethod,
+					Params: []any{common.HexToAddress(staticExtra.RedemptionVault)},
+				}, []any{&ustbBalance}).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionGetChainlinkPriceMethod,
+				}, []any{&chainlinkPrice}).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionChainlinkFeedPrecisionMethod,
+				}, []any{&chainLinkFeedPrecision}).
+				AddCall(&ethrpc.Call{
+					ABI:    redemptionABI,
+					Target: ustbRedemption.String(),
+					Method: redemptionSuperstateTokenPrecisionMethod,
+				}, []any{&superstateTokenPrecision})
+			_, err = req.TryAggregate()
+			if err != nil {
+				return p, err
+			}
+
+			extra := Extra[RedemptionVaultWithUstbState]{
+				DepositVault: depositVaultState.ToVaultState(token, mTokenRate, tokenRate),
+				RedemptionVault: &RedemptionVaultWithUstbState{
+					VaultState:      *redemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
+					SuperstateToken: superstateToken,
+					USDC:            usdc,
+					TokenOutBalance: uint256.MustFromBig(tokenOutBalance),
+					RedemptionFee:   uint256.MustFromBig(redemptionFee),
+					USTBBalance:     uint256.MustFromBig(ustbBalance),
+					ChainlinkPrice: &ChainlinkPrice{
+						IsBadData: chainlinkPrice.IsBadData,
+						UpdatedAt: uint256.MustFromBig(chainlinkPrice.UpdatedAt),
+						Price:     uint256.MustFromBig(chainlinkPrice.Price),
+					},
+					ChainLinkFeedPrecision:   uint256.MustFromBig(chainLinkFeedPrecision),
+					SuperstateTokenPrecision: uint256.MustFromBig(superstateTokenPrecision),
 				},
 			}
 
@@ -309,6 +429,15 @@ func (t *PoolTracker) addVaultCalls(req *ethrpc.Request, token, vault string, va
 		Method: vaultTokensConfigMethod,
 		Params: []any{common.HexToAddress(token)},
 	}, []any{&vaultState.TokenConfig})
+
+	if !isDepositVault {
+		req.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: token,
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{common.HexToAddress(vault)},
+		}, []any{&vaultState.TokenBalance})
+	}
 
 	return req
 }

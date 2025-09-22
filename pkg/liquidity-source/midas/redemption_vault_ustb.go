@@ -9,18 +9,16 @@ type RedemptionVaultUstb struct {
 	*RedemptionVault
 
 	chainlinkPrice           *ChainlinkPrice
-	tokenOutBalance          *uint256.Int
 	redemptionFee            *uint256.Int
 	ustbBalance              *uint256.Int
 	chainLinkFeedPrecision   *uint256.Int
 	superstateTokenPrecision *uint256.Int
 }
 
-func NewRedemptionVaultUstb(vaultState *RedemptionVaultWithUSTBState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultUstb {
+func NewRedemptionVaultUstb(vaultState *RedemptionVaultWithUstbState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultUstb {
 	return &RedemptionVaultUstb{
 		RedemptionVault:          NewRedemptionVault(&vaultState.VaultState, mTokenDecimals, tokenDecimals),
 		chainlinkPrice:           vaultState.ChainlinkPrice,
-		tokenOutBalance:          vaultState.TokenOutBalance,
 		redemptionFee:            vaultState.RedemptionFee,
 		ustbBalance:              vaultState.USTBBalance,
 		chainLinkFeedPrecision:   vaultState.ChainLinkFeedPrecision,
@@ -73,13 +71,13 @@ func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapI
 }
 
 func (v *RedemptionVaultUstb) checkAndRedeemUstb(amountTokenOut *uint256.Int) error {
-	if !v.tokenOutBalance.Lt(amountTokenOut) {
+	if !v.tokenBalance.Lt(amountTokenOut) {
 		return nil
 	}
 
 	// Skip check tokenOut is USDC
 
-	missingAmount := new(uint256.Int).Sub(amountTokenOut, v.tokenOutBalance)
+	missingAmount := new(uint256.Int).Sub(amountTokenOut, v.tokenBalance)
 
 	fee := v.calculateFee(missingAmount)
 	if fee.Sign() != 0 {
@@ -121,18 +119,21 @@ func (v *RedemptionVaultUstb) calculateUstbIn(usdcOutAmount *uint256.Int) (*uint
 }
 
 func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo) error {
-	err := v.RedemptionVault.UpdateState(swapInfo)
-	if err != nil {
-		return nil
-	}
-
-	if !v.tokenOutBalance.Lt(swapInfo.AmountOut) {
-		v.tokenOutBalance = new(uint256.Int).Sub(v.tokenOutBalance, swapInfo.AmountOut)
+	if !v.tokenBalance.Lt(swapInfo.AmountOut) {
+		err := v.RedemptionVault.UpdateState(swapInfo)
+		if err != nil {
+			return err
+		}
 	} else {
-		missingAmount := new(uint256.Int).Sub(swapInfo.AmountOut, v.tokenOutBalance)
+		err := v.ManageableVault.UpdateState(swapInfo)
+		if err != nil {
+			return err
+		}
+
+		missingAmount := new(uint256.Int).Sub(swapInfo.AmountOut, v.tokenBalance)
 		v.ustbBalance = new(uint256.Int).Sub(v.ustbBalance, missingAmount)
 
-		v.tokenOutBalance.Clear()
+		v.tokenBalance.Clear()
 	}
 
 	return nil

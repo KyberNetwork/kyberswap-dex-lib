@@ -22,6 +22,8 @@ type ManageableVault struct {
 
 	mTokenRate *uint256.Int
 	tokenRate  *uint256.Int
+
+	tokenBalance *uint256.Int
 }
 
 func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *ManageableVault {
@@ -40,6 +42,8 @@ func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals ui
 
 		mTokenRate: vaultState.MTokenRate,
 		tokenRate:  vaultState.TokenRate,
+
+		tokenBalance: vaultState.TokenBalance,
 	}
 
 }
@@ -67,6 +71,14 @@ func (v *ManageableVault) checkLimits(amount *uint256.Int) error {
 	if v.instantDailyLimit.Sign() > 0 && nextLimitAmount.Gt(v.instantDailyLimit) {
 		return ErrMVExceedLimit
 	}
+
+	return nil
+}
+
+func (v *ManageableVault) UpdateState(swapInfo *SwapInfo) error {
+	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, swapInfo.SwapAmountInBase18)
+
+	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, swapInfo.AmountOut)
 
 	return nil
 }

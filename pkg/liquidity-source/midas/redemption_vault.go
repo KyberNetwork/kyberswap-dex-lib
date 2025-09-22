@@ -43,20 +43,28 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapInfo,
 		return nil, err
 	}
 
+	amountOut := convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals)
+
+	if !v.tokenBalance.Gt(amountOut) {
+		return nil, ErrDVInsufficientBalance
+	}
+
 	return &SwapInfo{
 		IsDeposit:          false,
 		SwapAmountInBase18: amountMTokenIn,
 
 		Gas:       redeemInstantDefaultGas,
 		Fee:       feeAmount,
-		AmountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals),
+		AmountOut: amountOut,
 	}, nil
 }
 
 func (v *RedemptionVault) UpdateState(swapInfo *SwapInfo) error {
-	v.tokenConfig.Allowance.Sub(v.tokenConfig.Allowance, swapInfo.SwapAmountInBase18)
+	if err := v.ManageableVault.UpdateState(swapInfo); err != nil {
+		return err
+	}
 
-	v.dailyLimits.Add(v.dailyLimits, swapInfo.AmountOut)
+	v.tokenBalance = new(uint256.Int).Sub(v.tokenBalance, swapInfo.AmountOut)
 
 	return nil
 }
