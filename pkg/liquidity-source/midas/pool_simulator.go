@@ -55,6 +55,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		switch staticExtra.RedemptionVaultType {
 		case redemptionVaultDefault:
 			var extra Extra[VaultState]
+			if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
+				return nil, err
+			}
 			redemptionVault = NewRedemptionVault(extra.RedemptionVault, mTokenDecimals, tokenDecimals)
 		case redemptionVaultSwapper:
 			var extra Extra[RedemptionVaultWithSwapperState]
