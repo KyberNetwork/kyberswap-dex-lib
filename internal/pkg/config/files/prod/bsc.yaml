@@ -95,6 +95,7 @@ common:
     - pancake-infinity-cl-fairflow
     - erc4626
     - aave-v3
+    - pmm-2
   excludedSourcesByClient: &excludedSourcesByClient
   featureFlags:
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
@@ -117,6 +118,7 @@ common:
     reductionConfig:
       reductionFactorInBps:
         kyber-pmm: 5000
+        pmm-2: 5000
         uniswap-v4-fairflow: 9000
         uniswap-v4-kem: 9000
       surplusAllowanceUsd:
@@ -449,6 +451,13 @@ useCase:
             api_key:
             upscale_percent:
             base_url: "https://api.dexalot.com"
+            timeout: 10s
+            retry_count: 2
+      pmm-2:
+        handler: onebit
+        properties:
+          http:
+            base_url: "https://kyber-bsc.myeth.top"
             timeout: 10s
             retry_count: 2
       uniswap-v4-kem:
