@@ -89,5 +89,5 @@ type IDecodeSwapDataUseCase interface {
 }
 
 type IRemovePoolIndexUseCase interface {
-	RemovePoolAddressFromIndexes(ctx context.Context, addresses []string) error
+	RemovePoolAddressFromLiqScoreIndexes(ctx context.Context, addresses ...string) error
 }

@@ -30,7 +30,7 @@ func RemovePoolsFromIndex(usecase IRemovePoolIndexUseCase) func(ctx *gin.Context
 			RespondFailure(ctx, validator.NewValidationError("pools", fmt.Sprintf("exceed maximum value %d", MAX_ADDRESSES)))
 			return
 		}
-		err := usecase.RemovePoolAddressFromIndexes(ctx, addresses)
+		err := usecase.RemovePoolAddressFromLiqScoreIndexes(ctx, addresses...)
 		if err != nil {
 			RespondFailure(ctx, err)
 			return
