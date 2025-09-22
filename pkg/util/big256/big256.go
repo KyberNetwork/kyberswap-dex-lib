@@ -65,6 +65,12 @@ func NewUint256(s string) (res *uint256.Int, err error) {
 	return
 }
 
+func MustFromBigs[S ~ []*big.Int](bigs S) []*uint256.Int {
+	return lo.Map(bigs, func(b *big.Int, _ int) *uint256.Int {
+		return uint256.MustFromBig(b)
+	})
+}
+
 func Cap(n *uint256.Int, min *uint256.Int, max *uint256.Int) *uint256.Int {
 	if n.Cmp(min) <= 0 {
 		return new(uint256.Int).Add(min, U1)

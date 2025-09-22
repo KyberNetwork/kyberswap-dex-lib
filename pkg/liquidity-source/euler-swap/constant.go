@@ -19,21 +19,23 @@ const (
 	poolMethodGetParams   = "getParams"
 	poolMethodEVC         = "EVC"
 
-	vaultMethodCash         = "cash"
-	vaultMethodDebtOf       = "debtOf"
-	vaultMethodMaxDeposit   = "maxDeposit"
-	vaultMethodCaps         = "caps"
-	vaultMethodTotalBorrows = "totalBorrows"
-	vaultMethodBalanceOf    = "balanceOf"
-
-	vaultMethodTotalAssets      = "totalAssets"
-	vaultMethodTotalSupply      = "totalSupply"
-	vaultMethodAccountLiquidity = "accountLiquidity"
-	vaultMethodUnitOfAccount    = "unitOfAccount"
-	vaultMethodOracle           = "oracle"
-	vaultMethodLTVBorrow        = "LTVBorrow"
+	vaultMethodCash          = "cash"
+	vaultMethodDebtOf        = "debtOf"
+	vaultMethodMaxDeposit    = "maxDeposit"
+	vaultMethodCaps          = "caps"
+	vaultMethodTotalBorrows  = "totalBorrows"
+	vaultMethodTotalAssets   = "totalAssets"
+	vaultMethodTotalSupply   = "totalSupply"
+	vaultMethodBalanceOf     = "balanceOf"
+	vaultMethodOracle        = "oracle"
+	vaultMethodUnitOfAccount = "unitOfAccount"
+	vaultMethodAsset         = "asset"
+	vaultMethodDecimals      = "decimals"
+	vaultMethodLTVBorrow     = "LTVBorrow"
 
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
+	evcMethodGetCollaterals              = "getCollaterals"
+	evcMethodGetControllers              = "getControllers"
 
 	routerMethodGetQuotes = "getQuotes"
 
@@ -45,12 +47,11 @@ var (
 	ErrInvalidAmountIn   = errors.New("invalid amount in")
 	ErrInvalidAmountOut  = errors.New("invalid amount out")
 	ErrSwapIsPaused      = errors.New("swap is paused")
-	ErrOverflow          = errors.New("math overflow")
+	ErrMultiDebts        = errors.New("multiple debts")
+	ErrInsolvency        = errors.New("insolvency")
 	ErrCurveViolation    = errors.New("curve violation")
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
-
-	ConfigScale = uint256.NewInt(1e4)
 
 	bufferSwapLimit = uint256.NewInt(85) // 85%
 )
