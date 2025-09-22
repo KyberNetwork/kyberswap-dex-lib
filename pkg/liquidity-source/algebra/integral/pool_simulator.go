@@ -27,10 +27,9 @@ type PoolSimulator struct {
 	globalState GlobalState
 	liquidity   *uint256.Int
 
-	ticks       *v3Entities.TickListDataProvider
-	tickMin     int32
-	tickMax     int32
-	tickSpacing int
+	ticks   *v3Entities.TickListDataProvider
+	tickMin int32
+	tickMax int32
 
 	timepoints         *TimepointStorage
 	volatilityOracle   *VolatilityOraclePlugin
@@ -70,7 +69,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, ErrTicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(extra.Ticks, int(extra.TickSpacing))
+	ticks, err := v3Entities.NewTickListDataProvider(extra.Ticks, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +93,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		ticks:              ticks,
 		tickMin:            int32(tickMin),
 		tickMax:            int32(tickMax),
-		tickSpacing:        int(extra.TickSpacing),
 		timepoints:         NewTimepointStorage(extra.Timepoints),
 		volatilityOracle:   extra.VolatilityOracle,
 		dynamicFee:         extra.DynamicFee,
@@ -428,8 +426,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			err      error
 		)
 
-		nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(int(initializedTick), zeroToOne,
-			p.tickSpacing)
+		nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(int(initializedTick), zeroToOne, 1)
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, 0, err
 		}
