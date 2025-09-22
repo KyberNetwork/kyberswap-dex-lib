@@ -39,7 +39,7 @@ func NewPoolTracker(
 		pythCfg.BaseUrl = pythDefaultBaseUrl
 	}
 	if pythCfg.Timeout == 0 {
-		pythCfg.Timeout = 3 * time.Second
+		pythCfg.Timeout = 10 * time.Second
 	}
 	return &PoolTracker{
 		config:       config,
