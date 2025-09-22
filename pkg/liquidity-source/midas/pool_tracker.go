@@ -94,7 +94,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 
 	skipInitExtra := false
 	if staticExtra.CanRedeem {
-		req = t.addVaultCalls(req, token, staticExtra.RedemptionVault, &redemptionVaultState, false, currentDayNumber)
 		switch staticExtra.RedemptionVaultType {
 		case redemptionVaultSwapper:
 			logger.Infof("pools %v", p.Address)
