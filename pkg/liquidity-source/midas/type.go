@@ -47,14 +47,13 @@ type VaultState struct {
 	MTokenRate        *uint256.Int `json:"mTokenRate"`
 	TokenRate         *uint256.Int `json:"tokenRate"`
 
-	TokenBalance *uint256.Int `json:"tokenBalance,omitempty"`
+	TokenBalance *uint256.Int `json:"tokenBalance"`
 }
 
 type RedemptionVaultWithUstbState struct {
 	VaultState
 	SuperstateToken          common.Address  `json:"superstateToken"`
 	USDC                     common.Address  `json:"usdc"`
-	TokenOutBalance          *uint256.Int    `json:"tokenOutBalance"`
 	RedemptionFee            *uint256.Int    `json:"redemptionFee"`
 	USTBBalance              *uint256.Int    `json:"ustbBalance"`
 	ChainlinkPrice           *ChainlinkPrice `json:"chainlinkPrice"`
@@ -64,7 +63,6 @@ type RedemptionVaultWithUstbState struct {
 
 type RedemptionVaultWithSwapperState struct {
 	VaultState
-	TokenBalance          *uint256.Int                  `json:"tokenBalance"`
 	MTbillRedemptionVault *RedemptionVaultWithUstbState `json:"mTbillRedemptionVault"`
 }
 

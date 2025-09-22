@@ -22,8 +22,6 @@ type ManageableVault struct {
 
 	mTokenRate *uint256.Int
 	tokenRate  *uint256.Int
-
-	tokenBalance *uint256.Int
 }
 
 func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *ManageableVault {
@@ -42,10 +40,7 @@ func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals ui
 
 		mTokenRate: vaultState.MTokenRate,
 		tokenRate:  vaultState.TokenRate,
-
-		tokenBalance: vaultState.TokenBalance,
 	}
-
 }
 
 func (v *ManageableVault) getFeeAmount(amount *uint256.Int) *uint256.Int {

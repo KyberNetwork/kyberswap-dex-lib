@@ -209,13 +209,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			extra := Extra[RedemptionVaultWithSwapperState]{
 				DepositVault: depositVaultState.ToVaultState(token, mTokenRate, tokenRate),
 				RedemptionVault: &RedemptionVaultWithSwapperState{
-					VaultState:   *redemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
-					TokenBalance: uint256.MustFromBig(tokenOutBalance),
+					VaultState: *redemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
 					MTbillRedemptionVault: &RedemptionVaultWithUstbState{
 						VaultState:      *mTbillRedemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
 						SuperstateToken: superstateToken,
 						USDC:            usdc,
-						TokenOutBalance: uint256.MustFromBig(tokenOutBalance),
 						RedemptionFee:   uint256.MustFromBig(redemptionFee),
 						USTBBalance:     uint256.MustFromBig(ustbBalance),
 						ChainlinkPrice: &ChainlinkPrice{
@@ -334,7 +332,6 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 					VaultState:      *redemptionVaultState.ToVaultState(token, mTokenRate, tokenRate),
 					SuperstateToken: superstateToken,
 					USDC:            usdc,
-					TokenOutBalance: uint256.MustFromBig(tokenOutBalance),
 					RedemptionFee:   uint256.MustFromBig(redemptionFee),
 					USTBBalance:     uint256.MustFromBig(ustbBalance),
 					ChainlinkPrice: &ChainlinkPrice{

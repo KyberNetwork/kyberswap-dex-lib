@@ -9,7 +9,6 @@ import (
 type RedemptionVaultSwapper struct {
 	*RedemptionVault
 	mTbillRedemptionVault *RedemptionVaultUstb
-	tokenBalance          *uint256.Int
 }
 
 func NewRedemptionVaultSwapper(vaultState *RedemptionVaultWithSwapperState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultSwapper {
@@ -17,7 +16,6 @@ func NewRedemptionVaultSwapper(vaultState *RedemptionVaultWithSwapperState, mTok
 	return &RedemptionVaultSwapper{
 		RedemptionVault:       NewRedemptionVault(&vaultState.VaultState, mTokenDecimals, tokenDecimals),
 		mTbillRedemptionVault: NewRedemptionVaultUstb(mTbillRedemptionVault, mTokenDecimals, 6),
-		tokenBalance:          vaultState.TokenBalance,
 	}
 }
 

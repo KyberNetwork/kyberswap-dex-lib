@@ -6,11 +6,14 @@ import (
 
 type RedemptionVault struct {
 	*ManageableVault
+
+	tokenBalance *uint256.Int
 }
 
 func NewRedemptionVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *RedemptionVault {
 	return &RedemptionVault{
 		ManageableVault: NewManageableVault(vaultState, mTokenDecimals, tokenDecimals),
+		tokenBalance:    vaultState.TokenBalance,
 	}
 }
 

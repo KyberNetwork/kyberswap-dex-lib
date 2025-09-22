@@ -133,7 +133,7 @@ func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo) error {
 		missingAmount := new(uint256.Int).Sub(swapInfo.AmountOut, v.tokenBalance)
 		v.ustbBalance = new(uint256.Int).Sub(v.ustbBalance, missingAmount)
 
-		v.tokenBalance.Clear()
+		v.tokenBalance = new(uint256.Int)
 	}
 
 	return nil
