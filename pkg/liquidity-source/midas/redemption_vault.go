@@ -53,12 +53,14 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapInfo,
 	}
 
 	return &SwapInfo{
-		IsDeposit:          false,
-		SwapAmountInBase18: amountMTokenIn,
+		IsDeposit: false,
 
 		Gas:       redeemInstantDefaultGas,
 		Fee:       feeAmount,
 		AmountOut: amountOut,
+
+		AmountTokenInBase18:  amountTokenOut,
+		AmountMTokenInBase18: amountMTokenIn,
 	}, nil
 }
 

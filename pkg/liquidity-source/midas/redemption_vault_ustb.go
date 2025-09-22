@@ -61,12 +61,14 @@ func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapI
 	}
 
 	return &SwapInfo{
-		IsDeposit:          false,
-		SwapAmountInBase18: amountMTokenIn,
+		IsDeposit: false,
 
 		Gas:       redeemInstantUstbGas,
 		Fee:       feeAmount,
 		AmountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals),
+
+		AmountTokenInBase18:  amountTokenOut,
+		AmountMTokenInBase18: amountMTokenIn,
 	}, nil
 }
 

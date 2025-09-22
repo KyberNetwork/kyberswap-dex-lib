@@ -35,13 +35,16 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, erro
 		Gas:       depositInstantDefaultGas,
 		Fee:       feeAmount,
 		AmountOut: convertFromBase18(mintAmount, v.mTokenDecimals),
+
+		AmountTokenInBase18:  amountToken,
+		AmountMTokenInBase18: mintAmount,
 	}, nil
 }
 
 func (v *DepositVault) UpdateState(swapInfo *SwapInfo) error {
-	v.tokenConfig.Allowance.Sub(v.tokenConfig.Allowance, swapInfo.SwapAmountInBase18)
+	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, swapInfo.AmountTokenInBase18)
 
-	v.dailyLimits.Add(v.dailyLimits, swapInfo.AmountOut)
+	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, swapInfo.AmountMTokenInBase18)
 
 	return nil
 }
@@ -63,10 +66,6 @@ func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int) (*uint25
 
 	amountInUsd, tokenInUsdRate, err := v.convertTokenToUsd(amountToken, false)
 	if err != nil {
-		return nil, nil, err
-	}
-
-	if err = v.checkAllowance(amountToken); err != nil {
 		return nil, nil, err
 	}
 

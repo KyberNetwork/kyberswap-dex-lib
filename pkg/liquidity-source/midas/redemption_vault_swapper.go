@@ -2,8 +2,6 @@ package midas
 
 import (
 	"github.com/holiman/uint256"
-
-	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type RedemptionVaultSwapper struct {
@@ -40,14 +38,12 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int) (*Sw
 	amountTokenOutWithoutFee, _ := new(uint256.Int).MulDivOverflow(amountMTokenWithoutFee, mTokenRate, tokenOutRate)
 	amountTokenOutWithoutFee = truncate(amountTokenOutWithoutFee, v.tokenDecimals)
 
-	nextLimitAmount := new(uint256.Int).Add(v.dailyLimits, amountMTokenIn)
-	if v.instantDailyLimit.Sign() > 0 && nextLimitAmount.Gt(v.instantDailyLimit) {
-		return nil, ErrMVExceedLimit
+	if err = v.checkLimits(amountMTokenIn); err != nil {
+		return nil, err
 	}
 
-	prevAllowance := v.tokenConfig.Allowance
-	if amountTokenOut.Gt(prevAllowance) && prevAllowance.Lt(u256.UMax) {
-		return nil, ErrMVExceedAllowance
+	if err = v.checkAllowance(amountTokenOut); err != nil {
+		return nil, err
 	}
 
 	amountTokenOutWithoutFee = convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals)
@@ -64,7 +60,6 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int) (*Sw
 			return nil, err
 		}
 
-		swapInfo.SwapAmountInBase18 = amountMTokenIn // keep original amountIn in base 18
 		swapInfo.Gas = redeemInstantSwapperGas
 
 		swapInfo.mTbillAmountInBase18 = mTbillAmountInBase18
@@ -73,12 +68,14 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int) (*Sw
 	}
 
 	return &SwapInfo{
-		IsDeposit:          false,
-		SwapAmountInBase18: amountMTokenIn,
+		IsDeposit: false,
 
 		Gas:       redeemInstantDefaultGas,
 		Fee:       feeAmount,
 		AmountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals),
+
+		AmountTokenInBase18:  amountTokenOut,
+		AmountMTokenInBase18: amountMTokenIn,
 	}, nil
 }
 
@@ -100,9 +97,8 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo) error {
 		v.tokenBalance = new(uint256.Int).Sub(v.tokenBalance, swapInfo.AmountOut)
 	} else {
 		if err = v.mTbillRedemptionVault.UpdateState(&SwapInfo{
-			IsDeposit:          false,
-			SwapAmountInBase18: swapInfo.mTbillAmountInBase18,
-			AmountOut:          swapInfo.AmountOut,
+			IsDeposit: false,
+			AmountOut: swapInfo.AmountOut,
 		}); err != nil {
 			return err
 		}
