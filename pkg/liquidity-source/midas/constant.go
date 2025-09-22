@@ -51,6 +51,7 @@ const (
 
 	redeemInstantDefaultGas = 250236
 	redeemInstantSwapperGas = 675714
+	redeemInstantUstbGas    = 445950
 )
 
 var (
