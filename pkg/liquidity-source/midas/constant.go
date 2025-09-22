@@ -71,7 +71,7 @@ var (
 	ErrRateZero                   = errors.New("DV: rate zero")
 	ErrDepositVaultPaused         = errors.New("DV: deposit vault paused")
 	ErrDepositInstantFnPaused     = errors.New("DV: depositInstant fn paused")
-	ErrDVInvalidMintAmount        = errors.New("DV:invalid mint amount")
+	ErrDVInvalidMintAmount        = errors.New("DV: invalid mint amount")
 	ErrRedeemInstantFnPaused      = errors.New("RV: redeemInstant fn paused")
 	ErrRedemptionVaultPaused      = errors.New("RV: redemption vault paused")
 	ErrRVUUstbFeeNotZero          = errors.New("RVU: USTB fee not zero")

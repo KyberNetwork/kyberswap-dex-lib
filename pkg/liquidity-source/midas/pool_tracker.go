@@ -149,7 +149,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 					ABI:    redemptionABI,
 					Target: ustbRedemption.String(),
 					Method: redemptionSuperstateTokenMethod,
-				}, []any{&superstateToken}).Call(); err != nil {
+				}, []any{&superstateToken}).
+				Call(); err != nil {
 				return p, err
 			}
 
