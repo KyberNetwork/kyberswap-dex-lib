@@ -33,47 +33,10 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 	mTokenDecimals := ep.Tokens[0].Decimals
 	tokenDecimals := ep.Tokens[1].Decimals
 
-	var (
-		depositVault    IDepositVault
-		redemptionVault IRedemptionVault
-	)
-
-	if staticExtra.CanDeposit {
-		var extra Extra[VaultState]
-		if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-			return nil, err
-		}
-		switch staticExtra.DepositVaultType {
-		case depositVaultDefault:
-			depositVault = NewDepositVault(extra.DepositVault, mTokenDecimals, tokenDecimals)
-		default:
-			return nil, ErrNotSupported
-		}
-	}
-
-	if staticExtra.CanRedeem {
-		switch staticExtra.RedemptionVaultType {
-		case redemptionVaultDefault:
-			var extra Extra[VaultState]
-			if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-				return nil, err
-			}
-			redemptionVault = NewRedemptionVault(extra.RedemptionVault, mTokenDecimals, tokenDecimals)
-		case redemptionVaultSwapper:
-			var extra Extra[RedemptionVaultWithSwapperState]
-			if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-				return nil, err
-			}
-			redemptionVault = NewRedemptionVaultSwapper(extra.RedemptionVault, mTokenDecimals, tokenDecimals)
-		case redemptionVaultUstb:
-			var extra Extra[RedemptionVaultWithUstbState]
-			if err := json.Unmarshal([]byte(ep.Extra), &extra); err != nil {
-				return nil, err
-			}
-			redemptionVault = NewRedemptionVaultUstb(extra.RedemptionVault, mTokenDecimals, tokenDecimals)
-		default:
-			return nil, ErrNotSupported
-		}
+	dVault, rVault, err := unmarshal(staticExtra.IsDepositVault, ep.Extra,
+		mTokenDecimals, tokenDecimals, staticExtra.VaultType)
+	if err != nil {
+		return nil, err
 	}
 
 	return &PoolSimulator{
@@ -90,8 +53,8 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: ep.BlockNumber,
 		}},
 		staticExtra:     staticExtra,
-		depositVault:    depositVault,
-		redemptionVault: redemptionVault,
+		depositVault:    dVault,
+		redemptionVault: rVault,
 	}, nil
 }
 
@@ -112,9 +75,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	)
 
 	isDeposit := indexIn != 0
-	if isDeposit && s.staticExtra.CanDeposit {
+	if isDeposit && s.staticExtra.IsDepositVault {
 		swapInfo, err = s.depositVault.DepositInstant(amountIn)
-	} else if !isDeposit && s.staticExtra.CanRedeem {
+	} else if !isDeposit && !s.staticExtra.IsDepositVault {
 		swapInfo, err = s.redemptionVault.RedeemInstant(amountIn)
 	} else {
 		return nil, ErrInvalidSwap
@@ -149,9 +112,5 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
-	return Meta{
-		BlockNumber:     s.Info.BlockNumber,
-		DepositVault:    lo.Ternary(s.staticExtra.CanDeposit, s.staticExtra.DepositVault, ""),
-		RedemptionVault: lo.Ternary(s.staticExtra.CanRedeem, s.staticExtra.RedemptionVault, ""),
-	}
+	return Meta{BlockNumber: s.Info.BlockNumber}
 }

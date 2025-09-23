@@ -7,22 +7,13 @@ import (
 
 type RedemptionVaultUstb struct {
 	*RedemptionVault
-
-	chainlinkPrice           *ChainlinkPrice
-	redemptionFee            *uint256.Int
-	ustbBalance              *uint256.Int
-	chainLinkFeedPrecision   *uint256.Int
-	superstateTokenPrecision *uint256.Int
+	ustbRedemptionState *RedemptionState
 }
 
 func NewRedemptionVaultUstb(vaultState *RedemptionVaultWithUstbState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultUstb {
 	return &RedemptionVaultUstb{
-		RedemptionVault:          NewRedemptionVault(&vaultState.VaultState, mTokenDecimals, tokenDecimals),
-		chainlinkPrice:           vaultState.ChainlinkPrice,
-		redemptionFee:            vaultState.RedemptionFee,
-		ustbBalance:              vaultState.USTBBalance,
-		chainLinkFeedPrecision:   vaultState.ChainLinkFeedPrecision,
-		superstateTokenPrecision: vaultState.SuperstateTokenPrecision,
+		RedemptionVault:     NewRedemptionVault(&vaultState.VaultState, mTokenDecimals, tokenDecimals),
+		ustbRedemptionState: vaultState.UstbRedemptionState,
 	}
 }
 
@@ -77,8 +68,6 @@ func (v *RedemptionVaultUstb) checkAndRedeemUstb(amountTokenOut *uint256.Int) er
 		return nil
 	}
 
-	// Skip check tokenOut is USDC
-
 	missingAmount := new(uint256.Int).Sub(amountTokenOut, v.tokenBalance)
 
 	fee := v.calculateFee(missingAmount)
@@ -90,7 +79,7 @@ func (v *RedemptionVaultUstb) checkAndRedeemUstb(amountTokenOut *uint256.Int) er
 	if err != nil {
 		return err
 	}
-	if v.ustbBalance.Lt(ustbToRedeem) {
+	if v.ustbRedemptionState.UstbBalance.Lt(ustbToRedeem) {
 		return ErrRVUInsufficientUstbBalance
 	}
 
@@ -98,7 +87,7 @@ func (v *RedemptionVaultUstb) checkAndRedeemUstb(amountTokenOut *uint256.Int) er
 }
 
 func (v *RedemptionVaultUstb) calculateFee(amount *uint256.Int) *uint256.Int {
-	fee, _ := new(uint256.Int).MulDivOverflow(amount, v.redemptionFee, feeDenominator)
+	fee, _ := new(uint256.Int).MulDivOverflow(amount, v.ustbRedemptionState.RedemptionFee, feeDenominator)
 
 	return fee
 }
@@ -109,11 +98,12 @@ func (v *RedemptionVaultUstb) calculateUstbIn(usdcOutAmount *uint256.Int) (*uint
 	}
 
 	numerator := new(uint256.Int).Mul(usdcOutAmount, feeDenominator)
-	denominator := new(uint256.Int).Sub(feeDenominator, v.redemptionFee)
+	denominator := new(uint256.Int).Sub(feeDenominator, v.ustbRedemptionState.RedemptionFee)
 	usdcOutAmountBeforeFee := numerator.Div(numerator, denominator)
 
-	numerator.Mul(usdcOutAmountBeforeFee, v.chainLinkFeedPrecision).Mul(numerator, v.superstateTokenPrecision)
-	denominator.Mul(v.chainlinkPrice.Price, usdcPrecision)
+	numerator.Mul(usdcOutAmountBeforeFee, v.ustbRedemptionState.ChainLinkFeedPrecision).
+		Mul(numerator, v.ustbRedemptionState.SuperstateTokenPrecision)
+	denominator.Mul(v.ustbRedemptionState.ChainlinkPrice.Price, usdcPrecision)
 
 	numerator.Add(numerator, denominator).Sub(numerator, u256.U1).Div(numerator, denominator)
 
@@ -127,13 +117,13 @@ func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo) error {
 			return err
 		}
 	} else {
-		err := v.ManageableVault.UpdateState(swapInfo)
+		err := v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
 		if err != nil {
 			return err
 		}
 
 		missingAmount := new(uint256.Int).Sub(swapInfo.AmountOut, v.tokenBalance)
-		v.ustbBalance = new(uint256.Int).Sub(v.ustbBalance, missingAmount)
+		v.ustbRedemptionState.UstbBalance = new(uint256.Int).Sub(v.ustbRedemptionState.UstbBalance, missingAmount)
 
 		v.tokenBalance = new(uint256.Int)
 	}

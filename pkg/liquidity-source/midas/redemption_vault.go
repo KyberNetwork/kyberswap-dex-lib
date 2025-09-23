@@ -65,7 +65,7 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapInfo,
 }
 
 func (v *RedemptionVault) UpdateState(swapInfo *SwapInfo) error {
-	if err := v.ManageableVault.UpdateState(swapInfo); err != nil {
+	if err := v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18); err != nil {
 		return err
 	}
 

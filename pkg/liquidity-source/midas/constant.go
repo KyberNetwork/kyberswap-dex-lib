@@ -33,17 +33,12 @@ const (
 )
 
 const (
-	redemptionVaultNone redemptionVaultType = iota
-	redemptionVaultDefault
-	redemptionVaultBuidl
-	redemptionVaultSwapper
-	redemptionVaultUstb
-)
+	depositVault     = "depositVault"
+	depositVaultUstb = "depositVaultUstb"
 
-const (
-	depositVaultNone depositVaultType = iota
-	depositVaultDefault
-	depositVaultUstb
+	redemptionVault        = "redemptionVault"
+	redemptionVaultSwapper = "redemptionVaultSwapper"
+	redemptionVaultUstb    = "redemptionVaultUstb"
 )
 
 const (
@@ -60,6 +55,8 @@ var (
 
 	feeDenominator = u256.UBasisPoint
 	usdcPrecision  = u256.TenPow(6)
+
+	dummyAddress = "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF"
 )
 
 var (
@@ -74,8 +71,8 @@ var (
 	ErrDepositVaultPaused         = errors.New("DV: deposit vault paused")
 	ErrDepositInstantFnPaused     = errors.New("DV: depositInstant fn paused")
 	ErrDVInvalidMintAmount        = errors.New("DV: invalid mint amount")
-	ErrRedeemInstantFnPaused      = errors.New("RV: redeemInstant fn paused")
 	ErrRedemptionVaultPaused      = errors.New("RV: redemption vault paused")
+	ErrRedeemInstantFnPaused      = errors.New("RV: redeemInstant fn paused")
 	ErrRVUUstbFeeNotZero          = errors.New("RVU: USTB fee not zero")
 	ErrRVUInsufficientUstbBalance = errors.New("RVU: insufficient USTB balance")
 	ErrBadArgsUsdcOutAmountZero   = errors.New("BadArgs: USDC out amount zero")

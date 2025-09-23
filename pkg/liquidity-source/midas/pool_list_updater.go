@@ -2,18 +2,18 @@ package midas
 
 import (
 	"context"
+	"errors"
+	"github.com/samber/lo"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -40,8 +40,21 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		return nil, nil, nil
 	}
 
+	configByte, ok := bytesByPath[u.config.ConfigPath]
+	if !ok {
+		return nil, nil, errors.New("misconfigured config path")
+	}
+
+	var mTokenConfigs map[string]MTokenConfig
+	if err := json.Unmarshal(configByte, &mTokenConfigs); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to unmarshal config")
+		return nil, nil, err
+	}
+
 	pools := make([]entity.Pool, 0)
-	for mToken, config := range u.config.MTokens {
+	for mTokenSymbol, config := range mTokenConfigs {
 		var (
 			depositMTokenDataFeed common.Address
 			redeemMTokenDataFeed  common.Address
@@ -73,83 +86,86 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 				Method: vaultMTokenDataFeedMethod,
 			}, []any{&redeemMTokenDataFeed}).
 			Aggregate(); err != nil {
+			logger.Errorf("failed to aggregate vaults %v, %v", config.DepositVault, config.RedemptionVault)
 			return nil, nil, err
 		}
 
 		if depositMTokenDataFeed != redeemMTokenDataFeed {
-			logger.Errorf("data feed mismatch for mToken %s, deposit vault %s, redemption vault %s",
-				mToken, config.DepositVault, config.RedemptionVault)
+			logger.Errorf("data feed mismatch for mToken %s, config %v", mTokenSymbol, config)
 			continue
 		}
 
-		uniqueTokens := make([]common.Address, 0, len(depositPaymentTokens)+len(redeemPaymentTokens))
-		uniqueTokens = append(uniqueTokens, depositPaymentTokens...)
-		uniqueTokens = append(uniqueTokens, redeemPaymentTokens...)
-		uniqueTokens = lo.Uniq(uniqueTokens)
-
-		for _, token := range uniqueTokens {
-			var tokenConfig struct {
-				DataFeed  common.Address
-				Fee       *big.Int
-				Allowance *big.Int
-				Stable    bool
-			}
-
-			canDeposit := lo.Contains(depositPaymentTokens, token)
-			canRedeem := lo.Contains(redeemPaymentTokens, token)
-
-			req := u.ethrpcClient.
-				NewRequest().
-				SetContext(ctx).
-				AddCall(&ethrpc.Call{
-					ABI:    DepositVaultABI,
-					Target: config.DepositVault,
-					Method: vaultTokensConfigMethod,
-					Params: []any{token},
-				}, []any{&tokenConfig})
-
-			if _, err := req.Aggregate(); err != nil {
-				return nil, nil, err
-			}
-
-			staticExtra, err := json.Marshal(StaticExtra{
-				MTokenDataFeed: depositMTokenDataFeed.String(),
-				DataFeed:       tokenConfig.DataFeed.String(),
-
-				CanDeposit: canDeposit,
-				CanRedeem:  canRedeem,
-
-				DepositVaultType:    config.DepositVaultType,
-				DepositVault:        config.DepositVault,
-				RedemptionVaultType: config.RedemptionVaultType,
-				RedemptionVault:     config.RedemptionVault,
-			})
+		for _, token := range depositPaymentTokens {
+			pool, err := u.initPool(ctx, true, config.DepositVault, config.MToken, token.String(),
+				config.DepositVaultType)
 			if err != nil {
-				return nil, nil, err
+				logger.Errorf("failed to initialize deposit pool")
+				continue
 			}
+			pools = append(pools, *pool)
+		}
 
-			pools = append(pools, entity.Pool{
-				Address: strings.Join([]string{
-					strings.ToLower(mToken),
-					strings.ToLower(token.String()),
-				}, "-"),
-				Exchange:  u.config.DexId,
-				Type:      DexType,
-				Timestamp: time.Now().Unix(),
-				Reserves:  entity.PoolReserves{"0", "0"},
-				Tokens: []*entity.PoolToken{{
-					Address:   strings.ToLower(mToken),
-					Swappable: true,
-				}, {
-					Address:   strings.ToLower(token.String()),
-					Swappable: true,
-				}},
-				StaticExtra: string(staticExtra),
-			})
+		for _, token := range redeemPaymentTokens {
+			pool, err := u.initPool(ctx, false, config.RedemptionVault, config.MToken, token.String(),
+				config.RedemptionVaultType)
+			if err != nil {
+				logger.Errorf("failed to initialize redeem pool")
+				continue
+			}
+			pools = append(pools, *pool)
 		}
 	}
 
 	u.hasInitialized = true
 
 	return pools, nil, nil
+}
+
+func (u *PoolsListUpdater) initPool(ctx context.Context, isDepositVault bool,
+	vault, mToken, token string, vaultType string,
+) (*entity.Pool, error) {
+	var tokenConfig struct {
+		DataFeed  common.Address
+		Fee       *big.Int
+		Allowance *big.Int
+		Stable    bool
+	}
+
+	req := u.ethrpcClient.
+		NewRequest().
+		SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    lo.Ternary(isDepositVault, DepositVaultABI, RedemptionVaultABI),
+			Target: vault,
+			Method: vaultTokensConfigMethod,
+			Params: []any{common.HexToAddress(token)},
+		}, []any{&tokenConfig})
+	if _, err := req.Call(); err != nil {
+		logger.Errorf("failed to get tokenConfigs, vault %v, token %v", vault, token)
+		return nil, err
+	}
+
+	staticExtra, err := json.Marshal(StaticExtra{
+		IsDepositVault: isDepositVault,
+		VaultType:      vaultType,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &entity.Pool{
+		Address:   strings.ToLower(vault),
+		Exchange:  u.config.DexId,
+		Type:      DexType,
+		Timestamp: time.Now().Unix(),
+		Reserves:  entity.PoolReserves{"0", "0"},
+		Tokens: []*entity.PoolToken{{
+			Address:   strings.ToLower(mToken),
+			Swappable: true,
+		}, {
+			Address:   strings.ToLower(token),
+			Swappable: true,
+		}},
+		StaticExtra: string(staticExtra),
+	}, nil
 }

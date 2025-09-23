@@ -53,16 +53,16 @@ func (v *ManageableVault) getFeeAmount(amount *uint256.Int) *uint256.Int {
 	return feePercent
 }
 
-func (v *ManageableVault) checkAllowance(amount *uint256.Int) error {
-	if amount.Gt(v.tokenConfig.Allowance) && v.tokenConfig.Allowance.Lt(u256.UMax) {
+func (v *ManageableVault) checkAllowance(tokenAmount *uint256.Int) error {
+	if tokenAmount.Gt(v.tokenConfig.Allowance) && v.tokenConfig.Allowance.Lt(u256.UMax) {
 		return ErrMVExceedAllowance
 	}
 
 	return nil
 }
 
-func (v *ManageableVault) checkLimits(amount *uint256.Int) error {
-	nextLimitAmount := new(uint256.Int).Add(v.dailyLimits, amount)
+func (v *ManageableVault) checkLimits(mTokenAmount *uint256.Int) error {
+	nextLimitAmount := new(uint256.Int).Add(v.dailyLimits, mTokenAmount)
 	if v.instantDailyLimit.Sign() > 0 && nextLimitAmount.Gt(v.instantDailyLimit) {
 		return ErrMVExceedLimit
 	}
@@ -70,10 +70,10 @@ func (v *ManageableVault) checkLimits(amount *uint256.Int) error {
 	return nil
 }
 
-func (v *ManageableVault) UpdateState(swapInfo *SwapInfo) error {
-	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, swapInfo.SwapAmountInBase18)
+func (v *ManageableVault) UpdateState(amountTokenInBase18, amountMTokenInBase18 *uint256.Int) error {
+	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, amountTokenInBase18)
 
-	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, swapInfo.AmountOut)
+	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, amountMTokenInBase18)
 
 	return nil
 }

@@ -8,9 +8,6 @@ import (
 	"github.com/samber/lo"
 )
 
-type redemptionVaultType uint8
-type depositVaultType uint8
-
 type TokenConfig struct {
 	DataFeed  common.Address `json:"dataFeed"`
 	Fee       *uint256.Int   `json:"fee"`
@@ -32,30 +29,44 @@ type VaultStateResponse struct {
 		Allowance *big.Int
 		Stable    bool
 	}
+	MTokenDataFeed common.Address
+
+	// For redemption vaults
 	TokenBalance *big.Int
+
+	// For redemption vault with swapper
+	MTbillRedemptionVault common.Address
+
+	// For redemption vault with ustb
+	UstbRedemption common.Address
 }
 
 type VaultState struct {
-	TokenRemoved      bool         `json:"tokenRemoved"`
-	Paused            bool         `json:"paused"`
-	FnPaused          bool         `json:"fnPaused"`
-	TokenConfig       *TokenConfig `json:"tokenConfig"`
-	InstantDailyLimit *uint256.Int `json:"instantDailyLimit"`
-	DailyLimits       *uint256.Int `json:"dailyLimits"`
-	InstantFee        *uint256.Int `json:"instantFee"`
-	MinAmount         *uint256.Int `json:"minAmount"`
-	MTokenRate        *uint256.Int `json:"mTokenRate"`
-	TokenRate         *uint256.Int `json:"tokenRate"`
+	TokenRemoved      bool         `json:"tokenRemoved,omitempty"`
+	Paused            bool         `json:"paused,omitempty"`
+	FnPaused          bool         `json:"fnPaused,omitempty"`
+	TokenConfig       *TokenConfig `json:"tokenConfig,omitempty"`
+	InstantDailyLimit *uint256.Int `json:"instantDailyLimit,omitempty"`
+	DailyLimits       *uint256.Int `json:"dailyLimits,omitempty"`
+	InstantFee        *uint256.Int `json:"instantFee,omitempty"`
+	MinAmount         *uint256.Int `json:"minAmount,omitempty"`
+	MTokenRate        *uint256.Int `json:"mTokenRate,omitempty"`
+	TokenRate         *uint256.Int `json:"tokenRate,omitempty"`
+	MTokenDataFeed    *uint256.Int `json:"mTokenDataFeed"`
 
-	TokenBalance *uint256.Int `json:"tokenBalance"`
+	TokenBalance *uint256.Int `json:"tokenBalance,omitempty"`
 }
 
 type RedemptionVaultWithUstbState struct {
 	VaultState
+	UstbRedemptionState *RedemptionState `json:"ustbRedemption,omitempty"`
+}
+
+type RedemptionState struct {
 	SuperstateToken          common.Address  `json:"superstateToken"`
 	USDC                     common.Address  `json:"usdc"`
 	RedemptionFee            *uint256.Int    `json:"redemptionFee"`
-	USTBBalance              *uint256.Int    `json:"ustbBalance"`
+	UstbBalance              *uint256.Int    `json:"ustbBalance"`
 	ChainlinkPrice           *ChainlinkPrice `json:"chainlinkPrice"`
 	ChainLinkFeedPrecision   *uint256.Int    `json:"chainLinkFeedPrecision"`
 	SuperstateTokenPrecision *uint256.Int    `json:"superstateTokenPrecision"`
@@ -67,28 +78,14 @@ type RedemptionVaultWithSwapperState struct {
 }
 
 type ChainlinkPrice struct {
-	IsBadData bool
-	UpdatedAt *uint256.Int
-	Price     *uint256.Int
-}
-
-type Extra[T VaultState | RedemptionVaultWithSwapperState | RedemptionVaultWithUstbState] struct {
-	DepositVault    *VaultState `json:"depositVault,omitempty"`
-	RedemptionVault *T          `json:"redemptionVault,omitempty"`
+	IsBadData bool         `json:"isBadData"`
+	UpdatedAt *uint256.Int `json:"updatedAt"`
+	Price     *uint256.Int `json:"price"`
 }
 
 type StaticExtra struct {
-	DataFeed       string `json:"dataFeed"`
-	MTokenDataFeed string `json:"mTokenDataFeed"`
-
-	CanDeposit bool `json:"canDeposit"`
-	CanRedeem  bool `json:"canRedeem"`
-
-	DepositVaultType depositVaultType `json:"depositVaultType"`
-	DepositVault     string           `json:"depositVault"`
-
-	RedemptionVaultType redemptionVaultType `json:"redemptionVaultType"`
-	RedemptionVault     string              `json:"redemptionVault"`
+	IsDepositVault bool   `json:"isDepositVault"`
+	VaultType      string `json:"type"`
 }
 
 type Meta struct {

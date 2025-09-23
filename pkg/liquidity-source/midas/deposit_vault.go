@@ -11,6 +11,10 @@ type DepositVault struct {
 }
 
 func NewDepositVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *DepositVault {
+	if vaultState == nil {
+		return nil
+	}
+
 	return &DepositVault{
 		ManageableVault: NewManageableVault(vaultState, mTokenDecimals, tokenDecimals),
 	}
@@ -29,8 +33,7 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, erro
 	}
 
 	return &SwapInfo{
-		IsDeposit:          true,
-		SwapAmountInBase18: amountToken,
+		IsDeposit: true,
 
 		Gas:       depositInstantDefaultGas,
 		Fee:       feeAmount,
