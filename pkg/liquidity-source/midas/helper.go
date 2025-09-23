@@ -4,9 +4,9 @@ import (
 	"github.com/goccy/go-json"
 )
 
-func unmarshal(isDepositVault bool, poolExtra string, mTokenDecimals, tokenDecimals uint8,
-	redemptionVaultType string) (IDepositVault, IRedemptionVault, error) {
-	if isDepositVault {
+func unmarshalVault(staticExtra StaticExtra, poolExtra string,
+	mTokenDecimals, tokenDecimals uint8) (IDepositVault, IRedemptionVault, error) {
+	if staticExtra.IsDepositVault {
 		var dVault VaultState
 		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {
 			return nil, nil, err
@@ -14,7 +14,7 @@ func unmarshal(isDepositVault bool, poolExtra string, mTokenDecimals, tokenDecim
 		return NewDepositVault(&dVault, mTokenDecimals, tokenDecimals), nil, nil
 	}
 
-	switch redemptionVaultType {
+	switch staticExtra.VaultType {
 	case redemptionVault:
 		var dVault VaultState
 		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {

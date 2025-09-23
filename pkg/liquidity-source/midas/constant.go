@@ -19,6 +19,10 @@ const (
 	vaultMinAmountMethod         = "minAmount"
 	vaultFnPausedMethod          = "fnPaused"
 
+	depositVaultMinMTokenAmountForFirstDepositMethod = "minMTokenAmountForFirstDeposit"
+	depositVaultTotalMintedMethod                    = "totalMinted"
+	depositVaultMaxSupplyCapMethod                   = "maxSupplyCap"
+
 	redemptionVaultSwapperMTbillRedemptionVaultMethod = "mTbillRedemptionVault"
 	redemptionVaultUstbUstbRedemptionMethod           = "ustbRedemption"
 
@@ -33,12 +37,12 @@ const (
 )
 
 const (
-	depositVault     = "depositVault"
-	depositVaultUstb = "depositVaultUstb"
+	depositVault     VaultType = "depositVault"
+	depositVaultUstb VaultType = "depositVaultUstb"
 
-	redemptionVault        = "redemptionVault"
-	redemptionVaultSwapper = "redemptionVaultSwapper"
-	redemptionVaultUstb    = "redemptionVaultUstb"
+	redemptionVault        VaultType = "redemptionVault"
+	redemptionVaultSwapper VaultType = "redemptionVaultSwapper"
+	redemptionVaultUstb    VaultType = "redemptionVaultUstb"
 )
 
 const (
@@ -50,7 +54,7 @@ const (
 )
 
 var (
-	StableCoinRate       = u256.TenPow(18)
+	stableCoinRate       = u256.TenPow(18)
 	oneDayInSecond int64 = 86400
 
 	feeDenominator = u256.UBasisPoint
@@ -71,6 +75,9 @@ var (
 	ErrDepositVaultPaused         = errors.New("DV: deposit vault paused")
 	ErrDepositInstantFnPaused     = errors.New("DV: depositInstant fn paused")
 	ErrDVInvalidMintAmount        = errors.New("DV: invalid mint amount")
+	ErrDvMTokenAmountLtMin        = errors.New("DV: mToken amount < min")
+	ErrDvMintAmountLtMin          = errors.New("DV: mint amount < min")
+	ErrDvMaxSupplyCapExceeded     = errors.New("DV: max supply cap exceeded")
 	ErrRedemptionVaultPaused      = errors.New("RV: redemption vault paused")
 	ErrRedeemInstantFnPaused      = errors.New("RV: redeemInstant fn paused")
 	ErrRVUUstbFeeNotZero          = errors.New("RVU: USTB fee not zero")

@@ -8,6 +8,8 @@ import (
 	"github.com/samber/lo"
 )
 
+type VaultType string
+
 type TokenConfig struct {
 	DataFeed  common.Address `json:"dataFeed"`
 	Fee       *uint256.Int   `json:"fee"`
@@ -31,7 +33,13 @@ type VaultStateResponse struct {
 	}
 	MTokenDataFeed common.Address
 
-	// For redemption vaults
+	// For deposit vault
+	MinMTokenAmountForFirstDeposit *big.Int
+	TotalMinted                    *big.Int
+	MaxSupplyCap                   *big.Int
+	MTokenTotalSupply              *big.Int
+
+	// For redemption vault
 	TokenBalance *big.Int
 
 	// For redemption vault with swapper
@@ -52,7 +60,11 @@ type VaultState struct {
 	MinAmount         *uint256.Int `json:"minAmount,omitempty"`
 	MTokenRate        *uint256.Int `json:"mTokenRate,omitempty"`
 	TokenRate         *uint256.Int `json:"tokenRate,omitempty"`
-	MTokenDataFeed    *uint256.Int `json:"mTokenDataFeed"`
+
+	MinMTokenAmountForFirstDeposit *uint256.Int `json:"minMTokenAmountForFirstDeposit,omitempty"`
+	TotalMinted                    *uint256.Int `json:"totalMinted,omitempty"`
+	MaxSupplyCap                   *uint256.Int `json:"maxSupplyCap,omitempty"`
+	MTokenTotalSupply              *uint256.Int `json:"mTokenTotalSupply,omitempty"`
 
 	TokenBalance *uint256.Int `json:"tokenBalance,omitempty"`
 }
@@ -84,8 +96,8 @@ type ChainlinkPrice struct {
 }
 
 type StaticExtra struct {
-	IsDepositVault bool   `json:"isDepositVault"`
-	VaultType      string `json:"type"`
+	IsDepositVault bool      `json:"isDepositVault"`
+	VaultType      VaultType `json:"type"`
 }
 
 type Meta struct {
@@ -136,8 +148,14 @@ func (v *VaultStateResponse) ToVaultState(token string, mTokenRate, tokenRate *b
 			Allowance: uint256.MustFromBig(v.TokenConfig.Allowance),
 			Stable:    v.TokenConfig.Stable,
 		},
-		MTokenRate:   uint256.MustFromBig(mTokenRate),
-		TokenRate:    uint256.MustFromBig(tokenRate),
+		MTokenRate: uint256.MustFromBig(mTokenRate),
+		TokenRate:  uint256.MustFromBig(tokenRate),
+
+		MinMTokenAmountForFirstDeposit: uint256.MustFromBig(v.MinMTokenAmountForFirstDeposit),
+		TotalMinted:                    uint256.MustFromBig(v.TotalMinted),
+		MaxSupplyCap:                   uint256.MustFromBig(v.MaxSupplyCap),
+		MTokenTotalSupply:              uint256.MustFromBig(v.MTokenTotalSupply),
+
 		TokenBalance: uint256.MustFromBig(v.TokenBalance),
 	}
 }

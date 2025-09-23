@@ -30,11 +30,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	mTokenDecimals := ep.Tokens[0].Decimals
-	tokenDecimals := ep.Tokens[1].Decimals
+	mTokenDecimals, tokenDecimals := ep.Tokens[0].Decimals, ep.Tokens[1].Decimals
 
-	dVault, rVault, err := unmarshal(staticExtra.IsDepositVault, ep.Extra,
-		mTokenDecimals, tokenDecimals, staticExtra.VaultType)
+	dVault, rVault, err := unmarshalVault(staticExtra, ep.Extra, mTokenDecimals, tokenDecimals)
 	if err != nil {
 		return nil, err
 	}
@@ -112,5 +110,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
-	return Meta{BlockNumber: s.Info.BlockNumber}
+	return Meta{
+		BlockNumber: s.Info.BlockNumber,
+	}
 }

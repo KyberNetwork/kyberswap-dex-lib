@@ -8,6 +8,11 @@ import (
 
 type DepositVault struct {
 	*ManageableVault
+
+	minMTokenAmountForFirstDeposit *uint256.Int
+	totalMinted                    *uint256.Int
+	mTokenTotalSuply               *uint256.Int
+	maxSupplyCap                   *uint256.Int
 }
 
 func NewDepositVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *DepositVault {
@@ -16,7 +21,11 @@ func NewDepositVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8
 	}
 
 	return &DepositVault{
-		ManageableVault: NewManageableVault(vaultState, mTokenDecimals, tokenDecimals),
+		ManageableVault:                NewManageableVault(vaultState, mTokenDecimals, tokenDecimals),
+		minMTokenAmountForFirstDeposit: vaultState.MinMTokenAmountForFirstDeposit,
+		totalMinted:                    vaultState.TotalMinted,
+		mTokenTotalSuply:               vaultState.MTokenTotalSupply,
+		maxSupplyCap:                   vaultState.MaxSupplyCap,
 	}
 }
 
@@ -30,6 +39,10 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, erro
 
 	if err = v.checkLimits(mintAmount); err != nil {
 		return nil, err
+	}
+
+	if new(uint256.Int).Add(v.mTokenTotalSuply, mintAmount).Gt(v.maxSupplyCap) {
+		return nil, ErrDvMaxSupplyCapExceeded
 	}
 
 	return &SwapInfo{
@@ -87,6 +100,14 @@ func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int) (*uint25
 
 	if mTokenAmount.Sign() == 0 {
 		return nil, nil, ErrDVInvalidMintAmount
+	}
+
+	if mTokenAmount.Lt(v.minAmount) {
+		return nil, nil, ErrDvMintAmountLtMin
+	}
+
+	if v.totalMinted.Sign() == 0 && mTokenAmount.Lt(v.minMTokenAmountForFirstDeposit) {
+		return nil, nil, ErrDvMTokenAmountLtMin
 	}
 
 	return feeTokenAmount, mTokenAmount, nil

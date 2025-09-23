@@ -3,10 +3,11 @@ package midas
 import (
 	"context"
 	"errors"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -27,7 +28,7 @@ type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 
-	redemptionVaultToType map[string]string
+	redemptionVaultToType map[string]VaultType
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
@@ -44,7 +45,7 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, 
 		return nil, err
 	}
 
-	redemptionVaultToType := make(map[string]string)
+	redemptionVaultToType := make(map[string]VaultType)
 
 	for _, cfg := range mTokenConfigs {
 		redemptionVaultToType[strings.ToLower(cfg.RedemptionVault)] = cfg.RedemptionVaultType
@@ -76,10 +77,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	)
 
 	currentDayNumber := time.Now().Unix() / oneDayInSecond
+	mToken := p.Tokens[0].Address
 	token := p.Tokens[1].Address
 
 	if staticExtra.IsDepositVault {
-		depositVaultState, err := t.getVaultState(ctx, token, p.Address, true, currentDayNumber)
+		depositVaultState, err := t.getVaultState(ctx, mToken, token, p.Address, true, currentDayNumber)
 		if err != nil {
 			return p, err
 		}
@@ -89,7 +91,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	} else {
 		switch staticExtra.VaultType {
 		case redemptionVault:
-			redemptionVaultState, err := t.getVaultState(ctx, token, p.Address, false, currentDayNumber)
+			redemptionVaultState, err := t.getVaultState(ctx, mToken, token, p.Address, false, currentDayNumber)
 			if err != nil {
 				return p, err
 			}
@@ -97,7 +99,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				return p, err
 			}
 		case redemptionVaultSwapper:
-			redemptionVaultState, err := t.getRedemptionVaultWithSwapperState(ctx, token, p.Address, currentDayNumber)
+			redemptionVaultState, err := t.getRedemptionVaultWithSwapperState(ctx, mToken, token, p.Address, currentDayNumber)
 			if err != nil {
 				return p, err
 			}
@@ -105,7 +107,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 				return p, err
 			}
 		case redemptionVaultUstb:
-			redemptionVaultState, err := t.getRedemptionVaultWithUstbState(ctx, token, p.Address, currentDayNumber)
+			redemptionVaultState, err := t.getRedemptionVaultWithUstbState(ctx, mToken, token, p.Address, currentDayNumber)
 			if err != nil {
 				return p, err
 			}
@@ -127,7 +129,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	return p, nil
 }
 
-func getVaultStateCalls(req *ethrpc.Request, token, vault string, vaultState *VaultStateResponse,
+func (t *PoolTracker) getVaultStateCalls(req *ethrpc.Request, mToken, token, vault string, vaultState *VaultStateResponse,
 	isDepositVault bool, currentDayNumber int64) *ethrpc.Request {
 
 	vaultAbi := lo.Ternary(isDepositVault, DepositVaultABI, RedemptionVaultABI)
@@ -174,13 +176,36 @@ func getVaultStateCalls(req *ethrpc.Request, token, vault string, vaultState *Va
 		Method: vaultMTokenDataFeedMethod,
 	}, []any{&vaultState.MTokenDataFeed})
 
+	if isDepositVault {
+		req.AddCall(&ethrpc.Call{
+			ABI:    DepositVaultABI,
+			Target: vault,
+			Method: depositVaultMinMTokenAmountForFirstDepositMethod,
+		}, []any{&vaultState.MinMTokenAmountForFirstDeposit}).AddCall(&ethrpc.Call{
+			ABI:    DepositVaultABI,
+			Target: vault,
+			Method: depositVaultTotalMintedMethod,
+			Params: []any{common.HexToAddress(t.config.Executor)},
+		}, []any{&vaultState.TotalMinted}).AddCall(&ethrpc.Call{
+			ABI:    DepositVaultABI,
+			Target: vault,
+			Method: depositVaultMaxSupplyCapMethod,
+		}, []any{&vaultState.MaxSupplyCap}).AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: mToken,
+			Method: abi.Erc20TotalSupplyMethod,
+		}, []any{&vaultState.MTokenTotalSupply})
+
+	}
+
 	return req
 }
 
-func (t *PoolTracker) getVaultState(ctx context.Context, token, vault string, isDeposit bool, currentDayNumber int64) (*VaultState, error) {
+func (t *PoolTracker) getVaultState(ctx context.Context, mToken, token, vault string,
+	isDeposit bool, currentDayNumber int64) (*VaultState, error) {
 	var vaultStateResponse VaultStateResponse
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = getVaultStateCalls(req, token, vault, &vaultStateResponse, isDeposit, currentDayNumber)
+	req = t.getVaultStateCalls(req, mToken, token, vault, &vaultStateResponse, isDeposit, currentDayNumber)
 
 	resp, err := req.Aggregate()
 	if err != nil {
@@ -213,9 +238,9 @@ func (t *PoolTracker) getVaultState(ctx context.Context, token, vault string, is
 	return vaultStateResponse.ToVaultState(token, mTokenRate, tokenRate), nil
 }
 
-func addRedemptionVaultStateCalls(req *ethrpc.Request, token, vault string, vaultState *VaultStateResponse,
-	currentDayNumber int64, vaultType string) *ethrpc.Request {
-	req = getVaultStateCalls(req, token, vault, vaultState, false, currentDayNumber)
+func (t *PoolTracker) addRedemptionVaultStateCalls(req *ethrpc.Request, mToken, token, vault string, vaultState *VaultStateResponse,
+	currentDayNumber int64, vaultType VaultType) *ethrpc.Request {
+	req = t.getVaultStateCalls(req, mToken, token, vault, vaultState, false, currentDayNumber)
 	req.AddCall(&ethrpc.Call{
 		ABI:    abi.Erc20ABI,
 		Target: token,
@@ -244,15 +269,15 @@ func addRedemptionVaultStateCalls(req *ethrpc.Request, token, vault string, vaul
 
 func (t *PoolTracker) getRedemptionVaultWithUstbState(
 	ctx context.Context,
-	token string,
+	mToken, token string,
 	redemptionVault string,
 	currentDayNumber int64,
 ) (*RedemptionVaultWithUstbState, error) {
 	var vaultResponse VaultStateResponse
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = getVaultStateCalls(req, token, redemptionVault, &vaultResponse, false, currentDayNumber)
-	req = addRedemptionVaultStateCalls(req, token, redemptionVault, &vaultResponse, currentDayNumber, redemptionVaultUstb)
+	req = t.getVaultStateCalls(req, mToken, token, redemptionVault, &vaultResponse, false, currentDayNumber)
+	req = t.addRedemptionVaultStateCalls(req, mToken, token, redemptionVault, &vaultResponse, currentDayNumber, redemptionVaultUstb)
 	resp, err := req.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -366,13 +391,13 @@ func (t *PoolTracker) getRedemptionVaultWithUstbState(
 }
 
 func (t *PoolTracker) getRedemptionVaultWithSwapperState(
-	ctx context.Context, token string, redemptionVault string, currentDayNumber int64,
+	ctx context.Context, mToken, token string, redemptionVault string, currentDayNumber int64,
 ) (*RedemptionVaultWithSwapperState, error) {
 	var vaultResponse VaultStateResponse
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = getVaultStateCalls(req, token, redemptionVault, &vaultResponse, false, currentDayNumber)
-	req = addRedemptionVaultStateCalls(req, token, redemptionVault, &vaultResponse, currentDayNumber, redemptionVaultSwapper)
+	req = t.getVaultStateCalls(req, mToken, token, redemptionVault, &vaultResponse, false, currentDayNumber)
+	req = t.addRedemptionVaultStateCalls(req, mToken, token, redemptionVault, &vaultResponse, currentDayNumber, redemptionVaultSwapper)
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		return nil, err
@@ -411,7 +436,7 @@ func (t *PoolTracker) getRedemptionVaultWithSwapperState(
 		if !ok {
 			logger.Warnf("unknown redemption vault type %v", mTbillRedemptionVault)
 		} else if rVaultType == redemptionVaultUstb {
-			mTbillRedemptionVaultState, err = t.getRedemptionVaultWithUstbState(ctx, token, mTbillRedemptionVault, currentDayNumber)
+			mTbillRedemptionVaultState, err = t.getRedemptionVaultWithUstbState(ctx, mToken, token, mTbillRedemptionVault, currentDayNumber)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"error": err,
