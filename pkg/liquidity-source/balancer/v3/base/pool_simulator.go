@@ -396,7 +396,7 @@ func (p *PoolSimulator) GetTokens() []string {
 	return append(p.Info.Tokens, lo.Compact(p.bufferTokens)...)
 }
 
-func (p *PoolSimulator) CanSwapTo(address string) []string {
+func (p *PoolSimulator) CanSwap(address string) []string {
 	// Check if address exists in pool tokens
 	poolTokenIndex := p.GetTokenIndex(address)
 	// Check if address exists in buffer tokens
@@ -433,6 +433,15 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return result
 }
 
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	return lo.Filter(p.CanSwap(address), func(item string, _ int) bool {
+		return lo.IndexOf(p.bufferTokens, item) < 0
+	})
+}
+
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
-	return p.CanSwapTo(address)
+	if lo.IndexOf(p.bufferTokens, address) >= 0 {
+		return []string{}
+	}
+	return p.CanSwap(address)
 }
