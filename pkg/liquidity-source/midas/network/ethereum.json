@@ -167,13 +167,6 @@
     "depositVaultType": "depositVault",
     "redemptionVaultType": "redemptionVault"
   },
-  "eUSD": {
-    "token": "0xb5C5f2f9d9d9e7c2E885549AFb857306d119c701",
-    "depositVault": "0xdD2EC1Da19950B6B836D46882897D0D8fe4cF487",
-    "redemptionVault": "0x672DCEE688aa1685701a4A4138CB20d07272D116",
-    "depositVaultType": "depositVault",
-    "redemptionVaultType": "redemptionVault"
-  },
   "zeroGUSDV": {
     "token": "0x766255b53ae70fa39A18aa296f41fAb17db6a810",
     "depositVault": "0x34031E751DA2Ab19009D8f7eb268Face2BdFD0dd",
