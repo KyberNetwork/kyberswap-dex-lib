@@ -82,7 +82,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	extra := Extra{Extra: &shared.Extra{ChainID: t.config.ChainID}}
+	extra := Extra{Extra: &shared.Extra{}}
 	extra.EnableHookAdjustedAmounts = res.HooksConfigData.EnableHookAdjustedAmounts
 	extra.ShouldCallComputeDynamicSwapFee = res.HooksConfigData.ShouldCallComputeDynamicSwapFee
 	extra.ShouldCallBeforeSwap = res.HooksConfigData.ShouldCallBeforeSwap

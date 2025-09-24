@@ -24,8 +24,8 @@ var (
 	_                    = json.Unmarshal([]byte(`{"address":"0x3De1E230193F39DF0c122A345a928d909034c1a1","exchange":"balancer-v3-reclamm","type":"balancer-v3-reclamm","timestamp":1752072827,"reserves":["119997500000000","116125000000000000"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","symbol":"WETH","decimals":18,"swappable":true},{"address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","symbol":"USDC","decimals":6,"swappable":true}],"extra":"{\"hook\":{},\"fee\":\"250000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"119997500000000\",\"116125000000000000\"],\"decs\":[\"1\",\"1000000000000\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\"],\"buffs\":[null,null],\"lastVirtualBalances\":[\"2088831129392021\",\"5414869164940852258\"],\"centerednessMargin\":500000000000000000,\"dailyPriceShiftBase\":999999197747274347,\"startFourthRootPriceRatio\":1039289877625411769,\"endFourthRootPriceRatio\":1039289877625411769,\"priceRatioUpdateStartTime\":1752072483,\"priceRatioUpdateEndTime\":1752072483,\"lastTimestamp\":1752072827,\"currentTimestamp\":1752072837}","staticExtra":"{\"buffs\":[\"\",\"\"],\"hook\": \"0x9d1fcf346ea1b073de4d5834e25572cc6ad71f4d\",\"hookT\": \"RECLAMM\"}","blockNumber":32641745}`),
 		&entityPoolOutOfRange)
 
-	poolSimInRange    = lo.Must(NewPoolSimulator(entityPoolInRange))
-	poolSimOutOfRange = lo.Must(NewPoolSimulator(entityPoolOutOfRange))
+	poolSimInRange    = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPoolInRange}))
+	poolSimOutOfRange = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPoolOutOfRange}))
 )
 
 func TestCalcAmountOutInRange(t *testing.T) {

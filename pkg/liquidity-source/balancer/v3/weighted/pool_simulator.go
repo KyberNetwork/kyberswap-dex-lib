@@ -5,16 +5,16 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
-func NewPoolSimulator(entityPool entity.Pool) (*base.PoolSimulator, error) {
+func NewPoolSimulator(params pool.FactoryParams) (*base.PoolSimulator, error) {
+	entityPool := params.EntityPool
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*base.PoolSimulator, error) {
 		return nil, err
 	}
 
-	return base.NewPoolSimulator(entityPool, extra.Extra, &staticExtra, &PoolSimulator{
+	return base.NewPoolSimulator(params, extra.Extra, &staticExtra, &PoolSimulator{
 		normalizedWeights: extra.NormalizedWeights,
 	}, nil)
 }

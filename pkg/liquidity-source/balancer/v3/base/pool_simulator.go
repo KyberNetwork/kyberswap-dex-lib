@@ -34,9 +34,9 @@ type swapper interface {
 	OnSwap(param shared.PoolSwapParams) (*uint256.Int, error)
 }
 
-func NewPoolSimulator(entityPool entity.Pool, extra *shared.Extra, staticExtra *shared.StaticExtra, swapper swapper,
-	hook hooks.IHook) (*PoolSimulator,
-	error) {
+func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtra *shared.StaticExtra, swapper swapper,
+	hook hooks.IHook) (*PoolSimulator, error) {
+	entityPool := params.EntityPool
 	if err := validateExtra(extra); err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func NewPoolSimulator(entityPool entity.Pool, extra *shared.Extra, staticExtra *
 		buffers:      extra.Buffers,
 		bufferTokens: staticExtra.BufferTokens,
 
-		chainID: valueobject.ChainID(extra.ChainID),
+		chainID: params.ChainID,
 	}, nil
 }
 
@@ -384,7 +384,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	router, _ := GetRouterAddress(valueobject.ChainID(p.chainID))
+	router, _ := GetRouterAddress(p.chainID)
 
 	indexIn, isTokenInUnderlying, _ := p.ResolveToken(tokenIn)
 	indexOut, isTokenOutUnderlying, _ := p.ResolveToken(tokenOut)

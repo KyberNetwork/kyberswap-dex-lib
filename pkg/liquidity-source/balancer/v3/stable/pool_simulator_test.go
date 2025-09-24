@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -19,7 +19,7 @@ var (
 	entityPool entity.Pool
 	_          = json.Unmarshal([]byte(`{"address":"0xc4ce391d82d164c166df9c8336ddf84206b2f812","exchange":"balancer-v3-stable","type":"balancer-v3-stable","timestamp":1751293016,"reserves":["687804073931103275644","1783969556654743519024"],"tokens":[{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"},{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"}],"extra":"{\"hook\":{},\"fee\":\"20000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"694069210892948295209\",\"2124492373418339554414\"],\"decs\":[\"1\",\"1\"],\"rates\":[\"1009108897721464489\",\"1190879275654308905\"],\"buffs\":[{\"dRate\":[\"976255\",\"976255817341\",\"976255817341645373\",\"976255817341645373456045\",\"976255817341645373456045753577\"],\"rRate\":[\"1024321\",\"1024321681096\",\"1024321681096877127\",\"1024321681096877127977750\",\"1024321681096877127977750950000\"]},{\"dRate\":[\"996629\",\"996629442697\",\"996629442697471179\",\"996629442697471179789157\",\"996629442697471179789157582365\"],\"rRate\":[\"1003381\",\"1003381956380\",\"1003381956380303285\",\"1003381956380303285385258\",\"1003381956380303285385258382000\"]}],\"surge\":{},\"ampParam\":\"5000000\"}","staticExtra":"{\"buffs\":[\"0x0fe906e030a44ef24ca8c7dc7b7c53a6c4f00ce9\",\"0x775f661b0bd1739349b9a2a3ef60be277c5d2d29\"]}","blockNumber":22817774}`),
 		&entityPool)
-	poolSim = lo.Must(NewPoolSimulator(entityPool))
+	poolSim = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool}))
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -237,12 +237,12 @@ func TestUpdateBalance(t *testing.T) {
 			clonedPool := testPool.CloneState()
 
 			// Create token amounts
-			tokenAmountIn := poolpkg.TokenAmount{
+			tokenAmountIn := pool.TokenAmount{
 				Token:  tc.tokenIn,
 				Amount: tc.tokenInAmount,
 			}
 
-			tokenAmountOut := poolpkg.TokenAmount{
+			tokenAmountOut := pool.TokenAmount{
 				Token:  tc.tokenOut,
 				Amount: tc.tokenOutAmount,
 			}
@@ -254,13 +254,13 @@ func TestUpdateBalance(t *testing.T) {
 			}
 
 			// Create empty fee as it doesn't matter
-			emptyFee := poolpkg.TokenAmount{
+			emptyFee := pool.TokenAmount{
 				Token:  tc.tokenIn,
 				Amount: big.NewInt(0),
 			}
 
 			// Create update balance params
-			params := poolpkg.UpdateBalanceParams{
+			params := pool.UpdateBalanceParams{
 				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: tokenAmountOut,
 				Fee:            emptyFee,

@@ -15,7 +15,6 @@ type StaticExtra struct {
 
 type Extra struct {
 	HooksConfig                `json:"hook"`
-	ChainID                    int            `json:"chain,omitempty"`
 	StaticSwapFeePercentage    *uint256.Int   `json:"fee,omitempty"`
 	AggregateSwapFeePercentage *uint256.Int   `json:"aggrFee,omitempty"`
 	BalancesLiveScaled18       []*uint256.Int `json:"balsE18,omitempty"`
