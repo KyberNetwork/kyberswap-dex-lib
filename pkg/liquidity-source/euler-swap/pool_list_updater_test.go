@@ -6,9 +6,10 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestPoolListUpdater(t *testing.T) {
@@ -31,8 +32,8 @@ func TestPoolListUpdater(t *testing.T) {
 		tracker, err := NewPoolTracker(plUpdater.config, plUpdater.ethrpcClient)
 		require.NoError(t, err)
 
-		pool, err := tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
+		p, err = tracker.GetNewPoolState(context.Background(), p, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
+		require.NotNil(t, p)
 	}
 }
