@@ -285,7 +285,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.Vaults[2] = p.Vaults[swapInfo.debtVaultIdx]
 		p.ControllerVault = lo.Ternary(swapInfo.debtVaultIdx == 0, p.Vault0, p.Vault1)
 	}
-	p.Vaults[2].Debt.Set(swapInfo.debt)
+	p.Vaults[2].Debt = swapInfo.debt
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
