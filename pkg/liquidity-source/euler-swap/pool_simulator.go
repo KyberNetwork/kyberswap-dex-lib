@@ -175,7 +175,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 			if debt.Sign() > 0 { // unpaid debt in controller vault + new debt in buy vault = forbidden
 				return nil, ErrMultiDebts
 			}
-			debtVaultAddr, debtVaultIdx = buyVaultAddr, buyVaultIdx
+			debtVaultIdx = buyVaultIdx
 		}
 		debt.Add(debt, newDebt)
 	}
