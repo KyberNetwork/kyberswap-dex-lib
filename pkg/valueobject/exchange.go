@@ -424,6 +424,7 @@ const (
 	ExchangeUpheavalV3                 = "upheaval-v3"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
+	ExchangeUraniumV3                  = "uranium-v3"
 	ExchangeVVS                        = "vvs"
 	ExchangeValleySwap                 = "valleyswap"
 	ExchangeValleySwapV2               = "valleyswap-v2"
@@ -873,6 +874,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUpheavalV3:                 {},
 	ExchangeUsd0PP:                     {},
 	ExchangeUsdsLitePsm:                {},
+	ExchangeUraniumV3:                  {},
 	ExchangeVVS:                        {},
 	ExchangeValleySwap:                 {},
 	ExchangeValleySwapV2:               {},
