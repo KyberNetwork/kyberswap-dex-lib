@@ -84,9 +84,10 @@ type SwapInfo struct {
 }
 
 type PoolMetaInfo struct {
-	BufferTokenIn  string `json:"buffIn,omitempty"`
-	BufferTokenOut string `json:"buffOut,omitempty"`
-	BufferSwap     string `json:"buffSwap,omitempty"`
+	BufferTokenIn   string `json:"buffIn,omitempty"`
+	BufferTokenOut  string `json:"buffOut,omitempty"`
+	BufferSwap      string `json:"buffSwap,omitempty"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type AggregateFeePercentageRPC struct {

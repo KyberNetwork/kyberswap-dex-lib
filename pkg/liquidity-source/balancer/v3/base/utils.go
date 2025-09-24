@@ -1,6 +1,11 @@
 package base
 
-import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
+import (
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
 
 func validateExtra(extra *shared.Extra) error {
 	if extra == nil ||
@@ -11,4 +16,9 @@ func validateExtra(extra *shared.Extra) error {
 	}
 
 	return nil
+}
+
+func GetRouterAddress(chainID valueobject.ChainID) (common.Address, bool) {
+	v, ok := BalancerV3BatchRouter[chainID]
+	return v, ok
 }
