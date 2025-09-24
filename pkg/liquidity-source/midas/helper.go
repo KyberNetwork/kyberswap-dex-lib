@@ -1,39 +1,63 @@
 package midas
 
 import (
+	"strings"
+
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 )
 
-func unmarshalVault(staticExtra StaticExtra, poolExtra string,
-	mTokenDecimals, tokenDecimals uint8) (IDepositVault, IRedemptionVault, error) {
-	if staticExtra.IsDepositVault {
-		var dVault VaultState
-		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {
-			return nil, nil, err
-		}
-		return NewDepositVault(&dVault, mTokenDecimals, tokenDecimals), nil, nil
-	}
+type rvConfig struct {
+	Address string
+	RvType  VaultType
+	MToken  string
 
-	switch staticExtra.VaultType {
+	LiquidityProvider     string
+	MTbillRedemptionVault string
+
+	UstbRedemption  string
+	SuperstateToken string
+}
+
+var rvConfigs map[string]rvConfig
+
+func init() {
+	rvConfigs = make(map[string]rvConfig)
+	for _, byteData := range bytesByPath {
+		var mTokenConfigs map[string]MTokenConfig
+		if err := json.Unmarshal(byteData, &mTokenConfigs); err != nil {
+			panic("failed to unmarshal midas config")
+		}
+
+		for _, cfg := range mTokenConfigs {
+			address := strings.ToLower(cfg.RedemptionVault)
+			rvConfigs[address] = rvConfig{
+				Address: address,
+				MToken:  strings.ToLower(cfg.MToken),
+				RvType:  cfg.RedemptionVaultType,
+
+				LiquidityProvider:     strings.ToLower(cfg.LiquidityProvider),
+				MTbillRedemptionVault: strings.ToLower(cfg.MTbillRedemptionVault),
+
+				UstbRedemption:  cfg.UstbRedemption,
+				SuperstateToken: cfg.SuperstateToken,
+			}
+		}
+	}
+}
+
+func newVault(vaultState *VaultState, vaultType VaultType, mTokenDecimals, tokenDecimals uint8) (IDepositVault, IRedemptionVault, error) {
+	switch vaultType {
+	case depositVault:
+		return NewDepositVault(vaultState, mTokenDecimals, tokenDecimals), nil, nil
 	case redemptionVault:
-		var dVault VaultState
-		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {
-			return nil, nil, err
-		}
-		return nil, NewRedemptionVault(&dVault, mTokenDecimals, tokenDecimals), nil
-	case redemptionVaultSwapper:
-		var dVault RedemptionVaultWithSwapperState
-		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {
-			return nil, nil, err
-		}
-		return nil, NewRedemptionVaultSwapper(&dVault, mTokenDecimals, tokenDecimals), nil
+		return nil, NewRedemptionVault(vaultState, mTokenDecimals, tokenDecimals), nil
 	case redemptionVaultUstb:
-		var dVault RedemptionVaultWithUstbState
-		if err := json.Unmarshal([]byte(poolExtra), &dVault); err != nil {
-			return nil, nil, err
-		}
-		return nil, NewRedemptionVaultUstb(&dVault, mTokenDecimals, tokenDecimals), nil
+		return nil, NewRedemptionVaultUstb(vaultState, mTokenDecimals, tokenDecimals), nil
+	case redemptionVaultSwapper:
+		return nil, NewRedemptionVaultSwapper(vaultState, mTokenDecimals, tokenDecimals), nil
 	default:
+		logger.Errorf("not supported vault %v", vaultType)
 		return nil, nil, ErrNotSupported
 	}
 }

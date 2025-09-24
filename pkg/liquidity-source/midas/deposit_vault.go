@@ -41,28 +41,35 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, erro
 		return nil, err
 	}
 
-	if new(uint256.Int).Add(v.mTokenTotalSuply, mintAmount).Gt(v.maxSupplyCap) {
-		return nil, ErrDvMaxSupplyCapExceeded
+	if v.maxSupplyCap != nil && v.maxSupplyCap.Sign() > 0 {
+		if new(uint256.Int).Add(v.mTokenTotalSuply, mintAmount).Gt(v.maxSupplyCap) {
+			return nil, ErrDvMaxSupplyCapExceeded
+		}
 	}
 
 	return &SwapInfo{
-		IsDeposit: true,
-
-		Gas:       depositInstantDefaultGas,
-		Fee:       feeAmount,
-		AmountOut: convertFromBase18(mintAmount, v.mTokenDecimals),
-
+		IsDeposit:            true,
 		AmountTokenInBase18:  amountToken,
 		AmountMTokenInBase18: mintAmount,
+
+		gas:       depositInstantDefaultGas,
+		fee:       feeAmount,
+		amountOut: convertFromBase18(mintAmount, v.mTokenDecimals),
 	}, nil
 }
 
-func (v *DepositVault) UpdateState(swapInfo *SwapInfo) error {
-	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, swapInfo.AmountTokenInBase18)
+func (v *DepositVault) UpdateState(swapInfo *SwapInfo) {
+	v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
 
-	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, swapInfo.AmountMTokenInBase18)
+	v.totalMinted = new(uint256.Int).Add(v.totalMinted, swapInfo.AmountMTokenInBase18)
+}
 
-	return nil
+func (v *DepositVault) CloneState() any {
+	cloned := *v
+	cloned.ManageableVault = v.ManageableVault.CloneState()
+	cloned.totalMinted = new(uint256.Int).Set(v.totalMinted)
+
+	return &cloned
 }
 
 // feeTokenAmount fee amount in tokenIn
@@ -73,7 +80,7 @@ func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int) (*uint25
 	}
 
 	if v.paused {
-		return nil, nil, ErrDepositVaultPaused
+		return nil, nil, ErrDVPaused
 	}
 
 	if v.fnPaused {

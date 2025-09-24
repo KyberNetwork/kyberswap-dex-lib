@@ -9,24 +9,21 @@ import (
 const (
 	DexType = "midas"
 
-	vaultPausedMethod            = "paused"
-	vaultMTokenDataFeedMethod    = "mTokenDataFeed"
-	vaultGetPaymentTokensMethod  = "getPaymentTokens"
-	vaultTokensConfigMethod      = "tokensConfig"
-	vaultInstantDailyLimitMethod = "instantDailyLimit"
-	vaultInstantFeeMethod        = "instantFee"
-	vaultDailyLimitsMethod       = "dailyLimits"
-	vaultMinAmountMethod         = "minAmount"
-	vaultFnPausedMethod          = "fnPaused"
+	vaultPausedMethod               = "paused"
+	vaultMTokenDataFeedMethod       = "mTokenDataFeed"
+	vaultGetPaymentTokensMethod     = "getPaymentTokens"
+	vaultTokensConfigMethod         = "tokensConfig"
+	vaultInstantDailyLimitMethod    = "instantDailyLimit"
+	vaultInstantFeeMethod           = "instantFee"
+	vaultDailyLimitsMethod          = "dailyLimits"
+	vaultMinAmountMethod            = "minAmount"
+	vaultFnPausedMethod             = "fnPaused"
+	vaultWaivedFeeRestrictionMethod = "waivedFeeRestriction"
 
-	depositVaultMinMTokenAmountForFirstDepositMethod = "minMTokenAmountForFirstDeposit"
-	depositVaultTotalMintedMethod                    = "totalMinted"
-	depositVaultMaxSupplyCapMethod                   = "maxSupplyCap"
+	dvMinMTokenAmountForFirstDepositMethod = "minMTokenAmountForFirstDeposit"
+	dvTotalMintedMethod                    = "totalMinted"
+	dvMaxSupplyCapMethod                   = "maxSupplyCap"
 
-	redemptionVaultSwapperMTbillRedemptionVaultMethod = "mTbillRedemptionVault"
-	redemptionVaultUstbUstbRedemptionMethod           = "ustbRedemption"
-
-	redemptionSuperstateTokenMethod          = "SUPERSTATE_TOKEN"
 	redemptionChainlinkFeedPrecisionMethod   = "CHAINLINK_FEED_PRECISION"
 	redemptionSuperstateTokenPrecisionMethod = "SUPERSTATE_TOKEN_PRECISION"
 	redemptionUsdcMethod                     = "USDC"
@@ -37,12 +34,11 @@ const (
 )
 
 const (
-	depositVault     VaultType = "depositVault"
-	depositVaultUstb VaultType = "depositVaultUstb"
+	depositVault VaultType = "depositVault"
 
 	redemptionVault        VaultType = "redemptionVault"
-	redemptionVaultSwapper VaultType = "redemptionVaultSwapper"
 	redemptionVaultUstb    VaultType = "redemptionVaultUstb"
+	redemptionVaultSwapper VaultType = "redemptionVaultSwapper"
 )
 
 const (
@@ -59,29 +55,29 @@ var (
 
 	feeDenominator = u256.UBasisPoint
 	usdcPrecision  = u256.TenPow(6)
-
-	dummyAddress = "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF"
 )
 
 var (
-	ErrInvalidToken               = errors.New("invalid token")
-	ErrInvalidAmount              = errors.New("invalid amount")
-	ErrInvalidSwap                = errors.New("invalid swap")
-	ErrTokenRemoved               = errors.New("MV: token not exists")
-	ErrMVExceedAllowance          = errors.New("MV: exceed allowance")
-	ErrMVExceedLimit              = errors.New("MV: exceed limit")
-	ErrDVInsufficientBalance      = errors.New("DV: insufficient balance")
-	ErrRateZero                   = errors.New("DV: rate zero")
-	ErrDepositVaultPaused         = errors.New("DV: deposit vault paused")
-	ErrDepositInstantFnPaused     = errors.New("DV: depositInstant fn paused")
-	ErrDVInvalidMintAmount        = errors.New("DV: invalid mint amount")
-	ErrDvMTokenAmountLtMin        = errors.New("DV: mToken amount < min")
-	ErrDvMintAmountLtMin          = errors.New("DV: mint amount < min")
-	ErrDvMaxSupplyCapExceeded     = errors.New("DV: max supply cap exceeded")
-	ErrRedemptionVaultPaused      = errors.New("RV: redemption vault paused")
-	ErrRedeemInstantFnPaused      = errors.New("RV: redeemInstant fn paused")
-	ErrRVUUstbFeeNotZero          = errors.New("RVU: USTB fee not zero")
-	ErrRVUInsufficientUstbBalance = errors.New("RVU: insufficient USTB balance")
-	ErrBadArgsUsdcOutAmountZero   = errors.New("BadArgs: USDC out amount zero")
-	ErrNotSupported               = errors.New("not supported")
+	ErrInvalidToken                 = errors.New("invalid token")
+	ErrInvalidAmount                = errors.New("invalid amount")
+	ErrInvalidSwap                  = errors.New("invalid swap")
+	ErrTokenRemoved                 = errors.New("MV: token not exists")
+	ErrMVExceedAllowance            = errors.New("MV: exceed allowance")
+	ErrMVExceedLimit                = errors.New("MV: exceed limit")
+	ErrDVInsufficientBalance        = errors.New("DV: insufficient balance")
+	ErrRateZero                     = errors.New("DV: rate zero")
+	ErrDVPaused                     = errors.New("DV: deposit vault paused")
+	ErrDepositInstantFnPaused       = errors.New("DV: depositInstant fn paused")
+	ErrDVInvalidMintAmount          = errors.New("DV: invalid mint amount")
+	ErrDvMTokenAmountLtMin          = errors.New("DV: mToken amount < min")
+	ErrDvMintAmountLtMin            = errors.New("DV: mint amount < min")
+	ErrDvMaxSupplyCapExceeded       = errors.New("DV: max supply cap exceeded")
+	ErrRVPaused                     = errors.New("RV: redemption vault paused")
+	ErrRedeemInstantFnPaused        = errors.New("RV: redeemInstant fn paused")
+	ErrRVInsufficientMToken2Balance = errors.New("RV: insufficient mToken2 balance")
+	ErrRVUUstbFeeNotZero            = errors.New("RVU: USTB fee not zero")
+	ErrRVUInsufficientUstbBalance   = errors.New("RVU: insufficient USTB balance")
+	ErrRVUInvalidToken              = errors.New("RVU: invalid token")
+	ErrBadArgsUsdcOutAmountZero     = errors.New("BadArgs: USDC out amount zero")
+	ErrNotSupported                 = errors.New("not supported")
 )

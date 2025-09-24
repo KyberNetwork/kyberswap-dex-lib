@@ -3,17 +3,19 @@ package midas
 import (
 	"context"
 	"errors"
-	"github.com/samber/lo"
 	"math/big"
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -121,8 +123,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return pools, nil, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, isDepositVault bool,
-	vault, mToken, token string, vaultType string,
+func (u *PoolsListUpdater) initPool(ctx context.Context, isDv bool,
+	vault, mToken, token string, vaultType VaultType,
 ) (*entity.Pool, error) {
 	var tokenConfig struct {
 		DataFeed  common.Address
@@ -135,7 +137,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, isDepositVault bool,
 		NewRequest().
 		SetContext(ctx).
 		AddCall(&ethrpc.Call{
-			ABI:    lo.Ternary(isDepositVault, DepositVaultABI, RedemptionVaultABI),
+			ABI:    lo.Ternary(isDv, DepositVaultABI, RedemptionVaultABI),
 			Target: vault,
 			Method: vaultTokensConfigMethod,
 			Params: []any{common.HexToAddress(token)},
@@ -146,15 +148,18 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, isDepositVault bool,
 	}
 
 	staticExtra, err := json.Marshal(StaticExtra{
-		IsDepositVault: isDepositVault,
-		VaultType:      vaultType,
+		IsDv:      isDv,
+		VaultType: vaultType,
+		Vault:     strings.ToLower(vault),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &entity.Pool{
-		Address:   strings.ToLower(vault),
+		Address: strings.Join(lo.Ternary(isDv,
+			[]string{strings.ToLower(token), strings.ToLower(mToken)},
+			[]string{strings.ToLower(mToken), strings.ToLower(token)}), "-"),
 		Exchange:  u.config.DexId,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),

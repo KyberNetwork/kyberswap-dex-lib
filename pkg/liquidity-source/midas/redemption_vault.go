@@ -17,7 +17,7 @@ func NewRedemptionVault(vaultState *VaultState, mTokenDecimals, tokenDecimals ui
 	}
 }
 
-func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapInfo, error) {
+func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int, _ string) (*SwapInfo, error) {
 	amountMTokenIn = convertToBase18(amountMTokenIn, v.mTokenDecimals)
 
 	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn)
@@ -53,25 +53,27 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int) (*SwapInfo,
 	}
 
 	return &SwapInfo{
-		IsDeposit: false,
-
-		Gas:       redeemInstantDefaultGas,
-		Fee:       feeAmount,
-		AmountOut: amountOut,
-
+		IsDeposit:            false,
 		AmountTokenInBase18:  amountTokenOut,
 		AmountMTokenInBase18: amountMTokenIn,
+
+		gas:       redeemInstantDefaultGas,
+		fee:       feeAmount,
+		amountOut: amountOut,
 	}, nil
 }
 
-func (v *RedemptionVault) UpdateState(swapInfo *SwapInfo) error {
-	if err := v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18); err != nil {
-		return err
-	}
+func (v *RedemptionVault) UpdateState(swapInfo *SwapInfo) {
+	v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
+	v.tokenBalance = new(uint256.Int).Sub(v.tokenBalance, swapInfo.amountOut)
+}
 
-	v.tokenBalance = new(uint256.Int).Sub(v.tokenBalance, swapInfo.AmountOut)
+func (v *RedemptionVault) CloneState() any {
+	cloned := *v
+	cloned.ManageableVault = v.ManageableVault.CloneState()
+	cloned.tokenBalance = new(uint256.Int).Set(v.tokenBalance)
 
-	return nil
+	return &cloned
 }
 
 // feeAmount fee amount in mToken
@@ -82,7 +84,7 @@ func (v *RedemptionVault) calcAndValidateRedeem(amountMTokenIn *uint256.Int) (*u
 	}
 
 	if v.paused {
-		return nil, nil, ErrRedemptionVaultPaused
+		return nil, nil, ErrRVPaused
 	}
 
 	if v.fnPaused {

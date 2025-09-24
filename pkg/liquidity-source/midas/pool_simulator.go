@@ -3,7 +3,6 @@ package midas
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -18,8 +17,8 @@ var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 type PoolSimulator struct {
 	pool.Pool
 
-	depositVault    IDepositVault
-	redemptionVault IRedemptionVault
+	dv IDepositVault
+	rv IRedemptionVault
 
 	staticExtra StaticExtra
 }
@@ -30,9 +29,12 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	mTokenDecimals, tokenDecimals := ep.Tokens[0].Decimals, ep.Tokens[1].Decimals
+	var vault VaultState
+	if err := json.Unmarshal([]byte(ep.Extra), &vault); err != nil {
+		return nil, err
+	}
 
-	dVault, rVault, err := unmarshalVault(staticExtra, ep.Extra, mTokenDecimals, tokenDecimals)
+	dv, rv, err := newVault(&vault, staticExtra.VaultType, ep.Tokens[0].Decimals, ep.Tokens[1].Decimals)
 	if err != nil {
 		return nil, err
 	}
@@ -50,9 +52,9 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 			}),
 			BlockNumber: ep.BlockNumber,
 		}},
-		staticExtra:     staticExtra,
-		depositVault:    dVault,
-		redemptionVault: rVault,
+		staticExtra: staticExtra,
+		dv:          dv,
+		rv:          rv,
 	}, nil
 }
 
@@ -73,10 +75,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	)
 
 	isDeposit := indexIn != 0
-	if isDeposit && s.staticExtra.IsDepositVault {
-		swapInfo, err = s.depositVault.DepositInstant(amountIn)
-	} else if !isDeposit && !s.staticExtra.IsDepositVault {
-		swapInfo, err = s.redemptionVault.RedeemInstant(amountIn)
+	if isDeposit && s.staticExtra.IsDv {
+		swapInfo, err = s.dv.DepositInstant(amountIn)
+	} else if !isDeposit && !s.staticExtra.IsDv {
+		swapInfo, err = s.rv.RedeemInstant(amountIn, tokenOut)
 	} else {
 		return nil, ErrInvalidSwap
 	}
@@ -87,13 +89,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  s.Info.Tokens[indexOut],
-			Amount: swapInfo.AmountOut.ToBig(),
+			Amount: swapInfo.amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  s.Info.Tokens[indexIn],
-			Amount: swapInfo.Fee.ToBig(),
+			Amount: swapInfo.fee.ToBig(),
 		},
-		Gas:      swapInfo.Gas,
+		Gas:      swapInfo.gas,
 		SwapInfo: swapInfo,
 	}, nil
 }
@@ -101,16 +103,49 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(*SwapInfo)
 	if swapInfo.IsDeposit {
-		if err := s.depositVault.UpdateState(swapInfo); err != nil {
-			logger.Errorf("failed to update deposit vault state: %v", err)
-		}
-	} else if err := s.redemptionVault.UpdateState(swapInfo); err != nil {
-		logger.Errorf("failed to update redemption vault state: %v", err)
+		s.dv.UpdateState(swapInfo)
+	} else {
+		s.rv.UpdateState(swapInfo)
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	if s.dv != nil {
+		cloned.dv = s.dv.CloneState().(IDepositVault)
+	}
+	if s.rv != nil {
+		cloned.rv = s.rv.CloneState().(IRedemptionVault)
+	}
+
+	return &cloned
+}
+
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	tokenIndex := p.GetTokenIndex(address)
+	if p.staticExtra.IsDv && tokenIndex == 0 {
+		return []string{p.Info.Tokens[1]}
+	} else if !p.staticExtra.IsDv && tokenIndex == 1 {
+		return []string{p.Info.Tokens[0]}
+	}
+
+	return []string{}
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	tokenIndex := p.GetTokenIndex(address)
+	if p.staticExtra.IsDv && tokenIndex == 1 {
+		return []string{p.Info.Tokens[0]}
+	} else if !p.staticExtra.IsDv && tokenIndex == 0 {
+		return []string{p.Info.Tokens[1]}
+	}
+
+	return []string{}
+}
+
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
 		BlockNumber: s.Info.BlockNumber,
+		Vault:       s.staticExtra.Vault,
 	}
 }
