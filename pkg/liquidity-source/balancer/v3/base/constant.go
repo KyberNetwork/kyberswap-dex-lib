@@ -1,8 +1,9 @@
 package base
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
@@ -17,4 +18,5 @@ var BalancerV3BatchRouter = map[valueobject.ChainID]common.Address{
 	valueobject.ChainIDOptimism:        common.HexToAddress("0xaD89051bEd8d96f045E8912aE1672c6C0bF8a85E"),
 	valueobject.ChainIDSonic:           common.HexToAddress("0x7761659F9e9834ad367e4d25E0306ba7A4968DAf"),
 	valueobject.ChainIDHyperEVM:        common.HexToAddress("0x9dd5Db2d38b50bEF682cE532bCca5DfD203915E1"),
+	valueobject.ChainIDPlasma:          common.HexToAddress("0x85a80afee867aDf27B50BdB7b76DA70f1E853062"),
 }

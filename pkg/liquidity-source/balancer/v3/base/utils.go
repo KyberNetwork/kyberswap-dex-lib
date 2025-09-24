@@ -1,9 +1,10 @@
 package base
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 func validateExtra(extra *shared.Extra) error {
