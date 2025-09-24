@@ -32,7 +32,7 @@ type Extra struct {
 	Pause           uint32         `json:"p,omitempty"`  // 0 = unactivated, 1 = unlocked, 2 = locked
 	Vaults          [3]*Vault      `json:"v"`            // vault0, vault1, controllerVault
 	ControllerVault string         `json:"cV,omitempty"` // controller vault address
-	Collaterals     []*uint256.Int `json:"c"`            // collateral amounts across all collateral vaults
+	Collaterals     []*uint256.Int `json:"c,omitempty"`  // collateral amounts across all collateral vaults
 }
 
 type VaultInfo struct {

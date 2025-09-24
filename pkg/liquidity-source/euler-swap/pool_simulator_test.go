@@ -3,10 +3,10 @@ package eulerswap
 import (
 	"log"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -14,34 +14,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
+var (
+	entityPool entity.Pool
+	_          = json.Unmarshal([]byte(`{"address":"0x69058613588536167ba0aa94f0cc1fe420ef28a8","exchange":"euler-swap","type":"euler-swap","timestamp":1749734358,"reserves":["836474165989","269725806317064027913"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"c\":\"3557692641414\",\"d\":\"0\",\"mD\":\"946938844142891\",\"mW\":\"67500000000000\",\"tB\":\"24503463215694\",\"eAA\":\"337060655490\",\"dP\":\"999643500000\",\"vP\":[\"999643500000\",\"999728620000\"],\"vVP\":[\"999643500000\",\"999728620000\"],\"ltv\":[9000,9000],\"vLtv\":[0,9000]},{\"c\":\"4649319513393913032975\",\"d\":\"31774878270183832877\",\"mD\":\"58923495148231711113630\",\"mW\":\"90000000000000000000000\",\"tB\":\"36427185338374375853394\",\"eAA\":\"0\",\"dP\":\"999728620000\",\"vP\":[\"999643500000\",\"999728620000\"],\"vVP\":[\"999643500000\",\"999728620000\"],\"ltv\":[9000,9000],\"vLtv\":[9000,0]}],\"cV\":\"0x39de0f00189306062d79edec6dca5bb6bfd108f9\",\"c\":[\"832634226392\",\"0\"]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2\",\"ea\":\"0x0afBf798467F9b3b97F90d05bf7DF592D89A6CF1\",\"f\":\"500000000000000\",\"pf\":\"0\",\"er0\":\"751024805196\",\"er1\":\"301566016943501539193\",\"px\":\"379218809252938\",\"py\":\"1000000\",\"cx\":\"850000000000000000\",\"cy\":\"850000000000000000\"}","blockNumber":22688739}`), &entityPool)
+	poolSim    = lo.Must(NewPoolSimulator(entityPool))
+)
+
 func TestCalcAmountOut(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-
 	t.Parallel()
-	poolStr := `{"address":"0x69058613588536167ba0aa94f0cc1fe420ef28a8","exchange":"euler-swap","type":"euler-swap","timestamp":1749734358,"reserves":["836474165989","269725806317064027913"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"3557692641414\",\"Debt\":\"0\",\"MaxDeposit\":\"46938844142891\",\"MaxWithdraw\":\"67500000000000\",\"TotalBorrows\":\"24503463215694\",\"EulerAccountAssets\":\"337060655490\",\"CanBorrow\":true},{\"Cash\":\"4649319513393913032975\",\"Debt\":\"31774878270183832877\",\"MaxDeposit\":\"58923495148231711113630\",\"MaxWithdraw\":\"90000000000000000000000\",\"TotalBorrows\":\"36427185338374375853394\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2\",\"ea\":\"0x0afBf798467F9b3b97F90d05bf7DF592D89A6CF1\",\"f\":\"500000000000000\",\"pf\":\"0\",\"er0\":\"751024805196\",\"er1\":\"301566016943501539193\",\"px\":\"379218809252938\",\"py\":\"1000000\",\"cx\":\"850000000000000000\",\"cy\":\"850000000000000000\"}","blockNumber":22688739}`
-
-	var pool entity.Pool
-	err := json.Unmarshal([]byte(poolStr), &pool)
-	require.Nil(t, err)
-
-	s, err := NewPoolSimulator(pool)
-	require.Nil(t, err)
-
-	// adhocs due to changing data structure
-	// for i := range s.vaults {
-	// 	s.vaults[i].LTV = uint256.NewInt(0)
-	// 	s.vaults[i].AssetPrice = uint256.NewInt(0)
-	// 	s.vaults[i].SharePrice = uint256.NewInt(0)
-	// 	s.vaults[i].TotalAssets = uint256.NewInt(0)
-	// 	s.vaults[i].TotalSupply = uint256.NewInt(0)
-	// }
-	// s.liabilityValue = uint256.NewInt(0)
-	// s.collateralValue = uint256.NewInt(0)
-
 	t.Run("swap USDC -> WETH", func(t *testing.T) {
-		amountIn, _ := new(big.Int).SetString("1000000", 10)
+		amountIn, _ := new(big.Int).SetString("1000", 10)
 
 		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -49,10 +31,10 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
-		expectedAmountOut := "365327771994315"
+		expectedAmountOut := "365510616640"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -74,7 +56,7 @@ func TestCalcAmountOut(t *testing.T) {
 		expectedAmountOut := "833188497022"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -94,7 +76,7 @@ func TestCalcAmountOut(t *testing.T) {
 		tokenOut := "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -114,7 +96,7 @@ func TestCalcAmountOut(t *testing.T) {
 		tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			return poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
 			})
@@ -126,42 +108,14 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestCalcAmountIn(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-
 	t.Parallel()
-	poolStr := `{"address":"0x69058613588536167ba0aa94f0cc1fe420ef28a8","exchange":"euler-swap","type":"euler-swap","timestamp":1749734358,"reserves":["836474165989","269725806317064027913"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","symbol":"WETH","decimals":18,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"3557692641414\",\"Debt\":\"0\",\"MaxDeposit\":\"46938844142891\",\"MaxWithdraw\":\"67500000000000\",\"TotalBorrows\":\"24503463215694\",\"EulerAccountAssets\":\"337060655490\",\"CanBorrow\":true},{\"Cash\":\"4649319513393913032975\",\"Debt\":\"31774878270183832877\",\"MaxDeposit\":\"58923495148231711113630\",\"MaxWithdraw\":\"90000000000000000000000\",\"TotalBorrows\":\"36427185338374375853394\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0xD8b27CF359b7D15710a5BE299AF6e7Bf904984C2\",\"ea\":\"0x0afBf798467F9b3b97F90d05bf7DF592D89A6CF1\",\"f\":\"500000000000000\",\"pf\":\"0\",\"er0\":\"751024805196\",\"er1\":\"301566016943501539193\",\"px\":\"379218809252938\",\"py\":\"1000000\",\"cx\":\"850000000000000000\",\"cy\":\"850000000000000000\"}","blockNumber":22688739}`
-
-	var pool entity.Pool
-	err := json.Unmarshal([]byte(poolStr), &pool)
-	require.Nil(t, err)
-
-	s, err := NewPoolSimulator(pool)
-	require.Nil(t, err)
-
-	// adhocs due to changing data structure
-	// for i := range s.vaults {
-	// 	s.vaults[i].LTV = uint256.NewInt(0)
-	// 	s.vaults[i].AssetPrice = uint256.NewInt(0)
-	// 	s.vaults[i].SharePrice = uint256.NewInt(0)
-	// 	s.vaults[i].TotalAssets = uint256.NewInt(0)
-	// 	s.vaults[i].TotalSupply = uint256.NewInt(0)
-	// }
-	// s.liabilityValue = uint256.NewInt(0)
-	// s.collateralValue = uint256.NewInt(0)
-
-	testutil.TestCalcAmountIn(t, s)
+	testutil.TestCalcAmountIn(t, poolSim)
 }
 
 func TestSwapEdgeCases(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("Skipping testing in CI environment")
-	}
-
 	t.Parallel()
 
-	poolStr := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"Cash\":\"17271279289973\",\"Debt\":\"19814269629134\",\"MaxDeposit\":\"22900683055346\",\"MaxWithdraw\":\"67500000000000\",\"TotalBorrows\":\"34828037654680\",\"EulerAccountAssets\":\"0\",\"CanBorrow\":true},{\"Cash\":\"5674807873177\",\"Debt\":\"0\",\"MaxDeposit\":\"18864221709050\",\"MaxWithdraw\":\"45000000000000\",\"TotalBorrows\":\"25460970417772\",\"EulerAccountAssets\":\"21967163791256\",\"CanBorrow\":false}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
+	poolStr := `{"address":"0x98e48d708f52d29f0f09be157f597d062747e8a8","exchange":"uniswap-v4-euler","type":"euler-swap","timestamp":1752145833,"reserves":["10392721374273","52156542521336"],"tokens":[{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"p\":1,\"v\":[{\"c\":\"17271279289973\",\"d\":\"19814269629134\",\"mD\":\"22900683055346\",\"mW\":\"67500000000000\",\"tB\":\"34828037654680\",\"eAA\":\"0\"},{\"c\":\"5674807873177\",\"d\":\"0\",\"mD\":\"18864221709050\",\"mW\":\"45000000000000\",\"tB\":\"25460970417772\",\"eAA\":\"21967163791256\"}]}","staticExtra":"{\"v0\":\"0x797DD80692c3b2dAdabCe8e30C07fDE5307D48a9\",\"v1\":\"0x313603FA690301b0CaeEf8069c065862f9162162\",\"ea\":\"0x0Afbf798467F9b3b97F90d05bF7df592D89A6cF6\",\"f\":\"5000000000000\",\"pf\":\"0\",\"er0\":\"32380768989027\",\"er1\":\"30176535964462\",\"px\":\"1000000\",\"py\":\"1000387\",\"cx\":\"999990000000000000\",\"cy\":\"999999000000000000\",\"pfr\":\"0x0000000000000000000000000000000000000000\",\"evc\":\"0x0C9a3dd6b8F28529d72d7f9cE918D493519EE383\"}","blockNumber":22888393}`
 
 	var pool entity.Pool
 	err := json.Unmarshal([]byte(poolStr), &pool)
@@ -233,17 +187,6 @@ func TestSwapEdgeCases(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			poolSim, err := NewPoolSimulator(pool)
 			require.Nil(t, err)
-
-			// adhocs due to changing data structure
-			// for i := range poolSim.vaults {
-			// 	poolSim.vaults[i].LTV = uint256.NewInt(0)
-			// 	poolSim.vaults[i].AssetPrice = uint256.NewInt(0)
-			// 	poolSim.vaults[i].SharePrice = uint256.NewInt(0)
-			// 	poolSim.vaults[i].TotalAssets = uint256.NewInt(0)
-			// 	poolSim.vaults[i].TotalSupply = uint256.NewInt(0)
-			// }
-			// poolSim.liabilityValue = uint256.NewInt(0)
-			// poolSim.collateralValue = uint256.NewInt(0)
 
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{

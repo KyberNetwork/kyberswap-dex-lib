@@ -1,6 +1,7 @@
 package eulerswap
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -245,27 +246,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 		if v == nil {
 			return nil
 		}
-
 		clonedVault := *v
-		if v.Cash != nil {
-			clonedVault.Cash = v.Cash.Clone()
-		}
-		if v.Debt != nil {
-			clonedVault.Debt = v.Debt.Clone()
-		}
-		if v.MaxDeposit != nil {
-			clonedVault.MaxDeposit = v.MaxDeposit.Clone()
-		}
-		if v.MaxWithdraw != nil {
-			clonedVault.MaxWithdraw = v.MaxWithdraw.Clone()
-		}
-		if v.TotalBorrows != nil {
-			clonedVault.TotalBorrows = v.TotalBorrows.Clone()
-		}
-		if v.EulerAccountAssets != nil {
-			clonedVault.EulerAccountAssets = v.EulerAccountAssets.Clone()
-		}
-
 		return &clonedVault
 	}))
 	return &cloned
@@ -304,7 +285,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.Vaults[2] = p.Vaults[swapInfo.debtVaultIdx]
 		p.ControllerVault = lo.Ternary(swapInfo.debtVaultIdx == 0, p.Vault0, p.Vault1)
 	}
-	p.Vaults[2].Debt.Set(swapInfo.debt)
+	p.Vaults[2].Debt = swapInfo.debt
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
@@ -338,10 +319,12 @@ func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOn
 
 	if isExactIn {
 		if amountWithFee.Gt(inLimit) || quote.Gt(outLimit) {
+			fmt.Println("amountWithFee:", amountWithFee, "inLimit:", inLimit, "quote:", quote, "outLimit:", outLimit)
 			return nil, ErrSwapLimitExceeded
 		}
 	} else {
 		if amountWithFee.Gt(outLimit) || quote.Gt(inLimit) {
+			fmt.Println("amountWithFee:", amountWithFee, "outLimit:", outLimit, "quote:", quote, "inLimit:", inLimit)
 			return nil, ErrSwapLimitExceeded
 		}
 		quote.Mul(quote, big256.BONE)
