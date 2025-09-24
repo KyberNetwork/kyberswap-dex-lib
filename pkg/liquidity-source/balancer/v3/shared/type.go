@@ -15,6 +15,7 @@ type StaticExtra struct {
 
 type Extra struct {
 	HooksConfig                `json:"hook"`
+	ChainID                    int            `json:"chain,omitempty"`
 	StaticSwapFeePercentage    *uint256.Int   `json:"fee,omitempty"`
 	AggregateSwapFeePercentage *uint256.Int   `json:"aggrFee,omitempty"`
 	BalancesLiveScaled18       []*uint256.Int `json:"balsE18,omitempty"`
@@ -84,9 +85,10 @@ type SwapInfo struct {
 }
 
 type PoolMetaInfo struct {
-	BufferTokenIn  string `json:"buffIn,omitempty"`
-	BufferTokenOut string `json:"buffOut,omitempty"`
-	BufferSwap     string `json:"buffSwap,omitempty"`
+	BufferTokenIn   string `json:"buffIn,omitempty"`
+	BufferTokenOut  string `json:"buffOut,omitempty"`
+	BufferSwap      string `json:"buffSwap,omitempty"`
+	ApprovalAddress string `json:"approvalAddress,omitempty"`
 }
 
 type AggregateFeePercentageRPC struct {
