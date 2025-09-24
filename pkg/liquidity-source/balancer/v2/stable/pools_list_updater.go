@@ -3,12 +3,12 @@ package stable
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -103,7 +103,7 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 	}
 
 	for idx, addr := range vaultAddresses {
-		vaults[idx] = strings.ToLower(addr.Hex())
+		vaults[idx] = hexutil.Encode(addr[:])
 	}
 
 	return vaults, nil

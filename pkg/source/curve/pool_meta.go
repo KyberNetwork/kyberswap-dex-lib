@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -99,8 +100,8 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolMetaStaticExtra{
-			LpToken:          strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
-			BasePool:         strings.ToLower(basePools[i].Hex()),
+			LpToken:          hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
+			BasePool:         hexutil.Encode(basePools[i][:]),
 			RateMultiplier:   new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(36), decimals[i][0]), nil).String(),
 			APrecision:       aPrecisions[i].String(),
 			UnderlyingTokens: extractNonZeroAddressesToStrings(underlyingCoins[i]),
@@ -126,7 +127,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypeMeta,
 			Timestamp:   time.Now().Unix(),

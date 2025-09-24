@@ -3,12 +3,12 @@ package fulcrom
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VaultReader struct {
@@ -107,7 +107,7 @@ func (r *VaultReader) readWhitelistedTokens(
 
 	tokens := make([]string, tokensLen)
 	for i := range whitelistedTokens {
-		tokens[i] = strings.ToLower(whitelistedTokens[i].String())
+		tokens[i] = hexutil.Encode(whitelistedTokens[i][:])
 	}
 
 	vault.WhitelistedTokens = tokens

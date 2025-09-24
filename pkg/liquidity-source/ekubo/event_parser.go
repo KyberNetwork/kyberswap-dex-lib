@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
@@ -28,8 +28,8 @@ var _ = pooldecode.RegisterFactoryC(DexType, NewEventParser)
 
 func NewEventParser(config *Config) *EventParser {
 	return &EventParser{
-		Core:  strings.ToLower(config.Core.String()),
-		Twamm: strings.ToLower(config.Twamm.String()),
+		Core:  hexutil.Encode(config.Core[:]),
+		Twamm: hexutil.Encode(config.Twamm[:]),
 	}
 }
 
@@ -49,7 +49,7 @@ func (e *EventParser) Decode(_ context.Context, logs []types.Log) (map[string][]
 }
 
 func (e *EventParser) getPoolAddress(log types.Log) (string, error) {
-	logAddress := strings.ToLower(log.Address.String())
+	logAddress := hexutil.Encode(log.Address[:])
 
 	switch logAddress {
 	case e.Core:

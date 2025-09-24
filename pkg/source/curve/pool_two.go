@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
@@ -60,7 +61,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolTwoStaticExtra{
-			LpToken: strings.ToLower(lpTokens[i].Hex()),
+			LpToken: hexutil.Encode(lpTokens[i][:]),
 		}
 		for j := range coins[i] {
 			coinAddress := convertToEtherAddress(coins[i][j].Hex(), d.config.ChainID)
@@ -82,7 +83,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypeTwo,
 			Timestamp:   time.Now().Unix(),

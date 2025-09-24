@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -131,7 +132,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	for i, poolAddress := range poolAddresses {
 		var (
-			p                = strings.ToLower(poolAddress.Hex())
+			p                = hexutil.Encode(poolAddress[:])
 			nativeTokenIndex = unknownInt
 
 			poolTokens   = []*entity.PoolToken{}

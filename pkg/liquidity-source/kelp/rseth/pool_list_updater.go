@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	gethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
@@ -179,7 +180,7 @@ func getExtra(
 			Params: []interface{}{asset},
 		}, []interface{}{&priceByAsset[i]})
 
-		assetAddress := strings.ToLower(asset.String())
+		assetAddress := hexutil.Encode(asset[:])
 		if assetAddress == common.ETH {
 			assetAddress = common.WETH
 		}
@@ -210,7 +211,7 @@ func getExtra(
 		supportedTokens: make([]*entity.PoolToken, len(assets)),
 	}
 	for i, asset := range assets {
-		assetAddress := strings.ToLower(asset.String())
+		assetAddress := hexutil.Encode(asset[:])
 		if assetAddress == common.ETH {
 			assetAddress = common.WETH
 		}

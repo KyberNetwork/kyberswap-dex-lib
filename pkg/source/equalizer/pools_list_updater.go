@@ -3,12 +3,12 @@ package equalizer
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -145,9 +145,9 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 	}
 
 	for i, pAddr := range poolAddresses {
-		poolAddress := strings.ToLower(pAddr.Hex())
-		token0Address := strings.ToLower(poolMetadata[i].T0.Hex())
-		token1Address := strings.ToLower(poolMetadata[i].T1.Hex())
+		poolAddress := hexutil.Encode(pAddr[:])
+		token0Address := hexutil.Encode(poolMetadata[i].T0[:])
+		token1Address := hexutil.Encode(poolMetadata[i].T1[:])
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,

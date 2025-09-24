@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -228,7 +228,7 @@ func (u *PoolsListUpdater) initPools(
 		}
 
 		newPool := entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: blockNumber.Uint64(),
@@ -236,11 +236,11 @@ func (u *PoolsListUpdater) initPools(
 			Reserves:    []string{metadataList[i].R0.String(), metadataList[i].R1.String()},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(metadataList[i].T0.String()),
+					Address:   hexutil.Encode(metadataList[i].T0[:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(metadataList[i].T1.String()),
+					Address:   hexutil.Encode(metadataList[i].T1[:]),
 					Swappable: true,
 				},
 			},

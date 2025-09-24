@@ -56,7 +56,7 @@ func (p *EventParser) Decode(ctx context.Context, logs []types.Log) (map[string]
 			if len(log.Topics) < 2 {
 				break
 			}
-			p := strings.ToLower(common.HexToAddress(hexutil.Encode(log.Topics[1][:])).Hex())
+			p := hexutil.Encode(log.Topics[1][common.HashLength-common.AddressLength:])
 			addressLogs[p] = append(addressLogs[p], log)
 		}
 	}

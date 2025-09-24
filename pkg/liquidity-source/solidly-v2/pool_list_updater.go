@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -260,7 +260,7 @@ func (u *PoolsListUpdater) listStandardPools(
 		}
 
 		newPool := entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: resp.BlockNumber.Uint64(),
@@ -268,11 +268,11 @@ func (u *PoolsListUpdater) listStandardPools(
 			Reserves:    []string{poolMetadataList[i].R0.String(), poolMetadataList[i].R1.String()},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(poolMetadataList[i].T0.String()),
+					Address:   hexutil.Encode(poolMetadataList[i].T0[:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(poolMetadataList[i].T1.String()),
+					Address:   hexutil.Encode(poolMetadataList[i].T1[:]),
 					Swappable: true,
 				},
 			},
@@ -330,7 +330,7 @@ func (u *PoolsListUpdater) listMemecorePools(
 		}
 
 		newPool := entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: resp.BlockNumber.Uint64(),
@@ -338,11 +338,11 @@ func (u *PoolsListUpdater) listMemecorePools(
 			Reserves:    []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(token0List[i].Hex()),
+					Address:   hexutil.Encode(token0List[i][:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(token1List[i].Hex()),
+					Address:   hexutil.Encode(token1List[i][:]),
 					Swappable: true,
 				},
 			},
@@ -427,7 +427,7 @@ func (u *PoolsListUpdater) listShadowLegacyPools(
 		}
 
 		newPool := entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: resp.BlockNumber.Uint64(),
@@ -435,11 +435,11 @@ func (u *PoolsListUpdater) listShadowLegacyPools(
 			Reserves:    []string{poolMetadataList[i].R0.String(), poolMetadataList[i].R1.String()},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(poolMetadataList[i].T0.String()),
+					Address:   hexutil.Encode(poolMetadataList[i].T0[:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(poolMetadataList[i].T1.String()),
+					Address:   hexutil.Encode(poolMetadataList[i].T1[:]),
 					Swappable: true,
 				},
 			},

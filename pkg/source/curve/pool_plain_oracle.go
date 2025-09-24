@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
@@ -94,13 +95,13 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolPlainOracleStaticExtra{
-			LpToken:    strings.ToLower(lpAddresses[i].Hex()),
+			LpToken:    hexutil.Encode(lpAddresses[i][:]),
 			APrecision: aPrecisions[i].String(),
 			Oracle:     plainOracles[i].Hex(),
 		}
 		// The curve-base found inside the metaFactory has the lpToken equals its own pool Address and has the totalSupply method.
 		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
-			staticExtra.LpToken = strings.ToLower(poolAndRegistries[i].PoolAddress.Hex())
+			staticExtra.LpToken = hexutil.Encode(poolAndRegistries[i].PoolAddress[:])
 		}
 		for j := range coins[i] {
 			coinAddress := convertToEtherAddress(coins[i][j].Hex(), d.config.ChainID)
@@ -124,7 +125,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypePlainOracle,
 			Timestamp:   time.Now().Unix(),

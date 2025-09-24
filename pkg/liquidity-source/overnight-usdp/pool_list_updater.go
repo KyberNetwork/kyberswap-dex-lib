@@ -3,12 +3,12 @@ package overnightusdp
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -83,11 +83,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(usdcAddress.Hex()),
+					Address:   hexutil.Encode(usdcAddress[:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(usdPlusAddress.Hex()),
+					Address:   hexutil.Encode(usdPlusAddress[:]),
 					Swappable: true,
 				},
 			},
