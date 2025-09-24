@@ -2,12 +2,12 @@ package syncswapv2classic
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
@@ -69,9 +69,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
 	for i := 0; i < len(poolAddresses); i++ {
-		poolAddress := strings.ToLower(poolAddresses[i].Hex())
-		token0Address := strings.ToLower(assets[i][0].Hex())
-		token1Address := strings.ToLower(assets[i][1].Hex())
+		poolAddress := hexutil.Encode(poolAddresses[i][:])
+		token0Address := hexutil.Encode(assets[i][0][:])
+		token1Address := hexutil.Encode(assets[i][1][:])
 
 		if int(poolTypes[i]) != poolTypeSyncSwapV2ClassicInContract {
 			continue

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -101,7 +102,7 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 		ABI:    registryABI,
 		Target: p.config.RegistryAddress,
 		Method: registryMethodGetPools,
-	}, []interface{}{&addresses})
+	}, []any{&addresses})
 
 	if _, err := req.Call(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -132,8 +133,8 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			ABI:    lensABI,
 			Target: p.config.LensAddress,
 			Method: lensMethodQueryPool,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&poolData[i]})
+			Params: []any{poolAddress},
+		}, []any{&poolData[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
@@ -150,7 +151,7 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 	}
 
 	for i, poolAddress := range poolAddreses {
-		poolAddr := strings.ToLower(poolAddress.Hex())
+		poolAddr := hexutil.Encode(poolAddress[:])
 		poolDat := newPoolData(poolData[i])
 
 		extra := Extra{

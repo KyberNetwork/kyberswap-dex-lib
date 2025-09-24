@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -85,7 +85,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = make(entity.PoolReserves, 0, len(p.Tokens))
 
 			staticExtra = PoolStaticExtra{
-				LpToken: strings.ToLower(swapStorage.LpToken.Hex()),
+				LpToken: hexutil.Encode(swapStorage.LpToken[:]),
 			}
 		)
 

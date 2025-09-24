@@ -3,12 +3,12 @@ package aavev3
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -208,8 +208,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, reserves []common.Addr
 	pools := make([]entity.Pool, 0, len(reserves))
 
 	for i, reserve := range reserves {
-		assetTokenAddr := strings.ToLower(reserve.Hex())
-		aTokenAddr := strings.ToLower(aTokens[i].Hex())
+		assetTokenAddr := hexutil.Encode(reserve[:])
+		aTokenAddr := hexutil.Encode(aTokens[i][:])
 
 		aToken := &entity.PoolToken{
 			Address:   aTokenAddr,

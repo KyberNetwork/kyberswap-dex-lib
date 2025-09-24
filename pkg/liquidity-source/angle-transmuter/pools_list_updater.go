@@ -2,12 +2,12 @@ package angletransmuter
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -66,7 +66,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			Timestamp: time.Now().Unix(),
 			Tokens: lo.Map(tokens, func(token common.Address, _ int) *entity.PoolToken {
 				return &entity.PoolToken{
-					Address:   strings.ToLower(token.Hex()),
+					Address:   hexutil.Encode(token[:]),
 					Swappable: true,
 				}
 			}),

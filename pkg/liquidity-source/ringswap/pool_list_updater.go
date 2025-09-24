@@ -3,12 +3,12 @@ package ringswap
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -228,27 +228,27 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		}
 
 		originalToken0 := &entity.PoolToken{
-			Address:   strings.ToLower(originalTokens[token0List[i]].Hex()),
+			Address:   hexutil.Encode(originalTokens[token0List[i]][:]),
 			Swappable: true,
 		}
 
 		originalToken1 := &entity.PoolToken{
-			Address:   strings.ToLower(originalTokens[token1List[i]].Hex()),
+			Address:   hexutil.Encode(originalTokens[token1List[i]][:]),
 			Swappable: true,
 		}
 
 		wrappedToken0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0List[i].Hex()),
+			Address:   hexutil.Encode(token0List[i][:]),
 			Swappable: true,
 		}
 
 		wrappedToken1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1List[i].Hex()),
+			Address:   hexutil.Encode(token1List[i][:]),
 			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(pairAddress.Hex()),
+			Address:     hexutil.Encode(pairAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),

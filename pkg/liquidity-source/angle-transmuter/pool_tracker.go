@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -333,7 +333,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	for i := range collateralList {
-		transmuterState.Collaterals[strings.ToLower(collateralList[i].Hex())] = CollateralState{
+		transmuterState.Collaterals[hexutil.Encode(collateralList[i][:])] = CollateralState{
 			Whitelisted:   isWhitelistedCollateral[i],
 			WhitelistData: collateralWhitelistData[i],
 			Fees: Fees{
@@ -397,7 +397,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 	tokens := lo.Map(collateralList, func(token common.Address, _ int) *entity.PoolToken {
 		return &entity.PoolToken{
-			Address:   strings.ToLower(token.Hex()),
+			Address:   hexutil.Encode(token[:]),
 			Swappable: true,
 		}
 	})

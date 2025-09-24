@@ -3,12 +3,12 @@ package gmxglp
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VaultReader struct {
@@ -127,7 +127,7 @@ func (r *VaultReader) readWhitelistedTokens(
 	currentWhiteListTokens := make([]string, 0, tokensLen)
 	for i := range tokenList {
 		if isWhitelistedTokens[i] {
-			currentWhiteListTokens = append(currentWhiteListTokens, strings.ToLower(tokenList[i].String()))
+			currentWhiteListTokens = append(currentWhiteListTokens, hexutil.Encode(tokenList[i][:]))
 		}
 	}
 

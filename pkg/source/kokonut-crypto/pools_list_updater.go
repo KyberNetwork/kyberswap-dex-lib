@@ -3,12 +3,12 @@ package kokonutcrypto
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -166,14 +166,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = StaticExtra{
-			LpToken: strings.ToLower(lpTokens[i].Hex()),
+			LpToken: hexutil.Encode(lpTokens[i][:]),
 		}
 		for j := range coins[i] {
 			precision := new(big.Int).Exp(big.NewInt(10), new(big.Int).Sub(big.NewInt(18), big.NewInt(int64(decimals[i][j]))), nil)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precision.String())
 			reserves = append(reserves, zeroString)
 			tokens = append(tokens, &entity.PoolToken{
-				Address:   strings.ToLower(coins[i][j].Hex()),
+				Address:   hexutil.Encode(coins[i][j][:]),
 				Decimals:  decimals[i][j],
 				Swappable: true,
 			})
@@ -185,7 +185,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAddresses[i].Hex()),
+			Address:     hexutil.Encode(poolAddresses[i][:]),
 			Exchange:    d.config.DexID,
 			Type:        DexTypeKokonutCrypto,
 			Timestamp:   time.Now().Unix(),

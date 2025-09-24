@@ -3,12 +3,12 @@ package pancakestable
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -180,13 +180,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 		var tokens = make([]*entity.PoolToken, 0, numCoins)
 		for j := range numCoins {
 			tokens = append(tokens, &entity.PoolToken{
-				Address:   strings.ToLower(tokensByPool[i][j].Hex()),
+				Address:   hexutil.Encode(tokensByPool[i][j][:]),
 				Swappable: true,
 			})
 		}
 
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        curve.PoolTypeBase,
 			Timestamp:   time.Now().Unix(),

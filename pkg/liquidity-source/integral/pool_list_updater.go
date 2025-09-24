@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -189,11 +190,11 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			Reserves:  []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(pair.token0.Hex()),
+					Address:   hexutil.Encode(pair.token0[:]),
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(pair.token1.Hex()),
+					Address:   hexutil.Encode(pair.token1[:]),
 					Swappable: true,
 				},
 			},

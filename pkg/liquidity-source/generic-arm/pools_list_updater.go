@@ -2,11 +2,11 @@ package genericarm
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -84,11 +84,11 @@ func (d *PoolsListUpdater) getNewPool(ctx context.Context, armAddr string, armCf
 		Reserves:  []string{poolState.Reserve0.String(), poolState.Reserve1.String()},
 		Tokens: []*entity.PoolToken{
 			{
-				Address:   strings.ToLower(poolState.Token0.Hex()),
+				Address:   hexutil.Encode(poolState.Token0[:]),
 				Swappable: true,
 			},
 			{
-				Address:   strings.ToLower(poolState.Token1.Hex()),
+				Address:   hexutil.Encode(poolState.Token1[:]),
 				Swappable: true,
 			},
 		},

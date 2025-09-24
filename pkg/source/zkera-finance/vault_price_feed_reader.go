@@ -3,12 +3,12 @@ package zkerafinance
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type VaultPriceFeedReader struct {
@@ -77,9 +77,9 @@ func (r *VaultPriceFeedReader) readData(
 		return err
 	}
 
-	vaultPriceFeed.BNB = strings.ToLower(bnb.String())
-	vaultPriceFeed.BTC = strings.ToLower(btc.String())
-	vaultPriceFeed.ETH = strings.ToLower(eth.String())
+	vaultPriceFeed.BNB = hexutil.Encode(bnb[:])
+	vaultPriceFeed.BTC = hexutil.Encode(btc[:])
+	vaultPriceFeed.ETH = hexutil.Encode(eth[:])
 
 	return nil
 }
