@@ -164,6 +164,7 @@ const (
 	ExchangeGyroscope2CLP              = "gyroscope-2clp"
 	ExchangeGyroscope3CLP              = "gyroscope-3clp"
 	ExchangeGyroscopeECLP              = "gyroscope-eclp"
+	ExchangeHanji                      = "hanji"
 	ExchangeHashflowV3                 = "hashflow-v3"
 	ExchangeHoldFun                    = "hold-fun"
 	ExchangeHoney                      = "honey"
@@ -181,6 +182,9 @@ const (
 	ExchangeHyperSwapV3                = "hyperswap-v3"
 	ExchangeHyperpieV2                 = "hyperpie-v2"
 	ExchangeIZiSwap                    = "iziswap"
+	ExchangeIguanaDexStable            = "iguanadex-stable"
+	ExchangeIguanaDexV2                = "iguanadex-v2"
+	ExchangeIguanaDexV3                = "iguanadex-v3"
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
 	ExchangeIntegral                   = "integral"
@@ -622,6 +626,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeGyroscope2CLP:              {},
 	ExchangeGyroscope3CLP:              {},
 	ExchangeGyroscopeECLP:              {},
+	ExchangeHanji:                      {},
 	ExchangeHoldFun:                    {},
 	ExchangeHoney:                      {},
 	ExchangeHoriza:                     {},
@@ -638,6 +643,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHyperSwapV3:                {},
 	ExchangeHyperpieV2:                 {},
 	ExchangeIZiSwap:                    {},
+	ExchangeIguanaDexStable:            {},
+	ExchangeIguanaDexV2:                {},
+	ExchangeIguanaDexV3:                {},
 	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
 	ExchangeIntegral:                   {},
