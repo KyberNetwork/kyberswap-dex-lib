@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -206,12 +207,12 @@ func (u *PoolsListUpdater) initPools(exchanges []ExchangeInfo) ([]entity.Pool, e
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(exchange.TokenAddress.Hex()),
+			Address:   hexutil.Encode(exchange.TokenAddress[:]),
 			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(exchange.ExchangeAddress.Hex()),
+			Address:   hexutil.Encode(exchange.ExchangeAddress[:]),
 			Exchange:  valueobject.ExchangeUniSwapV1,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),

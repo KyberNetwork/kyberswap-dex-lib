@@ -3,12 +3,12 @@ package balancerv1
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -130,7 +130,7 @@ func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData
 	tokens := make([]string, 0, tokensLen)
 	records := make(map[string]Record, tokensLen)
 	for i, token := range tokenAddresses {
-		tokenAddressStr := strings.ToLower(token.String())
+		tokenAddressStr := hexutil.Encode(token[:])
 		balance, _ := uint256.FromBig(balanceList[i])
 		denorm, _ := uint256.FromBig(denormList[i])
 

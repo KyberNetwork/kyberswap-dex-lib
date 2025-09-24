@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -111,7 +112,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		}
 
 		staticExtra := StaticExtra{
-			LpToken:              strings.ToLower(swapStorages[i].LpToken.Hex()),
+			LpToken:              hexutil.Encode(swapStorages[i].LpToken[:]),
 			PrecisionMultipliers: precisionMultipliers,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)

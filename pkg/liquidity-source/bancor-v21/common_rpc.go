@@ -3,12 +3,12 @@ package bancorv21
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -76,9 +76,10 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 	}
 
 	for i, convertibleToken := range convertibleTokens {
-		anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())] = make([]string, len(anchors[i]))
+		convertibleTokenStr := hexutil.Encode(convertibleToken[:])
+		anchorsByConvertibleTokens[convertibleTokenStr] = make([]string, len(anchors[i]))
 		for j, anchor := range anchors[i] {
-			anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())][j] = strings.ToLower(anchor.Hex())
+			anchorsByConvertibleTokens[convertibleTokenStr][j] = hexutil.Encode(anchor[:])
 		}
 	}
 
@@ -152,10 +153,10 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 
 	tokensByAnchors := make(map[string][]string, len(anchors)*2)
 	for i, anchor := range anchors {
-		anchorAddress := strings.ToLower(anchor.Hex())
+		anchorAddress := hexutil.Encode(anchor[:])
 		tokensByAnchors[anchorAddress] = make([]string, len(tokens[i]))
 		for tokenIndex, token := range tokens[i] {
-			tokensByAnchors[anchorAddress][tokenIndex] = strings.ToLower(token.Hex())
+			tokensByAnchors[anchorAddress][tokenIndex] = hexutil.Encode(token[:])
 		}
 	}
 
@@ -165,18 +166,18 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 		entityTokens := make([]*entity.PoolToken, len(tokens[i]))
 		for tokenIndex := 0; tokenIndex < len(tokens[i]); tokenIndex++ {
 			entityTokens[tokenIndex] = &entity.PoolToken{
-				Address:   strings.ToLower(tokens[i][tokenIndex].Hex()),
+				Address:   hexutil.Encode(tokens[i][tokenIndex][:]),
 				Swappable: true,
 			}
 		}
 
-		extra, err := newExtraInner(strings.ToLower(anchors[i].Hex()))
+		extra, err := newExtraInner(hexutil.Encode(anchors[i][:]))
 		if err != nil {
 			return nil, nil, err
 		}
 
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(pairAddress.Hex()),
+			Address:   hexutil.Encode(pairAddress[:]),
 			Exchange:  DexTypeBancorV21InnerPool,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),

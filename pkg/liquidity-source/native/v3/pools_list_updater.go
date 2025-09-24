@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -259,8 +260,8 @@ func (d *PoolsListUpdater) FetchStaticData(
 			result[poolAddress] = StaticData{
 				TickSpacing: tickSpacings[j].Uint64(),
 				UnderlyingTokens: []string{
-					strings.ToLower(underlyingTokens0[j].Hex()),
-					strings.ToLower(underlyingTokens1[j].Hex()),
+					hexutil.Encode(underlyingTokens0[j][:]),
+					hexutil.Encode(underlyingTokens1[j][:]),
 				},
 			}
 		}

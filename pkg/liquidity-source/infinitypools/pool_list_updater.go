@@ -3,15 +3,16 @@ package infinitypools
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 type Config struct {
@@ -136,8 +137,8 @@ func (u *PoolListUpdater) getPoolEntity(ctx context.Context, poolAddress string)
 		Timestamp: time.Now().Unix(),
 		Reserves:  entity.PoolReserves{balanceToken0.String(), balanceToken1.String()},
 		Tokens: []*entity.PoolToken{
-			{Address: strings.ToLower(token0.String()), Swappable: true},
-			{Address: strings.ToLower(token1.String()), Swappable: true},
+			{Address: hexutil.Encode(token0[:]), Swappable: true},
+			{Address: hexutil.Encode(token1[:]), Swappable: true},
 		},
 	}, nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -159,13 +160,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, markets []common.Addre
 	pools := make([]entity.Pool, 0, len(markets))
 
 	for i, market := range markets {
-		cTokenAddr := strings.ToLower(market.Hex())
+		cTokenAddr := hexutil.Encode(market[:])
 
 		var underlyingTokenAddr string
 		if underlyingTokens[i] == (common.Address{}) {
 			underlyingTokenAddr = strings.ToLower(valueobject.WrappedNativeMap[u.config.ChainID])
 		} else {
-			underlyingTokenAddr = strings.ToLower(underlyingTokens[i].Hex())
+			underlyingTokenAddr = hexutil.Encode(underlyingTokens[i][:])
 		}
 
 		cToken := &entity.PoolToken{

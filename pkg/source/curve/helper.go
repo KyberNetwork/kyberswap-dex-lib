@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
@@ -83,7 +84,7 @@ func extractNonZeroAddressesToStrings(addresses [8]common.Address) []string {
 		if strings.EqualFold(address.Hex(), addressZero) {
 			break
 		}
-		s = append(s, strings.ToLower(address.Hex()))
+		s = append(s, hexutil.Encode(address[:]))
 	}
 	return s
 }

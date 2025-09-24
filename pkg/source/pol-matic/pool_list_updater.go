@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -154,8 +155,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		{
 			Address: strings.ToLower(u.config.PolygonMigrationAddress),
 			Tokens: []*entity.PoolToken{
-				{Address: strings.ToLower(matic.String()), Decimals: maticDecimals, Swappable: true},
-				{Address: strings.ToLower(polygon.String()), Decimals: polygonDecimals, Swappable: true},
+				{Address: hexutil.Encode(matic[:]), Decimals: maticDecimals, Swappable: true},
+				{Address: hexutil.Encode(polygon[:]), Decimals: polygonDecimals, Swappable: true},
 			},
 			Reserves:  []string{"0", "0"},
 			Exchange:  u.config.DexID,

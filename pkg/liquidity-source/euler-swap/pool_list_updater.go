@@ -3,12 +3,12 @@ package eulerswap
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -189,17 +189,17 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 		}
 
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][0].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][0][:]),
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][1].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][1][:]),
 			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),

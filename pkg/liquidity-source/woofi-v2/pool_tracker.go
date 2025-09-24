@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -253,7 +253,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		QuoteToken: strings.ToLower(quoteToken.Hex()),
+		QuoteToken: hexutil.Encode(quoteToken[:]),
 		TokenInfos: extraTokenInfos,
 		Wooracle: Wooracle{
 			Address:       wooracle.Hex(),
