@@ -3,6 +3,7 @@ package midas
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -82,14 +83,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		err        error
 	)
 	if staticExtra.IsDv {
-		vaultState, err = t.getDvState(ctx, vault, mToken, token, currentDayNumber)
+		vaultState, err = t.getDvState(ctx, p.Address, vault, mToken, token, currentDayNumber)
 	} else {
 		rvCfg, ok := rvConfigs[vault]
 		if !ok {
 			lg.Errorf("failed to find redemption vault config")
 			return p, nil
 		}
-		vaultState, err = t.getRvState(ctx, rvCfg, token, currentDayNumber)
+		vaultState, err = t.getRvState(ctx, p.Address, rvCfg, token, currentDayNumber)
 	}
 	if err != nil {
 		return p, nil
@@ -112,10 +113,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 }
 
 func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault, token string, vaultState *VaultStateRpcResult,
-	isDepositVault bool, currentDayNumber int64) *ethrpc.Request {
+	isDv bool, currentDayNumber int64) *ethrpc.Request {
 
-	vaultAbi := lo.Ternary(isDepositVault, DepositVaultABI, RedemptionVaultABI)
-	fnSelector := lo.Ternary(isDepositVault, depositInstantSelector, redeemInstantSelector)
+	vaultAbi := lo.Ternary(isDv, DepositVaultABI, RedemptionVaultABI)
+	fnSelector := lo.Ternary(isDv, depositInstantSelector, redeemInstantSelector)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
@@ -166,8 +167,13 @@ func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault, token string, v
 	return req
 }
 
-func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken, token string,
+func (t *PoolTracker) getDvState(ctx context.Context, poolAddress, vault, mToken, token string,
 	currentDayNumber int64) (*VaultStateRpcResult, error) {
+	lg := logger.WithFields(logger.Fields{
+		"pool": poolAddress,
+		"dv":   vault,
+	})
+
 	var vaultStateResult VaultStateRpcResult
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req = t.initVaultCalls(req, vault, token, &vaultStateResult, true, currentDayNumber)
@@ -192,7 +198,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken, token strin
 
 	resp, err := req.TryAggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate dv state, mToken %v, vault %v", mToken, vault)
 		return nil, err
@@ -214,17 +220,22 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken, token strin
 			Method: dataFeedGetDataInBase18Method,
 		}, []any{&vaultStateResult.MTokenRate}).
 		Aggregate(); err != nil {
-		logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to aggregate data feed calls")
+		}).Errorf("failed to aggregate dv data feed calls")
 		return nil, err
 	}
 
 	return &vaultStateResult, nil
 }
 
-func (t *PoolTracker) getRvState(ctx context.Context, vaultCfg rvConfig, token string,
+func (t *PoolTracker) getRvState(ctx context.Context, poolAddress string, vaultCfg rvConfig, token string,
 	currentDayNumber int64) (*VaultStateRpcResult, error) {
+	lg := logger.WithFields(logger.Fields{
+		"pool": poolAddress,
+		"rv":   vaultCfg.Address,
+	})
+
 	var vaultStateResult VaultStateRpcResult
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
 	req = t.initVaultCalls(req, vaultCfg.Address, token, &vaultStateResult, true, currentDayNumber)
@@ -288,10 +299,16 @@ func (t *PoolTracker) getRvState(ctx context.Context, vaultCfg rvConfig, token s
 
 	resp, err := req.Aggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate rv state, type %v, vault %v", vaultCfg.RvType, vaultCfg.Address)
 		return nil, err
+	}
+
+	if !lo.SomeBy(vaultStateResult.PaymentTokens, func(pToken common.Address) bool {
+		return strings.EqualFold(pToken.String(), token)
+	}) {
+		return nil, fmt.Errorf("vault cannot redeem token %v", token)
 	}
 
 	if _, err = t.ethrpcClient.
@@ -310,17 +327,18 @@ func (t *PoolTracker) getRvState(ctx context.Context, vaultCfg rvConfig, token s
 			Method: dataFeedGetDataInBase18Method,
 		}, []any{&vaultStateResult.MTokenRate}).
 		Aggregate(); err != nil {
-		logger.WithFields(logger.Fields{
+		lg.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to aggregate data feed calls")
+		}).Errorf("failed to aggregate rv data feed calls, token %v, %v %v", token, vaultStateResult.TokenConfig.DataFeed.String(), vaultStateResult.MTokenDataFeed.String())
+
 		return nil, err
 	}
 
 	if vaultCfg.RvType == redemptionVaultSwapper {
-		vaultStateResult.MTbillRedemptionVault, err = t.getRvState(ctx, rvConfigs[vaultCfg.MTbillRedemptionVault],
+		vaultStateResult.MTbillRedemptionVault, err = t.getRvState(ctx, poolAddress, rvConfigs[vaultCfg.MTbillRedemptionVault],
 			token, currentDayNumber)
 		if err != nil {
-			logger.WithFields(logger.Fields{
+			lg.WithFields(logger.Fields{
 				"error": err,
 			}).Warnf("failed to aggregate mTbillRedemptionVault for rv swapper")
 		}

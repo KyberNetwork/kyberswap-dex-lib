@@ -108,7 +108,7 @@ func (v *RedemptionVaultSwapper) swapMToken1ToMToken2(mToken1Amount *uint256.Int
 func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo) {
 	if !v.tokenBalance.Lt(swapInfo.amountOut) {
 		v.RedemptionVault.UpdateState(swapInfo)
-	} else {
+	} else if v.mTbillRedemptionVault != nil {
 		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
 
 		v.mToken1Balance = new(uint256.Int).Add(v.mToken1Balance, swapInfo.mToken1AmountInBase18)

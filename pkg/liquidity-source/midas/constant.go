@@ -61,6 +61,7 @@ var (
 	ErrInvalidToken                 = errors.New("invalid token")
 	ErrInvalidAmount                = errors.New("invalid amount")
 	ErrInvalidSwap                  = errors.New("invalid swap")
+	ErrZeroSwap                     = errors.New("zero swap")
 	ErrTokenRemoved                 = errors.New("MV: token not exists")
 	ErrMVExceedAllowance            = errors.New("MV: exceed allowance")
 	ErrMVExceedLimit                = errors.New("MV: exceed limit")
