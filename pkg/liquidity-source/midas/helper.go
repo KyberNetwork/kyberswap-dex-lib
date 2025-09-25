@@ -47,6 +47,10 @@ func init() {
 }
 
 func newVault(vaultState *VaultState, vaultType VaultType, mTokenDecimals, tokenDecimals uint8) (IDepositVault, IRedemptionVault, error) {
+	if vaultState == nil {
+		return nil, nil, nil
+	}
+
 	switch vaultType {
 	case depositVault:
 		return NewDepositVault(vaultState, mTokenDecimals, tokenDecimals), nil, nil

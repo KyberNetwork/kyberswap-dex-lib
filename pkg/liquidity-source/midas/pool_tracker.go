@@ -322,8 +322,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, vaultCfg rvConfig, token s
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
-			}).Errorf("failed to aggregate mTbillRedemptionVault for rv swapper")
-			return nil, err
+			}).Warnf("failed to aggregate mTbillRedemptionVault for rv swapper")
 		}
 	}
 

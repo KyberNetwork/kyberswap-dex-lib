@@ -58,6 +58,10 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 	amountTokenOutWithoutFee = convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals)
 
 	if v.tokenBalance.Lt(amountTokenOutWithoutFee) {
+		if v.mTbillRedemptionVault == nil {
+			return nil, ErrInvalidSwap
+		}
+
 		mTbillAmountInBase18, err := v.swapMToken1ToMToken2(amountMTokenWithoutFee)
 		if err != nil {
 			return nil, err

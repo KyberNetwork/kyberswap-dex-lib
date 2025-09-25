@@ -25,6 +25,10 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int, _ string) (
 		return nil, err
 	}
 
+	if amountMTokenWithoutFee.Sign() == 0 {
+		return nil, ErrInvalidSwap
+	}
+
 	if err = v.checkLimits(amountMTokenIn); err != nil {
 		return nil, err
 	}
