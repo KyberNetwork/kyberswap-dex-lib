@@ -105,10 +105,8 @@
     "token": "0xA01227A26A7710bc75071286539E47AdB6DEa417",
     "depositVaultType": "depositVault",
     "depositVault": "0x5AD2e3d65f8eCDc36eeba38BAE3Cc6Ff258D2dfa",
-    "redemptionVaultType": "redemptionVaultSwapper",
-    "redemptionVault": "0xFaAE52c6A6d477f859a740a76B29c33559ace18c",
-    "liquidityProvider": "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
-    "mTbillRedemptionVault": "0x97ACDFb3956403c4c6BbE837DC611e3a6bA1b3a7"
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xFaAE52c6A6d477f859a740a76B29c33559ace18c"
   },
   "tETH": {
     "token": "0xa1150cd4A014e06F5E0A6ec9453fE0208dA5adAb",
