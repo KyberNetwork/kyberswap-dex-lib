@@ -19,19 +19,20 @@ type rvConfig struct {
 	SuperstateToken string
 }
 
-var rvConfigs map[string]rvConfig
+var rvConfigs map[string]map[string]rvConfig
 
 func init() {
-	rvConfigs = make(map[string]rvConfig)
-	for _, byteData := range bytesByPath {
+	rvConfigs = make(map[string]map[string]rvConfig)
+	for path, byteData := range bytesByPath {
 		var mTokenConfigs map[string]MTokenConfig
 		if err := json.Unmarshal(byteData, &mTokenConfigs); err != nil {
 			panic("failed to unmarshal midas config")
 		}
 
+		rvConfigs[path] = make(map[string]rvConfig)
 		for _, cfg := range mTokenConfigs {
 			address := strings.ToLower(cfg.RedemptionVault)
-			rvConfigs[address] = rvConfig{
+			rvConfigs[path][address] = rvConfig{
 				Address: address,
 				MToken:  strings.ToLower(cfg.MToken),
 				RvType:  cfg.RedemptionVaultType,

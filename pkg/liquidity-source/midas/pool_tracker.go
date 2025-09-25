@@ -2,7 +2,6 @@ package midas
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -27,33 +26,14 @@ type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 
-	redemptionVaultToType map[string]VaultType
+	rvConfigs map[string]rvConfig
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	configByte, ok := bytesByPath[config.ConfigPath]
-	if !ok {
-		return nil, errors.New("misconfigured config path")
-	}
-
-	var mTokenConfigs map[string]MTokenConfig
-	if err := json.Unmarshal(configByte, &mTokenConfigs); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to unmarshal config")
-		return nil, err
-	}
-
-	redemptionVaultToType := make(map[string]VaultType)
-
-	for _, cfg := range mTokenConfigs {
-		redemptionVaultToType[strings.ToLower(cfg.RedemptionVault)] = cfg.RedemptionVaultType
-	}
-
 	return &PoolTracker{
-		config:                config,
-		ethrpcClient:          ethrpcClient,
-		redemptionVaultToType: redemptionVaultToType,
+		config:       config,
+		ethrpcClient: ethrpcClient,
+		rvConfigs:    rvConfigs[config.ConfigPath],
 	}, nil
 }
 
@@ -85,7 +65,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	if staticExtra.IsDv {
 		vaultState, err = t.getDvState(ctx, p.Address, vault, mToken, token, currentDayNumber)
 	} else {
-		rvCfg, ok := rvConfigs[vault]
+		rvCfg, ok := t.rvConfigs[vault]
 		if !ok {
 			lg.Errorf("failed to find redemption vault config")
 			return p, nil
@@ -249,7 +229,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, poolAddress string, vaultC
 	switch vaultCfg.RvType {
 	case redemptionVault:
 	case redemptionVaultSwapper:
-		vaultStateResult.SwapperVaultType = rvConfigs[vaultCfg.MTbillRedemptionVault].RvType
+		vaultStateResult.SwapperVaultType = t.rvConfigs[vaultCfg.MTbillRedemptionVault].RvType
 		req.AddCall(&ethrpc.Call{
 			ABI:    abi.Erc20ABI,
 			Target: vaultCfg.MToken,
@@ -257,7 +237,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, poolAddress string, vaultC
 			Params: []any{common.HexToAddress(vaultCfg.LiquidityProvider)},
 		}, []any{&vaultStateResult.MToken1Balance}).AddCall(&ethrpc.Call{
 			ABI:    abi.Erc20ABI,
-			Target: rvConfigs[vaultCfg.MTbillRedemptionVault].MToken,
+			Target: t.rvConfigs[vaultCfg.MTbillRedemptionVault].MToken,
 			Method: abi.Erc20BalanceOfMethod,
 			Params: []any{common.HexToAddress(vaultCfg.LiquidityProvider)},
 		}, []any{&vaultStateResult.MToken2Balance})
@@ -335,7 +315,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, poolAddress string, vaultC
 	}
 
 	if vaultCfg.RvType == redemptionVaultSwapper {
-		vaultStateResult.MTbillRedemptionVault, err = t.getRvState(ctx, poolAddress, rvConfigs[vaultCfg.MTbillRedemptionVault],
+		vaultStateResult.MTbillRedemptionVault, err = t.getRvState(ctx, poolAddress, t.rvConfigs[vaultCfg.MTbillRedemptionVault],
 			token, currentDayNumber)
 		if err != nil {
 			lg.WithFields(logger.Fields{
