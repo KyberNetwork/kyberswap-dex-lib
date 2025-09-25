@@ -1,0 +1,50 @@
+{
+  "mTBILL": {
+    "token": "0xDD629E5241CbC5919847783e6C96B2De4754e438",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xd65BFeB71271A4408ff335E59eCf6c5b21A33a70",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x7f938d26b6179A96870afaECfB0578110E53A3b2"
+  },
+  "mBASIS": {
+    "token": "0x2247B5A46BB79421a314aB0f0b67fFd11dd37Ee4",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x75C32818ce59D913f9E2aeDEcd5697566Ff9aE4A",
+    "redemptionVaultType": "redemptionVaultSwapper",
+    "redemptionVault": "0x02e58De067a0c63B3656D7e1DF9ECBCbc9E5ffC6",
+    "liquidityProvider": "0x0461bD693caE49bE9d030E5c212e080F9c78B846",
+    "mTbillRedemptionVault": "0xE14Dbe39D750e24729df95e5F7c93b0E37C65004"
+  },
+  "mMEV": {
+    "token": "0x5542F82389b76C23f5848268893234d8A63fd5c8",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x577617613C4FaC5A7561F8f3F2Cb128A560774Bc",
+    "redemptionVaultType": "redemptionVaultSwapper",
+    "redemptionVault": "0x403a92A980903707FD8A3A1101f48Eb3ebd58166",
+    "liquidityProvider": "0x0461bD693caE49bE9d030E5c212e080F9c78B846",
+    "mTbillRedemptionVault": "0xE14Dbe39D750e24729df95e5F7c93b0E37C65004"
+  },
+  "mRE7": {
+    "token": "0x733d504435a49FC8C4e9759e756C2846c92f0160",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xBEf85e71EcD0517D0C1446751667891b04860753",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xb24056AE566e24E35De798880E2dC28e2130De90"
+  },
+  "mSL": {
+    "token": "0x86fc2Be8eE946AFB4c7D8a9Cc8b95E175D8a74A0",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x80D8226fE5D67803AB2D9d56EE184f7C6C6692e5",
+    "redemptionVaultType": "redemptionVaultSwapper",
+    "redemptionVault": "0x9645e020e7E3eD2400739702efDaa50F52C22aBa",
+    "liquidityProvider": "0x0461bD693caE49bE9d030E5c212e080F9c78B846",
+    "mTbillRedemptionVault": "0xE14Dbe39D750e24729df95e5F7c93b0E37C65004"
+  },
+  "mLIQUIDITY": {
+    "token": "0xBFB153B24f43A6DE976dfB18b247c96FA777db39",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x70449bbB9e6bee4D1a53151940148F21026d50b9",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xE14Dbe39D750e24729df95e5F7c93b0E37C65004"
+  }
+}

@@ -19,9 +19,21 @@ var redemptionBytes []byte
 //go:embed abi/RedemptionVaultWithUstb.json
 var redemptionVaultWithUstbBytes []byte
 
+//go:embed network/base.json
+var baseConfig []byte
+
 //go:embed network/ethereum.json
 var ethereumConfig []byte
 
+//go:embed network/hyperevm.json
+var hyperevmConfig []byte
+
+//go:embed network/etherlink.json
+var etherlinkConfig []byte
+
 var bytesByPath = map[string][]byte{
-	"network/ethereum.json": ethereumConfig,
+	"network/base.json":      baseConfig,
+	"network/ethereum.json":  ethereumConfig,
+	"network/hyperevm.json":  hyperevmConfig,
+	"network/etherlink.json": etherlinkConfig,
 }

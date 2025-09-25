@@ -1,0 +1,88 @@
+{
+  "hbUSDT": {
+    "token": "0x5e105266db42f78FA814322Bce7f388B4C2e61eb",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xbE8A4f1a312b94A712F8E5367B02ae6E378E6F19",
+    "redemptionVaultType": "redemptionVaultSwapper",
+    "redemptionVault": "0xC898a5cbDb81F260bd5306D9F9B9A893D0FdF042",
+    "liquidityProvider": "0x77930A9cd3Db2A9e49f730Db8743bece140260C9",
+    "mTbillRedemptionVault": "0x77930A9cd3Db2A9e49f730Db8743bece140260C9"
+  },
+  "hbXAUt": {
+    "token": "0x6EB6724D8D3D4FF9E24d872E8c38403169dC05f8",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x48fb106Ef0c0C1a19EdDC9C5d27A945E66DA1C4E",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xD26bB9B45140D17eF14FbD4fCa8Cf0d610ac50E7"
+  },
+  "lstHYPE": {
+    "token": "0x81e064d0eB539de7c3170EDF38C1A42CBd752A76",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x2b158D44eEbb03a025F75B79F1d8B3004Ac97737",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x1eff01e0784ae8d06a17AF29A2300D2A9cdA5440"
+  },
+  "liquidHYPE": {
+    "token": "0x441794D6a8F9A3739F5D4E98a728937b33489D29",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xF538675D292d8b372712f44eaf306Cc66cF6d8DC",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x558806a80b42cAB4ED75c74bfB178EDc9087AA32"
+  },
+  "hbUSDC": {
+    "token": "0x057ced81348D57Aad579A672d521d7b4396E8a61",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xd202CF41a607627cd1A31f650D13599b588eBd1c",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xBb820D0c85C0B5D1B0dC8C6D3541fbb1AB4C7a60"
+  },
+  "wVLP": {
+    "token": "0xD66d69c288d9a6FD735d7bE8b2e389970fC4fD42",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xc800f672EE8693BC0138E513038C84fe2D1B8a78",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x462B95575cb2D56de9d1aAaAAb452279B058Aa06"
+  },
+  "dnHYPE": {
+    "token": "0x949a7250Bb55Eb79BC6bCC97fCd1C473DB3e6F29",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xa4a6b89354E278666fb908CcdB16276AE151ff00",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xBe61c1A27689c11b63378e84C9bB70A2cd616Fff"
+  },
+  "dnPUMP": {
+    "token": "0x8858A307a85982c2B3CB2AcE1720237f2f09c39B",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xaF8FfEDF0e57eE9f6518340b9eb913fFa7dBc66b",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x9c915C94066fF921264071aCB7D59DB6e0cBf0D7"
+  },
+  "dnFART": {
+    "token": "0xb39C200d3094C05E048A8F13B69A221DB56D012a",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x979a534e482Ec6578BEf7a05df3B3B25F11F956d",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x448E290f8090Fe6Bed36Cb07340d43440Ec6ebd3"
+  },
+  "kitUSD": {
+    "token": "0xd385BA55A22aC732cF435c5b5c3A1dfe5939bA4d",
+    "depositVaultType": "depositVault",
+    "depositVault": "0xfAa6625Afd58f69e09EEdd23Ec192Cd98C82C20E",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0xD197A60de47b3D0187D48DDd1653A009d5e4E5f8"
+  },
+  "kitHYPE": {
+    "token": "0xaF801B65239B4De90F73e26f9Bd1260943A5E248",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x89AB3b922e9aec6ae5D2220deBf343d137a098A0",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x1cDd9b3163c7549a89F436d1Eb5C3476238f271e"
+  },
+  "kitBTC": {
+    "token": "0x61896940f60A536f1d3Dae9580524542D58d3683",
+    "depositVaultType": "depositVault",
+    "depositVault": "0x210376434c1591f05399e3F1EF3f98C6e63d370E",
+    "redemptionVaultType": "redemptionVault",
+    "redemptionVault": "0x1605F7C0FF432Ea4cF2b36a2E35076187A1803b0"
+  }
+}
