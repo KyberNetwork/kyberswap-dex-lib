@@ -1,5 +1,9 @@
 package shared
 
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
 const (
 	CURVE_POOL_TYPE_STABLE_PLAIN    CurvePoolType = "curve-stable-plain"
 	CURVE_POOL_TYPE_STABLE_LENDING  CurvePoolType = "curve-stable-lending"
@@ -32,11 +36,7 @@ const (
 
 	CERC20MethodIsCToken = "isCToken"
 
-	// might not available for all chains, but we only need for some chains so it's ok
-	CurveAddressProvider = "0x0000000022d53366457f9d5e68ec105046fc4383"
-
-	// https://sonicscan.org/address/0x87fe17697d0f14a222e8bef386a0860ecffdd617#code
-	CurveAddressProvider_Sonic = "0x87fe17697d0f14a222e8bef386a0860ecffdd617"
+	CurveDefaultAddressProvider = "0x5ffe7FB82894076ECB99A30D6A32e969e6e35E98"
 
 	poolMethodGamma           = "gamma"
 	poolMethodUnderlyingCoins = "underlying_coins"
@@ -44,4 +44,13 @@ const (
 	addressProviderMethodGetAddress = "get_address"
 
 	getPoolsEndpoint = "/v1/getPools/%s/%s" // <chain>/<registry>
+)
+
+var (
+	CurveAddressProvider = map[valueobject.ChainID]string{
+		valueobject.ChainIDEtherlink: "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
+		valueobject.ChainIDHyperEVM:  "0x1764ee18e8B3ccA4787249Ceb249356192594585",
+		valueobject.ChainIDPlasma:    "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
+		valueobject.ChainIDSonic:     "0x87FE17697D0f14A222e8bEf386a0860eCffDD617",
+	}
 )
