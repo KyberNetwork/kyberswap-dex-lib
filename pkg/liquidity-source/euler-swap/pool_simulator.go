@@ -134,7 +134,7 @@ func (p *PoolSimulator) swap(
 		}
 	}
 
-	swapInfo, err = p.updateAndCheckSolvency(amountIn, amountOut, isExactIn, zeroForOne)
+	swapInfo, err = p.updateAndCheckSolvency(amountIn, amountOut, zeroForOne)
 	return amountIn, amountOut, swapInfo, err
 }
 
@@ -142,7 +142,6 @@ func (p *PoolSimulator) swap(
 func (p *PoolSimulator) updateAndCheckSolvency(
 	amtIn,
 	amtOut *uint256.Int,
-	isExactIn,
 	zeroForOne bool,
 ) (*SwapInfo, error) {
 	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, uint256.NewInt(0)

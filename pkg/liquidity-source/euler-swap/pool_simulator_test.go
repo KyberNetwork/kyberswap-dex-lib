@@ -34,14 +34,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 		expectedAmountOut := "999968"
 
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolList[3]), &pool)
+		require.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			var pool entity.Pool
-			err := json.Unmarshal([]byte(poolList[3]), &pool)
-			require.Nil(t, err)
-
-			s, err := NewPoolSimulator(pool)
-			require.Nil(t, err)
-
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -63,14 +63,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 		expectedAmountOut := "999982"
 
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolList[3]), &pool)
+		require.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			var pool entity.Pool
-			err := json.Unmarshal([]byte(poolList[3]), &pool)
-			require.Nil(t, err)
-
-			s, err := NewPoolSimulator(pool)
-			require.Nil(t, err)
-
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -90,14 +90,14 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0x176211869ca2b568f2a7d4ee941e073a821ee1ff"
 
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolList[3]), &pool)
+		require.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			var pool entity.Pool
-			err := json.Unmarshal([]byte(poolList[3]), &pool)
-			require.Nil(t, err)
-
-			s, err := NewPoolSimulator(pool)
-			require.Nil(t, err)
-
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -117,14 +117,14 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0xaca92e438df0b2401ff60da7e4337b687a2435da"
 
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolList[3]), &pool)
+		require.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
 		result, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
-			var pool entity.Pool
-			err := json.Unmarshal([]byte(poolList[3]), &pool)
-			require.Nil(t, err)
-
-			s, err := NewPoolSimulator(pool)
-			require.Nil(t, err)
-
 			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 				TokenAmountIn: tokenAmountIn,
 				TokenOut:      tokenOut,
@@ -139,14 +139,16 @@ func TestCalcAmountOut(t *testing.T) {
 func TestCalcAmountIn(t *testing.T) {
 	t.Parallel()
 
-	var pool entity.Pool
-	err := json.Unmarshal([]byte(poolList[0]), &pool)
-	require.Nil(t, err)
+	for i := range poolList {
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolList[i]), &pool)
+		require.Nil(t, err)
 
-	poolSim, err := NewPoolSimulator(pool)
-	require.Nil(t, err)
+		poolSim, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
 
-	testutil.TestCalcAmountIn(t, poolSim)
+		testutil.TestCalcAmountIn(t, poolSim)
+	}
 }
 
 func TestSwapEdgeCases(t *testing.T) {
@@ -270,8 +272,6 @@ func TestReverseSwap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			t.Parallel()
-
 			var pool entity.Pool
 			err := json.Unmarshal([]byte(poolList[tc.poolId]), &pool)
 			require.Nil(t, err, "Failed to parse pool data for %s", tc.description)
@@ -319,8 +319,6 @@ func TestReverseSwap(t *testing.T) {
 }
 
 func TestMergeSwaps(t *testing.T) {
-	t.Parallel()
-
 	// Test cases: [poolId, amountIn, direction]
 	testCases := []struct {
 		poolId    int
