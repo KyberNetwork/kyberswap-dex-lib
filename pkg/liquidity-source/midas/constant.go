@@ -71,7 +71,7 @@ var (
 	ErrTokenRemoved                 = errors.New("MV: token not exists")
 	ErrMVExceedAllowance            = errors.New("MV: exceed allowance")
 	ErrMVExceedLimit                = errors.New("MV: exceed limit")
-	ErrDVInsufficientBalance        = errors.New("DV: insufficient balance")
+	ErrRVInsufficientBalance        = errors.New("RV: insufficient balance")
 	ErrRateZero                     = errors.New("DV: rate zero")
 	ErrDVPaused                     = errors.New("DV: deposit vault paused")
 	ErrDepositInstantFnPaused       = errors.New("DV: depositInstant fn paused")
