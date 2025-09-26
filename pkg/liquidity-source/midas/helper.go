@@ -1,68 +1,35 @@
 package midas
 
 import (
-	"strings"
+	"math/big"
 
 	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
-type rvConfig struct {
-	Address string
-	RvType  VaultType
-	MToken  string
-
-	LiquidityProvider     string
-	MTbillRedemptionVault string
-
-	UstbRedemption  string
-	SuperstateToken string
-}
-
-var rvConfigs map[string]map[string]rvConfig
-
-func init() {
-	rvConfigs = make(map[string]map[string]rvConfig)
-	for path, byteData := range bytesByPath {
-		var mTokenConfigs map[string]MTokenConfig
-		if err := json.Unmarshal(byteData, &mTokenConfigs); err != nil {
-			panic("failed to unmarshal midas config")
-		}
-
-		rvConfigs[path] = make(map[string]rvConfig)
-		for _, cfg := range mTokenConfigs {
-			address := strings.ToLower(cfg.RedemptionVault)
-			rvConfigs[path][address] = rvConfig{
-				Address: address,
-				MToken:  strings.ToLower(cfg.MToken),
-				RvType:  cfg.RedemptionVaultType,
-
-				LiquidityProvider:     strings.ToLower(cfg.LiquidityProvider),
-				MTbillRedemptionVault: strings.ToLower(cfg.MTbillRedemptionVault),
-
-				UstbRedemption:  cfg.UstbRedemption,
-				SuperstateToken: cfg.SuperstateToken,
-			}
-		}
-	}
-}
-
-func newVault(vaultState *VaultState, vaultType VaultType, mTokenDecimals, tokenDecimals uint8) (IDepositVault, IRedemptionVault, error) {
-	if vaultState == nil {
+func newVault(state *VaultState, vaultType VaultType, tokenDecimals map[string]uint8) (IDepositVault, IRedemptionVault, error) {
+	if state == nil {
 		return nil, nil, nil
 	}
 
 	switch vaultType {
 	case depositVault:
-		return NewDepositVault(vaultState, mTokenDecimals, tokenDecimals), nil, nil
+		return NewDepositVault(state, tokenDecimals), nil, nil
 	case redemptionVault:
-		return nil, NewRedemptionVault(vaultState, mTokenDecimals, tokenDecimals), nil
+		return nil, NewRedemptionVault(state, tokenDecimals), nil
 	case redemptionVaultUstb:
-		return nil, NewRedemptionVaultUstb(vaultState, mTokenDecimals, tokenDecimals), nil
+		return nil, NewRedemptionVaultUstb(state, tokenDecimals), nil
 	case redemptionVaultSwapper:
-		return nil, NewRedemptionVaultSwapper(vaultState, mTokenDecimals, tokenDecimals), nil
+		return nil, NewRedemptionVaultSwapper(state, tokenDecimals), nil
 	default:
 		logger.Errorf("not supported vault %v", vaultType)
 		return nil, nil, ErrNotSupported
 	}
+}
+
+func toU256Slice(s []*big.Int) []*uint256.Int {
+	return lo.Map(s, func(b *big.Int, _ int) *uint256.Int {
+		return uint256.MustFromBig(b)
+	})
 }

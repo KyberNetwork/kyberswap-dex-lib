@@ -2,8 +2,6 @@ package midas
 
 import (
 	"context"
-	"errors"
-	"math/big"
 	"strings"
 	"time"
 
@@ -21,9 +19,8 @@ import (
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
 
 type PoolsListUpdater struct {
-	config         *Config
-	ethrpcClient   *ethrpc.Client
-	hasInitialized bool
+	config       *Config
+	ethrpcClient *ethrpc.Client
 }
 
 func NewPoolsListUpdater(
@@ -37,140 +34,97 @@ func NewPoolsListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.Pool, []byte, error) {
-	if u.hasInitialized {
-		logger.Debug("skip since pool has been initialized")
-		return nil, nil, nil
-	}
-
-	configByte, ok := bytesByPath[u.config.ConfigPath]
-	if !ok {
-		return nil, nil, errors.New("misconfigured config path")
-	}
-
-	var mTokenConfigs map[string]MTokenConfig
-	if err := json.Unmarshal(configByte, &mTokenConfigs); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to unmarshal config")
-		return nil, nil, err
-	}
-
 	pools := make([]entity.Pool, 0)
-	for mTokenSymbol, config := range mTokenConfigs {
+	for mToken, config := range u.config.MTokens {
 		var (
-			depositMTokenDataFeed common.Address
-			redeemMTokenDataFeed  common.Address
+			dvMTokenDataFeed common.Address
+			rvMTokenDataFeed common.Address
 
-			depositPaymentTokens []common.Address
-			redeemPaymentTokens  []common.Address
+			dvTokens []common.Address
+			rvTokens []common.Address
 		)
 		if _, err := u.ethrpcClient.
 			NewRequest().
 			SetContext(ctx).
 			AddCall(&ethrpc.Call{
 				ABI:    DepositVaultABI,
-				Target: config.DepositVault,
-				Method: vaultGetPaymentTokensMethod,
-			}, []any{&depositPaymentTokens}).
+				Target: config.Dv,
+				Method: vGetPaymentTokensMethod,
+			}, []any{&dvTokens}).
 			AddCall(&ethrpc.Call{
 				ABI:    DepositVaultABI,
-				Target: config.DepositVault,
-				Method: vaultMTokenDataFeedMethod,
-			}, []any{&depositMTokenDataFeed}).
+				Target: config.Dv,
+				Method: vMTokenDataFeedMethod,
+			}, []any{&dvMTokenDataFeed}).
 			AddCall(&ethrpc.Call{
 				ABI:    RedemptionVaultABI,
-				Target: config.RedemptionVault,
-				Method: vaultGetPaymentTokensMethod,
-			}, []any{&redeemPaymentTokens}).
+				Target: config.Rv,
+				Method: vGetPaymentTokensMethod,
+			}, []any{&rvTokens}).
 			AddCall(&ethrpc.Call{
 				ABI:    RedemptionVaultABI,
-				Target: config.RedemptionVault,
-				Method: vaultMTokenDataFeedMethod,
-			}, []any{&redeemMTokenDataFeed}).
+				Target: config.Rv,
+				Method: vMTokenDataFeedMethod,
+			}, []any{&rvMTokenDataFeed}).
 			Aggregate(); err != nil {
-			logger.Errorf("failed to aggregate vaults %v, %v", config.DepositVault, config.RedemptionVault)
+			logger.Errorf("failed to aggregate vaults %v, %v", config.Dv, config.Rv)
 			return nil, nil, err
 		}
 
-		if depositMTokenDataFeed != redeemMTokenDataFeed {
-			logger.Errorf("data feed mismatch for mToken %s, config %v", mTokenSymbol, config)
+		if dvMTokenDataFeed != rvMTokenDataFeed {
+			logger.Errorf("data feed mismatch for mToken %s, config %v", mToken, config)
 			continue
 		}
 
-		for _, token := range depositPaymentTokens {
-			pool, err := u.initPool(ctx, true, config.DepositVault, config.MToken, token.String(),
-				config.DepositVaultType)
-			if err != nil {
-				logger.Errorf("failed to initialize deposit pool")
-				continue
+		if len(dvTokens) > 0 {
+			dvPool, err := u.initPool(true, config.Dv, mToken, dvTokens, config.DvType)
+			if err == nil {
+				pools = append(pools, *dvPool)
 			}
-			pools = append(pools, *pool)
 		}
 
-		for _, token := range redeemPaymentTokens {
-			pool, err := u.initPool(ctx, false, config.RedemptionVault, config.MToken, token.String(),
-				config.RedemptionVaultType)
-			if err != nil {
-				logger.Errorf("failed to initialize redeem pool")
-				continue
+		if len(rvTokens) > 0 {
+			rvPool, err := u.initPool(false, config.Rv, mToken, rvTokens, config.RvType)
+			if err == nil {
+				pools = append(pools, *rvPool)
 			}
-			pools = append(pools, *pool)
 		}
 	}
-
-	u.hasInitialized = true
 
 	return pools, nil, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, isDv bool,
-	vault, mToken, token string, vaultType VaultType,
-) (*entity.Pool, error) {
-	var tokenConfig struct {
-		DataFeed  common.Address
-		Fee       *big.Int
-		Allowance *big.Int
-		Stable    bool
+func (u *PoolsListUpdater) initPool(isDv bool, vault, mToken string, paymentTokens []common.Address,
+	vaultType VaultType) (*entity.Pool, error) {
+	tokens := make([]*entity.PoolToken, 0, len(paymentTokens)+1)
+	tokens = append(tokens, &entity.PoolToken{
+		Address:   strings.ToLower(mToken),
+		Swappable: true,
+	})
+	for _, token := range paymentTokens {
+		tokens = append(tokens, &entity.PoolToken{
+			Address:   strings.ToLower(token.String()),
+			Swappable: true,
+		})
 	}
 
-	req := u.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
-		AddCall(&ethrpc.Call{
-			ABI:    lo.Ternary(isDv, DepositVaultABI, RedemptionVaultABI),
-			Target: vault,
-			Method: vaultTokensConfigMethod,
-			Params: []any{common.HexToAddress(token)},
-		}, []any{&tokenConfig})
-	if _, err := req.Call(); err != nil {
-		logger.Errorf("failed to get tokenConfigs, vault %v, token %v", vault, token)
-		return nil, err
-	}
+	reserves := lo.Times(len(tokens), func(_ int) string { return "0" })
 
 	staticExtra, err := json.Marshal(StaticExtra{
 		IsDv:      isDv,
 		VaultType: vaultType,
-		Vault:     strings.ToLower(vault),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &entity.Pool{
-		Address: strings.Join(lo.Ternary(isDv,
-			[]string{strings.ToLower(token), strings.ToLower(mToken)},
-			[]string{strings.ToLower(mToken), strings.ToLower(token)}), "-"),
-		Exchange:  u.config.DexId,
-		Type:      DexType,
-		Timestamp: time.Now().Unix(),
-		Reserves:  entity.PoolReserves{"0", "0"},
-		Tokens: []*entity.PoolToken{{
-			Address:   strings.ToLower(mToken),
-			Swappable: true,
-		}, {
-			Address:   strings.ToLower(token),
-			Swappable: true,
-		}},
+		Address:     strings.ToLower(vault),
+		Exchange:    u.config.DexId,
+		Type:        DexType,
+		Timestamp:   time.Now().Unix(),
+		Reserves:    reserves,
+		Tokens:      tokens,
 		StaticExtra: string(staticExtra),
 	}, nil
 }

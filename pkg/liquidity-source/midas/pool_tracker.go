@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -26,14 +27,14 @@ type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 
-	rvConfigs map[string]rvConfig
+	rvConfigs map[string]RvConfig
 }
 
 func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		rvConfigs:    rvConfigs[config.ConfigPath],
+		rvConfigs:    getRvConfig(config.MTokens),
 	}, nil
 }
 
@@ -54,45 +55,54 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	}()
 
 	currentDayNumber := time.Now().Unix() / oneDayInSecond
+
 	mToken := p.Tokens[0].Address
-	token := p.Tokens[1].Address
-	vault := strings.ToLower(staticExtra.Vault)
+	tokens := lo.Map(p.Tokens[1:], func(token *entity.PoolToken, _ int) string {
+		return token.Address
+	})
 
 	var (
 		vaultState *VaultStateRpcResult
 		err        error
 	)
 	if staticExtra.IsDv {
-		vaultState, err = t.getDvState(ctx, p.Address, vault, mToken, token, currentDayNumber)
+		vaultState, err = t.getDvState(ctx, p.Address, mToken, tokens, currentDayNumber)
 	} else {
-		rvCfg, ok := t.rvConfigs[vault]
+		rvCfg, ok := t.rvConfigs[p.Address]
 		if !ok {
-			lg.Errorf("failed to find redemption vault config")
+			lg.Errorf("failed to find rvConfig")
 			return p, nil
 		}
-		vaultState, err = t.getRvState(ctx, p.Address, rvCfg, token, currentDayNumber)
+		vaultState, err = t.getRvState(ctx, rvCfg, tokens, currentDayNumber)
 	}
 	if err != nil {
 		return p, nil
 	}
 
-	extraBytes, err := json.Marshal(vaultState.ToVaultState(staticExtra.VaultType, token))
+	extraBytes, err := json.Marshal(vaultState.ToVaultState(mToken, staticExtra.VaultType))
 	if err != nil {
 		return p, err
 	}
 	p.Extra = string(extraBytes)
 
-	p.Reserves = entity.PoolReserves{
+	p.Reserves = []string{
 		convertFromBase18(uint256.MustFromBig(vaultState.InstantDailyLimit), p.Tokens[0].Decimals).String(),
-		convertFromBase18(uint256.MustFromBig(vaultState.TokenConfig.Allowance), p.Tokens[1].Decimals).String(),
 	}
+
+	var tokenLimits []string
+	for i := 0; i < len(tokens); i++ {
+		tokenLimits = append(
+			tokenLimits,
+			convertFromBase18(uint256.MustFromBig(vaultState.TokensConfig[i].Allowance), p.Tokens[i+1].Decimals).String())
+	}
+	p.Reserves = append(p.Reserves, tokenLimits...)
 
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
 
-func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault, token string, vaultState *VaultStateRpcResult,
+func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault string, tokens []string, result *VaultStateRpcResult,
 	isDv bool, currentDayNumber int64) *ethrpc.Request {
 
 	vaultAbi := lo.Ternary(isDv, DepositVaultABI, RedemptionVaultABI)
@@ -101,80 +111,84 @@ func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault, token string, v
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultGetPaymentTokensMethod,
-	}, []any{&vaultState.PaymentTokens}).AddCall(&ethrpc.Call{
+		Method: vGetPaymentTokensMethod,
+	}, []any{&result.PaymentTokens}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultPausedMethod,
-	}, []any{&vaultState.Paused}).AddCall(&ethrpc.Call{
+		Method: vPausedMethod,
+	}, []any{&result.Paused}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultFnPausedMethod,
+		Method: vFnPausedMethod,
 		Params: []any{fnSelector},
-	}, []any{&vaultState.FnPaused}).AddCall(&ethrpc.Call{
+	}, []any{&result.FnPaused}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultInstantDailyLimitMethod,
-	}, []any{&vaultState.InstantDailyLimit}).AddCall(&ethrpc.Call{
+		Method: vInstantDailyLimitMethod,
+	}, []any{&result.InstantDailyLimit}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultDailyLimitsMethod,
+		Method: vDailyLimitsMethod,
 		Params: []any{big.NewInt(currentDayNumber)},
-	}, []any{&vaultState.DailyLimits}).AddCall(&ethrpc.Call{
+	}, []any{&result.DailyLimits}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultInstantFeeMethod,
-	}, []any{&vaultState.InstantFee}).AddCall(&ethrpc.Call{
+		Method: vInstantFeeMethod,
+	}, []any{&result.InstantFee}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultMinAmountMethod,
-	}, []any{&vaultState.MinAmount}).AddCall(&ethrpc.Call{
+		Method: vMinAmountMethod,
+	}, []any{&result.MinAmount}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultTokensConfigMethod,
-		Params: []any{common.HexToAddress(token)},
-	}, []any{&vaultState.TokenConfig}).AddCall(&ethrpc.Call{
+		Method: vMTokenDataFeedMethod,
+	}, []any{&result.MTokenDataFeed}).AddCall(&ethrpc.Call{
 		ABI:    vaultAbi,
 		Target: vault,
-		Method: vaultMTokenDataFeedMethod,
-	}, []any{&vaultState.MTokenDataFeed}).AddCall(&ethrpc.Call{
-		ABI:    vaultAbi,
-		Target: vault,
-		Method: vaultWaivedFeeRestrictionMethod,
+		Method: vWaivedFeeRestrictionMethod,
 		Params: []any{common.HexToAddress(t.config.Executor)},
-	}, []any{&vaultState.WaivedFeeRestriction})
+	}, []any{&result.WaivedFeeRestriction})
+
+	result.TokensConfig = make([]TokenConfigRpcResult, len(tokens))
+	for i, token := range tokens {
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultAbi,
+			Target: vault,
+			Method: vTokensConfigMethod,
+			Params: []any{common.HexToAddress(token)},
+		}, []any{&result.TokensConfig[i]})
+	}
 
 	return req
 }
 
-func (t *PoolTracker) getDvState(ctx context.Context, poolAddress, vault, mToken, token string,
+func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, tokens []string,
 	currentDayNumber int64) (*VaultStateRpcResult, error) {
-	lg := logger.WithFields(logger.Fields{
-		"pool": poolAddress,
-		"dv":   vault,
-	})
+	lg := logger.WithFields(logger.Fields{"dv": vault})
 
-	var vaultStateResult VaultStateRpcResult
+	var result VaultStateRpcResult
+	result.MToken = mToken
+
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = t.initVaultCalls(req, vault, token, &vaultStateResult, true, currentDayNumber)
+	req = t.initVaultCalls(req, vault, tokens, &result, true, currentDayNumber)
 	req.AddCall(&ethrpc.Call{
 		ABI:    DepositVaultABI,
 		Target: vault,
 		Method: dvMinMTokenAmountForFirstDepositMethod,
-	}, []any{&vaultStateResult.MinMTokenAmountForFirstDeposit}).AddCall(&ethrpc.Call{
+	}, []any{&result.MinMTokenAmountForFirstDeposit}).AddCall(&ethrpc.Call{
 		ABI:    DepositVaultABI,
 		Target: vault,
 		Method: dvTotalMintedMethod,
 		Params: []any{common.HexToAddress(t.config.Executor)},
-	}, []any{&vaultStateResult.TotalMinted}).AddCall(&ethrpc.Call{
+	}, []any{&result.TotalMinted}).AddCall(&ethrpc.Call{
 		ABI:    DepositVaultABI,
 		Target: vault,
 		Method: dvMaxSupplyCapMethod,
-	}, []any{&vaultStateResult.MaxSupplyCap}).AddCall(&ethrpc.Call{
+	}, []any{&result.MaxSupplyCap}).AddCall(&ethrpc.Call{
 		ABI:    abi.Erc20ABI,
 		Target: mToken,
 		Method: abi.Erc20TotalSupplyMethod,
-	}, []any{&vaultStateResult.MTokenTotalSupply})
+	}, []any{&result.MTokenTotalSupply})
 
 	resp, err := req.TryAggregate()
 	if err != nil {
@@ -184,145 +198,257 @@ func (t *PoolTracker) getDvState(ctx context.Context, poolAddress, vault, mToken
 		return nil, err
 	}
 
-	if _, err = t.ethrpcClient.
+	req = t.ethrpcClient.
 		NewRequest().
 		SetContext(ctx).
-		SetRequireSuccess(false).
 		SetBlockNumber(resp.BlockNumber).
 		AddCall(&ethrpc.Call{
 			ABI:    dataFeedABI,
-			Target: vaultStateResult.TokenConfig.DataFeed.String(),
+			Target: result.MTokenDataFeed.String(),
 			Method: dataFeedGetDataInBase18Method,
-		}, []any{&vaultStateResult.TokenRate}).
-		AddCall(&ethrpc.Call{
+		}, []any{&result.MTokenRate})
+	result.TokenRates = make([]*big.Int, len(tokens))
+	for i, _ := range tokens {
+		req.AddCall(&ethrpc.Call{
 			ABI:    dataFeedABI,
-			Target: vaultStateResult.MTokenDataFeed.String(),
+			Target: result.TokensConfig[i].DataFeed.String(),
 			Method: dataFeedGetDataInBase18Method,
-		}, []any{&vaultStateResult.MTokenRate}).
-		Aggregate(); err != nil {
+		}, []any{&result.TokenRates[i]})
+	}
+
+	_, err = req.Aggregate()
+	if err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to aggregate dv data feed calls")
+		}).Errorf("failed to aggregate dv data feed state, mToken %v", mToken)
 		return nil, err
 	}
 
-	return &vaultStateResult, nil
+	return &result, nil
 }
 
-func (t *PoolTracker) getRvState(ctx context.Context, poolAddress string, vaultCfg rvConfig, token string,
+func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []string,
 	currentDayNumber int64) (*VaultStateRpcResult, error) {
 	lg := logger.WithFields(logger.Fields{
-		"pool": poolAddress,
-		"rv":   vaultCfg.Address,
+		"rv": rvCfg.Address,
 	})
 
-	var vaultStateResult VaultStateRpcResult
+	var result VaultStateRpcResult
+	result.MToken = rvCfg.MToken
+
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = t.initVaultCalls(req, vaultCfg.Address, token, &vaultStateResult, true, currentDayNumber)
-	req.AddCall(&ethrpc.Call{
-		ABI:    abi.Erc20ABI,
-		Target: token,
-		Method: abi.Erc20BalanceOfMethod,
-		Params: []any{common.HexToAddress(vaultCfg.Address)},
-	}, []any{&vaultStateResult.TokenBalance})
+	req = t.initVaultCalls(req, rvCfg.Address, tokens, &result, true, currentDayNumber)
 
-	switch vaultCfg.RvType {
-	case redemptionVault:
-	case redemptionVaultSwapper:
-		vaultStateResult.SwapperVaultType = t.rvConfigs[vaultCfg.MTbillRedemptionVault].RvType
+	result.TokenBalances = make([]*big.Int, len(tokens))
+	for i, token := range tokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    abi.Erc20ABI,
-			Target: vaultCfg.MToken,
+			Target: token,
 			Method: abi.Erc20BalanceOfMethod,
-			Params: []any{common.HexToAddress(vaultCfg.LiquidityProvider)},
-		}, []any{&vaultStateResult.MToken1Balance}).AddCall(&ethrpc.Call{
-			ABI:    abi.Erc20ABI,
-			Target: t.rvConfigs[vaultCfg.MTbillRedemptionVault].MToken,
-			Method: abi.Erc20BalanceOfMethod,
-			Params: []any{common.HexToAddress(vaultCfg.LiquidityProvider)},
-		}, []any{&vaultStateResult.MToken2Balance})
-	case redemptionVaultUstb:
-		req.AddCall(&ethrpc.Call{
-			ABI:    redemptionABI,
-			Target: vaultCfg.UstbRedemption,
-			Method: redemptionUsdcMethod,
-		}, []any{&vaultStateResult.Redemption.Usdc}).
-			AddCall(&ethrpc.Call{
-				ABI:    redemptionABI,
-				Target: vaultCfg.UstbRedemption,
-				Method: redemptionRedemptionFeeMethod,
-			}, []any{&vaultStateResult.Redemption.RedemptionFee}).
-			AddCall(&ethrpc.Call{
-				ABI:    abi.Erc20ABI,
-				Target: vaultCfg.SuperstateToken,
-				Method: abi.Erc20BalanceOfMethod,
-				Params: []any{common.HexToAddress(vaultCfg.Address)},
-			}, []any{&vaultStateResult.Redemption.UstbBalance}).
-			AddCall(&ethrpc.Call{
-				ABI:    redemptionABI,
-				Target: vaultCfg.UstbRedemption,
-				Method: redemptionGetChainlinkPriceMethod,
-			}, []any{&vaultStateResult.Redemption.ChainlinkPrice}).
-			AddCall(&ethrpc.Call{
-				ABI:    redemptionABI,
-				Target: vaultCfg.UstbRedemption,
-				Method: redemptionChainlinkFeedPrecisionMethod,
-			}, []any{&vaultStateResult.Redemption.ChainLinkFeedPrecision}).
-			AddCall(&ethrpc.Call{
-				ABI:    redemptionABI,
-				Target: vaultCfg.UstbRedemption,
-				Method: redemptionSuperstateTokenPrecisionMethod,
-			}, []any{&vaultStateResult.Redemption.SuperstateTokenPrecision})
-	default:
-		return nil, ErrNotSupported
+			Params: []any{common.HexToAddress(rvCfg.Address)},
+		}, []any{&result.TokenBalances[i]})
 	}
-
 	resp, err := req.Aggregate()
 	if err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to aggregate rv state, type %v, vault %v", vaultCfg.RvType, vaultCfg.Address)
+		}).Errorf("failed to aggregate rv state, type %v", rvCfg.RvType)
 		return nil, err
 	}
 
-	if !lo.SomeBy(vaultStateResult.PaymentTokens, func(pToken common.Address) bool {
-		return strings.EqualFold(pToken.String(), token)
-	}) {
-		return nil, fmt.Errorf("vault cannot redeem token %v", token)
-	}
+	switch rvCfg.RvType {
+	case redemptionVault:
+	case redemptionVaultSwapper:
+		var (
+			liquidityProvider     common.Address
+			mTbillRedemptionVault common.Address
+		)
+		if _, err = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    RedemptionVaultABI,
+				Target: rvCfg.Address,
+				Method: rvSwapperLiquidityProviderMethod,
+			}, []any{&liquidityProvider}).
+			AddCall(&ethrpc.Call{
+				ABI:    RedemptionVaultABI,
+				Target: rvCfg.Address,
+				Method: rvSwapperMTbillRedemptionVaultMethod,
+			}, []any{&mTbillRedemptionVault}).
+			Aggregate(); err != nil {
+			lg.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("failed to get liquidityProvider and mTbillRedemptionVault")
+			return nil, err
+		}
 
-	if _, err = t.ethrpcClient.
-		NewRequest().
-		SetContext(ctx).
-		SetRequireSuccess(false).
-		SetBlockNumber(resp.BlockNumber).
-		AddCall(&ethrpc.Call{
-			ABI:    dataFeedABI,
-			Target: vaultStateResult.TokenConfig.DataFeed.String(),
-			Method: dataFeedGetDataInBase18Method,
-		}, []any{&vaultStateResult.TokenRate}).
-		AddCall(&ethrpc.Call{
-			ABI:    dataFeedABI,
-			Target: vaultStateResult.MTokenDataFeed.String(),
-			Method: dataFeedGetDataInBase18Method,
-		}, []any{&vaultStateResult.MTokenRate}).
-		Aggregate(); err != nil {
-		lg.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to aggregate rv data feed calls, token %v, %v %v", token, vaultStateResult.TokenConfig.DataFeed.String(), vaultStateResult.MTokenDataFeed.String())
+		mTbillRv := strings.ToLower(mTbillRedemptionVault.String())
+		mTbillRvCfg, ok := t.rvConfigs[mTbillRv]
+		if !ok {
+			return nil, fmt.Errorf("rvConfig not found %v", mTbillRv)
+		}
 
-		return nil, err
-	}
-
-	if vaultCfg.RvType == redemptionVaultSwapper {
-		vaultStateResult.MTbillRedemptionVault, err = t.getRvState(ctx, poolAddress, t.rvConfigs[vaultCfg.MTbillRedemptionVault],
-			token, currentDayNumber)
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    abi.Erc20ABI,
+				Target: t.rvConfigs[mTbillRv].MToken,
+				Method: abi.Erc20BalanceOfMethod,
+				Params: []any{liquidityProvider},
+			}, []any{&result.MToken2Balance})
+		_, err = req.Aggregate()
 		if err != nil {
 			lg.WithFields(logger.Fields{
 				"error": err,
-			}).Warnf("failed to aggregate mTbillRedemptionVault for rv swapper")
+			}).Errorf("failed to get liquidityProvider and mTbillRedemptionVault")
+			return nil, err
 		}
+
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.MTokenDataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.MTokenRate})
+
+		result.TokenRates = make([]*big.Int, len(tokens))
+		for i := range tokens {
+			if eth.IsZeroAddress(result.TokensConfig[i].DataFeed) {
+				continue
+			}
+
+			req.AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.TokensConfig[i].DataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.TokenRates[i]})
+		}
+		_, err = req.Aggregate()
+		if err != nil {
+			lg.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to aggregate data feed rates for rv swapper")
+			return nil, err
+		}
+
+		result.SwapperVaultType = mTbillRvCfg.RvType
+		result.MTbillRedemptionVault, err = t.getRvState(ctx, mTbillRvCfg, tokens, currentDayNumber)
+		if err != nil {
+			lg.WithFields(logger.Fields{
+				"error": err,
+			}).Warnf("failed to aggregate mTbillRedemptionVault state for rv swapper, mTbillRedemptionVault %v, type %v",
+				mTbillRedemptionVault, mTbillRvCfg.RvType)
+		}
+
+	case redemptionVaultUstb:
+		var ustbRedemption common.Address
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionVaultWithUstbABI,
+				Target: rvCfg.Address,
+				Method: rvUstbUstbRedemptionMethod,
+			}, []any{&ustbRedemption})
+		_, err = req.Call()
+		if err != nil {
+			lg.Errorf("failed to get ustbRedemption for rv ustb")
+			return nil, err
+		}
+
+		var superstateToken common.Address
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionABI,
+				Target: ustbRedemption.String(),
+				Method: redemptionSuperstateTokenMethod,
+			}, []any{&superstateToken})
+		_, err = req.Call()
+		if err != nil {
+			lg.Errorf("failed to get superstate token for redemption %v", ustbRedemption)
+			return nil, err
+		}
+
+		req.AddCall(&ethrpc.Call{
+			ABI:    redemptionABI,
+			Target: ustbRedemption.String(),
+			Method: redemptionUsdcMethod,
+		}, []any{&result.Redemption.Usdc}).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionABI,
+				Target: ustbRedemption.String(),
+				Method: redemptionRedemptionFeeMethod,
+			}, []any{&result.Redemption.RedemptionFee}).
+			AddCall(&ethrpc.Call{
+				ABI:    abi.Erc20ABI,
+				Target: superstateToken.String(),
+				Method: abi.Erc20BalanceOfMethod,
+				Params: []any{common.HexToAddress(rvCfg.Address)},
+			}, []any{&result.Redemption.UstbBalance}).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionABI,
+				Target: ustbRedemption.String(),
+				Method: redemptionGetChainlinkPriceMethod,
+			}, []any{&result.Redemption.ChainlinkPrice}).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionABI,
+				Target: ustbRedemption.String(),
+				Method: redemptionChainlinkFeedPrecisionMethod,
+			}, []any{&result.Redemption.ChainLinkFeedPrecision}).
+			AddCall(&ethrpc.Call{
+				ABI:    redemptionABI,
+				Target: ustbRedemption.String(),
+				Method: redemptionSuperstateTokenPrecisionMethod,
+			}, []any{&result.Redemption.SuperstateTokenPrecision})
+		_, err = req.Aggregate()
+		if err != nil {
+			lg.Errorf("failed to aggregate redemption state %v", ustbRedemption)
+			return nil, err
+		}
+
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.MTokenDataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.MTokenRate})
+
+		result.TokenRates = make([]*big.Int, len(tokens))
+		for i := range tokens {
+			if eth.IsZeroAddress(result.TokensConfig[i].DataFeed) {
+				continue
+			}
+
+			req.AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.TokensConfig[i].DataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.TokenRates[i]})
+		}
+		_, err = req.TryAggregate()
+		if err != nil {
+			lg.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to aggregate data feed rates for rv ustb")
+			return nil, err
+		}
+	default:
+		return nil, ErrNotSupported
 	}
 
-	return &vaultStateResult, nil
+	return &result, nil
 }

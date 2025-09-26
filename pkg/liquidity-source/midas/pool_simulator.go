@@ -20,7 +20,8 @@ type PoolSimulator struct {
 	dv IDepositVault
 	rv IRedemptionVault
 
-	staticExtra StaticExtra
+	isDv      bool
+	vaultType VaultType
 }
 
 func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
@@ -34,27 +35,27 @@ func NewPoolSimulator(ep entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	dv, rv, err := newVault(&vault, staticExtra.VaultType, ep.Tokens[0].Decimals, ep.Tokens[1].Decimals)
+	tokenDecimalsMap := lo.SliceToMap(ep.Tokens, func(item *entity.PoolToken) (string, uint8) {
+		return item.Address, item.Decimals
+	})
+	dv, rv, err := newVault(&vault, staticExtra.VaultType, tokenDecimalsMap)
 	if err != nil {
 		return nil, err
 	}
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  ep.Address,
-			Exchange: ep.Exchange,
-			Type:     ep.Type,
-			Tokens: lo.Map(ep.Tokens, func(item *entity.PoolToken, index int) string {
-				return item.Address
-			}),
-			Reserves: lo.Map(ep.Reserves, func(item string, index int) *big.Int {
-				return bignumber.NewBig(item)
-			}),
+			Address:     ep.Address,
+			Exchange:    ep.Exchange,
+			Type:        ep.Type,
+			Tokens:      lo.Map(ep.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves:    lo.Map(ep.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: ep.BlockNumber,
 		}},
-		staticExtra: staticExtra,
-		dv:          dv,
-		rv:          rv,
+		isDv:      staticExtra.IsDv,
+		vaultType: staticExtra.VaultType,
+		dv:        dv,
+		rv:        rv,
 	}, nil
 }
 
@@ -75,10 +76,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	)
 
 	isDeposit := indexIn != 0
-	if isDeposit && s.staticExtra.IsDv {
-		swapInfo, err = s.dv.DepositInstant(amountIn)
-	} else if !isDeposit && !s.staticExtra.IsDv {
-		swapInfo, err = s.rv.RedeemInstant(amountIn, tokenOut)
+	if isDeposit && s.isDv {
+		swapInfo, err = s.dv.DepositInstant(amountIn, tokenIn, tokenOut)
+	} else if !isDeposit && !s.isDv {
+		swapInfo, err = s.rv.RedeemInstant(amountIn, tokenIn, tokenOut)
 	} else {
 		return nil, ErrInvalidSwap
 	}
@@ -102,10 +103,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(*SwapInfo)
+	tokenIn := params.TokenAmountIn.Token
 	if swapInfo.IsDeposit {
-		s.dv.UpdateState(swapInfo)
+		s.dv.UpdateState(swapInfo, tokenIn)
 	} else {
-		s.rv.UpdateState(swapInfo)
+		s.rv.UpdateState(swapInfo, tokenIn)
 	}
 }
 
@@ -123,9 +125,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
-	if p.staticExtra.IsDv && tokenIndex == 0 {
-		return []string{p.Info.Tokens[1]}
-	} else if !p.staticExtra.IsDv && tokenIndex == 1 {
+	if p.isDv && tokenIndex == 0 {
+		return p.Info.Tokens[1:]
+	} else if !p.isDv && tokenIndex != 0 {
 		return []string{p.Info.Tokens[0]}
 	}
 
@@ -134,10 +136,10 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	tokenIndex := p.GetTokenIndex(address)
-	if p.staticExtra.IsDv && tokenIndex == 1 {
+	if p.isDv && tokenIndex != 0 {
 		return []string{p.Info.Tokens[0]}
-	} else if !p.staticExtra.IsDv && tokenIndex == 0 {
-		return []string{p.Info.Tokens[1]}
+	} else if !p.isDv && tokenIndex == 0 {
+		return p.Info.Tokens[1:]
 	}
 
 	return []string{}
@@ -146,6 +148,5 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
 		BlockNumber: s.Info.BlockNumber,
-		Vault:       s.staticExtra.Vault,
 	}
 }

@@ -12,52 +12,53 @@ type RedemptionVaultSwapper struct {
 	mToken2Balance        *uint256.Int
 }
 
-func NewRedemptionVaultSwapper(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultSwapper {
-	_, mTbillRedemptionVault, err := newVault(vaultState.MTbillRedemptionVault, vaultState.SwapperVaultType, mTokenDecimals, tokenDecimals)
+func NewRedemptionVaultSwapper(vaultState *VaultState, tokenDecimals map[string]uint8) *RedemptionVaultSwapper {
+	_, mTbillRedemptionVault, err := newVault(vaultState.MTbillRedemptionVault, vaultState.SwapperVaultType, tokenDecimals)
 	if err != nil {
 		return nil
 	}
 
 	return &RedemptionVaultSwapper{
-		RedemptionVault:       NewRedemptionVault(vaultState, mTokenDecimals, tokenDecimals),
+		RedemptionVault:       NewRedemptionVault(vaultState, tokenDecimals),
 		mTbillRedemptionVault: mTbillRedemptionVault,
 		mToken1Balance:        vaultState.MToken1Balance,
 		mToken2Balance:        vaultState.MToken2Balance,
 	}
 }
 
-func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, tokenOut string) (*SwapInfo, error) {
-	amountMTokenIn = convertToBase18(amountMTokenIn, v.mTokenDecimals)
+func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, mToken, token string) (*SwapInfo, error) {
+	amountMTokenIn = convertToBase18(amountMTokenIn, v.tokenDecimals[mToken])
 
-	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn)
+	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn, token)
 	if err != nil {
 		return nil, err
 	}
 
-	amountMTokenInUsd, mTokenRate, err := v.convertTokenToUsd(amountMTokenIn, true)
+	tokenIndex := v.GetTokenIndex(token)
+	amountMTokenInUsd, mTokenRate, err := v.convertTokenToUsd(amountMTokenIn, true, tokenIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	amountTokenOut, tokenOutRate, err := v.convertUsdToToken(amountMTokenInUsd, false)
+	amountTokenOut, tokenOutRate, err := v.convertUsdToToken(amountMTokenInUsd, false, tokenIndex)
 	if err != nil {
 		return nil, err
 	}
 
 	amountTokenOutWithoutFee, _ := new(uint256.Int).MulDivOverflow(amountMTokenWithoutFee, mTokenRate, tokenOutRate)
-	amountTokenOutWithoutFee = truncate(amountTokenOutWithoutFee, v.tokenDecimals)
+	amountTokenOutWithoutFee = truncate(amountTokenOutWithoutFee, v.tokenDecimals[token])
 
 	if err = v.checkLimits(amountMTokenIn); err != nil {
 		return nil, err
 	}
 
-	if err = v.checkAllowance(amountTokenOut); err != nil {
+	if err = v.checkAllowance(amountTokenOut, tokenIndex); err != nil {
 		return nil, err
 	}
 
-	amountTokenOutWithoutFee = convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals)
+	amountTokenOutWithoutFee = convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals[token])
 
-	if v.tokenBalance.Lt(amountTokenOutWithoutFee) {
+	if v.tokenBalances[tokenIndex].Lt(amountTokenOutWithoutFee) {
 		if v.mTbillRedemptionVault == nil {
 			return nil, ErrInvalidSwap
 		}
@@ -69,7 +70,7 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 
 		mTbillAmount := convertFromBase18(mTbillAmountInBase18, 18)
 
-		swapInfo, err := v.mTbillRedemptionVault.RedeemInstant(mTbillAmount, tokenOut)
+		swapInfo, err := v.mTbillRedemptionVault.RedeemInstant(mTbillAmount, v.mTbillRedemptionVault.GetMToken(), token)
 		if err != nil {
 			return nil, err
 		}
@@ -89,12 +90,12 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 
 		gas:       redeemInstantDefaultGas,
 		fee:       feeAmount,
-		amountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals),
+		amountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals[token]),
 	}, nil
 }
 
 func (v *RedemptionVaultSwapper) swapMToken1ToMToken2(mToken1Amount *uint256.Int) (*uint256.Int, error) {
-	amount := truncate(mToken1Amount, v.mTokenDecimals)
+	amount := truncate(mToken1Amount, v.tokenDecimals[v.GetMToken()])
 
 	mTokenAmount, _ := new(uint256.Int).MulDivOverflow(amount, v.mTokenRate, v.mTbillRedemptionVault.GetMTokenRate())
 
@@ -105,11 +106,12 @@ func (v *RedemptionVaultSwapper) swapMToken1ToMToken2(mToken1Amount *uint256.Int
 	return mTokenAmount, nil
 }
 
-func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo) {
-	if !v.tokenBalance.Lt(swapInfo.amountOut) {
-		v.RedemptionVault.UpdateState(swapInfo)
+func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo, token string) {
+	tokenIndex := v.GetTokenIndex(token)
+	if !v.tokenBalances[tokenIndex].Lt(swapInfo.amountOut) {
+		v.RedemptionVault.UpdateState(swapInfo, token)
 	} else if v.mTbillRedemptionVault != nil {
-		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
+		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
 
 		v.mToken1Balance = new(uint256.Int).Add(v.mToken1Balance, swapInfo.mToken1AmountInBase18)
 		v.mToken2Balance = new(uint256.Int).Sub(v.mToken2Balance, swapInfo.mToken2AmountInBase18)
@@ -119,7 +121,7 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo) {
 			AmountMTokenInBase18: swapInfo.mToken2AmountInBase18,
 
 			amountOut: swapInfo.amountOut,
-		})
+		}, token)
 	}
 }
 

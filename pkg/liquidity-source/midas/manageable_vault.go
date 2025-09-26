@@ -1,6 +1,8 @@
 package midas
 
 import (
+	"slices"
+
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -8,13 +10,13 @@ import (
 )
 
 type ManageableVault struct {
-	mTokenDecimals uint8
-	tokenDecimals  uint8
+	mToken        string
+	tokenDecimals map[string]uint8
 
-	tokenRemoved         bool
+	paymentTokens        []string
 	paused               bool
 	fnPaused             bool
-	tokenConfig          *TokenConfig
+	tokenConfigs         []TokenConfig
 	instantDailyLimit    *uint256.Int
 	dailyLimits          *uint256.Int
 	minAmount            *uint256.Int
@@ -22,18 +24,18 @@ type ManageableVault struct {
 	waivedFeeRestriction bool
 
 	mTokenRate *uint256.Int
-	tokenRate  *uint256.Int
+	tokenRates []*uint256.Int
 }
 
-func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *ManageableVault {
+func NewManageableVault(vaultState *VaultState, tokenDecimals map[string]uint8) *ManageableVault {
 	return &ManageableVault{
-		mTokenDecimals: mTokenDecimals,
-		tokenDecimals:  tokenDecimals,
+		mToken:        vaultState.MToken,
+		tokenDecimals: tokenDecimals,
 
-		tokenRemoved:         vaultState.TokenRemoved,
+		paymentTokens:        vaultState.PaymentTokens,
 		paused:               vaultState.Paused,
 		fnPaused:             vaultState.FnPaused,
-		tokenConfig:          vaultState.TokenConfig,
+		tokenConfigs:         vaultState.TokenConfigs,
 		instantDailyLimit:    vaultState.InstantDailyLimit,
 		dailyLimits:          vaultState.DailyLimits,
 		minAmount:            vaultState.MinAmount,
@@ -41,7 +43,7 @@ func NewManageableVault(vaultState *VaultState, mTokenDecimals, tokenDecimals ui
 		waivedFeeRestriction: vaultState.WaivedFeeRestriction,
 
 		mTokenRate: vaultState.MTokenRate,
-		tokenRate:  vaultState.TokenRate,
+		tokenRates: vaultState.TokenRates,
 	}
 }
 
@@ -49,12 +51,18 @@ func (v *ManageableVault) GetMTokenRate() *uint256.Int {
 	return v.mTokenRate
 }
 
-func (v *ManageableVault) getFeeAmount(amount *uint256.Int) *uint256.Int {
+func (v *ManageableVault) GetMToken() string {
+	return v.mToken
+}
+
+func (v *ManageableVault) getFeeAmount(amount *uint256.Int, tokenIndex int) *uint256.Int {
 	if v.waivedFeeRestriction {
 		return new(uint256.Int)
 	}
 
-	feePercent := new(uint256.Int).Add(v.tokenConfig.Fee, v.instantFee)
+	tokenConfig := v.tokenConfigs[tokenIndex]
+
+	feePercent := new(uint256.Int).Add(tokenConfig.Fee, v.instantFee)
 	if feePercent.Gt(u256.UBasisPoint) {
 		feePercent.Set(u256.UBasisPoint)
 	}
@@ -63,8 +71,9 @@ func (v *ManageableVault) getFeeAmount(amount *uint256.Int) *uint256.Int {
 	return feePercent
 }
 
-func (v *ManageableVault) checkAllowance(tokenAmount *uint256.Int) error {
-	if tokenAmount.Gt(v.tokenConfig.Allowance) && v.tokenConfig.Allowance.Lt(u256.UMax) {
+func (v *ManageableVault) checkAllowance(tokenAmount *uint256.Int, tokenIndex int) error {
+	tokenConfig := v.tokenConfigs[tokenIndex]
+	if tokenAmount.Gt(tokenConfig.Allowance) && tokenConfig.Allowance.Lt(u256.UMax) {
 		return ErrMVExceedAllowance
 	}
 
@@ -80,25 +89,26 @@ func (v *ManageableVault) checkLimits(mTokenAmount *uint256.Int) error {
 	return nil
 }
 
-func (v *ManageableVault) UpdateState(amountTokenInBase18, amountMTokenInBase18 *uint256.Int) {
-	v.tokenConfig.Allowance = new(uint256.Int).Sub(v.tokenConfig.Allowance, amountTokenInBase18)
+func (v *ManageableVault) UpdateState(amountTokenInBase18, amountMTokenInBase18 *uint256.Int, token string) {
+	tokenIndex := v.GetTokenIndex(token)
+	v.tokenConfigs[tokenIndex].Allowance = new(uint256.Int).Sub(v.tokenConfigs[tokenIndex].Allowance, amountTokenInBase18)
 	v.dailyLimits = new(uint256.Int).Add(v.dailyLimits, amountMTokenInBase18)
 }
 
 func (v *ManageableVault) CloneState() *ManageableVault {
 	cloned := *v
-	cloned.tokenConfig.Allowance = new(uint256.Int).Set(cloned.tokenConfig.Allowance)
+	cloned.tokenConfigs = slices.Clone(v.tokenConfigs)
 	cloned.dailyLimits = new(uint256.Int).Set(cloned.dailyLimits)
 
 	return &cloned
 }
 
-func (v *ManageableVault) convertTokenToUsd(amount *uint256.Int, fromMToken bool) (*uint256.Int, *uint256.Int, error) {
+func (v *ManageableVault) convertTokenToUsd(amount *uint256.Int, fromMToken bool, tokenIndex int) (*uint256.Int, *uint256.Int, error) {
 	var amountUsd, rate uint256.Int
 	if fromMToken {
 		rate.Set(v.mTokenRate)
 	} else {
-		rate.Set(lo.Ternary(v.tokenConfig.Stable, stableCoinRate, v.tokenRate))
+		rate.Set(lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex]))
 	}
 
 	if rate.Sign() == 0 {
@@ -110,12 +120,12 @@ func (v *ManageableVault) convertTokenToUsd(amount *uint256.Int, fromMToken bool
 	return &amountUsd, &rate, nil
 }
 
-func (v *ManageableVault) convertUsdToToken(amountUsd *uint256.Int, toMToken bool) (*uint256.Int, *uint256.Int, error) {
+func (v *ManageableVault) convertUsdToToken(amountUsd *uint256.Int, toMToken bool, tokenIndex int) (*uint256.Int, *uint256.Int, error) {
 	var amount, rate uint256.Int
 	if toMToken {
 		rate.Set(v.mTokenRate)
 	} else {
-		rate.Set(lo.Ternary(v.tokenConfig.Stable, stableCoinRate, v.tokenRate))
+		rate.Set(lo.Ternary(v.tokenConfigs[tokenIndex].Stable, stableCoinRate, v.tokenRates[tokenIndex]))
 	}
 
 	if rate.Sign() == 0 {
@@ -125,6 +135,16 @@ func (v *ManageableVault) convertUsdToToken(amountUsd *uint256.Int, toMToken boo
 	amount.MulDivOverflow(amountUsd, u256.BONE, &rate)
 
 	return &amount, &rate, nil
+}
+
+func (v *ManageableVault) GetTokenIndex(address string) int {
+	for i, token := range v.paymentTokens {
+		if token == address {
+			return i
+		}
+	}
+
+	return -1
 }
 
 func truncate(value *uint256.Int, decimals uint8) *uint256.Int {

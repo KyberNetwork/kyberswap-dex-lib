@@ -9,21 +9,27 @@ import (
 const (
 	DexType = "midas"
 
-	vaultPausedMethod               = "paused"
-	vaultMTokenDataFeedMethod       = "mTokenDataFeed"
-	vaultGetPaymentTokensMethod     = "getPaymentTokens"
-	vaultTokensConfigMethod         = "tokensConfig"
-	vaultInstantDailyLimitMethod    = "instantDailyLimit"
-	vaultInstantFeeMethod           = "instantFee"
-	vaultDailyLimitsMethod          = "dailyLimits"
-	vaultMinAmountMethod            = "minAmount"
-	vaultFnPausedMethod             = "fnPaused"
-	vaultWaivedFeeRestrictionMethod = "waivedFeeRestriction"
+	vPausedMethod               = "paused"
+	vMTokenDataFeedMethod       = "mTokenDataFeed"
+	vGetPaymentTokensMethod     = "getPaymentTokens"
+	vTokensConfigMethod         = "tokensConfig"
+	vInstantDailyLimitMethod    = "instantDailyLimit"
+	vInstantFeeMethod           = "instantFee"
+	vDailyLimitsMethod          = "dailyLimits"
+	vMinAmountMethod            = "minAmount"
+	vFnPausedMethod             = "fnPaused"
+	vWaivedFeeRestrictionMethod = "waivedFeeRestriction"
 
 	dvMinMTokenAmountForFirstDepositMethod = "minMTokenAmountForFirstDeposit"
 	dvTotalMintedMethod                    = "totalMinted"
 	dvMaxSupplyCapMethod                   = "maxSupplyCap"
 
+	rvSwapperLiquidityProviderMethod     = "liquidityProvider"
+	rvSwapperMTbillRedemptionVaultMethod = "mTbillRedemptionVault"
+
+	rvUstbUstbRedemptionMethod = "ustbRedemption"
+
+	redemptionSuperstateTokenMethod          = "SUPERSTATE_TOKEN"
 	redemptionChainlinkFeedPrecisionMethod   = "CHAINLINK_FEED_PRECISION"
 	redemptionSuperstateTokenPrecisionMethod = "SUPERSTATE_TOKEN_PRECISION"
 	redemptionUsdcMethod                     = "USDC"
@@ -34,11 +40,11 @@ const (
 )
 
 const (
-	depositVault VaultType = "depositVault"
+	depositVault VaultType = "dv"
 
-	redemptionVault        VaultType = "redemptionVault"
-	redemptionVaultUstb    VaultType = "redemptionVaultUstb"
-	redemptionVaultSwapper VaultType = "redemptionVaultSwapper"
+	redemptionVault        VaultType = "rv"
+	redemptionVaultUstb    VaultType = "rvUstb"
+	redemptionVaultSwapper VaultType = "rvSwapper"
 )
 
 const (

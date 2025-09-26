@@ -15,13 +15,13 @@ type DepositVault struct {
 	maxSupplyCap                   *uint256.Int
 }
 
-func NewDepositVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *DepositVault {
+func NewDepositVault(vaultState *VaultState, tokenDecimals map[string]uint8) *DepositVault {
 	if vaultState == nil {
 		return nil
 	}
 
 	return &DepositVault{
-		ManageableVault:                NewManageableVault(vaultState, mTokenDecimals, tokenDecimals),
+		ManageableVault:                NewManageableVault(vaultState, tokenDecimals),
 		minMTokenAmountForFirstDeposit: vaultState.MinMTokenAmountForFirstDeposit,
 		totalMinted:                    vaultState.TotalMinted,
 		mTokenTotalSuply:               vaultState.MTokenTotalSupply,
@@ -29,10 +29,10 @@ func NewDepositVault(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8
 	}
 }
 
-func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, error) {
-	amountToken = convertToBase18(amountToken, v.tokenDecimals)
+func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token, mToken string) (*SwapInfo, error) {
+	amountToken = convertToBase18(amountToken, v.tokenDecimals[token])
 
-	feeAmount, mintAmount, err := v.calcAndValidateDeposit(amountToken)
+	feeAmount, mintAmount, err := v.calcAndValidateDeposit(amountToken, token)
 	if err != nil {
 		return nil, err
 	}
@@ -54,13 +54,12 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int) (*SwapInfo, erro
 
 		gas:       depositInstantDefaultGas,
 		fee:       feeAmount,
-		amountOut: convertFromBase18(mintAmount, v.mTokenDecimals),
+		amountOut: convertFromBase18(mintAmount, v.tokenDecimals[mToken]),
 	}, nil
 }
 
-func (v *DepositVault) UpdateState(swapInfo *SwapInfo) {
-	v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
-
+func (v *DepositVault) UpdateState(swapInfo *SwapInfo, token string) {
+	v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
 	v.totalMinted = new(uint256.Int).Add(v.totalMinted, swapInfo.AmountMTokenInBase18)
 }
 
@@ -74,8 +73,9 @@ func (v *DepositVault) CloneState() any {
 
 // feeTokenAmount fee amount in tokenIn
 // mTokenAmount mToken amount for mint
-func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	if v.tokenRemoved {
+func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int, token string) (*uint256.Int, *uint256.Int, error) {
+	tokenIndex := v.ManageableVault.GetTokenIndex(token)
+	if tokenIndex < 0 {
 		return nil, nil, ErrTokenRemoved
 	}
 
@@ -87,20 +87,20 @@ func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int) (*uint25
 		return nil, nil, ErrDepositInstantFnPaused
 	}
 
-	amountInUsd, tokenInUsdRate, err := v.convertTokenToUsd(amountToken, false)
+	amountInUsd, tokenInUsdRate, err := v.convertTokenToUsd(amountToken, false, tokenIndex)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err = v.checkAllowance(amountToken); err != nil {
+	if err = v.checkAllowance(amountToken, tokenIndex); err != nil {
 		return nil, nil, err
 	}
 
-	feeTokenAmount := truncate(v.getFeeAmount(amountToken), v.tokenDecimals)
+	feeTokenAmount := truncate(v.getFeeAmount(amountToken, tokenIndex), v.tokenDecimals[token])
 
 	feeInUsd, _ := new(uint256.Int).MulDivOverflow(feeTokenAmount, tokenInUsdRate, u256.BONE)
 
-	mTokenAmount, _, err := v.convertUsdToToken(new(uint256.Int).Sub(amountInUsd, feeInUsd), true)
+	mTokenAmount, _, err := v.convertUsdToToken(new(uint256.Int).Sub(amountInUsd, feeInUsd), true, tokenIndex)
 	if err != nil {
 		return nil, nil, err
 	}

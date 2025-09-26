@@ -2,6 +2,7 @@ package midas
 
 import (
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -11,10 +12,9 @@ import (
 type VaultType string
 
 type TokenConfig struct {
-	DataFeed  common.Address `json:"dataFeed"`
-	Fee       *uint256.Int   `json:"fee"`
-	Allowance *uint256.Int   `json:"allowance"`
-	Stable    bool           `json:"stable"`
+	Fee       *uint256.Int `json:"fee"`
+	Allowance *uint256.Int `json:"allowance"`
+	Stable    bool         `json:"stable"`
 }
 
 type ChainlinkPriceRpcResult struct {
@@ -24,7 +24,6 @@ type ChainlinkPriceRpcResult struct {
 }
 
 type RedemptionRpcResult struct {
-	SuperstateToken          common.Address
 	Usdc                     common.Address
 	RedemptionFee            *big.Int
 	UstbBalance              *big.Int
@@ -33,25 +32,29 @@ type RedemptionRpcResult struct {
 	SuperstateTokenPrecision *big.Int
 }
 
+type TokenConfigRpcResult struct {
+	DataFeed  common.Address
+	Fee       *big.Int
+	Allowance *big.Int
+	Stable    bool
+}
+
 type VaultStateRpcResult struct {
-	PaymentTokens     []common.Address
-	Paused            bool
-	FnPaused          bool
-	InstantDailyLimit *big.Int
-	DailyLimits       *big.Int
-	InstantFee        *big.Int
-	MinAmount         *big.Int
-	TokenConfig       struct {
-		DataFeed  common.Address
-		Fee       *big.Int
-		Allowance *big.Int
-		Stable    bool
-	}
+	MToken string
+
+	PaymentTokens        []common.Address
+	Paused               bool
+	FnPaused             bool
+	InstantDailyLimit    *big.Int
+	DailyLimits          *big.Int
+	InstantFee           *big.Int
+	MinAmount            *big.Int
+	TokensConfig         []TokenConfigRpcResult
 	MTokenDataFeed       common.Address
 	WaivedFeeRestriction bool
 
 	MTokenRate *big.Int
-	TokenRate  *big.Int
+	TokenRates []*big.Int
 
 	// For deposit vault
 	MinMTokenAmountForFirstDeposit *big.Int
@@ -60,7 +63,7 @@ type VaultStateRpcResult struct {
 	MTokenTotalSupply              *big.Int
 
 	// For redemption vault
-	TokenBalance *big.Int
+	TokenBalances []*big.Int
 
 	// For redemption vault with ustb
 	Redemption RedemptionRpcResult
@@ -73,17 +76,19 @@ type VaultStateRpcResult struct {
 }
 
 type VaultState struct {
-	TokenRemoved         bool         `json:"tokenRemoved"`
-	Paused               bool         `json:"paused"`
-	FnPaused             bool         `json:"fnPaused"`
-	TokenConfig          *TokenConfig `json:"tokenConfig"`
-	InstantDailyLimit    *uint256.Int `json:"instantDailyLimit"`
-	DailyLimits          *uint256.Int `json:"dailyLimits"`
-	InstantFee           *uint256.Int `json:"instantFee"`
-	MinAmount            *uint256.Int `json:"minAmount"`
-	MTokenRate           *uint256.Int `json:"mTokenRate"`
-	TokenRate            *uint256.Int `json:"tokenRate"`
-	WaivedFeeRestriction bool         `json:"waivedFeeRestriction"`
+	MToken string `json:"mToken"`
+
+	PaymentTokens        []string       `json:"paymentTokens"`
+	Paused               bool           `json:"paused"`
+	FnPaused             bool           `json:"fnPaused"`
+	TokenConfigs         []TokenConfig  `json:"tokensConfig"`
+	InstantDailyLimit    *uint256.Int   `json:"instantDailyLimit"`
+	DailyLimits          *uint256.Int   `json:"dailyLimits"`
+	InstantFee           *uint256.Int   `json:"instantFee"`
+	MinAmount            *uint256.Int   `json:"minAmount"`
+	MTokenRate           *uint256.Int   `json:"mTokenRate"`
+	TokenRates           []*uint256.Int `json:"tokenRates"`
+	WaivedFeeRestriction bool           `json:"waivedFeeRestriction"`
 
 	// For deposit vault
 	MinMTokenAmountForFirstDeposit *uint256.Int `json:"minMTokenAmountForFirstDeposit,omitempty"`
@@ -92,7 +97,7 @@ type VaultState struct {
 	MTokenTotalSupply              *uint256.Int `json:"mTokenTotalSupply,omitempty"`
 
 	// For redemption vault
-	TokenBalance *uint256.Int `json:"tokenBalance,omitempty"`
+	TokenBalances []*uint256.Int `json:"tokenBalances,omitempty"`
 
 	// For redemption vault with ustb
 	Redemption *RedemptionState `json:"redemption,omitempty"`
@@ -110,7 +115,6 @@ type RedemptionVaultWithUstbState struct {
 }
 
 type RedemptionState struct {
-	SuperstateToken          common.Address  `json:"superstateToken"`
 	Usdc                     common.Address  `json:"usdc"`
 	RedemptionFee            *uint256.Int    `json:"redemptionFee"`
 	UstbBalance              *uint256.Int    `json:"ustbBalance"`
@@ -127,13 +131,11 @@ type ChainlinkPrice struct {
 
 type StaticExtra struct {
 	IsDv      bool      `json:"isDv"`
-	Vault     string    `json:"vault"`
 	VaultType VaultType `json:"type"`
 }
 
 type Meta struct {
 	BlockNumber uint64 `json:"blockNumber"`
-	Vault       string `json:"vault"`
 }
 
 type SwapInfo struct {
@@ -150,16 +152,18 @@ type SwapInfo struct {
 }
 
 type IDepositVault interface {
-	DepositInstant(amountTokenIn *uint256.Int) (*SwapInfo, error)
-	UpdateState(swapInfo *SwapInfo)
+	DepositInstant(amountTokenIn *uint256.Int, tokenIn, tokenOut string) (*SwapInfo, error)
+	UpdateState(swapInfo *SwapInfo, tokenIn string)
 	CloneState() any
+	GetMToken() string
 }
 
 type IRedemptionVault interface {
-	GetMTokenRate() *uint256.Int
-	RedeemInstant(amountMTokenIn *uint256.Int, tokenOut string) (*SwapInfo, error)
-	UpdateState(swapInfo *SwapInfo)
+	RedeemInstant(amountMTokenIn *uint256.Int, tokenIn, tokenOut string) (*SwapInfo, error)
+	UpdateState(swapInfo *SwapInfo, tokenIn string)
 	CloneState() any
+	GetMTokenRate() *uint256.Int
+	GetMToken() string
 }
 
 func (r *RedemptionRpcResult) ToRedemptionState() *RedemptionState {
@@ -168,10 +172,9 @@ func (r *RedemptionRpcResult) ToRedemptionState() *RedemptionState {
 	}
 
 	return &RedemptionState{
-		SuperstateToken: r.SuperstateToken,
-		Usdc:            r.Usdc,
-		RedemptionFee:   uint256.MustFromBig(r.RedemptionFee),
-		UstbBalance:     uint256.MustFromBig(r.UstbBalance),
+		Usdc:          r.Usdc,
+		RedemptionFee: uint256.MustFromBig(r.RedemptionFee),
+		UstbBalance:   uint256.MustFromBig(r.UstbBalance),
 		ChainlinkPrice: &ChainlinkPrice{
 			IsBadData: r.ChainlinkPrice.IsBadData,
 			UpdatedAt: uint256.MustFromBig(r.ChainlinkPrice.UpdatedAt),
@@ -182,27 +185,34 @@ func (r *RedemptionRpcResult) ToRedemptionState() *RedemptionState {
 	}
 }
 
-func (v *VaultStateRpcResult) ToVaultState(vaultType VaultType, token string) *VaultState {
+func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *VaultState {
 	if v == nil {
 		return nil
 	}
 
 	vault := &VaultState{
-		TokenRemoved:      !lo.Contains(v.PaymentTokens, common.HexToAddress(token)),
+		MToken: mToken,
+		PaymentTokens: lo.Map(v.PaymentTokens, func(token common.Address, _ int) string {
+			return strings.ToLower(token.String())
+		}),
 		Paused:            v.Paused,
 		FnPaused:          v.FnPaused,
 		InstantDailyLimit: uint256.MustFromBig(v.InstantDailyLimit),
 		DailyLimits:       uint256.MustFromBig(v.DailyLimits),
 		InstantFee:        uint256.MustFromBig(v.InstantFee),
 		MinAmount:         uint256.MustFromBig(v.MinAmount),
-		TokenConfig: &TokenConfig{
-			DataFeed:  v.TokenConfig.DataFeed,
-			Fee:       uint256.MustFromBig(v.TokenConfig.Fee),
-			Allowance: uint256.MustFromBig(v.TokenConfig.Allowance),
-			Stable:    v.TokenConfig.Stable,
-		},
+		TokenConfigs: lo.Map(v.TokensConfig, func(cfg TokenConfigRpcResult, _ int) TokenConfig {
+			return TokenConfig{
+				Fee:       uint256.MustFromBig(cfg.Fee),
+				Allowance: uint256.MustFromBig(cfg.Allowance),
+				Stable:    cfg.Stable,
+			}
+		}),
 		MTokenRate: uint256.MustFromBig(v.MTokenRate),
-		TokenRate:  uint256.MustFromBig(v.TokenRate),
+		TokenRates: lo.Map(v.TokenRates, func(rate *big.Int, _ int) *uint256.Int {
+			return uint256.MustFromBig(rate)
+		}),
+		WaivedFeeRestriction: v.WaivedFeeRestriction,
 	}
 
 	switch vaultType {
@@ -212,16 +222,16 @@ func (v *VaultStateRpcResult) ToVaultState(vaultType VaultType, token string) *V
 		vault.MaxSupplyCap = uint256.MustFromBig(v.MaxSupplyCap)
 		vault.MTokenTotalSupply = uint256.MustFromBig(v.MTokenTotalSupply)
 	case redemptionVault:
-		vault.TokenBalance = uint256.MustFromBig(v.TokenBalance)
+		vault.TokenBalances = toU256Slice(v.TokenBalances)
 	case redemptionVaultUstb:
-		vault.TokenBalance = uint256.MustFromBig(v.TokenBalance)
+		vault.TokenBalances = toU256Slice(v.TokenBalances)
 		vault.Redemption = v.Redemption.ToRedemptionState()
 	case redemptionVaultSwapper:
-		vault.TokenBalance = uint256.MustFromBig(v.TokenBalance)
+		vault.TokenBalances = toU256Slice(v.TokenBalances)
 		vault.MToken1Balance = uint256.MustFromBig(v.MToken1Balance)
 		vault.MToken2Balance = uint256.MustFromBig(v.MToken2Balance)
 		vault.SwapperVaultType = v.SwapperVaultType
-		vault.MTbillRedemptionVault = v.MTbillRedemptionVault.ToVaultState(v.SwapperVaultType, token)
+		vault.MTbillRedemptionVault = v.MTbillRedemptionVault.ToVaultState(v.MTbillRedemptionVault.MToken, v.SwapperVaultType)
 	}
 
 	return vault

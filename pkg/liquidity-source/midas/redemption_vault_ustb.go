@@ -14,17 +14,17 @@ type RedemptionVaultUstb struct {
 	ustbRedemption *RedemptionState
 }
 
-func NewRedemptionVaultUstb(vaultState *VaultState, mTokenDecimals, tokenDecimals uint8) *RedemptionVaultUstb {
+func NewRedemptionVaultUstb(vaultState *VaultState, tokenDecimals map[string]uint8) *RedemptionVaultUstb {
 	return &RedemptionVaultUstb{
-		RedemptionVault: NewRedemptionVault(vaultState, mTokenDecimals, tokenDecimals),
+		RedemptionVault: NewRedemptionVault(vaultState, tokenDecimals),
 		ustbRedemption:  vaultState.Redemption,
 	}
 }
 
-func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int, tokenOut string) (*SwapInfo, error) {
-	amountMTokenIn = convertToBase18(amountMTokenIn, v.mTokenDecimals)
+func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int, mToken, token string) (*SwapInfo, error) {
+	amountMTokenIn = convertToBase18(amountMTokenIn, v.tokenDecimals[mToken])
 
-	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn)
+	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn, token)
 	if err != nil {
 		return nil, err
 	}
@@ -33,25 +33,27 @@ func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int, tokenOu
 		return nil, err
 	}
 
-	amountMTokenInUsd, mTokenRate, err := v.convertTokenToUsd(amountMTokenIn, true)
+	tokenIndex := v.GetTokenIndex(token)
+
+	amountMTokenInUsd, mTokenRate, err := v.convertTokenToUsd(amountMTokenIn, true, tokenIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	amountTokenOut, tokenOutRate, err := v.convertUsdToToken(amountMTokenInUsd, false)
+	amountTokenOut, tokenOutRate, err := v.convertUsdToToken(amountMTokenInUsd, false, tokenIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = v.checkAllowance(amountTokenOut); err != nil {
+	if err = v.checkAllowance(amountTokenOut, tokenIndex); err != nil {
 		return nil, err
 	}
 
 	amountTokenOutWithoutFeeFrom18, _ := new(uint256.Int).MulDivOverflow(amountMTokenWithoutFee, mTokenRate, tokenOutRate)
-	amountTokenOutWithoutFeeFrom18 = convertFromBase18(amountTokenOutWithoutFeeFrom18, v.tokenDecimals)
-	amountTokenOutWithoutFee := convertToBase18(amountTokenOutWithoutFeeFrom18, v.tokenDecimals)
+	amountTokenOutWithoutFeeFrom18 = convertFromBase18(amountTokenOutWithoutFeeFrom18, v.tokenDecimals[token])
+	amountTokenOutWithoutFee := convertToBase18(amountTokenOutWithoutFeeFrom18, v.tokenDecimals[token])
 
-	if err = v.checkAndRedeemUstb(tokenOut, amountTokenOutWithoutFeeFrom18); err != nil {
+	if err = v.checkAndRedeemUstb(amountTokenOutWithoutFeeFrom18, tokenIndex); err != nil {
 		return nil, err
 	}
 
@@ -62,20 +64,20 @@ func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int, tokenOu
 
 		gas:       redeemInstantUstbGas,
 		fee:       feeAmount,
-		amountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals),
+		amountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals[token]),
 	}, nil
 }
 
-func (v *RedemptionVaultUstb) checkAndRedeemUstb(tokenOut string, amountTokenOut *uint256.Int) error {
-	if !v.tokenBalance.Lt(amountTokenOut) {
+func (v *RedemptionVaultUstb) checkAndRedeemUstb(amountTokenOut *uint256.Int, tokenIndex int) error {
+	if !v.tokenBalances[tokenIndex].Lt(amountTokenOut) {
 		return nil
 	}
 
-	if !strings.EqualFold(tokenOut, v.ustbRedemption.Usdc.String()) {
+	if !strings.EqualFold(v.paymentTokens[tokenIndex], v.ustbRedemption.Usdc.String()) {
 		return ErrRVUInvalidToken
 	}
 
-	missingAmount := new(uint256.Int).Sub(amountTokenOut, v.tokenBalance)
+	missingAmount := new(uint256.Int).Sub(amountTokenOut, v.tokenBalances[tokenIndex])
 
 	fee := v.calculateFee(missingAmount)
 	if fee.Sign() != 0 {
@@ -117,16 +119,17 @@ func (v *RedemptionVaultUstb) calculateUstbIn(usdcOutAmount *uint256.Int) (*uint
 	return numerator, nil
 }
 
-func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo) {
-	if !v.tokenBalance.Lt(swapInfo.amountOut) {
-		v.RedemptionVault.UpdateState(swapInfo)
+func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo, token string) {
+	tokenIndex := v.GetTokenIndex(token)
+	if !v.tokenBalances[tokenIndex].Lt(swapInfo.amountOut) {
+		v.RedemptionVault.UpdateState(swapInfo, token)
 	} else {
-		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18)
+		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
 
-		missingAmount := new(uint256.Int).Sub(swapInfo.amountOut, v.tokenBalance)
+		missingAmount := new(uint256.Int).Sub(swapInfo.amountOut, v.tokenBalances[tokenIndex])
 		v.ustbRedemption.UstbBalance = new(uint256.Int).Sub(v.ustbRedemption.UstbBalance, missingAmount)
 
-		v.tokenBalance = new(uint256.Int)
+		v.tokenBalances[tokenIndex] = new(uint256.Int)
 	}
 }
 
