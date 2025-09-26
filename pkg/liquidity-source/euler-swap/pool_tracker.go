@@ -113,8 +113,6 @@ func (d *PoolTracker) getPoolData(
 	var (
 		data           TrackerData
 		vaults         = make([]VaultRPC, 2)
-		totalAssets    [2]*big.Int
-		totalSupplies  [2]*big.Int
 		oracles        [3]common.Address // last element is for controller vault
 		unitOfAccounts [3]common.Address // last element is for controller vault
 		collaterals    []common.Address
@@ -171,11 +169,11 @@ func (d *PoolTracker) getPoolData(
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodTotalAssets,
-		}, []any{&totalAssets[i]}).AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].TotalAssets}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodTotalSupply,
-		}, []any{&totalSupplies[i]}).AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].TotalSupply}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodBalanceOf,
@@ -188,7 +186,12 @@ func (d *PoolTracker) getPoolData(
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodUnitOfAccount,
-		}, []any{&unitOfAccounts[i]})
+		}, []any{&unitOfAccounts[i]}).AddCall(&ethrpc.Call{
+			ABI:    evcABI,
+			Target: evc,
+			Method: evcMethodIsControllerEnabled,
+			Params: []any{eulerAcctAddr, common.HexToAddress(v.VaultAddress)},
+		}, []any{&vaults[i].IsControllerEnabled})
 	}
 
 	resp, err := req.TryBlockAndAggregate()
@@ -208,7 +211,9 @@ func (d *PoolTracker) getPoolData(
 	)
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	if len(controllers) > 0 {
-		vaults = append(vaults, VaultRPC{})
+		vaults = append(vaults, VaultRPC{
+			IsControllerEnabled: true,
+		})
 		data.Vaults = vaults
 		data.Controller = hexutil.Encode(controllers[0][:])
 		vaultList = append(vaultList, VaultInfo{
@@ -338,7 +343,7 @@ func (d *PoolTracker) getPoolData(
 
 	for i, v := range vaults {
 		if i < 2 {
-			v.EulerAccountBalance = convertToAssets(v.EulerAccountBalance, totalAssets[i], totalSupplies[i])
+			v.EulerAccountBalance = convertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
 		}
 		for j, otherV := range vaultList {
 			for _, q := range data.VaultPrices[j][i] {
@@ -381,8 +386,9 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *TrackerData, blockNumbe
 				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) }),
 			VaultValuePrices: [2]*uint256.Int(lo.Map(data.VaultPrices[:2],
 				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) })),
-			LTVs:      lo.Map(data.CollatLtvs, func(l [3]uint16, _ int) uint64 { return uint64(l[i]) }),
-			VaultLTVs: [2]uint64(lo.Map(data.VaultLtvs[:2], func(l [3]uint16, _ int) uint64 { return uint64(l[i]) })),
+			LTVs:                lo.Map(data.CollatLtvs, func(l [3]uint16, _ int) uint64 { return uint64(l[i]) }),
+			VaultLTVs:           [2]uint64(lo.Map(data.VaultLtvs[:2], func(l [3]uint16, _ int) uint64 { return uint64(l[i]) })),
+			IsControllerEnabled: data.Vaults[i].IsControllerEnabled,
 		}
 	}
 
