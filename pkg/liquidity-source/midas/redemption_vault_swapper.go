@@ -88,7 +88,7 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 
 		gas:       redeemInstantDefaultGas,
 		fee:       feeAmount,
-		amountOut: convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals[token]),
+		amountOut: amountTokenOutWithoutFee,
 	}, nil
 }
 
@@ -125,6 +125,7 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo, token string) {
 func (v *RedemptionVaultSwapper) CloneState() any {
 	cloned := *v
 	cloned.RedemptionVault = v.RedemptionVault.CloneState().(*RedemptionVault)
+	cloned.mTbillRedemptionVault = v.mTbillRedemptionVault.CloneState().(IRedemptionVault)
 	cloned.mToken2Balance = new(uint256.Int).Set(v.mToken2Balance)
 
 	return &cloned

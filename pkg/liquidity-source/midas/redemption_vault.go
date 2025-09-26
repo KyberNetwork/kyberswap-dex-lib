@@ -57,7 +57,7 @@ func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int, token strin
 	amountOut := convertFromBase18(amountTokenOutWithoutFee, v.tokenDecimals[token])
 
 	if !v.tokenBalances[tokenIndex].Gt(amountOut) {
-		return nil, ErrDVInsufficientBalance
+		return nil, ErrRVInsufficientBalance
 	}
 
 	return &SwapInfo{

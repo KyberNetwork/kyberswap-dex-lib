@@ -1,8 +1,6 @@
 package midas
 
 import (
-	"slices"
-
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -99,7 +97,10 @@ func (v *ManageableVault) UpdateState(amountTokenInBase18, amountMTokenInBase18 
 
 func (v *ManageableVault) CloneState() *ManageableVault {
 	cloned := *v
-	cloned.tokenConfigs = slices.Clone(v.tokenConfigs)
+	cloned.tokenConfigs = lo.Map(v.tokenConfigs, func(cfg TokenConfig, _ int) TokenConfig {
+		cfg.Allowance = new(uint256.Int).Set(cfg.Allowance)
+		return cfg
+	})
 	cloned.dailyLimits = new(uint256.Int).Set(cloned.dailyLimits)
 
 	return &cloned
