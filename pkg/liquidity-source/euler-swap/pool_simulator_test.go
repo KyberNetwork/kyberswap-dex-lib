@@ -1,7 +1,6 @@
 package eulerswap
 
 import (
-	"log"
 	"math/big"
 	"testing"
 
@@ -256,48 +255,29 @@ func TestSwapEdgeCases(t *testing.T) {
 func TestReverseSwap(t *testing.T) {
 	t.Parallel()
 
+	// Test cases: [poolId, amountIn, description]
 	testCases := []struct {
-		name     string
-		poolId   int
-		amountIn string
+		poolId      int
+		amountIn    string
+		description string
 	}{
-		{
-			poolId:   0,
-			name:     "AUSD-USDC Pool (Avalanche) - Small reserves",
-			amountIn: "1000000000",
-		},
-		{
-			poolId:   1,
-			name:     "AUSD-USDC Pool (Avalanche) - Medium reserves",
-			amountIn: "1000000000",
-		},
-		{
-			poolId:   2,
-			name:     "AUSD-USDC Pool (Avalanche) - Large reserves with debt",
-			amountIn: "1000000000",
-		},
-		{
-			poolId:   3,
-			name:     "USDC-mUSD Pool (Linea) - Small amount",
-			amountIn: "1000000000",
-		},
-		{
-			poolId:   3,
-			name:     "USDC-mUSD Pool (Linea) - Large amount",
-			amountIn: "1000000000000",
-		},
+		{0, "1000000000", "AUSD-USDC (Small reserves)"},
+		{1, "1000000000", "AUSD-USDC (Medium reserves)"},
+		{2, "1000000000", "AUSD-USDC (Large reserves with debt)"},
+		{3, "1000000000", "USDC-mUSD (Small amount)"},
+		{3, "1000000000000", "USDC-mUSD (Large amount)"},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
 			var pool entity.Pool
 			err := json.Unmarshal([]byte(poolList[tc.poolId]), &pool)
-			require.Nil(t, err, "Failed to parse pool data for %s", tc.name)
+			require.Nil(t, err, "Failed to parse pool data for %s", tc.description)
 
 			s, err := NewPoolSimulator(pool)
-			require.Nil(t, err, "Failed to create simulator for %s", tc.name)
+			require.Nil(t, err, "Failed to create simulator for %s", tc.description)
 
 			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
 			tokenAmountIn := poolpkg.TokenAmount{
@@ -313,8 +293,8 @@ func TestReverseSwap(t *testing.T) {
 				})
 			})
 
-			require.Nil(t, err, "Forward swap failed for %s", tc.name)
-			require.NotNil(t, forwardResult, "Forward result is nil for %s", tc.name)
+			require.Nil(t, err, "Forward swap failed for %s", tc.description)
+			require.NotNil(t, forwardResult, "Forward result is nil for %s", tc.description)
 
 			// Reverse swap
 			reverseResult, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
@@ -324,16 +304,16 @@ func TestReverseSwap(t *testing.T) {
 				})
 			})
 
-			require.Nil(t, err, "Reverse swap failed for %s", tc.name)
-			require.NotNil(t, reverseResult, "Reverse result is nil for %s", tc.name)
+			require.Nil(t, err, "Reverse swap failed for %s", tc.description)
+			require.NotNil(t, reverseResult, "Reverse result is nil for %s", tc.description)
 
 			require.Less(t, reverseResult.TokenAmountOut.Amount.Cmp(amountIn), 0,
-				"Reverse swap should return less than original due to fees for %s", tc.name)
+				"Reverse swap should return less than original due to fees for %s", tc.description)
 			require.Greater(t, reverseResult.TokenAmountOut.Amount.Cmp(big.NewInt(0)), 0,
-				"Reverse swap should return positive amount for %s", tc.name)
+				"Reverse swap should return positive amount for %s", tc.description)
 
 			t.Logf("Swap reversibility verified for %s: forward=%s, reverse=%s",
-				tc.name, forwardResult.TokenAmountOut.Amount.String(), reverseResult.TokenAmountOut.Amount.String())
+				tc.description, forwardResult.TokenAmountOut.Amount.String(), reverseResult.TokenAmountOut.Amount.String())
 		})
 	}
 }
@@ -408,7 +388,6 @@ func TestMergeSwaps(t *testing.T) {
 				})
 
 				if err != nil {
-					log.Println(i)
 					chunkedErr = err
 					break
 				}
