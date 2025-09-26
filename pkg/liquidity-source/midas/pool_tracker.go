@@ -208,7 +208,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, toke
 			Method: dataFeedGetDataInBase18Method,
 		}, []any{&result.MTokenRate})
 	result.TokenRates = make([]*big.Int, len(tokens))
-	for i, _ := range tokens {
+	for i := range tokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    dataFeedABI,
 			Target: result.TokensConfig[i].DataFeed.String(),

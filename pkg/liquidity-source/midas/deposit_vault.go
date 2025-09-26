@@ -74,7 +74,7 @@ func (v *DepositVault) CloneState() any {
 // feeTokenAmount fee amount in tokenIn
 // mTokenAmount mToken amount for mint
 func (v *DepositVault) calcAndValidateDeposit(amountToken *uint256.Int, token string) (*uint256.Int, *uint256.Int, error) {
-	tokenIndex := v.ManageableVault.GetTokenIndex(token)
+	tokenIndex := v.GetTokenIndex(token)
 	if tokenIndex < 0 {
 		return nil, nil, ErrTokenRemoved
 	}
