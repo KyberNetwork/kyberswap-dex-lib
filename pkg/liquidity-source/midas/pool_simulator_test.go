@@ -21,7 +21,11 @@ type PoolSimulatorTestSuite struct {
 
 func (ts *PoolSimulatorTestSuite) SetupSuite() {
 	ts.pools = map[string]string{
-		"dv-mHYPER": `{"address":"0xba9fd2850965053ffab368df8aa7ed2486f11024","exchange":"midas","type":"midas","timestamp":1758864811,"reserves":["15000000000000000000000000","80678880596338","98323676234727387617186711","98608250793368571215532080","87177086364248"],"tokens":[{"address":"0x9b5528528656dbc094765e2abb79f293c21191b9","symbol":"mHYPER","decimals":18,"swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x6b175474e89094c44da98b954eedeac495271d0f","symbol":"DAI","decimals":18,"swappable":true},{"address":"0xdc035d45d973e3ec169d2276ddab16f1e407384f","symbol":"USDS","decimals":18,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"paymentTokens\":[\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xdc035d45d973e3ec169d2276ddab16f1e407384f\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"paused\":false,\"fnPaused\":false,\"tokensConfig\":[{\"fee\":\"0\",\"allowance\":\"80678880596338000000000000\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"98323676234727387617186711\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"98608250793368571215532080\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"87177086364248000000000000\",\"stable\":true}],\"instantDailyLimit\":\"15000000000000000000000000\",\"dailyLimits\":\"89417260890222031311412\",\"instantFee\":\"0\",\"minAmount\":\"0\",\"mTokenRate\":\"1032063910000000000\",\"tokenRates\":[\"999774910000000000\",\"999610950000000000\",\"999859270000000000\",\"1000173700000000000\"],\"waivedFeeRestriction\":false,\"minMTokenAmountForFirstDeposit\":\"0\",\"totalMinted\":\"0\",\"mTokenTotalSupply\":\"178487958011840149748813190\"}","staticExtra":"{\"isDv\":true,\"type\":\"dv\"}"}`,
+		"dv-mHYPER": `{"address":"0xba9fd2850965053ffab368df8aa7ed2486f11024","exchange":"midas","type":"midas","timestamp":1758869417,"reserves":["15000000000000000000000000","80678850596338","98323676234727387617186711","98608250793368571215532080","87177086364248"],"tokens":[{"address":"0x9b5528528656dbc094765e2abb79f293c21191b9","symbol":"mHYPER","decimals":18,"swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true},{"address":"0x6b175474e89094c44da98b954eedeac495271d0f","symbol":"DAI","decimals":18,"swappable":true},{"address":"0xdc035d45d973e3ec169d2276ddab16f1e407384f","symbol":"USDS","decimals":18,"swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"mToken\":\"0x9b5528528656dbc094765e2abb79f293c21191b9\",\"paymentTokens\":[\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xdc035d45d973e3ec169d2276ddab16f1e407384f\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"paused\":false,\"fnPaused\":false,\"tokensConfig\":[{\"fee\":\"0\",\"allowance\":\"80678850596338000000000000\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"98323676234727387617186711\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"98608250793368571215532080\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"87177086364248000000000000\",\"stable\":true}],\"instantDailyLimit\":\"15000000000000000000000000\",\"dailyLimits\":\"89446328857534249408448\",\"instantFee\":\"0\",\"minAmount\":\"0\",\"mTokenRate\":\"1032063910000000000\",\"tokenRates\":[\"999774910000000000\",\"999708870000000000\",\"999859270000000000\",\"1000173700000000000\"],\"waivedFeeRestriction\":false,\"minMTokenAmountForFirstDeposit\":\"0\",\"totalMinted\":\"0\",\"mTokenTotalSupply\":\"178487987079807461966910226\"}","staticExtra":"{\"isDv\":true,\"type\":\"dv\"}"}`,
+		"dv-mBTC":   `{"address":"0x10cc8dbca90db7606013d8cd2e77eb024df693bd","exchange":"midas","type":"midas","timestamp":1758869489,"reserves":["150000000000000000000","11991767962"],"tokens":[{"address":"0x007115416ab6c266329a03b09a8aa39ac2ef7d9d","symbol":"mBTC","decimals":18,"swappable":true},{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true}],"extra":"{\"mToken\":\"0x007115416ab6c266329a03b09a8aa39ac2ef7d9d\",\"paymentTokens\":[\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\"],\"paused\":false,\"fnPaused\":false,\"tokensConfig\":[{\"fee\":\"0\",\"allowance\":\"119917679620000000000\",\"stable\":true}],\"instantDailyLimit\":\"150000000000000000000\",\"dailyLimits\":\"0\",\"instantFee\":\"0\",\"minAmount\":\"0\",\"mTokenRate\":\"1031269460000000000\",\"tokenRates\":[\"1000250000000000000\"],\"waivedFeeRestriction\":false,\"minMTokenAmountForFirstDeposit\":\"0\",\"totalMinted\":\"0\",\"mTokenTotalSupply\":\"12689350324218321024\"}","staticExtra":"{\"isDv\":true,\"type\":\"dv\"}"}`,
+		"rv-mBTC":   `{"address":"0x30d9d1e76869516aea980390494aaed45c3efc1a","exchange":"midas","type":"midas","timestamp":1758870286,"reserves":["15000000000000000000","12291619805","0"],"tokens":[{"address":"0x007115416ab6c266329a03b09a8aa39ac2ef7d9d","symbol":"mBTC","decimals":18,"swappable":true},{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true},{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true}],"extra":"{\"mToken\":\"0x007115416ab6c266329a03b09a8aa39ac2ef7d9d\",\"paymentTokens\":[\"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599\",\"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf\"],\"paused\":false,\"fnPaused\":false,\"tokensConfig\":[{\"fee\":\"0\",\"allowance\":\"122916198056572888262\",\"stable\":true},{\"fee\":\"0\",\"allowance\":\"10000000\",\"stable\":true}],\"instantDailyLimit\":\"15000000000000000000\",\"dailyLimits\":\"0\",\"instantFee\":\"7\",\"minAmount\":\"0\",\"mTokenRate\":\"1031269460000000000\",\"tokenRates\":[\"1000250000000000000\",\"1000000000000000000\"],\"waivedFeeRestriction\":false,\"tokenBalances\":[\"307402038\",\"0\"]}","staticExtra":"{\"isDv\":false,\"type\":\"rv\"}"}`,
+		//"rv-ustb":                ``,
+		//"rv-swapper-ustb-mHYPER": ``,
 	}
 
 	ts.sims = map[string]*PoolSimulator{}
@@ -78,6 +82,30 @@ func (ts *PoolSimulatorTestSuite) TestCalcAmountOut() {
 			tokenOut:          "0x9b5528528656dbc094765e2abb79f293c21191b9",
 			amountIn:          "10000000000000",
 			expectedAmountOut: "9689322437406",
+		},
+		{
+			name:              "WBTC -> mBTC",
+			pool:              "dv-mBTC",
+			tokenIn:           "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+			tokenOut:          "0x007115416ab6c266329a03b09a8aa39ac2ef7d9d",
+			amountIn:          "10000000000",
+			expectedAmountOut: "96967867156659521363",
+		},
+		{
+			name:              "WBTC -> mBTC",
+			pool:              "dv-mBTC",
+			tokenIn:           "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+			tokenOut:          "0x007115416ab6c266329a03b09a8aa39ac2ef7d9d",
+			amountIn:          "600000000",
+			expectedAmountOut: "5818072029399571281",
+		},
+		{
+			name:              "WBTC <- mBTC",
+			pool:              "rv-mBTC",
+			tokenIn:           "0x007115416ab6c266329a03b09a8aa39ac2ef7d9d",
+			tokenOut:          "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+			amountIn:          "600000000000000",
+			expectedAmountOut: "5818072029399571281",
 		},
 		//{
 		//	name:          "mHYPER deposit USDC",

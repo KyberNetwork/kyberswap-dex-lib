@@ -104,10 +104,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(*SwapInfo)
 	tokenIn := params.TokenAmountIn.Token
+	tokenOut := params.TokenAmountOut.Token
 	if swapInfo.IsDeposit {
 		s.dv.UpdateState(swapInfo, tokenIn)
 	} else {
-		s.rv.UpdateState(swapInfo, tokenIn)
+		s.rv.UpdateState(swapInfo, tokenOut)
 	}
 }
 
