@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -60,9 +59,7 @@ func (d *PoolTracker) GetNewPoolState(
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
 	var staticExtra StaticExtra
-	if p.StaticExtra != "" {
-		_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-	}
+	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	if staticExtra.PriceFeedIds[0] == "" {
 		var priceFeedIds [2]common.Hash
 		if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
@@ -84,7 +81,11 @@ func (d *PoolTracker) GetNewPoolState(
 			p.StaticExtra = string(staticExtraBytes)
 		}
 	}
+
 	pythUpdateDataCh := lo.Async(func() *PythUpdateData {
+		if time.Since(time.Unix(p.Timestamp, 0)) < 12*time.Second {
+			return nil // don't need to fetch this too often
+		}
 		var pythUpdateData PythUpdateData
 		if resp, err := d.pythClient.R().SetContext(ctx).
 			SetQueryString("ids[]=" + staticExtra.PriceFeedIds[0] + "&ids[]=" + staticExtra.PriceFeedIds[1]).
@@ -98,8 +99,9 @@ func (d *PoolTracker) GetNewPoolState(
 		}
 	})
 
+	var extra Extra
+	_ = json.Unmarshal([]byte(p.Extra), &extra)
 	var reserveData GetReservesResult
-	var fee, lambda uint64
 	var kappa *big.Int
 	resp, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    brownFiV2PairABI,
@@ -109,11 +111,11 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    brownFiV2PairABI,
 		Target: p.Address,
 		Method: pairMethodFee,
-	}, []any{&fee}).AddCall(&ethrpc.Call{
+	}, []any{&extra.Fee}).AddCall(&ethrpc.Call{
 		ABI:    brownFiV2PairABI,
 		Target: p.Address,
 		Method: pairMethodLambda,
-	}, []any{&lambda}).AddCall(&ethrpc.Call{
+	}, []any{&extra.Lambda}).AddCall(&ethrpc.Call{
 		ABI:    brownFiV2PairABI,
 		Target: p.Address,
 		Method: pairMethodKappa,
@@ -121,17 +123,18 @@ func (d *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	extra.Kappa.SetFromBig(kappa)
 
-	pythUpdateData := <-pythUpdateDataCh
-	if pythUpdateData == nil {
-		return p, ErrFailToFetchPriceFeeds
+	if pythUpdateData := <-pythUpdateDataCh; pythUpdateData != nil {
+		for i, parsed := range pythUpdateData.Parsed {
+			_ = extra.OPrices[i].SetFromDecimal(parsed.Price.Price)
+			extra.OPrices[i].MulDivOverflow(extra.OPrices[i], q64, big256.TenPow(-parsed.Price.Expo))
+		}
+		extra.PriceUpdateData, _ = hex.DecodeString(pythUpdateData.Binary.Data[0])
+		p.Timestamp = time.Now().Unix()
+	} else {
+		p.Timestamp = min(p.Timestamp+1, time.Now().Unix()) // minimal increment for lower save priority
 	}
-	oPrices := make([]*uint256.Int, 2)
-	for i, parsed := range pythUpdateData.Parsed {
-		oPrice, _ := uint256.FromDecimal(parsed.Price.Price)
-		oPrices[i], _ = oPrice.MulDivOverflow(oPrice, q64, big256.TenPow(-parsed.Price.Expo))
-	}
-	priceUpdateData, _ := hex.DecodeString(pythUpdateData.Binary.Data[0])
 
 	logger.
 		WithFields(
@@ -146,14 +149,6 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	extra := Extra{
-		Fee:             fee,
-		Lambda:          lambda,
-		Kappa:           uint256.MustFromBig(kappa),
-		OPrices:         [2]*uint256.Int(oPrices),
-		PriceUpdateData: priceUpdateData,
-	}
-
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return p, err
@@ -165,7 +160,6 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = resp.BlockNumber.Uint64()
-	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
