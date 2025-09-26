@@ -2,7 +2,6 @@ package eulerswap
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 
@@ -203,16 +202,12 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 			}
 		}
 
-		log.Println("Before : ", collatVal.String(), newCollat.String())
-
 		vaultValuePrices, vaultLtvs := debtVault.VaultValuePrices, debtVault.VaultLTVs
 		collatVal.Add(collatVal,
 			tmp.Mul(tmp.Mul(newCollat, tmp.SetUint64(vaultLtvs[sellVaultIdx])), vaultValuePrices[sellVaultIdx]))
 
 		collatVal.Sub(collatVal,
 			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
-
-		log.Println("After : ", collatVal.String(), liabilityVal.String())
 
 		// Apply a safety buffer (85%) to the collateral value for swap limit checks
 		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.U100)
