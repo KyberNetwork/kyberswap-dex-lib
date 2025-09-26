@@ -258,6 +258,35 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 
 	switch rvCfg.RvType {
 	case redemptionVault:
+		req = t.ethrpcClient.
+			NewRequest().
+			SetContext(ctx).
+			SetBlockNumber(resp.BlockNumber).
+			AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.MTokenDataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.MTokenRate})
+
+		result.TokenRates = make([]*big.Int, len(tokens))
+		for i := range tokens {
+			if eth.IsZeroAddress(result.TokensConfig[i].DataFeed) {
+				continue
+			}
+
+			req.AddCall(&ethrpc.Call{
+				ABI:    dataFeedABI,
+				Target: result.TokensConfig[i].DataFeed.String(),
+				Method: dataFeedGetDataInBase18Method,
+			}, []any{&result.TokenRates[i]})
+		}
+		_, err = req.TryAggregate()
+		if err != nil {
+			lg.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to aggregate data feed rates for rv")
+			return nil, err
+		}
 	case redemptionVaultSwapper:
 		var (
 			liquidityProvider     common.Address
