@@ -36,6 +36,7 @@ const (
 	evcMethodIsAccountOperatorAuthorized = "isAccountOperatorAuthorized"
 	evcMethodGetCollaterals              = "getCollaterals"
 	evcMethodGetControllers              = "getControllers"
+	evcMethodIsControllerEnabled         = "isControllerEnabled"
 
 	routerMethodGetQuotes = "getQuotes"
 

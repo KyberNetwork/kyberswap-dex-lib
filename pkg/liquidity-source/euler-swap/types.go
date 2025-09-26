@@ -42,28 +42,32 @@ type VaultInfo struct {
 }
 
 type Vault struct {
-	Cash               *uint256.Int    `json:"c,omitempty"` // ~ totalAssets - totalBorrows
-	Debt               *uint256.Int    `json:"d,omitempty"` // debt of euler account
-	MaxDeposit         *uint256.Int    `json:"mD,omitempty"`
-	MaxWithdraw        *uint256.Int    `json:"mW,omitempty"`
-	TotalBorrows       *uint256.Int    `json:"tB,omitempty"`
-	EulerAccountAssets *uint256.Int    `json:"eAA,omitempty"`
-	DebtPrice          *uint256.Int    `json:"dP,omitempty"`   // quoted debt price against itself
-	ValuePrices        []*uint256.Int  `json:"vP,omitempty"`   // quoted value prices against collaterals
-	VaultValuePrices   [2]*uint256.Int `json:"vVP,omitempty"`  // quoted value prices against v0 + v1
-	LTVs               []uint64        `json:"ltv,omitempty"`  // borrow ltv against each collateral
-	VaultLTVs          [2]uint64       `json:"vLtv,omitempty"` // borrow ltv against v0 + v1
+	Cash                *uint256.Int    `json:"c,omitempty"` // ~ totalAssets - totalBorrows
+	Debt                *uint256.Int    `json:"d,omitempty"` // debt of euler account
+	MaxDeposit          *uint256.Int    `json:"mD,omitempty"`
+	MaxWithdraw         *uint256.Int    `json:"mW,omitempty"`
+	TotalBorrows        *uint256.Int    `json:"tB,omitempty"`
+	EulerAccountAssets  *uint256.Int    `json:"eAA,omitempty"`
+	DebtPrice           *uint256.Int    `json:"dP,omitempty"`   // quoted debt price against itself
+	ValuePrices         []*uint256.Int  `json:"vP,omitempty"`   // quoted value prices against collaterals
+	VaultValuePrices    [2]*uint256.Int `json:"vVP,omitempty"`  // quoted value prices against v0 + v1
+	LTVs                []uint64        `json:"ltv,omitempty"`  // borrow ltv against each collateral
+	VaultLTVs           [2]uint64       `json:"vLtv,omitempty"` // borrow ltv against v0 + v1
+	IsControllerEnabled bool            `json:"iCE,omitempty"`  // is controller enabled
 }
 
 type SwapInfo struct {
-	reserves       [2]*uint256.Int
-	withdrawAmount *uint256.Int // withdrawn collateral asset amount
-	borrowAmount   *uint256.Int // new buy token debt amount
-	depositAmount  *uint256.Int // amount in after fee
-	repayAmount    *uint256.Int // part of amount in after fee used to repay
-	debt           *uint256.Int
-	debtVaultIdx   int
-	ZeroForOne     bool `json:"0f1"`
+	reserves              [2]*uint256.Int
+	withdrawAmount        *uint256.Int // withdrawn collateral asset amount
+	borrowAmount          *uint256.Int // new buy token debt amount
+	depositAmount         *uint256.Int // amount in after fee
+	repayAmount           *uint256.Int // part of amount in after fee used to repay
+	debt                  *uint256.Int
+	debtVaultIdx          int
+	collateralValue       *uint256.Int
+	isSellVaultControlled bool
+	isBuyVaultControlled  bool
+	ZeroForOne            bool `json:"zeroForOne"`
 }
 
 type TrackerData struct {
@@ -106,9 +110,12 @@ type VaultRPC struct {
 	Debt                *big.Int
 	MaxDeposit          *big.Int
 	TotalBorrows        *big.Int
+	TotalAssets         *big.Int
+	TotalSupply         *big.Int
 	EulerAccountBalance *big.Int
 	MaxWithdraw         *big.Int
 	Caps                [2]uint16
+	IsControllerEnabled bool
 }
 
 type AccountLiquidityRPC struct {

@@ -2,6 +2,7 @@ package eulerswap
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 
@@ -15,14 +16,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	reserves [2]*uint256.Int
 	StaticExtra
 	Extra
+	reserves        [2]*uint256.Int
+	collateralValue *uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -49,9 +51,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		reserves:    [2]*uint256.Int{big256.New(entityPool.Reserves[0]), big256.New(entityPool.Reserves[1])},
-		StaticExtra: staticExtra,
-		Extra:       extra,
+		collateralValue: uint256.NewInt(0),
+		reserves:        [2]*uint256.Int{big256.New(entityPool.Reserves[0]), big256.New(entityPool.Reserves[1])},
+		StaticExtra:     staticExtra,
+		Extra:           extra,
 	}, nil
 }
 
@@ -74,8 +77,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	_, amountOut, swapInfo, err := p.swap(true, indexIn == 0, amountIn)
 	if err != nil {
 		return nil, err
-	} else if amountOut.IsZero() {
-		return nil, ErrInvalidAmountOut
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -105,8 +106,6 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	amountIn, _, swapInfo, err := p.swap(false, indexIn == 0, amountOut)
 	if err != nil {
 		return nil, err
-	} else if amountIn.IsZero() {
-		return nil, ErrInvalidAmountIn
 	}
 
 	return &pool.CalcAmountInResult{
@@ -136,12 +135,17 @@ func (p *PoolSimulator) swap(
 		}
 	}
 
-	swapInfo, err = p.updateAndCheckSolvency(amountIn, amountOut, zeroForOne)
+	swapInfo, err = p.updateAndCheckSolvency(amountIn, amountOut, isExactIn, zeroForOne)
 	return amountIn, amountOut, swapInfo, err
 }
 
 // https://www.notion.so/kybernetwork/EulerSwap-updateAndCheckSolvency-27426751887e807c915ac66c95512a4a
-func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroForOne bool) (*SwapInfo, error) {
+func (p *PoolSimulator) updateAndCheckSolvency(
+	amtIn,
+	amtOut *uint256.Int,
+	isExactIn,
+	zeroForOne bool,
+) (*SwapInfo, error) {
 	debtVaultAddr, debtVaultIdx, debt := p.ControllerVault, 2, uint256.NewInt(0)
 	if p.Vaults[2] != nil {
 		debt = p.Vaults[2].Debt.Clone()
@@ -153,10 +157,13 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 	sellVault, buyVault := p.Vaults[sellVaultIdx], p.Vaults[buyVaultIdx]
 
 	// soldCollat = buy token (tokenOut) given to user; newDebt = new debt in buy token
-	soldCollat, newDebt := withdrawAssets(amtOut, buyVault.EulerAccountAssets)
-	newCollat := uint256.NewInt(0) // new sell token collateral (tokenIn) after swap
-	depositAmt, repayAmt, feeAmt := depositAssets(amtIn, sellVault.Debt, p.Fee, p.ProtocolFee, p.ProtocolFeeRecipient)
+	soldCollat, newDebt, isBuyVaultControlled := withdrawAssets(
+		amtOut, buyVault.EulerAccountAssets, buyVault.IsControllerEnabled)
 
+	depositAmt, repayAmt, feeAmt, isSellVaultControlled := depositAssets(
+		amtIn, p.Fee, sellVault.Debt, p.ProtocolFee, p.ProtocolFeeRecipient, sellVault.IsControllerEnabled)
+
+	newCollat := uint256.NewInt(0) // new sell token collateral (tokenIn) after swap
 	if strings.EqualFold(debtVaultAddr, sellVaultAddr) {
 		if depositAmt.Lt(debt) { // partial repayment of controller vault
 			if newDebt.Sign() > 0 { // left-over debt in controller vault + new debt in buy vault = forbidden
@@ -164,7 +171,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 			}
 			debt.Sub(debt, depositAmt)
 		} else {
-			newCollat = new(uint256.Int).Sub(depositAmt, debt)
+			newCollat.Sub(depositAmt, debt)
 			debt.Clear()
 		}
 	} else {
@@ -181,6 +188,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 		debt.Add(debt, newDebt)
 	}
 
+	collatVal := p.collateralValue.Clone()
 	if debt.Sign() > 0 {
 		debtVault := p.Vaults[debtVaultIdx]
 		valuePrices, ltvs := debtVault.ValuePrices, debtVault.LTVs
@@ -188,19 +196,27 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 		var liabilityVal uint256.Int
 		liabilityVal.MulDivOverflow(debt, debtVault.DebtPrice, big256.UBasisPoint)
 
-		var collatVal, tmp uint256.Int // the sum of all LTV-adjusted, unit-of-account valued collaterals
-		for i, collateral := range p.Collaterals {
-			collatVal.Add(&collatVal, tmp.Mul(tmp.Mul(collateral, tmp.SetUint64(ltvs[i])), valuePrices[i]))
+		var tmp uint256.Int // the sum of all LTV-adjusted, unit-of-account valued collaterals
+		if collatVal.IsZero() {
+			for i, collateral := range p.Collaterals {
+				collatVal.Add(collatVal, tmp.Mul(tmp.Mul(collateral, tmp.SetUint64(ltvs[i])), valuePrices[i]))
+			}
 		}
-		vaultValuePrices, vaultLtvs := debtVault.VaultValuePrices, debtVault.VaultLTVs
-		collatVal.Add(&collatVal,
-			tmp.Mul(tmp.Mul(newCollat, tmp.SetUint64(vaultLtvs[sellVaultIdx])), vaultValuePrices[sellVaultIdx]))
-		collatVal.Sub(&collatVal,
-			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
-		// Apply a safety buffer (85%) to the collateral value for swap limit checks
-		collatVal.MulDivOverflow(&collatVal, bufferSwapLimit, big256.U100)
 
-		if liabilityVal.Gt(&collatVal) {
+		log.Println("Before : ", collatVal.String(), newCollat.String())
+
+		vaultValuePrices, vaultLtvs := debtVault.VaultValuePrices, debtVault.VaultLTVs
+		collatVal.Add(collatVal,
+			tmp.Mul(tmp.Mul(newCollat, tmp.SetUint64(vaultLtvs[sellVaultIdx])), vaultValuePrices[sellVaultIdx]))
+
+		collatVal.Sub(collatVal,
+			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
+
+		log.Println("After : ", collatVal.String(), liabilityVal.String())
+
+		// Apply a safety buffer (85%) to the collateral value for swap limit checks
+		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.U100)
+		if liabilityVal.Gt(collatValWithBuffer) {
 			return nil, ErrInsolvency
 		}
 	}
@@ -225,14 +241,17 @@ func (p *PoolSimulator) updateAndCheckSolvency(amtIn, amtOut *uint256.Int, zeroF
 	}
 
 	return &SwapInfo{
-		reserves:       [2]*uint256.Int{&newReserve0, &newReserve1},
-		withdrawAmount: soldCollat,
-		borrowAmount:   newDebt,
-		depositAmount:  depositAmt,
-		repayAmount:    repayAmt,
-		debt:           debt,
-		debtVaultIdx:   debtVaultIdx,
-		ZeroForOne:     zeroForOne,
+		reserves:              [2]*uint256.Int{&newReserve0, &newReserve1},
+		withdrawAmount:        soldCollat,
+		borrowAmount:          newDebt,
+		depositAmount:         depositAmt,
+		repayAmount:           repayAmt,
+		debt:                  debt,
+		debtVaultIdx:          debtVaultIdx,
+		collateralValue:       collatVal,
+		isSellVaultControlled: isSellVaultControlled,
+		isBuyVaultControlled:  isBuyVaultControlled,
+		ZeroForOne:            zeroForOne,
 	}, nil
 }
 
@@ -241,6 +260,8 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.reserves = [2]*uint256.Int(lo.Map(p.reserves[:], func(r *uint256.Int, _ int) *uint256.Int {
 		return r.Clone()
 	}))
+
+	cloned.collateralValue = p.collateralValue.Clone()
 
 	cloned.Vaults = [3]*Vault(lo.Map(p.Vaults[:], func(v *Vault, _ int) *Vault {
 		if v == nil {
@@ -266,6 +287,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	depositAmt, repayAmt := swapInfo.depositAmount, swapInfo.repayAmount
 	sellVault := p.Vaults[from]
+	sellVault.IsControllerEnabled = swapInfo.isSellVaultControlled
 	sellVault.Cash = new(uint256.Int).Add(sellVault.Cash, depositAmt)
 	sellVault.Debt = subTill0(sellVault.Debt, repayAmt)
 	sellVault.MaxDeposit = subTill0(sellVault.MaxDeposit, depositAmt)
@@ -275,6 +297,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	withdrawAmt, borrowAmt := swapInfo.withdrawAmount, swapInfo.borrowAmount
 	buyVault := p.Vaults[to]
+	buyVault.IsControllerEnabled = swapInfo.isBuyVaultControlled
 	buyVault.Cash = subTill0(buyVault.Cash, amountOut)
 	buyVault.Debt = new(uint256.Int).Add(buyVault.Debt, borrowAmt)
 	buyVault.MaxWithdraw = subTill0(buyVault.MaxWithdraw, withdrawAmt)
@@ -285,7 +308,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.Vaults[2] = p.Vaults[swapInfo.debtVaultIdx]
 		p.ControllerVault = lo.Ternary(swapInfo.debtVaultIdx == 0, p.Vault0, p.Vault1)
 	}
-	p.Vaults[2].Debt = swapInfo.debt
+
+	if p.Vaults[2] != nil {
+		p.Vaults[2].Debt = swapInfo.debt
+	}
+
+	p.collateralValue = swapInfo.collateralValue
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
@@ -302,8 +330,7 @@ func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOn
 	)
 
 	if isExactIn {
-		amountWithFee.Mul(amount, p.Fee)
-		amountWithFee.Div(amountWithFee, big256.BONE)
+		amountWithFee.MulDivOverflow(amount, p.Fee, big256.BONE)
 		amountWithFee.Sub(amount, amountWithFee)
 	}
 
@@ -537,36 +564,59 @@ func (p *PoolSimulator) findCurvePoint(amount *uint256.Int, isExactIn bool, isZe
 	return output, nil
 }
 
-func withdrawAssets(amount, balance *uint256.Int) (soldCollat, newDebt *uint256.Int) {
+func withdrawAssets(amount, balance *uint256.Int, isControllerEnabled bool) (soldCollat, newDebt *uint256.Int, _ bool) {
 	if amount.Cmp(balance) <= 0 {
-		return amount, big256.U0
+		return amount, big256.U0, isControllerEnabled
 	}
-	return balance, new(uint256.Int).Sub(amount, balance)
+
+	return balance, new(uint256.Int).Sub(amount, balance), true
 }
 
-func depositAssets(amount, vaultDebt, fee, protocolFee *uint256.Int,
-	protocolFeeRecipient common.Address) (deposited, repaid, feeAmount *uint256.Int) {
+func depositAssets(
+	amount,
+	fee,
+	debt,
+	protocolFee *uint256.Int,
+	protocolFeeRecipient common.Address,
+	isControllerEnabled bool,
+) (deposited, repaid, feeAmount *uint256.Int, _ bool) {
 	if amount.IsZero() {
-		return big256.U0, big256.U0, big256.U0
+		return big256.U0, big256.U0, big256.U0, isControllerEnabled
 	}
 
-	deposited = amount
 	feeAmount, _ = new(uint256.Int).MulDivOverflow(amount, fee, big256.BONE)
 
-	if protocolFeeRecipient != eth.AddressZero {
+	remainingAmount := amount.Clone()
+	if !valueobject.IsZeroAddress(protocolFeeRecipient) {
 		var protocolFeeAmount uint256.Int
 		if protocolFeeAmount.MulDivOverflow(feeAmount, protocolFee, big256.BONE); protocolFeeAmount.Sign() > 0 {
-			deposited = new(uint256.Int).Sub(deposited, &protocolFeeAmount)
+			remainingAmount.Sub(remainingAmount, &protocolFeeAmount)
 			feeAmount.Sub(feeAmount, &protocolFeeAmount)
 		}
 	}
 
-	repaid = deposited
-	if deposited.Gt(vaultDebt) {
-		repaid = vaultDebt
+	repaid = uint256.NewInt(0)
+	deposited = uint256.NewInt(0)
+
+	if isControllerEnabled {
+		if remainingAmount.Gt(debt) {
+			repaid.Set(debt)
+		} else {
+			repaid.Set(remainingAmount)
+		}
+
+		remainingAmount.Sub(remainingAmount, repaid)
+		deposited.Add(deposited, repaid)
+
+		if debt.Eq(repaid) {
+			isControllerEnabled = false // repaid 100%
+		}
 	}
 
-	return deposited, repaid, feeAmount
+	// Add remaining amount to deposited
+	deposited.Add(deposited, remainingAmount)
+
+	return deposited, repaid, feeAmount, isControllerEnabled
 }
 
 func subTill0(amt, sub *uint256.Int) *uint256.Int {
