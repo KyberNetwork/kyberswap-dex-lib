@@ -29,10 +29,10 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Pause           uint32         `json:"p,omitempty"`  // 0 = unactivated, 1 = unlocked, 2 = locked
-	Vaults          [3]*Vault      `json:"v"`            // vault0, vault1, controllerVault
-	ControllerVault string         `json:"cV,omitempty"` // controller vault address
-	Collaterals     []*uint256.Int `json:"c,omitempty"`  // collateral amounts across all collateral vaults
+	Pause           uint32       `json:"p,omitempty"`   // 0 = unactivated, 1 = unlocked, 2 = locked
+	Vaults          [3]*Vault    `json:"v"`             // vault0, vault1, controllerVault
+	ControllerVault string       `json:"cV,omitempty"`  // controller vault address
+	CollateralValue *uint256.Int `json:"clV,omitempty"` // collateral value across all collateral vaults
 }
 
 type VaultInfo struct {
@@ -51,7 +51,6 @@ type Vault struct {
 	DebtPrice           *uint256.Int    `json:"dP,omitempty"`   // quoted debt price against itself
 	ValuePrices         []*uint256.Int  `json:"vP,omitempty"`   // quoted value prices against collaterals
 	VaultValuePrices    [2]*uint256.Int `json:"vVP,omitempty"`  // quoted value prices against v0 + v1
-	LTVs                []uint64        `json:"ltv,omitempty"`  // borrow ltv against each collateral
 	VaultLTVs           [2]uint64       `json:"vLtv,omitempty"` // borrow ltv against v0 + v1
 	IsControllerEnabled bool            `json:"iCE,omitempty"`  // is controller enabled
 }
@@ -78,7 +77,7 @@ type TrackerData struct {
 	VaultLtvs            [3][3]uint16      // vault 0/1/controller -> debt vault
 	CollatAmts           []*big.Int        // asset amount of euler account across collateral vaults
 	CollatPrices         [][3][2]*big.Int  // collat -> debt vault -> [bid,ask]
-	CollatLtvs           [][3]uint16       // collat -> debt vault
+	AccountLiquidity     AccountLiquidityRPC
 	IsOperatorAuthorized bool
 }
 

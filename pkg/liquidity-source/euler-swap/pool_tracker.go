@@ -21,6 +21,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -240,7 +241,12 @@ func (d *PoolTracker) getPoolData(
 			ABI:    vaultABI,
 			Target: data.Controller,
 			Method: vaultMethodUnitOfAccount,
-		}, []any{&unitOfAccounts[2]})
+		}, []any{&unitOfAccounts[2]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodAccountLiquidity,
+			Params: []any{eulerAcctAddr, false},
+		}, []any{&data.AccountLiquidity})
 	}
 
 	data.CollatAmts = make([]*big.Int, len(collaterals))
@@ -298,10 +304,13 @@ func (d *PoolTracker) getPoolData(
 	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
 	collatQuoteAmts := make([]*big.Int, len(collaterals))
 	data.CollatPrices = make([][3][2]*big.Int, len(collaterals))
-	data.CollatLtvs = make([][3]uint16, len(collaterals))
 
 	for i := range vaultList {
 		oracleStr := hexutil.Encode(oracles[i][:])
+		if valueobject.IsZeroAddress(oracles[i]) {
+			continue
+		}
+
 		for j, otherV := range vaultList {
 			req.AddCall(&ethrpc.Call{
 				ABI:    routerABI,
@@ -328,12 +337,7 @@ func (d *PoolTracker) getPoolData(
 				Target: oracleStr,
 				Method: routerMethodGetQuotes,
 				Params: []any{collatQuoteAmts[j], collateralAssets[j], collateralUnitOfAccounts[j]},
-			}, []any{&data.CollatPrices[j][i]}).AddCall(&ethrpc.Call{
-				ABI:    vaultABI,
-				Target: vaultList[i].VaultAddress,
-				Method: vaultMethodLTVBorrow,
-				Params: []any{collateral},
-			}, []any{&data.CollatLtvs[j][i]})
+			}, []any{&data.CollatPrices[j][i]})
 		}
 	}
 
@@ -346,8 +350,13 @@ func (d *PoolTracker) getPoolData(
 			v.EulerAccountBalance = convertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
 		}
 		for j, otherV := range vaultList {
+			quoteAmount := otherV.QuoteAmount
 			for _, q := range data.VaultPrices[j][i] {
-				q.Div(q, otherV.QuoteAmount)
+				if q != nil {
+					q.Div(q, quoteAmount)
+				} else {
+					q = big.NewInt(0)
+				}
 			}
 		}
 		for j, collateral := range collaterals {
@@ -355,8 +364,13 @@ func (d *PoolTracker) getPoolData(
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				continue
 			}
+			collatQuoteAmt := collatQuoteAmts[j]
 			for _, q := range data.CollatPrices[j][i] {
-				q.Div(q, collatQuoteAmts[j])
+				if q != nil {
+					q.Div(q, collatQuoteAmt)
+				} else {
+					q = big.NewInt(0)
+				}
 			}
 		}
 	}
@@ -386,7 +400,6 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *TrackerData, blockNumbe
 				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) }),
 			VaultValuePrices: [2]*uint256.Int(lo.Map(data.VaultPrices[:2],
 				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) })),
-			LTVs:                lo.Map(data.CollatLtvs, func(l [3]uint16, _ int) uint64 { return uint64(l[i]) }),
 			VaultLTVs:           [2]uint64(lo.Map(data.VaultLtvs[:2], func(l [3]uint16, _ int) uint64 { return uint64(l[i]) })),
 			IsControllerEnabled: data.Vaults[i].IsControllerEnabled,
 		}
@@ -401,11 +414,16 @@ func (d *PoolTracker) updatePool(pool entity.Pool, data *TrackerData, blockNumbe
 		status = 2 // locked
 	}
 
+	collateralValue := uint256.NewInt(0)
+	if data.AccountLiquidity.CollateralValue != nil {
+		collateralValue.SetFromBig(data.AccountLiquidity.CollateralValue)
+	}
+
 	extraBytes, err := json.Marshal(&Extra{
 		Pause:           status,
 		Vaults:          vaults,
 		ControllerVault: data.Controller,
-		Collaterals:     big256.MustFromBigs(data.CollatAmts),
+		CollateralValue: collateralValue,
 	})
 	if err != nil {
 		return entity.Pool{}, err

@@ -22,8 +22,7 @@ type PoolSimulator struct {
 	pool.Pool
 	StaticExtra
 	Extra
-	reserves        [2]*uint256.Int
-	collateralValue *uint256.Int
+	reserves [2]*uint256.Int
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -50,10 +49,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		collateralValue: uint256.NewInt(0),
-		reserves:        [2]*uint256.Int{big256.New(entityPool.Reserves[0]), big256.New(entityPool.Reserves[1])},
-		StaticExtra:     staticExtra,
-		Extra:           extra,
+		reserves:    [2]*uint256.Int{big256.New(entityPool.Reserves[0]), big256.New(entityPool.Reserves[1])},
+		StaticExtra: staticExtra,
+		Extra:       extra,
 	}, nil
 }
 
@@ -161,19 +159,16 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 	depositAmt, repayAmt, feeAmt, isSellVaultControlled := depositAssets(
 		amtIn, p.Fee, sellVault.Debt, p.ProtocolFee, p.ProtocolFeeRecipient, sellVault.IsControllerEnabled)
 
-	newCollat := uint256.NewInt(0) // new sell token collateral (tokenIn) after swap
-	if strings.EqualFold(debtVaultAddr, sellVaultAddr) {
+	newCollat := new(uint256.Int).Sub(depositAmt, repayAmt) // new sell token collateral (tokenIn) after swap
+	if strings.EqualFold(debtVaultAddr, sellVaultAddr) || isSellVaultControlled {
 		if depositAmt.Lt(debt) { // partial repayment of controller vault
 			if newDebt.Sign() > 0 { // left-over debt in controller vault + new debt in buy vault = forbidden
 				return nil, ErrMultiDebts
 			}
-			debt.Sub(debt, depositAmt)
+			debt.Sub(debt, repayAmt)
 		} else {
-			newCollat.Sub(depositAmt, debt)
 			debt.Clear()
 		}
-	} else {
-		newCollat = depositAmt
 	}
 
 	if newDebt.Sign() > 0 {
@@ -186,27 +181,23 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		debt.Add(debt, newDebt)
 	}
 
-	collatVal := p.collateralValue.Clone()
+	collatVal := p.CollateralValue.Clone()
 	if debt.Sign() > 0 {
 		debtVault := p.Vaults[debtVaultIdx]
-		valuePrices, ltvs := debtVault.ValuePrices, debtVault.LTVs
 
 		var liabilityVal uint256.Int
-		liabilityVal.MulDivOverflow(debt, debtVault.DebtPrice, big256.UBasisPoint)
-
-		var tmp uint256.Int // the sum of all LTV-adjusted, unit-of-account valued collaterals
-		if collatVal.IsZero() {
-			for i, collateral := range p.Collaterals {
-				collatVal.Add(collatVal, tmp.Mul(tmp.Mul(collateral, tmp.SetUint64(ltvs[i])), valuePrices[i]))
-			}
-		}
+		liabilityVal.Mul(debt, debtVault.DebtPrice)
 
 		vaultValuePrices, vaultLtvs := debtVault.VaultValuePrices, debtVault.VaultLTVs
-		collatVal.Add(collatVal,
-			tmp.Mul(tmp.Mul(newCollat, tmp.SetUint64(vaultLtvs[sellVaultIdx])), vaultValuePrices[sellVaultIdx]))
 
-		collatVal.Sub(collatVal,
-			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
+		var tmp uint256.Int // the sum of all LTV-adjusted, unit-of-account valued collaterals
+		tmp.Mul(newCollat, vaultValuePrices[sellVaultIdx])
+		tmp.MulDivOverflow(&tmp, uint256.NewInt(vaultLtvs[sellVaultIdx]), big256.UBasisPoint)
+		collatVal.Add(collatVal, &tmp)
+
+		tmp.Mul(soldCollat, vaultValuePrices[buyVaultIdx])
+		tmp.MulDivOverflow(&tmp, uint256.NewInt(vaultLtvs[buyVaultIdx]), big256.UBasisPoint)
+		collatVal.Sub(collatVal, &tmp)
 
 		// Apply a safety buffer (85%) to the collateral value for swap limit checks
 		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.U100)
@@ -255,8 +246,6 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 		return r.Clone()
 	}))
 
-	cloned.collateralValue = p.collateralValue.Clone()
-
 	cloned.Vaults = [3]*Vault(lo.Map(p.Vaults[:], func(v *Vault, _ int) *Vault {
 		if v == nil {
 			return nil
@@ -264,6 +253,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 		clonedVault := *v
 		return &clonedVault
 	}))
+	cloned.Extra.CollateralValue = p.CollateralValue.Clone()
 	return &cloned
 }
 
@@ -307,7 +297,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.Vaults[2].Debt = swapInfo.debt
 	}
 
-	p.collateralValue = swapInfo.collateralValue
+	p.CollateralValue = swapInfo.collateralValue
 }
 
 func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
