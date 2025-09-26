@@ -67,7 +67,7 @@ type SwapInfo struct {
 	collateralValue       *uint256.Int
 	isSellVaultControlled bool
 	isBuyVaultControlled  bool
-	ZeroForOne            bool `json:"zeroForOne"`
+	ZeroForOne            bool `json:"0f1"`
 }
 
 type TrackerData struct {
