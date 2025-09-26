@@ -22,6 +22,7 @@ type ManageableVault struct {
 	minAmount            *uint256.Int
 	instantFee           *uint256.Int
 	waivedFeeRestriction bool
+	mTokenDecimals       uint8
 
 	mTokenRate *uint256.Int
 	tokenRates []*uint256.Int
@@ -41,6 +42,7 @@ func NewManageableVault(vaultState *VaultState, tokenDecimals map[string]uint8) 
 		minAmount:            vaultState.MinAmount,
 		instantFee:           vaultState.InstantFee,
 		waivedFeeRestriction: vaultState.WaivedFeeRestriction,
+		mTokenDecimals:       vaultState.MTokenDecimals,
 
 		mTokenRate: vaultState.MTokenRate,
 		tokenRates: vaultState.TokenRates,

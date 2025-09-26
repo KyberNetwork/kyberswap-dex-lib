@@ -52,6 +52,7 @@ type VaultStateRpcResult struct {
 	TokensConfig         []TokenConfigRpcResult
 	MTokenDataFeed       common.Address
 	WaivedFeeRestriction bool
+	MTokenDecimals       uint8
 
 	MTokenRate *big.Int
 	TokenRates []*big.Int
@@ -89,6 +90,7 @@ type VaultState struct {
 	MTokenRate           *uint256.Int   `json:"mTokenRate"`
 	TokenRates           []*uint256.Int `json:"tokenRates"`
 	WaivedFeeRestriction bool           `json:"waivedFeeRestriction"`
+	MTokenDecimals       uint8          `json:"mTokenDecimals"`
 
 	// For deposit vault
 	MinMTokenAmountForFirstDeposit *uint256.Int `json:"minMTokenAmountForFirstDeposit,omitempty"`
@@ -152,14 +154,14 @@ type SwapInfo struct {
 }
 
 type IDepositVault interface {
-	DepositInstant(amountTokenIn *uint256.Int, tokenIn, tokenOut string) (*SwapInfo, error)
+	DepositInstant(amountTokenIn *uint256.Int, tokenIn string) (*SwapInfo, error)
 	UpdateState(swapInfo *SwapInfo, tokenIn string)
 	CloneState() any
 	GetMToken() string
 }
 
 type IRedemptionVault interface {
-	RedeemInstant(amountMTokenIn *uint256.Int, tokenIn, tokenOut string) (*SwapInfo, error)
+	RedeemInstant(amountMTokenIn *uint256.Int, tokenOut string) (*SwapInfo, error)
 	UpdateState(swapInfo *SwapInfo, tokenIn string)
 	CloneState() any
 	GetMTokenRate() *uint256.Int
@@ -213,6 +215,7 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 			return uint256.MustFromBig(rate)
 		}),
 		WaivedFeeRestriction: v.WaivedFeeRestriction,
+		MTokenDecimals:       v.MTokenDecimals,
 	}
 
 	switch vaultType {

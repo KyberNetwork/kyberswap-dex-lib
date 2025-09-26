@@ -19,8 +19,8 @@ func NewRedemptionVault(vaultState *VaultState, tokenDecimals map[string]uint8) 
 	}
 }
 
-func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int, mToken, token string) (*SwapInfo, error) {
-	amountMTokenIn = convertToBase18(amountMTokenIn, v.tokenDecimals[mToken])
+func (v *RedemptionVault) RedeemInstant(amountMTokenIn *uint256.Int, token string) (*SwapInfo, error) {
+	amountMTokenIn = convertToBase18(amountMTokenIn, v.mTokenDecimals)
 
 	feeAmount, amountMTokenWithoutFee, err := v.calcAndValidateRedeem(amountMTokenIn, token)
 	if err != nil {

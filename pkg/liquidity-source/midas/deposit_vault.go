@@ -29,7 +29,7 @@ func NewDepositVault(vaultState *VaultState, tokenDecimals map[string]uint8) *De
 	}
 }
 
-func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token, mToken string) (*SwapInfo, error) {
+func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token string) (*SwapInfo, error) {
 	amountToken = convertToBase18(amountToken, v.tokenDecimals[token])
 
 	feeAmount, mintAmount, err := v.calcAndValidateDeposit(amountToken, token)
@@ -54,7 +54,7 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token, mToken st
 
 		gas:       depositInstantDefaultGas,
 		fee:       feeAmount,
-		amountOut: convertFromBase18(mintAmount, v.tokenDecimals[mToken]),
+		amountOut: convertFromBase18(mintAmount, v.mTokenDecimals),
 	}, nil
 }
 

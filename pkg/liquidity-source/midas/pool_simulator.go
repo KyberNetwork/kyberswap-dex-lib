@@ -77,9 +77,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	isDeposit := indexIn != 0
 	if isDeposit && s.isDv {
-		swapInfo, err = s.dv.DepositInstant(amountIn, tokenIn, tokenOut)
+		swapInfo, err = s.dv.DepositInstant(amountIn, tokenIn)
 	} else if !isDeposit && !s.isDv {
-		swapInfo, err = s.rv.RedeemInstant(amountIn, tokenIn, tokenOut)
+		swapInfo, err = s.rv.RedeemInstant(amountIn, tokenOut)
 	} else {
 		return nil, ErrInvalidSwap
 	}

@@ -102,7 +102,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	return p, nil
 }
 
-func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault string, tokens []string, result *VaultStateRpcResult,
+func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault string, mToken string, tokens []string, result *VaultStateRpcResult,
 	isDv bool, currentDayNumber int64) *ethrpc.Request {
 
 	vaultAbi := lo.Ternary(isDv, DepositVaultABI, RedemptionVaultABI)
@@ -147,7 +147,11 @@ func (t *PoolTracker) initVaultCalls(req *ethrpc.Request, vault string, tokens [
 		Target: vault,
 		Method: vWaivedFeeRestrictionMethod,
 		Params: []any{common.HexToAddress(t.config.Executor)},
-	}, []any{&result.WaivedFeeRestriction})
+	}, []any{&result.WaivedFeeRestriction}).AddCall(&ethrpc.Call{
+		ABI:    abi.Erc20ABI,
+		Target: mToken,
+		Method: abi.Erc20DecimalsMethod,
+	}, []any{&result.MTokenDecimals})
 
 	result.TokensConfig = make([]TokenConfigRpcResult, len(tokens))
 	for i, token := range tokens {
@@ -170,7 +174,7 @@ func (t *PoolTracker) getDvState(ctx context.Context, vault, mToken string, toke
 	result.MToken = mToken
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = t.initVaultCalls(req, vault, tokens, &result, true, currentDayNumber)
+	req = t.initVaultCalls(req, vault, mToken, tokens, &result, true, currentDayNumber)
 	req.AddCall(&ethrpc.Call{
 		ABI:    DepositVaultABI,
 		Target: vault,
@@ -237,7 +241,7 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 	result.MToken = rvCfg.MToken
 
 	req := t.ethrpcClient.NewRequest().SetContext(ctx)
-	req = t.initVaultCalls(req, rvCfg.Address, tokens, &result, true, currentDayNumber)
+	req = t.initVaultCalls(req, rvCfg.Address, rvCfg.MToken, tokens, &result, true, currentDayNumber)
 
 	result.TokenBalances = make([]*big.Int, len(tokens))
 	for i, token := range tokens {
