@@ -191,10 +191,10 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 		debtVault := p.Vaults[debtVaultIdx]
 		valuePrices, ltvs := debtVault.ValuePrices, debtVault.LTVs
 
-		var liabilityVal uint256.Int
-		liabilityVal.MulDivOverflow(debt, debtVault.DebtPrice, big256.UBasisPoint)
+		var liabilityVal, tmp uint256.Int
+		liabilityVal.Mul(debt, debtVault.DebtPrice).Mul(&liabilityVal, big256.UBasisPoint)
 
-		var tmp uint256.Int // the sum of all LTV-adjusted, unit-of-account valued collaterals
+		// the sum of all LTV-adjusted, unit-of-account valued collaterals
 		if collatVal.IsZero() {
 			for i, collateral := range p.Collaterals {
 				collatVal.Add(collatVal, tmp.Mul(tmp.Mul(collateral, tmp.SetUint64(ltvs[i])), valuePrices[i]))

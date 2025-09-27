@@ -20,8 +20,8 @@ func TestPoolListUpdater(t *testing.T) {
 
 	plUpdater := NewPoolsListUpdater(&Config{
 		DexID:          DexType,
-		FactoryAddress: "0xb013be1D0D380C13B58e889f412895970A2Cf228",
-	}, ethrpc.New("https://ethereum.kyberengineering.io").
+		FactoryAddress: "0x45b146BC07c9985589B52df651310e75C6BE066A",
+	}, ethrpc.New("https://unichain.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)

@@ -21,6 +21,7 @@ import (
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -301,6 +302,10 @@ func (d *PoolTracker) getPoolData(
 	data.CollatLtvs = make([][3]uint16, len(collaterals))
 
 	for i := range vaultList {
+		if valueobject.IsZeroAddress(oracles[i]) {
+			continue
+		}
+
 		oracleStr := hexutil.Encode(oracles[i][:])
 		for j, otherV := range vaultList {
 			req.AddCall(&ethrpc.Call{
@@ -346,8 +351,12 @@ func (d *PoolTracker) getPoolData(
 			v.EulerAccountBalance = convertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
 		}
 		for j, otherV := range vaultList {
-			for _, q := range data.VaultPrices[j][i] {
-				q.Div(q, otherV.QuoteAmount)
+			for k, q := range data.VaultPrices[j][i] {
+				if q != nil {
+					q.Div(q, otherV.QuoteAmount)
+				} else {
+					data.VaultPrices[j][i][k] = big.NewInt(0)
+				}
 			}
 		}
 		for j, collateral := range collaterals {
@@ -355,14 +364,19 @@ func (d *PoolTracker) getPoolData(
 				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
 				continue
 			}
-			for _, q := range data.CollatPrices[j][i] {
-				q.Div(q, collatQuoteAmts[j])
+			for k, q := range data.CollatPrices[j][i] {
+				if q != nil {
+					q.Div(q, collatQuoteAmts[j])
+				} else {
+					data.CollatPrices[j][i][k] = big.NewInt(0)
+				}
 			}
 		}
 	}
 	for i, collateral := range collaterals {
 		if idx := slices.Index(vaultAddrs, collateral); idx >= 0 && idx < 2 {
 			data.CollatAmts[i] = vaults[idx].EulerAccountBalance
+			data.CollatLtvs[i] = data.VaultLtvs[idx]
 			continue
 		}
 		data.CollatAmts[i] = convertToAssets(data.CollatAmts[i], collatTotalAssets[i], collatTotalSupplies[i])
