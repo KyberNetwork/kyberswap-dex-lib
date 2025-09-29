@@ -69,12 +69,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
 		ZeroToOneMinTradeAmount: lo.TernaryF(
 			len(zeroToOnePriceLevels) > 0,
-			func() *big.Float { return zeroToOnePriceLevels[0].Quote },
+			func() *big.Float { return new(big.Float).Set(zeroToOnePriceLevels[0].Quote) },
 			func() *big.Float { return big.NewFloat(0) },
 		),
 		OneToZeroMinTradeAmount: lo.TernaryF(
 			len(oneToZeroPriceLevels) > 0,
-			func() *big.Float { return oneToZeroPriceLevels[0].Quote },
+			func() *big.Float { return new(big.Float).Set(oneToZeroPriceLevels[0].Quote) },
 			func() *big.Float { return big.NewFloat(0) },
 		),
 		gas: defaultGas,
