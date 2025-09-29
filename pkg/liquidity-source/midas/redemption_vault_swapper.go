@@ -125,8 +125,10 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo, token string) {
 func (v *RedemptionVaultSwapper) CloneState() any {
 	cloned := *v
 	cloned.RedemptionVault = v.RedemptionVault.CloneState().(*RedemptionVault)
-	cloned.mTbillRedemptionVault = v.mTbillRedemptionVault.CloneState().(IRedemptionVault)
-	cloned.mToken2Balance = new(uint256.Int).Set(v.mToken2Balance)
+	if v.mTbillRedemptionVault != nil {
+		cloned.mToken2Balance = new(uint256.Int).Set(v.mToken2Balance)
+		cloned.mTbillRedemptionVault = v.mTbillRedemptionVault.CloneState().(IRedemptionVault)
+	}
 
 	return &cloned
 }

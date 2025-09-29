@@ -70,7 +70,6 @@ type VaultStateRpcResult struct {
 	Redemption RedemptionRpcResult
 
 	// For redemption vault with swapper
-	MToken1Balance        *big.Int
 	MToken2Balance        *big.Int
 	SwapperVaultType      VaultType
 	MTbillRedemptionVault *VaultStateRpcResult
@@ -231,10 +230,11 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 		vault.Redemption = v.Redemption.ToRedemptionState()
 	case redemptionVaultSwapper:
 		vault.TokenBalances = toU256Slice(v.TokenBalances)
-		vault.MToken1Balance = uint256.MustFromBig(v.MToken1Balance)
 		vault.MToken2Balance = uint256.MustFromBig(v.MToken2Balance)
-		vault.SwapperVaultType = v.SwapperVaultType
-		vault.MTbillRedemptionVault = v.MTbillRedemptionVault.ToVaultState(v.MTbillRedemptionVault.MToken, v.SwapperVaultType)
+		if vault.MTbillRedemptionVault != nil {
+			vault.SwapperVaultType = v.SwapperVaultType
+			vault.MTbillRedemptionVault = v.MTbillRedemptionVault.ToVaultState(v.MTbillRedemptionVault.MToken, v.SwapperVaultType)
+		}
 	}
 
 	return vault
