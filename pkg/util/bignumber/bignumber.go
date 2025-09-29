@@ -24,6 +24,7 @@ var (
 	Nine   = big.NewInt(9)
 	Ten    = big.NewInt(10)
 	Eleven = big.NewInt(11)
+	B100   = big.NewInt(100)
 
 	MIN_SQRT_RATIO    = big.NewInt(4295128739)
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
@@ -106,4 +107,9 @@ func Min(a, b *big.Int) *big.Int {
 	}
 
 	return b
+}
+
+// MulDivDown multiplies x and y, then divides by denominator, rounding down, and stores the result in res.
+func MulDivDown(res, x, y, denominator *big.Int) *big.Int {
+	return res.Mul(x, y).Div(res, denominator)
 }
