@@ -957,6 +957,7 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:  {},
 	ExchangeUniswapV4Euler: {},
 	ExchangeEulerSwap:      {},
+	ExchangeWooFiV3:        {},
 }
 
 func IsSingleSwapSource(exchange Exchange) bool {

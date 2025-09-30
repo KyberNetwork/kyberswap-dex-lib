@@ -156,6 +156,7 @@ func (p *BasePool) GetState() any {
 
 func (p *BasePool) CloneState() any {
 	cloned := *p
+	cloned.key = p.key.CloneState()
 	clonedBasePoolState := *p.BasePoolState
 	cloned.BasePoolState = &clonedBasePoolState
 	return &cloned
