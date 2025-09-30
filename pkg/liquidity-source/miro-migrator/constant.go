@@ -9,7 +9,7 @@ const (
 )
 
 var (
-	defaultGas     int64 = 130000
+	defaultGas     int64 = 127000
 	defaultReserve       = "100000000000000000000000000"
 
 	ErrInvalidToken      = errors.New("invalid token")
