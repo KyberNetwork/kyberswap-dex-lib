@@ -140,9 +140,10 @@ type Meta struct {
 }
 
 type SwapInfo struct {
-	IsDeposit            bool         `json:"isDeposit"`
-	AmountTokenInBase18  *uint256.Int `json:"amountTokenInBase18"`
-	AmountMTokenInBase18 *uint256.Int `json:"amountMTokenInBase18"`
+	IsDeposit bool `json:"isDeposit"`
+
+	amountTokenInBase18  *uint256.Int
+	amountMTokenInBase18 *uint256.Int
 
 	gas       int64
 	fee       *uint256.Int
