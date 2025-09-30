@@ -71,7 +71,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		Fee:            &pool.TokenAmount{Token: params.TokenOut, Amount: big.NewInt(0)},
 		Gas:            int64(defaultGas),
 		SwapInfo: &SwapInfo{
-			IsDeposit: lo.Ternary(indexIn == 0, true, false), // if tokenIn is PSP then it is deposit
+			IsDeposit: indexIn == 0, // if tokenIn is PSP then it is deposit
 		},
 	}, nil
 }
