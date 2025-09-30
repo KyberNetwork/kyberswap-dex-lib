@@ -39,6 +39,7 @@ func (p *FullRangePool) GetState() any {
 
 func (p *FullRangePool) CloneState() any {
 	cloned := *p
+	cloned.key = p.key.CloneState()
 	clonedFullRangePoolState := *p.FullRangePoolState
 	cloned.FullRangePoolState = &clonedFullRangePoolState
 	return &cloned
