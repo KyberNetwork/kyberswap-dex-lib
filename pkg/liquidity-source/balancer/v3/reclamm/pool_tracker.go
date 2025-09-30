@@ -181,7 +181,9 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		return nil, errors.WithMessage(err, "failed to query RPC data")
 	}
 
-	rpcRes.IsPoolDisabled = isVaultPaused || isPoolPaused || isPoolInRecoveryMode
+	rpcRes.IsPoolDisabled = isVaultPaused || isPoolPaused || isPoolInRecoveryMode ||
+		len(rpcRes.Data.LastVirtualBalances) == 0
+
 	rpcRes.BlockNumber = res.BlockNumber.Uint64()
 
 	return &rpcRes, nil

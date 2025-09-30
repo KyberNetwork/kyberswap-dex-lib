@@ -18,13 +18,14 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	Token0               entity.PoolToken
-	Token1               entity.PoolToken
-	ZeroToOnePriceLevels []PriceLevel
-	OneToZeroPriceLevels []PriceLevel
-	gas                  Gas
-	Token0Original       string
-	Token1Original       string
+	Token0                                           entity.PoolToken
+	Token1                                           entity.PoolToken
+	ZeroToOnePriceLevels                             []PriceLevel
+	OneToZeroPriceLevels                             []PriceLevel
+	ZeroToOneMinTradeAmount, OneToZeroMinTradeAmount *big.Float
+	gas                                              Gas
+	Token0Original                                   string
+	Token1Original                                   string
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
@@ -66,7 +67,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Token1Original:       extra.Token1Address,
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
-		gas:                  defaultGas,
+		ZeroToOneMinTradeAmount: lo.TernaryF(
+			len(zeroToOnePriceLevels) > 0,
+			func() *big.Float { return new(big.Float).Set(zeroToOnePriceLevels[0].Quote) },
+			func() *big.Float { return big.NewFloat(0) },
+		),
+		OneToZeroMinTradeAmount: lo.TernaryF(
+			len(oneToZeroPriceLevels) > 0,
+			func() *big.Float { return new(big.Float).Set(oneToZeroPriceLevels[0].Quote) },
+			func() *big.Float { return big.NewFloat(0) },
+		),
+		gas: defaultGas,
 	}, nil
 }
 
@@ -75,11 +86,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrNoSwapLimit
 	}
 
-	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels
+	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels, minTradeAmount := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels, p.ZeroToOneMinTradeAmount
 	if params.TokenAmountIn.Token == p.Info.Tokens[1] {
-		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels
+		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels, minTradeAmount = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels, p.OneToZeroMinTradeAmount
 	}
-	result, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
+	result, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels, minTradeAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +118,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
-	baseOriginal, quoteOriginal string, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, string, error) {
+	baseOriginal, quoteOriginal string, priceLevel []PriceLevel, minTradeAmount *big.Float) (*pool.CalcAmountOutResult, string, error) {
 
 	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF big.Float
 
@@ -115,7 +126,7 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	decimalsPow.SetFloat64(math.Pow10(int(baseToken.Decimals)))
 	amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
 	var amountOutAfterDecimals big.Float
-	err := getAmountOut(&amountInAfterDecimals, priceLevel, &amountOutAfterDecimals)
+	err := getAmountOut(&amountInAfterDecimals, priceLevel, &amountOutAfterDecimals, minTradeAmount)
 	if err != nil {
 		return nil, "", err
 	}
@@ -148,10 +159,10 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	}, amountOutAfterDecimals.String(), nil
 }
 
-func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.Float) error {
+func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.Float, minTradeAmount *big.Float) error {
 	if len(priceLevels) == 0 {
 		return ErrEmptyPriceLevels
-	} else if amountIn.Cmp(priceLevels[0].Quote) < 0 {
+	} else if amountIn.Cmp(minTradeAmount) < 0 {
 		return ErrAmountInIsLessThanLowestPriceLevel
 	} else if amountIn.Cmp(priceLevels[len(priceLevels)-1].Quote) > 0 {
 		return ErrAmountInIsGreaterThanHighestPriceLevel

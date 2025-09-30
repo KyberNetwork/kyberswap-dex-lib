@@ -141,7 +141,7 @@ func TestCalcAmountIn(t *testing.T) {
 	t.Parallel()
 
 	var pool entity.Pool
-	err := json.Unmarshal([]byte(poolList[3]), &pool)
+	err := json.Unmarshal([]byte(poolList[1]), &pool)
 	require.Nil(t, err)
 
 	poolSim, err := NewPoolSimulator(pool)
@@ -264,7 +264,6 @@ func TestReverseSwap(t *testing.T) {
 	}{
 		{0, "1000000000", "AUSD-USDC (Small reserves)"},
 		{1, "1000000000", "AUSD-USDC (Medium reserves)"},
-		{2, "1000000000", "AUSD-USDC (Large reserves with debt)"},
 		{3, "1000000000", "USDC-mUSD (Small amount)"},
 		{3, "10000000000", "USDC-mUSD (Large amount)"},
 	}

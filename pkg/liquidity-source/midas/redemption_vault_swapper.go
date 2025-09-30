@@ -74,7 +74,7 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 		}
 
 		swapInfo.gas = redeemInstantSwapperGas
-		swapInfo.AmountMTokenInBase18 = amountMTokenIn
+		swapInfo.amountMTokenInBase18 = amountMTokenIn
 		swapInfo.mToken1AmountInBase18 = amountMTokenWithoutFee
 		swapInfo.mToken2AmountInBase18 = mTbillAmountInBase18
 
@@ -83,8 +83,8 @@ func (v *RedemptionVaultSwapper) RedeemInstant(amountMTokenIn *uint256.Int, toke
 
 	return &SwapInfo{
 		IsDeposit:            false,
-		AmountTokenInBase18:  amountTokenOut,
-		AmountMTokenInBase18: amountMTokenIn,
+		amountTokenInBase18:  amountTokenOut,
+		amountMTokenInBase18: amountMTokenIn,
 
 		gas:       redeemInstantDefaultGas,
 		fee:       feeAmount,
@@ -109,13 +109,13 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo, token string) {
 	if !v.tokenBalances[tokenIndex].Lt(swapInfo.amountOut) {
 		v.RedemptionVault.UpdateState(swapInfo, token)
 	} else if v.mTbillRedemptionVault != nil {
-		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
+		v.ManageableVault.UpdateState(swapInfo.amountTokenInBase18, swapInfo.amountMTokenInBase18, token)
 
 		v.mToken2Balance = new(uint256.Int).Sub(v.mToken2Balance, swapInfo.mToken2AmountInBase18)
 
 		v.mTbillRedemptionVault.UpdateState(&SwapInfo{
-			AmountTokenInBase18:  swapInfo.AmountTokenInBase18,
-			AmountMTokenInBase18: swapInfo.mToken2AmountInBase18,
+			amountTokenInBase18:  swapInfo.amountTokenInBase18,
+			amountMTokenInBase18: swapInfo.mToken2AmountInBase18,
 
 			amountOut: swapInfo.amountOut,
 		}, token)
@@ -125,8 +125,10 @@ func (v *RedemptionVaultSwapper) UpdateState(swapInfo *SwapInfo, token string) {
 func (v *RedemptionVaultSwapper) CloneState() any {
 	cloned := *v
 	cloned.RedemptionVault = v.RedemptionVault.CloneState().(*RedemptionVault)
-	cloned.mTbillRedemptionVault = v.mTbillRedemptionVault.CloneState().(IRedemptionVault)
-	cloned.mToken2Balance = new(uint256.Int).Set(v.mToken2Balance)
+	if v.mTbillRedemptionVault != nil {
+		cloned.mToken2Balance = new(uint256.Int).Set(v.mToken2Balance)
+		cloned.mTbillRedemptionVault = v.mTbillRedemptionVault.CloneState().(IRedemptionVault)
+	}
 
 	return &cloned
 }
