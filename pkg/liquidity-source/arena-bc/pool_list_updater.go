@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -118,7 +119,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, offset, newOffset uint
 		}
 
 		cToken := &entity.PoolToken{
-			Address:   strings.ToLower(v.TokenContractAddress.Hex()),
+			Address:   hexutil.Encode(v.TokenContractAddress[:]),
 			Swappable: true,
 		}
 
@@ -131,7 +132,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, offset, newOffset uint
 		pool := entity.Pool{
 			// Use token contract address instead of pool address to avoid conflict with arenadex-v2 pools
 			// when pools migrated to uniswap-v2.
-			Address:     strings.ToLower(v.TokenContractAddress.Hex()),
+			Address:     hexutil.Encode(v.TokenContractAddress[:]),
 			Exchange:    u.config.DexId,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),

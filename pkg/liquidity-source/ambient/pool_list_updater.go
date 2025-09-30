@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -236,7 +237,7 @@ func (u *PoolListUpdater) updateTokens(pool *entity.Pool, tokenPairs []SubgraphP
 		if _, ok := existingTokenSet[baseToken]; !ok {
 			existingTokenSet[baseToken] = struct{}{}
 			pool.Tokens = append(pool.Tokens, &entity.PoolToken{
-				Address:   strings.ToLower(baseToken.String()),
+				Address:   hexutil.Encode(baseToken[:]),
 				Swappable: true,
 			})
 			pool.Reserves = append(pool.Reserves, "0")
@@ -246,7 +247,7 @@ func (u *PoolListUpdater) updateTokens(pool *entity.Pool, tokenPairs []SubgraphP
 		if _, ok := existingTokenSet[quoteToken]; !ok {
 			existingTokenSet[quoteToken] = struct{}{}
 			pool.Tokens = append(pool.Tokens, &entity.PoolToken{
-				Address:   strings.ToLower(quoteToken.String()),
+				Address:   hexutil.Encode(quoteToken[:]),
 				Swappable: true,
 			})
 			pool.Reserves = append(pool.Reserves, "0")

@@ -224,10 +224,7 @@ func (g *gyroECLPMath) CalculateInvariantWithError(
 				return nil, nil, err
 			}
 
-			errValueU256, err := math.GyroPoolMath.Sqrt(
-				t,
-				U5,
-			)
+			errValueU256, err := math.GyroPoolMath.Sqrt(t)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -951,7 +948,7 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *ECLParams, d *ECLD
 			return nil, nil, err
 		}
 
-		b, err := math.GyroPoolMath.Sqrt(valU256, U5)
+		b, err := math.GyroPoolMath.Sqrt(valU256)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1357,7 +1354,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 			return nil, err
 		}
 
-		qC, err = math.GyroPoolMath.Sqrt(qC, U5)
+		qC, err = math.GyroPoolMath.Sqrt(qC)
 		if err != nil {
 			return nil, err
 		}

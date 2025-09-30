@@ -8,8 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type SubgraphPoolsResponse struct {
@@ -96,13 +98,13 @@ func (p *NTokenPool) CanSwapTo(address string) []string {
 	var adjs []string
 	for _, pair := range p.pairs {
 		if pair.Base == addr || (pair.Base == NativeTokenPlaceholderAddress && addr == p.nativeTokenAddress) {
-			adjs = append(adjs, strings.ToLower(pair.Quote.Hex()))
+			adjs = append(adjs, hexutil.Encode(pair.Quote[:]))
 		}
 		if pair.Quote == addr {
 			if pair.Base == NativeTokenPlaceholderAddress {
-				adjs = append(adjs, strings.ToLower(p.nativeTokenAddress.Hex()))
+				adjs = append(adjs, hexutil.Encode(p.nativeTokenAddress[:]))
 			} else {
-				adjs = append(adjs, strings.ToLower(pair.Base.Hex()))
+				adjs = append(adjs, hexutil.Encode(pair.Base[:]))
 			}
 		}
 	}

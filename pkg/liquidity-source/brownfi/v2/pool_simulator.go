@@ -30,7 +30,7 @@ var _ = pool.RegisterFactory(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(params pool.FactoryParams) (*PoolSimulator, error) {
 	entityPool := params.EntityPool
-	if time.Since(time.Unix(entityPool.Timestamp, 0)) > time.Minute {
+	if time.Since(time.Unix(entityPool.Timestamp, 0)) > 15*time.Second {
 		return nil, ErrInvalidPrices
 	}
 	router, ok := Router[params.ChainID]

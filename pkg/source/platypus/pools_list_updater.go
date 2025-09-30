@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -188,7 +189,7 @@ func (p *PoolsListUpdater) getPools(
 			AmplifiedTvl: 0,
 			SwapFee:      0,
 			Exchange:     p.config.DexID,
-			Type:         getPoolTypeByPriceOracle(strings.ToLower(state.PriceOracle.Hex())),
+			Type:         getPoolTypeByPriceOracle(hexutil.Encode(state.PriceOracle[:])),
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Extra:        string(extraBytes),

@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -52,7 +53,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	for _, currencyKey := range poolState.CurrencyKeys {
 		synthAddress := poolState.Synths[currencyKey]
 		poolTokens = append(poolTokens, &entity.PoolToken{
-			Address:   strings.ToLower(synthAddress.String()),
+			Address:   hexutil.Encode(synthAddress[:]),
 			Swappable: true,
 		})
 		reserves = append(reserves, poolState.SynthsTotalSupply[currencyKey].String())

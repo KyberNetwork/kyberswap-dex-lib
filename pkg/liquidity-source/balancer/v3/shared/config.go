@@ -6,6 +6,7 @@ import (
 
 type Config struct {
 	DexID            string      `json:"dexID,omitempty"`
+	ChainID          int         `json:"chainID,omitempty"`
 	PoolType         string      `json:"poolType,omitempty"`
 	SubgraphAPI      string      `json:"subgraphAPI,omitempty"`
 	SubgraphHeaders  http.Header `json:"subgraphHeaders,omitempty"`

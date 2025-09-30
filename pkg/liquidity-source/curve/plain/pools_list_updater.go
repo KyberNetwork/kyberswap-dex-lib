@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -158,7 +159,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			continue
 		}
 
-		oracleAddress := strings.ToLower(oracleList[i].Hex())
+		oracleAddress := hexutil.Encode(oracleList[i][:])
 		if !strings.EqualFold(oracleAddress, valueobject.ZeroAddress) {
 			staticExtra.Oracle = oracleAddress
 		}

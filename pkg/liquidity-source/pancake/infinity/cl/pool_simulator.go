@@ -39,6 +39,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	if !ok && staticExtra.HasSwapPermissions {
 		return nil, shared.ErrUnsupportedHook
 	}
+	exchange := entityPool.Exchange
+	if exchange == DexType { // temp fix, won't work for omni-cl morphing into omni-cl-dynamic case
+		exchange = strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1)
+	}
 
 	v3PoolSimulator, err := uniswapv3.NewPoolSimulator(entityPool, chainID)
 	if err != nil {
@@ -55,7 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		PoolSimulator: v3PoolSimulator,
 		staticExtra:   staticExtra,
 		hook:          hook,
-		exchange:      strings.Replace(hook.GetExchange(), DexType, entityPool.Exchange, 1),
+		exchange:      exchange,
 	}, nil
 }
 

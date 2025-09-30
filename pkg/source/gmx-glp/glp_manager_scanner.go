@@ -2,11 +2,12 @@ package gmxglp
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
-	"strings"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type GlpManagerScanner struct {
@@ -63,7 +64,7 @@ func (g *GlpManagerScanner) getGlpManager(ctx context.Context, address string) (
 	}
 
 	return &GlpManager{
-		Glp:                  strings.ToLower(glp.Hex()),
+		Glp:                  hexutil.Encode(glp[:]),
 		MaximiseAumInUsdg:    maximiseAumInUsdg,
 		NotMaximiseAumInUsdg: notMaximiseAumInUsdg,
 		GlpTotalSupply:       glpTotalSupply,

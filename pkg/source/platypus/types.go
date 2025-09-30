@@ -3,9 +3,9 @@ package platypus
 import (
 	"math/big"
 	"net/http"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type Config struct {
@@ -49,18 +49,18 @@ type Extra struct {
 func newExtra(poolState PoolState, assetStates []AssetState, sAvaxRate *big.Int) Extra {
 	assetByToken := make(map[string]Asset, len(assetStates))
 	for _, assetState := range assetStates {
-		token := strings.ToLower(assetState.UnderlyingToken.Hex())
+		token := hexutil.Encode(assetState.UnderlyingToken[:])
 		assetByToken[token] = Asset{
 			Address:          assetState.Address,
 			Decimals:         assetState.Decimals,
 			Cash:             assetState.Cash,
 			Liability:        assetState.Liability,
 			UnderlyingToken:  token,
-			AggregateAccount: strings.ToLower(assetState.AggregateAccount.Hex()),
+			AggregateAccount: hexutil.Encode(assetState.AggregateAccount[:]),
 		}
 	}
 
-	priceOracle := strings.ToLower(poolState.PriceOracle.Hex())
+	priceOracle := hexutil.Encode(poolState.PriceOracle[:])
 	extra := Extra{
 		PriceOracle:    priceOracle,
 		OracleType:     getOracleType(priceOracle),

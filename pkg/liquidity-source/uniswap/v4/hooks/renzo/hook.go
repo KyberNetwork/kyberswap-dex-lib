@@ -2,12 +2,12 @@ package renzo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -64,38 +64,30 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		}
 	}
 
-	req := param.RpcClient.NewRequest().SetContext(ctx)
-	if param.BlockNumber != nil {
-		req.SetBlockNumber(param.BlockNumber)
-	}
-
 	if extra.RateProviderAddress == (common.Address{}) {
-		req.AddCall(&ethrpc.Call{
+		if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
 			ABI:    renzoHookABI,
 			Target: h.hook,
 			Method: "rateProvider",
-		}, []any{&extra.RateProviderAddress})
+		}, []any{&extra.RateProviderAddress}).Call(); err != nil {
+			return "", err
+		}
 	}
 
 	var rate, minFeeBps, maxFeeBps *big.Int
-	req.AddCall(&ethrpc.Call{
+	if _, err := param.RpcClient.NewRequest().SetContext(ctx).SetBlockNumber(param.BlockNumber).AddCall(&ethrpc.Call{
 		ABI:    rateProviderABI,
 		Target: extra.RateProviderAddress.Hex(),
 		Method: "getRate",
-	}, []any{&rate})
-	req.AddCall(&ethrpc.Call{
+	}, []any{&rate}).AddCall(&ethrpc.Call{
 		ABI:    renzoHookABI,
 		Target: h.hook,
 		Method: "minFeeBps",
-	}, []any{&minFeeBps})
-	req.AddCall(&ethrpc.Call{
+	}, []any{&minFeeBps}).AddCall(&ethrpc.Call{
 		ABI:    renzoHookABI,
 		Target: h.hook,
 		Method: "maxFeeBps",
-	}, []any{&maxFeeBps})
-
-	_, err := req.Aggregate()
-	if err != nil {
+	}, []any{&maxFeeBps}).Aggregate(); err != nil {
 		return "", err
 	}
 

@@ -3,11 +3,11 @@ package liquiditybookv21
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -147,9 +147,9 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
-		address := strings.ToLower(pairAddress.Hex())
-		tokenXAddress := strings.ToLower(tokenXAddresses[i].Hex())
-		tokenYAddress := strings.ToLower(tokenYAddresses[i].Hex())
+		address := hexutil.Encode(pairAddress[:])
+		tokenXAddress := hexutil.Encode(tokenXAddresses[i][:])
+		tokenYAddress := hexutil.Encode(tokenYAddresses[i][:])
 
 		var tokenX = entity.PoolToken{
 			Address:   tokenXAddress,

@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
@@ -70,7 +71,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
 		var staticExtra = PoolCompoundStaticExtra{
-			LpToken:          strings.ToLower(lpAddresses[i].Hex()),
+			LpToken:          hexutil.Encode(lpAddresses[i][:]),
 			UnderlyingTokens: extractNonZeroAddressesToStrings(underlyingCoins[i]),
 		}
 		for j := range coins[i] {
@@ -95,7 +96,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 		}
 
 		pools[i] = entity.Pool{
-			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
+			Address:     hexutil.Encode(poolAndRegistries[i].PoolAddress[:]),
 			Exchange:    DexTypeCurve,
 			Type:        PoolTypeCompound,
 			Timestamp:   time.Now().Unix(),

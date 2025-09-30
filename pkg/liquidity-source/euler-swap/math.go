@@ -1,16 +1,18 @@
 package eulerswap
 
 import (
-	"github.com/holiman/uint256"
+	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
 	"github.com/KyberNetwork/int256"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
+
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
-	VIRTUAL_AMOUNT = uint256.NewInt(1e6) // 1e6
+	VirtualAmount = big.NewInt(1e6) // 1e6
 
 	e36        = big256.TenPow(36)
 	maxUint112 = new(uint256.Int).SubUint64(new(uint256.Int).Lsh(big256.U1, 112), 1) // 2^112 - 1

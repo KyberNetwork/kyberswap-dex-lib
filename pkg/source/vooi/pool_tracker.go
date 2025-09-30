@@ -3,11 +3,11 @@ package vooi
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -118,7 +118,7 @@ func (t *PoolTracker) GetNewPoolState(
 	indexByToken := make(map[string]int, len(assets))
 
 	for i, asset := range assets {
-		token := strings.ToLower(asset.Token.Hex())
+		token := hexutil.Encode(asset.Token[:])
 
 		poolTokens = append(poolTokens, &entity.PoolToken{
 			Address:   token,

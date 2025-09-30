@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -54,8 +55,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, nil, err
 		}
 		pool := entity.Pool{
-			Address:  swapPath.Protocol.Hex(),
-			Exchange: string(valueobject.ExchangeFluidVaultT1),
+			Address:  hexutil.Encode(swapPath.Protocol[:]),
+			Exchange: valueobject.ExchangeFluidVaultT1,
 			Type:     DexType,
 			Reserves: entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{

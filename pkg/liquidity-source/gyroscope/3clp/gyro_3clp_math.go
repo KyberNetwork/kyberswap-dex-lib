@@ -177,7 +177,7 @@ func (l *gyro3CLPMath) _calculateCubicStartingPoint(
 		math.GyroFixedPoint.MulUpU(a, new(uint256.Int).Mul(mc, number.Number_3)),
 	)
 
-	tmp, err := math.GyroPoolMath.Sqrt(radic, number.Number_5)
+	tmp, err := math.GyroPoolMath.Sqrt(radic)
 	if err != nil {
 		return nil, nil, err
 	}

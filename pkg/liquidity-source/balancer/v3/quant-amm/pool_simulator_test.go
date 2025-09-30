@@ -17,7 +17,7 @@ var (
 	entityPool entity.Pool
 	_          = json.Unmarshal([]byte(`{"address":"0x6b61d8680c4f9e560c8306807908553f95c749c5","exchange":"balancer-v3-quantamm","type":"balancer-v3-quantamm","timestamp":1751292261,"reserves":["132011160","2126502393706755897","86035501921"],"tokens":[{"address":"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599","symbol":"WBTC","decimals":8,"swappable":true},{"address":"0x45804880de22913dafe09f4980848ece6ecbaf78","symbol":"PAXG","decimals":18,"swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","symbol":"USDC","decimals":6,"swappable":true}],"extra":"{\"hook\":{},\"fee\":\"20000000000000000\",\"aggrFee\":\"500000000000000000\",\"balsE18\":[\"1320111600000000000\",\"2126502393706755897\",\"86035501921000000000000\"],\"decs\":[\"10000000000\",\"1\",\"1000000000000\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000\"],\"buffs\":[null,null,null],\"w\":[\"615205323000000000\",\"30053226000000000\",\"354826063000000000\"],\"m\":[\"115792089237316195423570985008687907853269984665640564039457584007595129639936\",\"0\",\"318000000000\",\"0\",\"0\"],\"u\":1751241623,\"i\":1751327723}","staticExtra":"{\"buffs\":[\"\",\"\",\"\"],\"mxTSR\":\"100000000000000000\"}","blockNumber":22817711}`),
 		&entityPool)
-	poolSim = lo.Must(NewPoolSimulator(entityPool))
+	poolSim = lo.Must(NewPoolSimulator(pool.FactoryParams{EntityPool: entityPool}))
 	tokens  = entityPool.Tokens
 )
 

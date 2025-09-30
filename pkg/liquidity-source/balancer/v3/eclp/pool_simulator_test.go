@@ -20,7 +20,7 @@ import (
 func newPool(poolStr string) *base.PoolSimulator {
 	var poolE entity.Pool
 	_ = json.Unmarshal([]byte(poolStr), &poolE)
-	poolSim, _ := NewPoolSimulator(poolE)
+	poolSim, _ := NewPoolSimulator(pool.FactoryParams{EntityPool: poolE})
 	return poolSim
 }
 

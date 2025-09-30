@@ -3,20 +3,25 @@ package eulerswap
 import (
 	"context"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -58,14 +63,14 @@ func (d *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
+	l := logger.WithFields(logger.Fields{"pool_id": p.Address})
+	l.Info("Started getting new pool state")
+	defer l.Info("Finished getting new pool state")
 
 	var staticExtra StaticExtra
 	err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"pool_id": p.Address}).
-			Error("failed to unmarshal staticExtra")
+		l.Error("failed to unmarshal staticExtra")
 		return p, err
 	}
 
@@ -73,29 +78,25 @@ func (d *PoolTracker) getNewPoolState(
 		{
 			VaultAddress: staticExtra.Vault0,
 			AssetAddress: p.Tokens[0].Address,
-			QuoteAmount:  bignumber.TenPowInt(int64(p.Tokens[0].Decimals)),
+			QuoteAmount:  bignumber.TenPowInt(p.Tokens[0].Decimals),
 		},
 		{
 			VaultAddress: staticExtra.Vault1,
 			AssetAddress: p.Tokens[1].Address,
-			QuoteAmount:  bignumber.TenPowInt(int64(p.Tokens[1].Decimals)),
+			QuoteAmount:  bignumber.TenPowInt(p.Tokens[1].Decimals),
 		},
 	}
 
 	rpcData, blockNumber, err := d.getPoolData(ctx, p.Address, staticExtra.EulerAccount,
 		staticExtra.EVC, vaults, overrides)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"pool_id": p.Address}).
-			Error("failed to getPoolData")
+		l.Error("failed to getPoolData")
 		return p, err
 	}
 
 	newPool, err := d.updatePool(p, rpcData, blockNumber)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"pool_id": p.Address}).
-			Error("failed to updatePool")
+		l.Error("failed to updatePool")
 		return p, err
 	}
 
@@ -109,226 +110,316 @@ func (d *PoolTracker) getPoolData(
 	evc string,
 	vaultList []VaultInfo,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (TrackerData, *big.Int, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
-
+) (*TrackerData, *big.Int, error) {
 	var (
-		isOperatorAuthorized bool
-		reserves             ReserveRPC
-		vaults               = make([]VaultRPC, 2)
-		oracles              = make([]common.Address, 2)
-		unitOfAccounts       = make([]common.Address, 2)
-		ltv                  = make([]uint16, 2)
-
-		accountLiquidities = []AccountLiquidityRPC{
-			{
-				CollateralValue: big.NewInt(0),
-				LiabilityValue:  big.NewInt(0),
-			},
-			{
-				CollateralValue: big.NewInt(0),
-				LiabilityValue:  big.NewInt(0),
-			},
-		}
+		data           TrackerData
+		vaults         = make([]VaultRPC, 2)
+		oracles        [3]common.Address // last element is for controller vault
+		unitOfAccounts [3]common.Address // last element is for controller vault
+		collaterals    []common.Address
+		controllers    []common.Address
 	)
+	data.Vaults = vaults
 
-	req.AddCall(&ethrpc.Call{
+	eulerAcctAddr := common.HexToAddress(eulerAccount)
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).AddCall(&ethrpc.Call{
 		ABI:    evcABI,
 		Target: evc,
 		Method: evcMethodIsAccountOperatorAuthorized,
-		Params: []any{common.HexToAddress(eulerAccount), common.HexToAddress(poolAddress)},
-	}, []any{&isOperatorAuthorized})
-	req.AddCall(&ethrpc.Call{
+		Params: []any{eulerAcctAddr, common.HexToAddress(poolAddress)},
+	}, []any{&data.IsOperatorAuthorized}).AddCall(&ethrpc.Call{
+		ABI:    evcABI,
+		Target: evc,
+		Method: evcMethodGetCollaterals,
+		Params: []any{eulerAcctAddr},
+	}, []any{&collaterals}).AddCall(&ethrpc.Call{
+		ABI:    evcABI,
+		Target: evc,
+		Method: evcMethodGetControllers,
+		Params: []any{eulerAcctAddr},
+	}, []any{&controllers}).AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetReserves,
-		Params: nil,
-	}, []any{&reserves})
+	}, []any{&data.Reserves})
 
 	for i, v := range vaultList {
 		req.AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodCash,
-			Params: nil,
-		}, []any{&vaults[i].Cash})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].Cash}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodDebtOf,
-			Params: []any{common.HexToAddress(eulerAccount)},
-		}, []any{&vaults[i].Debt})
-		req.AddCall(&ethrpc.Call{
+			Params: []any{eulerAcctAddr},
+		}, []any{&vaults[i].Debt}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodMaxDeposit,
-			Params: []any{common.HexToAddress(eulerAccount)},
-		}, []any{&vaults[i].MaxDeposit})
-		req.AddCall(&ethrpc.Call{
+			Params: []any{eulerAcctAddr},
+		}, []any{&vaults[i].MaxDeposit}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodCaps,
-			Params: nil,
-		}, []any{&vaults[i].Caps})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].Caps}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodTotalBorrows,
-			Params: nil,
-		}, []any{&vaults[i].TotalBorrows})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].TotalBorrows}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodTotalAssets,
-			Params: nil,
-		}, []any{&vaults[i].TotalAssets})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].TotalAssets}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodTotalSupply,
-			Params: nil,
-		}, []any{&vaults[i].TotalSupply})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&vaults[i].TotalSupply}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodBalanceOf,
-			Params: []any{common.HexToAddress(eulerAccount)},
-		}, []any{&vaults[i].EulerAccountBalance})
-		req.AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: v.VaultAddress,
-			Method: vaultMethodAccountLiquidity,
-			Params: []any{common.HexToAddress(eulerAccount), false},
-		}, []any{&accountLiquidities[i]})
-		req.AddCall(&ethrpc.Call{
+			Params: []any{eulerAcctAddr},
+		}, []any{&vaults[i].EulerAccountBalance}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodOracle,
-			Params: nil,
-		}, []any{&oracles[i]})
-		req.AddCall(&ethrpc.Call{
+		}, []any{&oracles[i]}).AddCall(&ethrpc.Call{
 			ABI:    vaultABI,
 			Target: v.VaultAddress,
 			Method: vaultMethodUnitOfAccount,
-			Params: nil,
-		}, []any{&unitOfAccounts[i]})
-		req.AddCall(&ethrpc.Call{
-			ABI:    vaultABI,
-			Target: v.VaultAddress,
-			Method: vaultMethodLTVBorrow,
-			Params: []any{common.HexToAddress(vaultList[1-i].VaultAddress)},
-		}, []any{&ltv[i]})
+		}, []any{&unitOfAccounts[i]}).AddCall(&ethrpc.Call{
+			ABI:    evcABI,
+			Target: evc,
+			Method: evcMethodIsControllerEnabled,
+			Params: []any{eulerAcctAddr, common.HexToAddress(v.VaultAddress)},
+		}, []any{&vaults[i].IsControllerEnabled})
 	}
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return TrackerData{}, nil, err
+		return nil, nil, errors.WithMessage(err, "1st rt")
 	}
-
-	getQuotesCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	if overrides != nil {
-		getQuotesCalls.SetOverrides(overrides)
-	}
-
-	getQuotesCalls.SetBlockNumber(resp.BlockNumber)
 
 	var (
-		assetQuotes = make([][2]*big.Int, len(vaultList))
-		shareQuotes = make([][2]*big.Int, len(vaultList))
+		controllerDecimals       uint8
+		controllerAsset          common.Address
+		collatTotalAssets        = make([]*big.Int, len(collaterals))
+		collatTotalSupplies      = make([]*big.Int, len(collaterals))
+		collateralDecimals       = make([]uint8, len(collaterals))
+		collateralAssets         = make([]common.Address, len(collaterals))
+		collateralOracles        = make([]common.Address, len(collaterals))
+		collateralUnitOfAccounts = make([]common.Address, len(collaterals))
 	)
+	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
+	if len(controllers) > 0 {
+		vaults = append(vaults, VaultRPC{
+			IsControllerEnabled: true,
+		})
+		data.Vaults = vaults
+		data.Controller = hexutil.Encode(controllers[0][:])
+		vaultList = append(vaultList, VaultInfo{
+			VaultAddress: data.Controller,
+		})
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodDebtOf,
+			Params: []any{eulerAcctAddr},
+		}, []any{&vaults[2].Debt}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodDecimals,
+		}, []any{&controllerDecimals}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodAsset,
+		}, []any{&controllerAsset}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodOracle,
+		}, []any{&oracles[2]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: data.Controller,
+			Method: vaultMethodUnitOfAccount,
+		}, []any{&unitOfAccounts[2]})
+	}
 
-	for i, v := range vaultList {
-		if oracles[i].Cmp(common.Address{}) == 0 {
+	data.CollatAmts = make([]*big.Int, len(collaterals))
+	vaultAddrs := lo.Map(vaultList, func(vaultInfo VaultInfo, _ int) common.Address {
+		return common.HexToAddress(vaultInfo.VaultAddress)
+	})
+	for i, collateral := range collaterals {
+		if idx := slices.Index(vaultAddrs, collateral); idx >= 0 && idx < 2 {
+			continue
+		}
+		collateralStr := hexutil.Encode(collateral[:])
+		req.AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodBalanceOf,
+			Params: []any{eulerAcctAddr},
+		}, []any{&data.CollatAmts[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodTotalAssets,
+		}, []any{&collatTotalAssets[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodTotalSupply,
+		}, []any{&collatTotalSupplies[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodDecimals,
+		}, []any{&collateralDecimals[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodAsset,
+		}, []any{&collateralAssets[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodOracle,
+		}, []any{&collateralOracles[i]}).AddCall(&ethrpc.Call{
+			ABI:    vaultABI,
+			Target: collateralStr,
+			Method: vaultMethodUnitOfAccount,
+		}, []any{&collateralUnitOfAccounts[i]})
+	}
+
+	if len(req.Calls) > 0 {
+		if _, err = req.TryAggregate(); err != nil {
+			return nil, nil, errors.WithMessage(err, "2nd rt")
+		}
+	}
+
+	if data.Controller != "" {
+		vaultList[2].AssetAddress = hexutil.Encode(controllerAsset[:])
+		vaultList[2].QuoteAmount = bignumber.TenPowInt(controllerDecimals)
+	}
+
+	req = d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides).SetBlockNumber(resp.BlockNumber)
+	collatQuoteAmts := make([]*big.Int, len(collaterals))
+	data.CollatPrices = make([][3][2]*big.Int, len(collaterals))
+	data.CollatLtvs = make([][3]uint16, len(collaterals))
+
+	for i := range vaultList {
+		if valueobject.IsZeroAddress(oracles[i]) {
 			continue
 		}
 
-		getQuotesCalls.AddCall(&ethrpc.Call{
-			ABI:    routerABI,
-			Target: oracles[i].Hex(),
-			Method: routerMethodGetQuotes,
-			Params: []any{v.QuoteAmount, common.HexToAddress(v.AssetAddress), unitOfAccounts[i]},
-		}, []any{&assetQuotes[i]})
-
-		getQuotesCalls.AddCall(&ethrpc.Call{
-			ABI:    routerABI,
-			Target: oracles[i].Hex(),
-			Method: routerMethodGetQuotes,
-			Params: []any{v.QuoteAmount, common.HexToAddress(v.VaultAddress), unitOfAccounts[i]},
-		}, []any{&shareQuotes[i]})
-	}
-
-	resp, err = getQuotesCalls.TryBlockAndAggregate()
-	if err != nil {
-		return TrackerData{}, nil, err
-	}
-
-	var (
-		assetPrices = []*big.Int{big.NewInt(0), big.NewInt(0)}
-		sharePrices = []*big.Int{big.NewInt(0), big.NewInt(0)}
-	)
-	for i, v := range vaultList {
-		if assetQuotes[i][1] != nil {
-			assetPrices[i].Div(assetQuotes[i][1], v.QuoteAmount) // second output is ask price
+		oracleStr := hexutil.Encode(oracles[i][:])
+		for j, otherV := range vaultList {
+			req.AddCall(&ethrpc.Call{
+				ABI:    routerABI,
+				Target: oracleStr,
+				Method: routerMethodGetQuotes,
+				Params: []any{otherV.QuoteAmount, common.HexToAddress(otherV.AssetAddress), unitOfAccounts[j]},
+			}, []any{&data.VaultPrices[j][i]})
+			if vaultList[i].VaultAddress != vaultList[j].VaultAddress {
+				req.AddCall(&ethrpc.Call{
+					ABI:    vaultABI,
+					Target: vaultList[i].VaultAddress,
+					Method: vaultMethodLTVBorrow,
+					Params: []any{vaultAddrs[j]},
+				}, []any{&data.VaultLtvs[j][i]})
+			}
 		}
-		if shareQuotes[i][1] != nil {
-			sharePrices[i].Div(shareQuotes[i][1], v.QuoteAmount) // second output is ask price
+		for j, collateral := range collaterals {
+			if idx := slices.Index(vaultAddrs, collateral); idx >= 0 {
+				continue
+			}
+			collatQuoteAmts[j] = bignumber.TenPowInt(collateralDecimals[j])
+			req.AddCall(&ethrpc.Call{
+				ABI:    routerABI,
+				Target: oracleStr,
+				Method: routerMethodGetQuotes,
+				Params: []any{collatQuoteAmts[j], collateralAssets[j], collateralUnitOfAccounts[j]},
+			}, []any{&data.CollatPrices[j][i]}).AddCall(&ethrpc.Call{
+				ABI:    vaultABI,
+				Target: vaultList[i].VaultAddress,
+				Method: vaultMethodLTVBorrow,
+				Params: []any{collateral},
+			}, []any{&data.CollatLtvs[j][i]})
 		}
 	}
 
-	return TrackerData{
-		Vaults:               vaults,
-		AssetPrices:          assetPrices,
-		SharePrices:          sharePrices,
-		AccountLiquidities:   accountLiquidities,
-		LTV:                  ltv,
-		Reserves:             reserves,
-		IsOperatorAuthorized: isOperatorAuthorized,
-	}, resp.BlockNumber, nil
+	if _, err = req.TryAggregate(); err != nil {
+		return nil, nil, errors.WithMessage(err, "3rd rt")
+	}
+
+	for i, v := range vaults {
+		if i < 2 {
+			v.EulerAccountBalance = convertToAssets(v.EulerAccountBalance, v.TotalAssets, v.TotalSupply)
+		}
+		for j, otherV := range vaultList {
+			for k, q := range data.VaultPrices[j][i] {
+				if q != nil {
+					q.Div(q, otherV.QuoteAmount)
+				} else {
+					data.VaultPrices[j][i][k] = big.NewInt(0)
+				}
+			}
+		}
+		for j, collateral := range collaterals {
+			if idx := slices.Index(vaultAddrs, collateral); idx >= 0 {
+				data.CollatPrices[j][i] = data.VaultPrices[idx][i]
+				continue
+			}
+			for k, q := range data.CollatPrices[j][i] {
+				if q != nil {
+					q.Div(q, collatQuoteAmts[j])
+				} else {
+					data.CollatPrices[j][i][k] = big.NewInt(0)
+				}
+			}
+		}
+	}
+	for i, collateral := range collaterals {
+		if idx := slices.Index(vaultAddrs, collateral); idx >= 0 && idx < 2 {
+			data.CollatAmts[i] = vaults[idx].EulerAccountBalance
+			data.CollatLtvs[i] = data.VaultLtvs[idx]
+			continue
+		}
+		data.CollatAmts[i] = convertToAssets(data.CollatAmts[i], collatTotalAssets[i], collatTotalSupplies[i])
+	}
+
+	return &data, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, data TrackerData, blockNumber *big.Int) (entity.Pool, error) {
-	var vaults = make([]Vault, len(data.Vaults))
-
-	allBalancesZero := true
-
+func (d *PoolTracker) updatePool(pool entity.Pool, data *TrackerData, blockNumber *big.Int) (entity.Pool, error) {
+	var vaults [3]*Vault
 	for i := range data.Vaults {
-		totalAssets := uint256.MustFromBig(data.Vaults[i].TotalAssets)
-		totalSupply := uint256.MustFromBig(data.Vaults[i].TotalSupply)
-		eulerAccountBalance := uint256.MustFromBig(data.Vaults[i].EulerAccountBalance)
-
-		if !eulerAccountBalance.IsZero() {
-			allBalancesZero = false
-		}
-
-		vaults[i] = Vault{
+		vaults[i] = &Vault{
 			Cash:               uint256.MustFromBig(data.Vaults[i].Cash),
 			Debt:               uint256.MustFromBig(data.Vaults[i].Debt),
 			MaxDeposit:         uint256.MustFromBig(data.Vaults[i].MaxDeposit),
-			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
-			EulerAccountAssets: convertToAssets(eulerAccountBalance, totalAssets, totalSupply),
 			MaxWithdraw:        decodeCap(uint256.NewInt(uint64(data.Vaults[i].Caps[1]))), // index 1 is borrowCap _ used as maxWithdraw
-			CollateralValue:    uint256.MustFromBig(data.AccountLiquidities[i].CollateralValue),
-			LiabilityValue:     uint256.MustFromBig(data.AccountLiquidities[i].LiabilityValue),
-			AssetPrice:         uint256.MustFromBig(data.AssetPrices[i]),
-			SharePrice:         uint256.MustFromBig(data.SharePrices[i]),
-			TotalAssets:        uint256.MustFromBig(data.Vaults[i].TotalAssets),
-			TotalSupply:        uint256.MustFromBig(data.Vaults[i].TotalSupply),
-			LTV:                uint256.NewInt(uint64(data.LTV[i])),
+			TotalBorrows:       uint256.MustFromBig(data.Vaults[i].TotalBorrows),
+			EulerAccountAssets: uint256.MustFromBig(data.Vaults[i].EulerAccountBalance),
+			DebtPrice:          uint256.MustFromBig(data.VaultPrices[i][i][1]),
+			ValuePrices: lo.Map(data.CollatPrices,
+				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) }),
+			VaultValuePrices: [2]*uint256.Int(lo.Map(data.VaultPrices[:2],
+				func(p [3][2]*big.Int, _ int) *uint256.Int { return uint256.MustFromBig(p[i][0]) })),
+			LTVs:                lo.Map(data.CollatLtvs, func(l [3]uint16, _ int) uint64 { return uint64(l[i]) }),
+			VaultLTVs:           [2]uint64(lo.Map(data.VaultLtvs[:2], func(l [3]uint16, _ int) uint64 { return uint64(l[i]) })),
+			IsControllerEnabled: data.Vaults[i].IsControllerEnabled,
 		}
 	}
 
 	reserve0 := data.Reserves.Reserve0.String()
 	reserve1 := data.Reserves.Reserve1.String()
 	status := data.Reserves.Status
-	if !data.IsOperatorAuthorized || allBalancesZero {
+	if !data.IsOperatorAuthorized {
 		reserve0 = "0"
 		reserve1 = "0"
 		status = 2 // locked
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		Pause:  status,
-		Vaults: vaults,
+		Pause:           status,
+		Vaults:          vaults,
+		ControllerVault: data.Controller,
+		Collaterals:     big256.MustFromBigs(data.CollatAmts),
 	})
 	if err != nil {
 		return entity.Pool{}, err
@@ -358,7 +449,7 @@ func decodeCap(amountCap *uint256.Int) *uint256.Int {
 	return amountCap.Div(amountCap, big256.U100)
 }
 
-func convertToAssets(shares, totalAssets, totalSupply *uint256.Int) *uint256.Int {
-	shares.MulDivOverflow(shares, totalAssets.Add(totalAssets, VIRTUAL_AMOUNT), totalSupply.Add(totalSupply, VIRTUAL_AMOUNT))
-	return shares
+func convertToAssets(shares, totalAssets, totalSupply *big.Int) *big.Int {
+	return shares.Mul(shares, totalAssets.Add(totalAssets, VirtualAmount)).
+		Div(shares, totalSupply.Add(totalSupply, VirtualAmount))
 }

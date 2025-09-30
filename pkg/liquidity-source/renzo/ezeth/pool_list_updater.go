@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -288,7 +289,7 @@ func getExtra(
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
 		tokenStrategyMapping[i] = map[string]bool{}
 		for j := 0; j < len(tokenStrategies[i]); j++ {
-			collateral := strings.ToLower(collaterals[j].Hex())
+			collateral := hexutil.Encode(collaterals[j][:])
 			address := tokenStrategies[i][j]
 			hasTokenStrategyMapping := address.Hex() == valueobject.ZeroAddress
 			tokenStrategyMapping[i][collateral] = hasTokenStrategyMapping
@@ -301,7 +302,7 @@ func getExtra(
 		collateralTokenTvlLimitsMap = make(map[string]*big.Int, len(collaterals))
 	)
 	for i := 0; i < len(collaterals); i++ {
-		address := strings.ToLower(collaterals[i].Hex())
+		address := hexutil.Encode(collaterals[i][:])
 		collateralTokenIndex[address] = i
 		tokenOracleLookup[address] = oracleInfo[i]
 		collateralTokenTvlLimitsMap[address] = collateralTokenTvlLimits[i]
@@ -322,7 +323,7 @@ func getExtra(
 		collaterals: lo.Map(collaterals,
 			func(item common.Address, _ int) *entity.PoolToken {
 				return &entity.PoolToken{
-					Address:   strings.ToLower(item.Hex()),
+					Address:   hexutil.Encode(item[:]),
 					Swappable: true,
 				}
 			}),

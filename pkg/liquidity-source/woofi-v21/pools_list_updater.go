@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -95,7 +96,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	)
 	for i, tokenAddress := range supportedToken {
 		tokens[i] = &entity.PoolToken{
-			Address:   strings.ToLower(tokenAddress.Hex()),
+			Address:   hexutil.Encode(tokenAddress[:]),
 			Decimals:  tokenDecimals[i],
 			Swappable: true,
 		}

@@ -44,12 +44,22 @@ var WrappedNativeMap = map[ChainID]string{
 	ChainIDRonin:           "0xe514d9DEB7966c8BE0ca922de8a064264eA6bcd4",
 	ChainIDUnichain:        "0x4200000000000000000000000000000000000006",
 	ChainIDHyperEVM:        "0x5555555555555555555555555555555555555555",
+	ChainIDPlasma:          "0x6100E367285b01F48D07953803A2d8dCA5D19873",
+	ChainIDEtherlink:       "0xc9B53AB2679f573e480d01e0f49e2B5CFB7a3EAb",
 }
 
 // WrapNativeLower wraps, if applicable, native token to wrapped token; and then lowercase it.
 func WrapNativeLower(token string, chainID ChainID) string {
-	if strings.EqualFold(token, NativeAddress) {
+	if IsNative(token) {
 		token = WrappedNativeMap[chainID]
+	}
+	return strings.ToLower(token)
+}
+
+// UnwrapNativeLower unwraps, if applicable, wrapped token to native token; and then lowercase it.
+func UnwrapNativeLower(token string, chainID ChainID) string {
+	if IsWrappedNative(token, chainID) {
+		token = NativeAddress
 	}
 	return strings.ToLower(token)
 }

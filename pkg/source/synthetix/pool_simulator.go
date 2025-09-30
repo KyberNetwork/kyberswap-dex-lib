@@ -169,7 +169,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 			continue
 		}
 
-		swappableTokens = append(swappableTokens, strings.ToLower(tokenAddress.String()))
+		swappableTokens = append(swappableTokens, hexutil.Encode(tokenAddress[:]))
 	}
 
 	return swappableTokens

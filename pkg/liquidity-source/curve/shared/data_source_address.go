@@ -1,12 +1,11 @@
 package shared
 
 import (
-	"math/big"
-
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -24,21 +23,17 @@ func InitDataSourceAddresses(lg logger.Logger, config *Config, ethrpcClient *eth
 	// only get main registry address for now (to check custom rates)
 	var mainRegistryAddress common.Address
 
-	calls := ethrpcClient.NewRequest()
-
-	curveAddressProvider := CurveAddressProvider
-	if config.ChainID == valueobject.ChainIDSonic {
-		curveAddressProvider = CurveAddressProvider_Sonic
+	curveAddressProvider, ok := CurveAddressProvider[config.ChainID]
+	if !ok {
+		curveAddressProvider = CurveDefaultAddressProvider
 	}
 
-	calls.AddCall(&ethrpc.Call{
+	if _, err := ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: curveAddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(0)},
-	}, []interface{}{&mainRegistryAddress})
-
-	if _, err := calls.Aggregate(); err != nil {
+		Params: []any{bignumber.ZeroBI},
+	}, []any{&mainRegistryAddress}).Aggregate(); err != nil {
 		lg.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to get address from address provider")

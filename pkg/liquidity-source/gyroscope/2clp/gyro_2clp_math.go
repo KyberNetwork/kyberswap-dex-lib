@@ -132,7 +132,7 @@ func (l *gyro2CLPMath) _calculateQuadratic(
 		return nil, err
 	}
 
-	sqrResult, err := math.GyroPoolMath.Sqrt(radicand, number.Number_5)
+	sqrResult, err := math.GyroPoolMath.Sqrt(radicand)
 	if err != nil {
 		return nil, err
 	}

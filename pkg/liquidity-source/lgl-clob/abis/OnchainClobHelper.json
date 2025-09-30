@@ -1,0 +1,210 @@
+[
+  {
+    "type": "function",
+    "name": "assembleOrderbookFromOrders",
+    "inputs": [
+      {
+        "name": "lob_address",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "isAsk",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "max_price_levels",
+        "type": "uint24",
+        "internalType": "uint24"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "array_prices",
+        "type": "uint72[]",
+        "internalType": "uint72[]"
+      },
+      {
+        "name": "array_shares",
+        "type": "uint128[]",
+        "internalType": "uint128[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "convertToActualPrice",
+    "inputs": [
+      {
+        "name": "lob_address",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "price",
+        "type": "uint72",
+        "internalType": "uint72"
+      }
+    ],
+    "outputs": [
+      {
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "extractDirectionAndPrice",
+    "inputs": [
+      {
+        "name": "order_id",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "isAsk",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "price",
+        "type": "uint72",
+        "internalType": "uint72"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "firstLevel",
+    "inputs": [
+      {
+        "name": "lob_address",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "bid",
+        "type": "uint72",
+        "internalType": "uint72"
+      },
+      {
+        "name": "ask",
+        "type": "uint72",
+        "internalType": "uint72"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrderInfo",
+    "inputs": [
+      {
+        "name": "lob_address",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "order_id",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "isAsk",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "price",
+        "type": "uint72",
+        "internalType": "uint72"
+      },
+      {
+        "name": "total_shares",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "remain_shares",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "payout_amount",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "total_fee",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "current_execution_fee",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "previewPlaceAggressiveOrder",
+    "inputs": [
+      {
+        "name": "lob_address",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "isAsk",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "price",
+        "type": "uint72",
+        "internalType": "uint72"
+      },
+      {
+        "name": "max_executable_shares",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "max_executable_value",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "executed_shares",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "executed_value",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "fee",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -145,7 +146,7 @@ func (t *PoolTracker) updatePool(
 			}
 
 			var (
-				poolToken                    = strings.ToLower(poolDat.PoolToken.Hex())
+				poolToken                    = hexutil.Encode(poolDat.PoolToken[:])
 				bntTradingLiquidity, _       = uint256.FromBig(poolDat.PoolLiquidity.BntTradingLiquidity)
 				baseTokenTradingLiquidity, _ = uint256.FromBig(poolDat.PoolLiquidity.BaseTokenTradingLiquidity)
 				stakedBalance, _             = uint256.FromBig(poolDat.PoolLiquidity.StakedBalance)
@@ -305,7 +306,7 @@ func (t *PoolTracker) getCollectionByPool(
 
 	poolByCollection := make(map[string]string)
 	for idx, liquidityPool := range liquidityPools {
-		poolByCollection[liquidityPool] = strings.ToLower(poolCollections[idx].Hex())
+		poolByCollection[liquidityPool] = hexutil.Encode(poolCollections[idx][:])
 	}
 
 	return poolByCollection, nil
@@ -332,7 +333,7 @@ func (t *PoolTracker) getLiquidityPools(
 
 	ret := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
-		ret = append(ret, strings.ToLower(addr.Hex()))
+		ret = append(ret, hexutil.Encode(addr[:]))
 	}
 
 	return ret, res.BlockNumber, nil

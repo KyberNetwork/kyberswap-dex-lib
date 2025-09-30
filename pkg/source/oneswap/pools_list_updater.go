@@ -3,12 +3,12 @@ package oneswap
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -138,7 +138,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		var staticExtra StaticExtra
 
 		for j := 0; j < len(poolTokens[i]); j++ {
-			tokenAddress := strings.ToLower(poolTokens[i][j].Hex())
+			tokenAddress := hexutil.Encode(poolTokens[i][j][:])
 			tokenModel := entity.PoolToken{
 				Address:   tokenAddress,
 				Swappable: true,
@@ -157,7 +157,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			return nil, err
 		}
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    d.config.DexID,
 			Type:        DexTypeOneSwap,
 			StaticExtra: string(staticExtraBytes),

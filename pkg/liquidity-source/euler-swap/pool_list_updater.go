@@ -3,12 +3,12 @@ package eulerswap
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
@@ -189,17 +189,17 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddresses []common
 		}
 
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][0].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][0][:]),
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(tokensByPool[i][1].Hex()),
+			Address:   hexutil.Encode(tokensByPool[i][1][:]),
 			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(poolAddress.Hex()),
+			Address:     hexutil.Encode(poolAddress[:]),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
@@ -224,7 +224,6 @@ func (u *PoolsListUpdater) listPoolTokens(ctx context.Context, poolAddresses []c
 			ABI:    poolABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodGetAssets,
-			Params: nil,
 		}, []any{&poolTokens[i]})
 	}
 
@@ -249,14 +248,12 @@ func (d *PoolsListUpdater) getPoolStaticData(
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetParams,
-		Params: nil,
 	}, []any{&params})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodEVC,
-		Params: nil,
 	}, []any{&evc})
 
 	_, err := req.Aggregate()
@@ -292,7 +289,6 @@ func (u *PoolsListUpdater) getAllPoolsLength(ctx context.Context) (int, error) {
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodPoolsLength,
-		Params: nil,
 	}, []any{&allPoolsLength})
 
 	if _, err := req.Call(); err != nil {

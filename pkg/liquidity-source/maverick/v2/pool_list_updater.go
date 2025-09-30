@@ -3,13 +3,13 @@ package maverickv2
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -221,15 +221,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, poolAddrs []common.Add
 	pools := make([]entity.Pool, 0, len(poolAddrs))
 
 	for i, poolAddress := range poolAddrs {
-		poolAddrLower := strings.ToLower(poolAddress.Hex())
+		poolAddrLower := hexutil.Encode(poolAddress[:])
 
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(tokenAList[i].Hex()),
+			Address:   hexutil.Encode(tokenAList[i][:]),
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(tokenBList[i].Hex()),
+			Address:   hexutil.Encode(tokenBList[i][:]),
 			Swappable: true,
 		}
 

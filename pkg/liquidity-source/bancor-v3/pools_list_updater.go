@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -114,7 +115,7 @@ func (u *PoolsListUpdater) getTokenAddresses(ctx context.Context) ([]string, err
 
 	ret := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
-		ret = append(ret, strings.ToLower(addr.Hex()))
+		ret = append(ret, hexutil.Encode(addr[:]))
 	}
 
 	return ret, nil

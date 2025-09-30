@@ -3,11 +3,11 @@ package camelot
 import (
 	"context"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -132,11 +132,11 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 	for i, pairAddr := range pairAddresses {
 		token0 := entity.PoolToken{
-			Address:   strings.ToLower(token0Addresses[i].Hex()),
+			Address:   hexutil.Encode(token0Addresses[i][:]),
 			Swappable: true,
 		}
 		token1 := entity.PoolToken{
-			Address:   strings.ToLower(token1Addresses[i].Hex()),
+			Address:   hexutil.Encode(token1Addresses[i][:]),
 			Swappable: true,
 		}
 
@@ -153,7 +153,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 		}
 
 		pool := entity.Pool{
-			Address:     strings.ToLower(pairAddr.Hex()),
+			Address:     hexutil.Encode(pairAddr[:]),
 			Exchange:    d.cfg.DexID,
 			Type:        DexTypeCamelot,
 			Reserves:    entity.PoolReserves{"0", "0"},
