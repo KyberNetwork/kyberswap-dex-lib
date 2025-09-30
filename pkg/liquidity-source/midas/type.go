@@ -232,7 +232,7 @@ func (v *VaultStateRpcResult) ToVaultState(mToken string, vaultType VaultType) *
 	case redemptionVaultSwapper:
 		vault.TokenBalances = toU256Slice(v.TokenBalances)
 		vault.MToken2Balance = uint256.MustFromBig(v.MToken2Balance)
-		if vault.MTbillRedemptionVault != nil {
+		if v.MTbillRedemptionVault != nil {
 			vault.SwapperVaultType = v.SwapperVaultType
 			vault.MTbillRedemptionVault = v.MTbillRedemptionVault.ToVaultState(v.MTbillRedemptionVault.MToken, v.SwapperVaultType)
 		}
