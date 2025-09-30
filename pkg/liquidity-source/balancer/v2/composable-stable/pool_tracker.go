@@ -335,7 +335,7 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	if len(rateUpdatedTokenIndexes) > 0 {
-		if _, err := req.Aggregate(); err != nil {
+		if _, err := req.TryAggregate(); err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId":       t.config.DexID,
 				"dexType":     DexType,
