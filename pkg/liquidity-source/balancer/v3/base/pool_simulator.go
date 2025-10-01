@@ -434,7 +434,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 
 	// Add all buffer tokens except the input address
 	for _, bufferToken := range p.bufferTokens {
-		if bufferToken != address {
+		if bufferToken != "" && bufferToken != address {
 			result = append(result, bufferToken)
 		}
 	}
