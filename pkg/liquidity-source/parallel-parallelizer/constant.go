@@ -1,4 +1,4 @@
-package parallelprotocol
+package parallelparallelizer
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DexType        = "parallel-protocol"
+	DexType        = "parallel-parallelizer"
 	defaultReserve = "100000000000000000000000000"
 )
 

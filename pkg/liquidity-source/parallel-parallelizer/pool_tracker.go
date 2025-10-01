@@ -1,4 +1,4 @@
-package parallelprotocol
+package parallelparallelizer
 
 import (
 	"context"

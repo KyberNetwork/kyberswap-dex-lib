@@ -1,4 +1,4 @@
-package parallelprotocol
+package parallelparallelizer
 
 type Config struct {
 	DexID          string `json:"dexID"`
