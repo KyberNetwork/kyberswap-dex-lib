@@ -64,6 +64,7 @@ func (g *GlpManagerScanner) getGlpManager(ctx context.Context, address string) (
 	}
 
 	return &GlpManager{
+		Address:              address,
 		Glp:                  hexutil.Encode(glp[:]),
 		MaximiseAumInUsdg:    maximiseAumInUsdg,
 		NotMaximiseAumInUsdg: notMaximiseAumInUsdg,
