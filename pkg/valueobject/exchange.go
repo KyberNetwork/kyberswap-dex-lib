@@ -468,6 +468,7 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
+	ExchangeMiroMigrator               = "miro-migrator"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -919,6 +920,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
+	ExchangeMiroMigrator:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -957,6 +959,7 @@ var SingleSwapSourceSet = map[Exchange]struct{}{
 	ExchangeOvernightUsdp:  {},
 	ExchangeUniswapV4Euler: {},
 	ExchangeEulerSwap:      {},
+	ExchangeWooFiV3:        {},
 }
 
 func IsSingleSwapSource(exchange Exchange) bool {

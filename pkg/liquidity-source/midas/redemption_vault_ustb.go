@@ -59,8 +59,8 @@ func (v *RedemptionVaultUstb) RedeemInstant(amountMTokenIn *uint256.Int, token s
 
 	return &SwapInfo{
 		IsDeposit:            false,
-		AmountTokenInBase18:  amountTokenOut,
-		AmountMTokenInBase18: amountMTokenIn,
+		amountTokenInBase18:  amountTokenOut,
+		amountMTokenInBase18: amountMTokenIn,
 
 		gas:       redeemInstantUstbGas,
 		fee:       feeAmount,
@@ -124,7 +124,7 @@ func (v *RedemptionVaultUstb) UpdateState(swapInfo *SwapInfo, token string) {
 	if !v.tokenBalances[tokenIndex].Lt(swapInfo.amountOut) {
 		v.RedemptionVault.UpdateState(swapInfo, token)
 	} else {
-		v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
+		v.ManageableVault.UpdateState(swapInfo.amountTokenInBase18, swapInfo.amountMTokenInBase18, token)
 
 		missingAmount := new(uint256.Int).Sub(swapInfo.amountOut, v.tokenBalances[tokenIndex])
 		v.ustbRedemption.UstbBalance = new(uint256.Int).Sub(v.ustbRedemption.UstbBalance, missingAmount)

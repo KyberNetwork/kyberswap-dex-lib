@@ -49,8 +49,8 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token string) (*
 
 	return &SwapInfo{
 		IsDeposit:            true,
-		AmountTokenInBase18:  amountToken,
-		AmountMTokenInBase18: mintAmount,
+		amountTokenInBase18:  amountToken,
+		amountMTokenInBase18: mintAmount,
 
 		gas:       depositInstantDefaultGas,
 		fee:       feeAmount,
@@ -59,8 +59,8 @@ func (v *DepositVault) DepositInstant(amountToken *uint256.Int, token string) (*
 }
 
 func (v *DepositVault) UpdateState(swapInfo *SwapInfo, token string) {
-	v.ManageableVault.UpdateState(swapInfo.AmountTokenInBase18, swapInfo.AmountMTokenInBase18, token)
-	v.totalMinted = new(uint256.Int).Add(v.totalMinted, swapInfo.AmountMTokenInBase18)
+	v.ManageableVault.UpdateState(swapInfo.amountTokenInBase18, swapInfo.amountMTokenInBase18, token)
+	v.totalMinted = new(uint256.Int).Add(v.totalMinted, swapInfo.amountMTokenInBase18)
 }
 
 func (v *DepositVault) CloneState() any {
