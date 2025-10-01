@@ -186,10 +186,11 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		directionFlag = 1
 	}
 	return Meta{
-		GlpManager:    p.glpManager.Address,
-		StakeGLP:      p.glpManager.StakeGlp,
-		YearnVault:    p.yearnTokenVault.Address,
-		DirectionFlag: directionFlag,
+		GlpManager:      p.glpManager.Address,
+		StakeGLP:        p.glpManager.StakeGlp,
+		YearnVault:      p.yearnTokenVault.Address,
+		DirectionFlag:   directionFlag,
+		ApprovalAddress: p.glpManager.Address,
 	}
 }
 
