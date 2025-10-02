@@ -335,12 +335,12 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	if len(rateUpdatedTokenIndexes) > 0 {
-		if _, err := req.TryAggregate(); err != nil {
+		if _, err := req.Aggregate(); err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId":       t.config.DexID,
 				"dexType":     DexType,
 				"poolAddress": poolAddress,
-			}).Warnf("can not update token rates: %s", err.Error())
+			}).Debugf("can not update token rates: %s", err.Error())
 
 			canNotUpdateTokenRates = true
 		}
