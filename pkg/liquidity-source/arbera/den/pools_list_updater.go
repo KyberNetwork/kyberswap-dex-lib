@@ -222,6 +222,7 @@ func trackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 		extra.Fee = Fee{
 			Bond:   uint256.NewInt(uint64(poolStates[i].Fee.Bond)),
 			Debond: uint256.NewInt(uint64(poolStates[i].Fee.Debond)),
+			Burn:   uint256.NewInt(uint64(poolStates[i].Fee.Burn)),
 		}
 		bytes, err := json.Marshal(extra)
 		if err != nil {

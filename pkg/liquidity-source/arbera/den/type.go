@@ -21,4 +21,5 @@ type Asset struct {
 type Fee struct {
 	Bond   *uint256.Int `json:"bond"`
 	Debond *uint256.Int `json:"debond"`
+	Burn   *uint256.Int `json:"burn"`
 }
