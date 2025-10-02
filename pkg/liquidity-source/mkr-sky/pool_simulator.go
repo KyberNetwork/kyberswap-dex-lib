@@ -78,7 +78,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Fee: &pool.TokenAmount{
 			Token:  param.TokenAmountIn.Token,
-			Amount: bignumber.ZeroBI,
+			Amount: p.fee,
 		},
 		Gas: p.gas,
 	}, nil
