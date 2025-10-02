@@ -8,7 +8,6 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/vault"
@@ -27,6 +26,7 @@ type PoolSimulator struct {
 	bufferTokens []string
 
 	chainID valueobject.ChainID
+	paused  bool
 }
 
 type swapper interface {
@@ -58,15 +58,27 @@ func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtr
 		}
 	}
 
+	var (
+		paused   = true
+		tokens   = make([]string, len(extra.BalancesLiveScaled18))
+		reserves = make([]*big.Int, len(extra.BalancesLiveScaled18))
+	)
+
+	for i := range extra.BalancesLiveScaled18 {
+		tokens[i] = entityPool.Tokens[i].Address
+		if reserves[i] = bignumber.NewBig10(entityPool.Reserves[i]); reserves[i].Sign() != 0 {
+			paused = false // if any reserve is not 0, the pool is not paused
+		}
+	}
+
 	return &PoolSimulator{
+		chainID: params.ChainID,
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  entityPool.Address,
-			Exchange: entityPool.Exchange,
-			Type:     entityPool.Type,
-			Tokens: lo.Map(entityPool.Tokens[:len(extra.BalancesLiveScaled18)], // remove placeholder buffer tokens
-				func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves: lo.Map(entityPool.Reserves[:len(extra.BalancesLiveScaled18)],
-				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
@@ -76,8 +88,7 @@ func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtr
 
 		buffers:      extra.Buffers,
 		bufferTokens: staticExtra.BufferTokens,
-
-		chainID: params.ChainID,
+		paused:       paused,
 	}, nil
 }
 
@@ -142,6 +153,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if tokenIn == tokenOut {
 		return nil, shared.ErrInvalidToken
 	}
+
+	if p.paused {
+		return nil, shared.ErrPoolIsPaused
+	}
+
 	indexIn, isTokenInUnderlying, err := p.ResolveToken(tokenIn)
 	if err != nil {
 		return nil, err
