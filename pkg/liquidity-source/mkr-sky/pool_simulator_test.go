@@ -15,7 +15,7 @@ var testPool = entity.Pool{
 	Address:  "0xbdcfca946b6cdd965f99a839e4435bcdc1bc470b",
 	Exchange: "mkr-sky",
 	Type:     "mkr-sky",
-	SwapFee:  0.0,
+	SwapFee:  0.01,
 	Reserves: []string{
 		defaultReserves,
 		defaultReserves,
@@ -53,7 +53,7 @@ func TestGetAmountOut(t *testing.T) {
 			tokenOut: "0x56072c95faa701256059aa122697b133aded9279",
 			expectedAmountOut: &poolPkg.TokenAmount{
 				Token:  "0x56072c95faa701256059aa122697b133aded9279",
-				Amount: bignumber.NewBig("24000000000000000000000"),
+				Amount: bignumber.NewBig("23760000000000000000000"),
 			},
 			expectedErr: nil,
 		},

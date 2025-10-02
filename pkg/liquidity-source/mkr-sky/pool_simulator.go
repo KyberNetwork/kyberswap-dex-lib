@@ -53,7 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		rate: staticExtra.Rate,
-		fee:  big.NewInt(int64(entityPool.SwapFee)),
+		fee:  big.NewInt(int64(entityPool.SwapFee * wad)),
 		gas:  DefaultGas,
 	}, nil
 }
