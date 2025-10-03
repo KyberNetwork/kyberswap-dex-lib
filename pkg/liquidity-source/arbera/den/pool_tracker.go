@@ -51,7 +51,7 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	_ map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	pools, err := trackPools(ctx, []entity.Pool{p}, t.ethrpcClient)
+	pools, err := TrackPools(ctx, []entity.Pool{p}, t.ethrpcClient)
 	if err != nil {
 		return p, err
 	}

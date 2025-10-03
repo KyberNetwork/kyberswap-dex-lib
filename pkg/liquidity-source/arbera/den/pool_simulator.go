@@ -130,10 +130,15 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
+
 	feeBurned, newSupply, newAssetBalance := new(uint256.Int), new(uint256.Int), new(uint256.Int)
 	// (fee * fees.burn) / DEN
 	feeBurned.Mul(uint256.MustFromBig(params.Fee.Amount), s.Fee.Burn).Div(feeBurned, DEN)
 	if indexIn == 0 { // debond - brToken -> token
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexOut].Address })
+		if !found {
+			return
+		}
 		// burn amountIn after fee + burn part of fee
 		s.Supply = newSupply.
 			Sub(s.Supply, uint256.MustFromBig(params.TokenAmountIn.Amount)).
@@ -141,23 +146,28 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			Sub(newSupply, feeBurned)
 
 		// decrease balance of token out
-		s.AssetSupplies[indexOut] = newAssetBalance.
-			Sub(s.AssetSupplies[indexOut], uint256.MustFromBig(params.TokenAmountOut.Amount))
+		s.AssetSupplies[tokenIdx] = newAssetBalance.
+			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountOut.Amount))
 	} else { // bond - token -> brToken
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexIn].Address })
+		if !found {
+			return
+		}
 		// mint amountOut before fee + burn part of fee
 		s.Supply = newSupply.
 			Add(s.Supply, uint256.MustFromBig(params.TokenAmountOut.Amount)).
 			Add(newSupply, uint256.MustFromBig(params.Fee.Amount)).
 			Sub(newSupply, feeBurned)
 		// increase balance of token in
-		s.AssetSupplies[indexIn] = newAssetBalance.
-			Sub(s.AssetSupplies[indexIn], uint256.MustFromBig(params.TokenAmountIn.Amount))
+		s.AssetSupplies[tokenIdx] = newAssetBalance.
+			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountIn.Amount))
 	}
 }
 
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.Supply = new(uint256.Int).Set(s.Supply)
+	cloned.AssetSupplies = lo.Map(s.AssetSupplies, func(e *uint256.Int, _ int) *uint256.Int { return new(uint256.Int).Set(e) })
 	return &cloned
 }
 

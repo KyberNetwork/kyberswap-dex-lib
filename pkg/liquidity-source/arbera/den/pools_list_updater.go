@@ -104,10 +104,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, metadataBytes, err
 	}
-	newPools, err = trackPools(ctx, newPools, d.ethrpcClient)
-	if err != nil {
-		return nil, metadataBytes, err
-	}
+
 	metadata.Addresses = append(metadata.Addresses, newPoolAddresses...)
 	metadataBytes, err = json.Marshal(metadata)
 	if err != nil {
@@ -154,7 +151,7 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 		return nil, err
 	}
 
-	return lo.Map(poolStates, func(poolState PoolState, i int) entity.Pool {
+	pools := lo.Map(poolStates, func(poolState PoolState, i int) entity.Pool {
 		tokens := append(
 			[]*entity.PoolToken{
 				{
@@ -178,10 +175,12 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			Reserves:  lo.Map(tokens, func(token *entity.PoolToken, _ int) string { return defaultReserve }),
 			Extra:     extras[i],
 		}
-	}), nil
+	})
+
+	return TrackPools(ctx, pools, rpcClient)
 }
 
-func trackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Client) ([]entity.Pool, error) {
+func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Client) ([]entity.Pool, error) {
 	req := rpcClient.NewRequest().SetContext(ctx)
 	poolStates := make([]PoolState, len(pools))
 	for i, pool := range pools {
