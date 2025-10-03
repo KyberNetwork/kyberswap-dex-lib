@@ -267,7 +267,9 @@ func TestReverseSwap(t *testing.T) {
 		{1, "1000000000", "AUSD-USDC (Medium reserves)"},
 		{3, "1000000000", "USDC-mUSD (Small amount)"},
 		{3, "10000000000", "USDC-mUSD (Large amount)"},
-		{5, "1000000000000", "USDC-USDT (Large amount)"},
+		{5, "1000000", "USDC-USDT (Small amount)"},
+		{5, "1000000000", "USDC-USDT (Medium amount)"},
+		{5, "10000000000000", "USDC-USDT (Large amount)"},
 	}
 
 	for _, tc := range testCases {
