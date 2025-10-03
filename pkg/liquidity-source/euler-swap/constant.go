@@ -54,5 +54,5 @@ var (
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 
-	bufferSwapLimit = uint256.NewInt(85) // 85%
+	bufferSwapLimit = uint256.NewInt(90) // 90%
 )
