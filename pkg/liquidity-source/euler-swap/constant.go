@@ -3,7 +3,7 @@ package eulerswap
 import (
 	"errors"
 
-	"github.com/holiman/uint256"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -54,5 +54,5 @@ var (
 	ErrDivisionByZero    = errors.New("division by zero")
 	ErrSwapLimitExceeded = errors.New("swap limit exceed")
 
-	bufferSwapLimit = uint256.NewInt(85) // 85%
+	bufferSwapLimit = big256.U100 // 100%
 )
