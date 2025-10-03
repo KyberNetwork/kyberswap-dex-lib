@@ -30,6 +30,7 @@ import (
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
+	pkg_liquiditysource_cap_cusd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	pkg_liquiditysource_compound_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	pkg_liquiditysource_compound_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
@@ -199,6 +200,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v3.PoolSimulator{})
