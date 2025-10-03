@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	DexType = "arbera-den"
+	DexType        = "arbera-den"
+	defaultReserve = "100000000000000000000000000"
 )
 
 var (

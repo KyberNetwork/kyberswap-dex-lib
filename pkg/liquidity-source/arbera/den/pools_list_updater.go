@@ -100,7 +100,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	newPools, err := initPools(ctx, newPoolAddresses, d.config, d.ethrpcClient)
+	newPools, err := InitPools(ctx, newPoolAddresses, d.config, d.ethrpcClient)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -117,7 +117,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return newPools, metadataBytes, nil
 }
 
-func initPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *ethrpc.Client) ([]entity.Pool, error) {
+func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *ethrpc.Client) ([]entity.Pool, error) {
 	req := rpcClient.NewRequest().SetContext(ctx)
 	poolStates := make([]PoolState, len(addresses))
 	for i, address := range addresses {
@@ -153,27 +153,30 @@ func initPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 	if err != nil {
 		return nil, err
 	}
+
 	return lo.Map(poolStates, func(poolState PoolState, i int) entity.Pool {
+		tokens := append(
+			[]*entity.PoolToken{
+				{
+					Address:   strings.ToLower(addresses[i]),
+					Swappable: true,
+				},
+			},
+			lo.Map(poolState.Assets, func(asset RPCAsset, _ int) *entity.PoolToken {
+				return &entity.PoolToken{
+					Address:   strings.ToLower(asset.Token.Hex()),
+					Swappable: true,
+				}
+			})...,
+		)
 		return entity.Pool{
 			Address:   addresses[i],
 			Exchange:  cfg.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
-			Tokens: append(
-				[]*entity.PoolToken{
-					{
-						Address:   strings.ToLower(addresses[i]),
-						Swappable: true,
-					},
-				},
-				lo.Map(poolState.Assets, func(asset RPCAsset, _ int) *entity.PoolToken {
-					return &entity.PoolToken{
-						Address:   strings.ToLower(asset.Token.Hex()),
-						Swappable: true,
-					}
-				})...,
-			),
-			Extra: extras[i],
+			Tokens:    tokens,
+			Reserves:  lo.Map(tokens, func(token *entity.PoolToken, _ int) string { return defaultReserve }),
+			Extra:     extras[i],
 		}
 	}), nil
 }
