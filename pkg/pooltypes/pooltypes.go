@@ -23,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
@@ -335,6 +336,7 @@ type Types struct {
 	Midas                      string
 	MiroMigrator               string
 	ArberaDen                  string
+	CUSD                       string
 }
 
 var (
@@ -512,5 +514,6 @@ var (
 		Midas:                      midas.DexType,
 		MiroMigrator:               miromigrator.DexType,
 		ArberaDen:                  arberaden.DexType,
+		CUSD:                       cusd.DexType,
 	}
 )
