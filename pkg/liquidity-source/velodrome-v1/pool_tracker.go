@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -68,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Method: pairFactoryMethodIsPaused,
 	}, []any{&isPaused})
 
-	reserveData := d.getReserves(req, p.Address, params.Logs)
+	reserveData := d.getReserves(req, p.Address, &params)
 
 	fee := d.config.Fee
 	if d.feeTracker != nil {
@@ -83,8 +82,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(p, *reserveData, isPaused, fee, resp.BlockNumber)
 }
 
-func (d *PoolTracker) getReserves(req *ethrpc.Request, poolAddress string, logs []types.Log) *ReserveData {
-	reserveData, blockNumber, err := d.getReservesFromLogs(logs)
+func (d *PoolTracker) getReserves(req *ethrpc.Request, poolAddress string, params *pool.GetNewPoolStateParams) *ReserveData {
+	reserveData, blockNumber, err := d.getReservesFromLogs(params)
 	if err != nil || reserveData.IsZero() {
 		result, _ := d.getReservesFromRPCNode(req, poolAddress)
 		return result
@@ -94,13 +93,13 @@ func (d *PoolTracker) getReserves(req *ethrpc.Request, poolAddress string, logs 
 }
 
 func (d *PoolTracker) updatePool(
-	pool entity.Pool,
+	p entity.Pool,
 	reserveData ReserveData,
 	isPaused bool,
 	fee uint64,
 	blockNumber *big.Int) (entity.Pool, error) {
-	if pool.BlockNumber > blockNumber.Uint64() {
-		return pool, nil
+	if p.BlockNumber > blockNumber.Uint64() {
+		return p, nil
 	}
 
 	poolExtra := PoolExtra{
@@ -109,18 +108,18 @@ func (d *PoolTracker) updatePool(
 	}
 	poolExtraBytes, err := json.Marshal(poolExtra)
 	if err != nil {
-		return pool, err
+		return p, err
 	}
 
-	pool.Reserves = entity.PoolReserves{
+	p.Reserves = entity.PoolReserves{
 		reserveData.Reserve0.String(),
 		reserveData.Reserve1.String(),
 	}
-	pool.Extra = string(poolExtraBytes)
-	pool.BlockNumber = blockNumber.Uint64()
-	pool.Timestamp = time.Now().Unix()
+	p.Extra = string(poolExtraBytes)
+	p.BlockNumber = blockNumber.Uint64()
+	p.Timestamp = int64(reserveData.BlockTimestampLast)
 
-	return pool, nil
+	return p, nil
 }
 
 func (d *PoolTracker) getReservesFromRPCNode(req *ethrpc.Request, poolAddress string) (*ReserveData,
@@ -133,9 +132,9 @@ func (d *PoolTracker) getReservesFromRPCNode(req *ethrpc.Request, poolAddress st
 	}, []any{&getReservesResult})
 }
 
-func (d *PoolTracker) getReservesFromLogs(logs []types.Log) (ReserveData, *big.Int, error) {
-	if len(logs) == 0 || d.logDecoder == nil {
+func (d *PoolTracker) getReservesFromLogs(params *pool.GetNewPoolStateParams) (ReserveData, *big.Int, error) {
+	if len(params.Logs) == 0 || d.logDecoder == nil {
 		return ReserveData{}, nil, nil
 	}
-	return d.logDecoder.Decode(logs)
+	return d.logDecoder.Decode(params.Logs, params.BlockHeaders)
 }

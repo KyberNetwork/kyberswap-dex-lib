@@ -2,12 +2,15 @@ package uniswapv2
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type ILogDecoder interface {
-	Decode(logs []types.Log) (ReserveData, *big.Int, error)
+	Decode(logs []types.Log, blockHeaders map[uint64]entity.BlockHeader) (ReserveData, *big.Int, error)
 }
 
 type LogDecoder struct{}
@@ -16,7 +19,7 @@ func NewLogDecoder() *LogDecoder {
 	return &LogDecoder{}
 }
 
-func (d *LogDecoder) Decode(logs []types.Log) (ReserveData, *big.Int, error) {
+func (d *LogDecoder) Decode(logs []types.Log, blockHeaders map[uint64]entity.BlockHeader) (ReserveData, *big.Int, error) {
 	latestSyncEvent := d.findLatestSyncEvent(logs)
 
 	if len(latestSyncEvent.Data) == 0 {
@@ -33,10 +36,18 @@ func (d *LogDecoder) Decode(logs []types.Log) (ReserveData, *big.Int, error) {
 		return ReserveData{}, nil, err
 	}
 
+	blockNumber := syncEvent.Raw.BlockNumber
+
+	blockTimestamp := time.Now().Unix()
+	if blockHeader, ok := blockHeaders[blockNumber]; ok {
+		blockTimestamp = int64(blockHeader.Timestamp)
+	}
+
 	return ReserveData{
-		Reserve0: syncEvent.Reserve0,
-		Reserve1: syncEvent.Reserve1,
-	}, new(big.Int).SetUint64(syncEvent.Raw.BlockNumber), nil
+		Reserve0:           syncEvent.Reserve0,
+		Reserve1:           syncEvent.Reserve1,
+		BlockTimestampLast: uint32(blockTimestamp),
+	}, new(big.Int).SetUint64(blockNumber), nil
 }
 
 func (d *LogDecoder) findLatestSyncEvent(logs []types.Log) types.Log {
