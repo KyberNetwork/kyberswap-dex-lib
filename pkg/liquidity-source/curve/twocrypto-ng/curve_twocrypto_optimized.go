@@ -55,15 +55,18 @@ func (t *PoolSimulator) GetDy(
 
 	A, gamma := t._A_gamma()
 	var y uint256.Int
-	var err = get_y(A, gamma, xp[:], t.Extra.D, j, &y, K0)
+	var err = get_y(t.Extra.UseCustomMath, j, A, gamma, t.Extra.D, xp[:], &y, K0)
 	if err != nil {
 		return err
 	}
-	number.SafeSubZ(&xp[j], &y, dy)
-	if dy.Sign() <= 0 {
-		return ErrExchange0Coins
+
+	if y.Cmp(&xp[j]) >= 0 {
+		return ErrUnsafeY
 	}
+
+	dy.Sub(&xp[j], &y)
 	dy.SubUint64(dy, 1)
+
 	xp[j] = y
 	if j > 0 {
 		dy.Div(number.SafeMul(dy, Precision), &t.Extra.PriceScale[j-1])
@@ -147,7 +150,7 @@ func (t *PoolSimulator) _getDxFee(
 	}
 
 	var xOut uint256.Int
-	err := get_y(A, gamma, xp, t.Extra.D, i, &xOut, K0)
+	err := get_y(t.Extra.UseCustomMath, i, A, gamma, t.Extra.D, xp, &xOut, K0)
 	if err != nil {
 		return err
 	}
@@ -201,14 +204,14 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 	// # ------------------ If new_D is set to 0, calculate it ------------------
 	var D_unadjusted = new_D
 	if new_D == nil || new_D.IsZero() {
-		D_unadjusted, err = newton_D(A, gamma, _xp[:], K0_prev)
+		D_unadjusted, err = newton_D(A, gamma, K0_prev, _xp[:], t.Extra.UseCustomMath)
 		if err != nil {
 			return err
 		}
 	}
 
 	// # ----------------------- Calculate last_prices --------------------------
-	err = get_p(_xp, D_unadjusted, A, gamma, lastPrices)
+	err = get_p(t.Extra.UseCustomMath, _xp, D_unadjusted, A, gamma, lastPrices)
 	if err != nil {
 		return err
 	}
@@ -295,7 +298,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			}
 
 			// # ------------------------------------------ Update D with new xp.
-			D, err := newton_D(A, gamma, xp[:], new(uint256.Int))
+			D, err := newton_D(A, gamma, new(uint256.Int), xp[:], t.Extra.UseCustomMath)
 			if err != nil {
 				return err
 			}

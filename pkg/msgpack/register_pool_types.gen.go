@@ -10,6 +10,7 @@ import (
 	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_algebra_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1"
 	pkg_liquiditysource_angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
+	pkg_liquiditysource_arbera_den "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	pkg_liquiditysource_arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	pkg_liquiditysource_balancer_v1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	pkg_liquiditysource_balancer_v2_composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
@@ -29,6 +30,7 @@ import (
 	pkg_liquiditysource_beetsss "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/beets-ss"
 	pkg_liquiditysource_brownfi "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	pkg_liquiditysource_brownfi_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi/v2"
+	pkg_liquiditysource_cap_cusd "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	pkg_liquiditysource_clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	pkg_liquiditysource_compound_v2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	pkg_liquiditysource_compound_v3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
@@ -178,6 +180,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_angletransmuter.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arbera_den.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_arenabc.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v1.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_balancer_v2_composablestable.PoolSimulator{})
@@ -197,6 +200,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_beetsss.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_brownfi_v2.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_cap_cusd.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_clipper.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_compound_v3.PoolSimulator{})
