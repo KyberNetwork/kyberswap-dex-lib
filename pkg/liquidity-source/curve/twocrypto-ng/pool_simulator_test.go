@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -266,8 +265,8 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	ain := bignumber.NewBig10("50000000000000000123")
 
 	for i := 0; i < b.N; i++ {
-		_, _ = p.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: ain},
+		_, _ = p.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: ain},
 			TokenOut:      "0x18c14c2d707b2212e17d1579789fc06010cfca23",
 			Limit:         nil,
 		})
