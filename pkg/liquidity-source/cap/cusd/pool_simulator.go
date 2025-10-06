@@ -6,6 +6,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 	"math/big"
+	"slices"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -85,14 +86,14 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrAssetNotSupported
 	}
 
-	var fee *uint256.Int
+	var fee uint256.Int
 	amountOut, newRatio := s.amountOutBeforeFee(assetIndex, isMint, amountIn)
 	if !s.isWhitelist {
 		amountOut, fee = s.applyFeeSlopes(s.fees[assetIndex], isMint, amountOut, newRatio)
 	}
 
 	if !isMint {
-		if s.availableBalances[assetIndex].Lt(new(uint256.Int).Add(amountOut, fee)) {
+		if s.availableBalances[assetIndex].Lt(new(uint256.Int).Add(amountOut, &fee)) {
 			return nil, ErrInsufficientReserves
 		}
 	}
@@ -104,7 +105,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		},
 		Fee: &pool.TokenAmount{
 			Token:  s.Info.Tokens[indexIn],
-			Amount: lo.Ternary(fee == nil, bignumber.ZeroBI, fee.ToBig()),
+			Amount: fee.ToBig(),
 		},
 		Gas: lo.Ternary(isMint, defaultMintGas, defaultBurnGas),
 	}, nil
@@ -116,15 +117,30 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	assetIndex := lo.Ternary(isMint, indexIn, indexOut)
 
 	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
+	amountOutWithFee := uint256.MustFromBig(params.TokenAmountOut.Amount)
+	amountOutWithFee.Add(amountOutWithFee, uint256.MustFromBig(params.Fee.Amount))
+
 	if isMint {
 		s.vaultAssetSupplies[assetIndex] = new(uint256.Int).Add(s.vaultAssetSupplies[assetIndex], amountIn)
+		s.availableBalances[assetIndex] = new(uint256.Int).Add(s.availableBalances[assetIndex], amountIn)
 	} else {
-		s.vaultAssetSupplies[assetIndex] = new(uint256.Int).Sub(s.vaultAssetSupplies[assetIndex], amountIn)
+		s.vaultAssetSupplies[assetIndex] = new(uint256.Int).Sub(s.vaultAssetSupplies[assetIndex], amountOutWithFee)
+		s.availableBalances[assetIndex] = new(uint256.Int).Sub(s.availableBalances[assetIndex], amountOutWithFee)
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
-	return nil
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
+	return Meta{
+		BlockNumber: s.Info.BlockNumber,
+	}
+}
+
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *s
+	cloned.availableBalances = slices.Clone(s.availableBalances)
+	cloned.vaultAssetSupplies = slices.Clone(s.vaultAssetSupplies)
+
+	return &cloned
 }
 
 func (s *PoolSimulator) amountOutBeforeFee(assetIndex int, isMint bool,
@@ -164,7 +180,7 @@ func (s *PoolSimulator) amountOutBeforeFee(assetIndex int, isMint bool,
 	return amountOut, newRatio
 }
 
-func (s *PoolSimulator) applyFeeSlopes(fees *FeeData, isMint bool, amount, ratio *uint256.Int) (*uint256.Int, *uint256.Int) {
+func (s *PoolSimulator) applyFeeSlopes(fees *FeeData, isMint bool, amount, ratio *uint256.Int) (*uint256.Int, uint256.Int) {
 	var rate, temp uint256.Int
 	if isMint {
 		rate.Set(fees.MinMintFee)
@@ -200,5 +216,5 @@ func (s *PoolSimulator) applyFeeSlopes(fees *FeeData, isMint bool, amount, ratio
 
 	fee, _ := temp.MulDivOverflow(amount, &rate, rayPrecision)
 
-	return temp.Sub(amount, fee), fee
+	return temp.Sub(amount, fee), *fee
 }
