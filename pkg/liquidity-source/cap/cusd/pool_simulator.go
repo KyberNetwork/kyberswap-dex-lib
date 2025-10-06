@@ -82,7 +82,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrAssetPaused
 	}
 
-	if !lo.Contains(s.assets, s.Pool.Info.Tokens[assetIndex]) {
+	if !lo.Contains(s.assets, s.Info.Tokens[assetIndex]) {
 		return nil, ErrAssetNotSupported
 	}
 
