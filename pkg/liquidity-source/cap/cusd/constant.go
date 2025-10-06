@@ -20,8 +20,8 @@ const (
 
 	pausablePausedMethod = "paused"
 
-	defaultMintGas int64 = 0
-	defaultBurnGas int64 = 0
+	defaultMintGas int64 = 184572
+	defaultBurnGas int64 = 181161
 )
 
 var (
