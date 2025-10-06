@@ -143,7 +143,7 @@ func TestGetP(t *testing.T) {
 		_ = xp[0].SetFromDecimal(tc.xp0)
 		_ = xp[1].SetFromDecimal(tc.xp1)
 		var out [NumTokens - 1]uint256.Int
-		err := get_p(xp, uint256.MustFromDecimal(tc.d), uint256.MustFromDecimal(tc.a), uint256.MustFromDecimal(tc.gamma), out[:])
+		err := get_p(false, xp, uint256.MustFromDecimal(tc.d), uint256.MustFromDecimal(tc.a), uint256.MustFromDecimal(tc.gamma), out[:])
 		require.Nil(t, err)
 		assert.Equal(t, tc.out1, out[0].Dec())
 	}

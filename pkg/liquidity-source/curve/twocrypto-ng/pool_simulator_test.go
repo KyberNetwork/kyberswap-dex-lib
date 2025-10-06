@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -21,6 +22,8 @@ var pools = []string{
 	`{"address":"0x1fb84fa6d252762e8367ea607a6586e09dcebe3d","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1726463373,"reserves":["968569777414549410834","1045106588251996643768"],"tokens":[{"address":"0x18c14c2d707b2212e17d1579789fc06010cfca23","name":"","symbol":"ETH+","decimals":18,"weight":0,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"20000000\",\"InitialGamma\":\"20000000000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"20000000\",\"FutureGamma\":\"20000000000000000\",\"FutureAGammaTime\":0,\"D\":\"1996236386986675947911\",\"PriceScale\":[\"983313638977093334\"],\"PriceOracle\":[\"983239528662393033\"],\"LastPrices\":[\"983244856693732906\"],\"LastPricesTimestamp\":1726463246,\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"500000\",\"OutFee\":\"8000000\",\"LpSupply\":\"1006167834136870835627\",\"XcpProfit\":\"1000760564011364559\",\"VirtualPrice\":\"1000381175737496082\",\"AllowedExtraProfit\":\"1000000000000\",\"AdjustmentStep\":\"25000000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}"}`,
 	// https://arbiscan.io/address/0xE34B3a4cEDB077b53cc813Df6fe34a85749fcecC
 	`{"address":"0xe34b3a4cedb077b53cc813df6fe34a85749fcecc","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1726463373,"reserves":["4048585006552861060153","399999"],"tokens":[{"address":"0x498bf2b1e120fed3ad3d42ea2165e9b73f99c1e5","name":"","symbol":"crvUSD","decimals":18,"weight":0,"swappable":true},{"address":"0x5d8c5293dabc2c861d2f6dbd4bb0600889fdadf3","name":"","symbol":"EURS","decimals":2,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"1880000\",\"InitialGamma\":\"199000000000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"1880000\",\"FutureGamma\":\"199000000000000000\",\"FutureAGammaTime\":0,\"D\":\"8383386641969295080730\",\"PriceScale\":[\"1083716143157454024\"],\"PriceOracle\":[\"1083039505855158959\"],\"LastPrices\":[\"1083039505855158959\"],\"LastPricesTimestamp\":1721804004,\"FeeGamma\":\"12300000000000000\",\"MidFee\":\"4000000\",\"OutFee\":\"30000000\",\"LpSupply\":\"4026454270358976869472\",\"XcpProfit\":\"1000023302885130528\",\"VirtualPrice\":\"1000020627288204984\",\"AllowedExtraProfit\":\"100000000\",\"AdjustmentStep\":\"100000000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}"}`,
+	// https://etherscan.io/address/0x83f24023d15d835a213df24fd309c47dab5beb32
+	`{"address":"0x83f24023d15d835a213df24fd309c47dab5beb32","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1759724518,"reserves":["10634289033358214903742053","8225920812"],"tokens":[{"address":"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e","symbol":"crvUSD","decimals":18,"swappable":true},{"address":"0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf","symbol":"cbBTC","decimals":8,"swappable":true}],"extra":"{\"InitialA\":\"90000\",\"InitialGamma\":\"1000000000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"90000\",\"FutureGamma\":\"1000000000000000\",\"FutureAGammaTime\":1758724751,\"D\":\"20716304579622468215639043\",\"PriceScale\":[\"122572905692708966850883\"],\"PriceOracle\":[\"123128663955028683381548\"],\"LastPrices\":[\"123128775261180734521746\"],\"FeeGamma\":\"3000000000000000\",\"MidFee\":\"100000000\",\"OutFee\":\"100000000\",\"LpSupply\":\"29381075909841566370089\",\"XcpProfit\":\"1010014673401974434\",\"VirtualPrice\":\"1006971910109016365\",\"AllowedExtraProfit\":\"100000000\",\"AdjustmentStep\":\"100000000000\",\"UseCustomMath\":true}","staticExtra":"{\"IsNativeCoins\":[false,false]}","blockNumber":23516311}`,
 }
 
 func TestCalcAmountOut(t *testing.T) {
@@ -267,6 +270,114 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			TokenAmountIn: pool.TokenAmount{Token: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", Amount: ain},
 			TokenOut:      "0x18c14c2d707b2212e17d1579789fc06010cfca23",
 			Limit:         nil,
+		})
+	}
+}
+
+func TestMergeSwaps(t *testing.T) {
+	// Test cases: [poolId, amountIn, direction]
+	testCases := []struct {
+		poolId    int
+		amountIn  string
+		direction string
+	}{
+		{2, "10000", "1->0"},
+		{2, "1000000", "1->0"},
+		{2, "100000000", "1->0"},
+		{2, "1000000000000000000", "0->1"},
+		{2, "1000000000000000000000", "0->1"},
+		{2, "1000000000000000000000000", "0->1"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.direction, func(t *testing.T) {
+			var pool entity.Pool
+			err := json.Unmarshal([]byte(pools[tc.poolId]), &pool)
+			require.Nil(t, err)
+
+			tokenIn, tokenOut := 0, 1
+			if tc.direction == "1->0" {
+				tokenIn, tokenOut = 1, 0
+			}
+
+			// Single swap
+			singlePool, err := NewPoolSimulator(pool)
+			require.Nil(t, err)
+
+			amountIn, _ := new(big.Int).SetString(tc.amountIn, 10)
+			tokenAmountIn := poolpkg.TokenAmount{
+				Token:  pool.Tokens[tokenIn].Address,
+				Amount: amountIn,
+			}
+			tokenOutAddr := pool.Tokens[tokenOut].Address
+
+			singleResult, singleErr := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+				return singlePool.CalcAmountOut(poolpkg.CalcAmountOutParams{
+					TokenAmountIn: tokenAmountIn,
+					TokenOut:      tokenOutAddr,
+				})
+			})
+
+			// Chunked swaps (20 chunks)
+			chunkedPool, err := NewPoolSimulator(pool)
+			require.Nil(t, err)
+
+			chunkAmount := new(big.Int).Div(amountIn, big.NewInt(20))
+			var totalAmountOut *big.Int
+			var chunkedErr error
+
+			for i := 0; i < 20; i++ {
+				chunkTokenAmountIn := poolpkg.TokenAmount{
+					Token:  pool.Tokens[tokenIn].Address,
+					Amount: chunkAmount,
+				}
+
+				chunkResult, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+					return chunkedPool.CalcAmountOut(poolpkg.CalcAmountOutParams{
+						TokenAmountIn: chunkTokenAmountIn,
+						TokenOut:      tokenOutAddr,
+					})
+				})
+
+				if err != nil {
+					chunkedErr = err
+					break
+				}
+
+				chunkedPool.UpdateBalance(poolpkg.UpdateBalanceParams{
+					SwapInfo:       chunkResult.SwapInfo,
+					TokenAmountIn:  chunkTokenAmountIn,
+					TokenAmountOut: *chunkResult.TokenAmountOut,
+				})
+
+				if totalAmountOut == nil {
+					totalAmountOut = chunkResult.TokenAmountOut.Amount
+				} else {
+					totalAmountOut.Add(totalAmountOut, chunkResult.TokenAmountOut.Amount)
+				}
+			}
+
+			if singleErr != nil {
+				require.NotNil(t, chunkedErr, "Single swap failed but chunked swap succeeded")
+				t.Logf("Both processes failed as expected: %v", singleErr)
+			} else {
+				require.Nil(t, chunkedErr, "Single swap succeeded but chunked swap failed")
+				require.NotNil(t, totalAmountOut, "Chunked swap should have produced output")
+
+				diff := new(big.Int).Sub(singleResult.TokenAmountOut.Amount, totalAmountOut)
+				diff.Abs(diff)
+
+				// Allow 1% difference due to rounding in chunked calculations
+				maxDiff := new(big.Int).Div(singleResult.TokenAmountOut.Amount, big.NewInt(100))
+				require.LessOrEqual(t, diff.Cmp(maxDiff), 0,
+					"Results differ too much. Single: %s, Chunked: %s",
+					singleResult.TokenAmountOut.Amount.String(),
+					totalAmountOut.String())
+
+				t.Logf("Both processes succeeded. Single: %s, Chunked: %s",
+					singleResult.TokenAmountOut.Amount.String(),
+					totalAmountOut.String())
+			}
 		})
 	}
 }

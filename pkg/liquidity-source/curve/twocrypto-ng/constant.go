@@ -30,6 +30,7 @@ const (
 	poolMethodPriceScale         = "price_scale"
 	poolMethodPriceOracle        = "price_oracle"
 	poolMethodLastPrices         = "last_prices"
+	poolMethodMath               = "MATH"
 
 	MaxLoopLimit = 256
 	NumTokens    = 2

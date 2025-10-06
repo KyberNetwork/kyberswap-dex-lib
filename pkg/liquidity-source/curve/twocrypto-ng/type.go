@@ -31,6 +31,7 @@ type (
 		VirtualPrice       *uint256.Int
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
+		UseCustomMath      bool
 	}
 
 	SwapInfo struct {
