@@ -32,6 +32,10 @@ type Extra struct {
 	AvailableBalances  []*uint256.Int `json:"availableBalances"`
 }
 
+type Meta struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
 type FeeData struct {
 	MinMintFee    *uint256.Int `json:"minMintFee"`
 	Slope0        *uint256.Int `json:"slope0"`
