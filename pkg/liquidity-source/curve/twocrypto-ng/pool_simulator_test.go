@@ -77,9 +77,9 @@ func TestCalcAmountOut(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(poolpkg.CalcAmountOutParams{
+					TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
@@ -164,9 +164,9 @@ func TestCalcAmountIn(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			amountIn, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountInResult, error) {
-				return p.CalcAmountIn(pool.CalcAmountInParams{
-					TokenAmountOut: pool.TokenAmount{
+			amountIn, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountInResult, error) {
+				return p.CalcAmountIn(poolpkg.CalcAmountInParams{
+					TokenAmountOut: poolpkg.TokenAmount{
 						Token:  tc.tokenOut,
 						Amount: tc.amountOut,
 					},
@@ -219,9 +219,9 @@ func TestUpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
-			out, err := testutil.MustConcurrentSafe(t, func() (*pool.CalcAmountOutResult, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+			out, err := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
+				return p.CalcAmountOut(poolpkg.CalcAmountOutParams{
+					TokenAmountIn: poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
 					TokenOut:      tc.out,
 					Limit:         nil,
 				})
@@ -236,8 +236,8 @@ func TestUpdateBalance(t *testing.T) {
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 
 			assert.NotPanics(t, func() {
-				p.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn:  pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+				p.UpdateBalance(poolpkg.UpdateBalanceParams{
+					TokenAmountIn:  poolpkg.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
 					TokenAmountOut: *out.TokenAmountOut,
 					Fee:            *out.Fee,
 					SwapInfo:       out.SwapInfo,
