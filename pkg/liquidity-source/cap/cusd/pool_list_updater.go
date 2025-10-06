@@ -61,14 +61,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	reserves := lo.Times(len(tokens), func(_ int) string { return "0" })
 
-	return []entity.Pool{
-		{
-			Address:   strings.ToLower(u.config.Vault),
-			Exchange:  u.config.DexId,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  reserves,
-			Tokens:    tokens,
-		},
-	}, nil, nil
+	if pool, err := getPoolState(ctx, u.ethrpcClient, u.config, &entity.Pool{
+		Address:   strings.ToLower(u.config.Vault),
+		Exchange:  u.config.DexId,
+		Type:      DexType,
+		Timestamp: time.Now().Unix(),
+		Reserves:  reserves,
+		Tokens:    tokens,
+	}); err != nil {
+		return nil, nil, err
+	} else {
+		return []entity.Pool{pool}, nil, nil
+	}
 }

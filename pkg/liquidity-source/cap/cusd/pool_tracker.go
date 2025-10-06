@@ -2,6 +2,7 @@ package cusd
 
 import (
 	"context"
+	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
@@ -19,22 +20,26 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
-var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
+var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
-func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
+func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-	}, nil
+	}
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	_ pool.GetNewPoolStateParams) (entity.Pool, error) {
+	return getPoolState(ctx, t.ethrpcClient, t.config, &p)
+}
+
+func getPoolState(ctx context.Context, ethrpcClient *ethrpc.Client, cfg *Config, p *entity.Pool) (entity.Pool, error) {
 	logger.Infof("start getting new state of pool")
 	defer func() {
 		logger.Infof("finished getting new state of pool")
@@ -53,11 +58,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		availableBalances  = make([]*big.Int, assetCount)
 		assets             []common.Address
 	)
-	req := t.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+	req := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    capTokenABI,
 		Target: p.Address,
 		Method: capTokenWhitelistedMethod,
-		Params: []any{common.HexToAddress(t.config.Executor)},
+		Params: []any{common.HexToAddress(cfg.Executor)},
 	}, []any{&whitelisted}).AddCall(&ethrpc.Call{
 		ABI:    capTokenABI,
 		Target: p.Address,
@@ -76,7 +81,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		tokenAddress := common.HexToAddress(token.Address)
 		req.AddCall(&ethrpc.Call{
 			ABI:    oracleABI,
-			Target: t.config.Oracle,
+			Target: cfg.Oracle,
 			Method: oracleGetPriceMethod,
 			Params: []any{tokenAddress},
 		}, []any{&prices[i]})
@@ -109,7 +114,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 	resp, err := req.Aggregate()
 	if err != nil {
 		logger.Errorf("failed to aggregate state")
-		return p, err
+		return *p, err
 	}
 
 	if resp.BlockNumber != nil {
@@ -138,11 +143,14 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		}),
 	})
 	if err != nil {
-		return p, err
+		return *p, err
 	}
 	p.Extra = string(extraBytes)
+	p.Reserves = lo.Map(append(availableBalances, bignum.TwoPow128), func(item *big.Int, index int) string {
+		return item.String()
+	})
 
 	p.Timestamp = time.Now().Unix()
 
-	return p, nil
+	return *p, nil
 }
