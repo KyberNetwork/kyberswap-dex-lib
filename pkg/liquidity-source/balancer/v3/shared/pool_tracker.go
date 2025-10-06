@@ -40,13 +40,13 @@ func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*Extra
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxDeposit,
-			Params: []any{AddrDummy},
+			Params: []any{VaultAddress},
 		}, []any{&maxDeposits[i]})
 		req.AddCall(&ethrpc.Call{
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxWithdraw,
-			Params: []any{AddrDummy},
+			Params: []any{VaultAddress},
 		}, []any{&maxWithdraws[i]})
 	}
 

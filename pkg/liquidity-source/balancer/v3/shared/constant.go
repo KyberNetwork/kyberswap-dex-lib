@@ -8,7 +8,7 @@ type (
 )
 
 var (
-	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
+	VaultAddress = common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9")
 )
 
 const (
