@@ -11,9 +11,9 @@ import (
 
 func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*ExtraBuffer {
 	var (
-		rates        = make([][]Rate, len(bufferTokens))
-		maxDeposits  = make([]*big.Int, len(bufferTokens))
-		maxWithdraws = make([]*big.Int, len(bufferTokens))
+		rates       = make([][]Rate, len(bufferTokens))
+		maxDeposits = make([]*big.Int, len(bufferTokens))
+		maxRedeems  = make([]*big.Int, len(bufferTokens))
 	)
 
 	for i, bufferToken := range bufferTokens {
@@ -45,9 +45,9 @@ func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*Extra
 		req.AddCall(&ethrpc.Call{
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
-			Method: ERC4626MethodMaxWithdraw,
+			Method: ERC4626MethodMaxRedeem,
 			Params: []any{VaultAddress},
-		}, []any{&maxWithdraws[i]})
+		}, []any{&maxRedeems[i]})
 	}
 
 	return func() []*ExtraBuffer {
@@ -60,7 +60,7 @@ func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*Extra
 				DepositRates: make([]*uint256.Int, len(rates)),
 				RedeemRates:  make([]*uint256.Int, len(rates)),
 				MaxDeposit:   uint256.MustFromBig(maxDeposits[i]),
-				MaxWithdraw:  uint256.MustFromBig(maxWithdraws[i]),
+				MaxRedeem:    uint256.MustFromBig(maxRedeems[i]),
 			}
 
 			for j, rate := range rates {

@@ -140,8 +140,8 @@ func (p *PoolSimulator) handleBufferConversion(
 		// Converting from underlying to wrapped: underlying -> shares -> wrapped
 		convertedAmount, err = p.buffers[index].ConvertToShares(amount)
 	} else {
-		if p.buffers[index].MaxWithdraw != nil && amount.Gt(p.buffers[index].MaxWithdraw) {
-			return nil, shared.ErrMaxWithdrawExceeded
+		if p.buffers[index].MaxRedeem != nil && amount.Gt(p.buffers[index].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		// Converting from wrapped to underlying: wrapped -> assets -> underlying
@@ -235,8 +235,8 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
 		}
 
-		if p.buffers[indexOut].MaxWithdraw != nil && amountOut.Gt(p.buffers[indexOut].MaxWithdraw) {
-			return nil, shared.ErrMaxWithdrawExceeded
+		if p.buffers[indexOut].MaxRedeem != nil && amountOut.Gt(p.buffers[indexOut].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut)
@@ -337,8 +337,8 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
 		}
 
-		if p.buffers[indexIn].MaxWithdraw != nil && amountIn.Gt(p.buffers[indexIn].MaxWithdraw) {
-			return nil, shared.ErrMaxWithdrawExceeded
+		if p.buffers[indexIn].MaxRedeem != nil && amountIn.Gt(p.buffers[indexIn].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
 		}
 
 		amountIn, err = p.buffers[indexIn].ConvertToAssets(amountIn)

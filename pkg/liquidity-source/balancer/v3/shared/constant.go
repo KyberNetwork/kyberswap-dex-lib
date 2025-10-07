@@ -37,5 +37,5 @@ const (
 	ERC4626MethodConvertToAssets = "convertToAssets"
 	ERC4626MethodConvertToShares = "convertToShares"
 	ERC4626MethodMaxDeposit      = "maxDeposit"
-	ERC4626MethodMaxWithdraw     = "maxWithdraw"
+	ERC4626MethodMaxRedeem       = "maxRedeem"
 )
