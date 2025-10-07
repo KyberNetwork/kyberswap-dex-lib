@@ -102,6 +102,7 @@ const (
 	ExchangeCurveStablePlain           = "curve-stable-plain"
 	ExchangeCurveTriCryptoNg           = "curve-tricrypto-ng"
 	ExchangeCurveTwoCryptoNg           = "curve-twocrypto-ng"
+	ExchangeCUSD                       = "cusd"
 	ExchangeCyberblastV3               = "cyberblast-v3"
 	ExchangeDFYN                       = "dfyn"
 	ExchangeDMM                        = "dmm"
@@ -469,6 +470,7 @@ const (
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeMiroMigrator               = "miro-migrator"
+	ExchangeArberaDen                  = "arbera-den"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -569,6 +571,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveStablePlain:           {},
 	ExchangeCurveTriCryptoNg:           {},
 	ExchangeCurveTwoCryptoNg:           {},
+	ExchangeCUSD:                       {},
 	ExchangeCyberblastV3:               {},
 	ExchangeDFYN:                       {},
 	ExchangeDMM:                        {},
@@ -921,6 +924,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
 	ExchangeMiroMigrator:               {},
+	ExchangeArberaDen:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

@@ -8,7 +8,6 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/hooks"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v3/vault"
@@ -27,6 +26,7 @@ type PoolSimulator struct {
 	bufferTokens []string
 
 	chainID valueobject.ChainID
+	paused  bool
 }
 
 type swapper interface {
@@ -58,15 +58,27 @@ func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtr
 		}
 	}
 
+	var (
+		paused   = true
+		tokens   = make([]string, len(extra.BalancesLiveScaled18))
+		reserves = make([]*big.Int, len(extra.BalancesLiveScaled18))
+	)
+
+	for i := range extra.BalancesLiveScaled18 {
+		tokens[i] = entityPool.Tokens[i].Address
+		if reserves[i] = bignumber.NewBig10(entityPool.Reserves[i]); reserves[i].Sign() != 0 {
+			paused = false // if any reserve is not 0, the pool is not paused
+		}
+	}
+
 	return &PoolSimulator{
+		chainID: params.ChainID,
 		Pool: pool.Pool{Info: pool.PoolInfo{
-			Address:  entityPool.Address,
-			Exchange: entityPool.Exchange,
-			Type:     entityPool.Type,
-			Tokens: lo.Map(entityPool.Tokens[:len(extra.BalancesLiveScaled18)], // remove placeholder buffer tokens
-				func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves: lo.Map(entityPool.Reserves[:len(extra.BalancesLiveScaled18)],
-				func(item string, index int) *big.Int { return bignumber.NewBig10(item) }),
+			Address:     entityPool.Address,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      tokens,
+			Reserves:    reserves,
 			BlockNumber: entityPool.BlockNumber,
 		}},
 
@@ -76,8 +88,7 @@ func NewPoolSimulator(params pool.FactoryParams, extra *shared.Extra, staticExtr
 
 		buffers:      extra.Buffers,
 		bufferTokens: staticExtra.BufferTokens,
-
-		chainID: params.ChainID,
+		paused:       paused,
 	}, nil
 }
 
@@ -112,19 +123,27 @@ func (p *PoolSimulator) isBufferSwap(indexIn, indexOut int, isTokenInUnderlying,
 }
 
 // handleBufferConversion handles the conversion between underlying and wrapped tokens of the same index
-func (p *PoolSimulator) handleBufferConversion(index int, amount *uint256.Int, isUnderlyingToken bool) (*uint256.Int,
-	error) {
+func (p *PoolSimulator) handleBufferConversion(
+	index int,
+	amount *uint256.Int,
+	isUnderlyingToken bool,
+) (convertedAmount *uint256.Int, err error) {
 	if index >= len(p.buffers) || p.buffers[index] == nil {
 		return nil, fmt.Errorf("buffer not found for token at index %d", index)
 	}
 
-	var convertedAmount *uint256.Int
-	var err error
-
 	if isUnderlyingToken {
+		if p.buffers[index].MaxDeposit != nil && amount.Gt(p.buffers[index].MaxDeposit) {
+			return nil, shared.ErrMaxDepositExceeded
+		}
+
 		// Converting from underlying to wrapped: underlying -> shares -> wrapped
 		convertedAmount, err = p.buffers[index].ConvertToShares(amount)
 	} else {
+		if p.buffers[index].MaxRedeem != nil && amount.Gt(p.buffers[index].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
+		}
+
 		// Converting from wrapped to underlying: wrapped -> assets -> underlying
 		convertedAmount, err = p.buffers[index].ConvertToAssets(amount)
 	}
@@ -142,6 +161,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if tokenIn == tokenOut {
 		return nil, shared.ErrInvalidToken
 	}
+
+	if p.paused {
+		return nil, shared.ErrPoolIsPaused
+	}
+
 	indexIn, isTokenInUnderlying, err := p.ResolveToken(tokenIn)
 	if err != nil {
 		return nil, err
@@ -184,6 +208,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
 		}
+
+		if p.buffers[indexIn].MaxDeposit != nil && amountIn.Gt(p.buffers[indexIn].MaxDeposit) {
+			return nil, shared.ErrMaxDepositExceeded
+		}
+
 		amountIn, err = p.buffers[indexIn].ConvertToShares(amountIn)
 		if err != nil {
 			return nil, err
@@ -205,6 +234,11 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
 		}
+
+		if p.buffers[indexOut].MaxRedeem != nil && amountOut.Gt(p.buffers[indexOut].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
+		}
+
 		amountOut, err = p.buffers[indexOut].ConvertToAssets(amountOut)
 		if err != nil {
 			return nil, err
@@ -276,6 +310,11 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		if indexOut >= len(p.buffers) || p.buffers[indexOut] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenOut, indexOut)
 		}
+
+		if p.buffers[indexOut].MaxDeposit != nil && amountOut.Gt(p.buffers[indexOut].MaxDeposit) {
+			return nil, shared.ErrMaxDepositExceeded
+		}
+
 		amountOut, err = p.buffers[indexOut].ConvertToShares(amountOut)
 		if err != nil {
 			return nil, err
@@ -297,6 +336,11 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		if indexIn >= len(p.buffers) || p.buffers[indexIn] == nil {
 			return nil, fmt.Errorf("buffer not found for token %s at index %d", tokenIn, indexIn)
 		}
+
+		if p.buffers[indexIn].MaxRedeem != nil && amountIn.Gt(p.buffers[indexIn].MaxRedeem) {
+			return nil, shared.ErrMaxRedeemExceeded
+		}
+
 		amountIn, err = p.buffers[indexIn].ConvertToAssets(amountIn)
 		if err != nil {
 			return nil, err

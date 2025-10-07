@@ -7,7 +7,6 @@ import (
 	"github.com/holiman/uint256"
 
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -34,13 +33,9 @@ var (
 
 	AddrDummy = common.HexToAddress("0x1371783000000000000000000000000001371760")
 
-	BiWad = bignumber.BONE
-	UWad  = big256.BONE
-
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrUnsupportedSwap           = errors.New("unsupported swap")
 	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
-	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 
 	ErrInvalidRate        = errors.New("invalid rate")
 	ErrInvalidRedeemRate  = errors.New("invalid redeem rate")
