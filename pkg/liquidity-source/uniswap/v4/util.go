@@ -9,7 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func GetExchange(p *entity.Pool) valueobject.Exchange {
+func GetHookExchange(p *entity.Pool) valueobject.Exchange {
 	var staticExtra StaticExtra
 	var hookAddress common.Address
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
