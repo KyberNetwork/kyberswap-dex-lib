@@ -1,6 +1,8 @@
 package shared
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/holiman/uint256"
@@ -8,28 +10,48 @@ import (
 )
 
 func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*ExtraBuffer {
-	res := make([][]Rate, len(bufferTokens))
+	var (
+		rates       = make([][]Rate, len(bufferTokens))
+		maxDeposits = make([]*big.Int, len(bufferTokens))
+		maxRedeems  = make([]*big.Int, len(bufferTokens))
+	)
+
 	for i, bufferToken := range bufferTokens {
-		if bufferToken != "" {
-			res[i] = make([]Rate, len(erc4626.PrefetchAmounts))
-			for j, amt := range erc4626.PrefetchAmounts {
-				req.AddCall(&ethrpc.Call{
-					ABI:    ERC4626ABI,
-					Target: bufferToken,
-					Method: ERC4626MethodConvertToAssets,
-					Params: []any{amt.ToBig()},
-				}, []any{&res[i][j].RedeemRate})
-				req.AddCall(&ethrpc.Call{
-					ABI:    ERC4626ABI,
-					Target: bufferToken,
-					Method: ERC4626MethodConvertToShares,
-					Params: []any{amt.ToBig()},
-				}, []any{&res[i][j].DepositRate})
-			}
+		if bufferToken == "" {
+			continue
 		}
+
+		rates[i] = make([]Rate, len(erc4626.PrefetchAmounts))
+		for j, amt := range erc4626.PrefetchAmounts {
+			req.AddCall(&ethrpc.Call{
+				ABI:    ERC4626ABI,
+				Target: bufferToken,
+				Method: ERC4626MethodConvertToAssets,
+				Params: []any{amt.ToBig()},
+			}, []any{&rates[i][j].RedeemRate})
+			req.AddCall(&ethrpc.Call{
+				ABI:    ERC4626ABI,
+				Target: bufferToken,
+				Method: ERC4626MethodConvertToShares,
+				Params: []any{amt.ToBig()},
+			}, []any{&rates[i][j].DepositRate})
+		}
+		req.AddCall(&ethrpc.Call{
+			ABI:    ERC4626ABI,
+			Target: bufferToken,
+			Method: ERC4626MethodMaxDeposit,
+			Params: []any{VaultAddress},
+		}, []any{&maxDeposits[i]})
+		req.AddCall(&ethrpc.Call{
+			ABI:    ERC4626ABI,
+			Target: bufferToken,
+			Method: ERC4626MethodMaxRedeem,
+			Params: []any{VaultAddress},
+		}, []any{&maxRedeems[i]})
 	}
+
 	return func() []*ExtraBuffer {
-		return lo.Map(res, func(rates []Rate, i int) *ExtraBuffer {
+		return lo.Map(rates, func(rates []Rate, i int) *ExtraBuffer {
 			if bufferTokens[i] == "" {
 				return nil
 			}
@@ -37,6 +59,8 @@ func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*Extra
 			var extra = ExtraBuffer{
 				DepositRates: make([]*uint256.Int, len(rates)),
 				RedeemRates:  make([]*uint256.Int, len(rates)),
+				MaxDeposit:   uint256.MustFromBig(maxDeposits[i]),
+				MaxRedeem:    uint256.MustFromBig(maxRedeems[i]),
 			}
 
 			for j, rate := range rates {

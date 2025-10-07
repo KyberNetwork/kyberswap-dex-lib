@@ -1,8 +1,14 @@
 package shared
 
+import "github.com/ethereum/go-ethereum/common"
+
 type (
 	Rounding int
 	SwapKind int
+)
+
+var (
+	VaultAddress = common.HexToAddress("0xbA1333333333a1BA1108E8412f11850A5C319bA9")
 )
 
 const (
@@ -30,4 +36,6 @@ const (
 
 	ERC4626MethodConvertToAssets = "convertToAssets"
 	ERC4626MethodConvertToShares = "convertToShares"
+	ERC4626MethodMaxDeposit      = "maxDeposit"
+	ERC4626MethodMaxRedeem       = "maxRedeem"
 )
