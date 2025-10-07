@@ -298,7 +298,9 @@ const (
 	ExchangePearl                      = "pearl"
 	ExchangePearlV2                    = "pearl-v2"
 	ExchangePharaoh                    = "pharaoh"
+	ExchangePharaoh2                   = "pharaoh-2"
 	ExchangePharaohV2                  = "pharaoh-v2"
+	ExchangePharaohV3                  = "pharaoh-v3"
 	ExchangePhotonSwap                 = "photonswap"
 	ExchangePlatypus                   = "platypus"
 	ExchangePmm1                       = "pmm-1"
@@ -760,7 +762,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePearl:                      {},
 	ExchangePearlV2:                    {},
 	ExchangePharaoh:                    {},
+	ExchangePharaoh2:                   {},
 	ExchangePharaohV2:                  {},
+	ExchangePharaohV3:                  {},
 	ExchangePhotonSwap:                 {},
 	ExchangePlatypus:                   {},
 	ExchangePolMatic:                   {},
