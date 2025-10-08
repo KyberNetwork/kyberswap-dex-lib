@@ -98,8 +98,6 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook: param.HookAddress.Hex(),
 	}
 
-	chainID := valueobject.ChainID(param.Cfg.ChainID)
-
 	if param.HookExtra != "" {
 		var extra DynamicFeeExtra
 		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
@@ -116,6 +114,7 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		cloned := *param.Pool
 		cloned.SwapFee = 0
 
+		chainID := valueobject.ChainID(param.Cfg.ChainID)
 		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
 	}
 
