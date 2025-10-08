@@ -36,6 +36,8 @@ type RpcResult struct {
 type ExtraBuffer struct {
 	DepositRates []*uint256.Int `json:"dRate,omitempty"`
 	RedeemRates  []*uint256.Int `json:"rRate,omitempty"`
+	MaxDeposit   *uint256.Int   `json:"dMax,omitempty"`
+	MaxRedeem    *uint256.Int   `json:"rMax,omitempty"`
 }
 
 type Rate struct {

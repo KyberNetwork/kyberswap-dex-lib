@@ -19,6 +19,7 @@ const (
 	ExchangeAngleTransmuterEUR         = "angle-transmuter-eur"
 	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeApeSwap                    = "apeswap"
+	ExchangeArberaDen                  = "arbera-den"
 	ExchangeArbiDex                    = "arbi-dex"
 	ExchangeArbiDexV3                  = "arbidex-v3"
 	ExchangeArbswapAMM                 = "arbswap-amm"
@@ -81,6 +82,7 @@ const (
 	ExchangeBurrBearWeighted           = "burrbear-weighted"
 	ExchangeButterFi                   = "butter-fi"
 	ExchangeBvm                        = "bvm"
+	ExchangeCUSD                       = "cusd"
 	ExchangeCamelot                    = "camelot"
 	ExchangeCamelotV3                  = "camelot-v3"
 	ExchangeChronos                    = "chronos"
@@ -102,7 +104,6 @@ const (
 	ExchangeCurveStablePlain           = "curve-stable-plain"
 	ExchangeCurveTriCryptoNg           = "curve-tricrypto-ng"
 	ExchangeCurveTwoCryptoNg           = "curve-twocrypto-ng"
-	ExchangeCUSD                       = "cusd"
 	ExchangeCyberblastV3               = "cyberblast-v3"
 	ExchangeDFYN                       = "dfyn"
 	ExchangeDMM                        = "dmm"
@@ -189,6 +190,7 @@ const (
 	ExchangeInfinityPools              = "infinitypools"
 	ExchangeInfusion                   = "infusion"
 	ExchangeIntegral                   = "integral"
+	ExchangeIonexV2                    = "ionex-v2"
 	ExchangeIronStable                 = "iron-stable"
 	ExchangeJetSwap                    = "jetswap"
 	ExchangeKTX                        = "ktx"
@@ -219,6 +221,7 @@ const (
 	ExchangeLineHubV3                  = "linehub-v3"
 	ExchangeLiquidusFinance            = "liquidus-finance"
 	ExchangeLitePSM                    = "lite-psm"
+	ExchangeLithosV2                   = "lithos-v2"
 	ExchangeLizard                     = "lizard"
 	ExchangeLydia                      = "lydia"
 	ExchangeLynex                      = "lynex"
@@ -250,6 +253,7 @@ const (
 	ExchangeMetropolisLB               = "metropolis-lb"
 	ExchangeMidas                      = "midas"
 	ExchangeMimSwap                    = "mimswap"
+	ExchangeMiroMigrator               = "miro-migrator"
 	ExchangeMkrSky                     = "mkr-sky"
 	ExchangeMonoswap                   = "monoswap"
 	ExchangeMonoswapV3                 = "monoswap-v3"
@@ -298,7 +302,9 @@ const (
 	ExchangePearl                      = "pearl"
 	ExchangePearlV2                    = "pearl-v2"
 	ExchangePharaoh                    = "pharaoh"
+	ExchangePharaoh2                   = "pharaoh-2"
 	ExchangePharaohV2                  = "pharaoh-v2"
+	ExchangePharaohV3                  = "pharaoh-v3"
 	ExchangePhotonSwap                 = "photonswap"
 	ExchangePlatypus                   = "platypus"
 	ExchangePmm1                       = "pmm-1"
@@ -424,9 +430,9 @@ const (
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUpheavalV2                 = "upheaval-v2"
 	ExchangeUpheavalV3                 = "upheaval-v3"
+	ExchangeUraniumV3                  = "uranium-v3"
 	ExchangeUsd0PP                     = "usd0pp"
 	ExchangeUsdsLitePsm                = "usds-lite-psm"
-	ExchangeUraniumV3                  = "uranium-v3"
 	ExchangeVVS                        = "vvs"
 	ExchangeValleySwap                 = "valleyswap"
 	ExchangeValleySwapV2               = "valleyswap-v2"
@@ -469,8 +475,6 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeMiroMigrator               = "miro-migrator"
-	ExchangeArberaDen                  = "arbera-den"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -490,6 +494,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAngleTransmuterEUR:         {},
 	ExchangeAngleTransmuterUSD:         {},
 	ExchangeApeSwap:                    {},
+	ExchangeArberaDen:                  {},
 	ExchangeArbiDex:                    {},
 	ExchangeArbiDexV3:                  {},
 	ExchangeArbswapAMM:                 {},
@@ -551,6 +556,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBurrBearWeighted:           {},
 	ExchangeButterFi:                   {},
 	ExchangeBvm:                        {},
+	ExchangeCUSD:                       {},
 	ExchangeCamelot:                    {},
 	ExchangeCamelotV3:                  {},
 	ExchangeChronos:                    {},
@@ -571,7 +577,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveStablePlain:           {},
 	ExchangeCurveTriCryptoNg:           {},
 	ExchangeCurveTwoCryptoNg:           {},
-	ExchangeCUSD:                       {},
 	ExchangeCyberblastV3:               {},
 	ExchangeDFYN:                       {},
 	ExchangeDMM:                        {},
@@ -655,6 +660,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeInfinityPools:              {},
 	ExchangeInfusion:                   {},
 	ExchangeIntegral:                   {},
+	ExchangeIonexV2:                    {},
 	ExchangeIronStable:                 {},
 	ExchangeJetSwap:                    {},
 	ExchangeKTX:                        {},
@@ -683,6 +689,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLineHubV3:                  {},
 	ExchangeLiquidusFinance:            {},
 	ExchangeLitePSM:                    {},
+	ExchangeLithosV2:                   {},
 	ExchangeLizard:                     {},
 	ExchangeLydia:                      {},
 	ExchangeLynex:                      {},
@@ -714,6 +721,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMetropolisLB:               {},
 	ExchangeMidas:                      {},
 	ExchangeMimSwap:                    {},
+	ExchangeMiroMigrator:               {},
 	ExchangeMkrSky:                     {},
 	ExchangeMonoswap:                   {},
 	ExchangeMonoswapV3:                 {},
@@ -759,8 +767,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePantherSwap:                {},
 	ExchangePearl:                      {},
 	ExchangePearlV2:                    {},
+	ExchangePharaoh2:                   {},
 	ExchangePharaoh:                    {},
 	ExchangePharaohV2:                  {},
+	ExchangePharaohV3:                  {},
 	ExchangePhotonSwap:                 {},
 	ExchangePlatypus:                   {},
 	ExchangePolMatic:                   {},
@@ -874,13 +884,13 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4Clanker:           {},
 	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
-	ExchangeUniswapV4Kem:               {},
 	ExchangeUniswapV4Flaunch:           {},
+	ExchangeUniswapV4Kem:               {},
 	ExchangeUpheavalV2:                 {},
 	ExchangeUpheavalV3:                 {},
+	ExchangeUraniumV3:                  {},
 	ExchangeUsd0PP:                     {},
 	ExchangeUsdsLitePsm:                {},
-	ExchangeUraniumV3:                  {},
 	ExchangeVVS:                        {},
 	ExchangeValleySwap:                 {},
 	ExchangeValleySwapV2:               {},
@@ -923,8 +933,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeMiroMigrator:               {},
-	ExchangeArberaDen:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
