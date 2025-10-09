@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0x3fd02eaddb07080b8e2640afb6d52f10d6396926",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0x3fd02eaddb07080b8e2640afb6d52f10d6396926",
+        "name": "stARBERO",
+        "symbol": "stARBERO",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xfa7767bbb3d832217abaa86e5f2654429b3bf29f",
+        "name": "ARBERO",
+        "symbol": "ARBERO",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]
