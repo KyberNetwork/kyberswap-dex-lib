@@ -2,6 +2,8 @@ package aavev3
 
 import (
 	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Extra struct {
@@ -14,15 +16,35 @@ type StaticExtra struct {
 	AavePoolAddress string `json:"aavePoolAddress"`
 }
 
-type RPCData struct {
-	Configuration ReserveConfigurationMap
-	BlockNumber   uint64
+type RPCReserveData struct {
+	Data struct {
+		Configuration               ReserveConfigurationMap
+		LiquidityIndex              *big.Int
+		CurrentLiquidityRate        *big.Int
+		VariableBorrowIndex         *big.Int
+		CurrentVariableBorrowRate   *big.Int
+		CurrentStableBorrowRate     *big.Int
+		LastUpdateTimestamp         *big.Int
+		ID                          uint16
+		ATokenAddress               common.Address
+		StableDebtTokenAddress      common.Address
+		VariableDebtTokenAddress    common.Address
+		InterestRateStrategyAddress common.Address
+		AccruedToTreasury           *big.Int
+		Unbacked                    *big.Int
+		IsolationModeTotalDebt      *big.Int
+	}
+}
+
+type RPCConfiguration struct {
+	Configuration struct {
+		Data ReserveConfigurationMap
+	}
+	BlockNumber uint64
 }
 
 type ReserveConfigurationMap struct {
-	Data struct {
-		Data *big.Int
-	}
+	Data *big.Int
 }
 
 type SwapInfo struct {
