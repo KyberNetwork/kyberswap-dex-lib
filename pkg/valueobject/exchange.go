@@ -370,6 +370,7 @@ const (
 	ExchangeStationDexV3               = "station-dex-v3"
 	ExchangeStratumFinance             = "stratum-finance"
 	ExchangeSuperSwapV3                = "superswap-v3"
+	ExchangeSuperlendV3                = "superlend-v3"
 	ExchangeSushiSwap                  = "sushiswap"
 	ExchangeSushiSwapV3                = "sushiswap-v3"
 	ExchangeSwaapV2                    = "swaap-v2"
@@ -834,6 +835,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeStationDexV3:               {},
 	ExchangeStratumFinance:             {},
 	ExchangeSuperSwapV3:                {},
+	ExchangeSuperlendV3:                {},
 	ExchangeSushiSwap:                  {},
 	ExchangeSushiSwapV3:                {},
 	ExchangeSwapBased:                  {},

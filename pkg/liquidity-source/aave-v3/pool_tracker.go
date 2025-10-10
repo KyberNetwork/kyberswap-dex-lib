@@ -91,10 +91,10 @@ func (d *PoolTracker) getPoolData(
 	poolAddress,
 	assetToken string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (RPCData, error) {
+) (RPCConfiguration, error) {
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetOverrides(overrides)
 
-	var rpcData RPCData
+	var rpcData RPCConfiguration
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -105,7 +105,7 @@ func (d *PoolTracker) getPoolData(
 
 	resp, err := req.Aggregate()
 	if err != nil {
-		return RPCData{}, err
+		return RPCConfiguration{}, err
 	}
 
 	rpcData.BlockNumber = resp.BlockNumber.Uint64()
@@ -113,7 +113,7 @@ func (d *PoolTracker) getPoolData(
 	return rpcData, nil
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, data RPCData) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, data RPCConfiguration) (entity.Pool, error) {
 	extra := parseConfiguration(data.Configuration.Data.Data)
 	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
