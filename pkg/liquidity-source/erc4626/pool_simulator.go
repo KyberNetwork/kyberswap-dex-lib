@@ -60,6 +60,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, ErrInvalidDepositRate
 		}
 	} else {
+		if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
+			return nil, ErrERC4626RedeemMoreThanMax
+		}
 		amountOut, err = GetClosestRate(s.RedeemRates, amountIn)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
@@ -102,6 +105,8 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		amountIn, err = GetClosestRate(s.RedeemRates, amountOut)
 		if err != nil {
 			return nil, ErrInvalidRedeemRate
+		} else if s.MaxRedeem != nil && amountIn.Gt(s.MaxRedeem) {
+			return nil, ErrERC4626RedeemMoreThanMax
 		}
 	}
 
@@ -123,7 +128,9 @@ func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	if s.MaxDeposit != nil {
 		cloned.MaxDeposit = new(uint256.Int).Set(s.MaxDeposit)
 	}
-
+	if s.MaxRedeem != nil {
+		cloned.MaxRedeem = new(uint256.Int).Set(s.MaxRedeem)
+	}
 	return &cloned
 }
 
@@ -138,6 +145,8 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if s.MaxDeposit != nil {
 			s.MaxDeposit = new(uint256.Int).Sub(s.MaxDeposit, uint256.MustFromBig(tokenAmountIn.Amount))
 		}
+	} else if s.MaxRedeem != nil {
+		s.MaxRedeem = new(uint256.Int).Sub(s.MaxRedeem, uint256.MustFromBig(tokenAmountIn.Amount))
 	}
 }
 

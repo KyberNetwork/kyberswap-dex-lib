@@ -39,12 +39,11 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedError:     assert.NoError,
 		},
 		{
-			name:              "0->1 ok",
-			tokenInIdx:        0,
-			tokenOutIdx:       1,
-			amountIn:          big.NewInt(1.3e18),
-			expectedAmountOut: big.NewInt(1360831162949323725),
-			expectedError:     assert.NoError,
+			name:          "0->1 too much",
+			tokenInIdx:    0,
+			tokenOutIdx:   1,
+			amountIn:      big.NewInt(1.3e18),
+			expectedError: assert.Error,
 		},
 		{
 			name:              "1->0 ok",

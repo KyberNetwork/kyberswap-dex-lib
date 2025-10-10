@@ -91,6 +91,7 @@ func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		Gas:          Gas(vaultCfg.Gas),
 		SwapTypes:    vaultCfg.SwapTypes,
 		MaxDeposit:   uint256.MustFromBig(state.MaxDeposit),
+		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 	})
