@@ -106,31 +106,33 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
-func (t *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
-	_, idx, found := lo.FindIndexOf(t.basePools, func(basePool pool.IPoolSimulator) bool {
+func (s *PoolSimulator) CloneState() pool.IPoolSimulator { return s }
+
+func (s *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
+	_, idx, found := lo.FindIndexOf(s.basePools, func(basePool pool.IPoolSimulator) bool {
 		return basePool != nil && newBasePool != nil && strings.EqualFold(basePool.GetAddress(), newBasePool.GetAddress())
 	})
 	if found && idx >= 0 {
-		t.basePools[idx] = newBasePool
+		s.basePools[idx] = newBasePool
 	}
 }
 
-func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
-	return t.basePools
+func (s *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
+	return s.basePools
 }
 
-func (t *PoolSimulator) CanSwapFrom(address string) []string {
-	idx := t.GetTokenIndex(address)
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	idx := s.GetTokenIndex(address)
 	res := []string{}
 	if idx < 0 {
 		return res
 	}
 	if idx <= 2 {
-		return append(res, t.Info.Tokens[3:]...)
+		return append(res, s.Info.Tokens[3:]...)
 	}
-	return append(res, t.Info.Tokens[:3]...)
+	return append(res, s.Info.Tokens[:3]...)
 }
 
-func (t *PoolSimulator) CanSwapTo(address string) []string {
-	return t.CanSwapFrom(address)
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	return s.CanSwapFrom(address)
 }
