@@ -45,7 +45,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		tokenAmountIn = params.TokenAmountIn
 		tokenOut      = params.TokenOut
 	)
-	if len(s.basePools)+1 != len(s.Pool.Info.Tokens) {
+	if len(s.basePools)+1 != len(s.Info.Tokens) {
 		return nil, ErrBasePoolsMismatch
 	}
 	// basePools: [stLBGT, brLBGT, UniV2, brARBERO, stARBERO]
@@ -68,10 +68,10 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			// fmt.Println("idx", idx, s.Pool.Info.Tokens[idx], s.Pool.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)], s.basePools[idx-lo.Ternary(isBuy, 0, 1)].GetAddress())
 			result, err := s.basePools[idx-lo.Ternary(isBuy, 0, 1)].CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
-					Token:  s.Pool.Info.Tokens[idx],
+					Token:  s.Info.Tokens[idx],
 					Amount: amountOut,
 				},
-				TokenOut: s.Pool.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)],
+				TokenOut: s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)],
 			})
 			if err != nil {
 				return nil, err
@@ -122,9 +122,9 @@ func (t *PoolSimulator) CanSwapFrom(address string) []string {
 		return res
 	}
 	if idx <= 2 {
-		return append(res, t.Pool.Info.Tokens[3:]...)
+		return append(res, t.Info.Tokens[3:]...)
 	}
-	return append(res, t.Pool.Info.Tokens[:3]...)
+	return append(res, t.Info.Tokens[:3]...)
 }
 
 func (t *PoolSimulator) CanSwapTo(address string) []string {
