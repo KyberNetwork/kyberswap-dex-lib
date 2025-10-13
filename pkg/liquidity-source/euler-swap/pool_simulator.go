@@ -209,7 +209,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
 
 		// Apply a safety buffer (85%) to the collateral value for swap limit checks
-		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.U100)
+		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.UBasisPoint)
 		if liabilityVal.Gt(collatValWithBuffer) {
 			return nil, ErrInsolvency
 		}
