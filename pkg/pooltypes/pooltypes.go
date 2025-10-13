@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	angletransmuter "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/angle-transmuter"
 	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
+	arberazap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/zap"
 	arenabc "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arena-bc"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/composable-stable"
@@ -337,6 +338,7 @@ type Types struct {
 	MiroMigrator               string
 	ArberaDen                  string
 	CUSD                       string
+	ArberaZap                  string
 }
 
 var (
@@ -515,5 +517,6 @@ var (
 		MiroMigrator:               miromigrator.DexType,
 		ArberaDen:                  arberaden.DexType,
 		CUSD:                       cusd.DexType,
+		ArberaZap:                  arberazap.DexType,
 	}
 )

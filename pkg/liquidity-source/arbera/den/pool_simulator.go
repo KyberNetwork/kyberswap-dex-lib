@@ -16,7 +16,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	tokens []*entity.PoolToken
+	decimals []uint8
 	Extra
 }
 
@@ -37,8 +37,8 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(p.Reserves, func(e string, _ int) *big.Int { return bignum.NewBig(e) }),
 			BlockNumber: p.BlockNumber,
 		}},
-		tokens: p.Tokens,
-		Extra:  extra,
+		decimals: lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) uint8 { return e.Decimals }),
+		Extra:    extra,
 	}, nil
 }
 
@@ -49,7 +49,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	)
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 || len(s.tokens) != 2 {
+	if indexIn < 0 || indexOut < 0 || len(s.Pool.Info.Tokens) != 2 {
 		return nil, ErrInvalidToken
 	}
 	amtIn := uint256.MustFromBig(tokenAmountIn.Amount)
@@ -77,7 +77,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (s *PoolSimulator) Debond(indexIn int, indexOut int, amtIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexOut].Address })
+	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexOut] })
 	if !found {
 		return nil, nil, ErrTokenNotExist
 	}
@@ -98,7 +98,7 @@ func (s *PoolSimulator) Debond(indexIn int, indexOut int, amtIn *uint256.Int) (*
 }
 
 func (s *PoolSimulator) Bond(indexIn int, indexOut int, amtIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexIn].Address })
+	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexIn] })
 	if !found {
 		return nil, nil, ErrTokenNotExist
 	}
@@ -112,7 +112,7 @@ func (s *PoolSimulator) Bond(indexIn int, indexOut int, amtIn *uint256.Int) (*ui
 	})
 	tokensMinted := new(uint256.Int)
 	_ = lo.TernaryF(firstIn, func() *uint256.Int {
-		return tokensMinted.Mul(amtIn, Q96).Mul(tokensMinted, big256.TenPow(s.tokens[indexOut].Decimals)).Div(tokensMinted, s.Assets[tokenIdx].Q1)
+		return tokensMinted.Mul(amtIn, Q96).Mul(tokensMinted, big256.TenPow(s.decimals[indexOut])).Div(tokensMinted, s.Assets[tokenIdx].Q1)
 	}, func() *uint256.Int {
 		return tokensMinted.Mul(s.Supply, tokenAmtSupplyRatioX96).Div(tokensMinted, Q96)
 	})
@@ -135,7 +135,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// (fee * fees.burn) / DEN
 	feeBurned.Mul(uint256.MustFromBig(params.Fee.Amount), s.Fee.Burn).Div(feeBurned, DEN)
 	if indexIn == 0 { // debond - brToken -> token
-		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexOut].Address })
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexOut] })
 		if !found {
 			return
 		}
@@ -149,7 +149,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		s.AssetSupplies[tokenIdx] = newAssetBalance.
 			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountOut.Amount))
 	} else { // bond - token -> brToken
-		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.tokens[indexIn].Address })
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexIn] })
 		if !found {
 			return
 		}
