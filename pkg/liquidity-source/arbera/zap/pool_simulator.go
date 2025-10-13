@@ -3,6 +3,7 @@ package arberazap
 import (
 	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/samber/lo"
 
@@ -101,8 +102,13 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
-func (t *PoolSimulator) SetBasePool(basePool pool.IPoolSimulator) {
-	t.basePools = append(t.basePools, basePool)
+func (t *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
+	_, idx, found := lo.FindIndexOf(t.basePools, func(basePool pool.IPoolSimulator) bool {
+		return strings.EqualFold(basePool.GetAddress(), newBasePool.GetAddress())
+	})
+	if found && idx >= 0 {
+		t.basePools[idx] = newBasePool
+	}
 }
 
 func (t *PoolSimulator) GetBasePools() []pool.IPoolSimulator {
