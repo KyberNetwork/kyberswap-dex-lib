@@ -66,7 +66,11 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			indexIn >= idx && indexOut < idx,
 		) {
 			// fmt.Println("idx", idx, s.Pool.Info.Tokens[idx], s.Pool.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)], s.basePools[idx-lo.Ternary(isBuy, 0, 1)].GetAddress())
-			result, err := s.basePools[idx-lo.Ternary(isBuy, 0, 1)].CalcAmountOut(pool.CalcAmountOutParams{
+			currentPool := s.basePools[idx-lo.Ternary(isBuy, 0, 1)]
+			if currentPool == nil {
+				return nil, ErrBasePoolNotFound
+			}
+			result, err := currentPool.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  s.Info.Tokens[idx],
 					Amount: amountOut,
@@ -104,7 +108,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (t *PoolSimulator) SetBasePool(newBasePool pool.IPoolSimulator) {
 	_, idx, found := lo.FindIndexOf(t.basePools, func(basePool pool.IPoolSimulator) bool {
-		return strings.EqualFold(basePool.GetAddress(), newBasePool.GetAddress())
+		return basePool != nil && newBasePool != nil && strings.EqualFold(basePool.GetAddress(), newBasePool.GetAddress())
 	})
 	if found && idx >= 0 {
 		t.basePools[idx] = newBasePool

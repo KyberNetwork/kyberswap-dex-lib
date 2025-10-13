@@ -10,4 +10,5 @@ const (
 var (
 	ErrInvalidToken      = errors.New("invalid token")
 	ErrBasePoolsMismatch = errors.New("base pools mismatch")
+	ErrBasePoolNotFound  = errors.New("base pool not found")
 )
