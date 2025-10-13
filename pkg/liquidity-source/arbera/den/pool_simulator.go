@@ -49,7 +49,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	)
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 || len(s.Pool.Info.Tokens) != 2 {
+	if indexIn < 0 || indexOut < 0 || len(s.Info.Tokens) != 2 {
 		return nil, ErrInvalidToken
 	}
 	amtIn := uint256.MustFromBig(tokenAmountIn.Amount)
@@ -77,7 +77,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (s *PoolSimulator) Debond(indexIn int, indexOut int, amtIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexOut] })
+	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexOut] })
 	if !found {
 		return nil, nil, ErrTokenNotExist
 	}
@@ -98,7 +98,7 @@ func (s *PoolSimulator) Debond(indexIn int, indexOut int, amtIn *uint256.Int) (*
 }
 
 func (s *PoolSimulator) Bond(indexIn int, indexOut int, amtIn *uint256.Int) (*uint256.Int, *uint256.Int, error) {
-	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexIn] })
+	_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexIn] })
 	if !found {
 		return nil, nil, ErrTokenNotExist
 	}
@@ -135,7 +135,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// (fee * fees.burn) / DEN
 	feeBurned.Mul(uint256.MustFromBig(params.Fee.Amount), s.Fee.Burn).Div(feeBurned, DEN)
 	if indexIn == 0 { // debond - brToken -> token
-		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexOut] })
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexOut] })
 		if !found {
 			return
 		}
@@ -149,7 +149,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		s.AssetSupplies[tokenIdx] = newAssetBalance.
 			Sub(s.AssetSupplies[tokenIdx], uint256.MustFromBig(params.TokenAmountOut.Amount))
 	} else { // bond - token -> brToken
-		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Pool.Info.Tokens[indexIn] })
+		_, tokenIdx, found := lo.FindIndexOf(s.Assets, func(asset Asset) bool { return asset.Token == s.Info.Tokens[indexIn] })
 		if !found {
 			return
 		}
