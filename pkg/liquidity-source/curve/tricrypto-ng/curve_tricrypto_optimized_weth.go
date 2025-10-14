@@ -1,6 +1,7 @@
 package tricryptong
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -31,6 +32,12 @@ func (t *PoolSimulator) GetDy(
 	// output
 	dy, fee, K0 *uint256.Int, xp []uint256.Int,
 ) error {
+	startDx := new(uint256.Int).Set(dx)
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("panic in GetDy. Debug info: startDx: %s, dx: %s\n", startDx, dx)
+		}
+	}()
 	// assert dx > 0, "do not exchange 0 coins"
 	if dx.IsZero() {
 		return ErrExchange0Coins

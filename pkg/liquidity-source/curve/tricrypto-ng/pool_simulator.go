@@ -101,6 +101,14 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	var amountOut, fee, amount uint256.Int
+	if strings.HasPrefix(tokenAmountIn.Amount.String(), "11579208923731619542357") {
+		fmt.Printf("CalcAmountOut is called with max uint256 amount %v, tokenIn %v, tokenOut %v\n",
+			tokenAmountIn.Amount.String(),
+			param.TokenAmountIn.Token,
+			param.TokenOut,
+		)
+	}
+
 	amount.SetFromBig(tokenAmountIn.Amount)
 	var swapInfo SwapInfo
 	err := t.GetDy(
