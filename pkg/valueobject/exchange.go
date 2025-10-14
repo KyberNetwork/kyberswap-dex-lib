@@ -477,6 +477,8 @@ const (
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
 	ExchangeArberaStake                = "arbera-stake"
+	ExchangeArberaZap                  = "arbera-zap"
+	ExchangeArberaDenAmm               = "arbera-den-amm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -937,6 +939,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
 	ExchangeArberaStake:                {},
+	ExchangeArberaZap:                  {},
+	ExchangeArberaDenAmm:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

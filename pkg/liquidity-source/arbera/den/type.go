@@ -22,4 +22,6 @@ type Fee struct {
 	Bond   *uint256.Int `json:"bond"`
 	Debond *uint256.Int `json:"debond"`
 	Burn   *uint256.Int `json:"burn"`
+	Buy    *uint256.Int `json:"buy"`
+	Sell   *uint256.Int `json:"sell"`
 }
