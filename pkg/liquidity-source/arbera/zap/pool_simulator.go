@@ -8,8 +8,11 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	arberaden "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/den"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -66,9 +69,31 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			indexIn >= idx && indexOut < idx,
 		) {
 			// fmt.Println("idx", idx, s.Pool.Info.Tokens[idx], s.Pool.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)], s.basePools[idx-lo.Ternary(isBuy, 0, 1)].GetAddress())
-			currentPool := s.basePools[idx-lo.Ternary(isBuy, 0, 1)]
+			poolId := idx - lo.Ternary(isBuy, 0, 1)
+			currentPool := s.basePools[poolId]
+			isPrivate := currentPool.GetExchange() == valueobject.ExchangeArberaDenAmm
 			if currentPool == nil {
 				return nil, ErrBasePoolNotFound
+			}
+
+			// There is a burning fee logic when buying/selling den tokens through the private pool
+			// The brLBGT-brarBERO private pool handles feeBurn for brarBERO only (although brLBGT has buy/sell fee config too, it is used for other private pools like brNECT-brLBGT)
+			// The logic resides inside the token (brLBGT/brarBERO)'s transfer method
+			// When selling brarBERO, it occurs during the transfer of brarBERO to the private pool, then adjusts before the swap
+			// When buying brarBERO, it occurs during the transfer of brarBERO from the private pool, then adjusts after the swap
+			var extra *arberaden.Fee
+			var err error
+
+			if isPrivate {
+				extra, err = util.AnyToStruct[arberaden.Fee](s.basePools[poolId+lo.Ternary(isBuy, 1, -1)].GetMetaInfo("", ""))
+				if err != nil || (isBuy && extra.Buy == nil) || (!isBuy && extra.Sell == nil) {
+					return nil, ErrDenBuySellFeeNotFound
+				}
+			}
+			burnedAmount := new(big.Int)
+			if isPrivate && !isBuy {
+				burnedAmount.Mul(amountOut, extra.Sell.ToBig()).Div(burnedAmount, arberaden.DEN.ToBig())
+				amountOut.Sub(amountOut, burnedAmount)
 			}
 			result, err := currentPool.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
@@ -77,10 +102,15 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 				},
 				TokenOut: s.Info.Tokens[idx+lo.Ternary(isBuy, 1, -1)],
 			})
+
 			if err != nil {
 				return nil, err
 			}
 			amountOut = result.TokenAmountOut.Amount
+			if isPrivate && isBuy {
+				burnedAmount.Mul(amountOut, extra.Buy.ToBig()).Div(burnedAmount, arberaden.DEN.ToBig())
+				amountOut.Sub(amountOut, burnedAmount)
+			}
 		}
 	}
 
