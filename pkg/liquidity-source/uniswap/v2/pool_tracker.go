@@ -67,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, nil
 	}
 
-	fee, err := d.getFee(ctx, p.Address, blockNumber)
+	fee, err := d.getFee(ctx, p.Address)
 	if err != nil {
 		return p, err
 	}
@@ -98,12 +98,12 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, param
 	return reserveData, blockNumber, nil
 }
 
-func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, blockNumber *big.Int) (uint64, error) {
+func (d *PoolTracker) getFee(ctx context.Context, poolAddress string) (uint64, error) {
 	feeTracker := d.feeTracker
 	if feeTracker == nil {
 		return d.config.Fee, nil
 	}
-	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress, blockNumber)
+	return feeTracker.GetFee(ctx, poolAddress, d.config.FactoryAddress)
 }
 
 func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uint64,
