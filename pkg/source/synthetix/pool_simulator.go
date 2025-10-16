@@ -37,6 +37,7 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory1(DexTypeSynthetix, NewPoolSimulator)
+var _ = pool.RegisterUseSwapLimit(DexTypeSynthetix)
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
