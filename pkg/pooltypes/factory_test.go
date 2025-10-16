@@ -22,6 +22,7 @@ func TestPoolFactory(t *testing.T) {
 		"pmm-1",         // private
 		"pmm-2",         // private
 		"pmm-3",         // private
+		"pmm-4",         // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
@@ -49,6 +50,16 @@ func TestCanCalcAmountIn(t *testing.T) {
 	for _, tt := range dexes {
 		t.Run(tt, func(t *testing.T) {
 			assert.Contains(t, pool.CanCalcAmountIn, tt)
+		})
+	}
+}
+
+func TestUseSwapLimit(t *testing.T) {
+	t.Parallel()
+	dexes := []string{"dexalot"}
+	for _, tt := range dexes {
+		t.Run(tt, func(t *testing.T) {
+			assert.Contains(t, pool.UseSwapLimit, tt)
 		})
 	}
 }

@@ -44,6 +44,7 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
+var _ = pool.RegisterUseSwapLimit(DexType)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
