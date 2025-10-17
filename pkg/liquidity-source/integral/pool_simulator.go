@@ -40,6 +40,7 @@ type PoolSimulator struct {
 }
 
 var _ = pool.RegisterFactory0(DexTypeIntegral, NewPoolSimulator)
+var _ = pool.RegisterUseSwapLimit(DexTypeIntegral)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
