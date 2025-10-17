@@ -34,7 +34,8 @@ type (
 )
 
 var _ = pool.RegisterFactory0(DexTypeLimitOrder, NewPoolSimulator)
-var _ = pool.RegisterUseSwapLimit(DexTypeLimitOrder)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangeKyberSwapLimitOrder)
+var _ = pool.RegisterUseSwapLimit(valueobject.ExchangeKyberSwapLimitOrderDS)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
