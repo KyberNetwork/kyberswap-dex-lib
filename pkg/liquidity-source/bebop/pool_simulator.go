@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -19,12 +20,15 @@ type PoolSimulator struct {
 	Token1               entity.PoolToken
 	ZeroToOnePriceLevels []PriceLevel
 	OneToZeroPriceLevels []PriceLevel
-	gas                  Gas
 }
 
 var _ = pool.RegisterFactory0(DexType, NewPoolSimulator)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	if time.Since(time.Unix(entityPool.Timestamp, 0)) > MaxAge {
+		return nil, ErrLevelsTooOld
+	}
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -46,7 +50,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Token1:               *entityPool.Tokens[1],
 		ZeroToOnePriceLevels: extra.ZeroToOnePriceLevels,
 		OneToZeroPriceLevels: extra.OneToZeroPriceLevels,
-		gas:                  defaultGas,
 	}, nil
 }
 
@@ -107,7 +110,7 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
-		Gas:            p.gas.Quote,
+		Gas:            defaultGas,
 		SwapInfo: SwapInfo{
 			BaseToken:        baseToken.Address,
 			BaseTokenAmount:  amountIn.String(),
