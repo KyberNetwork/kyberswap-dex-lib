@@ -38,5 +38,6 @@ var (
 		common.HexToAddress("0xb429d62f8f3bFFb98CdB9569533eA23bF0Ba28CC"), // base v2 permission-ed
 		common.HexToAddress("0xBc6e5aBDa425309c2534Bc2bC92562F5419ce8Cc"), // unichain
 		common.HexToAddress("0xf7aC669593d2D9D01026Fa5B756DD5B4f7aAa8Cc"), // arbitrum
+		common.HexToAddress("0x6C24D0bCC264EF6A740754A11cA579b9d225e8Cc"), // ethereum
 	}
 )
