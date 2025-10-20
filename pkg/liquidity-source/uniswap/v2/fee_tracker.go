@@ -3,7 +3,6 @@ package uniswapv2
 import (
 	"context"
 	"encoding/binary"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -17,7 +16,6 @@ type (
 			ctx context.Context,
 			poolAddress string,
 			factoryAddress string,
-			blockNumber *big.Int,
 		) (uint64, error)
 	}
 
@@ -66,9 +64,8 @@ func (t *GenericFeeTracker) GetFee(
 	ctx context.Context,
 	poolAddress string,
 	factoryAddress string,
-	blockNumber *big.Int,
 ) (fee uint64, err error) {
-	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber).
+	_, err = t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
 			ABI:    t.abi,
 			Target: getGenericInput(t.target, poolAddress, factoryAddress),

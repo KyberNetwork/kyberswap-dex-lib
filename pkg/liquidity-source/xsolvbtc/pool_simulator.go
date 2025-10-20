@@ -37,7 +37,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		Tokens:          entityPool.Tokens,
+		Tokens:          entity.ClonePoolTokens(entityPool.Tokens),
 		extra:           extra,
 		withdrawFeeRate: big.NewInt(int64(extra.WithdrawFeeRate)),
 		gas:             defaultGas,
@@ -57,12 +57,9 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, ErrDepositNotAllowed
 		}
 		xSolvBtcAmount := new(big.Int)
-		_ = lo.TernaryF(s.extra.Nav.Sign() == 0, func() bool { return true },
-			func() bool {
-				xSolvBtcAmount.Mul(params.TokenAmountIn.Amount, bignumber.TenPowInt(int(s.Tokens[idOut].Decimals))).Div(xSolvBtcAmount, s.extra.Nav)
-				return true
-			},
-		)
+		if s.extra.Nav.Sign() != 0 {
+			xSolvBtcAmount.Mul(params.TokenAmountIn.Amount, bignumber.TenPowInt(int(s.Tokens[idOut].Decimals))).Div(xSolvBtcAmount, s.extra.Nav)
+		}
 		if xSolvBtcAmount.Cmp(params.TokenAmountIn.Amount) < 0 {
 			return nil, ErrXSolvBTCAmount
 		}

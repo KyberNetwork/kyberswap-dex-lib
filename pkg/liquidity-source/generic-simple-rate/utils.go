@@ -3,17 +3,20 @@ package generic_simple_rate
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+
+	arberastake "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/arbera/stake"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/oeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wbeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 var bytesByPathMap = map[string]map[string][]byte{
-	string(valueobject.ExchangeWBETH):  wbeth.BytesByPath,
-	string(valueobject.ExchangeOETH):   oeth.BytesByPath,
-	string(valueobject.ExchangeFrxETH): frxeth.BytesByPath,
+	string(valueobject.ExchangeWBETH):       wbeth.BytesByPath,
+	string(valueobject.ExchangeOETH):        oeth.BytesByPath,
+	string(valueobject.ExchangeFrxETH):      frxeth.BytesByPath,
+	string(valueobject.ExchangeArberaStake): arberastake.BytesByPath,
 }
 
 var abiByPathMap = map[string]abi.ABI{

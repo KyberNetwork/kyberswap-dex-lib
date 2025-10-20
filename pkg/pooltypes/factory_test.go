@@ -22,6 +22,7 @@ func TestPoolFactory(t *testing.T) {
 		"pmm-1",         // private
 		"pmm-2",         // private
 		"pmm-3",         // private
+		"pmm-4",         // private
 		"infinitypools", // no pool tracker factory
 	}
 	var poolTypesMap map[string]string
@@ -53,6 +54,16 @@ func TestCanCalcAmountIn(t *testing.T) {
 	}
 }
 
+func TestUseSwapLimit(t *testing.T) {
+	t.Parallel()
+	dexes := []string{"dexalot"}
+	for _, tt := range dexes {
+		t.Run(tt, func(t *testing.T) {
+			assert.Contains(t, pool.UseSwapLimit, tt)
+		})
+	}
+}
+
 func TestPoolListerFactory(t *testing.T) {
 	t.Parallel()
 	poolListers := []string{"uniswap", "uniswapv3", "algebra-v1", "dmm", "velodrome", "velodrome-v2", "velocimeter",
@@ -73,7 +84,7 @@ func TestPoolListerFactory(t *testing.T) {
 		"ringswap", "generic-simple-rate", "primeeth", "staderethx", "meth", "ondo-usdy", "deltaswap-v1", "sfrxeth",
 		"sfrxeth-convertor", "etherfi-vampire", "algebra-integral", "virtual-fun", "beets-ss", "swap-x-v2",
 		"etherfi-ebtc", "uniswap-v4", "sky-psm", "honey", "curve-llamma", "curve-lending", "balancer-v3-eclp", "ekubo",
-		"erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd"}
+		"erc4626", "hyeth", "brownfi", "midas", "arbera-den", "cusd", "arbera-zap"}
 
 	for _, poolLister := range poolListers {
 		t.Run(poolLister, func(t *testing.T) {
