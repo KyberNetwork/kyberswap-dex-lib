@@ -40,7 +40,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	var collateralList []common.Address
-	var agToken common.Address
+	var tokenP common.Address
 	if _, err := calls.AddCall(&ethrpc.Call{
 		ABI:    parallelizerABI,
 		Target: d.config.Parallelizer,
@@ -48,20 +48,20 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}, []any{&collateralList}).AddCall(&ethrpc.Call{
 		ABI:    parallelizerABI,
 		Target: d.config.Parallelizer,
-		Method: "agToken",
-	}, []any{&agToken}).Aggregate(); err != nil {
+		Method: "tokenP",
+	}, []any{&tokenP}).Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to initPool")
 		return nil, nil, err
 	}
 
-	tokens := append(collateralList, agToken)
+	tokens := append(collateralList, tokenP)
 
 	pools := []entity.Pool{
 		{
 			Address:   d.config.Parallelizer,
-			Exchange:  d.config.DexID,
+			Exchange:  d.config.DexId,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Tokens: lo.Map(tokens, func(token common.Address, _ int) *entity.PoolToken {
