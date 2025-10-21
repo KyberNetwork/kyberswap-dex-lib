@@ -7,7 +7,7 @@ import (
 type RFQConfig struct {
 	HTTP           HTTPConfig            `mapstructure:"http"`
 	BlocksInFuture int                   `mapstructure:"blocksInFuture"`
-	CacheTTL       durationjson.Duration `mapstructure:"cacheTTL"`
+	CacheTTL       durationjson.Duration `mapstructure:"cacheTtl"`
 }
 
 type HTTPConfig struct {

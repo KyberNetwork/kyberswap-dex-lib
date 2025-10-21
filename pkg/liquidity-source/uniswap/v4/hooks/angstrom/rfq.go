@@ -14,7 +14,7 @@ type RFQHandler struct {
 
 	httpClient *resty.Client
 
-	latestAttestations     []Attenstation
+	latestAttestations     []Attestation
 	latestAttestationsTime time.Time
 
 	g singleflight.Group
@@ -47,13 +47,13 @@ func (h *RFQHandler) RFQ(ctx context.Context, _ pool.RFQParams) (*pool.RFQResult
 	}, nil
 }
 
-func (h *RFQHandler) getAttestations(ctx context.Context) ([]Attenstation, error) {
+func (h *RFQHandler) getAttestations(ctx context.Context) ([]Attestation, error) {
 	if time.Since(h.latestAttestationsTime) < h.cfg.CacheTTL.Duration {
 		return h.latestAttestations, nil
 	}
 
 	_, err, _ := h.g.Do("rfqAttestations", func() (interface{}, error) {
-		var resp AttenstationsResponse
+		var resp AttestationsResponse
 
 		_, err := h.httpClient.R().
 			SetBody(map[string]any{
