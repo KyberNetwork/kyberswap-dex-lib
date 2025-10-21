@@ -33,7 +33,7 @@ func NewRFQHandler(cfg *RFQConfig) *RFQHandler {
 	}
 }
 
-func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
+func (h *RFQHandler) RFQ(ctx context.Context, _ pool.RFQParams) (*pool.RFQResult, error) {
 	attestations, err := h.getAttestations(ctx)
 	if err != nil {
 		return nil, err
@@ -77,4 +77,22 @@ func (h *RFQHandler) getAttestations(ctx context.Context) ([]Attenstation, error
 	}
 
 	return h.latestAttestations, nil
+}
+
+func (h *RFQHandler) BatchRFQ(ctx context.Context, params []pool.RFQParams) ([]*pool.RFQResult, error) {
+	rfqResult, err := h.RFQ(ctx, pool.RFQParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*pool.RFQResult, len(params))
+	for i := range params {
+		results[i] = rfqResult
+	}
+
+	return results, nil
+}
+
+func (h *RFQHandler) SupportBatch() bool {
+	return true
 }
