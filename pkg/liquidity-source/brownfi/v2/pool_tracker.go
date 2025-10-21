@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -123,10 +124,16 @@ func (d *PoolTracker) GetNewPoolState(
 	if err != nil {
 		return p, err
 	}
+	if extra.Kappa == nil {
+		extra.Kappa = new(uint256.Int)
+	}
 	extra.Kappa.SetFromBig(kappa)
 
 	if pythUpdateData := <-pythUpdateDataCh; pythUpdateData != nil {
 		for i, parsed := range pythUpdateData.Parsed {
+			if extra.OPrices[i] == nil {
+				extra.OPrices[i] = new(uint256.Int)
+			}
 			_ = extra.OPrices[i].SetFromDecimal(parsed.Price.Price)
 			extra.OPrices[i].MulDivOverflow(extra.OPrices[i], q64, big256.TenPow(-parsed.Price.Expo))
 		}
