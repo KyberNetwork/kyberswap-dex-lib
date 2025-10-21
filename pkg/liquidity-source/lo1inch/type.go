@@ -3,10 +3,12 @@ package lo1inch
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch/helper/utils"
 )
 
 type ChainID uint
@@ -220,4 +222,28 @@ func (o *Order) CalcMakingAmount(
 			makingAmount.ToBig(),
 		),
 	), nil
+}
+
+func (o *Order) GetOrderHash() string {
+	return o.OrderHash
+}
+
+func (o *Order) GetMaker() string {
+	return o.Maker
+}
+
+func (o *Order) SetRemainingMakerAmount(rpcValue *big.Int) {
+	o.RemainingMakerAmount = uint256.MustFromBig(lo.CoalesceOrEmpty(rpcValue, o.MakingAmount.ToBig()))
+}
+
+func (o *Order) SetMakerBalance(rpcValue *big.Int) {
+	o.MakerBalance = uint256.MustFromBig(lo.CoalesceOrEmpty(rpcValue, big.NewInt(0)))
+}
+
+func (o *Order) IsValid() bool {
+	return o.RemainingMakerAmount.Sign() > 0 && o.MakerBalance.Sign() > 0
+}
+
+func (o *Order) GetRouterContract() string {
+	return ""
 }
