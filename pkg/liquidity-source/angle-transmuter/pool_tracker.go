@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -147,8 +148,8 @@ func (t *PoolTracker) getNewPoolState(
 	collateralWhitelistData := make([][]byte, len(collateralList))
 	var totalStablecoinIssued *big.Int
 	var redemptionFees DecodedRedemptionFees
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
 
+	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, collateral := range collateralList {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
@@ -200,18 +201,24 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    transmuterABI,
 		Target: t.config.Transmuter,
 		Method: "getRedemptionFees",
-		Params: nil,
 	}, []any{&redemptionFees})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    transmuterABI,
 		Target: t.config.Transmuter,
 		Method: "getTotalIssued",
-		Params: nil,
 	}, []any{&totalStablecoinIssued})
 
 	if _, err := calls.Aggregate(); err != nil {
 		return p, err
 	}
+
+	exchange := valueobject.Exchange(p.Exchange)
+	// Convert on-chain oracle types to our enum
+	collateralConfigs = lo.Map(collateralConfigs, func(cfg DecodedOracleConfig, _ int) DecodedOracleConfig {
+		cfg.OracleType = uint8(convertOracleType(exchange, cfg.OracleType))
+		cfg.TargetType = uint8(convertOracleType(exchange, cfg.TargetType))
+		return cfg
+	})
 
 	transmuterState := TransmuterState{
 		XRedemptionCurve:      redemptionFees.XRedemptionCurve,
@@ -220,7 +227,6 @@ func (t *PoolTracker) getNewPoolState(
 		Collaterals:           make(map[string]CollateralState),
 	}
 
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
 	pyths := [2][]Pyth{
 		make([]Pyth, len(collateralList)), // oracle
 		make([]Pyth, len(collateralList)), // target
@@ -238,12 +244,21 @@ func (t *PoolTracker) getNewPoolState(
 		make([]*uint256.Int, len(collateralList)), // target
 	}
 
+	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, collat := range collateralConfigs {
-		for j, typee := range []OracleReadType{OracleReadType(collat.OracleType), OracleReadType(collat.TargetType)} {
-			switch typee {
+		configs := []struct {
+			typ  OracleReadType
+			data []byte
+		}{
+			{OracleReadType(collat.OracleType), collat.OracleData},
+			{OracleReadType(collat.TargetType), collat.TargetData},
+		}
+
+		for j, cfg := range configs {
+			switch cfg.typ {
 			case PYTH:
 				var decodedPyth DecodedPyth
-				unpacked, err := PythArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				unpacked, err := PythArgument.Unpack(cfg.data)
 				if err != nil {
 					return p, err
 				}
@@ -271,7 +286,7 @@ func (t *PoolTracker) getNewPoolState(
 				}
 			case CHAINLINK_FEEDS:
 				var chainlink Chainlink
-				unpacked, err := ChainlinkArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				unpacked, err := ChainlinkArgument.Unpack(cfg.data)
 				if err != nil {
 					return p, err
 				}
@@ -292,7 +307,7 @@ func (t *PoolTracker) getNewPoolState(
 				}
 			case MORPHO_ORACLE:
 				var decodedMorpho DecodedMorpho
-				unpacked, err := MorphoArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				unpacked, err := MorphoArgument.Unpack(cfg.data)
 				if err != nil {
 					return p, err
 				}
@@ -314,7 +329,7 @@ func (t *PoolTracker) getNewPoolState(
 				}, []any{&morphos[j][i].RawState})
 			case MAX:
 				var decodedMax DecodedMax
-				unpacked, err := MaxArgument.Unpack(lo.Ternary(j == 0, collat.OracleData, collat.TargetData))
+				unpacked, err := MaxArgument.Unpack(cfg.data)
 				if err != nil {
 					return p, err
 				}
@@ -401,14 +416,15 @@ func (t *PoolTracker) getNewPoolState(
 			Swappable: true,
 		}
 	})
-	p.Tokens = append(tokens, p.Tokens[len(p.Tokens)-1]) // last one is agToken
+	p.Tokens = append(tokens, p.Tokens[len(p.Tokens)-1]) // last one is stable token
 	p.Reserves = lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) string {
 		return defaultReserve
 	})
 	return p, nil
 }
 
-func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracleConfig DecodedOracleConfig, pyths [2][]Pyth, chainlinks [2][]Chainlink, morphos [2][]Morpho, maxes [2][]*uint256.Int) OracleFeed {
+func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracleConfig DecodedOracleConfig,
+	pyths [2][]Pyth, chainlinks [2][]Chainlink, morphos [2][]Morpho, maxes [2][]*uint256.Int) OracleFeed {
 	oracleType := OracleReadType(lo.Ternary(oracleOrTarget == 0, decodedOracleConfig.OracleType, decodedOracleConfig.TargetType))
 	return OracleFeed{
 		IsPyth:      oracleType == PYTH,
