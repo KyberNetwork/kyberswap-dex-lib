@@ -65,7 +65,12 @@ func NewUint256(s string) (res *uint256.Int, err error) {
 	return
 }
 
-func MustFromBigs[S ~ []*big.Int](bigs S) []*uint256.Int {
+func FromBig(big *big.Int) *uint256.Int {
+	u, _ := uint256.FromBig(big)
+	return u
+}
+
+func MustFromBigs[S ~[]*big.Int](bigs S) []*uint256.Int {
 	return lo.Map(bigs, func(b *big.Int, _ int) *uint256.Int {
 		return uint256.MustFromBig(b)
 	})
