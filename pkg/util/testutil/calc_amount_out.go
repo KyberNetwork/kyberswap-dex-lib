@@ -55,6 +55,7 @@ func Test[TB interface {
 	testing.TB
 	Run(string, func(TB)) bool
 }](tb TB, poolSim pool.IPoolSimulator, amtIn string, expected string, idxIn, idxOut int, tokens []string, updateBalance bool) {
+	tb.Helper()
 	tb.Run(fmt.Sprintf("%s token%d -> ? token%d", amtIn, idxIn, idxOut), func(tb TB) {
 		tb.Helper()
 		amtOut, err := pool.CalcAmountOut(
