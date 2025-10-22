@@ -4,14 +4,13 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
-	BASE_9  = big256.TenPow(9)
-	BASE_12 = big256.TenPow(12)
-	BASE_18 = big256.TenPow(18)
+	BASE_9  = u256.TenPow(9)
+	BASE_12 = u256.TenPow(12)
+	BASE_18 = u256.TenPow(18)
 
 	MAX_BURN_FEE = uint256.NewInt(999_000_000)
 	U2           = uint256.NewInt(2)
@@ -43,6 +42,7 @@ func _quoteMintExactInput(
 	return amountOut, nil
 }
 
+// nolint
 func _quoteMintExactOutput(
 	oracleValue *uint256.Int,
 	amountOut *uint256.Int,
@@ -63,6 +63,7 @@ func _quoteMintExactOutput(
 	return amountIn, nil
 }
 
+// nolint
 func _quoteBurnExactOutput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
