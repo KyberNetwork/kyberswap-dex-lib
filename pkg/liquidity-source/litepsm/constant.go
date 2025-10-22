@@ -1,20 +1,34 @@
 package litepsm
 
 import (
-	"github.com/KyberNetwork/blockchain-toolkit/number"
+	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const DexTypeLitePSM = "lite-psm"
 
 const (
-	litePSMMethodTIn    = "tin"
-	litePSMMethodTOut   = "tout"
-	litePSMMethodPocket = "pocket"
+	litePSMMethodPsm     = "psm"
+	litePSMMethodPocket  = "pocket"
+	litePSMMethodGemJoin = "gemJoin"
+	litePSMMethodGem     = "gem"
+	litePSMMethodTIn     = "tin"
+	litePSMMethodTOut    = "tout"
+
+	genericMethodDai = "dai"
+	// poc     1      1    0    0
+	// gJ      1      0    1    1
+	// dai     1      0    0    0
+	// mint    0      0    1    1
+	// gasBuy  = 48763 // 159435 44535 194841 203284
+	// gasSell = 64670 // 171879 54584 195058 198522
+	// 47316 + 88154.75g + 27942.75d + 60212m + 4487t
+	gasBuy  = 49634
+	gasSell = 53309
+	gasJoin = 88785
+	gasWrap = 28031
+	gasMint = 60753
 )
 
 var (
-	DefaultGas = Gas{SellGem: 65000, BuyGem: 65000}
-	WAD        = number.Number_1e18
-
-	HALTED = number.MaxU256
+	HALTED = big256.UMax
 )

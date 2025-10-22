@@ -17,7 +17,7 @@ const (
 
 	erc20MethodDecimals = "decimals"
 
-	defaultReserves       = "1000000000000000000000000"
+	defaultReserves       = "1000000000000000"
 	defaultGas      int64 = 200000
 )
 
