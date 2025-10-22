@@ -19,7 +19,12 @@ func getPool() PoolSimulator {
 			TotalStablecoinIssued: setUInt("11600921906778307242249332"),
 			Collaterals: map[string]CollateralState{
 				"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": {
-					StablecoinsIssued: setUInt("2404480312662610902608440"),
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
 							uint256.NewInt(0), uint256.NewInt(690000000), uint256.NewInt(700000000),
@@ -62,6 +67,12 @@ func getPool() PoolSimulator {
 				},
 				"0x2f123cf3f37ce3328cc9b5b8415f9ec5109b45e7": {
 					//0x4d103fff4e73fc78533cde4aa4fe2cce1da044b4fc4d9439d4f0fd997b2f1e02?trace=0.0.1.1.0.1.1.1.25.32
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Config: Oracle{
 						TargetType: MAX,
 						OracleType: CHAINLINK_FEEDS,
@@ -92,6 +103,12 @@ func getPool() PoolSimulator {
 				},
 				"0x3f95aa88ddbb7d9d484aa3d482bf0a80009c52c9": {
 					//0x4d103fff4e73fc78533cde4aa4fe2cce1da044b4fc4d9439d4f0fd997b2f1e02?trace=0.0.1.1.0.1.1.1.25.58
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Config: Oracle{
 						TargetType: MAX,
 						OracleType: CHAINLINK_FEEDS,
@@ -122,6 +139,12 @@ func getPool() PoolSimulator {
 				},
 				"0x3ee320c9f73a84d1717557af00695a34b26d1f1d": {
 					//0x4d103fff4e73fc78533cde4aa4fe2cce1da044b4fc4d9439d4f0fd997b2f1e02?trace=0.0.1.1.0.1.1.1.25.72
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Config: Oracle{
 						TargetType: MORPHO_ORACLE,
 						OracleType: NO_ORACLE,
@@ -144,6 +167,12 @@ func getPool() PoolSimulator {
 				},
 				"0x5f7827fdeb7c20b443265fc2f40845b715385ff2": {
 					// 0x4d103fff4e73fc78533cde4aa4fe2cce1da044b4fc4d9439d4f0fd997b2f1e02?trace=0.0.1.1.0.1.1.1.25.84
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Config: Oracle{
 						TargetType: STABLE,
 						OracleType: NO_ORACLE,
@@ -171,7 +200,12 @@ func getMintPool() PoolSimulator {
 			TotalStablecoinIssued: setUInt("11600921906778307242249332"),
 			Collaterals: map[string]CollateralState{
 				"0x1abaea1f7c830bd89acc67ec4af516284b1bc33c": {
-					StablecoinsIssued: setUInt("2404480312662610902608440"),
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("2404480312662610902608440"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
 							uint256.NewInt(0), uint256.NewInt(690000000), uint256.NewInt(700000000),
@@ -228,6 +262,9 @@ func getMintPoolUSD() PoolSimulator {
 			TotalStablecoinIssued: setUInt("12394643135438408381545155"),
 			Collaterals: map[string]CollateralState{
 				"0xbeef01735c132ada46aa9aa4c54623caa92a64cb": {
+					IsManaged:         false,
+					IsBurnLive:        true,
+					IsMintLive:        true,
 					StablecoinsIssued: setUInt("11160955122463689430059999"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
@@ -280,7 +317,12 @@ func getParallelPool() PoolSimulator {
 			TotalStablecoinIssued: setUInt("493987443536936298347938"),
 			Collaterals: map[string]CollateralState{
 				"0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE": {
-					StablecoinsIssued: setUInt("6359003924739830000"),
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("6359003924739830000"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{uint256.NewInt(0)},
 						YFeeMint: []*uint256.Int{uint256.NewInt(0)},
@@ -313,7 +355,12 @@ func getParallelPool() PoolSimulator {
 					},
 				},
 				"0xA19ebd8f9114519bF947671021c01d152c3777E4": {
-					StablecoinsIssued: setUInt("975625588650474856"),
+					IsManaged:                 false,
+					IsBurnLive:                true,
+					IsMintLive:                true,
+					StablecoinsIssued:         setUInt("975625588650474856"),
+					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
+					Balance:                   setUInt("10000000000000000000000"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{uint256.NewInt(0)},
 						YFeeMint: []*uint256.Int{uint256.NewInt(0)},

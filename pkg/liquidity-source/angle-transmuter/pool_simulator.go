@@ -4,25 +4,21 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type (
 	PoolSimulator struct {
 		pool.Pool
-		Decimals       []uint8
-		StableToken    common.Address
-		StableDecimals uint8
-
+		Decimals   []uint8
 		Transmuter TransmuterState
-		gas        Gas
 	}
 )
 
@@ -47,74 +43,110 @@ func NewPoolSimulator(p entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: p.BlockNumber,
 		}},
 		Decimals:   lo.Map(p.Tokens, func(e *entity.PoolToken, _ int) uint8 { return e.Decimals }),
-		gas:        extra.Gas,
 		Transmuter: extra.Transmuter,
 	}, nil
 }
 
 // https://github.com/AngleProtocol/angle-transmuter/blob/6e1f2eb1f961d6c3b1cdaefe068d967c33c41936/contracts/transmuter/facets/Swapper.sol#L177
 func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	var (
-		tokenAmountIn = params.TokenAmountIn
-		tokenOut      = params.TokenOut
-	)
-
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenOut
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
 
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountIn
 	}
 
 	if amountIn.Sign() <= 0 {
-		return nil, ErrInsufficientInputAmount
+		return nil, ErrInvalidSwap
 	}
 
 	isMint := indexOut == len(s.Info.Tokens)-1
-	var oracleValue *uint256.Int
-	minRatio := uint256.NewInt(0)
-	var err error
-	collateral := tokenAmountIn.Token
+	collateral := lo.Ternary(isMint, tokenIn, tokenOut)
+
+	collatInfo := s.Transmuter.Collaterals[collateral]
+	otherStablecoinIssued := new(uint256.Int).Sub(s.Transmuter.TotalStablecoinIssued, collatInfo.StablecoinsIssued)
+
+	var amountOut *uint256.Int
 	if isMint {
-		oracleValue, err = s._readMint(collateral)
+		if !collatInfo.IsMintLive {
+			return nil, ErrMintPaused
+		}
+
+		oracleValue, err := s._readMint(collateral)
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		collateral = tokenOut
-		oracleValue, minRatio, err = s._getBurnOracle(collateral)
+
+		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, collatInfo.Fees, collatInfo.StablecoinsIssued,
+			otherStablecoinIssued, collatInfo.StablecoinCap, s.Decimals[indexIn])
 		if err != nil {
+			return nil, err
+		}
+
+		if err = s.checkHardCaps(&collatInfo, amountOut); err != nil {
+			return nil, err
+		}
+	} else {
+		if !collatInfo.IsBurnLive {
+			return nil, ErrBurnPaused
+		}
+
+		oracleValue, minRatio, err := s._getBurnOracle(collateral)
+		if err != nil {
+			return nil, err
+		}
+
+		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, collatInfo.Fees,
+			collatInfo.StablecoinsIssued, otherStablecoinIssued, s.Decimals[indexOut])
+		if err != nil {
+			return nil, err
+		}
+
+		if err = s.checkAmounts(&collatInfo, amountOut); err != nil {
 			return nil, err
 		}
 	}
 
-	collatStablecoinIssued := s.Transmuter.Collaterals[collateral].StablecoinsIssued
-	otherStablecoinIssued := new(uint256.Int).Sub(s.Transmuter.TotalStablecoinIssued, collatStablecoinIssued)
-	fees := s.Transmuter.Collaterals[collateral].Fees
-	stablecoinCap := s.Transmuter.Collaterals[collateral].StablecoinCap
-	var amountOut *uint256.Int
-	if isMint {
-		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, stablecoinCap, s.Decimals[indexIn])
-	} else {
-		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, fees, collatStablecoinIssued, otherStablecoinIssued, s.Decimals[indexOut])
-	}
-	if err != nil {
-		return nil, err
-	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  tokenIn,
 			Amount: big.NewInt(0),
 		},
-		Gas: int64(lo.Ternary(isMint, s.gas.Mint, s.gas.Burn)),
+		Gas: lo.Ternary(isMint, defaultMintGas, defaultBurnGas),
 	}, nil
+}
+
+func (s *PoolSimulator) checkAmounts(collatInfo *CollateralState, amountOut *uint256.Int) error {
+	if collatInfo.IsManaged {
+		return ErrUnsupportedBurnCollateral
+	}
+
+	if amountOut.Gt(collatInfo.Balance) {
+		return ErrInsufficientBalance
+	}
+
+	return nil
+}
+
+func (s *PoolSimulator) checkHardCaps(collatInfo *CollateralState, amountOut *uint256.Int) error {
+	if !shouldCheckHardCaps(s.GetExchange()) {
+		return nil
+	}
+
+	if collatInfo.StablecoinCap != nil &&
+		new(uint256.Int).Add(amountOut, collatInfo.StablecoinsFromCollateral).Gt(collatInfo.StablecoinCap) {
+		return ErrInvalidSwap
+	}
+
+	return nil
 }
 
 func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint256.Int, error) {
@@ -128,7 +160,7 @@ func (s *PoolSimulator) _getBurnOracle(collateral string) (*uint256.Int, *uint25
 		if strings.EqualFold(collat, collateral) {
 			oracleValue = value
 		}
-		if ratio.Cmp(minRatio) < 0 {
+		if ratio.Lt(minRatio) {
 			minRatio = ratio
 		}
 	}
@@ -145,7 +177,7 @@ func (s *PoolSimulator) _readMint(collateral string) (*uint256.Int, error) {
 		return nil, err
 	}
 
-	if target.Cmp(spot) < 0 {
+	if target.Lt(spot) {
 		spot = target
 	}
 
@@ -164,10 +196,10 @@ func (s *PoolSimulator) _readBurn(collateral string) (*uint256.Int, *uint256.Int
 	}
 
 	ratio, uB := newBASE18(), newBASE18()
-	uB.Mul(target, uB.Sub(uB, configOracle.Hyperparameters.BurnRatioDeviation)).Div(uB, BASE_18)
-	if spot.Cmp(uB) < 0 {
-		ratio.Div(ratio.Mul(ratio, spot), target)
-	} else if spot.Cmp(target) < 0 {
+	uB.MulDivOverflow(target, uB.Sub(uB, configOracle.Hyperparameters.BurnRatioDeviation), BASE_18)
+	if spot.Lt(uB) {
+		ratio.MulDivOverflow(ratio, spot, target)
+	} else if spot.Lt(target) {
 		spot = target
 	}
 	return spot, ratio, nil
@@ -185,9 +217,9 @@ func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *ui
 		return nil, nil, err
 	}
 	lB, uB := new(uint256.Int), new(uint256.Int)
-	lB.Mul(targetPrice, lB.Sub(BASE_18, configOracle.Hyperparameters.UserDeviation)).Div(lB, BASE_18)
-	uB.Mul(targetPrice, uB.Add(BASE_18, configOracle.Hyperparameters.UserDeviation)).Div(uB, BASE_18)
-	if lB.Cmp(oracleValue) < 0 && uB.Cmp(oracleValue) >= 0 {
+	lB.MulDivOverflow(targetPrice, lB.Sub(BASE_18, configOracle.Hyperparameters.UserDeviation), BASE_18)
+	uB.MulDivOverflow(targetPrice, uB.Add(BASE_18, configOracle.Hyperparameters.UserDeviation), BASE_18)
+	if lB.Lt(oracleValue) && !uB.Lt(oracleValue) {
 		oracleValue = targetPrice
 	}
 	return oracleValue, targetPrice, nil
@@ -208,22 +240,10 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 			// TODO: check staled rate
 			if oracleFeed.Chainlink.CircuitChainIsMultiplied[i] == 1 {
 				// (_quoteAmount * uint256(ratio)) / (10 ** decimals);
-				price.Mul(
-					price,
-					oracleFeed.Chainlink.Answers[i],
-				).Div(
-					price,
-					new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[i]))),
-				)
+				price.MulDivOverflow(price, oracleFeed.Chainlink.Answers[i], u256.TenPow(oracleFeed.Chainlink.ChainlinkDecimals[i]))
 			} else {
 				// (_quoteAmount * (10 ** decimals)) / uint256(ratio);
-				price.Mul(
-					price,
-					new(uint256.Int).Exp(U10, uint256.NewInt(uint64(oracleFeed.Chainlink.ChainlinkDecimals[i]))),
-				).Div(
-					price,
-					oracleFeed.Chainlink.Answers[i],
-				)
+				price.MulDivOverflow(price, u256.TenPow(oracleFeed.Chainlink.ChainlinkDecimals[i]), oracleFeed.Chainlink.Answers[i])
 			}
 		}
 		return price, nil
@@ -250,11 +270,11 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 			normalizer := new(uint256.Int).Exp(U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
 
 			if oracleFeed.Pyth.IsMultiplied[i] == 1 && isNormalizerExpoNeg {
-				price.Div(price.Mul(price, normalizedPrice), normalizer)
+				price.MulDivOverflow(price, normalizedPrice, normalizer)
 			} else if oracleFeed.Pyth.IsMultiplied[i] == 1 && !isNormalizerExpoNeg {
 				price.Mul(price.Mul(price, normalizedPrice), normalizer)
 			} else if oracleFeed.Pyth.IsMultiplied[i] == 0 && isNormalizerExpoNeg {
-				price.Div(price.Mul(price, normalizer), normalizedPrice)
+				price.MulDivOverflow(price, normalizer, normalizedPrice)
 			} else {
 				price.Div(price, new(uint256.Int).Mul(normalizedPrice, normalizer))
 			}
@@ -279,40 +299,61 @@ func (s *PoolSimulator) _quoteAmount(quoteType OracleQuoteType, baseValue *uint2
 	return baseValue
 }
 
-func (p *PoolSimulator) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+func (s *PoolSimulator) CanSwapFrom(address string) []string { return s.CanSwapTo(address) }
 
-func (p *PoolSimulator) CanSwapTo(address string) []string {
-	if !lo.Contains(p.Info.Tokens, address) || len(p.Info.Tokens) < 2 {
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	tokenIndex := s.GetTokenIndex(address)
+	if tokenIndex < 0 || len(s.Info.Tokens) < 2 {
 		return nil
 	}
-	if lo.IndexOf(p.Info.Tokens, address) == len(p.Info.Tokens)-1 { // agToken
-		return lo.Subset(p.Info.Tokens, 0, uint(len(p.Info.Tokens)-1))
+	if tokenIndex == len(s.Info.Tokens)-1 { // agToken
+		return s.Info.Tokens[:len(s.Info.Tokens)-1]
 	}
-	return []string{p.Info.Tokens[len(p.Info.Tokens)-1]}
+	return []string{s.Info.Tokens[len(s.Info.Tokens)-1]}
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[len(p.Info.Tokens)-1]) { // agToken
-		p.Transmuter.Collaterals[params.TokenAmountOut.Token].StablecoinsIssued.Sub(
-			p.Transmuter.Collaterals[params.TokenAmountOut.Token].StablecoinsIssued,
-			uint256.MustFromBig(params.TokenAmountIn.Amount),
+func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	tokenIn, tokenOut := params.TokenAmountIn.Token, params.TokenAmountOut.Token
+	amountIn := uint256.MustFromBig(params.TokenAmountIn.Amount)
+	amountOut := uint256.MustFromBig(params.TokenAmountOut.Amount)
+
+	isMint := tokenOut == s.Info.Tokens[len(s.Info.Tokens)-1]
+	if !isMint {
+		s.Transmuter.Collaterals[tokenOut].StablecoinsIssued.Sub(
+			s.Transmuter.Collaterals[tokenOut].StablecoinsIssued,
+			amountIn,
 		)
-		p.Transmuter.TotalStablecoinIssued.Sub(
-			p.Transmuter.TotalStablecoinIssued,
-			uint256.MustFromBig(params.TokenAmountIn.Amount),
+		s.Transmuter.TotalStablecoinIssued.Sub(
+			s.Transmuter.TotalStablecoinIssued,
+			amountIn,
+		)
+		s.Transmuter.Collaterals[tokenOut].Balance.Sub(
+			s.Transmuter.Collaterals[tokenOut].Balance,
+			amountOut,
 		)
 	} else {
-		p.Transmuter.Collaterals[params.TokenAmountIn.Token].StablecoinsIssued.Add(
-			p.Transmuter.Collaterals[params.TokenAmountIn.Token].StablecoinsIssued,
-			uint256.MustFromBig(params.TokenAmountOut.Amount),
+		s.Transmuter.Collaterals[tokenIn].StablecoinsIssued.Add(
+			s.Transmuter.Collaterals[tokenIn].StablecoinsIssued,
+			amountOut,
 		)
-		p.Transmuter.TotalStablecoinIssued.Add(
-			p.Transmuter.TotalStablecoinIssued,
-			uint256.MustFromBig(params.TokenAmountOut.Amount),
+		s.Transmuter.TotalStablecoinIssued.Add(
+			s.Transmuter.TotalStablecoinIssued,
+			amountOut,
 		)
+		s.Transmuter.Collaterals[tokenIn].Balance.Add(
+			s.Transmuter.Collaterals[tokenIn].Balance,
+			amountIn,
+		)
+
+		if shouldCheckHardCaps(s.GetExchange()) {
+			s.Transmuter.Collaterals[tokenIn].StablecoinsFromCollateral.Add(
+				s.Transmuter.Collaterals[tokenIn].StablecoinsFromCollateral,
+				amountOut,
+			)
+		}
 	}
 }

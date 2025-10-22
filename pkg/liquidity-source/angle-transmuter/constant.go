@@ -11,6 +11,9 @@ import (
 const (
 	DexType        = "angle-transmuter"
 	defaultReserve = "100000000000000000000000000"
+
+	defaultMintGas int64 = 400000
+	defaultBurnGas int64 = 450000
 )
 
 var oracleTypeMapping = map[valueobject.Exchange]map[uint8]OracleReadType{
@@ -38,14 +41,26 @@ func convertOracleType(exchange valueobject.Exchange, e uint8) OracleReadType {
 	return OracleReadType(e)
 }
 
+func shouldCheckHardCaps(exchange string) bool {
+	switch exchange {
+	case valueobject.ExchangeParallelParallelizer:
+		return true
+	default:
+		return false
+	}
+}
+
 var (
-	ErrInvalidToken            = errors.New("invalid token")
-	ErrInvalidAmountIn         = errors.New("invalid amount in")
-	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInvalidOracle           = errors.New("invalid oracle compared to oracle type")
-	ErrUnimplemented           = errors.New("unimplemented")
-	ErrInvalidSwap             = errors.New("invalid swap")
-	ErrMulOverflow             = errors.New("MUL_OVERFLOW")
+	ErrInvalidToken              = errors.New("invalid token")
+	ErrInvalidAmountIn           = errors.New("invalid amount in")
+	ErrInsufficientBalance       = errors.New("insufficient balance")
+	ErrInvalidOracle             = errors.New("invalid oracle compared to oracle type")
+	ErrUnimplemented             = errors.New("unimplemented")
+	ErrInvalidSwap               = errors.New("invalid swap")
+	ErrMulOverflow               = errors.New("MUL_OVERFLOW")
+	ErrMintPaused                = errors.New("mint paused")
+	ErrBurnPaused                = errors.New("burn paused")
+	ErrUnsupportedBurnCollateral = errors.New("unsupported burn collateral")
 )
 
 var PythArgument = abi.Arguments{

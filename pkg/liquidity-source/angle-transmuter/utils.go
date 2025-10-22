@@ -5,6 +5,7 @@ import (
 	"github.com/samber/lo"
 
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var (
@@ -13,7 +14,6 @@ var (
 	BASE_18 = big256.TenPow(18)
 
 	MAX_BURN_FEE = uint256.NewInt(999_000_000)
-	U1           = uint256.NewInt(1)
 	U2           = uint256.NewInt(2)
 	U10          = uint256.NewInt(10)
 
@@ -43,7 +43,6 @@ func _quoteMintExactInput(
 	return amountOut, nil
 }
 
-// nolint
 func _quoteMintExactOutput(
 	oracleValue *uint256.Int,
 	amountOut *uint256.Int,
@@ -64,7 +63,6 @@ func _quoteMintExactOutput(
 	return amountIn, nil
 }
 
-// nolint
 func _quoteBurnExactOutput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
@@ -459,9 +457,9 @@ func _computeFee(
 
 func convertDecimalTo(amount *uint256.Int, fromDecimals, toDecimals uint8) *uint256.Int {
 	if fromDecimals > toDecimals {
-		return amount.Div(amount, new(uint256.Int).Exp(U10, uint256.NewInt(uint64(fromDecimals-toDecimals))))
+		return amount.Div(amount, u256.TenPow(fromDecimals-toDecimals))
 	} else if fromDecimals < toDecimals {
-		return amount.Mul(amount, new(uint256.Int).Exp(U10, uint256.NewInt(uint64(toDecimals-fromDecimals))))
+		return amount.Mul(amount, u256.TenPow(toDecimals-fromDecimals))
 	}
 	return amount
 }

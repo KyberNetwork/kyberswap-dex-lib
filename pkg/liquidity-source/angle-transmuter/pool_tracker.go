@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -95,6 +96,27 @@ type DecodedMorpho struct {
 	NormalizationFactor *big.Int
 }
 
+type ManagerData struct {
+	SubCollaterals []common.Address
+	Config         []byte
+}
+
+type CollateralInfo struct {
+	IsManaged         uint8
+	IsMintLive        uint8
+	IsBurnLive        uint8
+	Decimals          uint8
+	OnlyWhitelisted   uint8
+	NormalizedStables *big.Int
+	XFeeMint          []uint64
+	YFeeMint          []int64
+	XFeeBurn          []uint64
+	YFeeBurn          []int64
+	OracleConfig      []byte
+	WhitelistData     []byte
+	ManagerData       ManagerData
+}
+
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
 
 func NewPoolTracker(
@@ -129,16 +151,17 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	_ map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	var collateralList []common.Address
-	if _, err := calls.AddCall(&ethrpc.Call{
-		ABI:    transmuterABI,
-		Target: t.config.Transmuter,
-		Method: "getCollateralList",
-	}, []any{&collateralList}).Aggregate(); err != nil {
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).
+		AddCall(&ethrpc.Call{
+			ABI:    transmuterABI,
+			Target: t.config.Transmuter,
+			Method: "getCollateralList",
+		}, []any{&collateralList}).Aggregate(); err != nil {
 		return p, err
 	}
 
+	collateralInfo := make([]*CollateralInfo, len(collateralList))
 	collateralConfigs := make([]DecodedOracleConfig, len(collateralList))
 	feeMints := make([]DecodedFeeMints, len(collateralList))
 	feeBurns := make([]DecodedFeeBurns, len(collateralList))
@@ -146,11 +169,19 @@ func (t *PoolTracker) getNewPoolState(
 	stablecoinCap := make([]*big.Int, len(collateralList))
 	isWhitelistedCollateral := make([]bool, len(collateralList))
 	collateralWhitelistData := make([][]byte, len(collateralList))
+	collateralBalances := make([]*big.Int, len(collateralList))
 	var totalStablecoinIssued *big.Int
 	var redemptionFees DecodedRedemptionFees
 
-	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
+	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, collateral := range collateralList {
+		collateralInfo[i] = &CollateralInfo{}
+		calls.AddCall(&ethrpc.Call{
+			ABI:    transmuterABI,
+			Target: t.config.Transmuter,
+			Method: "getCollateralInfo",
+			Params: []any{collateral},
+		}, []any{&collateralInfo[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
@@ -187,14 +218,20 @@ func (t *PoolTracker) getNewPoolState(
 			Method: "getCollateralWhitelistData",
 			Params: []any{collateral},
 		}, []any{&collateralWhitelistData[i]})
-		if t.config.ChainID != 1 {
-			calls.AddCall(&ethrpc.Call{
-				ABI:    transmuterABI,
-				Target: t.config.Transmuter,
-				Method: "getStablecoinCap",
-				Params: []any{collateral},
-			}, []any{&stablecoinCap[i]})
-		}
+		calls.AddCall(&ethrpc.Call{
+			ABI:    transmuterABI,
+			Target: t.config.Transmuter,
+			Method: "getStablecoinCap",
+			Params: []any{collateral},
+		}, []any{&stablecoinCap[i]})
+
+		// For unmanaged collateral tokens only
+		calls.AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: collateral.String(),
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{common.HexToAddress(t.config.Transmuter)},
+		}, []any{&collateralBalances[i]})
 	}
 
 	calls.AddCall(&ethrpc.Call{
@@ -208,7 +245,7 @@ func (t *PoolTracker) getNewPoolState(
 		Method: "getTotalIssued",
 	}, []any{&totalStablecoinIssued})
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		return p, err
 	}
 
@@ -349,6 +386,10 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range collateralList {
 		transmuterState.Collaterals[hexutil.Encode(collateralList[i][:])] = CollateralState{
+			IsManaged:     collateralInfo[i].IsManaged != 0,
+			IsBurnLive:    collateralInfo[i].IsBurnLive != 0,
+			IsMintLive:    collateralInfo[i].IsMintLive != 0,
+			Balance:       uint256.MustFromBig(collateralBalances[i]),
 			Whitelisted:   isWhitelistedCollateral[i],
 			WhitelistData: collateralWhitelistData[i],
 			Fees: Fees{
@@ -365,8 +406,9 @@ func (t *PoolTracker) getNewPoolState(
 					return uint256.NewInt(uint64(item))
 				}),
 			},
-			StablecoinsIssued: uint256.MustFromBig(issuedByCollateral[i].StablecoinsFromCollateral),
-			StablecoinCap:     uint256.MustFromBig(stablecoinCap[i]),
+			StablecoinsFromCollateral: uint256.MustFromBig(issuedByCollateral[i].StablecoinsFromCollateral),
+			StablecoinsIssued:         uint256.MustFromBig(issuedByCollateral[i].StablecoinsIssued),
+			StablecoinCap:             uint256.MustFromBig(stablecoinCap[i]),
 			Config: Oracle{
 				OracleType: OracleReadType(collateralConfigs[i].OracleType),
 				TargetType: OracleReadType(collateralConfigs[i].TargetType),
@@ -395,14 +437,7 @@ func (t *PoolTracker) getNewPoolState(
 		"address":  p.Address,
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
-	extra := Extra{
-		Transmuter: transmuterState,
-		Gas: Gas{
-			Mint: 400000,
-			Burn: 450000,
-		},
-	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := json.Marshal(Extra{Transmuter: transmuterState})
 	if err != nil {
 		logger.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
 		return p, err
@@ -410,16 +445,15 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = res.BlockNumber.Uint64()
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-	tokens := lo.Map(collateralList, func(token common.Address, _ int) *entity.PoolToken {
+	p.Tokens = append(lo.Map(collateralList, func(token common.Address, _ int) *entity.PoolToken {
 		return &entity.PoolToken{
 			Address:   hexutil.Encode(token[:]),
 			Swappable: true,
 		}
-	})
-	p.Tokens = append(tokens, p.Tokens[len(p.Tokens)-1]) // last one is stable token
-	p.Reserves = lo.Map(p.Tokens, func(token *entity.PoolToken, _ int) string {
-		return defaultReserve
-	})
+	}), p.Tokens[len(p.Tokens)-1]) // last one is stable token
+	p.Reserves = append(lo.Map(collateralBalances, func(b *big.Int, _ int) string {
+		return b.String()
+	}), defaultReserve)
 	return p, nil
 }
 
