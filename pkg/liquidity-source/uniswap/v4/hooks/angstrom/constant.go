@@ -1,10 +1,16 @@
 package angstrom
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const Handler = "uniswap-v4-angstrom"
 
 const GET_ATTESTATIONS_PATH = "/getAttestations"
+
+var ONE_E6 = big.NewInt(1_000_000)
 
 var Adapter = common.HexToAddress("0xb535aeb27335b91e1b5bccbd64888ba7574efbf8")
 
