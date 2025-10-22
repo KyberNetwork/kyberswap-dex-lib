@@ -1,31 +1,96 @@
 package angstrom
 
 import (
+	"context"
+	"encoding/json"
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 )
 
 type Hook struct {
 	uniswapv4.Hook
+
+	hook   common.Address
+	asset0 common.Address
+	asset1 common.Address
+
+	extra HookExtra
 }
 
-var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
+var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
+
+func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom},
+		Hook:   &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom},
+		hook:   param.HookAddress,
+		asset0: common.HexToAddress(param.Pool.Tokens[0].Address),
+		asset1: common.HexToAddress(param.Pool.Tokens[1].Address),
+	}
+
+	if param.HookExtra != "" {
+		var extra HookExtra
+		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
+			return nil
+		}
+
+		hook.extra = extra
 	}
 
 	return hook
-}, HookAddresses...)
+}
+
+func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
+	var extra HookExtra
+	if param.HookExtra != "" {
+		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
+			return "", err
+		}
+	}
+
+	req := param.RpcClient.NewRequest().SetContext(ctx)
+	if param.BlockNumber != nil {
+		req.SetBlockNumber(param.BlockNumber)
+	}
+
+	key := keyFromAssetsUnchecked(h.asset0, h.asset1)
+	slot := calculateUnlockedFeeSlot(key, StorageSlotUnlockedFeesVariable)
+
+	var extsloadRes *big.Int
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    hookABI,
+		Target: h.hook.Hex(),
+		Method: "extsload",
+		Params: []any{slot.Big()},
+	}, []any{&extsloadRes})
+
+	if _, err := req.Aggregate(); err != nil {
+		return "", err
+	}
+
+	unlockedFee, protocolUnlockedFee := extractUnlockedFee(extsloadRes)
+	extra.UnlockedFee = unlockedFee
+	extra.ProtocolUnlockedFee = protocolUnlockedFee
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return "", err
+	}
+
+	return string(extraBytes), nil
+}
 
 func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecific:   bignumber.ZeroBI,
 		DeltaUnSpecific: bignumber.ZeroBI,
-		SwapFee:         uniswapv4.FeeAmount(UnlockedFee),
+		SwapFee:         uniswapv4.FeeAmount(h.extra.UnlockedFee.Uint64()),
 	}, nil
 }
 
@@ -39,14 +104,14 @@ func (h *Hook) AfterSwap(swapHookParams *uniswapv4.AfterSwapParams) (*uniswapv4.
 		exactIn,
 
 		new(big.Int).Div(
-			tmp.Mul(targetAmount, ProtocolUnlockedFee),
+			tmp.Mul(targetAmount, h.extra.ProtocolUnlockedFee),
 			ONE_E6,
 		),
 
 		new(big.Int).Sub(
 			tmp.Div(
 				tmp.Mul(targetAmount, ONE_E6),
-				tmp.Sub(ONE_E6, ProtocolUnlockedFee),
+				tmp.Sub(ONE_E6, h.extra.ProtocolUnlockedFee),
 			),
 			targetAmount,
 		),

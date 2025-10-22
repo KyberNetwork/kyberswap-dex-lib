@@ -1,6 +1,15 @@
 package angstrom
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
+
+type HookExtra struct {
+	UnlockedFee         *big.Int `json:"uFee"`
+	ProtocolUnlockedFee *big.Int `json:"pFee"`
+}
 
 type RFQExtra struct {
 	Adapter      common.Address
