@@ -4,25 +4,63 @@ import (
 	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 const (
 	DexType        = "angle-transmuter"
 	defaultReserve = "100000000000000000000000000"
+
+	defaultMintGas int64 = 400000
+	defaultBurnGas int64 = 450000
 )
+
+var oracleTypeMapping = map[valueobject.Exchange]map[uint8]OracleReadType{
+	valueobject.ExchangeParallelParallelizer: {
+		0: CHAINLINK_FEEDS,
+		1: EXTERNAL,
+		2: NO_ORACLE,
+		3: STABLE,
+		4: WSTETH,
+		5: CBETH,
+		6: RETH,
+		7: SFRXETH,
+		8: MAX,
+		9: MORPHO_ORACLE,
+	},
+}
+
+func convertOracleType(exchange valueobject.Exchange, e uint8) OracleReadType {
+	if mapping, ok := oracleTypeMapping[exchange]; ok {
+		if oracleType, exists := mapping[e]; exists {
+			return oracleType
+		}
+	}
+
+	return OracleReadType(e)
+}
+
+func shouldCheckHardCaps(exchange string) bool {
+	switch exchange {
+	case valueobject.ExchangeParallelParallelizer:
+		return true
+	default:
+		return false
+	}
+}
 
 var (
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrInvalidAmountIn           = errors.New("invalid amount in")
-	ErrInsufficientInputAmount   = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrUnsupportedSwap           = errors.New("unsupported swap")
+	ErrInsufficientBalance       = errors.New("insufficient balance")
 	ErrInvalidOracle             = errors.New("invalid oracle compared to oracle type")
 	ErrUnimplemented             = errors.New("unimplemented")
-	ErrInvalidChainlinkRate      = errors.New("InvalidChainlinkRate")
-	ErrERC4626DepositMoreThanMax = errors.New("ERC4626: deposit more than max")
-	ErrERC4626RedeemMoreThanMax  = errors.New("ERC4626: redeem more than max")
 	ErrInvalidSwap               = errors.New("invalid swap")
 	ErrMulOverflow               = errors.New("MUL_OVERFLOW")
+	ErrMintPaused                = errors.New("mint paused")
+	ErrBurnPaused                = errors.New("burn paused")
+	ErrUnsupportedBurnCollateral = errors.New("unsupported burn collateral")
 )
 
 var PythArgument = abi.Arguments{

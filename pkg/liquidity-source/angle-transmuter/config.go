@@ -1,10 +1,12 @@
 package angletransmuter
 
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
 type Config struct {
-	DexID          string `json:"dexID"`
-	StableToken    string `json:"st"`
-	StableDecimals uint8  `json:"sd"`
-	Transmuter     string `json:"transmuter"`
-	Pyth           string `json:"pyth"`
-	ChainID        int    `json:"chainID"`
+	DexID             string              `json:"dexID"`
+	ChainID           valueobject.ChainID `json:"chainID"`
+	Transmuter        string              `json:"transmuter"`
+	StableTokenMethod string              `json:"stableTokenMethod"`
 }

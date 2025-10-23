@@ -1396,5 +1396,18 @@
         ],
         "stateMutability": "view",
         "type": "function"
+    },
+    {
+        "type": "function",
+        "name": "tokenP",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "contract ITokenP"
+            }
+        ],
+        "stateMutability": "view"
     }
 ]

@@ -48,11 +48,11 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}, []any{&collateralList}).AddCall(&ethrpc.Call{
 		ABI:    transmuterABI,
 		Target: d.config.Transmuter,
-		Method: "agToken",
+		Method: d.config.StableTokenMethod,
 	}, []any{&agToken}).Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to initPool")
+		}).Errorf("failed to init pool")
 		return nil, nil, err
 	}
 
@@ -79,5 +79,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	logger.WithFields(logger.Fields{"pool": pools}).Info("finish fetching pools")
 
 	d.hasInitialized = true
+
 	return pools, nil, nil
 }

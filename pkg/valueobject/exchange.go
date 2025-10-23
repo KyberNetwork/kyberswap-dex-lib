@@ -299,6 +299,7 @@ const (
 	ExchangePangolin                   = "pangolin"
 	ExchangePangolinV3                 = "pangolin-v3"
 	ExchangePantherSwap                = "pantherswap"
+	ExchangeParallelParallelizer       = "parallel-parallelizer"
 	ExchangePearl                      = "pearl"
 	ExchangePearlV2                    = "pearl-v2"
 	ExchangePharaoh                    = "pharaoh"
@@ -771,6 +772,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePangolin:                   {},
 	ExchangePangolinV3:                 {},
 	ExchangePantherSwap:                {},
+	ExchangeParallelParallelizer:       {},
 	ExchangePearl:                      {},
 	ExchangePearlV2:                    {},
 	ExchangePharaoh2:                   {},

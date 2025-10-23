@@ -5,58 +5,7 @@ import (
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
-
-// Tx on chain: 0xd1462167e4f79bdd69dcccdc9ff9c0b6fed665b2e44de993ebd8285fb0079411
-func getMintPoolUSD() PoolSimulator {
-	return PoolSimulator{
-		Pool: pool.Pool{Info: pool.PoolInfo{
-			Tokens: []string{"0xbeef01735c132ada46aa9aa4c54623caa92a64cb", "0x0000206329b97db379d5e1bf586bbdb969c63274"},
-		}},
-		Decimals: []uint8{18, 18},
-		Transmuter: TransmuterState{
-			TotalStablecoinIssued: setUInt("12394643135438408381545155"),
-			Collaterals: map[string]CollateralState{
-				"0xbeef01735c132ada46aa9aa4c54623caa92a64cb": {
-					StablecoinsIssued: setUInt("11160955122463689430059999"),
-					Fees: Fees{
-						XFeeMint: []*uint256.Int{
-							uint256.NewInt(0), uint256.NewInt(940000000), uint256.NewInt(950000000),
-						},
-						YFeeMint: []*uint256.Int{
-							uint256.NewInt(500000), uint256.NewInt(500000), uint256.NewInt(999999999999),
-						},
-						XFeeBurn: []*uint256.Int{uint256.NewInt(1000000000), uint256.NewInt(310000000), uint256.NewInt(300000000)},
-						YFeeBurn: []*uint256.Int{uint256.NewInt(500000), uint256.NewInt(500000), uint256.NewInt(999000000)},
-					},
-					Config: Oracle{
-						TargetType: MAX,
-						OracleType: MORPHO_ORACLE,
-						Hyperparameters: Hyperparameters{
-							UserDeviation:      uint256.NewInt(0),
-							BurnRatioDeviation: uint256.NewInt(500000000000000),
-						},
-						TargetFeed: OracleFeed{
-							Max: setUInt("1089431838480000000"),
-						},
-						OracleFeed: OracleFeed{
-							IsPyth:      false,
-							IsChainLink: false,
-							IsMorpho:    true,
-							Morpho: Morpho{
-								Active:              true,
-								NormalizationFactor: setUInt("1000000000000000000"),
-								Price:               setUInt("1089563197304690000000000000000000000"),
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
 
 func TestCollat1_ReadMint_USD(t *testing.T) {
 	// 0xd1462167e4f79bdd69dcccdc9ff9c0b6fed665b2e44de993ebd8285fb0079411?trace=0.5.0.0.2.0.5.3.1.1.14.1
