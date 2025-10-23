@@ -2,6 +2,7 @@ package angletransmuter
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -60,7 +61,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	pools := []entity.Pool{
 		{
-			Address:   d.config.Transmuter,
+			Address:   strings.ToLower(d.config.Transmuter),
 			Exchange:  d.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
