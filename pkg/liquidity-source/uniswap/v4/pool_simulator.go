@@ -400,18 +400,27 @@ func (p *PoolSimulator) GetExchange() string {
 }
 
 func (p *PoolSimulator) GetTokens() []string {
-	result := make(map[string]struct{})
+	seen := make(map[string]struct{})
+	tokens := make([]string, 0, len(p.Info.Tokens))
 
 	for _, token := range p.Info.Tokens {
-		result[token] = struct{}{}
+		if _, exists := seen[token]; !exists {
+			seen[token] = struct{}{}
+			tokens = append(tokens, token)
+		}
+
 		for _, wrapper := range p.tokenWrappers {
 			if metadata, isWrapped := wrapper.IsWrapped(p.chainID, token); isWrapped {
-				result[metadata.GetUnwrapToken()] = struct{}{}
+				unwrappedToken := metadata.GetUnwrapToken()
+				if _, exists := seen[unwrappedToken]; !exists {
+					seen[unwrappedToken] = struct{}{}
+					tokens = append(tokens, unwrappedToken)
+				}
 			}
 		}
 	}
 
-	return slices.Collect(maps.Keys(result))
+	return tokens
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
