@@ -23,6 +23,8 @@ type Extra struct {
 }
 
 type MetaInfo struct {
-	IsBuyGem        bool   `json:"bG,omitempty"`
-	ApprovalAddress string `json:"approvalAddress,omitempty"`
+	IsBuyGem         bool   `json:"bG,omitempty"`
+	TokenDecimalDiff int8   `json:"tDD,omitempty"`
+	PrecisionDecimal uint8  `json:"pD,omitempty"`
+	ApprovalAddress  string `json:"approvalAddress,omitempty"`
 }
