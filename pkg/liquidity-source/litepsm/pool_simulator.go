@@ -19,6 +19,7 @@ type PoolSimulator struct {
 	*Extra
 	*StaticExtra
 	DaiBal, GemBal       *uint256.Int
+	TokenDecimalDiff     int8
 	To18ConversionFactor *uint256.Int
 }
 
@@ -35,7 +36,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	to18ConversionFactor := big256.TenPow(uint64(18 - entityPool.Tokens[1].Decimals))
+	tokenDecimalDiff := int8(entityPool.Tokens[0].Decimals) - int8(entityPool.Tokens[1].Decimals)
+	to18ConversionFactor := big256.TenPow(uint64(tokenDecimalDiff))
 
 	return &PoolSimulator{
 		Pool: pool.Pool{Info: pool.PoolInfo{
@@ -51,6 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		StaticExtra:          &staticExtra,
 		DaiBal:               big256.New(entityPool.Reserves[0]),
 		GemBal:               big256.New(entityPool.Reserves[1]),
+		TokenDecimalDiff:     tokenDecimalDiff,
 		To18ConversionFactor: to18ConversionFactor,
 	}, nil
 }
@@ -106,8 +109,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return MetaInfo{
-		IsBuyGem:        p.IsGem(tokenOut),
-		ApprovalAddress: lo.Ternary(valueobject.IsNative(tokenIn), "", p.GetAddress()),
+		IsBuyGem:         p.IsGem(tokenOut),
+		TokenDecimalDiff: p.TokenDecimalDiff,
+		PrecisionDecimal: Precision,
+		ApprovalAddress:  lo.Ternary(valueobject.IsNative(tokenIn), "", p.GetAddress()),
 	}
 }
 
