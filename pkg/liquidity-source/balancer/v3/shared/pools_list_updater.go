@@ -4,7 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils/klog"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -15,6 +18,7 @@ import (
 type (
 	PoolsListUpdater struct {
 		config        *Config
+		ethrpcClient  *ethrpc.Client
 		graphqlClient *graphqlpkg.Client
 		count         int
 	}
@@ -25,9 +29,11 @@ type (
 	}
 )
 
-func NewPoolsListUpdater(config *Config, graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client,
+	graphqlClient *graphqlpkg.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:        config,
+		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
 	}
 }
@@ -64,7 +70,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err = u.initPools(subgraphPools)
+	pools, err = u.initPools(ctx, subgraphPools)
 	return pools, newMetadataBytes, err
 }
 
@@ -94,14 +100,46 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, metadata Metadata)
 	return response.Pools, metadata, nil
 }
 
-func (u *PoolsListUpdater) initPools(subgraphPools []*SubgraphPool) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*SubgraphPool) ([]entity.Pool, error) {
+	bufferSet := mapset.NewThreadUnsafeSet[string]()
+	for _, subgraphPool := range subgraphPools {
+		for _, token := range subgraphPool.PoolTokens {
+			if isBuffer := token.CanUseBufferForSwaps &&
+				!lo.ContainsBy(subgraphPool.PoolTokens, func(t SubgraphToken) bool {
+					// don't use as buffer token if the underlying token is already contained in the pool as a main token
+					return token.UnderlyingToken.Address == t.Address
+				}); isBuffer {
+				bufferSet.Add(token.Address)
+			}
+		}
+	}
+	buffers := bufferSet.ToSlice()
+	bufferAssets := make([]common.Address, len(buffers))
+	req := u.ethrpcClient.R().SetContext(ctx)
+	for i, buffer := range buffers {
+		req.AddCall(&ethrpc.Call{
+			ABI:    VaultExplorerABI,
+			Target: u.config.VaultExplorer,
+			Method: VaultMethodGetBufferAsset,
+			Params: []any{common.HexToAddress(buffer)},
+		}, []any{&bufferAssets[i]})
+	}
+	if _, err := req.TryAggregate(); err != nil {
+		return nil, err
+	}
+	for i, bufferAsset := range bufferAssets {
+		if bufferAsset == (common.Address{}) {
+			bufferSet.Remove(buffers[i])
+		}
+	}
+
 	pools := make([]entity.Pool, len(subgraphPools))
 	for i, subgraphPool := range subgraphPools {
 		bufferTokens := make([]string, len(subgraphPool.PoolTokens))
 		poolTokens := make([]*entity.PoolToken, len(subgraphPool.PoolTokens))
 		reserves := make([]string, len(subgraphPool.PoolTokens))
 		for j, token := range subgraphPool.PoolTokens {
-			isBuffer := token.CanUseBufferForSwaps &&
+			isBuffer := token.CanUseBufferForSwaps && bufferSet.ContainsOne(token.Address) &&
 				!lo.ContainsBy(subgraphPool.PoolTokens, func(t SubgraphToken) bool {
 					// don't use as buffer token if the underlying token is already contained in the pool as a main token
 					return token.UnderlyingToken.Address == t.Address
