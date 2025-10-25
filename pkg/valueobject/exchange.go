@@ -9,6 +9,7 @@ const (
 	ExchangeAbstra                     = "abstra"
 	ExchangeAerodrome                  = "aerodrome"
 	ExchangeAerodromeCL                = "aerodrome-cl"
+	ExchangeAerodromeCL2               = "aerodrome-cl-2"
 	ExchangeAgniFinance                = "agni-finance"
 	ExchangeAlienBase                  = "alien-base"
 	ExchangeAlienBaseCL                = "alien-base-cl"
@@ -173,6 +174,7 @@ const (
 	ExchangeHoriza                     = "horiza"
 	ExchangeHorizonDex                 = "horizon-dex"
 	ExchangeHorizonIntegral            = "horizon-integral"
+	ExchangeHybraCL                    = "hybra-cl"
 	ExchangeHybraV2                    = "hybra-v2"
 	ExchangeHybraV3                    = "hybra-v3"
 	ExchangeHydrexV4                   = "hydrex-v4"
@@ -491,6 +493,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAbstra:                     {},
 	ExchangeAerodrome:                  {},
 	ExchangeAerodromeCL:                {},
+	ExchangeAerodromeCL2:               {},
 	ExchangeAgniFinance:                {},
 	ExchangeAlienBase:                  {},
 	ExchangeAlienBaseCL:                {},
@@ -650,6 +653,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoriza:                     {},
 	ExchangeHorizonDex:                 {},
 	ExchangeHorizonIntegral:            {},
+	ExchangeHybraCL:                    {},
 	ExchangeHybraV2:                    {},
 	ExchangeHybraV3:                    {},
 	ExchangeHydrexV4:                   {},
