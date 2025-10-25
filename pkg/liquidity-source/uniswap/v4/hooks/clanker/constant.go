@@ -10,18 +10,19 @@ import (
 )
 
 var (
-	MILLION                = big.NewInt(1_000_000)
-	FEE_DENOMINATOR        = MILLION // Uniswap 100% fee
-	PROTOCOL_FEE_NUMERATOR = big.NewInt(200_000)
+	Million              = big.NewInt(1_000_000)
+	FeeDenominator       = Million // Uniswap 100% fee
+	ProtocolFeeNumerator = big.NewInt(200_000)
 
-	BPS_DENOMINATOR         = uint256.NewInt(10_000)
-	FEE_CONTROL_DENOMINATOR = uint256.NewInt(10_000_000_000)
-	maxUint24               = uint64(1<<24 - 1)
+	BpsDenominator        = uint256.NewInt(10_000)
+	FeeControlDenominator = uint256.NewInt(10_000_000_000)
+	maxUint24             = uint64(1<<24 - 1)
 
 	ClankerAddressByChain = map[valueobject.ChainID]string{
 		valueobject.ChainIDBase:        "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
 		valueobject.ChainIDUnichain:    "0xE85A59c628F7d27878ACeB4bf3b35733630083a9",
 		valueobject.ChainIDArbitrumOne: "0xEb9D2A726Edffc887a574dC7f46b3a3638E8E44f",
+		valueobject.ChainIDEthereum:    "0x6C8599779B03B00AAaE63C6378830919Abb75473",
 	}
 
 	DynamicFeeHookAddresses = []common.Address{
@@ -38,5 +39,6 @@ var (
 		common.HexToAddress("0xb429d62f8f3bFFb98CdB9569533eA23bF0Ba28CC"), // base v2 permission-ed
 		common.HexToAddress("0xBc6e5aBDa425309c2534Bc2bC92562F5419ce8Cc"), // unichain
 		common.HexToAddress("0xf7aC669593d2D9D01026Fa5B756DD5B4f7aAa8Cc"), // arbitrum
+		common.HexToAddress("0x6C24D0bCC264EF6A740754A11cA579b9d225e8Cc"), // ethereum
 	}
 )

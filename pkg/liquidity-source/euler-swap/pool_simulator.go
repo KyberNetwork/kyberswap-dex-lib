@@ -1,7 +1,6 @@
 package eulerswap
 
 import (
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -209,7 +208,7 @@ func (p *PoolSimulator) updateAndCheckSolvency(
 			tmp.Mul(tmp.Mul(soldCollat, tmp.SetUint64(vaultLtvs[buyVaultIdx])), vaultValuePrices[buyVaultIdx]))
 
 		// Apply a safety buffer (85%) to the collateral value for swap limit checks
-		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.U100)
+		collatValWithBuffer, _ := tmp.MulDivOverflow(collatVal, bufferSwapLimit, big256.UBasisPoint)
 		if liabilityVal.Gt(collatValWithBuffer) {
 			return nil, ErrInsolvency
 		}
@@ -340,12 +339,10 @@ func (p *PoolSimulator) computeQuote(amount *uint256.Int, isExactIn, isZeroForOn
 
 	if isExactIn {
 		if amountWithFee.Gt(inLimit) || quote.Gt(outLimit) {
-			fmt.Println("amountWithFee:", amountWithFee, "inLimit:", inLimit, "quote:", quote, "outLimit:", outLimit)
 			return nil, ErrSwapLimitExceeded
 		}
 	} else {
 		if amountWithFee.Gt(outLimit) || quote.Gt(inLimit) {
-			fmt.Println("amountWithFee:", amountWithFee, "outLimit:", outLimit, "quote:", quote, "inLimit:", inLimit)
 			return nil, ErrSwapLimitExceeded
 		}
 		quote.Mul(quote, big256.BONE)

@@ -53,7 +53,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		rate: staticExtra.Rate,
-		fee:  big.NewInt(int64(entityPool.SwapFee)),
+		fee:  big.NewInt(int64(entityPool.SwapFee * wad)),
 		gas:  DefaultGas,
 	}, nil
 }
@@ -66,7 +66,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, fmt.Errorf("invalid token indices: in=%d, out=%d", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut := p._MkrToSky(param.TokenAmountIn.Amount)
+	amountOut, feeAmount := p._MkrToSky(param.TokenAmountIn.Amount)
 	if amountOut.Sign() <= 0 {
 		return nil, fmt.Errorf("invalid output amount: %s", amountOut.String())
 	}
@@ -78,24 +78,24 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Fee: &pool.TokenAmount{
 			Token:  param.TokenAmountIn.Token,
-			Amount: bignumber.ZeroBI,
+			Amount: feeAmount,
 		},
 		Gas: p.gas,
 	}, nil
 }
 
 // _MkrToSky converts MKR amount to SKY amount using the pool's rate and fee
-func (p *PoolSimulator) _MkrToSky(mkrAmt *big.Int) *big.Int {
-	var skyAmt, tmp big.Int
+func (p *PoolSimulator) _MkrToSky(mkrAmt *big.Int) (*big.Int, *big.Int) {
+	var skyAmt, feeAmt big.Int
 	skyAmt.Mul(mkrAmt, p.rate)
 
 	if p.fee.Sign() > 0 {
-		tmp.Mul(&skyAmt, p.fee)
-		tmp.Div(&tmp, WAD)
-		skyAmt.Sub(&skyAmt, &tmp)
+		feeAmt.Mul(&skyAmt, p.fee)
+		feeAmt.Div(&feeAmt, WAD)
+		skyAmt.Sub(&skyAmt, &feeAmt)
 	}
 
-	return &skyAmt
+	return &skyAmt, &feeAmt
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}

@@ -3,6 +3,7 @@ package bebop
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -13,10 +14,11 @@ import (
 
 var (
 	entityPool1 = entity.Pool{
-		Address:  "bebop_0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270_0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-		Exchange: "bebop",
-		Type:     "bebop",
-		Reserves: []string{"9320038994403940352", "166143156993"},
+		Address:   "bebop_0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270_0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+		Exchange:  "bebop",
+		Type:      "bebop",
+		Timestamp: time.Now().Unix(),
+		Reserves:  []string{"9320038994403940352", "166143156993"},
 		Tokens: []*entity.PoolToken{
 			{Address: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", Decimals: 18, Swappable: true},
 			{Address: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", Decimals: 6, Swappable: true},
@@ -29,10 +31,11 @@ var (
 			"{\"q\":27391.98476499627,\"p\":1.093432843660677}],\"tlrnce\":0}",
 	}
 	entityPool2 = entity.Pool{
-		Address:  "bebop_0x7a58c0be72be218b41c608b7fe7c5bb630736c71_0xdac17f958d2ee523a2206206994597c13d831ec7",
-		Exchange: "bebop",
-		Type:     "bebop",
-		Reserves: []string{"1740906659949395367165952", "0"},
+		Address:   "bebop_0x7a58c0be72be218b41c608b7fe7c5bb630736c71_0xdac17f958d2ee523a2206206994597c13d831ec7",
+		Exchange:  "bebop",
+		Type:      "bebop",
+		Timestamp: time.Now().Unix(),
+		Reserves:  []string{"1740906659949395367165952", "0"},
 		Tokens: []*entity.PoolToken{
 			{Address: "0x7a58c0be72be218b41c608b7fe7c5bb630736c71", Decimals: 18, Swappable: true},
 			{Address: "0xdac17f958d2ee523a2206206994597c13d831ec7", Decimals: 6, Swappable: true},

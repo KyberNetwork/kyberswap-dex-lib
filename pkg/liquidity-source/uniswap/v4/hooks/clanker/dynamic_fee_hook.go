@@ -98,8 +98,6 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		hook: param.HookAddress.Hex(),
 	}
 
-	chainID := valueobject.ChainID(param.Cfg.ChainID)
-
 	if param.HookExtra != "" {
 		var extra DynamicFeeExtra
 		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err != nil {
@@ -116,6 +114,7 @@ func NewDynamicFeeHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 		cloned := *param.Pool
 		cloned.SwapFee = 0
 
+		chainID := valueobject.ChainID(param.Cfg.ChainID)
 		hook.poolSim, _ = uniswapv3.NewPoolSimulator(cloned, chainID)
 	}
 
@@ -232,7 +231,7 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne,
 
 		if new(uint256.Int).Add(h.poolFVars.LastSwapTimestamp, h.poolCVars.ResetPeriod).Gt(blockTime) {
 			var appliedVR uint256.Int
-			appliedVR.MulDivOverflow(h.poolFVars.PrevVA, h.poolCVars.DecayFilterBps, BPS_DENOMINATOR)
+			appliedVR.MulDivOverflow(h.poolFVars.PrevVA, h.poolCVars.DecayFilterBps, BpsDenominator)
 
 			if appliedVR.GtUint64(maxUint24) {
 				h.poolFVars.AppliedVR = maxUint24
@@ -292,15 +291,15 @@ func (h *DynamicFeeHook) getVolatilityAccumulator(amountIn *big.Int, zeroForOne,
 }
 
 func (h *DynamicFeeHook) setProtocolFee(lpFee uint64) {
-	h.protocolFee.Mul(big.NewInt(int64(lpFee)), PROTOCOL_FEE_NUMERATOR)
-	h.protocolFee.Div(h.protocolFee, FEE_DENOMINATOR)
+	h.protocolFee.Mul(big.NewInt(int64(lpFee)), ProtocolFeeNumerator)
+	h.protocolFee.Div(h.protocolFee, FeeDenominator)
 }
 
 func (h *DynamicFeeHook) getLpFee(volAccumulator uint64) uint64 {
 	var fee uint256.Int
 	fee.Exp(uint256.NewInt(volAccumulator), u256.U2)
 
-	fee.MulDivOverflow(h.poolCVars.FeeControlNumerator, &fee, FEE_CONTROL_DENOMINATOR)
+	fee.MulDivOverflow(h.poolCVars.FeeControlNumerator, &fee, FeeControlDenominator)
 
 	fee.AddUint64(&fee, h.poolCVars.BaseFee)
 
@@ -348,10 +347,10 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 	scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
 	if params.ExactIn && swappingForClanker {
 		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L297
-		fee.Add(MILLION, h.protocolFee)
+		fee.Add(Million, h.protocolFee)
 	} else { // !params.ExactIn && !swappingForClanker
 		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L297
-		fee.Sub(MILLION, h.protocolFee)
+		fee.Sub(Million, h.protocolFee)
 	}
 
 	scaledProtocolFee.Div(&scaledProtocolFee, &fee)
@@ -383,7 +382,7 @@ func (h *DynamicFeeHook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv
 		// https://basescan.org/address/0x34a45c6B61876d739400Bd71228CbcbD4F53E8cC#code#F2#L365
 		delta.Mul(params.AmountIn, h.protocolFee)
 	}
-	delta.Div(&delta, FEE_DENOMINATOR)
+	delta.Div(&delta, FeeDenominator)
 	return &uniswapv4.AfterSwapResult{
 		HookFee: &delta,
 		Gas:     0,
@@ -403,9 +402,9 @@ func (h *DynamicFeeHook) simulateSwap(amountSpecified *big.Int, zeroForOne, exac
 		scaledProtocolFee.Mul(h.protocolFee, bignumber.BONE)
 
 		if exactIn {
-			fee.Add(MILLION, h.protocolFee)
+			fee.Add(Million, h.protocolFee)
 		} else { // !exactIn && !swappingForClanker
-			fee.Sub(MILLION, h.protocolFee)
+			fee.Sub(Million, h.protocolFee)
 		}
 
 		scaledProtocolFee.Div(&scaledProtocolFee, &fee)

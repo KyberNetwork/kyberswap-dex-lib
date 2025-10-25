@@ -112,10 +112,6 @@ type (
 		QuoteTokenAmount string `json:"qAmt"`
 	}
 
-	Gas struct {
-		Quote int64
-	}
-
 	PriceLevel struct {
 		Price float64 `json:"p"`
 		Quote float64 `json:"q"`

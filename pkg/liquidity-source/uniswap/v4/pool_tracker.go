@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -211,6 +212,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Reserves = rpcData.Reserves
 	p.BlockNumber = blockNumber
+	p.Timestamp = time.Now().Unix()
 
 	l.Infof("Finish updating state of pool")
 	return p, nil

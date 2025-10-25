@@ -8,9 +8,7 @@ const (
 
 	defaultReserve = 10000000000
 
-	poolMethodGetReserveAToken      = "getReserveAToken"
-	poolMethodGetReserveAddressById = "getReserveAddressById"
-	poolMethodGetReservesList       = "getReservesList"
-	poolMethodGetReservesCount      = "getReservesCount"
-	poolMethodGetConfiguration      = "getConfiguration"
+	poolMethodGetReservesList  = "getReservesList"
+	poolMethodGetReserveData   = "getReserveData"
+	poolMethodGetConfiguration = "getConfiguration"
 )

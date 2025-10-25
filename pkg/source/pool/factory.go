@@ -21,6 +21,7 @@ type (
 var (
 	factoryMap      = make(map[string]FactoryFn, 256) // map of pool types to factory functions
 	CanCalcAmountIn = make(map[string]struct{}, 256)  // map of pool types that can calculate amount in. don't modify
+	UseSwapLimit    = make(map[string]struct{}, 16)   // map of pool types that use swap limit. don't modify
 )
 
 // RegisterFactory registers a factory function for a pool type with factoryParams
@@ -38,10 +39,17 @@ func RegisterFactory[P IPoolSimulator](poolType string, factory func(FactoryPara
 		}()
 		return factory(factoryParams)
 	}
+
 	var p P
 	if _, ok := any(p).(IPoolExactOutSimulator); ok {
 		CanCalcAmountIn[poolType] = struct{}{}
 	}
+
+	return true
+}
+
+func RegisterUseSwapLimit(exchange string) bool {
+	UseSwapLimit[exchange] = struct{}{}
 	return true
 }
 

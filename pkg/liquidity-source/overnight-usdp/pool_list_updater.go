@@ -3,6 +3,7 @@ package overnightusdp
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -76,7 +77,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	return []entity.Pool{
 		{
-			Address:   u.config.Exchange,
+			Address:   strings.ToLower(u.config.Exchange),
 			Reserves:  []string{defaultReserves, defaultReserves},
 			Exchange:  u.config.DexID,
 			Type:      DexType,

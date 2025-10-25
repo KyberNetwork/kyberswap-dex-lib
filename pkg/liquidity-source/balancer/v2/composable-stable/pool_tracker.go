@@ -340,7 +340,7 @@ func (t *PoolTracker) queryRPC(
 				"dexId":       t.config.DexID,
 				"dexType":     DexType,
 				"poolAddress": poolAddress,
-			}).Warnf("can not update token rates: %s", err.Error())
+			}).Debugf("can not update token rates: %s", err.Error())
 
 			canNotUpdateTokenRates = true
 		}

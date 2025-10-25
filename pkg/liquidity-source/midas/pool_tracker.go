@@ -2,7 +2,6 @@ package midas
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -76,6 +75,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		vaultState, err = t.getRvState(ctx, rvCfg, tokens, currentDayNumber)
 	}
 	if err != nil {
+		lg.Errorf("failed to get vault state: %v", err)
 		return p, nil
 	}
 
@@ -319,26 +319,35 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 
 		mTbillRv := strings.ToLower(mTbillRedemptionVault.String())
 		mTbillRvCfg, ok := t.rvConfigs[mTbillRv]
-		if !ok {
-			return nil, fmt.Errorf("rvConfig not found %v", mTbillRv)
-		}
+		if ok {
+			req = t.ethrpcClient.
+				NewRequest().
+				SetContext(ctx).
+				SetBlockNumber(resp.BlockNumber).
+				AddCall(&ethrpc.Call{
+					ABI:    abi.Erc20ABI,
+					Target: t.rvConfigs[mTbillRv].MToken,
+					Method: abi.Erc20BalanceOfMethod,
+					Params: []any{liquidityProvider},
+				}, []any{&result.MToken2Balance})
+			_, err = req.Aggregate()
+			if err != nil {
+				lg.WithFields(logger.Fields{
+					"error": err,
+				}).Errorf("failed to get liquidityProvider and mTbillRedemptionVault")
+				return nil, err
+			}
 
-		req = t.ethrpcClient.
-			NewRequest().
-			SetContext(ctx).
-			SetBlockNumber(resp.BlockNumber).
-			AddCall(&ethrpc.Call{
-				ABI:    abi.Erc20ABI,
-				Target: t.rvConfigs[mTbillRv].MToken,
-				Method: abi.Erc20BalanceOfMethod,
-				Params: []any{liquidityProvider},
-			}, []any{&result.MToken2Balance})
-		_, err = req.Aggregate()
-		if err != nil {
-			lg.WithFields(logger.Fields{
-				"error": err,
-			}).Errorf("failed to get liquidityProvider and mTbillRedemptionVault")
-			return nil, err
+			result.SwapperVaultType = mTbillRvCfg.RvType
+			result.MTbillRedemptionVault, err = t.getRvState(ctx, mTbillRvCfg, tokens, currentDayNumber)
+			if err != nil {
+				lg.WithFields(logger.Fields{
+					"error": err,
+				}).Warnf("failed to aggregate mTbillRedemptionVault state for rv swapper, mTbillRedemptionVault %v, type %v",
+					mTbillRedemptionVault, mTbillRvCfg.RvType)
+			}
+		} else {
+			lg.Warnf("rvConfig not found %v", mTbillRv)
 		}
 
 		req = t.ethrpcClient.
@@ -370,16 +379,6 @@ func (t *PoolTracker) getRvState(ctx context.Context, rvCfg RvConfig, tokens []s
 			}).Error("failed to aggregate data feed rates for rv swapper")
 			return nil, err
 		}
-
-		result.SwapperVaultType = mTbillRvCfg.RvType
-		result.MTbillRedemptionVault, err = t.getRvState(ctx, mTbillRvCfg, tokens, currentDayNumber)
-		if err != nil {
-			lg.WithFields(logger.Fields{
-				"error": err,
-			}).Warnf("failed to aggregate mTbillRedemptionVault state for rv swapper, mTbillRedemptionVault %v, type %v",
-				mTbillRedemptionVault, mTbillRvCfg.RvType)
-		}
-
 	case redemptionVaultUstb:
 		var ustbRedemption common.Address
 		req = t.ethrpcClient.
