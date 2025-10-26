@@ -17,6 +17,7 @@ var (
 		common.HexToAddress("0x5bf219b3cc11e3f6dd8dc8fc89d7d1deb0431040"),
 		common.HexToAddress("0x9ea932730a7787000042e34390b8e435dd839040"),
 		common.HexToAddress("0x2b15a16B3Ef024005bA899Bb51764FCd58Cf9040"),
+		common.HexToAddress("0xC8d077444625eB300A427a6dfB2b1DBf9b159040"),
 	}
 
 	ZoraAddress = common.HexToAddress("0x1111111111166b7FE7bd91427724B487980aFc69")
