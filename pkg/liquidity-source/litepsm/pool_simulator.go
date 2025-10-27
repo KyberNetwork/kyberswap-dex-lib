@@ -3,6 +3,7 @@ package litepsm
 import (
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -11,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolSimulator struct {
@@ -107,12 +107,19 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.updateBalanceSellingGem(inputAmount, outputAmount)
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
+func (p *PoolSimulator) GetMetaInfo(_, tokenOut string) any {
+	isBuyGem := p.IsGem(tokenOut)
+	var approvalAddress string
+	if isBuyGem || p.GemJoin == nil || p.Dai != nil { // p.Dai != nil means PSM wrapper
+		approvalAddress = p.GetAddress()
+	} else {
+		approvalAddress = hexutil.Encode(p.GemJoin[:])
+	}
 	return MetaInfo{
-		IsBuyGem:         p.IsGem(tokenOut),
+		IsBuyGem:         isBuyGem,
 		TokenDecimalDiff: p.TokenDecimalDiff,
 		PrecisionDecimal: Precision,
-		ApprovalAddress:  lo.Ternary(valueobject.IsNative(tokenIn), "", p.GetAddress()),
+		ApprovalAddress:  approvalAddress,
 	}
 }
 
