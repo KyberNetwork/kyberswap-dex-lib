@@ -459,6 +459,7 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 	}
 	return &FilledOrderInfo{
 		OrderID:              order.ID,
+		OrderHash:            order.OrderHash,
 		FilledTakingAmount:   filledTakingAmount,
 		FilledMakingAmount:   filledMakingAmount,
 		TakingAmount:         order.TakingAmount.String(),
