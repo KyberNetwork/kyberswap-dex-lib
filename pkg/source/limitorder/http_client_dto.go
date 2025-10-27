@@ -52,6 +52,7 @@ type (
 	orderData struct {
 		ID                   int64  `json:"id"`
 		ChainID              string `json:"chainId"`
+		OrderHash            string `json:"orderHash"`
 		Salt                 string `json:"salt"`
 		Signature            string `json:"signature"`
 		MakerAsset           string `json:"makerAsset"`
@@ -93,6 +94,7 @@ type (
 	order struct {
 		ID                   int64    `json:"id"`
 		ChainID              string   `json:"chainId"`
+		OrderHash            string   `json:"orderHash"`
 		Salt                 string   `json:"salt"`
 		Signature            string   `json:"signature"`
 		MakerAsset           string   `json:"makerAsset"`
