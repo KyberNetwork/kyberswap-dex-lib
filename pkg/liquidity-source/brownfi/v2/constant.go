@@ -24,8 +24,7 @@ const (
 	pairMethodKappa       = "k"
 	pairMethodLambda      = "lambda"
 
-	pythDefaultBaseUrl         = "https://hermes.pyth.network"
-	pythPathUpdatesPriceLatest = "v2/updates/price/latest"
+	pythDefaultUrl = "https://hermes.pyth.network/v2/updates/price/latest"
 
 	parsedDecimals = 18
 
@@ -47,6 +46,7 @@ var (
 	q128      = big256.TwoPow128
 	precision = big256.TenPow(8)
 
+	ErrResponseRaced         = errors.New("response raced")
 	ErrFailToFetchPriceFeeds = errors.New("fail to fetch price feeds")
 
 	ErrInvalidToken             = errors.New("invalid token")
