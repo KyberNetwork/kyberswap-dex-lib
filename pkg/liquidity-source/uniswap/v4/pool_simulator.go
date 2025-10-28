@@ -428,8 +428,28 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned.PoolSimulator = p.PoolSimulator.CloneState().(*uniswapv3.PoolSimulator)
 	if cloned.hook != nil {
 		cloned.hook = p.hook.CloneState()
+		if _, ok := cloned.hook.(*BaseHook); ok {
+			if _, ok = p.hook.(*BaseHook); !ok {
+				cloned.hook = p.hook
+			}
+		}
 	}
 	return &cloned
+}
+
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if params.SwapInfo == nil {
+		return
+	}
+	v4SwapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+	if p.hook != nil {
+		p.hook.UpdateBalance(v4SwapInfo.hookSwapInfo)
+	}
+	params.SwapInfo = v4SwapInfo.PoolSwapInfo
+	p.PoolSimulator.UpdateBalance(params)
 }
 
 // GetMetaInfo
@@ -506,19 +526,4 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		PriceLimit:        &priceLimit,
 		TokenWrapMetadata: wrapMetadata,
 	}
-}
-
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if params.SwapInfo == nil {
-		return
-	}
-	v4SwapInfo, ok := params.SwapInfo.(SwapInfo)
-	if !ok {
-		return
-	}
-	if p.hook != nil {
-		p.hook.UpdateBalance(v4SwapInfo.hookSwapInfo)
-	}
-	params.SwapInfo = v4SwapInfo.PoolSwapInfo
-	p.PoolSimulator.UpdateBalance(params)
 }

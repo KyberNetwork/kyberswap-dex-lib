@@ -114,8 +114,8 @@ type Hook interface {
 	AfterSwap(swapHookParams *AfterSwapParams) (*AfterSwapResult, error)
 	CanBeforeSwap(address common.Address) bool
 	CanAfterSwap(address common.Address) bool
-	UpdateBalance(swapInfo any)
 	CloneState() Hook
+	UpdateBalance(swapInfo any)
 }
 
 type HookParam struct {
@@ -160,10 +160,6 @@ func GetHook(hookAddress common.Address, param *HookParam) (hook Hook, ok bool) 
 
 type BaseHook struct{ Exchange valueobject.Exchange }
 
-func (h *BaseHook) CloneState() Hook {
-	return h
-}
-
 func (h *BaseHook) GetExchange() string {
 	if h != nil {
 		return string(h.Exchange)
@@ -179,23 +175,18 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 	return "", nil
 }
 
-func (h *BaseHook) BeforeSwap(swapHookParams *BeforeSwapParams) (*BeforeSwapResult, error) {
+func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {
 	return &BeforeSwapResult{
 		DeltaSpecific:   bignumber.ZeroBI,
 		DeltaUnSpecific: bignumber.ZeroBI,
-		SwapFee:         0,
-		Gas:             0,
 	}, nil
 }
 
 func (h *BaseHook) AfterSwap(_ *AfterSwapParams) (*AfterSwapResult, error) {
 	return &AfterSwapResult{
 		HookFee: bignumber.ZeroBI,
-		Gas:     0,
 	}, nil
 }
-
-func (h *BaseHook) UpdateBalance(_ any) {}
 
 func (h *BaseHook) CanBeforeSwap(address common.Address) bool {
 	return hasPermission(address, BeforeSwap)
@@ -204,3 +195,9 @@ func (h *BaseHook) CanBeforeSwap(address common.Address) bool {
 func (h *BaseHook) CanAfterSwap(address common.Address) bool {
 	return hasPermission(address, AfterSwap)
 }
+
+func (h *BaseHook) CloneState() Hook {
+	return h
+}
+
+func (h *BaseHook) UpdateBalance(_ any) {}

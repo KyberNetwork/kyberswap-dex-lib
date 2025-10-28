@@ -5,9 +5,13 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -35,4 +39,39 @@ func TestCalcAmountOut(t *testing.T) {
 			},
 		},
 	})
+}
+
+func Test_CloneState_UpdateBalance(t *testing.T) {
+	cloned := poolSim.CloneState()
+	tokenAmountIn := pool.TokenAmount{
+		Token:  "0x4200000000000000000000000000000000000006",
+		Amount: bignumber.NewBig10("198168063968"),
+	}
+	tokenOut := "0x3a115f568c4b3d0c6e239b2e8f3d4cda3798f536"
+	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
+	poolSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmountIn,
+		TokenAmountOut: *result.TokenAmountOut,
+		Fee:            *result.Fee,
+		SwapInfo:       result.SwapInfo,
+	})
+
+	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
+
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, bignumber.NewBig10("10864758509295884"), result.TokenAmountOut.Amount)
 }
