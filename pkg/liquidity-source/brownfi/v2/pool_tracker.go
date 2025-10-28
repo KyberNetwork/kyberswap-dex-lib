@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
+	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -25,7 +27,7 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	pythClient   *resty.Client
+	pythClients  []*resty.Client
 }
 
 var _ = pooltrack.RegisterFactoryCE(DexType, NewPoolTracker)
@@ -35,8 +37,8 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	pythCfg := config.Pyth
-	if pythCfg.BaseUrl == "" {
-		pythCfg.BaseUrl = pythDefaultBaseUrl
+	if len(pythCfg.Urls) == 0 {
+		pythCfg.Urls = []string{pythDefaultUrl}
 	}
 	if pythCfg.Timeout == 0 {
 		pythCfg.Timeout = 10 * time.Second
@@ -44,7 +46,10 @@ func NewPoolTracker(
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		pythClient:   pythCfg.NewRestyClient(),
+		pythClients: lo.Map(pythCfg.Urls, func(url string, _ int) *resty.Client {
+			pythCfg.BaseUrl = url
+			return pythCfg.NewRestyClient()
+		}),
 	}, nil
 }
 
@@ -84,19 +89,42 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	pythUpdateDataCh := lo.Async(func() *PythUpdateData {
-		if time.Since(time.Unix(p.Timestamp, 0)) < 12*time.Second {
+		if time.Since(time.Unix(p.Timestamp, 0)) < 5*time.Second {
 			return nil // don't need to fetch this too often
 		}
-		var pythUpdateData PythUpdateData
-		if resp, err := d.pythClient.R().SetContext(ctx).
-			SetQueryString("ids[]=" + staticExtra.PriceFeedIds[0] + "&ids[]=" + staticExtra.PriceFeedIds[1]).
-			SetResult(&pythUpdateData).
-			Get(pythPathUpdatesPriceLatest); err != nil || !resp.IsSuccess() {
-			logger.WithFields(logger.Fields{"pool_id": p.Address, "err": err, "resp": resp}).
-				Error("fail to fetch price feeds")
+		permu := rand.Perm(len(d.pythClients))[:min(2, len(d.pythClients))]
+		pythUpdateDataCh := make(chan *PythUpdateData)
+		wg := &sync.WaitGroup{}
+		ctx, cancel := context.WithCancelCause(ctx)
+		for _, i := range permu { // do response racing amongst different urls
+			wg.Go(func() {
+				var pythUpdateData PythUpdateData
+				if resp, err := d.pythClients[i].R().SetContext(ctx).
+					SetQueryString("ids[]=" + staticExtra.PriceFeedIds[0] + "&ids[]=" + staticExtra.PriceFeedIds[1]).
+					SetResult(&pythUpdateData).
+					Get(""); err != nil || !resp.IsSuccess() {
+					if !errors.Is(context.Cause(ctx), ErrResponseRaced) {
+						logger.WithFields(logger.Fields{"pool_id": p.Address, "err": err, "resp": resp,
+							"url": d.pythClients[i].BaseURL}).Error("fail to fetch price feeds")
+					}
+					return
+				}
+				select {
+				case pythUpdateDataCh <- &pythUpdateData:
+					cancel(ErrResponseRaced)
+				case <-ctx.Done():
+				}
+			})
+		}
+		go func() {
+			wg.Wait()
+			cancel(ErrFailToFetchPriceFeeds)
+		}()
+		select {
+		case pythUpdateData := <-pythUpdateDataCh:
+			return pythUpdateData
+		case <-ctx.Done():
 			return nil
-		} else {
-			return &pythUpdateData
 		}
 	})
 

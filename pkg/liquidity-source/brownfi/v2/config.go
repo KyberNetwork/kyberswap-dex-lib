@@ -5,8 +5,11 @@ import (
 )
 
 type Config struct {
-	DexID          string         `json:"dexID"`
-	FactoryAddress string         `json:"factoryAddress"`
-	NewPoolLimit   int            `json:"newPoolLimit"`
-	Pyth           kutils.HttpCfg `json:"pyth"`
+	DexID          string `json:"dexID"`
+	FactoryAddress string `json:"factoryAddress"`
+	NewPoolLimit   int    `json:"newPoolLimit"`
+	Pyth           struct {
+		kutils.HttpCfg
+		Urls []string `json:"urls"`
+	} `json:"pyth"`
 }
