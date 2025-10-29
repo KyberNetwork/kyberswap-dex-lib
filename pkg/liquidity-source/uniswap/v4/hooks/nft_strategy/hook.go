@@ -21,7 +21,7 @@ const (
 
 type Hook struct {
 	uniswapv4.Hook
-	*NftStrategyExtra
+	NftStrategyExtra
 }
 
 type NftStrategyExtra struct {
@@ -32,51 +32,34 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 	hook := &Hook{
 		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4NftStrategy},
 	}
-
 	if param.HookExtra != "" {
-		var extra NftStrategyExtra
-		if err := json.Unmarshal([]byte(param.HookExtra), &extra); err == nil {
-			hook.NftStrategyExtra = &extra
-		}
+		_ = json.Unmarshal([]byte(param.HookExtra), &hook.NftStrategyExtra)
 	}
 	return hook
 }, HookAddresses...)
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
-	if param.HookExtra != "" {
+	if param.HookExtra != "" || param.HookAddress == PunkHookAddress {
 		return param.HookExtra, nil
 	}
 
-	var deploymentBlock *big.Int
+	var deploymentBlock int64
 	resp, err := param.RpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    hookABI,
 		Target: hexutil.Encode(param.HookAddress[:]),
 		Method: "deploymentBlock",
 		Params: []any{common.HexToAddress(param.Pool.Tokens[1].Address)},
 	}, []any{&deploymentBlock}).TryBlockAndAggregate()
-	if err != nil {
+	if err != nil || resp.BlockNumber == nil {
 		return "", err
-	}
-
-	if deploymentBlock.Sign() == 0 {
+	} else if deploymentBlock == 0 {
 		return "{}", nil
 	}
 
-	deployedAt := deploymentBlock.Int64()
-	extraBytes, err := json.Marshal(NftStrategyExtra{
-		DeploymentTime: time.Now().Unix() - BlockTime*(resp.BlockNumber.Int64()-deployedAt),
+	extraBytes, _ := json.Marshal(NftStrategyExtra{
+		DeploymentTime: time.Now().Unix() - BlockTime*(resp.BlockNumber.Int64()-deploymentBlock),
 	})
-	if err != nil {
-		return "", err
-	}
 	return string(extraBytes), nil
-}
-
-func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
-	if h.NftStrategyExtra == nil {
-		return nil, ErrHookExtraNotFound
-	}
-	return h.Hook.BeforeSwap(params)
 }
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
@@ -91,7 +74,7 @@ var (
 	StartingBuyFee int64 = 9500 // 95%
 )
 
-func calculateFee(extra *NftStrategyExtra, isBuying bool) int64 {
+func calculateFee(extra NftStrategyExtra, isBuying bool) int64 {
 	if !isBuying || extra.DeploymentTime == 0 {
 		return DefaultFee
 	}
