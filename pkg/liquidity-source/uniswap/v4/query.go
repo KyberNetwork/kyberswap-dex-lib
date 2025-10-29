@@ -31,9 +31,9 @@ func getPoolsListQuery(lastCreatedAtTimestamp int, first int) string {
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}
 			},
-			first: {{ .First }},
-			skip: {{ .Skip }},
-			orderBy: createdAtTimestamp,
+			first: {{ .First }}
+			skip: {{ .Skip }}
+			orderBy: createdAtTimestamp
 			orderDirection: asc
 		) {
 			id
