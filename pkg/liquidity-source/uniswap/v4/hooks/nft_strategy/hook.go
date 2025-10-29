@@ -58,7 +58,7 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 		return "", err
 	}
 
-	if deploymentBlock.Sign() == 0 {
+	if deploymentBlock == nil || deploymentBlock.Sign() == 0 {
 		return "{}", nil
 	}
 
