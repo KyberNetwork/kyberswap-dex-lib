@@ -21,6 +21,9 @@ const (
 	ExchangeAngleTransmuterUSD         = "angle-transmuter-usd"
 	ExchangeApeSwap                    = "apeswap"
 	ExchangeArberaDen                  = "arbera-den"
+	ExchangeArberaDenAmm               = "arbera-den-amm"
+	ExchangeArberaStake                = "arbera-stake"
+	ExchangeArberaZap                  = "arbera-zap"
 	ExchangeArbiDex                    = "arbi-dex"
 	ExchangeArbiDexV3                  = "arbidex-v3"
 	ExchangeArbswapAMM                 = "arbswap-amm"
@@ -432,6 +435,7 @@ const (
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
 	ExchangeUniswapV4Kem               = "uniswap-v4-kem"
+	ExchangeUniswapV4NftStrategy       = "uniswap-v4-nftstrat"
 	ExchangeUniswapV4Renzo             = "uniswap-v4-renzo"
 	ExchangeUniswapV4Zora              = "uniswap-v4-zora"
 	ExchangeUpheavalV2                 = "upheaval-v2"
@@ -481,9 +485,6 @@ const (
 	ExchangeZkSwapStable               = "zkswap-stable"
 	ExchangeZkSwapV3                   = "zkswap-v3"
 	ExchangeZyberSwapV3                = "zyberswap-v3"
-	ExchangeArberaStake                = "arbera-stake"
-	ExchangeArberaZap                  = "arbera-zap"
-	ExchangeArberaDenAmm               = "arbera-den-amm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -492,8 +493,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAaveV3:                     {},
 	ExchangeAbstra:                     {},
 	ExchangeAerodrome:                  {},
-	ExchangeAerodromeCL:                {},
 	ExchangeAerodromeCL2:               {},
+	ExchangeAerodromeCL:                {},
 	ExchangeAgniFinance:                {},
 	ExchangeAlienBase:                  {},
 	ExchangeAlienBaseCL:                {},
@@ -505,6 +506,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAngleTransmuterUSD:         {},
 	ExchangeApeSwap:                    {},
 	ExchangeArberaDen:                  {},
+	ExchangeArberaDenAmm:               {},
+	ExchangeArberaStake:                {},
+	ExchangeArberaZap:                  {},
 	ExchangeArbiDex:                    {},
 	ExchangeArbiDexV3:                  {},
 	ExchangeArbswapAMM:                 {},
@@ -899,6 +903,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Flaunch:           {},
 	ExchangeUniswapV4Kem:               {},
+	ExchangeUniswapV4NftStrategy:       {},
 	ExchangeUpheavalV2:                 {},
 	ExchangeUpheavalV3:                 {},
 	ExchangeUraniumV3:                  {},
@@ -946,9 +951,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZkSwapStable:               {},
 	ExchangeZkSwapV3:                   {},
 	ExchangeZyberSwapV3:                {},
-	ExchangeArberaStake:                {},
-	ExchangeArberaZap:                  {},
-	ExchangeArberaDenAmm:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
