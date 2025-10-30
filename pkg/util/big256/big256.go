@@ -76,6 +76,10 @@ func MustFromBigs[S ~[]*big.Int](bigs S) []*uint256.Int {
 	})
 }
 
+func MustFromInt64(x int64) *uint256.Int {
+	return uint256.MustFromBig(new(big.Int).SetInt64(x))
+}
+
 func Cap(n *uint256.Int, min *uint256.Int, max *uint256.Int) *uint256.Int {
 	if n.Cmp(min) <= 0 {
 		return new(uint256.Int).Add(min, U1)

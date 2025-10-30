@@ -13,8 +13,6 @@ var (
 	BASE_18 = u256.TenPow(18)
 
 	MAX_BURN_FEE = uint256.NewInt(999_000_000)
-	U2           = uint256.NewInt(2)
-	U10          = uint256.NewInt(10)
 
 	newBASE18 = func() *uint256.Int {
 		return new(uint256.Int).Set(BASE_18)
@@ -159,9 +157,9 @@ func _quoteFees(
 			)
 		}
 		currentFees, amountFromPrevBreakPoint := new(uint256.Int), new(uint256.Int)
-		if new(uint256.Int).Mul(lowerExposure, BASE_9).Cmp(currentExposure) == 0 {
+		if new(uint256.Int).Mul(lowerExposure, BASE_9).Eq(currentExposure) {
 			currentFees = lowerFees
-		} else if lowerFees.Cmp(upperFees) == 0 {
+		} else if lowerFees.Eq(upperFees) {
 			currentFees = lowerFees
 		} else {
 			if isMint {
@@ -200,13 +198,13 @@ func _quoteFees(
 			}
 		} else {
 			fee := new(uint256.Int)
-			fee.Add(upperFees, currentFees).Div(fee, U2)
+			fee.Add(upperFees, currentFees).Div(fee, u256.U2)
 			amountToNextBreakPointNormalizer, err = _applyFeeBurn(amountToNextBreakPoint, fee)
 			if err != nil {
 				return nil, err
 			}
 		}
-		if amountToNextBreakPointNormalizer.Cmp(amountStable) >= 0 {
+		if !amountToNextBreakPointNormalizer.Lt(amountStable) {
 			midFee := new(uint256.Int)
 			if isExact {
 				temp := new(uint256.Int)
@@ -214,7 +212,7 @@ func _quoteFees(
 					currentFees,
 					temp.Div(
 						temp.Mul(amountStable, temp.Sub(upperFees, currentFees)),
-						new(uint256.Int).Mul(amountToNextBreakPointNormalizer, U2)),
+						new(uint256.Int).Mul(amountToNextBreakPointNormalizer, u256.U2)),
 				)
 			} else {
 				ac4 := new(uint256.Int)
@@ -222,7 +220,7 @@ func _quoteFees(
 					ac4.Mul(
 						BASE_9,
 						ac4.Mul(
-							ac4.Mul(U2, amountStable),
+							ac4.Mul(u256.U2, amountStable),
 							new(uint256.Int).Sub(upperFees, currentFees),
 						),
 					),
@@ -237,7 +235,7 @@ func _quoteFees(
 									midFee.Add(
 										midFee.Exp(
 											midFee.Add(BASE_9, currentFees),
-											U2,
+											u256.U2,
 										), ac4,
 									),
 								),
@@ -245,17 +243,17 @@ func _quoteFees(
 							),
 							BASE_9,
 						),
-						U2,
+						u256.U2,
 					)
 				} else {
 					baseMinusCurrentSquared := new(uint256.Int)
-					baseMinusCurrentSquared.Exp(baseMinusCurrentSquared.Sub(BASE_9, currentFees), U2)
+					baseMinusCurrentSquared.Exp(baseMinusCurrentSquared.Sub(BASE_9, currentFees), u256.U2)
 					// Mathematically, this condition is always verified, but rounding errors may make this
 					// mathematical invariant break, in which case we consider that the square root is null
-					if baseMinusCurrentSquared.Cmp(ac4) < 0 {
+					if baseMinusCurrentSquared.Lt(ac4) {
 						midFee.Div(
 							midFee.Add(currentFees, BASE_9),
-							U2,
+							u256.U2,
 						)
 					} else {
 						midFee.Div(
@@ -263,7 +261,7 @@ func _quoteFees(
 								midFee.Add(currentFees, BASE_9),
 								new(uint256.Int).Sqrt(new(uint256.Int).Sub(baseMinusCurrentSquared, ac4)),
 							),
-							U2,
+							u256.U2,
 						)
 					}
 				}
@@ -329,16 +327,16 @@ func findLowerBound(
 	low := 1
 	high := len(array)
 
-	if (increasingArray && array[high-1].Cmp(element) <= 0) ||
-		(!increasingArray && array[high-1].Cmp(element) >= 0) {
+	if (increasingArray && !array[high-1].Gt(element)) ||
+		(!increasingArray && !array[high-1].Lt(element)) {
 		return high - 1
 	}
 
 	for low < high {
 		mid := (low + high) / 2
 
-		if increasingArray && array[mid].Cmp(element) > 0 ||
-			(!increasingArray && array[mid].Cmp(element) < 0) {
+		if increasingArray && array[mid].Gt(element) ||
+			(!increasingArray && array[mid].Lt(element)) {
 			high = mid
 		} else {
 			low = mid + 1
@@ -352,7 +350,7 @@ func _applyFeeMint(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
 		// Consider that if fees are above `BASE_12` this is equivalent to infinite fees
-		if fees.Cmp(BASE_12) >= 0 {
+		if !fees.Lt(BASE_12) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountIn * BASE_9) / (BASE_9 + castedFees);
@@ -374,7 +372,7 @@ func _invertFeeMint(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
 		// Consider that if fees are above `BASE_12` this is equivalent to infinite fees
-		if fees.Cmp(BASE_12) >= 0 {
+		if !fees.Lt(BASE_12) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountOut * (BASE_9 + castedFees)) / BASE_9;
@@ -401,7 +399,7 @@ func _invertFeeMint(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 func _applyFeeBurn(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
-		if fees.Cmp(MAX_BURN_FEE) >= 0 {
+		if !fees.Lt(MAX_BURN_FEE) {
 			return nil, ErrInvalidSwap
 		}
 		// ((BASE_9 - castedFees) * amountIn) / BASE_9;
@@ -423,7 +421,7 @@ func _applyFeeBurn(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 func _invertFeeBurn(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
-		if fees.Cmp(MAX_BURN_FEE) >= 0 {
+		if !fees.Lt(MAX_BURN_FEE) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountOut * BASE_9) / (BASE_9 - castedFees);

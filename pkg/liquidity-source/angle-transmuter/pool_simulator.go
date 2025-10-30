@@ -267,7 +267,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 		for i := range oracleFeed.Pyth.FeedIds {
 			normalizedPrice := oracleFeed.Pyth.PythState[i].Price
 			isNormalizerExpoNeg := oracleFeed.Pyth.PythState[i].Expo.Sign() < 0
-			normalizer := new(uint256.Int).Exp(U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
+			normalizer := new(uint256.Int).Exp(u256.U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
 
 			if oracleFeed.Pyth.IsMultiplied[i] == 1 && isNormalizerExpoNeg {
 				price.MulDivOverflow(price, normalizedPrice, normalizer)

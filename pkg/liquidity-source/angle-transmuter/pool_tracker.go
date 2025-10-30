@@ -20,6 +20,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	u256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -65,6 +66,7 @@ type DecodedChainlink struct {
 type DecodedPythStateTuple struct {
 	DecodedPythState
 }
+
 type DecodedPythState struct {
 	Price       int64    // price from Pyth
 	Conf        uint64   // confidence interval
@@ -75,16 +77,6 @@ type DecodedPythState struct {
 type DecodedFeeMints struct {
 	XFeeMint []uint64
 	YFeeMint []int64
-}
-
-type DecodedFeeBurns struct {
-	XFeeBurn []uint64
-	YFeeBurn []int64
-}
-
-type DecodedRedemptionFees struct {
-	XRedemptionCurve []uint64
-	YRedemptionCurve []int64
 }
 
 type DecodedMax struct {
@@ -163,15 +155,10 @@ func (t *PoolTracker) getNewPoolState(
 
 	collateralInfo := make([]*CollateralInfo, len(collateralList))
 	collateralConfigs := make([]DecodedOracleConfig, len(collateralList))
-	feeMints := make([]DecodedFeeMints, len(collateralList))
-	feeBurns := make([]DecodedFeeBurns, len(collateralList))
 	issuedByCollateral := make([]DecodedIssuedByCollateral, len(collateralList))
 	stablecoinCap := make([]*big.Int, len(collateralList))
-	isWhitelistedCollateral := make([]bool, len(collateralList))
-	collateralWhitelistData := make([][]byte, len(collateralList))
 	collateralBalances := make([]*big.Int, len(collateralList))
 	var totalStablecoinIssued *big.Int
-	var redemptionFees DecodedRedemptionFees
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, collateral := range collateralList {
@@ -191,33 +178,9 @@ func (t *PoolTracker) getNewPoolState(
 		calls.AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
-			Method: "getCollateralMintFees",
-			Params: []any{collateral},
-		}, []any{&feeMints[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    transmuterABI,
-			Target: t.config.Transmuter,
-			Method: "getCollateralBurnFees",
-			Params: []any{collateral},
-		}, []any{&feeBurns[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    transmuterABI,
-			Target: t.config.Transmuter,
 			Method: "getIssuedByCollateral",
 			Params: []any{collateral},
 		}, []any{&issuedByCollateral[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    transmuterABI,
-			Target: t.config.Transmuter,
-			Method: "isWhitelistedCollateral",
-			Params: []any{collateral},
-		}, []any{&isWhitelistedCollateral[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    transmuterABI,
-			Target: t.config.Transmuter,
-			Method: "getCollateralWhitelistData",
-			Params: []any{collateral},
-		}, []any{&collateralWhitelistData[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
@@ -237,11 +200,6 @@ func (t *PoolTracker) getNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    transmuterABI,
 		Target: t.config.Transmuter,
-		Method: "getRedemptionFees",
-	}, []any{&redemptionFees})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    transmuterABI,
-		Target: t.config.Transmuter,
 		Method: "getTotalIssued",
 	}, []any{&totalStablecoinIssued})
 
@@ -258,10 +216,8 @@ func (t *PoolTracker) getNewPoolState(
 	})
 
 	transmuterState := TransmuterState{
-		XRedemptionCurve:      redemptionFees.XRedemptionCurve,
-		YRedemptionCurve:      redemptionFees.YRedemptionCurve,
-		TotalStablecoinIssued: uint256.MustFromBig(totalStablecoinIssued),
 		Collaterals:           make(map[string]CollateralState),
+		TotalStablecoinIssued: uint256.MustFromBig(totalStablecoinIssued),
 	}
 
 	pyths := [2][]Pyth{
@@ -385,25 +341,24 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	for i := range collateralList {
+		collatInfo := collateralInfo[i]
 		transmuterState.Collaterals[hexutil.Encode(collateralList[i][:])] = CollateralState{
-			IsManaged:     collateralInfo[i].IsManaged != 0,
-			IsBurnLive:    collateralInfo[i].IsBurnLive != 0,
-			IsMintLive:    collateralInfo[i].IsMintLive != 0,
-			Balance:       uint256.MustFromBig(collateralBalances[i]),
-			Whitelisted:   isWhitelistedCollateral[i],
-			WhitelistData: collateralWhitelistData[i],
+			IsManaged:  collatInfo.IsManaged != 0,
+			IsBurnLive: collatInfo.IsBurnLive != 0,
+			IsMintLive: collatInfo.IsMintLive != 0,
+			Balance:    uint256.MustFromBig(collateralBalances[i]),
 			Fees: Fees{
-				XFeeMint: lo.Map(feeMints[i].XFeeMint, func(item uint64, _ int) *uint256.Int {
+				XFeeMint: lo.Map(collatInfo.XFeeMint, func(item uint64, _ int) *uint256.Int {
 					return uint256.NewInt(item)
 				}),
-				YFeeMint: lo.Map(feeMints[i].YFeeMint, func(item int64, _ int) *uint256.Int {
-					return uint256.NewInt(uint64(item))
+				YFeeMint: lo.Map(collatInfo.YFeeMint, func(item int64, _ int) *uint256.Int {
+					return u256.MustFromInt64(item)
 				}),
-				XFeeBurn: lo.Map(feeBurns[i].XFeeBurn, func(item uint64, _ int) *uint256.Int {
+				XFeeBurn: lo.Map(collatInfo.XFeeBurn, func(item uint64, _ int) *uint256.Int {
 					return uint256.NewInt(item)
 				}),
-				YFeeBurn: lo.Map(feeBurns[i].YFeeBurn, func(item int64, _ int) *uint256.Int {
-					return uint256.NewInt(uint64(item))
+				YFeeBurn: lo.Map(collatInfo.YFeeBurn, func(item int64, _ int) *uint256.Int {
+					return u256.MustFromInt64(item)
 				}),
 			},
 			StablecoinsFromCollateral: uint256.MustFromBig(issuedByCollateral[i].StablecoinsFromCollateral),
@@ -432,11 +387,6 @@ func (t *PoolTracker) getNewPoolState(
 		}
 	}
 
-	logger.WithFields(logger.Fields{
-		"exchange": p.Exchange,
-		"address":  p.Address,
-	}).Infof("[%s] Finish getting new state of pool", p.Type)
-
 	extraBytes, err := json.Marshal(Extra{Transmuter: transmuterState})
 	if err != nil {
 		logger.WithFields(klog.Fields{"error": err}).Error("failed to marshal extra data")
@@ -454,6 +404,12 @@ func (t *PoolTracker) getNewPoolState(
 	p.Reserves = append(lo.Map(collateralBalances, func(b *big.Int, _ int) string {
 		return b.String()
 	}), defaultReserve)
+
+	logger.WithFields(logger.Fields{
+		"exchange": p.Exchange,
+		"address":  p.Address,
+	}).Infof("[%s] Finish getting new state of pool", p.Type)
+
 	return p, nil
 }
 
@@ -464,7 +420,7 @@ func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracle
 		IsPyth:      oracleType == PYTH,
 		IsChainLink: oracleType == CHAINLINK_FEEDS,
 		IsMorpho:    oracleType == MORPHO_ORACLE,
-		Pyth: lo.Ternary(oracleType == PYTH, func() Pyth {
+		Pyth: lo.Ternary(oracleType == PYTH, func() *Pyth {
 			pyths[oracleOrTarget][index].PythState = lo.Map(pyths[oracleOrTarget][index].RawStates, func(item DecodedPythStateTuple, _ int) PythState {
 				return PythState{
 					Price:     uint256.NewInt(uint64(item.Price)),
@@ -472,26 +428,26 @@ func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracle
 					Timestamp: uint256.MustFromBig(item.PublishTime),
 				}
 			})
-			return pyths[oracleOrTarget][index]
-		}, func() Pyth {
-			return Pyth{}
+			return &pyths[oracleOrTarget][index]
+		}, func() *Pyth {
+			return nil
 		})(),
-		Chainlink: lo.Ternary(oracleType == CHAINLINK_FEEDS, func() Chainlink {
+		Chainlink: lo.Ternary(oracleType == CHAINLINK_FEEDS, func() *Chainlink {
 			chainlinks[oracleOrTarget][index].Answers = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) *uint256.Int {
 				return uint256.MustFromBig(item.Answer)
 			})
 			chainlinks[oracleOrTarget][index].UpdatedAt = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) uint64 {
 				return item.UpdatedAt.Uint64()
 			})
-			return chainlinks[oracleOrTarget][index]
-		}, func() Chainlink {
-			return Chainlink{}
+			return &chainlinks[oracleOrTarget][index]
+		}, func() *Chainlink {
+			return nil
 		})(),
-		Morpho: lo.Ternary(oracleType == MORPHO_ORACLE, func() Morpho {
+		Morpho: lo.Ternary(oracleType == MORPHO_ORACLE, func() *Morpho {
 			morphos[oracleOrTarget][index].Price = uint256.MustFromBig(morphos[oracleOrTarget][index].RawState)
-			return morphos[oracleOrTarget][index]
-		}, func() Morpho {
-			return Morpho{}
+			return &morphos[oracleOrTarget][index]
+		}, func() *Morpho {
+			return nil
 		})(),
 		Max: lo.Ternary(oracleType == MAX, func() *uint256.Int {
 			return maxes[oracleOrTarget][index]
