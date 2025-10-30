@@ -94,7 +94,6 @@ type (
 		IsMultiplied []uint8                 `json:"isMultiplied,omitempty"`
 		QuoteType    uint8                   `json:"quoteType,omitempty"`
 		PythState    []PythState             `json:"pythState,omitempty"`
-		Active       bool                    `json:"active,omitempty"`
 		RawStates    []DecodedPythStateTuple `json:"-"`
 	}
 
@@ -112,7 +111,6 @@ type (
 		QuoteType                uint8              `json:"quoteType,omitempty"`
 		Answers                  []*uint256.Int     `json:"answers,omitempty"`
 		UpdatedAt                []uint64           `json:"updatedAt,omitempty"`
-		Active                   bool               `json:"active,omitempty"`
 		RawStates                []DecodedChainlink `json:"-"`
 	}
 
@@ -120,7 +118,6 @@ type (
 		Oracle              common.Address `json:"oracle,omitempty"`
 		NormalizationFactor *uint256.Int   `json:"normalizationFactor,omitempty"`
 		Price               *uint256.Int   `json:"price,omitempty"`
-		Active              bool           `json:"active,omitempty"`
 		RawState            *big.Int       `json:"-"`
 	}
 )

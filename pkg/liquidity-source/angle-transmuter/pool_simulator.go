@@ -228,7 +228,7 @@ func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *ui
 func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, baseValue *uint256.Int) (*uint256.Int, error) {
 	switch oracleType {
 	case CHAINLINK_FEEDS:
-		if !oracleFeed.IsChainLink || !oracleFeed.Chainlink.Active {
+		if !oracleFeed.IsChainLink {
 			return nil, ErrInvalidOracle
 		}
 		price := s._quoteAmount(OracleQuoteType(oracleFeed.Chainlink.QuoteType), baseValue)
@@ -260,7 +260,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 	case SFRXETH:
 		return nil, ErrUnimplemented
 	case PYTH:
-		if !oracleFeed.IsPyth || !oracleFeed.Pyth.Active {
+		if !oracleFeed.IsPyth {
 			return nil, ErrInvalidOracle
 		}
 		price := s._quoteAmount(OracleQuoteType(oracleFeed.Pyth.QuoteType), baseValue)
@@ -283,7 +283,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 	case MAX:
 		return oracleFeed.Max, nil
 	case MORPHO_ORACLE:
-		if !oracleFeed.IsMorpho || !oracleFeed.Morpho.Active {
+		if !oracleFeed.IsMorpho {
 			return nil, ErrInvalidOracle
 		}
 		return new(uint256.Int).Div(oracleFeed.Morpho.Price, oracleFeed.Morpho.NormalizationFactor), nil

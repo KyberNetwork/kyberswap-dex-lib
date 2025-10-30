@@ -154,7 +154,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	collateralInfo := make([]*CollateralInfo, len(collateralList))
-	collateralConfigs := make([]DecodedOracleConfig, len(collateralList))
+	oracleConfigs := make([]DecodedOracleConfig, len(collateralList))
 	issuedByCollateral := make([]DecodedIssuedByCollateral, len(collateralList))
 	stablecoinCap := make([]*big.Int, len(collateralList))
 	collateralBalances := make([]*big.Int, len(collateralList))
@@ -174,7 +174,7 @@ func (t *PoolTracker) getNewPoolState(
 			Target: t.config.Transmuter,
 			Method: "getOracle",
 			Params: []any{collateral},
-		}, []any{&collateralConfigs[i]})
+		}, []any{&oracleConfigs[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    transmuterABI,
 			Target: t.config.Transmuter,
@@ -209,7 +209,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	exchange := valueobject.Exchange(p.Exchange)
 	// Convert on-chain oracle types to our enum
-	collateralConfigs = lo.Map(collateralConfigs, func(cfg DecodedOracleConfig, _ int) DecodedOracleConfig {
+	oracleConfigs = lo.Map(oracleConfigs, func(cfg DecodedOracleConfig, _ int) DecodedOracleConfig {
 		cfg.OracleType = uint8(convertOracleType(exchange, cfg.OracleType))
 		cfg.TargetType = uint8(convertOracleType(exchange, cfg.TargetType))
 		return cfg
@@ -238,7 +238,7 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	calls = t.ethrpcClient.NewRequest().SetContext(ctx)
-	for i, collat := range collateralConfigs {
+	for i, collat := range oracleConfigs {
 		configs := []struct {
 			typ  OracleReadType
 			data []byte
@@ -267,7 +267,6 @@ func (t *PoolTracker) getNewPoolState(
 					IsMultiplied: decodedPyth.IsMultiplied,
 					QuoteType:    decodedPyth.QuoteType,
 					RawStates:    make([]DecodedPythStateTuple, len(decodedPyth.FeedIds)),
-					Active:       true,
 				}
 				for k := range decodedPyth.FeedIds {
 					calls.AddCall(&ethrpc.Call{
@@ -290,7 +289,6 @@ func (t *PoolTracker) getNewPoolState(
 
 				chainlinks[j][i] = chainlink
 				chainlinks[j][i].RawStates = make([]DecodedChainlink, len(chainlink.CircuitChainlink))
-				chainlinks[j][i].Active = true
 				for k := range chainlink.CircuitChainlink {
 					calls.AddCall(&ethrpc.Call{
 						ABI:    chainlinkABI,
@@ -312,7 +310,6 @@ func (t *PoolTracker) getNewPoolState(
 				morphos[j][i] = Morpho{
 					Oracle:              decodedMorpho.Oracle,
 					NormalizationFactor: uint256.MustFromBig(decodedMorpho.NormalizationFactor),
-					Active:              true,
 				}
 
 				calls.AddCall(&ethrpc.Call{
@@ -342,6 +339,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	for i := range collateralList {
 		collatInfo := collateralInfo[i]
+		oracleCfg := oracleConfigs[i]
 		transmuterState.Collaterals[hexutil.Encode(collateralList[i][:])] = CollateralState{
 			IsManaged:  collatInfo.IsManaged != 0,
 			IsBurnLive: collatInfo.IsBurnLive != 0,
@@ -365,12 +363,12 @@ func (t *PoolTracker) getNewPoolState(
 			StablecoinsIssued:         uint256.MustFromBig(issuedByCollateral[i].StablecoinsIssued),
 			StablecoinCap:             uint256.MustFromBig(stablecoinCap[i]),
 			Config: Oracle{
-				OracleType: OracleReadType(collateralConfigs[i].OracleType),
-				TargetType: OracleReadType(collateralConfigs[i].TargetType),
-				OracleFeed: t.getOracleFeed(0, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
-				TargetFeed: t.getOracleFeed(1, i, collateralConfigs[i], pyths, chainlinks, morphos, maxes),
+				OracleType: OracleReadType(oracleConfigs[i].OracleType),
+				TargetType: OracleReadType(oracleConfigs[i].TargetType),
+				OracleFeed: t.getOracleFeed(0, i, oracleCfg, pyths, chainlinks, morphos, maxes),
+				TargetFeed: t.getOracleFeed(1, i, oracleCfg, pyths, chainlinks, morphos, maxes),
 				Hyperparameters: func() Hyperparameters {
-					unpacked, err := HyperparametersArgument.Unpack(collateralConfigs[i].Hyperparameters)
+					unpacked, err := HyperparametersArgument.Unpack(oracleCfg.Hyperparameters)
 					if err != nil {
 						return Hyperparameters{}
 					}
@@ -413,32 +411,35 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, decodedOracleConfig DecodedOracleConfig,
+func (t *PoolTracker) getOracleFeed(oracleOrTarget int, index int, oracleCfg DecodedOracleConfig,
 	pyths [2][]Pyth, chainlinks [2][]Chainlink, morphos [2][]Morpho, maxes [2][]*uint256.Int) OracleFeed {
-	oracleType := OracleReadType(lo.Ternary(oracleOrTarget == 0, decodedOracleConfig.OracleType, decodedOracleConfig.TargetType))
+	oracleType := OracleReadType(lo.Ternary(oracleOrTarget == 0, oracleCfg.OracleType, oracleCfg.TargetType))
 	return OracleFeed{
 		IsPyth:      oracleType == PYTH,
 		IsChainLink: oracleType == CHAINLINK_FEEDS,
 		IsMorpho:    oracleType == MORPHO_ORACLE,
 		Pyth: lo.Ternary(oracleType == PYTH, func() *Pyth {
-			pyths[oracleOrTarget][index].PythState = lo.Map(pyths[oracleOrTarget][index].RawStates, func(item DecodedPythStateTuple, _ int) PythState {
-				return PythState{
-					Price:     uint256.NewInt(uint64(item.Price)),
-					Expo:      uint256.MustFromBig(big.NewInt(int64(item.Expo))),
-					Timestamp: uint256.MustFromBig(item.PublishTime),
-				}
-			})
+			pyths[oracleOrTarget][index].PythState = lo.Map(pyths[oracleOrTarget][index].RawStates,
+				func(item DecodedPythStateTuple, _ int) PythState {
+					return PythState{
+						Price:     uint256.NewInt(uint64(item.Price)),
+						Expo:      uint256.MustFromBig(big.NewInt(int64(item.Expo))),
+						Timestamp: uint256.MustFromBig(item.PublishTime),
+					}
+				})
 			return &pyths[oracleOrTarget][index]
 		}, func() *Pyth {
 			return nil
 		})(),
 		Chainlink: lo.Ternary(oracleType == CHAINLINK_FEEDS, func() *Chainlink {
-			chainlinks[oracleOrTarget][index].Answers = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) *uint256.Int {
-				return uint256.MustFromBig(item.Answer)
-			})
-			chainlinks[oracleOrTarget][index].UpdatedAt = lo.Map(chainlinks[oracleOrTarget][index].RawStates, func(item DecodedChainlink, _ int) uint64 {
-				return item.UpdatedAt.Uint64()
-			})
+			chainlinks[oracleOrTarget][index].Answers = lo.Map(chainlinks[oracleOrTarget][index].RawStates,
+				func(item DecodedChainlink, _ int) *uint256.Int {
+					return uint256.MustFromBig(item.Answer)
+				})
+			chainlinks[oracleOrTarget][index].UpdatedAt = lo.Map(chainlinks[oracleOrTarget][index].RawStates,
+				func(item DecodedChainlink, _ int) uint64 {
+					return item.UpdatedAt.Uint64()
+				})
 			return &chainlinks[oracleOrTarget][index]
 		}, func() *Chainlink {
 			return nil

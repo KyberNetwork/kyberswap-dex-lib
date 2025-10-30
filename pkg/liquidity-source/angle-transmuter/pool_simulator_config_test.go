@@ -48,7 +48,6 @@ func getPool() PoolSimulator {
 							IsChainLink: false,
 							IsMorpho:    false,
 							Pyth: &Pyth{
-								Active:       true,
 								FeedIds:      []string{"0x76fa85158bf14ede77087fe3ae472f66213f6ea2f5b411cb2de472794990fa5c", "0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b"},
 								IsMultiplied: []uint8{1, 0},
 								PythState: []PythState{
@@ -88,7 +87,6 @@ func getPool() PoolSimulator {
 							IsChainLink: true,
 							IsMorpho:    false,
 							Chainlink: &Chainlink{
-								Active: true,
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0x6E27A25999B3C665E44D903B2139F5a4Be2B6C26"),
 								},
@@ -124,7 +122,6 @@ func getPool() PoolSimulator {
 							IsChainLink: true,
 							IsMorpho:    false,
 							Chainlink: &Chainlink{
-								Active: true,
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0x475855DAe09af1e3f2d380d766b9E630926ad3CE"),
 								},
@@ -157,7 +154,6 @@ func getPool() PoolSimulator {
 							IsChainLink: false,
 							IsMorpho:    true,
 							Morpho: &Morpho{
-								Active:              true,
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("1030046000000000000000000000000000000"),
 							},
@@ -229,7 +225,6 @@ func getMintPool() PoolSimulator {
 							IsChainLink: false,
 							IsMorpho:    false,
 							Pyth: &Pyth{
-								Active:       true,
 								FeedIds:      []string{"0x76fa85158bf14ede77087fe3ae472f66213f6ea2f5b411cb2de472794990fa5c", "0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b"},
 								IsMultiplied: []uint8{1, 0},
 								PythState: []PythState{
@@ -291,7 +286,6 @@ func getMintPoolUSD() PoolSimulator {
 							IsChainLink: false,
 							IsMorpho:    true,
 							Morpho: &Morpho{
-								Active:              true,
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("1089563197304690000000000000000000000"),
 							},
@@ -341,7 +335,6 @@ func getParallelPool() PoolSimulator {
 							IsChainLink: true,
 							IsMorpho:    false,
 							Chainlink: &Chainlink{
-								Active: true,
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0xACE5e348a341a740004304c2c228Af1A4581920F"),
 								},
@@ -381,7 +374,6 @@ func getParallelPool() PoolSimulator {
 							IsChainLink: false,
 							IsMorpho:    true,
 							Morpho: &Morpho{
-								Active:              true,
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("998775905201250000000000000000000000"),
 							},
