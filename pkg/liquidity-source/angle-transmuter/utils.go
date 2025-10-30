@@ -22,19 +22,20 @@ var (
 func _quoteMintExactInput(
 	oracleValue *uint256.Int,
 	amountIn *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	stablecoinCap *uint256.Int,
 	collatDecimal uint8,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	amountOut := new(uint256.Int).Mul(oracleValue, amountIn)
 	convertDecimalTo(amountOut, 18+collatDecimal, 18)
-	amountOut, err := _quoteFees(fees, MintExactInput, amountOut, stablecoinsIssued, otherStablecoinSupply)
+	amountOut, err := _quoteFees(collatInfo, MintExactInput, amountOut, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 &&
+		new(uint256.Int).Add(amountOut, collatInfo.StablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
 	return amountOut, nil
@@ -44,16 +45,17 @@ func _quoteMintExactInput(
 func _quoteMintExactOutput(
 	oracleValue *uint256.Int,
 	amountOut *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	stablecoinCap *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 &&
+		new(uint256.Int).Add(amountOut, collatInfo.StablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
-	amountIn, err := _quoteFees(fees, MintExactOutput, amountOut, stablecoinsIssued, otherStablecoinSupply)
+	amountIn, err := _quoteFees(collatInfo, MintExactOutput, amountOut, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -66,15 +68,15 @@ func _quoteBurnExactOutput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
 	amountOut *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	amountIn, overflow := new(uint256.Int).MulDivOverflow(amountOut, oracleValue, ratio)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-	amountIn, err := _quoteFees(fees, BurnExactOutput, amountIn, stablecoinsIssued, otherStablecoinSupply)
+	amountIn, err := _quoteFees(collatInfo, BurnExactOutput, amountIn, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -85,12 +87,12 @@ func _quoteBurnExactInput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
 	amountIn *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	collatDecimal uint8,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
-	amountOut, err := _quoteFees(fees, BurnExactInput, amountIn, stablecoinsIssued, otherStablecoinSupply)
+	amountOut, err := _quoteFees(collatInfo, BurnExactInput, amountIn, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -103,22 +105,25 @@ func _quoteBurnExactInput(
 }
 
 func _quoteFees(
-	fees Fees,
+	collatInfo *CollateralState,
 	quoteType QuoteType,
 	amountStable *uint256.Int,
-	stablecoinsIssued *uint256.Int,
 	otherStablecoinSupply *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	var err error
 	isMint := _isMint(quoteType)
 	isExact := _isExact(quoteType)
 
-	n := lo.Ternary(isMint, len(fees.XFeeMint), len(fees.XFeeBurn))
+	fees := collatInfo.Fees
+	stablecoinsIssued := new(uint256.Int).Set(collatInfo.StablecoinsIssued)
 
-	currentExposure := new(uint256.Int).Div(
-		new(uint256.Int).Mul(stablecoinsIssued, BASE_9),
-		new(uint256.Int).Add(otherStablecoinSupply, stablecoinsIssued),
-	)
+	n := lo.Ternary(isMint, len(collatInfo.Fees.XFeeMint), len(collatInfo.Fees.XFeeBurn))
+
+	// Assume ts.normalizer is always BASE_27 to avoid an extra call to read the transmuter storage slot.
+	// We have normalizedStablesMem = getTotalIssued() = ts.normalizedStables * ts.normalizer / BASE_27,
+	// and currentExposure = collatInfo.normalizedStables * BASE_18 / normalizedStablesMem;
+	currentExposure, _ := new(uint256.Int).MulDivOverflow(collatInfo.NormalizedStables, BASE_18, totalStablecoinIssued)
 
 	amount := uint256.NewInt(0)
 

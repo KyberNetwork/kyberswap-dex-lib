@@ -341,10 +341,11 @@ func (t *PoolTracker) getNewPoolState(
 		collatInfo := collateralInfo[i]
 		oracleCfg := oracleConfigs[i]
 		transmuterState.Collaterals[hexutil.Encode(collateralList[i][:])] = CollateralState{
-			IsManaged:  collatInfo.IsManaged != 0,
-			IsBurnLive: collatInfo.IsBurnLive != 0,
-			IsMintLive: collatInfo.IsMintLive != 0,
-			Balance:    uint256.MustFromBig(collateralBalances[i]),
+			IsManaged:         collatInfo.IsManaged != 0,
+			IsBurnLive:        collatInfo.IsBurnLive != 0,
+			IsMintLive:        collatInfo.IsMintLive != 0,
+			Balance:           uint256.MustFromBig(collateralBalances[i]),
+			NormalizedStables: uint256.MustFromBig(collatInfo.NormalizedStables),
 			Fees: Fees{
 				XFeeMint: lo.Map(collatInfo.XFeeMint, func(item uint64, _ int) *uint256.Int {
 					return uint256.NewInt(item)

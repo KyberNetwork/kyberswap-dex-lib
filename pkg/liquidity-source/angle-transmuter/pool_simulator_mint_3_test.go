@@ -60,13 +60,14 @@ func Test_quoteMintExactInput_scUSD(t *testing.T) {
 	oracleValue, err := p._readMint("0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE")
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("998601150000000000"), oracleValue)
+	collatInfo := p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"]
 	amountOut, err := _quoteMintExactInput(
 		oracleValue,
 		amountIn,
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].Fees,
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued,
+		&collatInfo,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued),
 		nil, 6,
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("8897536246500000"), amountOut)
@@ -79,13 +80,13 @@ func Test_quoteMintExactInput_ygami_scUSD(t *testing.T) {
 	oracleValue, err := p._readMint("0xA19ebd8f9114519bF947671021c01d152c3777E4")
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("998767916392050000"), oracleValue)
+	collatInfo := p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"]
 	amountOut, err := _quoteMintExactInput(
 		oracleValue,
 		amountIn,
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].Fees,
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued,
+		&collatInfo,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued),
-		nil, 6,
+		nil, 6, p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("5922693744204856"), amountOut)

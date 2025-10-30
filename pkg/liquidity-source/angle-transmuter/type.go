@@ -51,6 +51,7 @@ type (
 		IsMintLive                bool         `json:"isMintLive"`
 		IsBurnLive                bool         `json:"isBurnLive"`
 		Balance                   *uint256.Int `json:"balance"`
+		NormalizedStables         *uint256.Int `json:"normalizedStables"`
 		Fees                      Fees         `json:"fees,omitempty"`
 		StablecoinsFromCollateral *uint256.Int `json:"stablecoinsFromCollateral,omitempty"`
 		StablecoinsIssued         *uint256.Int `json:"stablecoinsIssued,omitempty"`

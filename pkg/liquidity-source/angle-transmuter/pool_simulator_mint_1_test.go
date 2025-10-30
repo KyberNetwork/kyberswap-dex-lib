@@ -35,13 +35,14 @@ func Test_quoteMintExactInput(t *testing.T) {
 	oracleValue, err := p._readMint("0x1abaea1f7c830bd89acc67ec4af516284b1bc33c")
 	assert.Nil(t, err)
 	assert.Equal(t, BASE_18, oracleValue)
+	collatInfo := p.Transmuter.Collaterals["0x1abaea1f7c830bd89acc67ec4af516284b1bc33c"]
 	amountOut, err := _quoteMintExactInput(
 		oracleValue,
 		amountIn,
-		p.Transmuter.Collaterals["0x1abaea1f7c830bd89acc67ec4af516284b1bc33c"].Fees,
-		p.Transmuter.Collaterals["0x1abaea1f7c830bd89acc67ec4af516284b1bc33c"].StablecoinsIssued,
+		&collatInfo,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0x1abaea1f7c830bd89acc67ec4af516284b1bc33c"].StablecoinsIssued),
 		nil, 6,
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("6783333924000000000000"), amountOut)

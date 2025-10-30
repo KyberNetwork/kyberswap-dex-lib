@@ -81,8 +81,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 
-		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, collatInfo.Fees, collatInfo.StablecoinsIssued,
-			otherStablecoinIssued, collatInfo.StablecoinCap, s.Decimals[indexIn])
+		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, &collatInfo, otherStablecoinIssued,
+			collatInfo.StablecoinCap, s.Decimals[indexIn], s.Transmuter.TotalStablecoinIssued)
 		if err != nil {
 			return nil, err
 		}
@@ -100,8 +100,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 
-		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, collatInfo.Fees,
-			collatInfo.StablecoinsIssued, otherStablecoinIssued, s.Decimals[indexOut])
+		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, &collatInfo, otherStablecoinIssued,
+			s.Decimals[indexOut], s.Transmuter.TotalStablecoinIssued)
 		if err != nil {
 			return nil, err
 		}
