@@ -279,12 +279,12 @@ func _quoteFees(
 			if !isExact {
 				temp = amountToNextBreakPoint
 			} else if isMint {
-				temp, err = _invertFeeMint(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
+				temp, err = _invertFeeMint(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), u256.U2))
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				temp, err = _applyFeeBurn(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
+				temp, err = _applyFeeBurn(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), u256.U2))
 				if err != nil {
 					return nil, err
 				}
@@ -299,7 +299,9 @@ func _quoteFees(
 			}
 		}
 	}
-	fee, err := _computeFee(quoteType, amountStable, lo.Ternary(isMint, fees.YFeeMint[n-1], fees.YFeeBurn[n-1]))
+	fee, err := _computeFee(quoteType, amountStable, lo.TernaryF(isMint,
+		func() *uint256.Int { return fees.YFeeMint[n-1] }, func() *uint256.Int { return fees.YFeeBurn[n-1] },
+	))
 	if err != nil {
 		return nil, err
 	}
