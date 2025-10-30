@@ -112,12 +112,16 @@ func _quoteFees(
 	var err error
 	isMint := _isMint(quoteType)
 	isExact := _isExact(quoteType)
+
 	n := lo.Ternary(isMint, len(fees.XFeeMint), len(fees.XFeeBurn))
+
 	currentExposure := new(uint256.Int).Div(
-		new(uint256.Int).Mul(stablecoinsIssued, BASE_18),
+		new(uint256.Int).Mul(stablecoinsIssued, BASE_9),
 		new(uint256.Int).Add(otherStablecoinSupply, stablecoinsIssued),
 	)
+
 	amount := uint256.NewInt(0)
+
 	i := findLowerBound(isMint,
 		lo.Ternary(isMint, lo.Map(fees.XFeeMint, func(item *uint256.Int, index int) *uint256.Int {
 			return new(uint256.Int).Mul(item, BASE_9)
