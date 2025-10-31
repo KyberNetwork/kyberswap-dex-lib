@@ -1,4 +1,4 @@
-package zora
+package long
 
 import (
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
@@ -11,6 +11,6 @@ type Hook struct {
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return &Hook{
-		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Zora},
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Long},
 	}
 }, HookAddresses...)
