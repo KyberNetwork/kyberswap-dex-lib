@@ -25,6 +25,7 @@ func getPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
 							uint256.NewInt(0), uint256.NewInt(690000000), uint256.NewInt(700000000),
@@ -47,8 +48,7 @@ func getPool() PoolSimulator {
 							IsPyth:      true,
 							IsChainLink: false,
 							IsMorpho:    false,
-							Pyth: Pyth{
-								Active:       true,
+							Pyth: &Pyth{
 								FeedIds:      []string{"0x76fa85158bf14ede77087fe3ae472f66213f6ea2f5b411cb2de472794990fa5c", "0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b"},
 								IsMultiplied: []uint8{1, 0},
 								PythState: []PythState{
@@ -73,6 +73,7 @@ func getPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Config: Oracle{
 						TargetType: MAX,
 						OracleType: CHAINLINK_FEEDS,
@@ -87,8 +88,7 @@ func getPool() PoolSimulator {
 							IsPyth:      false,
 							IsChainLink: true,
 							IsMorpho:    false,
-							Chainlink: Chainlink{
-								Active: true,
+							Chainlink: &Chainlink{
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0x6E27A25999B3C665E44D903B2139F5a4Be2B6C26"),
 								},
@@ -109,6 +109,7 @@ func getPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Config: Oracle{
 						TargetType: MAX,
 						OracleType: CHAINLINK_FEEDS,
@@ -123,8 +124,7 @@ func getPool() PoolSimulator {
 							IsPyth:      false,
 							IsChainLink: true,
 							IsMorpho:    false,
-							Chainlink: Chainlink{
-								Active: true,
+							Chainlink: &Chainlink{
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0x475855DAe09af1e3f2d380d766b9E630926ad3CE"),
 								},
@@ -145,6 +145,7 @@ func getPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Config: Oracle{
 						TargetType: MORPHO_ORACLE,
 						OracleType: NO_ORACLE,
@@ -156,8 +157,7 @@ func getPool() PoolSimulator {
 							IsPyth:      false,
 							IsChainLink: false,
 							IsMorpho:    true,
-							Morpho: Morpho{
-								Active:              true,
+							Morpho: &Morpho{
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("1030046000000000000000000000000000000"),
 							},
@@ -173,6 +173,7 @@ func getPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Config: Oracle{
 						TargetType: STABLE,
 						OracleType: NO_ORACLE,
@@ -206,6 +207,7 @@ func getMintPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("2404480312662610902608440"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
 							uint256.NewInt(0), uint256.NewInt(690000000), uint256.NewInt(700000000),
@@ -228,8 +230,7 @@ func getMintPool() PoolSimulator {
 							IsPyth:      true,
 							IsChainLink: false,
 							IsMorpho:    false,
-							Pyth: Pyth{
-								Active:       true,
+							Pyth: &Pyth{
 								FeedIds:      []string{"0x76fa85158bf14ede77087fe3ae472f66213f6ea2f5b411cb2de472794990fa5c", "0xa995d00bb36a63cef7fd2c287dc105fc8f3d93779f062f09551b0af3e81ec30b"},
 								IsMultiplied: []uint8{1, 0},
 								PythState: []PythState{
@@ -266,6 +267,7 @@ func getMintPoolUSD() PoolSimulator {
 					IsBurnLive:        true,
 					IsMintLive:        true,
 					StablecoinsIssued: setUInt("11160955122463689430059999"),
+					NormalizedStables: setUInt("2937103992038868395710"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{
 							uint256.NewInt(0), uint256.NewInt(940000000), uint256.NewInt(950000000),
@@ -290,8 +292,7 @@ func getMintPoolUSD() PoolSimulator {
 							IsPyth:      false,
 							IsChainLink: false,
 							IsMorpho:    true,
-							Morpho: Morpho{
-								Active:              true,
+							Morpho: &Morpho{
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("1089563197304690000000000000000000000"),
 							},
@@ -323,6 +324,7 @@ func getParallelPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("6359003924739830000"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{uint256.NewInt(0)},
 						YFeeMint: []*uint256.Int{uint256.NewInt(0)},
@@ -340,8 +342,7 @@ func getParallelPool() PoolSimulator {
 						OracleFeed: OracleFeed{
 							IsChainLink: true,
 							IsMorpho:    false,
-							Chainlink: Chainlink{
-								Active: true,
+							Chainlink: &Chainlink{
 								CircuitChainlink: []common.Address{
 									common.HexToAddress("0xACE5e348a341a740004304c2c228Af1A4581920F"),
 								},
@@ -361,6 +362,7 @@ func getParallelPool() PoolSimulator {
 					StablecoinsIssued:         setUInt("975625588650474856"),
 					StablecoinsFromCollateral: setUInt("11056546207338107089243622"),
 					Balance:                   setUInt("10000000000000000000000"),
+					NormalizedStables:         setUInt("2937103992038868395710"),
 					Fees: Fees{
 						XFeeMint: []*uint256.Int{uint256.NewInt(0)},
 						YFeeMint: []*uint256.Int{uint256.NewInt(0)},
@@ -380,8 +382,7 @@ func getParallelPool() PoolSimulator {
 						OracleFeed: OracleFeed{
 							IsChainLink: false,
 							IsMorpho:    true,
-							Morpho: Morpho{
-								Active:              true,
+							Morpho: &Morpho{
 								NormalizationFactor: setUInt("1000000000000000000"),
 								Price:               setUInt("998775905201250000000000000000000000"),
 							},

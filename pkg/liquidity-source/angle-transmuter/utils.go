@@ -13,8 +13,6 @@ var (
 	BASE_18 = u256.TenPow(18)
 
 	MAX_BURN_FEE = uint256.NewInt(999_000_000)
-	U2           = uint256.NewInt(2)
-	U10          = uint256.NewInt(10)
 
 	newBASE18 = func() *uint256.Int {
 		return new(uint256.Int).Set(BASE_18)
@@ -24,19 +22,20 @@ var (
 func _quoteMintExactInput(
 	oracleValue *uint256.Int,
 	amountIn *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	stablecoinCap *uint256.Int,
 	collatDecimal uint8,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	amountOut := new(uint256.Int).Mul(oracleValue, amountIn)
 	convertDecimalTo(amountOut, 18+collatDecimal, 18)
-	amountOut, err := _quoteFees(fees, MintExactInput, amountOut, stablecoinsIssued, otherStablecoinSupply)
+	amountOut, err := _quoteFees(collatInfo, MintExactInput, amountOut, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 &&
+		new(uint256.Int).Add(amountOut, collatInfo.StablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
 	return amountOut, nil
@@ -46,16 +45,17 @@ func _quoteMintExactInput(
 func _quoteMintExactOutput(
 	oracleValue *uint256.Int,
 	amountOut *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	stablecoinCap *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 
-	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 && new(uint256.Int).Add(amountOut, stablecoinsIssued).Gt(stablecoinCap) {
+	if stablecoinCap != nil && stablecoinCap.Sign() >= 0 &&
+		new(uint256.Int).Add(amountOut, collatInfo.StablecoinsIssued).Gt(stablecoinCap) {
 		return nil, ErrInvalidSwap
 	}
-	amountIn, err := _quoteFees(fees, MintExactOutput, amountOut, stablecoinsIssued, otherStablecoinSupply)
+	amountIn, err := _quoteFees(collatInfo, MintExactOutput, amountOut, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -68,15 +68,15 @@ func _quoteBurnExactOutput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
 	amountOut *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	amountIn, overflow := new(uint256.Int).MulDivOverflow(amountOut, oracleValue, ratio)
 	if overflow {
 		return nil, ErrMulOverflow
 	}
-	amountIn, err := _quoteFees(fees, BurnExactOutput, amountIn, stablecoinsIssued, otherStablecoinSupply)
+	amountIn, err := _quoteFees(collatInfo, BurnExactOutput, amountIn, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +87,12 @@ func _quoteBurnExactInput(
 	oracleValue *uint256.Int,
 	ratio *uint256.Int,
 	amountIn *uint256.Int,
-	fees Fees,
-	stablecoinsIssued *uint256.Int,
+	collatInfo *CollateralState,
 	otherStablecoinSupply *uint256.Int,
 	collatDecimal uint8,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
-	amountOut, err := _quoteFees(fees, BurnExactInput, amountIn, stablecoinsIssued, otherStablecoinSupply)
+	amountOut, err := _quoteFees(collatInfo, BurnExactInput, amountIn, otherStablecoinSupply, totalStablecoinIssued)
 	if err != nil {
 		return nil, err
 	}
@@ -105,21 +105,28 @@ func _quoteBurnExactInput(
 }
 
 func _quoteFees(
-	fees Fees,
+	collatInfo *CollateralState,
 	quoteType QuoteType,
 	amountStable *uint256.Int,
-	stablecoinsIssued *uint256.Int,
 	otherStablecoinSupply *uint256.Int,
+	totalStablecoinIssued *uint256.Int,
 ) (*uint256.Int, error) {
 	var err error
 	isMint := _isMint(quoteType)
 	isExact := _isExact(quoteType)
-	n := lo.Ternary(isMint, len(fees.XFeeMint), len(fees.XFeeBurn))
-	currentExposure := new(uint256.Int).Div(
-		new(uint256.Int).Mul(stablecoinsIssued, BASE_18),
-		new(uint256.Int).Add(otherStablecoinSupply, stablecoinsIssued),
-	)
+
+	fees := collatInfo.Fees
+	stablecoinsIssued := new(uint256.Int).Set(collatInfo.StablecoinsIssued)
+
+	n := lo.Ternary(isMint, len(collatInfo.Fees.XFeeMint), len(collatInfo.Fees.XFeeBurn))
+
+	// Assume ts.normalizer is always BASE_27 to avoid an extra call to read the transmuter storage slot.
+	// We have normalizedStablesMem = getTotalIssued() = ts.normalizedStables * ts.normalizer / BASE_27,
+	// and currentExposure = collatInfo.normalizedStables * BASE_18 / normalizedStablesMem;
+	currentExposure, _ := new(uint256.Int).MulDivOverflow(collatInfo.NormalizedStables, BASE_18, totalStablecoinIssued)
+
 	amount := uint256.NewInt(0)
+
 	i := findLowerBound(isMint,
 		lo.Ternary(isMint, lo.Map(fees.XFeeMint, func(item *uint256.Int, index int) *uint256.Int {
 			return new(uint256.Int).Mul(item, BASE_9)
@@ -129,14 +136,18 @@ func _quoteFees(
 		BASE_9,
 		currentExposure,
 	)
+
 	var lowerExposure, upperExposure, lowerFees, upperFees *uint256.Int
 	amountToNextBreakPoint := new(uint256.Int)
+	var temp uint256.Int
+
 	for i < n-1 {
 		if isMint {
 			lowerExposure = fees.XFeeMint[i]
 			upperExposure = fees.XFeeMint[i+1]
 			lowerFees = fees.YFeeMint[i]
 			upperFees = fees.YFeeMint[i+1]
+
 			amountToNextBreakPoint.Sub(
 				new(uint256.Int).Div(
 					new(uint256.Int).Mul(otherStablecoinSupply, upperExposure),
@@ -158,10 +169,11 @@ func _quoteFees(
 				),
 			)
 		}
+
 		currentFees, amountFromPrevBreakPoint := new(uint256.Int), new(uint256.Int)
-		if new(uint256.Int).Mul(lowerExposure, BASE_9).Cmp(currentExposure) == 0 {
+		if new(uint256.Int).Mul(lowerExposure, BASE_9).Eq(currentExposure) {
 			currentFees = lowerFees
-		} else if lowerFees.Cmp(upperFees) == 0 {
+		} else if lowerFees.Eq(upperFees) {
 			currentFees = lowerFees
 		} else {
 			if isMint {
@@ -181,6 +193,7 @@ func _quoteFees(
 					stablecoinsIssued,
 				)
 			}
+
 			currentFees.Add(
 				lowerFees,
 				new(uint256.Int).Div(
@@ -193,42 +206,31 @@ func _quoteFees(
 		amountToNextBreakPointNormalizer := new(uint256.Int)
 		if isExact {
 			amountToNextBreakPointNormalizer.Set(amountToNextBreakPoint)
-		} else if isMint {
-			amountToNextBreakPointNormalizer, err = _invertFeeMint(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
-			if err != nil {
-				return nil, err
-			}
 		} else {
-			fee := new(uint256.Int)
-			fee.Add(upperFees, currentFees).Div(fee, U2)
-			amountToNextBreakPointNormalizer, err = _applyFeeBurn(amountToNextBreakPoint, fee)
+			temp.Add(upperFees, currentFees).Div(&temp, u256.U2)
+			if isMint {
+				amountToNextBreakPointNormalizer, err = _invertFeeMint(amountToNextBreakPoint, &temp)
+			} else {
+				amountToNextBreakPointNormalizer, err = _applyFeeBurn(amountToNextBreakPoint, &temp)
+			}
 			if err != nil {
 				return nil, err
 			}
 		}
-		if amountToNextBreakPointNormalizer.Cmp(amountStable) >= 0 {
+
+		if !amountToNextBreakPointNormalizer.Lt(amountStable) {
 			midFee := new(uint256.Int)
 			if isExact {
-				temp := new(uint256.Int)
 				midFee.Add(
 					currentFees,
 					temp.Div(
 						temp.Mul(amountStable, temp.Sub(upperFees, currentFees)),
-						new(uint256.Int).Mul(amountToNextBreakPointNormalizer, U2)),
+						new(uint256.Int).Mul(amountToNextBreakPointNormalizer, u256.U2)),
 				)
 			} else {
-				ac4 := new(uint256.Int)
-				ac4.Div(
-					ac4.Mul(
-						BASE_9,
-						ac4.Mul(
-							ac4.Mul(U2, amountStable),
-							new(uint256.Int).Sub(upperFees, currentFees),
-						),
-					),
-					amountToNextBreakPoint,
-				)
-				midFee.Add(midFee, midFee.Add(BASE_9, currentFees))
+				ac4 := new(uint256.Int).Sub(upperFees, currentFees)
+				ac4.Mul(ac4, BASE_9).Mul(ac4, u256.U2).Mul(ac4, amountStable).Div(ac4, amountToNextBreakPoint)
+
 				if isMint {
 					midFee.Div(
 						midFee.Sub(
@@ -237,7 +239,7 @@ func _quoteFees(
 									midFee.Add(
 										midFee.Exp(
 											midFee.Add(BASE_9, currentFees),
-											U2,
+											u256.U2,
 										), ac4,
 									),
 								),
@@ -245,25 +247,25 @@ func _quoteFees(
 							),
 							BASE_9,
 						),
-						U2,
+						u256.U2,
 					)
 				} else {
 					baseMinusCurrentSquared := new(uint256.Int)
-					baseMinusCurrentSquared.Exp(baseMinusCurrentSquared.Sub(BASE_9, currentFees), U2)
+					baseMinusCurrentSquared.Exp(baseMinusCurrentSquared.Sub(BASE_9, currentFees), u256.U2)
 					// Mathematically, this condition is always verified, but rounding errors may make this
 					// mathematical invariant break, in which case we consider that the square root is null
-					if baseMinusCurrentSquared.Cmp(ac4) < 0 {
+					if baseMinusCurrentSquared.Lt(ac4) {
 						midFee.Div(
 							midFee.Add(currentFees, BASE_9),
-							U2,
+							u256.U2,
 						)
 					} else {
 						midFee.Div(
 							midFee.Sub(
 								midFee.Add(currentFees, BASE_9),
-								new(uint256.Int).Sqrt(new(uint256.Int).Sub(baseMinusCurrentSquared, ac4)),
+								temp.Sqrt(temp.Sub(baseMinusCurrentSquared, ac4)),
 							),
-							U2,
+							u256.U2,
 						)
 					}
 				}
@@ -272,26 +274,30 @@ func _quoteFees(
 			if err != nil {
 				return nil, err
 			}
-			return new(uint256.Int).Add(amount, res), nil
+			return amount.Add(amount, res), nil
 		} else {
+			var fee *uint256.Int
 			amountStable.Sub(amountStable, amountToNextBreakPointNormalizer)
-			var temp *uint256.Int
 			if !isExact {
-				temp = amountToNextBreakPoint
-			} else if isMint {
-				temp, err = _invertFeeMint(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
-				if err != nil {
-					return nil, err
-				}
+				temp.Set(amountToNextBreakPoint)
 			} else {
-				temp, err = _applyFeeBurn(amountToNextBreakPoint, new(uint256.Int).Div(new(uint256.Int).Add(upperFees, currentFees), uint256.NewInt(2)))
+				temp.Add(upperFees, currentFees).Div(&temp, u256.U2)
+				if isMint {
+					fee, err = _invertFeeMint(amountToNextBreakPoint, &temp)
+				} else {
+					fee, err = _applyFeeBurn(amountToNextBreakPoint, &temp)
+				}
 				if err != nil {
 					return nil, err
 				}
 			}
-			amount.Add(amount, temp)
+
+			amount.Add(amount, fee)
+
 			currentExposure.Mul(upperExposure, BASE_9)
+
 			i++
+
 			if isMint {
 				stablecoinsIssued.Add(stablecoinsIssued, amountToNextBreakPoint)
 			} else {
@@ -299,12 +305,15 @@ func _quoteFees(
 			}
 		}
 	}
-	fee, err := _computeFee(quoteType, amountStable, lo.Ternary(isMint, fees.YFeeMint[n-1], fees.YFeeBurn[n-1]))
+
+	fee, err := _computeFee(quoteType, amountStable, lo.TernaryF(isMint,
+		func() *uint256.Int { return fees.YFeeMint[n-1] }, func() *uint256.Int { return fees.YFeeBurn[n-1] },
+	))
 	if err != nil {
 		return nil, err
 	}
-	amount.Add(amount, fee)
-	return amount, nil
+
+	return amount.Add(amount, fee), nil
 }
 
 func _isMint(quoteType QuoteType) bool {
@@ -327,16 +336,16 @@ func findLowerBound(
 	low := 1
 	high := len(array)
 
-	if (increasingArray && array[high-1].Cmp(element) <= 0) ||
-		(!increasingArray && array[high-1].Cmp(element) >= 0) {
+	if (increasingArray && !array[high-1].Gt(element)) ||
+		(!increasingArray && !array[high-1].Lt(element)) {
 		return high - 1
 	}
 
 	for low < high {
 		mid := (low + high) / 2
 
-		if increasingArray && array[mid].Cmp(element) > 0 ||
-			(!increasingArray && array[mid].Cmp(element) < 0) {
+		if increasingArray && array[mid].Gt(element) ||
+			(!increasingArray && array[mid].Lt(element)) {
 			high = mid
 		} else {
 			low = mid + 1
@@ -350,7 +359,7 @@ func _applyFeeMint(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
 		// Consider that if fees are above `BASE_12` this is equivalent to infinite fees
-		if fees.Cmp(BASE_12) >= 0 {
+		if !fees.Lt(BASE_12) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountIn * BASE_9) / (BASE_9 + castedFees);
@@ -372,7 +381,7 @@ func _invertFeeMint(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
 		// Consider that if fees are above `BASE_12` this is equivalent to infinite fees
-		if fees.Cmp(BASE_12) >= 0 {
+		if !fees.Lt(BASE_12) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountOut * (BASE_9 + castedFees)) / BASE_9;
@@ -399,7 +408,7 @@ func _invertFeeMint(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 func _applyFeeBurn(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
-		if fees.Cmp(MAX_BURN_FEE) >= 0 {
+		if !fees.Lt(MAX_BURN_FEE) {
 			return nil, ErrInvalidSwap
 		}
 		// ((BASE_9 - castedFees) * amountIn) / BASE_9;
@@ -421,7 +430,7 @@ func _applyFeeBurn(amountIn, fees *uint256.Int) (*uint256.Int, error) {
 func _invertFeeBurn(amountOut, fees *uint256.Int) (*uint256.Int, error) {
 	res := new(uint256.Int)
 	if fees.Sign() >= 0 {
-		if fees.Cmp(MAX_BURN_FEE) >= 0 {
+		if !fees.Lt(MAX_BURN_FEE) {
 			return nil, ErrInvalidSwap
 		}
 		// (amountOut * BASE_9) / (BASE_9 - castedFees);

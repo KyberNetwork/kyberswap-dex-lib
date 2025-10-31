@@ -85,22 +85,24 @@ func Test_quoteBurnExactInput_scUSD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("998601150000000000"), oracleValue)
 	assert.Equal(t, setUInt("998601150000000000"), minRatio)
+	collatInfo := p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"]
+
 	amountOutAfterFee, err := _quoteFees(
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].Fees,
+		&collatInfo,
 		BurnExactInput,
 		amountIn,
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued),
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, amountIn, amountOutAfterFee)
 
 	amountOut, err := _quoteBurnExactInput(
 		oracleValue, minRatio, amountIn,
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].Fees,
-		p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued,
+		&collatInfo,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xd3DCe716f3eF535C5Ff8d041c1A41C3bd89b97aE"].StablecoinsIssued),
 		6,
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("13600"), amountOut)
@@ -114,22 +116,24 @@ func Test_quoteBurnExactInput_ygami_scUSD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("998775905201250000"), oracleValue)
 	assert.Equal(t, setUInt("998601150000000000"), minRatio)
+	collatInfo := p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"]
+
 	amountOutAfterFee, err := _quoteFees(
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].Fees,
+		&collatInfo,
 		BurnExactInput,
 		amountIn,
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued),
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("27386300000000000"), amountOutAfterFee)
 
 	amountOut, err := _quoteBurnExactInput(
 		oracleValue, minRatio, amountIn,
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].Fees,
-		p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued,
+		&collatInfo,
 		new(uint256.Int).Sub(p.Transmuter.TotalStablecoinIssued, p.Transmuter.Collaterals["0xA19ebd8f9114519bF947671021c01d152c3777E4"].StablecoinsIssued),
 		6,
+		p.Transmuter.TotalStablecoinIssued,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, setUInt("27381"), amountOut)

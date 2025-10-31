@@ -81,8 +81,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 
-		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, collatInfo.Fees, collatInfo.StablecoinsIssued,
-			otherStablecoinIssued, collatInfo.StablecoinCap, s.Decimals[indexIn])
+		amountOut, err = _quoteMintExactInput(oracleValue, amountIn, &collatInfo, otherStablecoinIssued,
+			collatInfo.StablecoinCap, s.Decimals[indexIn], s.Transmuter.TotalStablecoinIssued)
 		if err != nil {
 			return nil, err
 		}
@@ -100,8 +100,8 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			return nil, err
 		}
 
-		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, collatInfo.Fees,
-			collatInfo.StablecoinsIssued, otherStablecoinIssued, s.Decimals[indexOut])
+		amountOut, err = _quoteBurnExactInput(oracleValue, minRatio, amountIn, &collatInfo, otherStablecoinIssued,
+			s.Decimals[indexOut], s.Transmuter.TotalStablecoinIssued)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +228,7 @@ func (s *PoolSimulator) _readSpotAndTarget(collateral string) (*uint256.Int, *ui
 func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, baseValue *uint256.Int) (*uint256.Int, error) {
 	switch oracleType {
 	case CHAINLINK_FEEDS:
-		if !oracleFeed.IsChainLink || !oracleFeed.Chainlink.Active {
+		if !oracleFeed.IsChainLink {
 			return nil, ErrInvalidOracle
 		}
 		price := s._quoteAmount(OracleQuoteType(oracleFeed.Chainlink.QuoteType), baseValue)
@@ -260,14 +260,14 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 	case SFRXETH:
 		return nil, ErrUnimplemented
 	case PYTH:
-		if !oracleFeed.IsPyth || !oracleFeed.Pyth.Active {
+		if !oracleFeed.IsPyth {
 			return nil, ErrInvalidOracle
 		}
 		price := s._quoteAmount(OracleQuoteType(oracleFeed.Pyth.QuoteType), baseValue)
 		for i := range oracleFeed.Pyth.FeedIds {
 			normalizedPrice := oracleFeed.Pyth.PythState[i].Price
 			isNormalizerExpoNeg := oracleFeed.Pyth.PythState[i].Expo.Sign() < 0
-			normalizer := new(uint256.Int).Exp(U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
+			normalizer := new(uint256.Int).Exp(u256.U10, new(uint256.Int).Abs(oracleFeed.Pyth.PythState[i].Expo))
 
 			if oracleFeed.Pyth.IsMultiplied[i] == 1 && isNormalizerExpoNeg {
 				price.MulDivOverflow(price, normalizedPrice, normalizer)
@@ -283,7 +283,7 @@ func (s *PoolSimulator) _read(oracleType OracleReadType, oracleFeed OracleFeed, 
 	case MAX:
 		return oracleFeed.Max, nil
 	case MORPHO_ORACLE:
-		if !oracleFeed.IsMorpho || !oracleFeed.Morpho.Active {
+		if !oracleFeed.IsMorpho {
 			return nil, ErrInvalidOracle
 		}
 		return new(uint256.Int).Div(oracleFeed.Morpho.Price, oracleFeed.Morpho.NormalizationFactor), nil

@@ -43,9 +43,6 @@ type (
 
 	TransmuterState struct {
 		Collaterals           map[string]CollateralState `json:"collaterals,omitempty"`
-		IsWhitelisted         map[int][]string           `json:"isWhitelisted,omitempty"`
-		XRedemptionCurve      []uint64                   `json:"xRedemptionCurve,omitempty"`
-		YRedemptionCurve      []int64                    `json:"yRedemptionCurve,omitempty"`
 		TotalStablecoinIssued *uint256.Int               `json:"totalStablecoinIssued,omitempty"`
 	}
 
@@ -54,8 +51,7 @@ type (
 		IsMintLive                bool         `json:"isMintLive"`
 		IsBurnLive                bool         `json:"isBurnLive"`
 		Balance                   *uint256.Int `json:"balance"`
-		Whitelisted               bool         `json:"whitelisted,omitempty"`
-		WhitelistData             []byte       `json:"whitelistData,omitempty"`
+		NormalizedStables         *uint256.Int `json:"normalizedStables"`
 		Fees                      Fees         `json:"fees,omitempty"`
 		StablecoinsFromCollateral *uint256.Int `json:"stablecoinsFromCollateral,omitempty"`
 		StablecoinsIssued         *uint256.Int `json:"stablecoinsIssued,omitempty"`
@@ -86,10 +82,10 @@ type (
 		IsPyth      bool         `json:"isPyth,omitempty"`
 		IsChainLink bool         `json:"isChainLink,omitempty"`
 		IsMorpho    bool         `json:"isMorpho,omitempty"`
-		Pyth        Pyth         `json:"pyth,omitempty"`
-		Chainlink   Chainlink    `json:"chainlink,omitempty"`
+		Pyth        *Pyth        `json:"pyth,omitempty"`
+		Chainlink   *Chainlink   `json:"chainlink,omitempty"`
+		Morpho      *Morpho      `json:"morpho,omitempty"`
 		Max         *uint256.Int `json:"max,omitempty"`
-		Morpho      Morpho
 	}
 
 	Pyth struct {
@@ -99,9 +95,9 @@ type (
 		IsMultiplied []uint8                 `json:"isMultiplied,omitempty"`
 		QuoteType    uint8                   `json:"quoteType,omitempty"`
 		PythState    []PythState             `json:"pythState,omitempty"`
-		Active       bool                    `json:"active,omitempty"`
 		RawStates    []DecodedPythStateTuple `json:"-"`
 	}
+
 	PythState struct {
 		Price     *uint256.Int `json:"price,omitempty"`
 		Expo      *uint256.Int `json:"expo,omitempty"`
@@ -116,14 +112,13 @@ type (
 		QuoteType                uint8              `json:"quoteType,omitempty"`
 		Answers                  []*uint256.Int     `json:"answers,omitempty"`
 		UpdatedAt                []uint64           `json:"updatedAt,omitempty"`
-		Active                   bool               `json:"active,omitempty"`
 		RawStates                []DecodedChainlink `json:"-"`
 	}
+
 	Morpho struct {
 		Oracle              common.Address `json:"oracle,omitempty"`
 		NormalizationFactor *uint256.Int   `json:"normalizationFactor,omitempty"`
 		Price               *uint256.Int   `json:"price,omitempty"`
-		Active              bool           `json:"active,omitempty"`
 		RawState            *big.Int       `json:"-"`
 	}
 )
