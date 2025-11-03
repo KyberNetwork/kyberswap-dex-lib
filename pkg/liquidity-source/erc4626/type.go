@@ -28,10 +28,12 @@ type (
 		MaxRedeem    *uint256.Int   `json:"mR,omitempty"`
 		DepositRates []*uint256.Int `json:"dR,omitempty"`
 		RedeemRates  []*uint256.Int `json:"rR,omitempty"`
+		Meta         map[string]any `json:"meta,omitempty"`
 	}
 
-	Meta struct {
-		BlockNumber uint64 `json:"blockNumber"`
+	MetaInfo struct {
+		Meta        map[string]any `json:"meta,omitempty"`
+		BlockNumber uint64         `json:"blockNumber"`
 	}
 
 	PoolState struct {

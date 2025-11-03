@@ -151,7 +151,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
-	return Meta{BlockNumber: s.Info.BlockNumber}
+	return MetaInfo{
+		Meta:        s.Extra.Meta,
+		BlockNumber: s.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) CanSwapTo(address string) []string {
