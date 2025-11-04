@@ -255,9 +255,9 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 	if (params.ZeroForOne && currentActiveBalance1.IsZero()) ||
 		(!params.ZeroForOne && currentActiveBalance0.IsZero()) {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecific:   params.AmountSpecified,
-			DeltaUnSpecific: bignumber.ZeroBI,
-			SwapInfo:        swapInfo,
+			DeltaSpecified:   params.AmountSpecified,
+			DeltaUnspecified: bignumber.ZeroBI,
+			SwapInfo:         swapInfo,
 		}, nil
 	}
 
@@ -459,10 +459,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 			Sub(outputAmount, curatorFeeAmount)
 
 		actualInputAmount := u256.Max(amountSpecified, inputAmount)
-		result.DeltaSpecific = actualInputAmount.ToBig()
+		result.DeltaSpecified = actualInputAmount.ToBig()
 
 		outputAmountInt := outputAmount.ToBig()
-		result.DeltaUnSpecific = outputAmountInt.Neg(outputAmountInt)
+		result.DeltaUnspecified = outputAmountInt.Neg(outputAmountInt)
 
 		hookHandleSwapInputAmount.Set(inputAmount)
 		hookHandleSwapOutputAmount.Add(outputAmount, hookFeesAmount)
@@ -502,10 +502,10 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 		inputAmount.Add(inputAmount, swapFeeAmount).
 			Add(inputAmount, hookFeesAmount).
 			Add(inputAmount, curatorFeeAmount)
-		result.DeltaUnSpecific = inputAmount.ToBig()
+		result.DeltaUnspecified = inputAmount.ToBig()
 
 		actualOutputAmount := u256.Min(amountSpecified, outputAmount).ToBig()
-		result.DeltaSpecific = actualOutputAmount.Neg(actualOutputAmount)
+		result.DeltaSpecified = actualOutputAmount.Neg(actualOutputAmount)
 
 		hookHandleSwapOutputAmount.Set(outputAmount)
 		hookHandleSwapInputAmount.Sub(inputAmount, hookFeesAmount)

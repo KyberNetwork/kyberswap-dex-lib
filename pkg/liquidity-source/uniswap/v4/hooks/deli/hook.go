@@ -1,4 +1,4 @@
-package idle
+package deli
 
 import (
 	"math/big"
@@ -8,25 +8,25 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-var (
-	feePct = bignumber.Three
-)
-
 // Hook of idle takes 3% fee of ETH token
 type Hook struct {
 	*uniswapv4.BaseHook
+	FeeTier      *big.Int
+	isWBTLToken0 bool
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	return &Hook{
-		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4},
+		BaseHook:     &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Deli},
+		FeeTier:      big.NewInt(int64(param.Pool.SwapFee)),
+		isWBTLToken0: param.Pool.Tokens[0].Address == wBLT,
 	}
 }, HookAddresses...)
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	deltaSpecific := bignumber.ZeroBI
-	if params.ZeroForOne {
-		deltaSpecific = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, feePct, bignumber.B100)
+	if params.ZeroForOne == h.isWBTLToken0 {
+		deltaSpecific = bignumber.MulDivDown(new(big.Int), params.AmountSpecified, h.FeeTier, FeeDenom)
 	}
 	return &uniswapv4.BeforeSwapResult{
 		DeltaSpecified:   deltaSpecific,
@@ -36,8 +36,8 @@ func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.Before
 
 func (h *Hook) AfterSwap(params *uniswapv4.AfterSwapParams) (*uniswapv4.AfterSwapResult, error) {
 	hookFeeAmt := bignumber.ZeroBI
-	if !params.ZeroForOne {
-		hookFeeAmt = bignumber.MulDivDown(new(big.Int), params.AmountOut, feePct, bignumber.B100)
+	if params.ZeroForOne != h.isWBTLToken0 {
+		hookFeeAmt = bignumber.MulDivDown(new(big.Int), params.AmountOut, h.FeeTier, FeeDenom)
 	}
 	return &uniswapv4.AfterSwapResult{
 		HookFee: hookFeeAmt,

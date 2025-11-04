@@ -336,9 +336,9 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 
 	if params.ExactIn && !swappingForClanker || !params.ExactIn && swappingForClanker {
 		return &uniswapv4.BeforeSwapResult{
-			DeltaSpecific:   bignumber.ZeroBI,
-			DeltaUnSpecific: bignumber.ZeroBI,
-			SwapFee:         swapFee,
+			DeltaSpecified:   bignumber.ZeroBI,
+			DeltaUnspecified: bignumber.ZeroBI,
+			SwapFee:          swapFee,
 		}, nil
 	}
 
@@ -358,9 +358,9 @@ func (h *DynamicFeeHook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswa
 	fee.Div(&fee, bignumber.BONE)
 
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecific:   &fee,
-		DeltaUnSpecific: bignumber.ZeroBI,
-		SwapFee:         swapFee,
+		DeltaSpecified:   &fee,
+		DeltaUnspecified: bignumber.ZeroBI,
+		SwapFee:          swapFee,
 	}, nil
 }
 

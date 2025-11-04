@@ -6,11 +6,12 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+
 	uniswapv4 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/samber/lo"
 )
 
 type Hook struct {
@@ -88,9 +89,9 @@ func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, e
 
 func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecific:   bignumber.ZeroBI,
-		DeltaUnSpecific: bignumber.ZeroBI,
-		SwapFee:         uniswapv4.FeeAmount(h.extra.UnlockedFee.Uint64()),
+		DeltaSpecified:   bignumber.ZeroBI,
+		DeltaUnspecified: bignumber.ZeroBI,
+		SwapFee:          uniswapv4.FeeAmount(h.extra.UnlockedFee.Uint64()),
 	}, nil
 }
 
