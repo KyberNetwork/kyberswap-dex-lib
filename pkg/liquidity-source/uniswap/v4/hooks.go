@@ -21,11 +21,11 @@ type BeforeSwapParams struct {
 }
 
 type BeforeSwapResult struct {
-	DeltaSpecific   *big.Int
-	DeltaUnSpecific *big.Int
-	SwapFee         FeeAmount
-	Gas             int64
-	SwapInfo        any
+	DeltaSpecified   *big.Int
+	DeltaUnspecified *big.Int
+	SwapFee          FeeAmount
+	Gas              int64
+	SwapInfo         any
 }
 
 func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
@@ -33,11 +33,11 @@ func ValidateBeforeSwapResult(result *BeforeSwapResult) error {
 		return errors.New("before swap result is nil")
 	}
 
-	if result.DeltaSpecific == nil {
+	if result.DeltaSpecified == nil {
 		return errors.New("delta specified is nil")
 	}
 
-	if result.DeltaUnSpecific == nil {
+	if result.DeltaUnspecified == nil {
 		return errors.New("delta unspecified is nil")
 	}
 
@@ -177,8 +177,8 @@ func (h *BaseHook) Track(context.Context, *HookParam) (string, error) {
 
 func (h *BaseHook) BeforeSwap(_ *BeforeSwapParams) (*BeforeSwapResult, error) {
 	return &BeforeSwapResult{
-		DeltaSpecific:   bignumber.ZeroBI,
-		DeltaUnSpecific: bignumber.ZeroBI,
+		DeltaSpecified:   bignumber.ZeroBI,
+		DeltaUnspecified: bignumber.ZeroBI,
 	}, nil
 }
 

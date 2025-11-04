@@ -142,9 +142,9 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 		hookFeeAmt.Mul(hookFeeAmt, h.protocolFee).Div(hookFeeAmt, FeeMax)
 	}
 	return &uniswapv4.BeforeSwapResult{
-		SwapFee:         h.swapFee,
-		DeltaSpecific:   hookFeeAmt,
-		DeltaUnSpecific: bignumber.ZeroBI,
+		SwapFee:          h.swapFee,
+		DeltaSpecified:   hookFeeAmt,
+		DeltaUnspecified: bignumber.ZeroBI,
 	}, nil
 }
 

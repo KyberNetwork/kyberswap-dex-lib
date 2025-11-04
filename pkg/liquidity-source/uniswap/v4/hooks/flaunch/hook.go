@@ -31,9 +31,9 @@ var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv
 func (h *Hook) BeforeSwap(_ *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
 	// Flaunch does not take fees in the beforeSwap hook.
 	return &uniswapv4.BeforeSwapResult{
-		SwapFee:         uniswapv4.FeeAmount(0),
-		DeltaSpecific:   bignumber.ZeroBI,
-		DeltaUnSpecific: bignumber.ZeroBI,
+		SwapFee:          uniswapv4.FeeAmount(0),
+		DeltaSpecified:   bignumber.ZeroBI,
+		DeltaUnspecified: bignumber.ZeroBI,
 	}, nil
 }
 

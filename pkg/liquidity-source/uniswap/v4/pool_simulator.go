@@ -54,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	var allowEmptyTicks bool
 	switch hook.GetExchange() {
-	case valueobject.ExchangeUniswapV4BunniV2:
+	case valueobject.ExchangeUniswapV4BunniV2, valueobject.ExchangeUniswapV4Deli:
 		allowEmptyTicks = true
 	}
 
@@ -97,7 +97,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			swapResult.TokenAmountOut.Token = originalTokenOut
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnSpecific)
+				swapResult.TokenAmountOut.Amount.Sub(swapResult.TokenAmountOut.Amount, beforeSwapResult.DeltaUnspecified)
 				swapResult.Gas += beforeSwapResult.Gas
 				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
 			}
@@ -146,8 +146,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 	// If no hooks, just do swap
 	poolSim := p.PoolSimulator
 	if p.hook == nil {
-		swapResult, err = p.PoolSimulator.CalcAmountOut(param)
-		return
+		return p.PoolSimulator.CalcAmountOut(param)
 	}
 
 	tokenIn := param.TokenAmountIn.Token
@@ -167,7 +166,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (swapResul
 			return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
 		}
 
-		amountIn.Sub(amountIn, beforeSwapResult.DeltaSpecific)
+		amountIn.Sub(amountIn, beforeSwapResult.DeltaSpecified)
 		if amountIn.Sign() < 0 {
 			return nil, errors.New("[BeforeSwap] amount in is negative")
 		}
@@ -233,7 +232,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			swapResult.TokenAmountIn.Token = originalTokenIn
 
 			if beforeSwapResult != nil {
-				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnSpecific)
+				swapResult.TokenAmountIn.Amount.Add(swapResult.TokenAmountIn.Amount, beforeSwapResult.DeltaUnspecified)
 				swapResult.Gas += beforeSwapResult.Gas
 				v4SwapInfo.hookSwapInfo = beforeSwapResult.SwapInfo
 			}
@@ -304,7 +303,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (swapResult 
 			return nil, fmt.Errorf("[BeforeSwap] validation failed: %w", err)
 		}
 
-		amountOut.Add(amountOut, beforeSwapResult.DeltaSpecific)
+		amountOut.Add(amountOut, beforeSwapResult.DeltaSpecified)
 		if amountOut.Sign() < 0 {
 			return nil, errors.New("[BeforeSwap] amount out is negative")
 		}

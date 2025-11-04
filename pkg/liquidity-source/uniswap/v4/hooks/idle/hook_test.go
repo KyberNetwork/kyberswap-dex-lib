@@ -54,21 +54,21 @@ func Test_CloneState_UpdateBalance(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
-	poolSim.UpdateBalance(pool.UpdateBalanceParams{
+	cloned.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
 		Fee:            *result.Fee,
 		SwapInfo:       result.SwapInfo,
 	})
 
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, bignumber.NewBig10("10864758562295945"), result.TokenAmountOut.Amount)
 
-	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: tokenAmountIn,
 		TokenOut:      tokenOut,
 	})

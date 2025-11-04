@@ -431,6 +431,7 @@ const (
 	ExchangeUniswapV4Angstrom          = "uniswap-v4-angstrom"
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
+	ExchangeUniswapV4Deli              = "uniswap-v4-deli"
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
@@ -903,6 +904,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniswapV4Angstrom:          {},
 	ExchangeUniswapV4BunniV2:           {},
 	ExchangeUniswapV4Clanker:           {},
+	ExchangeUniswapV4Deli:              {},
 	ExchangeUniswapV4Euler:             {},
 	ExchangeUniswapV4FairFlow:          {},
 	ExchangeUniswapV4Flaunch:           {},

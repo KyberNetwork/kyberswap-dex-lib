@@ -120,9 +120,9 @@ func (h *Hook) BeforeSwap(swapHookParams *uniswapv4.BeforeSwapParams) (*uniswapv
 		}
 	}
 	return &uniswapv4.BeforeSwapResult{
-		DeltaSpecific:   bignumber.ZeroBI,
-		DeltaUnSpecific: bignumber.ZeroBI,
-		SwapFee:         uniswapv4.FeeAmount(fee.Uint64()),
+		DeltaSpecified:   bignumber.ZeroBI,
+		DeltaUnspecified: bignumber.ZeroBI,
+		SwapFee:          uniswapv4.FeeAmount(fee.Uint64()),
 	}, nil
 }
 

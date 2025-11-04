@@ -26,8 +26,8 @@ func TestHook_BeforeSwap_ExactIn(t *testing.T) {
 
 	// Flaunch does not take fees in BeforeSwap - all should be zero
 	assert.Equal(t, uniswapv4.FeeAmount(0), result.SwapFee)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecific)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnSpecific)
+	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
+	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
 }
 
 func TestHook_BeforeSwap_ExactOut(t *testing.T) {
@@ -45,8 +45,8 @@ func TestHook_BeforeSwap_ExactOut(t *testing.T) {
 
 	// Flaunch does not take fees in BeforeSwap - all should be zero
 	assert.Equal(t, uniswapv4.FeeAmount(0), result.SwapFee)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecific)
-	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnSpecific)
+	assert.Equal(t, bignumber.ZeroBI, result.DeltaSpecified)
+	assert.Equal(t, bignumber.ZeroBI, result.DeltaUnspecified)
 }
 
 func TestHook_AfterSwap_ExactIn(t *testing.T) {
