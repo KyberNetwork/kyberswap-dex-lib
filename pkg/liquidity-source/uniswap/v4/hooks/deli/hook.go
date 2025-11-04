@@ -16,11 +16,14 @@ type Hook struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
-	return &Hook{
-		BaseHook:     &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Deli},
-		FeeTier:      big.NewInt(int64(param.Pool.SwapFee)),
-		isWBTLToken0: param.Pool.Tokens[0].Address == wBLT,
+	hook := &Hook{
+		BaseHook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Deli},
 	}
+	if pool := param.Pool; pool != nil {
+		hook.FeeTier = big.NewInt(int64(param.Pool.SwapFee))
+		hook.isWBTLToken0 = param.Pool.Tokens[0].Address == wBLT
+	}
+	return hook
 }, HookAddresses...)
 
 func (h *Hook) BeforeSwap(params *uniswapv4.BeforeSwapParams) (*uniswapv4.BeforeSwapResult, error) {
