@@ -3,9 +3,11 @@ package aave
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -15,7 +17,9 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	Multipliers []*big.Int
+	LpToken          string
+	UnderlyingTokens []string
+	Multipliers      []*big.Int
 	// extra fields
 	InitialA            *big.Int
 	FutureA             *big.Int
@@ -46,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var reserves = make([]*big.Int, numTokens)
 	var multipliers = make([]*big.Int, numTokens)
 	for i := 0; i < numTokens; i += 1 {
-		tokens[i] = staticExtra.UnderlyingTokens[i]
+		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
 	}
@@ -67,6 +71,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
+		LpToken:             staticExtra.LpToken,
+		UnderlyingTokens:    staticExtra.UnderlyingTokens,
 		Multipliers:         multipliers,
 		InitialA:            bignumber.NewBig10(extra.InitialA),
 		FutureA:             bignumber.NewBig10(extra.FutureA),
@@ -80,28 +86,23 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
-	var tokenIndexTo = t.GetTokenIndex(tokenOut)
-	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		amountOut, fee, err := GetDyUnderlying(
-			t.Info.Reserves,
-			t.Multipliers,
-			t.FutureATime,
-			t.FutureA,
-			t.InitialATime,
-			t.InitialA,
-			t.Info.SwapFee,
-			t.OffpegFeeMultiplier,
-			tokenIndexFrom,
-			tokenIndexTo,
-			tokenAmountIn.Amount,
-		)
+	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
+	idxIn, idxOut := t.GetTokenIndex(tokenAmountIn.Token), t.GetTokenIndex(tokenOut)
+	if idxIn >= 0 && idxOut >= 0 {
+		A := _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
+		D, err := t.getDPrecision(t.Info.Reserves, A)
 		if err != nil {
 			return nil, err
 		}
-		if err == nil && amountOut.Cmp(bignumber.ZeroBI) > 0 {
+		amountOut, fee, err := t.GetDy(
+			idxIn,
+			idxOut,
+			tokenAmountIn.Amount,
+			D,
+		)
+		if err != nil {
+			return nil, err
+		} else if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -114,8 +115,44 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Gas: t.gas.Exchange,
 			}, nil
 		}
+		return nil, ErrInvalidAmountOut
+	} else if DepositFrozen {
+		return nil, ErrTokenNotFound
 	}
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
+
+	idxIn, idxOut = slices.Index(t.UnderlyingTokens, tokenAmountIn.Token), slices.Index(t.UnderlyingTokens, tokenOut)
+	if idxIn < 0 || idxOut < 0 {
+		return nil, ErrTokenNotFound
+	}
+	amountOut, fee, err := GetDyUnderlying(
+		t.Info.Reserves,
+		t.Multipliers,
+		t.FutureATime,
+		t.FutureA,
+		t.InitialATime,
+		t.InitialA,
+		t.Info.SwapFee,
+		t.OffpegFeeMultiplier,
+		idxIn,
+		idxOut,
+		tokenAmountIn.Amount,
+	)
+	if err != nil {
+		return nil, err
+	} else if amountOut.Sign() > 0 {
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: amountOut,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee,
+			},
+			Gas: t.gas.Exchange,
+		}, nil
+	}
+	return nil, ErrInvalidAmountOut
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -144,17 +181,49 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetLpToken() string {
-	return ""
+func (t *PoolSimulator) CanSwapTo(address string) []string {
+	if t.GetTokenIndex(address) >= 0 {
+		// exchange
+		return lo.Filter(t.Info.Tokens, func(item string, _ int) bool {
+			return item != address
+		})
+	}
+	// check from underlying
+	if DepositFrozen || slices.Index(t.UnderlyingTokens, address) < 0 {
+		return nil
+	}
+	// exchange_underlying can swap underlying token to other underlying tokens
+	return lo.Filter(t.UnderlyingTokens, func(item string, _ int) bool {
+		return item != address
+	})
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	var fromId = t.GetTokenIndex(tokenIn)
-	var toId = t.GetTokenIndex(tokenOut)
+func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+
+func (t *PoolSimulator) GetTokens() []string {
+	if DepositFrozen {
+		return t.Info.Tokens
+	}
+	result := make([]string, 0, 2*len(t.UnderlyingTokens))
+	result = append(result, t.Info.Tokens...)
+	result = append(result, t.UnderlyingTokens...)
+	return result
+}
+
+func (t *PoolSimulator) GetLpToken() string {
+	return t.LpToken
+}
+
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
+	idxIn, idxOut, underlying := t.GetTokenIndex(tokenIn), t.GetTokenIndex(tokenOut), false
+	if idxIn < 0 || idxOut < 0 {
+		idxIn, idxOut, underlying = slices.Index(t.UnderlyingTokens, tokenIn), slices.Index(t.UnderlyingTokens,
+			tokenOut), true
+	}
 	return curve.Meta{
-		TokenInIndex:  fromId,
-		TokenOutIndex: toId,
-		Underlying:    true,
+		TokenInIndex:  idxIn,
+		TokenOutIndex: idxOut,
+		Underlying:    underlying,
 	}
 }
 
@@ -192,7 +261,7 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 		return nil, ErrD1LowerThanD0
 	}
 	var mint_amount *big.Int
-	if token_supply.Cmp(bignumber.ZeroBI) > 0 {
+	if token_supply.Sign() > 0 {
 		ys := new(big.Int).Div(new(big.Int).Add(D0, D1), nCoinsBi)
 		var _fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinsBi),
 			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
@@ -210,7 +279,8 @@ func (t *PoolSimulator) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 			var fee = new(big.Int).Div(new(big.Int).Mul(_dynamicFee(xs, ys, _fee, _feemul), difference), FeeDenominator)
 			new_balances[i] = new(big.Int).Sub(new_balances[i], fee)
 		}
-		D2, _ := t.getDPrecision(new_balances, amp)
+		D2, err := t.getDPrecision(new_balances, amp)
+		fmt.Println(err)
 		mint_amount = new(big.Int).Div(new(big.Int).Mul(token_supply, new(big.Int).Sub(D2, D0)), D0)
 	} else {
 		for i := 0; i < nCoins; i += 1 {
@@ -297,12 +367,12 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big
 }
 
 func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
-	var A = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
+	A := _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
 	D, err := t.getDPrecision(t.Info.Reserves, A)
 	if err != nil {
 		return nil, nil, err
 	}
-	if t.LpSupply.Cmp(bignumber.ZeroBI) == 0 {
+	if t.LpSupply.Sign() == 0 {
 		return nil, nil, ErrDenominatorZero
 	}
 	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), D, nil

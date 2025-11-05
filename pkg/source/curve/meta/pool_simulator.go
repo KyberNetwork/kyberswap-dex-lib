@@ -233,8 +233,6 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
-
 func (t *PoolSimulator) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenIndex = t.GetTokenIndex(address)
@@ -265,6 +263,8 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	}
 	return ret
 }
+
+func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	fromId, toId := t.GetTokenIndex(tokenIn), t.GetTokenIndex(tokenOut)

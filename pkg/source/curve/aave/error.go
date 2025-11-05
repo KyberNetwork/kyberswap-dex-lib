@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrZero                         = errors.New("zero")
 	ErrBalancesMustMatchMultipliers = errors.New("balances must match multipliers")
+	ErrOverflow                     = errors.New("overflow")
 	ErrDDoesNotConverge             = errors.New("d does not converge")
 	ErrTokenFromEqualsTokenTo       = errors.New("can't compare token to itself")
 	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
@@ -13,4 +14,5 @@ var (
 	ErrWithdrawMoreThanAvailable    = errors.New("cannot withdraw more than available")
 	ErrD1LowerThanD0                = errors.New("d1 <= d0")
 	ErrDenominatorZero              = errors.New("denominator should not be 0")
+	ErrInvalidAmountOut             = errors.New("invalid amount out")
 )

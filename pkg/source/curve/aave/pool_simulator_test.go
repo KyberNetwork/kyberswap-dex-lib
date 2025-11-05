@@ -26,8 +26,8 @@ func TestCalcAmountOut(t *testing.T) {
 		out               string
 		expectedOutAmount int64
 	}{
-		{"Cu", 100000000, "Bu", 99989535},
-		{"Cu", 1, "Au", 999897685887},
+		{"C", 100000000, "B", 99989535},
+		{"C", 1, "A", 999897685887},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
@@ -45,10 +45,10 @@ func TestCalcAmountOut(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	assert.Equal(t, []string{"Au", "Bu"}, p.CanSwapTo("Cu"))
-	assert.Equal(t, []string{"Au", "Cu"}, p.CanSwapTo("Bu"))
-	assert.Equal(t, []string{"Bu", "Cu"}, p.CanSwapTo("Au"))
-	assert.Equal(t, 0, len(p.CanSwapTo("LP")))
+	assert.Empty(t, p.CanSwapTo("Cu"))
+	assert.Empty(t, p.CanSwapTo("Bu"))
+	assert.Empty(t, p.CanSwapTo("Au"))
+	assert.Empty(t, p.CanSwapTo("LP"))
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
