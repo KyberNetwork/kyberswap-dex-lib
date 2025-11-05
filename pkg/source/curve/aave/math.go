@@ -97,40 +97,44 @@ func _getAPrecise(
  */
 func getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var numTokens = len(xp)
-	var s = new(big.Int).SetInt64(0)
+	var s = new(big.Int)
 	for i := 0; i < numTokens; i++ {
-		s = new(big.Int).Add(s, xp[i])
+		s = s.Add(s, xp[i])
 	}
 	if s.Sign() == 0 {
 		return s, nil
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))
-	var prevD *big.Int
+	var prevD big.Int
 	var d = new(big.Int).Set(s)
 	var nA = new(big.Int).Mul(a, numTokensBI)
+	var tmp, tmp2, mul big.Int
 	for i := 0; i < MaxLoopLimit; i++ {
 		var dP = new(big.Int).Set(d)
 		for j := 0; j < numTokens; j++ {
-			dP = new(big.Int).Div(
-				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+			dP = dP.Div(
+				dP.Mul(dP, d),
+				tmp.Add(tmp.Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
-		prevD = d
-		d = new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Add(
-					new(big.Int).Div(new(big.Int).Mul(nA, s), APrecision),
-					new(big.Int).Mul(dP, numTokensBI),
-				),
-				d,
+		prevD.Set(d)
+		if mul.Mul(
+			tmp.Add(
+				tmp.Div(tmp.Mul(nA, s), APrecision),
+				tmp2.Mul(dP, numTokensBI),
 			),
-			new(big.Int).Add(
-				new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(nA, APrecision), d), APrecision),
-				new(big.Int).Mul(dP, big.NewInt(int64(numTokens+1))),
+			d,
+		).Cmp(bignumber.MAX_UINT_256) > 0 {
+			return nil, ErrOverflow
+		}
+		d = d.Div(
+			&mul,
+			tmp.Add(
+				tmp.Div(tmp.Mul(tmp.Sub(nA, APrecision), d), APrecision),
+				tmp2.Mul(dP, big.NewInt(int64(numTokens+1))),
 			),
 		)
-		if new(big.Int).Sub(d, prevD).CmpAbs(big.NewInt(1)) <= 0 {
+		if tmp.Sub(d, &prevD).CmpAbs(bignumber.One) <= 0 {
 			return d, nil
 		}
 	}
