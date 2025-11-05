@@ -62,8 +62,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryAllPairsLengthMethod,
-		Params: nil,
-	}, []interface{}{&pairsLength}).Call(); err != nil {
+	}, []any{&pairsLength}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("%s: failed to get number of pools from factory", u.config.DexID)
@@ -89,7 +88,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Target: u.config.FactoryAddress,
 			Method: factoryAllPairsMethod,
 			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressReq.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -143,15 +142,13 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			ABI:    pairABI,
 			Target: poolAddresses[i].Hex(),
 			Method: pairToken0Method,
-			Params: nil,
-		}, []interface{}{&token0Addresses[i]})
+		}, []any{&token0Addresses[i]})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: poolAddresses[i].Hex(),
 			Method: pairToken1Method,
-			Params: nil,
-		}, []interface{}{&token1Addresses[i]})
+		}, []any{&token1Addresses[i]})
 	}
 
 	if _, err := rpcRequest.Aggregate(); err != nil {
@@ -176,15 +173,13 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 		}
 
 		var newPool = entity.Pool{
-			Address:      p,
-			ReserveUsd:   0,
-			AmplifiedTvl: 0,
-			SwapFee:      0,
-			Exchange:     u.config.DexID,
-			Type:         DexTypeSmardex,
-			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{reserveZero, reserveZero},
-			Tokens:       []*entity.PoolToken{&poolToken0, &poolToken1},
+			Address:   p,
+			SwapFee:   0,
+			Exchange:  u.config.DexID,
+			Type:      DexTypeSmardex,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{reserveZero, reserveZero},
+			Tokens:    []*entity.PoolToken{&poolToken0, &poolToken1},
 		}
 
 		pools = append(pools, newPool)

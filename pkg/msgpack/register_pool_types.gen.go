@@ -98,6 +98,7 @@ import (
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	pkg_liquiditysource_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/smardex"
 	pkg_liquiditysource_solidlyv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/solidly-v2"
 	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -166,7 +167,6 @@ import (
 	pkg_source_ramsesv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	pkg_source_saddle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	pkg_source_slipstream "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
-	pkg_source_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	pkg_source_solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	pkg_source_swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	pkg_source_syncswap_syncswapclassic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
@@ -274,6 +274,7 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
+	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_smardex.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_solidlyv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_liquiditysource_swaapv2.PoolSimulator{})
@@ -342,7 +343,6 @@ func init() {
 	_ = msgpack.RegisterConcreteType(&pkg_source_ramsesv2.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_saddle.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_slipstream.PoolSimulator{})
-	_ = msgpack.RegisterConcreteType(&pkg_source_smardex.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_solidlyv3.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.PoolSimulator{})
 	_ = msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapclassic.PoolSimulator{})
