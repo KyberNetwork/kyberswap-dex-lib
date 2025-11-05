@@ -116,7 +116,10 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			}, nil
 		}
 		return nil, ErrInvalidAmountOut
+	} else if DepositFrozen {
+		return nil, ErrTokenNotFound
 	}
+
 	idxIn, idxOut = slices.Index(t.UnderlyingTokens, tokenAmountIn.Token), slices.Index(t.UnderlyingTokens, tokenOut)
 	if idxIn < 0 || idxOut < 0 {
 		return nil, ErrTokenNotFound
@@ -186,7 +189,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 		})
 	}
 	// check from underlying
-	if slices.Index(t.UnderlyingTokens, address) < 0 {
+	if DepositFrozen || slices.Index(t.UnderlyingTokens, address) < 0 {
 		return nil
 	}
 	// exchange_underlying can swap underlying token to other underlying tokens
@@ -198,8 +201,11 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
 
 func (t *PoolSimulator) GetTokens() []string {
+	if DepositFrozen {
+		return t.Info.Tokens
+	}
 	result := make([]string, 0, 2*len(t.UnderlyingTokens))
-	result = append(result, t.GetInfo().Tokens...)
+	result = append(result, t.Info.Tokens...)
 	result = append(result, t.UnderlyingTokens...)
 	return result
 }
@@ -209,12 +215,15 @@ func (t *PoolSimulator) GetLpToken() string {
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
-	var fromId = t.GetTokenIndex(tokenIn)
-	var toId = t.GetTokenIndex(tokenOut)
+	idxIn, idxOut, underlying := t.GetTokenIndex(tokenIn), t.GetTokenIndex(tokenOut), false
+	if idxIn < 0 || idxOut < 0 {
+		idxIn, idxOut, underlying = slices.Index(t.UnderlyingTokens, tokenIn), slices.Index(t.UnderlyingTokens,
+			tokenOut), true
+	}
 	return curve.Meta{
-		TokenInIndex:  fromId,
-		TokenOutIndex: toId,
-		Underlying:    true,
+		TokenInIndex:  idxIn,
+		TokenOutIndex: idxOut,
+		Underlying:    underlying,
 	}
 }
 
