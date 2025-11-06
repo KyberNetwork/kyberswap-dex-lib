@@ -2,7 +2,6 @@ package smardex
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -10,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -66,26 +66,23 @@ func (u *PoolTracker) getNewPoolState(
 	}
 	var (
 		reserve        Reserve
-		feeToAmount    FeeToAmount
-		fictiveReserve FictiveReserve
-		pairFee        PairFee
-		priceAverage   PriceAverage
-		totalSupply    *big.Int
+		feeToAmount    FeeToAmountResult
+		fictiveReserve FictiveReserveResult
+		pairFee        PairFeeResult
+		priceAverage   PriceAverageResult
 	)
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairGetReservesMethod,
-		Params: nil,
-	}, []interface{}{&reserve})
+	}, []any{&reserve})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairGetFictiveReservesMethod,
-		Params: nil,
-	}, []interface{}{&fictiveReserve})
+	}, []any{&fictiveReserve})
 
 	/*
 	 * On ethereum: feesPool and feesLP are hardcode in sc
@@ -93,21 +90,20 @@ func (u *PoolTracker) getNewPoolState(
 	 * https://github.com/SmarDex-Dev/smart-contracts/pull/7/files
 	 */
 	if u.config.ChainID == 1 {
-		pairFee = PairFee{
+		pairFee = PairFeeResult{
 			FeesPool: FEES_POOL_DEFAULT_ETHEREUM,
 			FeesLP:   FEES_LP_DEFAULT_ETHEREUM,
 			FeesBase: FEES_BASE_ETHEREUM,
 		}
 	} else {
-		pairFee = PairFee{
+		pairFee = PairFeeResult{
 			FeesBase: FEES_BASE,
 		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: p.Address,
 			Method: pairGetPairFeesMethod,
-			Params: nil,
-		}, []interface{}{&pairFee})
+		}, []any{&pairFee})
 	}
 
 	/*
@@ -122,25 +118,15 @@ func (u *PoolTracker) getNewPoolState(
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: getFeeMethodName,
-		Params: nil,
-	}, []interface{}{&feeToAmount})
+	}, []any{&feeToAmount})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairGetPriceAverageMethod,
-		Params: nil,
-	}, []interface{}{&priceAverage})
+	}, []any{&priceAverage})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairTotalSupplyMethod,
-		Params: nil,
-	}, []interface{}{&totalSupply})
-
-	_, err := rpcRequest.TryAggregate()
-	if err != nil {
+	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -149,33 +135,37 @@ func (u *PoolTracker) getNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(SmardexPair{
-		PairFee:        pairFee,
-		FictiveReserve: fictiveReserve,
-		PriceAverage:   priceAverage,
-		FeeToAmount:    feeToAmount,
+		PairFee: PairFee{
+			FeesLP:   uint256.MustFromBig(pairFee.FeesLP),
+			FeesPool: uint256.MustFromBig(pairFee.FeesPool),
+			FeesBase: uint256.MustFromBig(pairFee.FeesBase),
+		},
+		FictiveReserve: FictiveReserve{
+			FictiveReserve0: uint256.MustFromBig(fictiveReserve.FictiveReserve0),
+			FictiveReserve1: uint256.MustFromBig(fictiveReserve.FictiveReserve1),
+		},
+		PriceAverage: PriceAverage{
+			PriceAverage0:             uint256.MustFromBig(priceAverage.PriceAverage0),
+			PriceAverage1:             uint256.MustFromBig(priceAverage.PriceAverage1),
+			PriceAverageLastTimestamp: uint256.MustFromBig(priceAverage.PriceAverageLastTimestamp),
+		},
+		FeeToAmount: FeeToAmount{
+			Fees0: uint256.MustFromBig(feeToAmount.Fees0),
+			Fees1: uint256.MustFromBig(feeToAmount.Fees1),
+		},
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-			"dex":         u.config.DexID}).Errorf(
-			"failed to marshal pool extra")
-		return entity.Pool{}, err
-	}
-
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-			"dex":         u.config.DexID}).Errorf(
-			"failed to marshal pool extra")
+			"dex":         u.config.DexID,
+		}).Errorf("failed to marshal pool extra")
 		return entity.Pool{}, err
 	}
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.TotalSupply = totalSupply.String()
-	p.Reserves = entity.PoolReserves([]string{reserve.Reserve0.String(), reserve.Reserve1.String()})
+	p.Reserves = []string{reserve.Reserve0.String(), reserve.Reserve1.String()}
 
 	return p, nil
 

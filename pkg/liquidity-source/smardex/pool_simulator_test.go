@@ -1,11 +1,11 @@
 package smardex
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -22,8 +22,8 @@ var (
 	resFicT1                 = parseString("53094867866428500000000")
 	priceAvT0                = parseString("1000000000000000000")
 	priceAvT1                = parseString("8197837914161090000000")
-	feesLP                   = big.NewInt(500)
-	feesPool                 = big.NewInt(200)
+	feesLP                   = uint256.NewInt(500)
+	feesPool                 = uint256.NewInt(200)
 
 	expectedResT0       = parseString("14847062709278699999")
 	expectedResT1       = parseString("112484184376480628646478")
@@ -34,10 +34,9 @@ var (
 	_ = func() bool { now = func() time.Time { return time.Unix(TIMESTAMP_JAN_2020, 0) }; return true }()
 )
 
-func parseString(value string) *big.Int {
-	newValue := new(big.Int)
-	newValue.SetString(value, 10)
-	return newValue
+func parseString(value string) *uint256.Int {
+	res := uint256.MustFromDecimal(value)
+	return res
 }
 
 func TestCalcAmountOut(t *testing.T) {
@@ -46,7 +45,7 @@ func TestCalcAmountOut(t *testing.T) {
 		PairFee: PairFee{
 			FeesLP:   feesLP,
 			FeesPool: feesPool,
-			FeesBase: FEES_BASE,
+			FeesBase: uint256.MustFromBig(FEES_BASE),
 		},
 		FictiveReserve: FictiveReserve{
 			FictiveReserve0: resFicT0,
@@ -55,11 +54,11 @@ func TestCalcAmountOut(t *testing.T) {
 		PriceAverage: PriceAverage{
 			PriceAverage0:             priceAvT0,
 			PriceAverage1:             priceAvT1,
-			PriceAverageLastTimestamp: big.NewInt(TIMESTAMP_JAN_2020),
+			PriceAverageLastTimestamp: uint256.NewInt(uint64(TIMESTAMP_JAN_2020)),
 		},
 		FeeToAmount: FeeToAmount{
-			Fees0: big.NewInt(0),
-			Fees1: big.NewInt(0),
+			Fees0: uint256.NewInt(0),
+			Fees1: uint256.NewInt(0),
 		},
 	}
 	extraJson, _ := json.Marshal(extra)
@@ -84,17 +83,16 @@ func TestCalcAmountOut(t *testing.T) {
 			poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
 					Token:  "token0",
-					Amount: amountInT0,
+					Amount: amountInT0.ToBig(),
 				},
 				TokenOut: "token1",
-				Limit:    nil,
 			})
 	})
 
 	if err != nil {
 		t.Fatalf(`Error thrown %v`, err)
 	}
-	if result.TokenAmountOut.Amount.Cmp(expectedAmountOutT0) != 0 {
+	if result.TokenAmountOut.Amount.Cmp(expectedAmountOutT0.ToBig()) != 0 {
 		t.Fatalf(`Invalid value = %d, expected: %d`, result.TokenAmountOut.Amount, expectedAmountOutT0)
 	}
 
@@ -102,7 +100,7 @@ func TestCalcAmountOut(t *testing.T) {
 	if !ok {
 		t.Fatal(`Swapinfo is nil`)
 	}
-	if newState.newReserveIn.Cmp(new(big.Int).Sub(expectedResT0, newState.feeToAmount0)) != 0 {
+	if newState.newReserveIn.Cmp(new(uint256.Int).Sub(expectedResT0, newState.feeToAmount0)) != 0 {
 		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserveIn, expectedResT0)
 	}
 	if newState.newReserveOut.Cmp(expectedResT1) != 0 {
@@ -121,11 +119,11 @@ func TestGetAmountOut(t *testing.T) {
 	testCases := []struct {
 		name                string
 		amountParams        GetAmountParameters
-		expectedAmountOutT0 *big.Int
-		expectedReserve0    *big.Int
-		expectedReserve1    *big.Int
-		expectedResFictive0 *big.Int
-		expectedResFictive1 *big.Int
+		expectedAmountOutT0 *uint256.Int
+		expectedReserve0    *uint256.Int
+		expectedReserve1    *uint256.Int
+		expectedResFictive0 *uint256.Int
+		expectedResFictive1 *uint256.Int
 	}{
 		{
 			name: "Test case 1",
@@ -139,7 +137,7 @@ func TestGetAmountOut(t *testing.T) {
 				priceAverageOut:   priceAvT1,
 				feesLP:            feesLP,
 				feesPool:          feesPool,
-				feesBase:          FEES_BASE},
+				feesBase:          uint256.MustFromBig(FEES_BASE)},
 			expectedAmountOutT0: expectedAmountOutT0,
 			expectedReserve0:    expectedResT0,
 			expectedReserve1:    expectedResT1,
@@ -149,16 +147,16 @@ func TestGetAmountOut(t *testing.T) {
 		{
 			name: "Test case 2",
 			amountParams: GetAmountParameters{
-				amount:            big.NewInt(42),
+				amount:            uint256.NewInt(42),
 				reserveIn:         parseString("161897635415"),
 				reserveOut:        parseString("15369827327148701303864657"),
 				fictiveReserveIn:  parseString("76745457210"),
 				fictiveReserveOut: parseString("6535835031490019911286921"),
 				priceAverageIn:    parseString("76745457210"),
 				priceAverageOut:   parseString("6535835031490019911286921"),
-				feesLP:            big.NewInt(1500),
-				feesPool:          big.NewInt(900),
-				feesBase:          FEES_BASE},
+				feesLP:            uint256.NewInt(1500),
+				feesPool:          uint256.NewInt(900),
+				feesBase:          uint256.MustFromBig(FEES_BASE)},
 			expectedAmountOutT0: parseString("3483282525323441"),
 			expectedReserve0:    parseString("161897635455"),
 			expectedReserve1:    parseString("15369827323665418778541216"),
@@ -168,16 +166,16 @@ func TestGetAmountOut(t *testing.T) {
 		{
 			name: "Test case 3",
 			amountParams: GetAmountParameters{
-				amount:            big.NewInt(2000000000000000000),
+				amount:            uint256.NewInt(2000000000000000000),
 				reserveIn:         parseString("3278796445628485066"),
 				reserveOut:        parseString("6213633437"),
 				fictiveReserveIn:  parseString("1602466039436492633"),
 				fictiveReserveOut: parseString("3179127537"),
 				priceAverageIn:    parseString("1602466039436492633"),
 				priceAverageOut:   parseString("3179127537"),
-				feesLP:            FEES_LP_DEFAULT_ETHEREUM,
-				feesPool:          FEES_POOL_DEFAULT_ETHEREUM,
-				feesBase:          FEES_BASE_ETHEREUM},
+				feesLP:            uint256.MustFromBig(FEES_LP_DEFAULT_ETHEREUM),
+				feesPool:          uint256.MustFromBig(FEES_POOL_DEFAULT_ETHEREUM),
+				feesBase:          uint256.MustFromBig(FEES_BASE_ETHEREUM)},
 			expectedAmountOutT0: parseString("1719846589"),
 			expectedReserve0:    parseString("5278396445628485066"),
 			expectedReserve1:    parseString("4493786848"),
@@ -189,7 +187,7 @@ func TestGetAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name,
 			func(t *testing.T) {
-				result, err := testutil.MustConcurrentSafe(t, func() (GetAmountResult, error) {
+				result, err := testutil.MustConcurrentSafe(t, func() (*GetAmountResult, error) {
 					return getAmountOut(tc.amountParams)
 				})
 				if err != nil {
@@ -294,7 +292,7 @@ func TestUpdateBalance(t *testing.T) {
 		PairFee: PairFee{
 			FeesLP:   feesLP,
 			FeesPool: feesPool,
-			FeesBase: FEES_BASE,
+			FeesBase: uint256.MustFromBig(FEES_BASE),
 		},
 		FictiveReserve: FictiveReserve{
 			FictiveReserve0: resFicT0,
@@ -303,11 +301,11 @@ func TestUpdateBalance(t *testing.T) {
 		PriceAverage: PriceAverage{
 			PriceAverage0:             priceAvT0,
 			PriceAverage1:             priceAvT1,
-			PriceAverageLastTimestamp: big.NewInt(TIMESTAMP_JAN_2020),
+			PriceAverageLastTimestamp: uint256.NewInt(uint64(TIMESTAMP_JAN_2020)),
 		},
 		FeeToAmount: FeeToAmount{
-			Fees0: big.NewInt(0),
-			Fees1: big.NewInt(0),
+			Fees0: uint256.NewInt(0),
+			Fees1: uint256.NewInt(0),
 		},
 	}
 	extraJson, _ := json.Marshal(extra)
@@ -329,7 +327,7 @@ func TestUpdateBalance(t *testing.T) {
 	poolSimulator, _ := NewPoolSimulator(pool)
 	tokenAmountIn := poolpkg.TokenAmount{
 		Token:  "token0",
-		Amount: amountInT0,
+		Amount: amountInT0.ToBig(),
 	}
 	result, _ := testutil.MustConcurrentSafe(t, func() (*poolpkg.CalcAmountOutResult, error) {
 		return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
@@ -348,10 +346,10 @@ func TestUpdateBalance(t *testing.T) {
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve0.Cmp(expectedResFicT0), 0)
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
 	assert.Equal(t,
-		poolSimulator.Info.Reserves[0].Cmp(new(big.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0)), 0)
+		poolSimulator.Info.Reserves[0].Cmp(new(uint256.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0).ToBig()), 0)
 	assert.Equal(t,
-		poolSimulator.Info.Reserves[1].Cmp(new(big.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1)), 0)
+		poolSimulator.Info.Reserves[1].Cmp(new(uint256.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1).ToBig()), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage0.Cmp(priceAvT0), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage1.Cmp(priceAvT1), 0)
-	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(big.NewInt(TIMESTAMP_JAN_2020)), 0)
+	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(uint256.NewInt(uint64(TIMESTAMP_JAN_2020))), 0)
 }

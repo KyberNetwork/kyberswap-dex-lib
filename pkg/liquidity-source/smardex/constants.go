@@ -1,14 +1,18 @@
 package smardex
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 var (
-	DefaultGas                          = Gas{Swap: 160000}
-	FEES_BASE                  *big.Int = big.NewInt(1000000)
-	FEES_BASE_ETHEREUM         *big.Int = big.NewInt(10000)
-	MAX_BLOCK_DIFF_SECONDS     *big.Int = big.NewInt(300)
-	FEES_LP_DEFAULT_ETHEREUM   *big.Int = big.NewInt(5)
-	FEES_POOL_DEFAULT_ETHEREUM *big.Int = big.NewInt(2)
+	DefaultGas                 = Gas{Swap: 160000}
+	FEES_BASE                  = big.NewInt(1000000)
+	FEES_BASE_ETHEREUM         = big.NewInt(10000)
+	MAX_BLOCK_DIFF_SECONDS     = uint256.NewInt(300)
+	FEES_LP_DEFAULT_ETHEREUM   = big.NewInt(5)
+	FEES_POOL_DEFAULT_ETHEREUM = big.NewInt(2)
 )
 
 const (
@@ -28,5 +32,4 @@ const (
 	pairGetFictiveReservesMethod = "getFictiveReserves"
 	pairGetPriceAverageMethod    = "getPriceAverage"
 	pairGetReservesMethod        = "getReserves"
-	pairTotalSupplyMethod        = "totalSupply"
 )

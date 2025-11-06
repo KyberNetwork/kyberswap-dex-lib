@@ -8,4 +8,5 @@ var (
 	ErrInvalidTimestamp         = errors.New("current timestamp is less than priceAverageLastTimestamp")
 	ErrInsufficientLiquidity    = errors.New("insufficient liquidity")
 	ErrInsufficientPriceAverage = errors.New("insufficient price average")
+	ErrDivisionByZero           = errors.New("division by zero")
 )
