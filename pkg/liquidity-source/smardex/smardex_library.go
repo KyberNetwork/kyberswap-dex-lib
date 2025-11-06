@@ -19,7 +19,6 @@ import (
 func getUpdatedPriceAverage(fictiveReserveIn *uint256.Int, fictiveReserveOut *uint256.Int,
 	priceAverageLastTimestamp *uint256.Int, priceAverageIn *uint256.Int, priceAverageOut *uint256.Int,
 	currentTimestamp *uint256.Int) (newPriceAverageIn *uint256.Int, newPriceAverageOut *uint256.Int, err error) {
-
 	if currentTimestamp.Cmp(priceAverageLastTimestamp) == -1 {
 		err = ErrInvalidTimestamp
 		return
@@ -27,11 +26,11 @@ func getUpdatedPriceAverage(fictiveReserveIn *uint256.Int, fictiveReserveOut *ui
 
 	// priceAverage is initialized with the first price at the time of the first update
 	if priceAverageLastTimestamp.IsZero() || priceAverageIn.IsZero() || priceAverageOut.IsZero() {
-		newPriceAverageIn = fictiveReserveIn
-		newPriceAverageOut = fictiveReserveOut
+		newPriceAverageIn = fictiveReserveIn.Clone()
+		newPriceAverageOut = fictiveReserveOut.Clone()
 	} else if priceAverageLastTimestamp.Eq(currentTimestamp) { // another tx has been done in the same timestamp
-		newPriceAverageIn = priceAverageIn
-		newPriceAverageOut = priceAverageOut
+		newPriceAverageIn = priceAverageIn.Clone()
+		newPriceAverageOut = priceAverageOut.Clone()
 	} else { // need to compute new linear-average price
 		// compute new price:
 		timeDiff := new(uint256.Int).Sub(currentTimestamp, priceAverageLastTimestamp)
@@ -39,17 +38,15 @@ func getUpdatedPriceAverage(fictiveReserveIn *uint256.Int, fictiveReserveOut *ui
 			timeDiff = MAX_BLOCK_DIFF_SECONDS
 		}
 
-		newPriceAverageIn = fictiveReserveIn
-		newPriceAverageOut = new(uint256.Int).Add(
-			new(uint256.Int).Div(
-				(new(uint256.Int).Mul(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff),
-						priceAverageOut),
-					newPriceAverageIn)),
-				priceAverageIn),
-			new(uint256.Int).Div(new(uint256.Int).Mul(timeDiff, fictiveReserveOut), MAX_BLOCK_DIFF_SECONDS))
+		newPriceAverageIn = fictiveReserveIn.Clone()
+		var temp uint256.Int
+		temp.Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff)
+		temp.Mul(&temp, priceAverageOut).Mul(&temp, newPriceAverageIn).Div(&temp, priceAverageIn)
+		newPriceAverageOut = new(uint256.Int).Set(&temp)
+		temp.MulDivOverflow(timeDiff, fictiveReserveOut, MAX_BLOCK_DIFF_SECONDS)
+		newPriceAverageOut.Add(newPriceAverageOut, &temp)
 	}
+
 	return
 }
 
@@ -177,23 +174,24 @@ func getAmountOut(param GetAmountParameters) (*GetAmountResult, error) {
 func computeFictiveReserves(
 	reserveIn *uint256.Int, reserveOut *uint256.Int, fictiveReserveIn *uint256.Int, fictiveReserveOut *uint256.Int,
 ) (newFictiveReserveIn *uint256.Int, newFictiveReserveOut *uint256.Int) {
-	if new(uint256.Int).Mul(reserveOut, fictiveReserveIn).Cmp(new(uint256.Int).Mul(reserveIn, fictiveReserveOut)) < 0 {
-		temp := new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Div(new(uint256.Int).Mul(reserveOut, reserveOut), fictiveReserveOut),
-				fictiveReserveIn),
-			reserveIn)
-		newFictiveReserveIn = new(uint256.Int).Add(
-			new(uint256.Int).Div(new(uint256.Int).Mul(temp, fictiveReserveIn), fictiveReserveOut),
-			new(uint256.Int).Div(new(uint256.Int).Mul(reserveOut, fictiveReserveIn), fictiveReserveOut))
-		newFictiveReserveOut = new(uint256.Int).Add(reserveOut, temp)
+	temp0 := new(uint256.Int).Mul(reserveOut, fictiveReserveIn)
+	temp1 := new(uint256.Int).Mul(reserveIn, fictiveReserveOut)
+
+	if temp0.Lt(temp1) {
+		temp0.MulDivOverflow(reserveOut, reserveOut, fictiveReserveOut)
+		temp0.MulDivOverflow(temp0, fictiveReserveIn, reserveIn)
+
+		newFictiveReserveOut = new(uint256.Int).Add(reserveOut, temp0)
+
+		temp0.MulDivOverflow(temp0, fictiveReserveIn, fictiveReserveOut)
+		temp1.MulDivOverflow(reserveOut, fictiveReserveIn, fictiveReserveOut)
+		newFictiveReserveIn = new(uint256.Int).Add(temp0, temp1)
 	} else {
-		newFictiveReserveIn = new(uint256.Int).Add(
-			new(uint256.Int).Div(new(uint256.Int).Mul(fictiveReserveIn, reserveOut), fictiveReserveOut),
-			reserveIn)
-		newFictiveReserveOut = new(uint256.Int).Add(
-			new(uint256.Int).Div(new(uint256.Int).Mul(reserveIn, fictiveReserveOut), fictiveReserveIn),
-			reserveOut)
+		temp0.MulDivOverflow(fictiveReserveIn, reserveOut, fictiveReserveOut)
+		newFictiveReserveIn = new(uint256.Int).Add(temp0, reserveIn)
+
+		temp1.MulDivOverflow(reserveIn, fictiveReserveOut, fictiveReserveIn)
+		newFictiveReserveOut = new(uint256.Int).Add(temp1, reserveOut)
 	}
 
 	// div all values by 4
@@ -217,7 +215,8 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *uint256.Int {
 		feesTotalReversed.Sub(param.feesBase, param.feesLP).Sub(feesTotalReversed, param.feesPool)
 		toSub := new(uint256.Int)
 		toSub.Add(param.feesBase, feesTotalReversed).Sub(toSub, param.feesPool).Mul(toSub, param.fictiveReserveIn)
-		toDiv := new(uint256.Int).Mul(new(uint256.Int).Sub(param.feesBase, param.feesPool), u256.U2)
+		toDiv := new(uint256.Int).Sub(param.feesBase, param.feesPool)
+		toDiv.Mul(toDiv, u256.U2)
 		tmp := new(uint256.Int)
 		tmp.Mul(param.fictiveReserveIn, param.fictiveReserveIn).Mul(tmp, param.feesLP).Mul(tmp, param.feesLP)
 		inSqrt := new(uint256.Int)
@@ -268,7 +267,10 @@ func applyKConstRuleOut(param GetAmountParameters) (amountOut *uint256.Int, newR
 	amountOut = new(uint256.Int).Div(numerator, denominator)
 
 	// update new reserves and add lp-fees to pools
-	amountInWithFeeLp := new(uint256.Int).Div(new(uint256.Int).Add(amountInWithFee, new(uint256.Int).Mul(param.amount, param.feesLP)), param.feesBase)
+	amountInWithFeeLp := new(uint256.Int).Mul(param.amount, param.feesLP)
+	amountInWithFeeLp.Add(amountInWithFeeLp, amountInWithFee)
+	amountInWithFeeLp.Div(amountInWithFeeLp, param.feesBase)
+
 	newReserveIn = new(uint256.Int).Add(param.reserveIn, amountInWithFeeLp)
 	newFictiveReserveIn = new(uint256.Int).Add(param.fictiveReserveIn, amountInWithFeeLp)
 	newReserveOut = new(uint256.Int).Sub(param.reserveOut, amountOut)
