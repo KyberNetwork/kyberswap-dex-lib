@@ -68,6 +68,7 @@ func getAmountOut(param GetAmountParameters) (*GetAmountResult, error) {
 
 	amountInWithFees := new(uint256.Int)
 	amountInWithFees.Mul(param.amount, feesTotalReversed).Div(amountInWithFees, param.feesBase)
+
 	firstAmountIn := computeFirstTradeQtyIn(
 		GetAmountParameters{
 			amount:            amountInWithFees,
@@ -229,7 +230,7 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *uint256.Int {
 		// reverse sqrt check to only compute sqrt if really needed
 		tmp.Mul(param.amount, toDiv).Add(tmp, toSub).Mul(tmp, tmp)
 		if inSqrt.Lt(tmp) {
-			firstAmountIn.Sqrt(inSqrt)
+			firstAmountIn = new(uint256.Int).Sqrt(inSqrt)
 			firstAmountIn.Sub(firstAmountIn, toSub).Div(firstAmountIn, toDiv)
 		}
 	}
