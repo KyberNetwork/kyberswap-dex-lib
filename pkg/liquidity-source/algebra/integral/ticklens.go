@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
@@ -14,7 +15,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {

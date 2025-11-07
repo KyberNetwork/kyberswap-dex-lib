@@ -33,8 +33,7 @@ func FetchTickSpacings(
 				ABI:    poolABI,
 				Target: poolAddress,
 				Method: methodTickSpacing,
-				Params: nil,
-			}, []interface{}{&rpcResponse[j]})
+			}, []any{&rpcResponse[j]})
 		}
 
 		_, err := rpcRequest.TryAggregate()

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -23,7 +24,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type PoolTracker struct {
