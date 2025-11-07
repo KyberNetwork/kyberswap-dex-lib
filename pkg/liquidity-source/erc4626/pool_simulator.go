@@ -3,6 +3,7 @@ package erc4626
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
@@ -202,4 +203,13 @@ func (s *PoolSimulator) getSwapType(tokenIn string, tokenOut string) (SwapType, 
 	}
 
 	return swapType, nil
+}
+
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	switch s.GetExchange() {
+	case valueobject.ExchangeMapleSyrup:
+		return s.Meta["router"].(string)
+	default:
+		return s.GetAddress()
+	}
 }
