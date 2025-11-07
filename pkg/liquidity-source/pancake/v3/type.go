@@ -6,10 +6,9 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {

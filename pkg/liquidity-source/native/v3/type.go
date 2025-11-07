@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type (
