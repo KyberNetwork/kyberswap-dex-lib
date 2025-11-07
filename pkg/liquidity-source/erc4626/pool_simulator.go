@@ -3,6 +3,7 @@ package erc4626
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
@@ -151,7 +152,10 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
-	return Meta{BlockNumber: s.Info.BlockNumber}
+	return MetaInfo{
+		Meta:        s.Meta,
+		BlockNumber: s.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) CanSwapTo(address string) []string {
@@ -199,4 +203,13 @@ func (s *PoolSimulator) getSwapType(tokenIn string, tokenOut string) (SwapType, 
 	}
 
 	return swapType, nil
+}
+
+func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
+	switch s.GetExchange() {
+	case valueobject.ExchangeMapleSyrup:
+		return s.Meta["router"].(string)
+	default:
+		return s.GetAddress()
+	}
 }

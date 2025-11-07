@@ -13,6 +13,8 @@ import (
 const (
 	DexType = "erc4626"
 
+	ExchangeMetaKey = "exchange"
+
 	erc4626MethodAsset          = "asset"
 	erc4626MethodMaxDeposit     = "maxDeposit"
 	erc4626MethodMaxRedeem      = "maxRedeem"

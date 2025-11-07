@@ -232,6 +232,7 @@ const (
 	ExchangeLynex                      = "lynex"
 	ExchangeLynexV1                    = "lynex-v1"
 	ExchangeLyve                       = "lyve"
+	ExchangeMapleSyrup                 = "maple-syrup"
 	ExchangeMDex                       = "mdex"
 	ExchangeMMF                        = "mmf"
 	ExchangeMMFV3                      = "mmf-v3"
@@ -713,6 +714,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLynex:                      {},
 	ExchangeLynexV1:                    {},
 	ExchangeLyve:                       {},
+	ExchangeMapleSyrup:                 {},
 	ExchangeMDex:                       {},
 	ExchangeMMF:                        {},
 	ExchangeMMFV3:                      {},

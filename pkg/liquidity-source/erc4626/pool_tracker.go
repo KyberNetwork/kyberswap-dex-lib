@@ -94,6 +94,7 @@ func updateEntityState(p *entity.Pool, vaultCfg VaultCfg, state *PoolState) erro
 		MaxRedeem:    uint256.MustFromBig(state.MaxRedeem),
 		DepositRates: lo.Map(state.DepositRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
 		RedeemRates:  lo.Map(state.RedeemRates, func(item *big.Int, _ int) *uint256.Int { return uint256.MustFromBig(item) }),
+		Meta:         vaultCfg.Meta,
 	})
 	if err != nil {
 		return errors.WithMessage(err, "json.Marshal extra")
