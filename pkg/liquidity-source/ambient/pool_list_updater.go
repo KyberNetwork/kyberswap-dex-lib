@@ -146,7 +146,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 }
 
 // Ambient uses native token (ETH) instead of ERC20 wrapped native token (WETH) as native reserve.
-// So we exclude any pools involing ERC20 wrapped native token, if any.
+// So we exclude any pools involving ERC20 wrapped native token, if any.
 func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPool) []SubgraphPool {
 	wrappedNativeAddr := common.HexToAddress(u.cfg.NativeTokenAddress)
 	excluded := make([]SubgraphPool, 0, len(pairs))
