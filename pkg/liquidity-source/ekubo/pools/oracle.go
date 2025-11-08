@@ -1,7 +1,7 @@
 package pools
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
@@ -32,7 +32,7 @@ func (p *OraclePool) SetSwapState(state quoting.SwapState) {
 	p.swappedThisBlock = true
 }
 
-func (p *OraclePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *OraclePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	quote, err := p.FullRangePool.Quote(amount, isToken1)
 	if err != nil {
 		return nil, err

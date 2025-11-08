@@ -1,14 +1,13 @@
 package pools
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func TestFullRangePoolQuote(t *testing.T) {
@@ -28,43 +27,43 @@ func TestFullRangePoolQuote(t *testing.T) {
 	t.Run("zero_liquidity", func(t *testing.T) {
 		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
 			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: new(big.Int),
+			Liquidity: new(uint256.Int),
 		})
 
-		quote, err := pool.Quote(big.NewInt(1_000), false)
+		quote, err := pool.Quote(uint256.NewInt(1_000), false)
 		require.NoError(t, err)
 
-		require.Equal(t, bignum.ZeroBI, quote.CalculatedAmount)
+		require.Equal(t, big256.U0, quote.CalculatedAmount)
 	})
 
 	t.Run("with_liqudity_token0_input", func(t *testing.T) {
 		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
 			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: big.NewInt(1_000_000),
+			Liquidity: uint256.NewInt(1_000_000),
 		})
 
-		quote, err := pool.Quote(big.NewInt(1_000), false)
+		quote, err := pool.Quote(uint256.NewInt(1_000), false)
 		require.NoError(t, err)
 
-		require.Equal(t, big.NewInt(999), quote.CalculatedAmount)
+		require.Equal(t, uint256.NewInt(999), quote.CalculatedAmount)
 	})
 
 	t.Run("with_liqudity_token1_input", func(t *testing.T) {
 		pool := NewFullRangePool(poolKey(0), &FullRangePoolState{
 			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: big.NewInt(1_000_000),
+			Liquidity: uint256.NewInt(1_000_000),
 		})
 
-		quote, err := pool.Quote(big.NewInt(1_000), true)
+		quote, err := pool.Quote(uint256.NewInt(1_000), true)
 		require.NoError(t, err)
 
-		require.Equal(t, big.NewInt(999), quote.CalculatedAmount)
+		require.Equal(t, uint256.NewInt(999), quote.CalculatedAmount)
 	})
 
 	t.Run("with_fee", func(t *testing.T) {
@@ -72,13 +71,13 @@ func TestFullRangePoolQuote(t *testing.T) {
 			poolKey(1<<32), // 0.01% fee
 			&FullRangePoolState{
 				FullRangePoolSwapState: &FullRangePoolSwapState{
-					SqrtRatio: math.TwoPow128,
+					SqrtRatio: big256.U2Pow128,
 				},
-				Liquidity: big.NewInt(1_000_000),
+				Liquidity: uint256.NewInt(1_000_000),
 			},
 		)
 
-		quote, err := pool.Quote(big.NewInt(1_000), false)
+		quote, err := pool.Quote(uint256.NewInt(1_000), false)
 		require.NoError(t, err)
 
 		require.Positive(t, quote.FeesPaid.Sign())

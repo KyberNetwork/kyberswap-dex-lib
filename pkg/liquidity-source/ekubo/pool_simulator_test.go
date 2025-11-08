@@ -6,15 +6,16 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -62,31 +63,31 @@ func TestBasePool(t *testing.T) {
 		t,
 		&pools.BasePoolState{
 			BasePoolSwapState: &pools.BasePoolSwapState{
-				SqrtRatio:       bignum.NewBig("13967539110995781342936001321080700"),
-				Liquidity:       big.NewInt(99999),
+				SqrtRatio:       big256.New("13967539110995781342936001321080700"),
+				Liquidity:       uint256.NewInt(99999),
 				ActiveTickIndex: 16,
 			},
 			SortedTicks: []pools.Tick{
-				{Number: -88722000, LiquidityDelta: bignum.NewBig("99999")},
-				{Number: -24124600, LiquidityDelta: bignum.NewBig("103926982998885")},
-				{Number: -24124500, LiquidityDelta: bignum.NewBig("-103926982998885")},
-				{Number: -20236100, LiquidityDelta: bignum.NewBig("20192651866847")},
-				{Number: -20235900, LiquidityDelta: bignum.NewBig("676843433645")},
-				{Number: -20235400, LiquidityDelta: bignum.NewBig("620315686813")},
-				{Number: -20235000, LiquidityDelta: bignum.NewBig("3899271022058")},
-				{Number: -20234900, LiquidityDelta: bignum.NewBig("1985516133391")},
-				{Number: -20233000, LiquidityDelta: bignum.NewBig("2459469409600")},
-				{Number: -20232100, LiquidityDelta: bignum.NewBig("-20192651866847")},
-				{Number: -20231900, LiquidityDelta: bignum.NewBig("-663892969024")},
-				{Number: -20231400, LiquidityDelta: bignum.NewBig("-620315686813")},
-				{Number: -20231000, LiquidityDelta: bignum.NewBig("-3516445235227")},
-				{Number: -20230900, LiquidityDelta: bignum.NewBig("-1985516133391")},
-				{Number: -20229000, LiquidityDelta: bignum.NewBig("-2459469409600")},
-				{Number: -20227900, LiquidityDelta: bignum.NewBig("-12950464621")},
-				{Number: -20227000, LiquidityDelta: bignum.NewBig("-382825786831")},
-				{Number: -2000, LiquidityDelta: bignum.NewBig("140308196")},
-				{Number: 2000, LiquidityDelta: bignum.NewBig("-140308196")},
-				{Number: 88722000, LiquidityDelta: bignum.NewBig("-99999")},
+				{Number: -88722000, LiquidityDelta: big256.SNew("99999")},
+				{Number: -24124600, LiquidityDelta: big256.SNew("103926982998885")},
+				{Number: -24124500, LiquidityDelta: big256.SNew("-103926982998885")},
+				{Number: -20236100, LiquidityDelta: big256.SNew("20192651866847")},
+				{Number: -20235900, LiquidityDelta: big256.SNew("676843433645")},
+				{Number: -20235400, LiquidityDelta: big256.SNew("620315686813")},
+				{Number: -20235000, LiquidityDelta: big256.SNew("3899271022058")},
+				{Number: -20234900, LiquidityDelta: big256.SNew("1985516133391")},
+				{Number: -20233000, LiquidityDelta: big256.SNew("2459469409600")},
+				{Number: -20232100, LiquidityDelta: big256.SNew("-20192651866847")},
+				{Number: -20231900, LiquidityDelta: big256.SNew("-663892969024")},
+				{Number: -20231400, LiquidityDelta: big256.SNew("-620315686813")},
+				{Number: -20231000, LiquidityDelta: big256.SNew("-3516445235227")},
+				{Number: -20230900, LiquidityDelta: big256.SNew("-1985516133391")},
+				{Number: -20229000, LiquidityDelta: big256.SNew("-2459469409600")},
+				{Number: -20227900, LiquidityDelta: big256.SNew("-12950464621")},
+				{Number: -20227000, LiquidityDelta: big256.SNew("-382825786831")},
+				{Number: -2000, LiquidityDelta: big256.SNew("140308196")},
+				{Number: 2000, LiquidityDelta: big256.SNew("-140308196")},
+				{Number: 88722000, LiquidityDelta: big256.SNew("-99999")},
 			},
 			TickBounds: [2]int32{-88722000, 88722000},
 			ActiveTick: -20201601,
@@ -154,9 +155,9 @@ func TestOraclePool(t *testing.T) {
 		t,
 		&pools.OraclePoolState{
 			FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: big.NewInt(10_000_000),
+			Liquidity: uint256.NewInt(10_000_000),
 		},
 		&StaticExtra{
 			PoolKey:       poolKey(0, 0, common.HexToAddress(oracleAddress)),

@@ -41,7 +41,7 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Skip("Skipping testing in CI environment")
 	}
 
-	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.New("https://ethereum.kyberengineering.io").
+	plUpdater := NewPoolListUpdater(&MainnetConfig, ethrpc.New("https://ethereum.drpc.org").
 		SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")))
 
 	newPools, _, err := plUpdater.GetNewPools(context.Background(), nil)

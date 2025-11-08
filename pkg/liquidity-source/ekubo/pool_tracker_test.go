@@ -2,14 +2,15 @@ package ekubo
 
 import (
 	"context"
-	"math/big"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -17,7 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -101,13 +102,13 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 				// State after pool initialization https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#423
 				stateBefore: &pools.BasePoolState{
 					BasePoolSwapState: &pools.BasePoolSwapState{
-						SqrtRatio:       bignum.NewBig("14918731339943421144221696791674880"),
-						Liquidity:       new(big.Int),
+						SqrtRatio:       big256.New("14918731339943421144221696791674880"),
+						Liquidity:       new(uint256.Int),
 						ActiveTickIndex: 0,
 					},
 					SortedTicks: []pools.Tick{
-						{Number: math.MinTick, LiquidityDelta: new(big.Int)},
-						{Number: math.MaxTick, LiquidityDelta: new(big.Int)},
+						{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
+						{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 					},
 					TickBounds: [2]int32{math.MinTick, math.MaxTick},
 					ActiveTick: -20069837,
@@ -115,15 +116,15 @@ func (ts *PoolListTrackerTestSuite) TestPositionUpdated() {
 				// Position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
 				expectedStateAfter: &pools.BasePoolState{
 					BasePoolSwapState: &pools.BasePoolSwapState{
-						SqrtRatio:       bignum.NewBig("14918731339943421144221696791674880"),
-						Liquidity:       big.NewInt(65496697411278),
+						SqrtRatio:       big256.New("14918731339943421144221696791674880"),
+						Liquidity:       uint256.NewInt(65496697411278),
 						ActiveTickIndex: 1,
 					},
 					SortedTicks: []pools.Tick{
-						{Number: math.MinTick, LiquidityDelta: new(big.Int)},
-						{Number: -20452458, LiquidityDelta: big.NewInt(65496697411278)},
-						{Number: -19686762, LiquidityDelta: big.NewInt(-65496697411278)},
-						{Number: math.MaxTick, LiquidityDelta: new(big.Int)},
+						{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
+						{Number: -20452458, LiquidityDelta: int256.NewInt(65496697411278)},
+						{Number: -19686762, LiquidityDelta: int256.NewInt(-65496697411278)},
+						{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 					},
 					TickBounds: [2]int32{math.MinTick, math.MaxTick},
 					ActiveTick: -20069837,
@@ -151,30 +152,30 @@ func (ts *PoolListTrackerTestSuite) TestSwapped() {
 			// State after position update https://etherscan.io/tx/0x6746c17c05cf4e8ba61dd57ef617fbe722b54e21b2ee98607b95fccb8f1a9ab0#eventlog#425
 			stateBefore: &pools.BasePoolState{
 				BasePoolSwapState: &pools.BasePoolSwapState{
-					SqrtRatio:       bignum.NewBig("14918731339943421144221696791674880"),
-					Liquidity:       big.NewInt(65496697411278),
+					SqrtRatio:       big256.New("14918731339943421144221696791674880"),
+					Liquidity:       uint256.NewInt(65496697411278),
 					ActiveTickIndex: 1,
 				},
 				SortedTicks: []pools.Tick{
-					{Number: math.MinTick, LiquidityDelta: new(big.Int)},
-					{Number: -20452458, LiquidityDelta: big.NewInt(65496697411278)},
-					{Number: -19686762, LiquidityDelta: big.NewInt(-65496697411278)},
-					{Number: math.MaxTick, LiquidityDelta: new(big.Int)},
+					{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
+					{Number: -20452458, LiquidityDelta: int256.NewInt(65496697411278)},
+					{Number: -19686762, LiquidityDelta: int256.NewInt(-65496697411278)},
+					{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 				},
 				TickBounds: [2]int32{math.MinTick, math.MaxTick},
 				ActiveTick: -20069837,
 			},
 			expectedStateAfter: &pools.BasePoolState{
 				BasePoolSwapState: &pools.BasePoolSwapState{
-					SqrtRatio:       bignum.NewBig("14918630557421420908805229423624192"),
-					Liquidity:       big.NewInt(65496697411278),
+					SqrtRatio:       big256.New("14918630557421420908805229423624192"),
+					Liquidity:       uint256.NewInt(65496697411278),
 					ActiveTickIndex: 1,
 				},
 				SortedTicks: []pools.Tick{
-					{Number: math.MinTick, LiquidityDelta: new(big.Int)},
-					{Number: -20452458, LiquidityDelta: big.NewInt(65496697411278)},
-					{Number: -19686762, LiquidityDelta: big.NewInt(-65496697411278)},
-					{Number: math.MaxTick, LiquidityDelta: new(big.Int)},
+					{Number: math.MinTick, LiquidityDelta: new(int256.Int)},
+					{Number: -20452458, LiquidityDelta: int256.NewInt(65496697411278)},
+					{Number: -19686762, LiquidityDelta: int256.NewInt(-65496697411278)},
+					{Number: math.MaxTick, LiquidityDelta: new(int256.Int)},
 				},
 				TickBounds: [2]int32{math.MinTick, math.MaxTick},
 				ActiveTick: -20069851,
@@ -202,29 +203,29 @@ func (ts *PoolListTrackerTestSuite) TestVirtualOrdersExecutedAndOrderUpdated() {
 			stateBefore: &pools.TwammPoolState{
 				FullRangePoolState: &pools.FullRangePoolState{
 					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-						SqrtRatio: bignum.NewBig("14505089304818766342758077000843264"),
+						SqrtRatio: big256.New("14505089304818766342758077000843264"),
 					},
-					Liquidity: big.NewInt(42626626336982),
+					Liquidity: uint256.NewInt(42626626336982),
 				},
-				Token0SaleRate:     new(big.Int),
-				Token1SaleRate:     new(big.Int),
+				Token0SaleRate:     new(uint256.Int),
+				Token1SaleRate:     new(uint256.Int),
 				VirtualOrderDeltas: []pools.TwammSaleRateDelta{},
 				LastExecutionTime:  1743799559,
 			},
 			expectedStateAfter: &pools.TwammPoolState{
 				FullRangePoolState: &pools.FullRangePoolState{
 					FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-						SqrtRatio: bignum.NewBig("14505089304818766342758077000843264"),
+						SqrtRatio: big256.New("14505089304818766342758077000843264"),
 					},
-					Liquidity: big.NewInt(42626626336982),
+					Liquidity: uint256.NewInt(42626626336982),
 				},
-				Token0SaleRate: bignum.NewBig("90639807871689353170834"),
-				Token1SaleRate: new(big.Int),
+				Token0SaleRate: big256.New("90639807871689353170834"),
+				Token1SaleRate: new(uint256.Int),
 				VirtualOrderDeltas: []pools.TwammSaleRateDelta{
 					{
 						Time:           1743847424,
-						SaleRateDelta0: bignum.NewBig("-90639807871689353170834"),
-						SaleRateDelta1: new(big.Int),
+						SaleRateDelta0: big256.SNew("-90639807871689353170834"),
+						SaleRateDelta1: new(int256.Int),
 					},
 				},
 				LastExecutionTime: 1743800039,
@@ -250,7 +251,7 @@ func (ts *PoolListTrackerTestSuite) getTxLogs(t *testing.T, txHash string) (uint
 func (ts *PoolListTrackerTestSuite) SetupSuite() {
 	ts.tracker = NewPoolTracker(
 		&MainnetConfig,
-		ethrpc.New("https://ethereum.kyberengineering.io").
+		ethrpc.New("https://ethereum.drpc.org").
 			SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11")),
 	)
 }

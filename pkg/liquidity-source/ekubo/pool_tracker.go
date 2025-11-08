@@ -3,7 +3,6 @@ package ekubo
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"slices"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -93,7 +93,7 @@ func (d *PoolTracker) getNewPoolState(
 		return p, fmt.Errorf("calculating balances: %w", err)
 	}
 
-	p.Reserves = lo.Map(balances, func(v big.Int, _ int) string { return v.String() })
+	p.Reserves = lo.Map(balances, func(v uint256.Int, _ int) string { return v.String() })
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	p.BlockNumber = poolWithBlockNumber.blockNumber
@@ -143,7 +143,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 		}
 
 		var event pools.Event
-		if d.config.Core.Cmp(log.Address) == 0 {
+		if d.config.Core == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventSwapped
 			} else if log.Topics[0] == abis.PositionUpdatedEvent.ID {
@@ -151,7 +151,7 @@ func (d *PoolTracker) applyLogs(params pool.GetNewPoolStateParams, pool *PoolWit
 			} else {
 				continue
 			}
-		} else if d.config.Twamm.Cmp(log.Address) == 0 {
+		} else if d.config.Twamm == log.Address {
 			if len(log.Topics) == 0 {
 				event = pools.EventVirtualOrdersExecuted
 			} else if log.Topics[0] == abis.OrderUpdatedEvent.ID {

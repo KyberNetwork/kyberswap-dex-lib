@@ -78,7 +78,7 @@ func (u *PoolListUpdater) getNewPoolKeys(ctx context.Context) ([]*pools.PoolKey,
 
 	newPoolKeys := make([]*pools.PoolKey, 0)
 	for _, p := range allPools {
-		if p.CoreAddress.Cmp(u.config.Core) != 0 {
+		if p.CoreAddress != u.config.Core {
 			continue
 		}
 

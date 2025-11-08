@@ -1,13 +1,13 @@
 package pools
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 var oraclePoolKey = &PoolKey{
@@ -26,17 +26,17 @@ func TestQuoteToken1Input(t *testing.T) {
 		oraclePoolKey,
 		&OraclePoolState{
 			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: big.NewInt(1_000_000_000),
+			Liquidity: uint256.NewInt(1_000_000_000),
 		},
 	)
 
-	quote, err := p.Quote(big.NewInt(1000), true)
+	quote, err := p.Quote(uint256.NewInt(1000), true)
 	require.NoError(t, err)
 
-	require.Zero(t, quote.CalculatedAmount.Cmp(big.NewInt(999)))
-	require.Zero(t, quote.ConsumedAmount.Cmp(big.NewInt(1000)))
+	require.Equal(t, uint256.NewInt(999), quote.CalculatedAmount)
+	require.Equal(t, uint256.NewInt(1000), quote.ConsumedAmount)
 }
 
 func TestQuoteToken0Input(t *testing.T) {
@@ -45,15 +45,15 @@ func TestQuoteToken0Input(t *testing.T) {
 		oraclePoolKey,
 		&OraclePoolState{
 			FullRangePoolSwapState: &FullRangePoolSwapState{
-				SqrtRatio: math.TwoPow128,
+				SqrtRatio: big256.U2Pow128,
 			},
-			Liquidity: big.NewInt(1_000_000_000),
+			Liquidity: uint256.NewInt(1_000_000_000),
 		},
 	)
 
-	quote, err := p.Quote(big.NewInt(1000), false)
+	quote, err := p.Quote(uint256.NewInt(1000), false)
 	require.NoError(t, err)
 
-	require.Zero(t, quote.CalculatedAmount.Cmp(big.NewInt(999)))
-	require.Zero(t, quote.ConsumedAmount.Cmp(big.NewInt(1000)))
+	require.Equal(t, uint256.NewInt(999), quote.CalculatedAmount)
+	require.Equal(t, uint256.NewInt(1000), quote.ConsumedAmount)
 }

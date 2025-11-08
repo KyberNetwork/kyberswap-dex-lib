@@ -2,114 +2,100 @@ package math
 
 import (
 	"fmt"
-	"math/big"
+
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type SwapResult struct {
-	ConsumedAmount   *big.Int
-	CalculatedAmount *big.Int
-	SqrtRatioNext    *big.Int
-	FeeAmount        *big.Int
+	ConsumedAmount   *uint256.Int
+	CalculatedAmount *uint256.Int
+	SqrtRatioNext    *uint256.Int
+	FeeAmount        *uint256.Int
 }
 
-func IsPriceIncreasing(amount *big.Int, isToken1 bool) bool {
-	return (amount.Sign() == -1) != isToken1
+func IsPriceIncreasing(amount *uint256.Int, isToken1 bool) bool {
+	return (amount.Sign() < 0) != isToken1
 }
 
-func AmountBeforeFee(afterFee *big.Int, fee uint64) (*big.Int, error) {
+func AmountBeforeFee(afterFee *uint256.Int, fee uint64) (*uint256.Int, error) {
+	var tmp, tmp2 uint256.Int
 	result, err := div(
-		new(big.Int).Lsh(afterFee, 64),
-		new(big.Int).Sub(TwoPow64, new(big.Int).SetUint64(fee)),
+		tmp.Lsh(afterFee, 64),
+		tmp2.SubUint64(big256.U2Pow64, fee),
 		true,
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	if result.BitLen() > 128 {
+	} else if result.BitLen() > 128 {
 		return nil, ErrOverflow
 	}
 
 	return result, nil
 }
 
-func ComputeFee(amount *big.Int, fee uint64) *big.Int {
+func ComputeFee(amount *uint256.Int, fee uint64) *uint256.Int {
 	result, _ := MulDivOverflow(
 		amount,
-		new(big.Int).SetUint64(fee),
-		TwoPow64,
+		new(uint256.Int).SetUint64(fee),
+		big256.U2Pow64,
 		true,
 	)
 
 	return result
 }
 
-func noOp(sqrtRatioNext *big.Int) *SwapResult {
+func noOp(sqrtRatioNext *uint256.Int) *SwapResult {
 	return &SwapResult{
-		ConsumedAmount:   new(big.Int),
-		CalculatedAmount: new(big.Int),
-		SqrtRatioNext:    new(big.Int).Set(sqrtRatioNext),
-		FeeAmount:        new(big.Int),
+		ConsumedAmount:   new(uint256.Int),
+		CalculatedAmount: new(uint256.Int),
+		SqrtRatioNext:    new(uint256.Int).Set(sqrtRatioNext),
+		FeeAmount:        new(uint256.Int),
 	}
 }
 
 func ComputeStep(
-	sqrtRatio, liquidity, sqrtRatioLimit, amount *big.Int,
+	sqrtRatio, liquidity, sqrtRatioLimit, amount *uint256.Int,
 	isToken1 bool,
 	fee uint64,
 ) (*SwapResult, error) {
-	if amount.Sign() == 0 || sqrtRatio.Cmp(sqrtRatioLimit) == 0 {
+	if amount.IsZero() || sqrtRatio.Eq(sqrtRatioLimit) {
 		return noOp(sqrtRatio), nil
 	}
 
 	increasing := IsPriceIncreasing(amount, isToken1)
-
-	if (sqrtRatioLimit.Cmp(sqrtRatio) == -1) == increasing {
+	if sqrtRatioLimit.Lt(sqrtRatio) == increasing {
 		return nil, ErrWrongSwapDirection
-	}
-
-	if liquidity.Sign() == 0 {
+	} else if liquidity.IsZero() {
 		return noOp(sqrtRatioLimit), nil
 	}
 
-	isExactIn := amount.Sign() == 1
-	isExactOut := amount.Sign() == -1
-
-	var priceImpactAmount *big.Int
+	isExactIn, isExactOut := amount.Sign() > 0, amount.Sign() < 0
+	var priceImpactAmount *uint256.Int
 	if isExactOut {
-		priceImpactAmount = new(big.Int).Set(amount)
+		priceImpactAmount = amount.Clone()
 	} else {
 		fee := ComputeFee(amount, fee)
 		priceImpactAmount = fee.Sub(amount, fee)
 	}
 
-	var (
-		sqrtRatioNext *big.Int
-		err           error
-	)
-	if isToken1 {
-		sqrtRatioNext, err = nextSqrtRatioFromAmount1(sqrtRatio, liquidity, priceImpactAmount)
-	} else {
-		sqrtRatioNext, err = nextSqrtRatioFromAmount0(sqrtRatio, liquidity, priceImpactAmount)
-	}
-
+	sqrtRatioNext, err := lo.Ternary(isToken1, nextSqrtRatioFromAmount1, nextSqrtRatioFromAmount0)(
+		sqrtRatio, liquidity, priceImpactAmount)
 	if err == nil {
-		if (sqrtRatioNext.Cmp(sqrtRatioLimit) != 1) == increasing {
-			if sqrtRatioNext.Cmp(sqrtRatio) == 0 {
+		if sqrtRatioNext.Gt(sqrtRatioLimit) != increasing {
+			if sqrtRatioNext.Eq(sqrtRatio) {
 				return &SwapResult{
-					ConsumedAmount:   new(big.Int).Set(amount),
-					CalculatedAmount: new(big.Int),
-					SqrtRatioNext:    new(big.Int).Set(sqrtRatio),
-					FeeAmount:        new(big.Int).Abs(amount),
+					ConsumedAmount:   new(uint256.Int).Set(amount),
+					CalculatedAmount: new(uint256.Int),
+					SqrtRatioNext:    new(uint256.Int).Set(sqrtRatio),
+					FeeAmount:        new(uint256.Int).Abs(amount),
 				}, nil
 			}
 
-			var calculatedAmountExcludingFee *big.Int
-			if isToken1 {
-				calculatedAmountExcludingFee, err = Amount0Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
-			} else {
-				calculatedAmountExcludingFee, err = Amount1Delta(sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
-			}
+			calculatedAmountExcludingFee, err := lo.Ternary(isToken1, Amount0Delta, Amount1Delta)(
+				sqrtRatioNext, sqrtRatio, liquidity, isExactOut)
 			if err != nil {
 				return nil, err
 			}
@@ -121,23 +107,24 @@ func ComputeStep(
 				}
 
 				return &SwapResult{
-					ConsumedAmount:   new(big.Int).Set(amount),
+					ConsumedAmount:   new(uint256.Int).Set(amount),
 					CalculatedAmount: includingFee,
 					SqrtRatioNext:    sqrtRatioNext,
-					FeeAmount:        new(big.Int).Sub(includingFee, calculatedAmountExcludingFee),
+					FeeAmount:        new(uint256.Int).Sub(includingFee, calculatedAmountExcludingFee),
 				}, nil
 			}
 
 			return &SwapResult{
-				ConsumedAmount:   new(big.Int).Set(amount),
+				ConsumedAmount:   new(uint256.Int).Set(amount),
 				CalculatedAmount: calculatedAmountExcludingFee,
 				SqrtRatioNext:    sqrtRatioNext,
-				FeeAmount:        new(big.Int).Sub(new(big.Int).Abs(amount), priceImpactAmount.Abs(priceImpactAmount)),
+				FeeAmount: new(uint256.Int).Sub(new(uint256.Int).Abs(amount),
+					priceImpactAmount.Abs(priceImpactAmount)),
 			}, nil
 		}
 	}
 
-	var specifiedAmountDelta, calculatedAmountDelta *big.Int
+	var specifiedAmountDelta, calculatedAmountDelta *uint256.Int
 	if isToken1 {
 		specifiedAmountDelta, err = Amount1Delta(sqrtRatioLimit, sqrtRatio, liquidity, isExactIn)
 		if err != nil {
@@ -173,7 +160,7 @@ func ComputeStep(
 		return &SwapResult{
 			ConsumedAmount:   specifiedAmountDelta.Neg(specifiedAmountDelta),
 			CalculatedAmount: beforeFee,
-			SqrtRatioNext:    new(big.Int).Set(sqrtRatioLimit),
+			SqrtRatioNext:    new(uint256.Int).Set(sqrtRatioLimit),
 			FeeAmount:        calculatedAmountDelta.Sub(beforeFee, calculatedAmountDelta),
 		}, nil
 	} else {
@@ -189,7 +176,7 @@ func ComputeStep(
 		return &SwapResult{
 			ConsumedAmount:   beforeFee,
 			CalculatedAmount: calculatedAmountDelta,
-			SqrtRatioNext:    new(big.Int).Set(sqrtRatioLimit),
+			SqrtRatioNext:    new(uint256.Int).Set(sqrtRatioLimit),
 			FeeAmount:        specifiedAmountDelta.Sub(beforeFee, specifiedAmountDelta),
 		}, nil
 	}

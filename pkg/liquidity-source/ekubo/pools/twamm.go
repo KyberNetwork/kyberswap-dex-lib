@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
 	"slices"
 	"time"
+
+	"github.com/KyberNetwork/int256"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math/twamm"
@@ -15,29 +18,29 @@ import (
 
 type TwammPoolSwapState struct {
 	*FullRangePoolSwapState
-	Token0SaleRate    *big.Int `json:"token0SaleRate"`
-	Token1SaleRate    *big.Int `json:"token1SaleRate"`
-	LastExecutionTime uint64   `json:"lastExecutionTime"`
+	Token0SaleRate    *uint256.Int `json:"token0SaleRate"`
+	Token1SaleRate    *uint256.Int `json:"token1SaleRate"`
+	LastExecutionTime uint64       `json:"lastExecutionTime"`
 }
 
 type TwammPoolState struct {
 	*FullRangePoolState
-	Token0SaleRate     *big.Int             `json:"token0SaleRate"`
-	Token1SaleRate     *big.Int             `json:"token1SaleRate"`
+	Token0SaleRate     *uint256.Int         `json:"token0SaleRate"`
+	Token1SaleRate     *uint256.Int         `json:"token1SaleRate"`
 	LastExecutionTime  uint64               `json:"lastExecutionTime"`
 	VirtualOrderDeltas []TwammSaleRateDelta `json:"virtualOrderDeltas"`
 }
 
 type TwammSaleRateDelta struct {
-	Time           uint64   `json:"time"`
-	SaleRateDelta0 *big.Int `json:"saleRateDelta0"`
-	SaleRateDelta1 *big.Int `json:"saleRateDelta1"`
+	Time           uint64      `json:"time"`
+	SaleRateDelta0 *int256.Int `json:"saleRateDelta0"`
+	SaleRateDelta1 *int256.Int `json:"saleRateDelta1"`
 }
 
 type TwammPool struct {
 	*FullRangePool
-	token0SaleRate     *big.Int
-	token1SaleRate     *big.Int
+	token0SaleRate     *uint256.Int
+	token1SaleRate     *uint256.Int
 	lastExecutionTime  uint64
 	virtualOrderDeltas []TwammSaleRateDelta
 }
@@ -77,14 +80,17 @@ func (p *TwammPool) SetSwapState(state quoting.SwapState) {
 	p.lastExecutionTime = twammState.LastExecutionTime
 }
 
-func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimateTimestampFn func() uint64) (*quoting.Quote, error) {
+func (p *TwammPool) quoteWithTimestampFn(amount *uint256.Int, isToken1 bool,
+	estimateTimestampFn func() uint64) (*quoting.Quote, error) {
 	currentTime := max(estimateTimestampFn(), p.lastExecutionTime)
 
 	nextSqrtRatio := p.SqrtRatio
-	token0SaleRate, token1SaleRate := new(big.Int).Set(p.token0SaleRate), new(big.Int).Set(p.token1SaleRate)
+	var token0SaleRate, token1SaleRate, tmp, tmp2 uint256.Int
+	token0SaleRate.Set(p.token0SaleRate)
+	token1SaleRate.Set(p.token1SaleRate)
 	lastExecutionTime := p.lastExecutionTime
 
-	virtualOrderDeltaTimesCrossed := int64(0)
+	var virtualOrderDeltaTimesCrossed int64
 	nextSaleRateDeltaIndex := slices.IndexFunc(p.virtualOrderDeltas, func(srd TwammSaleRateDelta) bool {
 		return srd.Time > lastExecutionTime
 	})
@@ -110,80 +116,60 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 			return nil, errors.New("too much time passed since last execution")
 		}
 
-		timeElapsedBig := new(big.Int).SetUint64(timeElapsed)
+		timeElapsedBig := tmp.SetUint64(timeElapsed)
 
-		amount0 := new(big.Int).Rsh(new(big.Int).Mul(token0SaleRate, timeElapsedBig), 32)
-		amount1 := new(big.Int).Rsh(new(big.Int).Mul(token1SaleRate, timeElapsedBig), 32)
+		amount0 := tmp2.Rsh(tmp2.Mul(&token0SaleRate, timeElapsedBig), 32)
+		amount1 := tmp.Rsh(tmp.Mul(&token1SaleRate, timeElapsedBig), 32)
 
-		if amount0.Sign() == 1 && amount1.Sign() == 1 {
+		if amount0.Sign() > 0 && amount1.Sign() > 0 {
 			currentSqrtRatio := nextSqrtRatio
-			if currentSqrtRatio.Cmp(ekubomath.MinSqrtRatio) == -1 {
+			if currentSqrtRatio.Lt(ekubomath.MinSqrtRatio) {
 				currentSqrtRatio = ekubomath.MinSqrtRatio
-			} else if currentSqrtRatio.Cmp(ekubomath.MaxSqrtRatio) == 1 {
+			} else if currentSqrtRatio.Gt(ekubomath.MaxSqrtRatio) {
 				currentSqrtRatio = ekubomath.MaxSqrtRatio
 			}
 
 			nextSqrtRatio = twamm.CalculateNextSqrtRatio(
 				currentSqrtRatio,
 				p.Liquidity,
-				token0SaleRate,
-				token1SaleRate,
+				&token0SaleRate,
+				&token1SaleRate,
 				uint32(timeElapsed),
 				p.GetKey().Config.Fee,
 			)
 
-			var (
-				amount   *big.Int
-				isToken1 bool
-			)
-			if currentSqrtRatio.Cmp(nextSqrtRatio) == -1 {
-				amount, isToken1 = amount1, true
-			} else {
-				amount, isToken1 = amount0, false
-			}
-
+			isToken1 := currentSqrtRatio.Lt(nextSqrtRatio)
+			amount := lo.Ternary(isToken1, amount1, amount0)
 			quote, err := p.quoteWithLimitAndOverride(amount, isToken1, nextSqrtRatio, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
 
 			fullRangePoolSwapStateOverride = quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
-		} else if amount0.Sign() == 1 || amount1.Sign() == 1 {
-			var (
-				amount   *big.Int
-				isToken1 bool
-			)
-			if amount0.Sign() != 0 {
-				amount, isToken1 = amount0, false
-			} else {
-				amount, isToken1 = amount1, true
-			}
-
+		} else if amount0.Sign() > 0 || amount1.Sign() > 0 {
+			isToken1 := amount0.IsZero()
+			amount := lo.Ternary(isToken1, amount1, amount0)
 			quote, err := p.quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
 			if err != nil {
 				return nil, fmt.Errorf("virtual order full range pool quote: %w", err)
 			}
 
 			fullRangePoolSwapStateOverride = quote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState)
-
 			nextSqrtRatio = fullRangePoolSwapStateOverride.SqrtRatio
 		}
 
-		if saleRateDelta != nil {
-			if saleRateDelta.Time == nextExecutionTime {
-				token0SaleRate.Add(token0SaleRate, saleRateDelta.SaleRateDelta0)
-				token1SaleRate.Add(token1SaleRate, saleRateDelta.SaleRateDelta1)
+		if saleRateDelta != nil && saleRateDelta.Time == nextExecutionTime {
+			token0SaleRate.Add(&token0SaleRate, (*uint256.Int)(saleRateDelta.SaleRateDelta0))
+			token1SaleRate.Add(&token1SaleRate, (*uint256.Int)(saleRateDelta.SaleRateDelta1))
 
-				nextSaleRateDeltaIndex++
-				virtualOrderDeltaTimesCrossed++
-			}
+			nextSaleRateDeltaIndex++
+			virtualOrderDeltaTimesCrossed++
 		}
 
 		lastExecutionTime = nextExecutionTime
 	}
 
-	finalQuote, err := p.
-		quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
+	finalQuote, err := p.quoteWithLimitAndOverride(amount, isToken1, nil, fullRangePoolSwapStateOverride)
 	if err != nil {
 		return nil, fmt.Errorf("final full range pool quote: %w", err)
 	}
@@ -203,8 +189,8 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 			IsToken1:  isToken1,
 			SwapStateAfter: &TwammPoolSwapState{
 				FullRangePoolSwapState: finalQuote.SwapInfo.SwapStateAfter.(*FullRangePoolSwapState),
-				Token0SaleRate:         token0SaleRate,
-				Token1SaleRate:         token1SaleRate,
+				Token0SaleRate:         &token0SaleRate,
+				Token1SaleRate:         &token1SaleRate,
 				LastExecutionTime:      currentTime,
 			},
 			TickSpacingsCrossed: 0,
@@ -214,7 +200,7 @@ func (p *TwammPool) quoteWithTimestampFn(amount *big.Int, isToken1 bool, estimat
 
 const slotDuration = 12
 
-func (p *TwammPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *TwammPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	return p.quoteWithTimestampFn(amount, isToken1, func() uint64 {
 		return uint64(time.Now().Unix()) + slotDuration
 	})

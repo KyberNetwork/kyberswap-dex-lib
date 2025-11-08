@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	q128   = big256.TwoPow128
+	q128   = big256.U2Pow128
 	q128x2 = new(uint256.Int).Mul(q128, big256.U2)
 
 	ErrInvalidToken            = errors.New("invalid token")
