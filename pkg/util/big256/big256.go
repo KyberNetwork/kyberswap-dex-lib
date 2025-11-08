@@ -1,9 +1,10 @@
-package bignumber
+package big256
 
 import (
 	"math"
 	"math/big"
 
+	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
@@ -11,9 +12,12 @@ import (
 )
 
 var (
-	TwoPow64  = new(uint256.Int).Lsh(U1, 64)
-	TwoPow128 = new(uint256.Int).Lsh(U1, 128)
-	UMax      = new(uint256.Int).SetAllOne()
+	U2Pow32     = new(uint256.Int).Lsh(U1, 32)
+	U2Pow64     = new(uint256.Int).Lsh(U1, 64)
+	U2Pow127    = new(uint256.Int).Lsh(U1, 127)
+	U2Pow128    = new(uint256.Int).Lsh(U1, 128)
+	UMaxUint128 = new(uint256.Int).SubUint64(U2Pow128, 1)
+	UMax        = new(uint256.Int).SetAllOne()
 
 	U0   = uint256.NewInt(0)
 	U1   = uint256.NewInt(1)
@@ -59,6 +63,19 @@ func New(s string) *uint256.Int {
 	return res
 }
 
+func SNew(s string) *int256.Int {
+	res, _ := int256.FromDec(s)
+	return res
+}
+
+func SInt256(i *uint256.Int) *int256.Int {
+	return (*int256.Int)(i).Clone()
+}
+
+func SNeg(i *uint256.Int) *int256.Int {
+	return new(int256.Int).Neg((*int256.Int)(i))
+}
+
 func NewUint256(s string) (res *uint256.Int, err error) {
 	res = new(uint256.Int)
 	err = res.SetFromDecimal(s)
@@ -68,6 +85,20 @@ func NewUint256(s string) (res *uint256.Int, err error) {
 func FromBig(big *big.Int) *uint256.Int {
 	u, _ := uint256.FromBig(big)
 	return u
+}
+
+func SFromBig(big *big.Int) *int256.Int {
+	i, _ := int256.FromBig(big)
+	return i
+}
+
+func ToBig(u *uint256.Int) *big.Int {
+	if u.Sign() < 0 {
+		n := u.Clone()
+		b := n.Neg(n).ToBig()
+		return b.Neg(b)
+	}
+	return u.ToBig()
 }
 
 func MustFromBigs[S ~[]*big.Int](bigs S) []*uint256.Int {

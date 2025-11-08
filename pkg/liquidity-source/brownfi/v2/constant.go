@@ -41,9 +41,9 @@ var (
 		valueobject.ChainIDLinea:       common.HexToAddress("0x3F0bBeEdEa5E5F63a14cBdA82718d4f25501fBeA"),
 	}
 
-	q64       = big256.TwoPow64
+	q64       = big256.U2Pow64
 	q64x2     = new(uint256.Int).Mul(q64, big256.U2)
-	q128      = big256.TwoPow128
+	q128      = big256.U2Pow128
 	precision = big256.TenPow(8)
 
 	ErrResponseRaced         = errors.New("response raced")

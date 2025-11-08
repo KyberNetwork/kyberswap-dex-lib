@@ -9,10 +9,14 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/int256"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type Event int
@@ -27,11 +31,11 @@ const (
 type (
 	swappedEvent struct {
 		tickAfter      int32
-		sqrtRatioAfter *big.Int
-		liquidityAfter *big.Int
+		sqrtRatioAfter *uint256.Int
+		liquidityAfter *uint256.Int
 	}
 	positionUpdatedEvent struct {
-		liquidityDelta *big.Int
+		liquidityDelta *int256.Int
 		lower          int32
 		upper          int32
 	}
@@ -49,8 +53,8 @@ func parseSwappedEventIfMatching(data []byte, poolKey *PoolKey) (*swappedEvent, 
 
 	return &swappedEvent{
 		tickAfter:      int32(binary.BigEndian.Uint32(data[112:116])),
-		sqrtRatioAfter: math.FloatSqrtRatioToFixed(new(big.Int).SetBytes(data[100:112])),
-		liquidityAfter: new(big.Int).SetBytes(data[84:100]),
+		sqrtRatioAfter: math.FloatSqrtRatioToFixed(new(uint256.Int).SetBytes(data[100:112])),
+		liquidityAfter: new(uint256.Int).SetBytes(data[84:100]),
 	}, nil
 }
 
@@ -91,7 +95,7 @@ func parsePositionUpdatedEventIfMatching(data []byte, poolKey *PoolKey) (*positi
 	}
 
 	return &positionUpdatedEvent{
-		liquidityDelta: params.LiquidityDelta,
+		liquidityDelta: int256.MustFromBig(params.LiquidityDelta),
 		lower:          params.Bounds.Lower,
 		upper:          params.Bounds.Upper,
 	}, nil
@@ -124,10 +128,10 @@ func (p *BasePool) ApplyEvent(event Event, data []byte, _ uint64) error {
 		p.ActiveTickIndex = NearestInitializedTickIndex(p.SortedTicks, p.ActiveTick)
 
 		if p.ActiveTick >= lower && p.ActiveTick < upper {
-			p.Liquidity.Add(p.Liquidity, liquidityDelta)
+			p.Liquidity.Add(p.Liquidity, (*uint256.Int)(liquidityDelta))
 		}
+	default:
 	}
-
 	return nil
 }
 
@@ -147,9 +151,9 @@ func (p *FullRangePool) ApplyEvent(event Event, data []byte, _ uint64) error {
 			return err
 		}
 
-		p.Liquidity.Add(p.Liquidity, event.liquidityDelta)
+		p.Liquidity.Add(p.Liquidity, (*uint256.Int)(event.liquidityDelta))
+	default:
 	}
-
 	return nil
 }
 
@@ -190,25 +194,15 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 		}
 
 		var token0, token1 common.Address
-		if orderKey.BuyToken.Cmp(orderKey.SellToken) == 1 {
+		if orderKey.BuyToken.Cmp(orderKey.SellToken) > 0 {
 			token0, token1 = orderKey.SellToken, orderKey.BuyToken
 		} else {
 			token0, token1 = orderKey.BuyToken, orderKey.SellToken
 		}
 
 		poolKey := p.GetKey()
-
-		if poolKey.Token0.Cmp(token0) != 0 || poolKey.Token1.Cmp(token1) != 0 || poolKey.Config.Fee != orderKey.Fee {
+		if poolKey.Token0 != token0 || poolKey.Token1 != token1 || poolKey.Config.Fee != orderKey.Fee {
 			return nil
-		}
-
-		sellsToken1 := orderKey.SellToken.Cmp(token1) == 0
-
-		var affectedSaleRate *big.Int
-		if sellsToken1 {
-			affectedSaleRate = p.token1SaleRate
-		} else {
-			affectedSaleRate = p.token0SaleRate
 		}
 
 		saleRateDelta, ok := values[3].(*big.Int)
@@ -217,23 +211,25 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 		}
 
 		startIdx := 0
-
+		sellsToken1 := orderKey.SellToken == token1
+		affectedSaleRate := lo.Ternary(sellsToken1, p.token1SaleRate, p.token0SaleRate)
+		uSaleRateDelta := big256.SFromBig(saleRateDelta)
 		orderBoundaries := [2]struct {
-			time          *big.Int
-			saleRateDelta *big.Int
+			time          uint64
+			saleRateDelta *int256.Int
 		}{
 			{
-				time:          orderKey.StartTime,
-				saleRateDelta: saleRateDelta,
+				time:          orderKey.StartTime.Uint64(),
+				saleRateDelta: uSaleRateDelta,
 			},
 			{
-				time:          orderKey.EndTime,
-				saleRateDelta: new(big.Int).Neg(saleRateDelta),
+				time:          orderKey.EndTime.Uint64(),
+				saleRateDelta: new(int256.Int).Neg(uSaleRateDelta),
 			},
 		}
 
 		for _, orderBoundary := range orderBoundaries {
-			time := orderBoundary.time.Uint64()
+			time := orderBoundary.time
 
 			if time > p.lastExecutionTime {
 				idx, found := slices.BinarySearchFunc(p.virtualOrderDeltas[startIdx:], time, func(srd TwammSaleRateDelta, time uint64) int {
@@ -248,24 +244,19 @@ func (p *TwammPool) ApplyEvent(event Event, data []byte, blockTimestamp uint64) 
 						idx,
 						TwammSaleRateDelta{
 							Time:           time,
-							SaleRateDelta0: new(big.Int),
-							SaleRateDelta1: new(big.Int),
+							SaleRateDelta0: new(int256.Int),
+							SaleRateDelta1: new(int256.Int),
 						},
 					)
 				}
 
 				orderDelta := &p.virtualOrderDeltas[idx]
-				var affectedSaleRateDelta *big.Int
-				if sellsToken1 {
-					affectedSaleRateDelta = orderDelta.SaleRateDelta1
-				} else {
-					affectedSaleRateDelta = orderDelta.SaleRateDelta0
-				}
+				affectedSaleRateDelta := lo.Ternary(sellsToken1, orderDelta.SaleRateDelta1, orderDelta.SaleRateDelta0)
 				affectedSaleRateDelta.Add(affectedSaleRateDelta, orderBoundary.saleRateDelta)
 
 				startIdx = idx + 1
 			} else {
-				affectedSaleRate.Add(affectedSaleRate, orderBoundary.saleRateDelta)
+				affectedSaleRate.Add(affectedSaleRate, (*uint256.Int)(orderBoundary.saleRateDelta))
 			}
 		}
 	default:

@@ -7,11 +7,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -69,18 +72,19 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, fmt.Errorf("ekubo quoting: %w", err)
 	}
 
+	consumedAmount := quote.ConsumedAmount.ToBig()
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  params.TokenOut,
-			Amount: quote.CalculatedAmount,
+			Amount: quote.CalculatedAmount.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  params.TokenAmountIn.Token,
-			Amount: quote.FeesPaid,
+			Amount: quote.FeesPaid.ToBig(),
 		},
 		RemainingTokenAmountIn: &pool.TokenAmount{
 			Token:  params.TokenAmountIn.Token,
-			Amount: new(big.Int).Sub(params.TokenAmountIn.Amount, quote.ConsumedAmount),
+			Amount: consumedAmount.Sub(params.TokenAmountIn.Amount, consumedAmount),
 		},
 		Gas:      quote.Gas,
 		SwapInfo: quote.SwapInfo,
@@ -99,40 +103,41 @@ func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 		return nil, fmt.Errorf("ekubo quoting: %w", err)
 	}
 
+	consumedAmount := big256.ToBig(quote.ConsumedAmount)
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  params.TokenIn,
-			Amount: quote.CalculatedAmount,
+			Amount: quote.CalculatedAmount.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  params.TokenIn,
-			Amount: quote.FeesPaid,
+			Amount: quote.FeesPaid.ToBig(),
 		},
 		RemainingTokenAmountOut: &pool.TokenAmount{
 			Token:  params.TokenAmountOut.Token,
-			Amount: new(big.Int).Add(params.TokenAmountOut.Amount, quote.ConsumedAmount),
+			Amount: consumedAmount.Add(params.TokenAmountOut.Amount, consumedAmount),
 		},
 		Gas:      quote.Gas,
 		SwapInfo: quote.SwapInfo,
 	}, nil
 }
 
-func (p *PoolSimulator) quoteWithZeroChecksAndBaseGasCost(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
-	if amount.Sign() == 0 {
+func (p *PoolSimulator) quoteWithZeroChecksAndBaseGasCost(amountBig *big.Int, isToken1 bool) (*quoting.Quote, error) {
+	amount, overflow := uint256.FromBig(amountBig)
+	if overflow {
+		return nil, math.ErrOverflow
+	} else if amount.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
 	quote, err := p.Quote(amount, isToken1)
 	if err != nil {
 		return nil, err
-	}
-
-	if quote.CalculatedAmount.Sign() == 0 {
+	} else if quote.CalculatedAmount.IsZero() {
 		return nil, ErrZeroAmount
 	}
 
 	quote.Gas += quoting.BaseGasCost
-
 	return quote, nil
 }
 

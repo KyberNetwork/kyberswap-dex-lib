@@ -38,7 +38,7 @@ func pow(x, y *uint256.Int) (*uint256.Int, error) {
 		result.Set(_SCALE)
 		squared.Set(x)
 
-		if x.Cmp(big256.TwoPow128) >= 0 {
+		if x.Cmp(big256.U2Pow128) >= 0 {
 			squared.Div(big256.UMax, &squared)
 			invert = !invert
 		}

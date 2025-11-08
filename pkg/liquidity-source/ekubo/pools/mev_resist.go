@@ -3,7 +3,8 @@ package pools
 import (
 	"fmt"
 	"math"
-	"math/big"
+
+	"github.com/holiman/uint256"
 
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
@@ -37,7 +38,7 @@ func (p *MevResistPool) SetSwapState(state quoting.SwapState) {
 	p.swappedThisBlock = true
 }
 
-func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *MevResistPool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	quote, err := p.BasePool.Quote(amount, isToken1)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func (p *MevResistPool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, e
 	} else {
 		// exact output, add the additional fee to the output
 		inputAmountFee := ekubomath.ComputeFee(calculatedAmount, poolConfig.Fee)
-		inputAmount := new(big.Int).Sub(calculatedAmount, inputAmountFee)
+		inputAmount := inputAmountFee.Sub(calculatedAmount, inputAmountFee)
 
 		bf, err := ekubomath.AmountBeforeFee(inputAmount, fixedPointAdditionalFee)
 		if err != nil {

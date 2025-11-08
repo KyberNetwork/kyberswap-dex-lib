@@ -2,19 +2,20 @@ package pools
 
 import (
 	"fmt"
-	"math/big"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
 type FullRangePoolSwapState struct {
-	SqrtRatio *big.Int `json:"sqrtRatio"`
+	SqrtRatio *uint256.Int `json:"sqrtRatio"`
 }
 
 type FullRangePoolState struct {
 	*FullRangePoolSwapState
-	Liquidity *big.Int `json:"liquidity"`
+	Liquidity *uint256.Int `json:"liquidity"`
 }
 
 type FullRangePool struct {
@@ -49,11 +50,11 @@ func (p *FullRangePool) SetSwapState(state quoting.SwapState) {
 	p.FullRangePoolSwapState = state.(*FullRangePoolSwapState)
 }
 
-func (p *FullRangePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
+func (p *FullRangePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
 	return p.quoteWithLimitAndOverride(amount, isToken1, nil, nil)
 }
 
-func (p *FullRangePool) quoteWithLimitAndOverride(amount *big.Int, isToken1 bool, sqrtRatioLimit *big.Int, overrideState *FullRangePoolSwapState) (*quoting.Quote, error) {
+func (p *FullRangePool) quoteWithLimitAndOverride(amount *uint256.Int, isToken1 bool, sqrtRatioLimit *uint256.Int, overrideState *FullRangePoolSwapState) (*quoting.Quote, error) {
 	var state *FullRangePoolSwapState
 	if overrideState == nil {
 		state = p.FullRangePoolSwapState

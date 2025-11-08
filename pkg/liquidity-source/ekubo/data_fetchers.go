@@ -14,15 +14,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 type BasicQuoteData struct {
-	Tick           int32        `json:"tick"`
-	SqrtRatioFloat *big.Int     `json:"sqrtRatio"`
-	Liquidity      *big.Int     `json:"liquidity"`
-	MinTick        int32        `json:"minTick"`
-	MaxTick        int32        `json:"maxTick"`
-	Ticks          []pools.Tick `json:"ticks"`
+	Tick           int32           `json:"tick"`
+	SqrtRatioFloat *big.Int        `json:"sqrtRatio"`
+	Liquidity      *big.Int        `json:"liquidity"`
+	MinTick        int32           `json:"minTick"`
+	MaxTick        int32           `json:"maxTick"`
+	Ticks          []pools.TickRPC `json:"ticks"`
 }
 
 type TwammSaleRateDelta struct {
@@ -191,14 +192,20 @@ func (f *dataFetchers) fetchPools(
 }
 
 func NewBasePoolState(data *BasicQuoteData) *pools.BasePoolState {
+	ticks := lo.Map(data.Ticks, func(tick pools.TickRPC, _ int) pools.Tick {
+		return pools.Tick{
+			Number:         tick.Number,
+			LiquidityDelta: big256.SFromBig(tick.LiquidityDelta),
+		}
+	})
 	state := pools.BasePoolState{
 		BasePoolSwapState: &pools.BasePoolSwapState{
-			SqrtRatio:       math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
-			Liquidity:       data.Liquidity,
-			ActiveTickIndex: pools.NearestInitializedTickIndex(data.Ticks, data.Tick),
+			SqrtRatio:       math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
+			Liquidity:       big256.FromBig(data.Liquidity),
+			ActiveTickIndex: pools.NearestInitializedTickIndex(ticks, data.Tick),
 		},
 		ActiveTick:  data.Tick,
-		SortedTicks: data.Ticks,
+		SortedTicks: ticks,
 		TickBounds:  [2]int32{data.MinTick, data.MaxTick},
 	}
 	state.AddLiquidityCutoffs()
@@ -209,18 +216,18 @@ func NewBasePoolState(data *BasicQuoteData) *pools.BasePoolState {
 func NewFullRangePoolState(data *BasicQuoteData) *pools.FullRangePoolState {
 	return &pools.FullRangePoolState{
 		FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-			SqrtRatio: math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
+			SqrtRatio: math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
 		},
-		Liquidity: data.Liquidity,
+		Liquidity: big256.FromBig(data.Liquidity),
 	}
 }
 
 func NewOraclePoolState(data *BasicQuoteData) *pools.OraclePoolState {
 	return &pools.OraclePoolState{
 		FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-			SqrtRatio: math.FloatSqrtRatioToFixed(data.SqrtRatioFloat),
+			SqrtRatio: math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatioFloat)),
 		},
-		Liquidity: data.Liquidity,
+		Liquidity: big256.FromBig(data.Liquidity),
 	}
 }
 
@@ -228,18 +235,18 @@ func NewTwammPoolState(data *TwammQuoteData) *pools.TwammPoolState {
 	return &pools.TwammPoolState{
 		FullRangePoolState: &pools.FullRangePoolState{
 			FullRangePoolSwapState: &pools.FullRangePoolSwapState{
-				SqrtRatio: math.FloatSqrtRatioToFixed(data.SqrtRatio),
+				SqrtRatio: math.FloatSqrtRatioToFixed(big256.FromBig(data.SqrtRatio)),
 			},
-			Liquidity: data.Liquidity,
+			Liquidity: big256.FromBig(data.Liquidity),
 		},
-		Token0SaleRate:    data.SaleRateToken0,
-		Token1SaleRate:    data.SaleRateToken1,
+		Token0SaleRate:    big256.FromBig(data.SaleRateToken0),
+		Token1SaleRate:    big256.FromBig(data.SaleRateToken1),
 		LastExecutionTime: data.LastVirtualOrderExecutionTime.Uint64(),
 		VirtualOrderDeltas: lo.Map(data.SaleRateDeltas, func(srd TwammSaleRateDelta, _ int) pools.TwammSaleRateDelta {
 			return pools.TwammSaleRateDelta{
 				Time:           srd.Time.Uint64(),
-				SaleRateDelta0: srd.SaleRateDelta0,
-				SaleRateDelta1: srd.SaleRateDelta1,
+				SaleRateDelta0: big256.SFromBig(srd.SaleRateDelta0),
+				SaleRateDelta1: big256.SFromBig(srd.SaleRateDelta1),
 			}
 		}),
 	}

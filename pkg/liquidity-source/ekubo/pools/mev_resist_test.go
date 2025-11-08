@@ -1,14 +1,14 @@
 package pools
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 func mevResistPoolKey(fee uint64, tickSpacing uint32) *PoolKey {
@@ -24,76 +24,76 @@ func mevResistPoolKey(fee uint64, tickSpacing uint32) *PoolKey {
 func TestSwapInputAmountToken0(t *testing.T) {
 	t.Parallel()
 
-	liquidity := big.NewInt(28_898_102)
-	fee := new(big.Int).Div(new(big.Int).Lsh(bignum.One, 64), big.NewInt(100)).Uint64()
+	liquidity := uint256.NewInt(28_898_102)
+	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
 	pool := NewMevResistPool(mevResistPoolKey(fee, 20_000), &BasePoolState{
 		BasePoolSwapState: &BasePoolSwapState{
 			SqrtRatio:       math.ToSqrtRatio(700_000),
-			Liquidity:       new(big.Int).Set(liquidity),
+			Liquidity:       new(uint256.Int).Set(liquidity),
 			ActiveTickIndex: 0,
 		},
 		SortedTicks: []Tick{
 			{
 				Number:         600_000,
-				LiquidityDelta: new(big.Int).Set(liquidity),
+				LiquidityDelta: big256.SInt256(liquidity),
 			},
 			{
 				Number:         800_000,
-				LiquidityDelta: new(big.Int).Neg(liquidity),
+				LiquidityDelta: big256.SNeg(liquidity),
 			},
 		},
 		TickBounds: [2]int32{math.MinTick, math.MaxTick},
 		ActiveTick: 700_000,
 	})
 
-	quote, err := pool.Quote(big.NewInt(100_000), false)
+	quote, err := pool.Quote(uint256.NewInt(100_000), false)
 	require.NoError(t, err)
 
-	require.Equal(t, big.NewInt(100_000), quote.ConsumedAmount)
-	require.Equal(t, big.NewInt(197_432), quote.CalculatedAmount)
+	require.Equal(t, uint256.NewInt(100_000), quote.ConsumedAmount)
+	require.Equal(t, uint256.NewInt(197_432), quote.CalculatedAmount)
 
-	quote, err = pool.Quote(big.NewInt(300_000), false)
+	quote, err = pool.Quote(uint256.NewInt(300_000), false)
 	require.NoError(t, err)
 
 	pool.SetSwapState(quote.SwapInfo.SwapStateAfter)
 
-	quote, err = pool.Quote(big.NewInt(300_000), false)
+	quote, err = pool.Quote(uint256.NewInt(300_000), false)
 	require.NoError(t, err)
 
-	require.Equal(t, big.NewInt(300_000), quote.ConsumedAmount)
-	require.Equal(t, big.NewInt(556_308), quote.CalculatedAmount)
+	require.Equal(t, uint256.NewInt(300_000), quote.ConsumedAmount)
+	require.Equal(t, uint256.NewInt(556_308), quote.CalculatedAmount)
 }
 
 func TestSwapOutputAmountToken0(t *testing.T) {
 	t.Parallel()
 
-	liquidity := big.NewInt(28_898_102)
-	fee := new(big.Int).Div(new(big.Int).Lsh(bignum.One, 64), big.NewInt(100)).Uint64()
+	liquidity := uint256.NewInt(28_898_102)
+	fee := new(uint256.Int).Div(new(uint256.Int).Lsh(big256.U1, 64), uint256.NewInt(100)).Uint64()
 
 	pool := NewMevResistPool(mevResistPoolKey(fee, 20_000), &BasePoolState{
 		BasePoolSwapState: &BasePoolSwapState{
 			SqrtRatio:       math.ToSqrtRatio(700_000),
-			Liquidity:       new(big.Int).Set(liquidity),
+			Liquidity:       new(uint256.Int).Set(liquidity),
 			ActiveTickIndex: 0,
 		},
 		SortedTicks: []Tick{
 			{
 				Number:         600_000,
-				LiquidityDelta: new(big.Int).Set(liquidity),
+				LiquidityDelta: big256.SInt256(liquidity),
 			},
 			{
 				Number:         800_000,
-				LiquidityDelta: new(big.Int).Neg(liquidity),
+				LiquidityDelta: big256.SNeg(liquidity),
 			},
 		},
 		TickBounds: [2]int32{math.MinTick, math.MaxTick},
 		ActiveTick: 700_000,
 	})
 
-	quote, err := pool.Quote(big.NewInt(-100_000), false)
+	quote, err := pool.Quote(new(uint256.Int).Neg(uint256.NewInt(100_000)), false)
 	require.NoError(t, err)
 
-	require.Equal(t, big.NewInt(-100_000), quote.ConsumedAmount)
-	require.Equal(t, big.NewInt(205_416), quote.CalculatedAmount)
+	require.Equal(t, new(uint256.Int).Neg(uint256.NewInt(100_000)), quote.ConsumedAmount)
+	require.Equal(t, uint256.NewInt(205_416), quote.CalculatedAmount)
 }

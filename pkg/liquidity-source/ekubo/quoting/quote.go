@@ -1,9 +1,8 @@
 package quoting
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type (
@@ -18,9 +17,9 @@ type (
 	}
 
 	Quote struct {
-		ConsumedAmount   *big.Int
-		CalculatedAmount *big.Int
-		FeesPaid         *big.Int
+		ConsumedAmount   *uint256.Int
+		CalculatedAmount *uint256.Int
+		FeesPaid         *uint256.Int
 		Gas              int64
 		SwapInfo         SwapInfo
 	}

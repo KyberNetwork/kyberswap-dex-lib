@@ -2,11 +2,11 @@ package math
 
 import (
 	"math"
-	"math/big"
 
 	"github.com/KyberNetwork/kutils"
+	"github.com/holiman/uint256"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
 const (
@@ -15,12 +15,12 @@ const (
 )
 
 var (
-	MaxSqrtRatio = bignum.NewBig("6276949602062853172742588666607187473671941430179807625216")
-	MinSqrtRatio = bignum.NewBig("18447191164202170524")
+	MaxSqrtRatio = big256.New("6276949602062853172742588666607187473671941430179807625216")
+	MinSqrtRatio = big256.New("18447191164202170524")
 )
 
-func ToSqrtRatio(tick int32) *big.Int {
-	ratio := new(big.Int).Set(TwoPow128)
+func ToSqrtRatio(tick int32) *uint256.Int {
+	ratio := big256.U2Pow128.Clone()
 
 	tickAbs := kutils.Abs(tick)
 	for i, mask := range tickMasks {
@@ -33,11 +33,10 @@ func ToSqrtRatio(tick int32) *big.Int {
 	}
 
 	if tick > 0 {
-		ratio.Div(U256Max, ratio)
+		ratio.Div(big256.UMax, ratio)
 	}
 
-	bitLen := ratio.BitLen()
-	if bitLen > 160 {
+	if bitLen := ratio.BitLen(); bitLen > 160 {
 		ratio.Rsh(ratio, 98).Lsh(ratio, 98)
 	} else if bitLen > 128 {
 		ratio.Rsh(ratio, 66).Lsh(ratio, 66)
@@ -50,7 +49,7 @@ func ToSqrtRatio(tick int32) *big.Int {
 	return ratio
 }
 
-func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *big.Int, tickSpacing uint32) uint32 {
+func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *uint256.Int, tickSpacing uint32) uint32 {
 	if tickSpacing == 0 {
 		return 0
 	}
@@ -61,6 +60,6 @@ func ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, endingSqrtRatio *
 	return ticksCrossed / tickSpacing
 }
 
-func ApproximateSqrtRatioToTick(sqrtRatio *big.Int) int32 {
+func ApproximateSqrtRatioToTick(sqrtRatio *uint256.Int) int32 {
 	return int32(math.Round(math.Log(U256ToFloatBaseX128(sqrtRatio)) / logBaseSqrtTickSize))
 }

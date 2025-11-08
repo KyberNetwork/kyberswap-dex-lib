@@ -1,9 +1,8 @@
 package ekubo
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/pools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
@@ -34,8 +33,8 @@ type (
 		ApplyEvent(event pools.Event, data []byte, blockTimestamp uint64) error
 		NewBlock()
 
-		Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
-		CalcBalances() ([]big.Int, error)
+		Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error)
+		CalcBalances() ([]uint256.Int, error)
 	}
 
 	PoolWithBlockNumber struct {

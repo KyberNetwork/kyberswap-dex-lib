@@ -1,38 +1,27 @@
 package math
 
 import (
-	"math/big"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
-	bignum "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 )
 
-func MulDivOverflow(x, y, d *big.Int, roundUp bool) (*big.Int, error) {
-	if d.Sign() == 0 {
+func MulDivOverflow(x, y, d *uint256.Int, roundUp bool) (*uint256.Int, error) {
+	if d.IsZero() {
 		return nil, ErrDivZero
 	}
-
-	temp := new(big.Int).Mul(x, y)
-	res := new(big.Int).Div(temp, d)
-
-	if roundUp && temp.Mod(temp, d).Sign() > 0 {
-		res.Add(res, bignum.One)
-	}
-
-	if res.BitLen() > 256 {
-		return nil, ErrMulDivOverflow
-	}
-
-	return res, nil
+	return lo.Ternary(roundUp, big256.MulDivUp, big256.MulDivDown)(new(uint256.Int), x, y, d), nil
 }
 
-func div(x, y *big.Int, roundUp bool) (*big.Int, error) {
-	if y.Sign() == 0 {
+func div(x, y *uint256.Int, roundUp bool) (*uint256.Int, error) {
+	if y.IsZero() {
 		return nil, ErrDivZero
 	}
 
-	quotient, remainder := new(big.Int).DivMod(x, y, new(big.Int))
-	if roundUp && remainder.Sign() != 0 {
-		quotient.Add(quotient, bignum.One)
+	quotient, remainder := new(uint256.Int).DivMod(x, y, new(uint256.Int))
+	if roundUp && !remainder.IsZero() {
+		quotient.AddUint64(quotient, 1)
 	}
 
 	return quotient, nil

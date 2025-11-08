@@ -1,8 +1,9 @@
 package math
 
-import "math/big"
+import (
+	"github.com/holiman/uint256"
+)
 
-func U256ToFloatBaseX128(x128 *big.Int) float64 {
-	float, _ := x128.Float64()
-	return float / 340282366920938463463374607431768211456
+func U256ToFloatBaseX128(x128 *uint256.Int) float64 {
+	return x128.Float64() / 340282366920938463463374607431768211456
 }

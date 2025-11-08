@@ -7,14 +7,18 @@ import (
 	"math/big"
 	"slices"
 
+	"github.com/KyberNetwork/int256"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
 	ekubomath "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ekubo/quoting"
 )
 
 type BasePoolSwapState struct {
-	SqrtRatio       *big.Int `json:"sqrtRatio"`
-	Liquidity       *big.Int `json:"liquidity"`
-	ActiveTickIndex int      `json:"activeTickIndex"`
+	SqrtRatio       *uint256.Int `json:"sqrtRatio"`
+	Liquidity       *uint256.Int `json:"liquidity"`
+	ActiveTickIndex int          `json:"activeTickIndex"`
 }
 
 type BasePoolState struct {
@@ -29,9 +33,14 @@ type BasePool struct {
 	*BasePoolState
 }
 
-type Tick struct {
+type TickRPC struct {
 	Number         int32    `json:"number"`
 	LiquidityDelta *big.Int `json:"liquidityDelta"`
+}
+
+type Tick struct {
+	Number         int32       `json:"number"`
+	LiquidityDelta *int256.Int `json:"liquidityDelta"`
 }
 
 const invalidTickNumber int32 = math.MinInt32
@@ -48,10 +57,10 @@ func NearestInitializedTickIndex(sortedTicks []Tick, tickNumber int32) int {
 	return idx
 }
 
-func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *big.Int, upper, forceInsert bool) {
+func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *int256.Int, upper, forceInsert bool) {
 	ticks := s.SortedTicks
 
-	liquidityDelta = new(big.Int).Set(liquidityDelta)
+	liquidityDelta = liquidityDelta.Clone()
 	if upper {
 		liquidityDelta.Neg(liquidityDelta)
 	}
@@ -68,8 +77,7 @@ func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *big.
 		nearestTickNumber = nearestTick.Number
 	}
 
-	newTickReferenced := nearestTickNumber != updatedTickNumber
-
+	newTickReferenced := nearestTickNumber != updatedTickNumber || nearestTick == nil
 	if newTickReferenced {
 		if !forceInsert && nearestTickIndex == -1 {
 			delta := ticks[0].LiquidityDelta
@@ -90,27 +98,24 @@ func (s *BasePoolState) UpdateTick(updatedTickNumber int32, liquidityDelta *big.
 			}
 		}
 	} else {
-		newDelta := new(big.Int).Add(nearestTick.LiquidityDelta, liquidityDelta)
+		newDelta := nearestTick.LiquidityDelta.Add(nearestTick.LiquidityDelta, liquidityDelta)
 
-		if newDelta.Sign() == 0 && !slices.Contains(s.TickBounds[:], nearestTickNumber) {
+		if newDelta.IsZero() && !slices.Contains(s.TickBounds[:], nearestTickNumber) {
 			s.SortedTicks = slices.Delete(ticks, nearestTickIndex, nearestTickIndex+1)
-
 			if s.ActiveTick >= updatedTickNumber {
 				s.ActiveTickIndex--
 			}
-		} else {
-			nearestTick.LiquidityDelta = newDelta
 		}
 	}
 }
 
 func (s *BasePoolState) AddLiquidityCutoffs() {
-	currentLiquidity := new(big.Int)
+	var currentLiquidity uint256.Int
 	belowActiveTick := true
 	var activeTickIndex int
 
 	// The liquidity added/removed by out-of-range initialized ticks (i.e. lower than the min checked tick number)
-	liquidityDeltaMin := new(big.Int)
+	var liquidityDeltaMin uint256.Int
 
 	for i, tick := range s.SortedTicks {
 		if belowActiveTick && s.ActiveTick < tick.Number {
@@ -118,25 +123,25 @@ func (s *BasePoolState) AddLiquidityCutoffs() {
 
 			activeTickIndex = i - 1
 
-			liquidityDeltaMin.Sub(s.Liquidity, currentLiquidity)
+			liquidityDeltaMin.Sub(s.Liquidity, &currentLiquidity)
 
 			// We now need to switch to tracking the liquidity that needs to be cut off at the max checked tick number, therefore reset to the actual liquidity
 			currentLiquidity.Set(s.Liquidity)
 		}
 
-		currentLiquidity.Add(currentLiquidity, tick.LiquidityDelta)
+		currentLiquidity.Add(&currentLiquidity, (*uint256.Int)(tick.LiquidityDelta))
 	}
 
 	if belowActiveTick {
 		activeTickIndex = len(s.SortedTicks) - 1
-		liquidityDeltaMin.Sub(s.Liquidity, currentLiquidity)
+		liquidityDeltaMin.Sub(s.Liquidity, &currentLiquidity)
 		currentLiquidity.Set(s.Liquidity)
 	}
 
 	s.ActiveTickIndex = activeTickIndex
 
-	s.UpdateTick(s.TickBounds[0], liquidityDeltaMin, false, true)
-	s.UpdateTick(s.TickBounds[1], currentLiquidity, true, true)
+	s.UpdateTick(s.TickBounds[0], (*int256.Int)(&liquidityDeltaMin), false, true)
+	s.UpdateTick(s.TickBounds[1], (*int256.Int)(&currentLiquidity), true, true)
 }
 
 func NewBasePool(key *PoolKey, state *BasePoolState) *BasePool {
@@ -169,31 +174,26 @@ func (p *BasePool) SetSwapState(state any) {
 type nextInitializedTick struct {
 	*Tick
 	index     int
-	sqrtRatio *big.Int
+	sqrtRatio *uint256.Int
 }
 
-func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error) {
-	sqrtRatio := new(big.Int).Set(p.SqrtRatio)
-	liquidity := new(big.Int).Set(p.Liquidity)
+func (p *BasePool) Quote(amount *uint256.Int, isToken1 bool) (*quoting.Quote, error) {
+	var liquidity uint256.Int
+	sqrtRatio := p.SqrtRatio.Clone()
+	liquidity.Set(p.Liquidity)
 	activeTickIndex := p.ActiveTickIndex
 
 	isIncreasing := ekubomath.IsPriceIncreasing(amount, isToken1)
 
-	var sqrtRatioLimit *big.Int
-	if isIncreasing {
-		sqrtRatioLimit = ekubomath.MaxSqrtRatio
-	} else {
-		sqrtRatioLimit = ekubomath.MinSqrtRatio
-	}
+	sqrtRatioLimit := lo.Ternary(isIncreasing, ekubomath.MaxSqrtRatio, ekubomath.MinSqrtRatio)
 
-	calculatedAmount := new(big.Int)
-	feesPaid := new(big.Int)
+	var calculatedAmount, feesPaid, amountRemaining, tmp uint256.Int
 	var initializedTicksCrossed uint32 = 0
-	amountRemaining := new(big.Int).Set(amount)
+	amountRemaining.Set(amount)
 
 	startingSqrtRatio := p.SqrtRatio
 
-	for amountRemaining.Sign() != 0 && sqrtRatio.Cmp(sqrtRatioLimit) != 0 {
+	for !amountRemaining.IsZero() && !sqrtRatio.Eq(sqrtRatioLimit) {
 		var nextInitTick *nextInitializedTick
 		if isIncreasing {
 			nextTickIndex := activeTickIndex + 1
@@ -214,23 +214,19 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 			}
 		}
 
-		var stepSqrtRatioLimit *big.Int
+		var stepSqrtRatioLimit *uint256.Int
 		if nextInitTick == nil {
 			stepSqrtRatioLimit = sqrtRatioLimit
 		} else {
 			nextRatio := nextInitTick.sqrtRatio
-			if (nextRatio.Cmp(sqrtRatioLimit) == -1) == isIncreasing {
-				stepSqrtRatioLimit = nextRatio
-			} else {
-				stepSqrtRatioLimit = sqrtRatioLimit
-			}
+			stepSqrtRatioLimit = lo.Ternary(nextRatio.Lt(sqrtRatioLimit) == isIncreasing, nextRatio, sqrtRatioLimit)
 		}
 
 		step, err := ekubomath.ComputeStep(
 			sqrtRatio,
-			liquidity,
+			&liquidity,
 			stepSqrtRatioLimit,
-			amountRemaining,
+			&amountRemaining,
 			isToken1,
 			p.key.Config.Fee,
 		)
@@ -238,14 +234,14 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 			return nil, fmt.Errorf("swap step computation: %w", err)
 		}
 
-		amountRemaining.Sub(amountRemaining, step.ConsumedAmount)
-		calculatedAmount.Add(calculatedAmount, step.CalculatedAmount)
-		feesPaid.Add(feesPaid, step.FeeAmount)
+		amountRemaining.Sub(&amountRemaining, step.ConsumedAmount)
+		calculatedAmount.Add(&calculatedAmount, step.CalculatedAmount)
+		feesPaid.Add(&feesPaid, step.FeeAmount)
 		sqrtRatio = step.SqrtRatioNext
 
 		if nextInitTick != nil {
 			tickIndex := nextInitTick.index
-			if sqrtRatio.Cmp(nextInitTick.sqrtRatio) == 0 {
+			if sqrtRatio.Eq(nextInitTick.sqrtRatio) {
 				if isIncreasing {
 					activeTickIndex = tickIndex
 				} else {
@@ -255,17 +251,18 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 				initializedTicksCrossed += 1
 
 				liquidityDelta := nextInitTick.LiquidityDelta
-				liquidityDeltaAbs := new(big.Int).Abs(liquidityDelta)
-				if (liquidityDelta.Sign() == 1) == isIncreasing {
-					liquidity.Add(liquidity, liquidityDeltaAbs)
+				liquidityDeltaAbs := tmp.Abs((*uint256.Int)(liquidityDelta))
+				if (liquidityDelta.Sign() > 0) == isIncreasing {
+					liquidity.Add(&liquidity, liquidityDeltaAbs)
 				} else {
-					liquidity.Sub(liquidity, liquidityDeltaAbs)
+					liquidity.Sub(&liquidity, liquidityDeltaAbs)
 				}
 			}
 		}
 	}
 
-	tickSpacingsCrossed := ekubomath.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio, p.key.Config.TickSpacing)
+	tickSpacingsCrossed := ekubomath.ApproximateNumberOfTickSpacingsCrossed(startingSqrtRatio, sqrtRatio,
+		p.key.Config.TickSpacing)
 
 	var skipAhead uint32
 	if initializedTicksCrossed != 0 {
@@ -273,16 +270,16 @@ func (p *BasePool) Quote(amount *big.Int, isToken1 bool) (*quoting.Quote, error)
 	}
 
 	return &quoting.Quote{
-		ConsumedAmount:   amountRemaining.Sub(amount, amountRemaining),
-		CalculatedAmount: calculatedAmount,
-		FeesPaid:         feesPaid,
+		ConsumedAmount:   amountRemaining.Sub(amount, &amountRemaining),
+		CalculatedAmount: &calculatedAmount,
+		FeesPaid:         &feesPaid,
 		Gas:              quoting.BaseGasConcentratedLiquiditySwap + int64(initializedTicksCrossed)*quoting.GasInitializedTickCrossed + int64(tickSpacingsCrossed)*quoting.GasTickSpacingCrossed,
 		SwapInfo: quoting.SwapInfo{
 			SkipAhead: skipAhead,
 			IsToken1:  isToken1,
 			SwapStateAfter: &BasePoolSwapState{
 				sqrtRatio,
-				liquidity,
+				&liquidity,
 				activeTickIndex,
 			},
 			TickSpacingsCrossed: tickSpacingsCrossed,
