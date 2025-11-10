@@ -9,6 +9,7 @@ const (
 	graphSkipLimit       = 5000
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
+	tickChunkSize        = 100
 
 	maxSwapLoop = 1000000
 

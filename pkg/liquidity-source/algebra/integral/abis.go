@@ -3,14 +3,26 @@ package integral
 import (
 	"bytes"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis"
+	intergralpoolv10 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v10"
+	intergralpoolv12 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v12"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 )
 
 var (
-	erc20ABI               abi.ABI
-	algebraIntegralPoolABI abi.ABI
-	algebraBasePluginV2ABI abi.ABI
-	ticklensABI            abi.ABI
+	factoryABI      abi.ABI
+	poolV10ABI      abi.ABI
+	poolV12ABI      abi.ABI
+	basePluginV2ABI abi.ABI
+	ticklensABI     abi.ABI
+)
+
+var (
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
+	poolV10Filterer = lo.Must(intergralpoolv10.NewPoolFilterer(common.Address{}, nil))
+	poolV12Filterer = lo.Must(intergralpoolv12.NewPoolFilterer(common.Address{}, nil))
 )
 
 func init() {
@@ -18,9 +30,10 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&erc20ABI, erc20Json},
-		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
-		{&algebraBasePluginV2ABI, algebraBasePluginV2Json},
+		{&factoryABI, algebraFactoryJson},
+		{&poolV10ABI, poolV10Json},
+		{&poolV12ABI, poolV12Json},
+		{&basePluginV2ABI, basePluginV2Json},
 		{&ticklensABI, ticklenJson},
 	}
 
