@@ -40,6 +40,19 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	StakedLiquidityNet             *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	RewardGrowthOutsideX128        *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
 type TickResp struct {
 	TickIdx        string `json:"tickIdx"`
 	LiquidityGross string `json:"liquidityGross"`
