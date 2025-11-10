@@ -165,6 +165,14 @@ func RegisterTicksBasedFactoryCEG0[C any, P ITicksBasedPoolTracker](poolType str
 	})
 }
 
+// RegisterTicksBasedFactoryCEG registers a factory function for a pool tracker with config, ethrpcClient and graphqlClient
+func RegisterTicksBasedFactoryCEG[C any, P ITicksBasedPoolTracker](poolType string,
+	factory func(*C, *ethrpc.Client, *graphqlpkg.Client) (P, error)) bool {
+	return RegisterTicksBasedFactory(poolType, func(params PoolsTrackerParams[C]) (ITicksBasedPoolTracker, error) {
+		return factory(params.Cfg, params.EthrpcClient, params.GraphqlClient)
+	})
+}
+
 // TicksBasedFactory returns the ticks-based factory function for a pool type
 func TicksBasedFactory(poolType string) TicksBasedFactoryFn {
 	return ticksBasedFactoryFn[poolType]

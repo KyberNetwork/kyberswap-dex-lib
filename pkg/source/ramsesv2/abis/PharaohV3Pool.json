@@ -5,6 +5,101 @@
     "type": "constructor"
   },
   {
+    "inputs": [],
+    "name": "AI",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "AS",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "F0",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "F1",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "I",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "IIA",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "L",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "LOK",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "M0",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "M1",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NOT_AUTHORIZED",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "OLD",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "R",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "SPL",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "T",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TF",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TLM",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TLU",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TUM",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -13,6 +108,7 @@
         "name": "owner",
         "type": "address"
       },
+
       {
         "indexed": true,
         "internalType": "int24",
@@ -218,6 +314,12 @@
         "type": "address"
       },
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
         "indexed": true,
         "internalType": "int24",
         "name": "tickLower",
@@ -332,151 +434,9 @@
     "type": "event"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "period",
-        "type": "uint256"
-      }
-    ],
-    "name": "boostInfos",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "totalBoostAmount",
-        "type": "uint128"
-      },
-      {
-        "internalType": "int128",
-        "name": "totalVeRamAmount",
-        "type": "int128"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "period",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "key",
-        "type": "bytes32"
-      }
-    ],
-    "name": "boostInfos",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "boostAmount",
-        "type": "uint128"
-      },
-      {
-        "internalType": "int128",
-        "name": "veRamAmount",
-        "type": "int128"
-      },
-      {
-        "internalType": "int256",
-        "name": "secondsDebtX96",
-        "type": "int256"
-      },
-      {
-        "internalType": "int256",
-        "name": "boostedSecondsDebtX96",
-        "type": "int256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "boostedLiquidity",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "",
-        "type": "uint128"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount",
-        "type": "uint128"
-      }
-    ],
-    "name": "burn",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount0",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount1",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount",
-        "type": "uint128"
-      }
-    ],
-    "name": "burn",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount0",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount1",
-        "type": "uint256"
-      }
-    ],
+    "name": "_advancePeriod",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -501,11 +461,6 @@
         "internalType": "uint128",
         "name": "amount",
         "type": "uint128"
-      },
-      {
-        "internalType": "uint256",
-        "name": "veRamTokenId",
-        "type": "uint256"
       }
     ],
     "name": "burn",
@@ -519,50 +474,6 @@
         "internalType": "uint256",
         "name": "amount1",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount0Requested",
-        "type": "uint128"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount1Requested",
-        "type": "uint128"
-      }
-    ],
-    "name": "collect",
-    "outputs": [
-      {
-        "internalType": "uint128",
-        "name": "amount0",
-        "type": "uint128"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount1",
-        "type": "uint128"
       }
     ],
     "stateMutability": "nonpayable",
@@ -653,19 +564,6 @@
   },
   {
     "inputs": [],
-    "name": "currentFee",
-    "outputs": [
-      {
-        "internalType": "uint24",
-        "name": "",
-        "type": "uint24"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "factory",
     "outputs": [
       {
@@ -745,6 +643,32 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "grossFeeGrowthGlobal0X128",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "grossFeeGrowthGlobal1X128",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint16",
@@ -753,54 +677,6 @@
       }
     ],
     "name": "increaseObservationCardinalityNext",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_factory",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_nfpManager",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_veRam",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_voter",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_token0",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_token1",
-        "type": "address"
-      },
-      {
-        "internalType": "uint24",
-        "name": "_fee",
-        "type": "uint24"
-      },
-      {
-        "internalType": "int24",
-        "name": "_tickSpacing",
-        "type": "int24"
-      }
-    ],
-    "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -865,50 +741,6 @@
         "type": "address"
       },
       {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      },
-      {
-        "internalType": "uint128",
-        "name": "amount",
-        "type": "uint128"
-      },
-      {
-        "internalType": "bytes",
-        "name": "data",
-        "type": "bytes"
-      }
-    ],
-    "name": "mint",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amount0",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount1",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "recipient",
-        "type": "address"
-      },
-      {
         "internalType": "uint256",
         "name": "index",
         "type": "uint256"
@@ -929,11 +761,6 @@
         "type": "uint128"
       },
       {
-        "internalType": "uint256",
-        "name": "veRamTokenId",
-        "type": "uint256"
-      },
-      {
         "internalType": "bytes",
         "name": "data",
         "type": "bytes"
@@ -953,19 +780,6 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "nfpManager",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -997,11 +811,6 @@
         "internalType": "bool",
         "name": "initialized",
         "type": "bool"
-      },
-      {
-        "internalType": "uint160",
-        "name": "secondsPerBoostedLiquidityPeriodX128",
-        "type": "uint160"
       }
     ],
     "stateMutability": "view",
@@ -1026,45 +835,6 @@
         "internalType": "uint160[]",
         "name": "secondsPerLiquidityCumulativeX128s",
         "type": "uint160[]"
-      },
-      {
-        "internalType": "uint160[]",
-        "name": "secondsPerBoostedLiquidityPeriodX128s",
-        "type": "uint160[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint32",
-        "name": "period",
-        "type": "uint32"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      }
-    ],
-    "name": "periodCumulativesInside",
-    "outputs": [
-      {
-        "internalType": "uint160",
-        "name": "secondsPerLiquidityInsideX128",
-        "type": "uint160"
-      },
-      {
-        "internalType": "uint160",
-        "name": "secondsPerBoostedLiquidityInsideX128",
-        "type": "uint160"
       }
     ],
     "stateMutability": "view",
@@ -1099,60 +869,6 @@
         "internalType": "uint160",
         "name": "endSecondsPerLiquidityPeriodX128",
         "type": "uint160"
-      },
-      {
-        "internalType": "uint160",
-        "name": "endSecondsPerBoostedLiquidityPeriodX128",
-        "type": "uint160"
-      },
-      {
-        "internalType": "uint32",
-        "name": "boostedInRange",
-        "type": "uint32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "period",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "index",
-        "type": "uint256"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickLower",
-        "type": "int24"
-      },
-      {
-        "internalType": "int24",
-        "name": "tickUpper",
-        "type": "int24"
-      }
-    ],
-    "name": "positionPeriodDebt",
-    "outputs": [
-      {
-        "internalType": "int256",
-        "name": "secondsDebtX96",
-        "type": "int256"
-      },
-      {
-        "internalType": "int256",
-        "name": "boostedSecondsDebtX96",
-        "type": "int256"
       }
     ],
     "stateMutability": "view",
@@ -1191,11 +907,6 @@
       {
         "internalType": "uint256",
         "name": "periodSecondsInsideX96",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "periodBoostedSecondsInsideX96",
         "type": "uint256"
       }
     ],
@@ -1236,11 +947,6 @@
         "internalType": "uint128",
         "name": "tokensOwed1",
         "type": "uint128"
-      },
-      {
-        "internalType": "uint256",
-        "name": "attachedVeRamId",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1252,12 +958,12 @@
     "outputs": [
       {
         "internalType": "uint128",
-        "name": "token0",
+        "name": "",
         "type": "uint128"
       },
       {
         "internalType": "uint128",
-        "name": "token1",
+        "name": "",
         "type": "uint128"
       }
     ],
@@ -1333,9 +1039,9 @@
         "type": "uint16"
       },
       {
-        "internalType": "uint8",
+        "internalType": "uint24",
         "name": "feeProtocol",
-        "type": "uint8"
+        "type": "uint24"
       },
       {
         "internalType": "bool",
@@ -1369,11 +1075,6 @@
       {
         "internalType": "uint160",
         "name": "secondsPerLiquidityInsideX128",
-        "type": "uint160"
-      },
-      {
-        "internalType": "uint160",
-        "name": "secondsPerBoostedLiquidityInsideX128",
         "type": "uint160"
       },
       {
@@ -1482,16 +1183,6 @@
         "type": "int128"
       },
       {
-        "internalType": "uint128",
-        "name": "boostedLiquidityGross",
-        "type": "uint128"
-      },
-      {
-        "internalType": "int128",
-        "name": "boostedLiquidityNet",
-        "type": "int128"
-      },
-      {
         "internalType": "uint256",
         "name": "feeGrowthOutside0X128",
         "type": "uint256"
@@ -1541,32 +1232,6 @@
   {
     "inputs": [],
     "name": "token1",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "veRam",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "voter",
     "outputs": [
       {
         "internalType": "address",

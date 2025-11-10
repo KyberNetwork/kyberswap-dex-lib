@@ -7,9 +7,11 @@ import (
 )
 
 var (
-	ramsesV2PoolABI abi.ABI
-	ramsesV3PoolABI abi.ABI
-	erc20ABI        abi.ABI
+	ramsesV2PoolABI    abi.ABI
+	ramsesV3PoolABI    abi.ABI
+	pharaohV3PoolABI   abi.ABI
+	ramsesV2FactoryABI abi.ABI
+	ramsesV3FactoryABI abi.ABI
 )
 
 func init() {
@@ -19,7 +21,9 @@ func init() {
 	}{
 		{&ramsesV2PoolABI, ramsesV2PoolJson},
 		{&ramsesV3PoolABI, ramsesV3PoolJson},
-		{&erc20ABI, erc20Json},
+		{&pharaohV3PoolABI, pharaohV3PoolJson},
+		{&ramsesV2FactoryABI, factoryV2Json},
+		{&ramsesV3FactoryABI, factoryV3Json},
 	}
 
 	for _, b := range builder {
