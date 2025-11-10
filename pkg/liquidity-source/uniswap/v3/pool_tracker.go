@@ -2,6 +2,7 @@ package uniswapv3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -25,7 +26,8 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-var _ = pooltrack.RegisterTicksBasedFactoryCEG0(DexTypeUniswapV3, NewTracker)
+var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)
+var _ = pooltrack.RegisterTicksBasedFactoryCEG(DexTypeUniswapV3, NewTracker)
 
 type Tracker struct {
 	config        *Config
@@ -37,12 +39,45 @@ func NewTracker(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
-) *Tracker {
+) (*Tracker, error) {
+	initializedCfg, err := initializeConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Tracker{
-		config:        config,
+		config:        initializedCfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
+	}, nil
+}
+
+func initializeConfig(cfg *Config) (*Config, error) {
+	if cfg.PreGenesisPoolPath == "" {
+		return cfg, nil
 	}
+
+	byteValue, ok := BytesByPath[cfg.PreGenesisPoolPath]
+	if !ok {
+		// Misconfiguration in the code, should check again
+		return nil, errors.New("misconfigured PreGenesisPoolPath")
+	}
+
+	var pools []preGenesisPool
+	if err := json.Unmarshal(byteValue, &pools); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to parse pools")
+		return nil, err
+	}
+
+	logger.Infof("got %v pools from file: %s", len(pools), cfg.PreGenesisPoolPath)
+
+	for _, p := range pools {
+		cfg.preGenesisPoolIDs = append(cfg.preGenesisPoolIDs, p.ID)
+	}
+
+	return cfg, nil
 }
 
 func (t *Tracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
