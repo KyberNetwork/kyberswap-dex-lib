@@ -16,8 +16,8 @@ var algebraV1DataStorageOperatorJson []byte
 //go:embed abis/AlgebraV1DirFeeDataStorageOperator.json
 var algebraV1DirFeeDataStorageOperatorJson []byte
 
-//go:embed abis/ERC20.json
-var erc20Json []byte
+//go:embed abis/AlgebraV1Factory.json
+var algebraV1FactoryJson []byte
 
 //go:embed abis/TickLens.json
 var ticklensJson []byte

@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
-func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
+func (t *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
 	changedTicks := ticklens.GetChangedTicks(param.Logs)
 	if len(changedTicks) == 0 {
 		// Algebra doesn't compact the tick table, so it's not feasible to fetch all for now
@@ -26,7 +26,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 
 	logger.Infof("Fetch changed ticks (%v)", changedTicks)
 
-	rpcRequest := d.EthrpcClient.NewRequest()
+	rpcRequest := t.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
@@ -34,8 +34,8 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 			ABI:    algebraV1PoolABI,
 			Target: pool.Address,
 			Method: methodGetTicks,
-			Params: []interface{}{new(big.Int).SetInt64(tick)},
-		}, []interface{}{&populatedTicks[i]})
+			Params: []any{new(big.Int).SetInt64(tick)},
+		}, []any{&populatedTicks[i]})
 	}
 
 	resp, err := rpcRequest.Aggregate()
