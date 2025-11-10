@@ -594,7 +594,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 			}
 
 		default:
-			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeInfinityBin, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(DexType, event.Topics[0].Hex())
 		}
 	}
 

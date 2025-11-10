@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
@@ -833,7 +832,7 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 			tickSet[int(burn.TopTick.Int64())] = struct{}{}
 
 		default:
-			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.AlgebraV1, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(DexTypeAlgebraV1, event.Topics[0].Hex())
 		}
 	}
 

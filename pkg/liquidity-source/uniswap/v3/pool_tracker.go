@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
@@ -480,7 +479,7 @@ func (t *Tracker) extractEventData(event ethtypes.Log) (int, int, *big.Int, erro
 		return int(burn.TickLower.Int64()), int(burn.TickUpper.Int64()), burn.Amount.Neg(burn.Amount), nil
 
 	default:
-		metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.UniswapV3, event.Topics[0].Hex())
+		metrics.IncrUnprocessedEventTopic(DexTypeUniswapV3, event.Topics[0].Hex())
 		return 0, 0, big.NewInt(0), nil
 	}
 }

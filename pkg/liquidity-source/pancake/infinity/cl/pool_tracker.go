@@ -534,7 +534,7 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 			tickSet[int(modifyLiquidity.TickUpper.Int64())] = struct{}{}
 
 		default:
-			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeInfinityCL, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(DexType, event.Topics[0].Hex())
 		}
 	}
 

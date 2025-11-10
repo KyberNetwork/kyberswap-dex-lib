@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
@@ -658,7 +659,7 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 			tickSet[int(tickLower)] = struct{}{}
 			tickSet[int(tickUpper)] = struct{}{}
 		default:
-			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.RamsesV2, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(DexTypeRamsesV2, event.Topics[0].Hex())
 		}
 	}
 
