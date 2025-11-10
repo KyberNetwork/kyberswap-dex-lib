@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/ethrpc"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"

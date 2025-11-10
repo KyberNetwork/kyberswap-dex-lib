@@ -36,8 +36,6 @@ const (
 	slidingFeePluginBaseFeeMethod           = "s_baseFee"
 	slidingFeePluginFeeTypeMethod           = "feeType"
 
-	erc20BalanceOfMethod = "balanceOf"
-
 	BEFORE_SWAP_FLAG = 1
 	RESOLUTION       = 96
 
