@@ -42,7 +42,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
 
-	req := graphqlpkg.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
+	req := graphqlpkg.NewRequest(getPoolsListQuery(d.config.SubgraphPool, allowSubgraphError, lastCreatedAtTimestamp, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
