@@ -99,8 +99,7 @@ func TestPancakeInfinityCL(t *testing.T) {
 	poolListUpdater := NewPoolListUpdater(config, rpcClient, subgraphClient)
 	require.NotNil(t, poolListUpdater)
 
-	poolTracker, err := NewPoolTracker(config, rpcClient, subgraphClient)
-	require.NoError(t, err)
+	poolTracker := NewPoolTracker(config, rpcClient, subgraphClient)
 	require.NotNil(t, poolTracker)
 
 	pools, metadata, err := poolListUpdater.GetNewPools(context.Background(), nil)

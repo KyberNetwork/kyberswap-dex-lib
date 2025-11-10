@@ -49,7 +49,7 @@ func TestPoolListUpdater(t *testing.T) {
 	})
 
 	expectedPool0 := entity.Pool{
-		Address:  "0xeAbBfca72F8a8bf14C4ac59e69ECB2eB69F0811C",
+		Address:  "0xeabbfca72f8a8bf14c4ac59e69ecb2eb69f0811c",
 		Exchange: "fluid-vault-t1",
 		Type:     "fluid-vault-t1",
 		Reserves: []string{"0", "0"},
@@ -74,7 +74,7 @@ func TestPoolListUpdater(t *testing.T) {
 	})
 
 	expectedPool21 := entity.Pool{
-		Address:  "0x3A0b7c8840D74D39552EF53F586dD8c3d1234C40",
+		Address:  "0x3a0b7c8840d74d39552ef53f586dd8c3d1234c40",
 		Exchange: "fluid-vault-t1",
 		Type:     "fluid-vault-t1",
 		Reserves: []string{"0", "0"},
