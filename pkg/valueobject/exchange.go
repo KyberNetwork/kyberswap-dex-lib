@@ -388,6 +388,8 @@ const (
 	ExchangeSwapBlast                  = "swap-blast"
 	ExchangeSwapXCL                    = "swap-x-cl"
 	ExchangeSwapXV2                    = "swap-x-v2"
+	ExchangeSwaplineLB                 = "swapline-lb"
+	ExchangeSwaplineV2                 = "swapline-v2"
 	ExchangeSwapr                      = "swapr"
 	ExchangeSwapsicle                  = "swapsicle"
 	ExchangeSwellRSWETH                = "swell-rsweth"
@@ -863,6 +865,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwapBlast:                  {},
 	ExchangeSwapXCL:                    {},
 	ExchangeSwapXV2:                    {},
+	ExchangeSwaplineLB:                 {},
+	ExchangeSwaplineV2:                 {},
 	ExchangeSwapr:                      {},
 	ExchangeSwapsicle:                  {},
 	ExchangeSwellRSWETH:                {},
