@@ -7,5 +7,5 @@ import (
 //go:embed abis/SolidlyV3Pool.json
 var solidlyV3PoolJson []byte
 
-//go:embed abis/ERC20.json
-var erc20Json []byte
+//go:embed abis/SolidlyV3Factory.json
+var solidlyV3FactoryJson []byte
