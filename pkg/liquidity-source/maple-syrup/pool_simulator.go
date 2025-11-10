@@ -52,13 +52,13 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 func (s *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *s
 	cloned.MaxDeposit = new(uint256.Int).Set(s.MaxDeposit)
-	cloned.liquidityCap = new(uint256.Int).Set(s.liquidityCap)
+	cloned.TotalAssets = new(uint256.Int).Set(s.TotalAssets)
 	return &cloned
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.PoolSimulator.UpdateBalance(params)
-	s.liquidityCap = new(uint256.Int).Add(s.liquidityCap, uint256.MustFromBig(params.TokenAmountIn.Amount))
+	s.TotalAssets = new(uint256.Int).Add(s.TotalAssets, uint256.MustFromBig(params.TokenAmountIn.Amount))
 }
 
 func (s *PoolSimulator) GetApprovalAddress(_, _ string) string {
