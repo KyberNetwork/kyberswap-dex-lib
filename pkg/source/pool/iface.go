@@ -133,7 +133,7 @@ type ITBPoolTracker[T any] interface {
 
 // ITicksBasedPoolTracker fetches ticks for pool from Swap, Mint and Burn events.
 type ITicksBasedPoolTracker interface {
-	InitializePoolState(ctx context.Context, p entity.Pool) (entity.Pool, error)
+	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 	GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
 		blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error)
 	FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error)
