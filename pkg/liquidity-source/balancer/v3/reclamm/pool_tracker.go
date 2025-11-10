@@ -174,7 +174,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 		Target: poolAddress,
 		Method: poolMethodGetReClAMMPoolDynamicData,
 	}, []any{&rpcRes.DynamicDataRpc})
-	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens)
+	rpcRes.Buffers = shared.GetBufferTokens(req, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {

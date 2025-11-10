@@ -94,6 +94,10 @@ const (
 	ExchangeCleopatra                  = "cleopatra"
 	ExchangeCleopatraV2                = "cleopatra-v2"
 	ExchangeClipper                    = "clipper"
+	ExchangeCoinhaneV3ECLP             = "coinhane-v3-eclp"
+	ExchangeCoinhaneV3ReCLAMM          = "coinhane-v3-reclamm"
+	ExchangeCoinhaneV3Stable           = "coinhane-v3-stable"
+	ExchangeCoinhaneV3Weighted         = "coinhane-v3-weighted"
 	ExchangeCometh                     = "cometh"
 	ExchangeCompoundV2                 = "compound-v2"
 	ExchangeCompoundV3                 = "compound-v3"
@@ -583,6 +587,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeChronosV3:                  {},
 	ExchangeCleopatra:                  {},
 	ExchangeCleopatraV2:                {},
+	ExchangeCoinhaneV3ECLP:             {},
+	ExchangeCoinhaneV3ReCLAMM:          {},
+	ExchangeCoinhaneV3Stable:           {},
+	ExchangeCoinhaneV3Weighted:         {},
 	ExchangeCometh:                     {},
 	ExchangeCompoundV2:                 {},
 	ExchangeCompoundV3:                 {},

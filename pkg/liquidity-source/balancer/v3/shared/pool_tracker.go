@@ -4,18 +4,21 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*ExtraBuffer {
+func GetBufferTokens(req *ethrpc.Request, chainID int, exchange string, bufferTokens []string) func() []*ExtraBuffer {
 	var (
 		rates       = make([][]Rate, len(bufferTokens))
 		maxDeposits = make([]*big.Int, len(bufferTokens))
 		maxRedeems  = make([]*big.Int, len(bufferTokens))
 	)
 
+	vault := Vault(valueobject.ChainID(chainID), exchange)
 	for i, bufferToken := range bufferTokens {
 		if bufferToken == "" {
 			continue
@@ -40,13 +43,13 @@ func GetBufferTokens(req *ethrpc.Request, bufferTokens []string) func() []*Extra
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxDeposit,
-			Params: []any{VaultAddress},
+			Params: []any{vault},
 		}, []any{&maxDeposits[i]})
 		req.AddCall(&ethrpc.Call{
 			ABI:    ERC4626ABI,
 			Target: bufferToken,
 			Method: ERC4626MethodMaxRedeem,
-			Params: []any{VaultAddress},
+			Params: []any{vault},
 		}, []any{&maxRedeems[i]})
 	}
 

@@ -182,7 +182,7 @@ func (t *PoolTracker) queryRPCData(ctx context.Context, p *entity.Pool, staticEx
 			Method: poolMethodGetQuantAMMWeightedPoolImmutableData,
 		}, []any{&rpcRes.ImmutableDataRpc})
 	}
-	rpcRes.Buffers = shared.GetBufferTokens(req, staticExtra.BufferTokens)
+	rpcRes.Buffers = shared.GetBufferTokens(req, t.config.ChainID, t.config.DexID, staticExtra.BufferTokens)
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
