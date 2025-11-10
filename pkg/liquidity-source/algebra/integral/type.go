@@ -45,6 +45,15 @@ type Tick struct {
 	OuterFeeGrowth1Token *big.Int
 }
 
+type TicksResp struct {
+	LiquidityTotal       *big.Int
+	LiquidityDelta       *big.Int
+	PrevTick             *big.Int
+	NextTick             *big.Int
+	OuterFeeGrowth0Token *big.Int
+	OuterFeeGrowth1Token *big.Int
+}
+
 func (t TickResp) transformTickRespToTick() (v3Entities.Tick, error) {
 	liquidityGross, err := uint256.FromDecimal(t.LiquidityGross)
 	if err != nil {

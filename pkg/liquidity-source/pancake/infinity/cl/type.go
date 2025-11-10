@@ -3,6 +3,7 @@ package cl
 import (
 	"math/big"
 
+	factory "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -51,6 +52,10 @@ type FetchRPCResult struct {
 	Slot0       Slot0Data `json:"slot0"`
 	TickSpacing uint64    `json:"tickSpacing"`
 	SwapFee     uint32    `json:"swapFee"`
+}
+
+type TicksResp struct {
+	Data factory.TickInfo
 }
 
 type Tick = uniswapv3.Tick
