@@ -19,7 +19,8 @@ type PoolTicksQueryParams struct {
 	LastTickIdx        string
 }
 
-func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int, first, skip int) string {
+func getPoolsListQuery(subgraphPool string, allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
+	first, skip int) string {
 	var tpl bytes.Buffer
 	td := PoolsListQueryParams{
 		allowSubgraphError,
@@ -28,9 +29,11 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 		skip,
 	}
 
-	// Add subgraphError: allow
+	if subgraphPool != "" {
+		subgraphPool = ":" + subgraphPool
+	}
 	t, err := template.New("poolsListQuery").Parse(`{
-		pools(
+		pools` + subgraphPool + `(
 			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}
 			where: {
 				createdAtTimestamp_gte: {{ .LastCreatedAtTimestamp }}

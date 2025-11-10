@@ -6,6 +6,7 @@ type Config struct {
 	DexID              string
 	SubgraphAPI        string      `json:"subgraphAPI"`
 	SubgraphHeaders    http.Header `json:"subgraphHeaders"`
+	SubgraphPool       string      `json:"subgraphPool"`
 	AllowSubgraphError bool        `json:"allowSubgraphError"`
 
 	AlwaysUseTickLens bool // instead of fetching from subgraph

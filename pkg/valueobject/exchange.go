@@ -338,6 +338,7 @@ const (
 	ExchangeQuickSwapV4                = "quickswap-v4"
 	ExchangeRamses                     = "ramses"
 	ExchangeRamsesV2                   = "ramses-v2"
+	ExchangeRamsesV3                   = "ramses-v3"
 	ExchangeRenzoEZETH                 = "renzo-ezeth"
 	ExchangeRetro                      = "retro"
 	ExchangeRetroV3                    = "retro-v3"
@@ -820,6 +821,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeQuickSwapV4:                {},
 	ExchangeRamses:                     {},
 	ExchangeRamsesV2:                   {},
+	ExchangeRamsesV3:                   {},
 	ExchangeRenzoEZETH:                 {},
 	ExchangeRetro:                      {},
 	ExchangeRetroV3:                    {},
