@@ -72,6 +72,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	skypsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/sky-psm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
+	maplesyrup "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maple-syrup"
 	maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v1"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick/v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/midas"
@@ -339,6 +340,7 @@ type Types struct {
 	ArberaDen                  string
 	CUSD                       string
 	ArberaZap                  string
+	MapleSyrup                 string
 }
 
 var (
@@ -518,5 +520,6 @@ var (
 		ArberaDen:                  arberaden.DexType,
 		CUSD:                       cusd.DexType,
 		ArberaZap:                  arberazap.DexType,
+		MapleSyrup:                 maplesyrup.DexType,
 	}
 )

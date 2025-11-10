@@ -76,16 +76,9 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, vaultAddr string, vau
 		return nil, err
 	}
 
-	exchange := u.cfg.DexId
-	if vaultCfg.Meta != nil {
-		if exchangeStr, ok := vaultCfg.Meta[ExchangeMetaKey].(string); ok && exchangeStr != "" {
-			exchange = exchangeStr
-		}
-	}
-
 	p := &entity.Pool{
 		Address:  strings.ToLower(vaultAddr),
-		Exchange: exchange,
+		Exchange: u.cfg.DexId,
 		Type:     DexType,
 		Tokens: []*entity.PoolToken{
 			{Address: strings.ToLower(vaultAddr), Swappable: true},
