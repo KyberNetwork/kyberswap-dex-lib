@@ -126,3 +126,8 @@ type variableFeeParamsResp struct {
 	IdReference           *big.Int
 	TimeOfLastUpdate      *big.Int
 }
+
+type bin struct {
+	BinReserveX *big.Int
+	BinReserveY *big.Int
+}
