@@ -21,6 +21,7 @@ type (
 		SwapTypes    SwapType       `json:"sT,omitempty"`
 		MaxDeposit   *uint256.Int   `json:"mD,omitempty"`
 		DepositRates []*uint256.Int `json:"dR,omitempty"`
+		TotalAssets  *uint256.Int   `json:"tA"`
 		Router       string         `json:"router"`
 		Active       bool           `json:"active"`
 		LiquidityCap *uint256.Int   `json:"liquidityCap"`

@@ -99,6 +99,8 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	p.Extra = string(extraBytes)
+	p.Exchange = t.cfg.DexId
+	p.Type = DexType
 
 	return p, nil
 }
