@@ -41,12 +41,12 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/aws/smithy-go v1.15.0 // indirect
-	github.com/bits-and-blooms/bitset v1.17.0 // indirect
+	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/consensys/bavard v0.1.22 // indirect
-	github.com/consensys/gnark-crypto v0.14.0 // indirect
+	github.com/consensys/bavard v0.2.1 // indirect
+	github.com/consensys/gnark-crypto v0.19.2 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
