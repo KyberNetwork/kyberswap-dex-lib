@@ -6,9 +6,8 @@ type Config struct {
 }
 
 type VaultCfg struct {
-	Gas       GasCfg         `json:"gas"`
-	SwapTypes SwapType       `json:"swapTypes"`
-	Meta      map[string]any `json:"meta,omitempty"`
+	Gas       GasCfg   `json:"gas"`
+	SwapTypes SwapType `json:"swapTypes"`
 }
 
 type GasCfg struct {
