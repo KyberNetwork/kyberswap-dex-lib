@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -70,7 +71,7 @@ func NewTicksBasedPool(pool entity.Pool) (TicksBasedPool, error) {
 
 func (t TicksBasedPool) HasAllValidTicks() bool {
 	if !t.HasValidTicks() {
-		// metrics.IncrInvalidPoolTicks(t.Exchange)
+		metrics.IncrInvalidPoolTicks(t.Exchange)
 		return false
 	}
 	return true
@@ -86,7 +87,7 @@ func (t TicksBasedPool) HasValidTicks() bool {
 
 func ValidateAllPoolTicks(pool TicksBasedPool, ticks []Tick) error {
 	if err := ValidatePoolTicks(pool, ticks); err != nil {
-		//metrics.IncrInvalidPoolTicks(pool.Exchange)
+		metrics.IncrInvalidPoolTicks(pool.Exchange)
 		return err
 	}
 	return nil
@@ -136,7 +137,7 @@ func ValidatePoolTicks(pool TicksBasedPool, ticks []Tick) error {
 
 func IsMissingTrieNodeError(err error) bool {
 	return lo.TernaryF(strings.Contains(err.Error(), "missing trie node"), func() bool {
-		//metrics.IncrMissingTrieNode()
+		metrics.IncrMissingTrieNode()
 		return true
 	}, func() bool { return false })
 }

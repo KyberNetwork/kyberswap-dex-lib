@@ -14,6 +14,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -597,7 +599,7 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 
 		default:
-			// metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.UniswapV4, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.UniswapV4, event.Topics[0].Hex())
 		}
 	}
 
