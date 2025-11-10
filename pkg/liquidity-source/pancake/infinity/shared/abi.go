@@ -6,9 +6,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
-var quoterABI abi.ABI
-var BinPoolManagerABI abi.ABI
-var CLPoolManagerABI abi.ABI
+var (
+	quoterABI         abi.ABI
+	BinPoolManagerABI abi.ABI
+	CLPoolManagerABI  abi.ABI
+)
 
 func init() {
 	builder := []struct {
