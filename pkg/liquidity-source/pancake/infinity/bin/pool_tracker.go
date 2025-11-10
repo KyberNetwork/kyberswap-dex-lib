@@ -12,7 +12,9 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/abi"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -592,7 +594,7 @@ func (t *PoolTracker) binIDsFromLogs(currentActiveBinID uint32, currentBins []Bi
 			}
 
 		default:
-			// metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeInfinityBin, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeInfinityBin, event.Topics[0].Hex())
 		}
 	}
 

@@ -603,7 +603,7 @@ func (t *PoolTracker) extractEventData(event ethtypes.Log) (int, int, *big.Int, 
 		return int(burn.TickLower.Int64()), int(burn.TickUpper.Int64()), burn.Amount.Neg(burn.Amount), nil
 
 	default:
-		// metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeV3, event.Topics[0].Hex())
+		metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.PancakeV3, event.Topics[0].Hex())
 		return 0, 0, big.NewInt(0), nil
 	}
 }

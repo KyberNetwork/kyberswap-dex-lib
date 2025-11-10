@@ -608,7 +608,7 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 			tickSet[int(burn.TickUpper.Int64())] = struct{}{}
 
 		default:
-			// metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.Slipstream, event.Topics[0].Hex())
+			metrics.IncrUnprocessedEventTopic(pooltypes.PoolTypes.Slipstream, event.Topics[0].Hex())
 		}
 	}
 
