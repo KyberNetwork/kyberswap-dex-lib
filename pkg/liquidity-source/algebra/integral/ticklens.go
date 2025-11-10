@@ -31,11 +31,11 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    algebraIntegralPoolABI,
+			ABI:    poolV12ABI,
 			Target: pool.Address,
 			Method: poolTicksMethod,
-			Params: []interface{}{new(big.Int).SetInt64(tick)},
-		}, []interface{}{&populatedTicks[i]})
+			Params: []any{new(big.Int).SetInt64(tick)},
+		}, []any{&populatedTicks[i]})
 	}
 
 	resp, err := rpcRequest.Aggregate()
