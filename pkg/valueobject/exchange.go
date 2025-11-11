@@ -89,6 +89,7 @@ const (
 	ExchangeCUSD                       = "cusd"
 	ExchangeCamelot                    = "camelot"
 	ExchangeCamelotV3                  = "camelot-v3"
+	ExchangeCamelotV4                  = "camelot-v4"
 	ExchangeChronos                    = "chronos"
 	ExchangeChronosV3                  = "chronos-v3"
 	ExchangeCleopatra                  = "cleopatra"
@@ -584,6 +585,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCUSD:                       {},
 	ExchangeCamelot:                    {},
 	ExchangeCamelotV3:                  {},
+	ExchangeCamelotV4:                  {},
 	ExchangeChronos:                    {},
 	ExchangeChronosV3:                  {},
 	ExchangeCleopatra:                  {},

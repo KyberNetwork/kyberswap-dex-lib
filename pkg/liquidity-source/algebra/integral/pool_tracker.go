@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/sourcegraph/conc/pool"
@@ -165,7 +166,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	req := d.EthrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
-		req.SetBlockNumber(new(big.Int).SetUint64(blockNumber))
+		req.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
 
 	req.AddCall(&ethrpc.Call{
@@ -227,8 +228,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Unlocked:     rpcState.Unlocked,
 	}
 
-	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx,
-		p, plugin.Hex(), result.BlockNumber)
+	timepoints, volatilityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p, plugin, result.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -245,18 +245,19 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	return res, nil
 }
 
-func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, plugin string,
+func (d *PoolTracker) getPluginData(ctx context.Context, p *entity.Pool, pluginAddr common.Address,
 	blockNumber *big.Int) (map[uint16]Timepoint, *VolatilityOraclePlugin, *DynamicFeeConfig, *SlidingFeeConfig, error) {
+	if pluginAddr == (common.Address{}) {
+		return nil, nil, nil, nil, nil
+	}
+	plugin := hexutil.Encode(pluginAddr[:])
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"plugin":      plugin,
 		"dexID":       d.config.DexID,
 	})
 
-	req := d.EthrpcClient.NewRequest().SetContext(ctx)
-	if blockNumber != nil && blockNumber.Sign() > 0 {
-		req.SetBlockNumber(blockNumber)
-	}
+	req := d.EthrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
 	volatilityOracleData, volPost := d.getVolatilityOracleData(req, plugin)
 	dynamicFeeData, dynPost := d.getDynamicFeeData(req, plugin)
