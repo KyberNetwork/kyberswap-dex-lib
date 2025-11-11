@@ -415,6 +415,7 @@ const (
 	ExchangeThenaFusion                = "thena-fusion"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
 	ExchangeThick                      = "thick"
+	ExchangeThirdfyV4                  = "thirdfy-v4"
 	ExchangeThrusterV2                 = "thruster-v2"
 	ExchangeThrusterV2Degen            = "thruster-v2-degen"
 	ExchangeThrusterV3                 = "thruster-v3"
@@ -899,6 +900,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeThenaFusion:                {},
 	ExchangeThenaFusionV3:              {},
 	ExchangeThick:                      {},
+	ExchangeThirdfyV4:                  {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
 	ExchangeThrusterV3:                 {},
