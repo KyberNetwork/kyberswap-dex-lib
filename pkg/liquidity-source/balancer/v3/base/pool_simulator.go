@@ -428,7 +428,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
-	router, _ := shared.BatchRouter(p.chainID, p.Pool.GetExchange())
+	router, _ := shared.BatchRouter(p.chainID, p.GetExchange())
 
 	indexIn, isTokenInUnderlying, _ := p.ResolveToken(tokenIn)
 	indexOut, isTokenOutUnderlying, _ := p.ResolveToken(tokenOut)
