@@ -114,6 +114,7 @@ const (
 	ExchangeCurveTriCryptoNg           = "curve-tricrypto-ng"
 	ExchangeCurveTwoCryptoNg           = "curve-twocrypto-ng"
 	ExchangeCyberblastV3               = "cyberblast-v3"
+	ExchangeCypherV4                   = "cypher-v4"
 	ExchangeDFYN                       = "dfyn"
 	ExchangeDMM                        = "dmm"
 	ExchangeDackieV2                   = "dackie-v2"
@@ -609,6 +610,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveTriCryptoNg:           {},
 	ExchangeCurveTwoCryptoNg:           {},
 	ExchangeCyberblastV3:               {},
+	ExchangeCypherV4:                   {},
 	ExchangeDFYN:                       {},
 	ExchangeDMM:                        {},
 	ExchangeDackieV2:                   {},
