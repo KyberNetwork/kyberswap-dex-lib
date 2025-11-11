@@ -6,10 +6,9 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
@@ -41,6 +40,17 @@ type SubgraphPool struct {
 	CreatedAtTimestamp string `json:"createdAtTimestamp"`
 	Token0             Token  `json:"token0"`
 	Token1             Token  `json:"token1"`
+}
+
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
 }
 
 type TickResp = ticklens.TickResp

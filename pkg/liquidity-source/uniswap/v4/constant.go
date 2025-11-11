@@ -17,6 +17,8 @@ const (
 	graphFirstLimit = 1000
 
 	maxChangedTicks = 10
+
+	tickChunkSize = 100
 )
 
 var (

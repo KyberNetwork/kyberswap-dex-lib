@@ -9,6 +9,7 @@ const (
 	graphSkipLimit       = 5000
 	graphFirstLimit      = 1000
 	defaultTokenDecimals = 18
+	tickChunkSize        = 100
 
 	maxSwapLoop = 1000000
 
@@ -34,8 +35,6 @@ const (
 	slidingFeePluginPriceChangeFactorMethod = "s_priceChangeFactor"
 	slidingFeePluginBaseFeeMethod           = "s_baseFee"
 	slidingFeePluginFeeTypeMethod           = "feeType"
-
-	erc20BalanceOfMethod = "balanceOf"
 
 	BEFORE_SWAP_FLAG = 1
 	RESOLUTION       = 96

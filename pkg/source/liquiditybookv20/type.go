@@ -24,6 +24,11 @@ type QueryRpcPoolStateResult struct {
 	PriceX128      *big.Int      `json:"priceX128"`
 }
 
+type BinResp struct {
+	ReserveX *big.Int
+	ReserveY *big.Int
+}
+
 type reservesAndID struct {
 	ReserveX *big.Int `json:"reserveX"`
 	ReserveY *big.Int `json:"reserveY"`

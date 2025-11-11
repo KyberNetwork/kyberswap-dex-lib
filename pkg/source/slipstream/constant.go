@@ -15,14 +15,15 @@ const (
 	defaultTokenDecimals = 18
 	zeroString           = "0"
 	emptyString          = ""
+	tickChunkSize        = 100
 )
 
 const (
-	methodGetLiquidity   = "liquidity"
-	methodGetSlot0       = "slot0"
-	methodTickSpacing    = "tickSpacing"
-	methodFee            = "fee"
-	erc20MethodBalanceOf = "balanceOf"
+	methodGetLiquidity = "liquidity"
+	methodGetSlot0     = "slot0"
+	methodTickSpacing  = "tickSpacing"
+	methodFee          = "fee"
+	methodTicks        = "ticks"
 )
 
 var (

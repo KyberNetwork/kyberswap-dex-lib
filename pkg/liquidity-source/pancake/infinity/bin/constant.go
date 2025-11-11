@@ -18,6 +18,10 @@ const (
 	_PROTOCOL_FEE_OFFSET = 24
 	_LP_FEE_OFFSET       = 48
 	_REAL_ID_SHIFT       = 1 << 23
+
+	binChunk = 100
+
+	methodGetBin = "getBin"
 )
 
 var (

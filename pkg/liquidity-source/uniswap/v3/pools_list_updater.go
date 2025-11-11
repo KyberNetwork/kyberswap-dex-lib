@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kutils"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -89,7 +90,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		ctx,
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
-		uniswapV3PoolABI,
+		abis.UniswapV3PoolABI,
 		methodTickSpacing,
 	)
 

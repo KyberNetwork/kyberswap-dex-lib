@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
@@ -14,7 +15,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
@@ -31,11 +31,11 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    algebraIntegralPoolABI,
+			ABI:    poolV12ABI,
 			Target: pool.Address,
 			Method: poolTicksMethod,
-			Params: []interface{}{new(big.Int).SetInt64(tick)},
-		}, []interface{}{&populatedTicks[i]})
+			Params: []any{new(big.Int).SetInt64(tick)},
+		}, []any{&populatedTicks[i]})
 	}
 
 	resp, err := rpcRequest.Aggregate()

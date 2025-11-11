@@ -85,7 +85,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		ctx,
 		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
 		d.ethrpcClient,
-		nuriV2PoolABI,
+		poolABI,
 		methodTickSpacing,
 	)
 

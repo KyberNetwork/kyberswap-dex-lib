@@ -22,9 +22,12 @@ const (
 	pairMethodGetBinStep               = "getBinStep"
 	pairMethodGetActiveID              = "getActiveId"
 	pairGetPriceFromID                 = "getPriceFromId"
+	pairMethodGetBin                   = "getBin"
 )
 
 const (
+	binChunk = 100
+
 	graphFirstLimit = 1000
 
 	// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/Constants.sol#L20

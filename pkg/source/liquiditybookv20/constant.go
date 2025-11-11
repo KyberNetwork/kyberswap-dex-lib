@@ -16,10 +16,14 @@ const (
 	pairMethodTokenY           = "tokenY"
 	pairMethodFeeParameters    = "feeParameters"
 	pairMethodGetReservesAndID = "getReservesAndId"
+	pairMethodGetBin           = "getBin"
 
 	routerGetPriceFromIDMethod = "getPriceFromId"
 )
+
 const (
+	binChunk = 100
+
 	graphFirstLimit = 1000
 
 	basisPointMax = 10000

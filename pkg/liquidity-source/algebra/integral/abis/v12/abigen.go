@@ -1,0 +1,3468 @@
+// Code generated - DO NOT EDIT.
+// This file is a generated binding and any manual changes will be lost.
+
+package intergralpoolv12
+
+import (
+	"errors"
+	"math/big"
+	"strings"
+
+	ethereum "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/event"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var (
+	_ = errors.New
+	_ = big.NewInt
+	_ = strings.NewReader
+	_ = ethereum.NotFound
+	_ = bind.Bind
+	_ = common.Big1
+	_ = types.BloomLookup
+	_ = event.NewSubscription
+	_ = abi.ConvertType
+)
+
+// PoolMetaData contains all meta data concerning the Pool contract.
+var PoolMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[],\"name\":\"alreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"arithmeticError\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"bottomTickLowerThanMIN\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"dynamicFeeActive\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"dynamicFeeDisabled\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"flashInsufficientPaid0\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"flashInsufficientPaid1\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"incorrectPluginFee\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"insufficientInputAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"invalidAmountRequired\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"expectedSelector\",\"type\":\"bytes4\"}],\"name\":\"invalidHookResponse\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"invalidLimitSqrtPrice\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"invalidNewCommunityFee\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"invalidNewTickSpacing\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"liquidityAdd\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"liquidityOverflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"liquiditySub\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"locked\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"notAllowed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"notInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"pluginIsNotConnected\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"priceOutOfRange\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"tickInvalidLinks\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"tickIsNotInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"tickIsNotSpaced\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"tickOutOfRange\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"topTickAboveMAX\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"topTickLowerOrEqBottomTick\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"transferFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"zeroAmountRequired\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"zeroLiquidityActual\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"zeroLiquidityDesired\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"liquidityAmount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"pluginFee\",\"type\":\"uint24\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"Collect\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"communityFeeNew\",\"type\":\"uint16\"}],\"name\":\"CommunityFee\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newCommunityVault\",\"type\":\"address\"}],\"name\":\"CommunityVault\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"ExcessTokens\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"fee\",\"type\":\"uint16\"}],\"name\":\"Fee\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid1\",\"type\":\"uint256\"}],\"name\":\"Flash\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"price\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Initialize\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"liquidityAmount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newPluginAddress\",\"type\":\"address\"}],\"name\":\"Plugin\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"newPluginConfig\",\"type\":\"uint8\"}],\"name\":\"PluginConfig\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Skim\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"price\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"overrideFee\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"pluginFee\",\"type\":\"uint24\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"newTickSpacing\",\"type\":\"int24\"}],\"name\":\"TickSpacing\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collect\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"communityVault\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fee\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"currentFee\",\"type\":\"uint16\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"flash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCommunityFeePending\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPluginFeePending\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getReserves\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"globalState\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"price\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"lastFee\",\"type\":\"uint16\"},{\"internalType\":\"uint8\",\"name\":\"pluginConfig\",\"type\":\"uint8\"},{\"internalType\":\"uint16\",\"name\":\"communityFee\",\"type\":\"uint16\"},{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"initialPrice\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"isUnlocked\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastFeeTransferTimestamp\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxLiquidityPerTick\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"leftoversRecipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"bottomTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"topTick\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"liquidityDesired\",\"type\":\"uint128\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"liquidityActual\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nextTickGlobal\",\"outputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"plugin\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"positions\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"liquidity\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"innerFeeGrowth0Token\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"innerFeeGrowth1Token\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"fees0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"fees1\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"prevTickGlobal\",\"outputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"safelyGetStateOfAMM\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPrice\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"lastFee\",\"type\":\"uint16\"},{\"internalType\":\"uint8\",\"name\":\"pluginConfig\",\"type\":\"uint8\"},{\"internalType\":\"uint128\",\"name\":\"activeLiquidity\",\"type\":\"uint128\"},{\"internalType\":\"int24\",\"name\":\"nextTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"previousTick\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"newCommunityFee\",\"type\":\"uint16\"}],\"name\":\"setCommunityFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newCommunityVault\",\"type\":\"address\"}],\"name\":\"setCommunityVault\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"newFee\",\"type\":\"uint16\"}],\"name\":\"setFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newPluginAddress\",\"type\":\"address\"}],\"name\":\"setPlugin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"newConfig\",\"type\":\"uint8\"}],\"name\":\"setPluginConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"newTickSpacing\",\"type\":\"int24\"}],\"name\":\"setTickSpacing\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"skim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"zeroToOne\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"amountRequired\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"limitSqrtPrice\",\"type\":\"uint160\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"swap\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"leftoversRecipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"zeroToOne\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"amountToSell\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"limitSqrtPrice\",\"type\":\"uint160\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"swapWithPaymentInAdvance\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sync\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickSpacing\",\"outputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"\",\"type\":\"int16\"}],\"name\":\"tickTable\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickTreeRoot\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"\",\"type\":\"int16\"}],\"name\":\"tickTreeSecondLayer\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"name\":\"ticks\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"liquidityTotal\",\"type\":\"uint256\"},{\"internalType\":\"int128\",\"name\":\"liquidityDelta\",\"type\":\"int128\"},{\"internalType\":\"int24\",\"name\":\"prevTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"nextTick\",\"type\":\"int24\"},{\"internalType\":\"uint256\",\"name\":\"outerFeeGrowth0Token\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"outerFeeGrowth1Token\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token0\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token1\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalFeeGrowth0Token\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalFeeGrowth1Token\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	Bin: "0x60e060405234801562000010575f80fd5b505f6200001c620000ae565b6001600160a01b0390811660c05290811660a052166080529050620d89e719620000468162000268565b6009805462ffffff93841663010000000265ffffffffffff1990911693909216929092171790556002805460ff60e01b1916600160e01b1790556001600160a01b038116156200009b576200009b8162000123565b50620000a8600362000177565b6200030b565b5f805f80336001600160a01b03166304889e266040518163ffffffff1660e01b8152600401608060405180830381865afa158015620000ef573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190620001159190620002b1565b935093509350935090919293565b600680546001600160a01b0319166001600160a01b0383169081179091556040519081527f27a3944eff2135a57675f17e72501038982b73620d01f794c72e93d61a3932a29060200160405180910390a150565b620d89e719620001878162000268565b620d89e7195f818152602085905260409020600101805465ffffffffffff60801b1916600160981b62ffffff9485160262ffffff60801b191617600160801b949093169390930291909117909155620001e08162000268565b825f620001f1620d89e71962000268565b60020b60020b81526020019081526020015f206001016010845f620d89e7196200021b9062000268565b60020b815260208101919091526040015f20600101805462ffffff948516600160981b0262ffffff60981b1990911617905581549383166101009190910a90810292021990921617905550565b5f8160020b627fffff1981036200028d57634e487b7160e01b5f52601160045260245ffd5b5f0392915050565b80516001600160a01b0381168114620002ac575f80fd5b919050565b5f805f8060808587031215620002c5575f80fd5b620002d08562000295565b9350620002e06020860162000295565b9250620002f06040860162000295565b9150620003006060860162000295565b905092959194509250565b60805160a05160c05161573b620003d75f395f818161096601528181610c4001528181611183015281816114b7015281816118470152818161190d01528181611c34015281816129eb01528181612f4d015281816132010152614b3a01525f81816102ba01528181610ccc01528181611140015281816114740152818161187e015281816118d601528181611be50152818161299c01528181612bce015281816131b30152614b0501525f81816108db01528181611db3015281816133140152613f08015261573b5ff3fe608060405234801561000f575f80fd5b506004361061023f575f3560e01c80639e4e022711610135578063d8544cf3116100b4578063ef01df4f11610079578063ef01df4f14610aa2578063f085a61014610ab5578063f30dba9314610ad4578063f637731d14610b6c578063fff6cae914610b91575f80fd5b8063d8544cf314610995578063d8619037146109ba578063ddca3f43146109e5578063e76c01e414610a04578063ecdecf4214610a99575f80fd5b8063c677e3e0116100fa578063c677e3e0146108fd578063cc1f97cf14610928578063d0c93a7c1461094d578063d21220a714610961578063d5c35a7e14610988575f80fd5b80639e4e022714610734578063a1eded87146107cd578063aafe29c0146107e9578063bca57f81146108b7578063c45a0155146108d6575f80fd5b8063514ea4bf116101c157806377f8c3a91161018657806377f8c3a91461065f5780637bd78025146106765780638380edb7146106925780638e005553146106b357806397ce1c51146106d3575f80fd5b8063514ea4bf1461056557806353e97868146105ed578063578b9a36146106005780636378ae441461063057806370cf754a1461064a575f80fd5b80631dd19cb4116102075780631dd19cb4146103d7578063240a875a146103e15780633b3bc70e14610401578063490e6cbc1461048f5780634f1eb3d814610515575f80fd5b8063050a4d21146102435780630902f1ac1461026e5780630dfe1681146102b5578063128acb08146102f85780631a686502146103a1575b5f80fd5b600954610257906301000000900460020b81565b6040805160029290920b8252519081900360200190f35b600c546001600160801b0380821691600160801b9004165b60405180836001600160801b03168152602001826001600160801b031681526020019250505060405180910390f35b6102dc7f000000000000000000000000000000000000000000000000000000000000000081565b604080516001600160a01b039092168252519081900360200190f35b610388600480360360a081101561030d575f80fd5b6001600160a01b0382358116926020810135151592604082013592606083013516919081019060a081016080820135600160201b81111561034c575f80fd5b82018360208201111561035d575f80fd5b803590602001918460018302840111600160201b8311171561037d575f80fd5b509092509050610b99565b6040805192835260208301919091528051918290030190f35b6009546103bb90600160301b90046001600160801b031681565b604080516001600160801b039092168252519081900360200190f35b6103df610d8a565b005b6103df600480360360208110156103f6575f80fd5b503561ffff16610dad565b61038860048036036080811015610416575f80fd5b8135600290810b92602081013590910b916001600160801b036040830135169190810190608081016060820135600160201b811115610453575f80fd5b820183602082011115610464575f80fd5b803590602001918460018302840111600160201b83111715610484575f80fd5b509092509050610e2c565b6103df600480360360808110156104a4575f80fd5b6001600160a01b038235169160208101359160408201359190810190608081016060820135600160201b8111156104d9575f80fd5b8201836020820111156104ea575f80fd5b803590602001918460018302840111600160201b8311171561050a575f80fd5b509092509050611029565b610286600480360360a081101561052a575f80fd5b506001600160a01b03813516906020810135600290810b91604081013590910b906001600160801b03606082013581169160800135166113ca565b6105b66004803603602081101561057a575f80fd5b50600b602052355f90815260409020805460018201546002830154600390930154919290916001600160801b0380821691600160801b90041685565b604080519586526020860194909452848401929092526001600160801b039081166060850152166080830152519081900360a00190f35b6007546102dc906001600160a01b031681565b60095461061790600160c81b900463ffffffff1681565b6040805163ffffffff9092168252519081900360200190f35b6106385f5481565b60408051918252519081900360200190f35b6103bb6d09745258e83de0d0f4e400fce79981565b60045461061790600160d01b900463ffffffff1681565b6004546001600160681b0380821691600160681b900416610286565b600254600160e01b900460ff16604080519115158252519081900360200190f35b6103df600480360360208110156106c8575f80fd5b503561ffff16611580565b6106db611620565b604080516001600160a01b039098168852600296870b602089015261ffff9095168786015260ff90931660608701526001600160801b039091166080860152830b60a085015290910b60c0830152519081900360e00190f35b610388600480360360c0811015610749575f80fd5b6001600160a01b0382358116926020810135821692604082013515159260608301359260808101359091169181019060c0810160a0820135600160201b811115610791575f80fd5b8201836020820111156107a2575f80fd5b803590602001918460018302840111600160201b831117156107c2575f80fd5b5090925090506116b2565b6005546001600160681b0380821691600160681b900416610286565b610890600480360360c08110156107fe575f80fd5b6001600160a01b0382358116926020810135909116916040820135600290810b92606081013590910b916001600160801b03608083013516919081019060c0810160a0820135600160201b811115610854575f80fd5b820183602082011115610865575f80fd5b803590602001918460018302840111600160201b83111715610885575f80fd5b509092509050611997565b6040805193845260208401929092526001600160801b031682820152519081900360600190f35b6103df600480360360208110156108cc575f80fd5b503560ff16611d2b565b6102dc7f000000000000000000000000000000000000000000000000000000000000000081565b61063860048036036020811015610912575f80fd5b5060086020523560010b5f908152604090205481565b6103df6004803603602081101561093d575f80fd5b50356001600160a01b0316611d7e565b60095461025790600160b01b900460020b81565b6102dc7f000000000000000000000000000000000000000000000000000000000000000081565b6009546102579060020b81565b6103df600480360360208110156109aa575f80fd5b50356001600160a01b0316611da0565b610638600480360360208110156109cf575f80fd5b50600a6020523560010b5f908152604090205481565b6109ed611e1a565b6040805161ffff9092168252519081900360200190f35b60028054610a4f916001600160a01b03821691600160a01b810490910b9061ffff600160b81b820481169160ff600160c81b8204811692600160d01b83041691600160e01b90041686565b604080516001600160a01b03909716875260029590950b602087015261ffff9384168686015260ff90921660608601529091166080840152151560a0830152519081900360c00190f35b61063860015481565b6006546102dc906001600160a01b031681565b6103df60048036036020811015610aca575f80fd5b503560020b611ebb565b610b3060048036036020811015610ae9575f80fd5b50600360208190529035600290810b5f90815260409020805460018201548284015492909401549093600f81900b93600160801b8204810b93600160981b909204900b9186565b60408051968752600f9590950b6020870152600293840b868601529190920b6060850152608084019190915260a0830152519081900360c00190f35b6103df60048036036020811015610b81575f80fd5b50356001600160a01b0316611f23565b6103df612116565b5f805f80610bac8a8a8a8a5f8b8b612138565b91509150610bb861227a565b604080516060810182525f8082526020808301829052828401829052835180850190945281845283015290610bf084848d8d8d6122b3565b6001600160801b03909116604088015260029190910b60208701526001600160a01b039091168552919750955090505f80610c29612945565b915091508c15610cbf575f871215610c6857610c687f00000000000000000000000000000000000000000000000000000000000000008f895f03612b4b565b610c7488888c8c612b5b565b610c7c612bb7565b610c8689846154e8565b1115610ca557604051633ed6d50560e21b815260040160405180910390fd5b610cba8888855f01515f87602001515f612c45565b610d46565b5f881215610cf457610cf47f00000000000000000000000000000000000000000000000000000000000000008f8a5f03612b4b565b610d0088888c8c612b5b565b610d08612f36565b610d1288836154e8565b1115610d3157604051633ed6d50560e21b815260040160405180910390fd5b610d4688885f865f01515f8860200151612c45565b610d618e8989875f0151886040015189602001518c8c612f84565b50505050610d6d61300a565b610d7d8a8a8a8a88888c8c61301f565b5050965096945050505050565b610d92613129565b610d9a61227a565b610da333613154565b610dab61300a565b565b610db56132a4565b610dbd6132ce565b6103e861ffff82161180610de0575060025461ffff828116600160d01b90920416145b80610e02575061ffff811615801590610e0257506007546001600160a01b0316155b15610e205760405163a709b9af60e01b815260040160405180910390fd5b610e2981613391565b50565b5f808686610e3a82826133e8565b60016001607f1b036001600160801b0388161115610e6b57604051638995290f60e01b815260040160405180910390fd5b5f610e75886154fb565b90505f610e86338c8c858c8c61346a565b9050610e9061227a565b610e98612945565b50505f610ea6338d8d6135bc565b9050610eb4818d8d866135e7565b909750955062ffffff821615610f27575f808815610eee57610edf8962ffffff8616620f4240613703565b9150610eeb828a61551f565b98505b8715610f1657610f078862ffffff8616620f4240613703565b9050610f13818961551f565b97505b610f245f805f808686612c45565b50505b86861715610f8c576003810154610f489088906001600160801b0316615532565b6003820154610f68908890600160801b90046001600160801b0316615532565b6001600160801b039182169116600160801b026001600160801b0319161760038201555b506001600160801b038916861785171561100357604080516001600160801b038b1681526020810188905280820187905262ffffff83166060820152905160028c810b92908e900b9133917f932214d4a69c27c086643126ed97c32681da179064c678836c173f99bd13ca01919081900360800190a45b61100b61300a565b61101b338c8c858a8a8e8e613797565b505050509550959350505050565b600254600160c81b90046010161561110a576006546040516346f0547760e11b80825233600483018181526001600160a01b038a81166024860152604485018a90526064850189905260a06084860190815260a4860188905261110a9694959190941693638de0a8ee93928c928c928c928c928c929060c4018484808284375f81840152601f19601f8201169050808301925050509750505050505050506020604051808303815f875af11580156110e3573d5f803e3d5ffd5b505050506040513d60208110156110f8575f80fd5b50516001600160e01b031916906138a0565b61111261227a565b5f805f8061111e612945565b90925090505f881561116657611139896064620f42406138dd565b90506111667f00000000000000000000000000000000000000000000000000000000000000008b8b612b4b565b5f88156111a95761117c896064620f42406138dd565b90506111a97f00000000000000000000000000000000000000000000000000000000000000008c8b612b4b565b6111b582828a8a613957565b6111bd612bb7565b9550856111ca83866154e8565b11156111e9576040516336de50ff60e11b815260040160405180910390fd5b6111f1612f36565b9450846111fe82856154e8565b111561121d5760405163c998149f60e01b815260040160405180910390fd5b60025495849003959483900394600160d01b900461ffff16801561127a575f87156112525761124f88836103e8613703565b90505b5f87156112695761126688846103e8613703565b90505b611277828284845f80612c45565b50505b604080518c8152602081018c90528082018990526060810188905290516001600160a01b038e169133917fbdbdb71d7860376ba52b25a5028beea23581364a40522f6bcfb86bb1f2dca6339181900360800190a350505050506112db61300a565b600254600160c81b9004602016156113c1576113c163343d37ff60e01b60065f9054906101000a90046001600160a01b03166001600160a01b031663343d37ff338b8b8b89898d8d6040518963ffffffff1660e01b815260040180896001600160a01b03168152602001886001600160a01b031681526020018781526020018681526020018581526020018481526020018060200182810382528484828181526020019250808284375f81840152601f19601f82011690508083019250505099505050505050505050506020604051808303815f875af11580156110e3573d5f803e3d5ffd5b50505050505050565b5f806113d461227a565b5f6113e03388886135bc565b60038101549091506001600160801b0380821691600160801b9004811690871682101561140b578196505b806001600160801b0316866001600160801b03161115611429578095505b6001600160801b03878717161561156b576001600160801b0387830381168783038216600160801b026001600160801b0319161760038501558795508694508516156114a3576114a37f00000000000000000000000000000000000000000000000000000000000000008b876001600160801b0316612b4b565b6001600160801b038416156114e6576114e67f00000000000000000000000000000000000000000000000000000000000000008b866001600160801b0316612b4b565b61150a856001600160801b03165f03856001600160801b03165f035f805f80612c45565b604080516001600160a01b038c1681526001600160801b038088166020830152861681830152905160028a810b92908c900b9133917f70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0919081900360600190a45b61157361300a565b5050509550959350505050565b600254600160c81b8104608016151590600160e01b900460ff166115b757604051636798480960e11b815260040160405180910390fd5b6006546001600160a01b031633036115ec57806115e757604051633a4528ef60e01b815260040160405180910390fd5b611613565b801561160b576040516369cdc70760e11b815260040160405180910390fd5b6116136132ce565b61161c82613980565b5050565b600280546001600160a01b03811691600160a01b8204900b9061ffff600160b81b8204169060ff600160c81b82048116915f9182918291600160e01b909104168061167e57604051636798480960e11b815260040160405180910390fd5b505060095495969495939492936001600160801b03600160301b82041693600282810b9450630100000090920490910b9150565b5f805f8612156116d5576040516334cb3a0160e11b815260040160405180910390fd5b6116dd61227a565b5f871561172f575f6116ed612bb7565b90506116fb885f8888612b5b565b5f611704612bb7565b9050611718611713838361551f565b6139d0565b9250611728835f805f805f612c45565b5050611771565b5f611738612f36565b90506117465f898888612b5b565b5f61174f612f36565b905061175e611713838361551f565b925061176e5f845f805f80612c45565b50505b86811461177c578096505b50855f0361179d57604051633ed6d50560e21b815260040160405180910390fd5b6117a561300a565b5f806117b78a8a8a8a60018b8b612138565b915091506117c361227a565b6117cb612945565b5050604080516060810182525f808252602080830182905282840182905283518085019094528184528301529061180584848d8d8d6122b3565b6001600160801b03909116604088015260029190910b60208701526001600160a01b039091168552919750955090508a156118c9575f85121561186f5761186f7f00000000000000000000000000000000000000000000000000000000000000008d875f03612b4b565b858a038a87146118a4576118a47f00000000000000000000000000000000000000000000000000000000000000008f83612b4b565b6118c36118b0826139d0565b5f0387845f01515f86602001515f612c45565b50611954565b5f8612156118fe576118fe7f00000000000000000000000000000000000000000000000000000000000000008d885f03612b4b565b848a038a8614611933576119337f00000000000000000000000000000000000000000000000000000000000000008f83612b4b565b61195287611940836139d0565b5f035f855f01515f8760200151612c45565b505b61196f8c8787855f0151866040015187602001518a8a612f84565b61197761300a565b6119878c8c8c8c8a8a8e8e61301f565b5050505097509795505050505050565b5f805f87876119a682826133e8565b876001600160801b03165f036119cf5760405163e6ace6df60e01b815260040160405180910390fd5b6119ee8b8b8b6119e78c6001600160801b03166139e2565b8b8b61346a565b506119f761227a565b60028054600160a01b810490910b906001600160a01b03165f819003611a305760405163812eb65560e01b815260040160405180910390fd5b600954600160b01b9004600290810b9081908d900b81611a5257611a52615559565b078160020b8e60020b81611a6857611a68615559565b071760020b15611a8b57604051635f6e14f360e01b815260040160405180910390fd5b50611aaa8c8c611aa38d6001600160801b03166139e2565b85856139f3565b5090975095505f9150819050611abe612945565b91509150611ace87878b8b613a9b565b8615611aec5781611add612bb7565b611ae7919061551f565b611aee565b5f5b91508515611b0e5780611aff612f36565b611b09919061551f565b611b10565b5f5b905086821015611b3557611b2e8a6001600160801b03168389613703565b9450611b39565b8994505b85811015611b78575f611b568b6001600160801b03168389613703565b9050856001600160801b0316816001600160801b03161015611b76578095505b505b846001600160801b03165f03611ba157604051632fae8a9b60e21b815260040160405180910390fd5b5f611bad8e8e8e6135bc565b9050611bcc818e8e611bc78a6001600160801b03166139e2565b6135e7565b9098509650508615611c215786821115611c1257611c0d7f00000000000000000000000000000000000000000000000000000000000000008f898503612b4b565b611c21565b868214611c2157611c2161556d565b8515611c705785811115611c6157611c5c7f00000000000000000000000000000000000000000000000000000000000000008f888403612b4b565b611c70565b858114611c7057611c7061556d565b611c7e87875f805f80612c45565b8a60020b8c60020b8e6001600160a01b03167f7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde33898c8c60405180856001600160a01b03168152602001846001600160801b0316815260200183815260200182815260200194505050505060405180910390a4611cf961300a565b611d1a8d8d8d611d11896001600160801b03166139e2565b8b8b8f8f613797565b505050509750975097945050505050565b611d336132a4565b6006546001600160a01b031680611d5d57604051639e727ce360e01b815260040160405180910390fd5b336001600160a01b03821614611d7557611d756132ce565b61161c82613ac4565b611d866132a4565b611d8e6132ce565b611d975f613ac4565b610e2981613b12565b611da86132a4565b336001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001614611de057611de06132ce565b6001600160a01b038116158015611e035750600254600160d01b900461ffff1615155b15611e1157611e115f613391565b610e2981613b60565b600254600160b81b810461ffff1690600160c81b900460ff81169060801615611eb75760065f9054906101000a90046001600160a01b03166001600160a01b031663f70d93626040518163ffffffff1660e01b8152600401602060405180830381865afa158015611e8d573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190611eb19190615592565b91505090565b5090565b611ec36132a4565b611ecb6132ce565b5f8160020b131580611ee257506101f4600282900b135b80611efc5750600954600282810b600160b01b909204900b145b15611f1a57604051632bf827d160e21b815260040160405180910390fd5b610e2981613bae565b5f611f2d82613bfe565b6002549091506001600160a01b031615611f5a57604051631499a6b760e21b815260040160405180910390fd5b600280546001600160a01b0384166001600160b81b03199091168117600160a01b62ffffff851602178255604080519182529183900b602082015281517f98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95929181900390910190a16006546001600160a01b03161561203057600654604080516318dbf60160e21b8082523360048301526001600160a01b03868116602484015292516120309491939091169163636fd80491604480830192602092919082900301815f875af11580156110e3573d5f803e3d5ffd5b5f805f61203b613f03565b92509250925061204a81613980565b61205382613bae565b61ffff83161580159061206f57506007546001600160a01b0316155b1561208d5760405163a709b9af60e01b815260040160405180910390fd5b61209683613391565b600254600160c81b90046040161561210f576006546040805163416eb29160e11b8082523360048301526001600160a01b038981166024840152600289900b6044840152925161210f949193909116916382dd652291606480830192602092919082900301815f875af11580156110e3573d5f803e3d5ffd5b5050505050565b61211e613129565b61212661227a565b61212e612945565b5050610dab61300a565b6002545f908190600160c81b90046001161561226e576006546001600160a01b0316330361216a57505f90508061226e565b60065460405163029c1cb760e01b815233600482018181526001600160a01b038d811660248501528c15156044850152606484018c90528a8116608485015289151560a485015260e060c4850190815260e485018990525f95919091169363029c1cb793928f928f928f928f928f928f928f929091610104018484808284375f81840152601f19601f82011690508083019250505099505050505050505050506060604051808303815f875af1158015612226573d5f803e3d5ffd5b505050506040513d606081101561223b575f80fd5b5080516020820151604090920151919450909250905061226c6001600160e01b0319821663029c1cb760e01b6138a0565b505b97509795505050505050565b600254600160e01b900460ff166122a457604051636798480960e11b815260040160405180910390fd5b6002805460ff60e01b19169055565b5f805f805f6122d360405180604001604052805f81526020015f81525090565b875f036122f3576040516301e76e6160e61b815260040160405180910390fd5b600160ff1b8803612317576040516334cb3a0160e11b815260040160405180910390fd5b60408051610160810182525f60208201819052606082018190526080820181905260a0820181905262ffffff8d16610140830152808b1360c08301529181018a9052600954600281810b61012084015263010000008204810b610100840152805461ffff600160d01b820481168552600160b81b82041660e08501526001600160a01b0381169850600160a01b9004900b9550600160301b90046001600160801b03169350908590036123dd5760405163812eb65560e01b815260040160405180910390fd5b62ffffff8c1615612425576123f28b8d6155ab565b62ffffff1660e08201819052620f424011612420576040516315b2afa960e01b815260040160405180910390fd5b612477565b62ffffff8b1615612477578a8160e00181815161244291906155ab565b62ffffff90811690915260e0830151620f42409116109050612477576040516315b2afa960e01b815260040160405180910390fd5b89156124d657846001600160a01b0316886001600160a01b03161015806124ac57506401000276a36001600160a01b03891611155b156124ca57604051631662672360e01b815260040160405180910390fd5b5f54608082015261253b565b846001600160a01b0316886001600160a01b0316111580612514575073fffd8963efd1fc6a506488495d951d5263988d266001600160a01b03891610155b1561253257604051631662672360e01b815260040160405180910390fd5b60015460808201525b6125686040518060a001604052805f81526020015f81526020015f81526020015f81526020015f81525090565b5f8b61257957826101200151612580565b8261010001515b6001600160a01b0388168352905061259781613f91565b6001600160a01b03908116602084018190526125d4918e918a918e1611821515146125c65784602001516125c8565b8c5b888f8860e00151614269565b60808601526060850152604084015260c08401519097501561262c5761260382608001518360400151016139d0565b8b039a5061262261261783606001516139d0565b606085015190614431565b6060840152612664565b61263982606001516139d0565b8b019a5061265e61265383608001518460400151016139d0565b60608501519061444b565b60608401525b5f83610140015162ffffff1611801561268557505f8360e0015162ffffff16115b156126c5575f6126ad836080015185610140015162ffffff168660e0015162ffffff16613703565b60808401805182900390526020860180519091019052505b82511561270657825160808301515f916103e8916126e29161445f565b816126ef576126ef615559565b608085018051929091049182900390528551018552505b6001600160801b0385161561273d576127318260800151600160801b876001600160801b0316613703565b60808401805190910190525b8160200151876001600160a01b03160361280357826020015161277757600160208401528b61276d575f54612771565b6001545b60a08401525b5f8c156127bb57608084015160a085015161279791600391859190614487565b50600290810b61010087015283900b6101208601525f19830197505f0390506127f1565b60a084015160808501516127d491600391859190614487565b600290810b61012088015284900b61010087015250919650869190505b6127fb86826144d3565b955050612825565b81516001600160a01b038816146128255761281d87613bfe565b95505061284c565b5089158015906128475750886001600160a01b0316866001600160a01b031614155b612568575b5f8a83604001510390508260c0015115158c15151461287057826060015181612877565b8083606001515b600280546001600160b81b031916600160a01b62ffffff8b16026001600160a01b031916176001600160a01b038b161790556020850151919a50985015905061291b576101008201516101208301516009805462ffffff92831665ffffffffffff1990911617630100000092909316919091029190911775ffffffffffffffffffffffffffffffff0000000000001916600160301b6001600160801b038716021790555b8a1561292d5760808201515f55612936565b60808201516001555b50509550955095509550955095565b5f8061294f612bb7565b612957612f36565b90925090506001600160801b0382118061297757506001600160801b0381115b15612a28576007546001600160a01b03166001600160801b038311156129d7576129cc7f0000000000000000000000000000000000000000000000000000000000000000826002600160801b03198601612b4b565b6001600160801b0392505b6001600160801b03821115612a2657612a1b7f0000000000000000000000000000000000000000000000000000000000000000826002600160801b03198501612b4b565b6001600160801b0391505b505b600954600160301b90046001600160801b03165f819003612a4857509091565b600c546001600160801b0380821691600160801b9004168185118185118180612a6e5750805b15612b42578115612aa557612a9c846001600160801b03168803600160801b876001600160801b0316613703565b5f805490910190555b8015612ad857612ace836001600160801b03168703600160801b876001600160801b0316613703565b6001805490910190555b604080516001600160801b038087168a0382528516880360208201527fef10ebb00f0dbc72ad4602e94abbbda6f3d40632714f70e9c8fa30d5d44289c9910160405180910390a16001600160801b03808816908716600160801b026001600160801b03191617600c555b50505050509091565b612b5683838361454c565b505050565b604051631644ac7b60e11b81523390632c8958f690612b849087908790879087906004016155ef565b5f604051808303815f87803b158015612b9b575f80fd5b505af1158015612bad573d5f803e3d5ffd5b5050505050505050565b6040516370a0823160e01b81523060048201525f907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906370a08231906024015b602060405180830381865afa158015612c1c573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190612c40919061560e565b905090565b5f841180612c5257505f83115b80612c5c57505f82115b80612c6657505f81115b15612eaa5760048054600790600160d01b900463ffffffff165f80808080612c918c8c888a8c6145b1565b93509350935093508082175f14612cd657612cab826139d0565b612cb5908f615625565b612cbe826139d0565b612cc8908f615625565b909e509c5060019450612d24565b6001600160681b038484171615612d2457600480546001600160d01b031916600160681b6001600160681b03868116919091026cffffffffffffffffffffffffff1916919091179086161790555b6005975060069650612d3f8a8a8863ffffffff168a8c6145b1565b9296509094509250905081811715612e2e57612d5a826139d0565b612d64908f615625565b612d6d826139d0565b612d77908f615625565b809e50819f50505060019450612e2963aa6b14bb60e01b60065f9054906101000a90046001600160a01b03166001600160a01b031663aa6b14bb85856040518363ffffffff1660e01b8152600401612dd9929190918252602082015260400190565b6020604051808303815f875af1158015612df5573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190612e199190615644565b6001600160e01b031916906138a0565b612e7c565b6001600160681b038484171615612e7c57600580546001600160d01b031916600160681b6001600160681b03868116919091026cffffffffffffffffffffffffff1916919091179086161790555b8415612ea1576004805463ffffffff60d01b1916600160d01b4263ffffffff16021790555b50505050505050505b85851715612f2e57600c546001600160801b0380821691600160801b9004168715612eed57612ee1612edc898461566b565b6146b7565b6001600160801b031691505b8615612f0c57612f00612edc888361566b565b6001600160801b031690505b6001600160801b039182169116600160801b026001600160801b03191617600c555b505050505050565b6040516370a0823160e01b81523060048201525f907f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906370a0823190602401612c01565b60408051888152602081018890526001600160a01b03878116828401526001600160801b0387166060830152600286900b608083015262ffffff80861660a0840152841660c08301529151918a169133917f121cb44ee54098b1a04743c487e7460d8dd429b27f88b1f4d4767396e1a59f79919081900360e00190a35050505050505050565b6002805460ff60e01b1916600160e01b179055565b60028054600160c81b90041615612bad576006546001600160a01b03163314612bad57612bad639cb5a96360e01b60065f9054906101000a90046001600160a01b03166001600160a01b0316639cb5a963338c8c8c8c8c8c8c8c6040518a63ffffffff1660e01b8152600401808a6001600160a01b03168152602001896001600160a01b031681526020018815158152602001878152602001866001600160a01b031681526020018581526020018481526020018060200182810382528484828181526020019250808284375f81840152601f19601f8201169050808301925050509a50505050505050505050506020604051808303815f875af11580156110e3573d5f803e3d5ffd5b6006546001600160a01b03163314610dab57604051634994c26960e11b815260040160405180910390fd5b5f8061315e612bb7565b613166612f36565b600c5491935091506001600160801b0380821691600160801b900416818411806131985750806001600160801b031683115b1561210f57816001600160801b03168411156131eb576131eb7f0000000000000000000000000000000000000000000000000000000000000000866131e66001600160801b0386168861551f565b612b4b565b806001600160801b0316831115613234576132347f0000000000000000000000000000000000000000000000000000000000000000866131e66001600160801b0385168761551f565b6001600160a01b0385167fb94331e4420f16b156f53c397a8adcd09481283ee7830f7b688b22858e9db80b6132726001600160801b0385168761551f565b6132856001600160801b0385168761551f565b6040805192835260208301919091520160405180910390a25050505050565b600254600160e01b900460ff16610dab57604051636798480960e11b815260040160405180910390fd5b6040805163e8ae2b6960e01b81527fb73ce166ead2f8e9add217713a7989e4edfba9625f71dfd2516204bb67ad3442600482015233602482015290516001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169163e8ae2b699160448083019260209291908290030181865afa15801561335d573d5f803e3d5ffd5b505050506040513d6020811015613372575f80fd5b5051610dab57604051634994c26960e11b815260040160405180910390fd5b6002805461ffff60d01b1916600160d01b61ffff8416908102919091179091556040519081527f3647dccc990d4941b0b05b32527ef493a98d6187b20639ca2f9743f3b55ca5e1906020015b60405180910390a150565b6133f5620d89e719615692565b60020b8160020b131561341b57604051631445443d60e01b815260040160405180910390fd5b8160020b8160020b136134415760405163d9a841a760e01b815260040160405180910390fd5b620d89e719600283900b121561161c57604051631d1ac7f160e21b815260040160405180910390fd5b6002545f90600160c81b9004600416156135b2576006546001600160a01b0316330361349757505f6135b2565b600654604051632f1208d960e11b815233600482018181526001600160a01b038b8116602485015260028b810b60448601528a900b6064850152600f89900b608485015260c060a4850190815260c485018890525f959190911693635e2411b293928d928d928d928d928d928d92919060e4018484808284375f81840152601f19601f8201169050808301925050509850505050505050505060408051808303815f875af115801561354b573d5f803e3d5ffd5b505050506040513d6040811015613560575f80fd5b50805160209091015192509050620f424062ffffff831610613595576040516315b2afa960e01b815260040160405180910390fd5b6135b06001600160e01b03198216632f1208d960e11b6138a0565b505b9695505050505050565b62ffffff818116908316601885811b91909117901b175f908152600b602052604090205b9392505050565b600280545f8054600154919384936001600160a01b03811693600160a01b90910490910b918491829190600f89900b156136415761362b60038c878c86865f6146cc565b935061363e60038b878c868660016146cc565b92505b5f8061365260038e8e8a88886147bb565b915091506136628e8c8484614857565b5050505086600f0b5f146136f65781806136795750805b156136915761369189898484875f8d600f0b12614948565b5f61369f8a8a8a87896139f3565b91985096509050600f81900b156136f4576009546136cd90600160301b90046001600160801b0316896144d3565b600960066101000a8154816001600160801b0302191690836001600160801b031602179055505b505b5050505094509492505050565b5f838302815f1985870982811083820303915050808411613722575f80fd5b805f03613734575082900490506135e0565b838587095f8581038616958690049560026003880281188089028203028089028203028089028203028089028203028089028203028089029091030291819003819004600101858411909403939093029190930391909104170290509392505050565b6006546001600160a01b03163314612bad57600254600160c81b900460081615612bad57612bad63d685201060e01b60065f9054906101000a90046001600160a01b03166001600160a01b031663d6852010338c8c8c8c8c8c8c8c6040518a63ffffffff1660e01b8152600401808a6001600160a01b03168152602001896001600160a01b031681526020018860020b81526020018760020b815260200186600f0b81526020018581526020018481526020018060200182810382528484828181526020019250808284375f81840152601f19601f8201169050808301925050509a50505050505050505050506020604051808303815f875af11580156110e3573d5f803e3d5ffd5b6001600160e01b03198281169082161461161c5760405163d3f5153b60e01b81526001600160e01b03198216600482015260240160405180910390fd5b5f8315806138fd575050828202828482816138fa576138fa615559565b04145b1561391c575f821161390d575f80fd5b818104908290061515016135e0565b613927848484613703565b90505f828061393857613938615559565b84860911156135e0575f19811061394d575f80fd5b6001019392505050565b604051632982c34f60e21b8152339063a60b0d3c90612b849087908790879087906004016155ef565b6002805461ffff60b81b1916600160b81b61ffff8416908102919091179091556040519081527f598b9f043c813aa6be3426ca60d1c65d17256312890be5118dab55b0775ebe2a906020016133dd565b805f8112156139dd575f80fd5b919050565b805f600f82900b12156139dd575f80fd5b5f805f80613a0089613f91565b90505f613a0c89613f91565b90505f808b60020b8960020b1215613a3057613a2984848c614a31565b9150613a6e565b8a60020b8960020b1215613a6057613a4988848c614a31565b9150613a5684898c614a6d565b9050899450613a6e565b613a6b84848c614a6d565b90505b5f8a600f0b12613a7f578181613a86565b815f03815f035b909d909c50949a509398505050505050505050565b604051633dd657c560e01b81523390633dd657c590612b849087908790879087906004016155ef565b6002805460ff60c81b1916600160c81b60ff8416908102919091179091556040519081527f3a6271b36c1b44bd6a0a0d56230602dc6919b7c17af57254306fadf5fee69dc3906020016133dd565b600680546001600160a01b0319166001600160a01b0383169081179091556040519081527f27a3944eff2135a57675f17e72501038982b73620d01f794c72e93d61a3932a2906020016133dd565b600780546001600160a01b0319166001600160a01b0383169081179091556040519081527fb0b573c1f636e1f8bd9b415ba6c04d6dd49100bc25493fc6305b65ec0e581df3906020016133dd565b6009805462ffffff60b01b1916600160b01b62ffffff841602179055604051600282900b81527f01413b1d5d4c359e9a0daa7909ecda165f6e8c51fe2ff529d74b22a5a7c02645906020016133dd565b5f6401000276a36001600160a01b0383161080613c38575073fffd8963efd1fc6a506488495d951d5263988d266001600160a01b03831610155b15613c56576040516355cf1e2360e01b815260040160405180910390fd5b640100000000600160c01b03602083901b166001600160801b03811160071b81811c67ffffffffffffffff811160061b90811c63ffffffff811160051b90811c61ffff811160041b90811c60ff8111600390811b91821c600f811160021b90811c918211600190811b92831c97908811961790941790921717909117171760808110613cea57607f810383901c9150613cf4565b80607f0383901b91505b908002607f81811c60ff83811c9190911c800280831c81831c1c800280841c81841c1c800280851c81851c1c800280861c81861c1c800280871c81871c1c800280881c81881c1c800280891c81891c1c8002808a1c818a1c1c8002808b1c818b1c1c8002808c1c818c1c1c8002808d1c818d1c1c8002808e1c9c81901c9c909c1c80029c8d901c9e9d607f198f0160401b60c09190911c678000000000000000161760c19b909b1c674000000000000000169a909a1760c29990991c672000000000000000169890981760c39790971c671000000000000000169690961760c49590951c670800000000000000169490941760c59390931c670400000000000000169290921760c69190911c670200000000000000161760c79190911c670100000000000000161760c89190911c6680000000000000161760c99190911c6640000000000000161760ca9190911c6620000000000000161760cb9190911c6610000000000000161760cc9190911c6608000000000000161760cd9190911c66040000000000001617693627a301d71055774c8581026f028f6481ab7f045a5af012a19d003aa9198101608090811d906fdb2df09e81959a81455e260799a0632f8301901d600281810b9083900b14613ef457886001600160a01b0316613ed982613f91565b6001600160a01b03161115613eee5781613ef6565b80613ef6565b815b9998505050505050505050565b5f805f7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166325b355d66040518163ffffffff1660e01b8152600401606060405180830381865afa158015613f62573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190613f8691906156aa565b925092509250909192565b5f600282900b60171d62ffffff818401821816620d89e8811115613fc857604051633c10250f60e01b815260040160405180910390fd5b600160801b6001821615613fe957506ffffcb933bd6fad37aa2d162d1a5940015b6002821615614008576ffff97272373d413259a46990580e213a0260801c5b6004821615614027576ffff2e50f5f656932ef12357cf3c7fdcc0260801c5b6008821615614046576fffe5caca7e10e4e61c3624eaa0941cd00260801c5b6010821615614065576fffcb9843d60f6159c9db58835c9266440260801c5b6020821615614084576fff973b41fa98c081472e6896dfb254c00260801c5b60408216156140a3576fff2ea16466c96a3843ec78b326b528610260801c5b60808216156140c2576ffe5dee046a99a2a811c461f1969c30530260801c5b6101008216156140e2576ffcbe86c7900a88aedcffc83b479aa3a40260801c5b610200821615614102576ff987a7253ac413176f2b074cf7815e540260801c5b610400821615614122576ff3392b0822b70005940c7a398e4b70f30260801c5b610800821615614142576fe7159475a2c29b7443b29c7fa6e889d90260801c5b611000821615614162576fd097f3bdfd2022b8845ad8f792aa58250260801c5b612000821615614182576fa9f746462d870fdf8a65dc1f90e061e50260801c5b6140008216156141a2576f70d869a156d2a1b890bb3df62baf32f70260801c5b6180008216156141c2576f31be135f97d08fd981231505542fcfa60260801c5b620100008216156141e3576f09aa508b5b7a84e1c677de54f3e99bc90260801c5b62020000821615614203576e5d6af8dedb81196699c329225ee6040260801c5b620400008210614249576204000082161561422c576d2216e584f5fa1ea926041bedfe980260801c5b62080000821615614249576b048a170391f7dc42444e8fa20260801c5b5f8560020b1315614258575f19045b63ffffffff0160201c949350505050565b5f805f806154cc8a61427d57614a9a614281565b614aa85b90505f8712614353575f6142a88888620f42400362ffffff16620f424062ffffff16613703565b90506142b98a8c8b8563ffffffff16565b94508481106142e6578995506142df858862ffffff1689620f42400362ffffff166138dd565b925061432c565b6142f28b8a838f614ab6565b9550856001600160a01b03168a6001600160a01b0316036143155761431561556d565b614324868c8b8563ffffffff16565b945084880392505b61434b868c8b8f61433f57614ace614343565b614adb5b63ffffffff16565b935050614423565b6154cc8b61436357614ace614367565b614adb5b90506143788a8c8b8463ffffffff16565b9350875f0397505f8812156143a0576040516334cb3a0160e11b815260040160405180910390fd5b8388106143af578995506143f4565b6143bb8b8a8a8f614ae8565b9550856001600160a01b03168a6001600160a01b0316146143e8576143e5868c8b8463ffffffff16565b93505b878411156143f4578793505b614403868c8b8563ffffffff16565b945061441f858862ffffff1689620f42400362ffffff166138dd565b9250505b509650965096509692505050565b808203828113155f83121514614445575f80fd5b92915050565b818101828112155f83121514614445575f80fd5b5f82158061447f5750508181028183828161447c5761447c615559565b04145b614445575f80fd5b600283810b5f9081526020869052604090206003810180548284018054870390558403905560010154600f81900b91600160801b8204810b91600160981b9004900b9450945094915050565b5f8082600f0b121561451457508082016001600160801b038084169082161061450f576040516302603ee960e31b815260040160405180910390fd5b614445565b826001600160801b03168284019150816001600160801b0316101561444557604051634cba017960e11b815260040160405180910390fd5b5f60405163a9059cbb60e01b5f526001600160a01b0384166004528260245260205f60445f80895af19150813d1560203d1460015f511416171691508060405250806145ab57604051637232c81f60e11b815260040160405180910390fd5b50505050565b5f8080808888171561465b5784546001600160681b038082169160681c166145d98b836154e8565b91506145e58a826154e8565b90506170806145fa8a63ffffffff421661551f565b10158061460d57506001600160681b0382115b8061461e57506001600160681b0381115b1561464b5787545f80614632858585614af6565b5f808d559a508a995090975095506146ab945050505050565b90945092505f91508190506146ab565b61708061466e8863ffffffff421661551f565b1061469f5784546001600160681b038082169160681c168082171561469c5787545f80614632858585614af6565b50505b505f9250829150819050805b95509550955095915050565b806001600160801b03811681146139dd575f80fd5b600286900b5f9081526020889052604081208054826146eb82896144d3565b6001600160801b031690506d09745258e83de0d0f4e400fce799811115614725576040516312dc1b2560e11b815260040160405180910390fd5b6001830154600f0b856147495788600f0b81600f0b614744919061566b565b61475b565b88600f0b81600f0b61475b9190615625565b6001850180546001600160801b0319166001600160801b0392909216919091179055818455811594505f8390036147ac57841594508960020b8b60020b136147ac5760038401879055600284018890555b50505050979650505050505050565b600285810b5f9081526020889052604080822087840b8084529183209293849391929088900b1215614830578860020b8760020b1261480b5781600201548603935081600301548503925061481a565b81600201549350816003015492505b6002810154600382015494039390920391610d7d565b81600201548160020154039350816003015481600301540392505050965096945050505050565b8354600f84900b5f0361487f57806001600160801b03165f0361487a57506145ab565b614895565b61488981856144d3565b6001600160801b031685555b600185015460028601545f8583146148cb57600188018690556148c88387036001600160801b038616600160801b613703565b90505b5f8583146148f757600289018690556148f48387036001600160801b038716600160801b613703565b90505b6001600160801b03828217161561493d57600389018054600160801b6001600160801b03808316860181166001600160801b031990931683178290048116850116021790555b505050505050505050565b60095463010000008104600290810b919081900b90600160c81b900463ffffffff168282828915614989576149818c898386868c614b6f565b919450925090505b88156149a55761499d8b898386868c614b6f565b919450925090505b8260020b8660020b1415806149c057508160020b8560020b14155b806149d757508363ffffffff168163ffffffff1614155b15614a23576009805462ffffff80861663010000000265ffffffffffff1963ffffffff8616600160c81b021665ffffffffffff63ffffffff60c81b011990931692909217908516171790555b505050505050505050505050565b5f8082600f0b1215614a5557614a4e6117138585855f035f614c5e565b5f03614a65565b614a656117138585856001614c5e565b949350505050565b5f8082600f0b1215614a8a57614a4e6117138585855f035f614cf7565b614a656117138585856001614cf7565b5f614a658385846001614cf7565b5f614a658484846001614c5e565b5f614ac5858585856001614d5c565b95945050505050565b5f614a658385845f614c5e565b5f614a658484845f614cf7565b5f614ac5858585855f614d5c565b5f8080808615614b2f57614b2b7f00000000000000000000000000000000000000000000000000000000000000008689612b4b565b8691505b8515614b6357614b607f00000000000000000000000000000000000000000000000000000000000000008688612b4b565b50845b90969095509350505050565b5f805f8315614bb6575f80614b8560038c614f70565b915091508a60020b8860020b03614b9e57819750614baf565b8a60020b8760020b03614baf578096505b5050614c3d565b5f808a60020b8860020b128015614bd257508a60020b8760020b135b15614bfb57508690508560028a810b908c900b1315614bf3578a9650614c2d565b8a9750614c2d565b614c096008600a8b8e6150c3565b600281810b5f90815260036020526040902060010154600160801b9004900b925090505b614c3a60038c8484615177565b50505b5f614c4c6008600a8a8d61526c565b969a9599509597509395505050505050565b5f6001600160a01b0385850381169085168110614c79575f80fd5b600160601b600160e01b03606085901b1683614cc057866001600160a01b0316614cad8383896001600160a01b0316613703565b81614cba57614cba615559565b04614cec565b614cec614cd78383896001600160a01b03166138dd565b886001600160a01b0316808204910615150190565b979650505050505050565b5f846001600160a01b0316846001600160a01b03161015614d16575f80fd5b6001600160a01b038585031682614d4457614d3f81856001600160801b0316600160601b613703565b6135b2565b6135b281856001600160801b0316600160601b6138dd565b5f856001600160a01b03165f03614d71575f80fd5b846001600160801b03165f03614d85575f80fd5b835f03614d93575084614ac5565b81151583151503614e8d57600160601b600160e01b03606086901b168215614e3d576001600160a01b03871685810290868281614dd257614dd2615559565b0403614e0257818101828110614e0057614df6838a6001600160a01b0316836138dd565b9350505050614ac5565b505b614e3482614e29888b6001600160a01b03168681614e2257614e22615559565b0490615301565b808204910615150190565b92505050614ac5565b6001600160a01b03871685810290868281614e5a57614e5a615559565b0414614e64575f80fd5b808211614e6f575f80fd5b614e34614e88838a6001600160a01b03168486036138dd565b615310565b8115614efa57614ef3614e886001600160a01b03861115614ec557614ec086600160601b896001600160801b0316613703565b614ee3565b6001600160801b038716606087901b81614ee157614ee1615559565b045b6001600160a01b03891690615301565b9050614ac5565b5f6001600160a01b03851115614f2757614f2285600160601b886001600160801b03166138dd565b614f44565b614f44606086901b6001600160801b038816808204910615150190565b905080876001600160a01b031611614f5a575f80fd5b6001600160a01b03871603905095945050505050565b600281810b5f8181526020859052604081206001810180548383556001600160b01b03198116909155818501839055600390910191909155600160801b8104830b92600160981b909104900b90620d89e7191480614fdf5750614fd6620d89e719615692565b60020b8360020b145b1561503757600283900b5f908152602085905260409020600101805462ffffff808516600160801b0262ffffff60801b19918516600160981b029190911665ffffffffffff60801b19909216919091171790556150bc565b8060020b8260020b0361505d57604051630d6e094960e01b815260040160405180910390fd5b600282810b5f908152602086905260408082206001908101805462ffffff808816600160981b0262ffffff60981b19909216919091179091559385900b83529120018054918416600160801b0262ffffff60801b199092169190911790555b9250929050565b6001908101905f90600883811d610d8a01901c90829061ffff83161b851663ffffffff1615615125576150f68785615325565b9094509092509050801561510b575050614a65565b61511c86610d8b840160010b615325565b90945090925090505b80615168576151438563ffffffff168360010193508360010b615355565b90935090508061515b5750620d89e89150614a659050565b61516586846154a1565b92505b614cec87610d891985016154a1565b600283900b620d89e719148061519e5750615195620d89e719615692565b60020b8360020b145b6145ab578260020b8260020b1280156151bc57508260020b8160020b135b6151d95760405163e45ac17d60e01b815260040160405180910390fd5b600283810b5f90815260209590955260408086206001908101805465ffffffffffff60801b1916600160981b62ffffff878116820262ffffff60801b1990811693909317600160801b8a831681029190911790945597860b8a52848a208401805462ffffff60981b191698909916908102979097179097559390920b865290942090930180549092169202919091179055565b815f806152a78785600881901d600181810b5f9081526020949094526040909320805460ff9093169390931b80831890935591811490151891565b9150915081156152f757610d8a01600181810b60081d80820b5f908152602089905260409020805460ff9094169290921b8084189092558215919092148181189350146152f7576001811b831892505b5050949350505050565b80820182811015614445575f80fd5b806001600160a01b03811681146139dd575f80fd5b600881901d600181900b5f9081526020849052604081205481906153499085615355565b93969095509293505050565b5f8060ff831684811c808303615370578460ff179350615498565b7f55555555555555555555555555555555555555555555555555555555555555555f8290038216908116156001600160801b0382161560071b1777ffffffffffffffff0000000000000000ffffffffffffffff82161560061b177bffffffff00000000ffffffff00000000ffffffff00000000ffffffff82161560051b177dffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff82161560041b177eff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff82161560031b177f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f82161560021b177f33333333333333333333333333333333333333333333333333333333333333339091161560011b1760ff1685019350600192505b50509250929050565b600181900b5f90815260208390526040902054600882901b906154c49082615355565b509392505050565b610dab6156f1565b634e487b7160e01b5f52601160045260245ffd5b80820180821115614445576144456154d4565b5f81600f0b60016001607f1b03198103615517576155176154d4565b5f0392915050565b81810381811115614445576144456154d4565b6001600160801b03818116838216019080821115615552576155526154d4565b5092915050565b634e487b7160e01b5f52601260045260245ffd5b634e487b7160e01b5f52600160045260245ffd5b805161ffff811681146139dd575f80fd5b5f602082840312156155a2575f80fd5b6135e082615581565b62ffffff818116838216019080821115615552576155526154d4565b81835281816020850137505f828201602090810191909152601f909101601f19169091010190565b848152836020820152606060408201525f6135b26060830184866155c7565b5f6020828403121561561e575f80fd5b5051919050565b8181035f831280158383131683831282161715615552576155526154d4565b5f60208284031215615654575f80fd5b81516001600160e01b0319811681146135e0575f80fd5b8082018281125f83128015821682158216171561568a5761568a6154d4565b505092915050565b5f8160020b627fffff198103615517576155176154d4565b5f805f606084860312156156bc575f80fd5b6156c584615581565b925060208401518060020b81146156da575f80fd5b91506156e860408501615581565b90509250925092565b634e487b7160e01b5f52605160045260245ffdfea264697066735822122054834b2c436b5045fb4a12e630ae2f9555bceb520f57f5993931bfc176794de864736f6c63430008140033",
+}
+
+// PoolABI is the input ABI used to generate the binding from.
+// Deprecated: Use PoolMetaData.ABI instead.
+var PoolABI = PoolMetaData.ABI
+
+// PoolBin is the compiled bytecode used for deploying new contracts.
+// Deprecated: Use PoolMetaData.Bin instead.
+var PoolBin = PoolMetaData.Bin
+
+// DeployPool deploys a new Ethereum contract, binding an instance of Pool to it.
+func DeployPool(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Pool, error) {
+	parsed, err := PoolMetaData.GetAbi()
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	if parsed == nil {
+		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+	}
+
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(PoolBin), backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &Pool{PoolCaller: PoolCaller{contract: contract}, PoolTransactor: PoolTransactor{contract: contract}, PoolFilterer: PoolFilterer{contract: contract}}, nil
+}
+
+// Pool is an auto generated Go binding around an Ethereum contract.
+type Pool struct {
+	PoolCaller     // Read-only binding to the contract
+	PoolTransactor // Write-only binding to the contract
+	PoolFilterer   // Log filterer for contract events
+}
+
+// PoolCaller is an auto generated read-only Go binding around an Ethereum contract.
+type PoolCaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// PoolTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type PoolTransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// PoolFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type PoolFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// PoolSession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type PoolSession struct {
+	Contract     *Pool             // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// PoolCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type PoolCallerSession struct {
+	Contract *PoolCaller   // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts // Call options to use throughout this session
+}
+
+// PoolTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type PoolTransactorSession struct {
+	Contract     *PoolTransactor   // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// PoolRaw is an auto generated low-level Go binding around an Ethereum contract.
+type PoolRaw struct {
+	Contract *Pool // Generic contract binding to access the raw methods on
+}
+
+// PoolCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type PoolCallerRaw struct {
+	Contract *PoolCaller // Generic read-only contract binding to access the raw methods on
+}
+
+// PoolTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type PoolTransactorRaw struct {
+	Contract *PoolTransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewPool creates a new instance of Pool, bound to a specific deployed contract.
+func NewPool(address common.Address, backend bind.ContractBackend) (*Pool, error) {
+	contract, err := bindPool(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &Pool{PoolCaller: PoolCaller{contract: contract}, PoolTransactor: PoolTransactor{contract: contract}, PoolFilterer: PoolFilterer{contract: contract}}, nil
+}
+
+// NewPoolCaller creates a new read-only instance of Pool, bound to a specific deployed contract.
+func NewPoolCaller(address common.Address, caller bind.ContractCaller) (*PoolCaller, error) {
+	contract, err := bindPool(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolCaller{contract: contract}, nil
+}
+
+// NewPoolTransactor creates a new write-only instance of Pool, bound to a specific deployed contract.
+func NewPoolTransactor(address common.Address, transactor bind.ContractTransactor) (*PoolTransactor, error) {
+	contract, err := bindPool(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolTransactor{contract: contract}, nil
+}
+
+// NewPoolFilterer creates a new log filterer instance of Pool, bound to a specific deployed contract.
+func NewPoolFilterer(address common.Address, filterer bind.ContractFilterer) (*PoolFilterer, error) {
+	contract, err := bindPool(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolFilterer{contract: contract}, nil
+}
+
+// bindPool binds a generic wrapper to an already deployed contract.
+func bindPool(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := PoolMetaData.GetAbi()
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, *parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_Pool *PoolRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _Pool.Contract.PoolCaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_Pool *PoolRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Pool.Contract.PoolTransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_Pool *PoolRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Pool.Contract.PoolTransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_Pool *PoolCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _Pool.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_Pool *PoolTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Pool.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_Pool *PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Pool.Contract.contract.Transact(opts, method, params...)
+}
+
+// CommunityVault is a free data retrieval call binding the contract method 0x53e97868.
+//
+// Solidity: function communityVault() view returns(address)
+func (_Pool *PoolCaller) CommunityVault(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "communityVault")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// CommunityVault is a free data retrieval call binding the contract method 0x53e97868.
+//
+// Solidity: function communityVault() view returns(address)
+func (_Pool *PoolSession) CommunityVault() (common.Address, error) {
+	return _Pool.Contract.CommunityVault(&_Pool.CallOpts)
+}
+
+// CommunityVault is a free data retrieval call binding the contract method 0x53e97868.
+//
+// Solidity: function communityVault() view returns(address)
+func (_Pool *PoolCallerSession) CommunityVault() (common.Address, error) {
+	return _Pool.Contract.CommunityVault(&_Pool.CallOpts)
+}
+
+// Factory is a free data retrieval call binding the contract method 0xc45a0155.
+//
+// Solidity: function factory() view returns(address)
+func (_Pool *PoolCaller) Factory(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "factory")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Factory is a free data retrieval call binding the contract method 0xc45a0155.
+//
+// Solidity: function factory() view returns(address)
+func (_Pool *PoolSession) Factory() (common.Address, error) {
+	return _Pool.Contract.Factory(&_Pool.CallOpts)
+}
+
+// Factory is a free data retrieval call binding the contract method 0xc45a0155.
+//
+// Solidity: function factory() view returns(address)
+func (_Pool *PoolCallerSession) Factory() (common.Address, error) {
+	return _Pool.Contract.Factory(&_Pool.CallOpts)
+}
+
+// Fee is a free data retrieval call binding the contract method 0xddca3f43.
+//
+// Solidity: function fee() view returns(uint16 currentFee)
+func (_Pool *PoolCaller) Fee(opts *bind.CallOpts) (uint16, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "fee")
+
+	if err != nil {
+		return *new(uint16), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint16)).(*uint16)
+
+	return out0, err
+
+}
+
+// Fee is a free data retrieval call binding the contract method 0xddca3f43.
+//
+// Solidity: function fee() view returns(uint16 currentFee)
+func (_Pool *PoolSession) Fee() (uint16, error) {
+	return _Pool.Contract.Fee(&_Pool.CallOpts)
+}
+
+// Fee is a free data retrieval call binding the contract method 0xddca3f43.
+//
+// Solidity: function fee() view returns(uint16 currentFee)
+func (_Pool *PoolCallerSession) Fee() (uint16, error) {
+	return _Pool.Contract.Fee(&_Pool.CallOpts)
+}
+
+// GetCommunityFeePending is a free data retrieval call binding the contract method 0x7bd78025.
+//
+// Solidity: function getCommunityFeePending() view returns(uint128, uint128)
+func (_Pool *PoolCaller) GetCommunityFeePending(opts *bind.CallOpts) (*big.Int, *big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "getCommunityFeePending")
+
+	if err != nil {
+		return *new(*big.Int), *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out1 := *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+
+	return out0, out1, err
+
+}
+
+// GetCommunityFeePending is a free data retrieval call binding the contract method 0x7bd78025.
+//
+// Solidity: function getCommunityFeePending() view returns(uint128, uint128)
+func (_Pool *PoolSession) GetCommunityFeePending() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetCommunityFeePending(&_Pool.CallOpts)
+}
+
+// GetCommunityFeePending is a free data retrieval call binding the contract method 0x7bd78025.
+//
+// Solidity: function getCommunityFeePending() view returns(uint128, uint128)
+func (_Pool *PoolCallerSession) GetCommunityFeePending() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetCommunityFeePending(&_Pool.CallOpts)
+}
+
+// GetPluginFeePending is a free data retrieval call binding the contract method 0xa1eded87.
+//
+// Solidity: function getPluginFeePending() view returns(uint128, uint128)
+func (_Pool *PoolCaller) GetPluginFeePending(opts *bind.CallOpts) (*big.Int, *big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "getPluginFeePending")
+
+	if err != nil {
+		return *new(*big.Int), *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out1 := *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+
+	return out0, out1, err
+
+}
+
+// GetPluginFeePending is a free data retrieval call binding the contract method 0xa1eded87.
+//
+// Solidity: function getPluginFeePending() view returns(uint128, uint128)
+func (_Pool *PoolSession) GetPluginFeePending() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetPluginFeePending(&_Pool.CallOpts)
+}
+
+// GetPluginFeePending is a free data retrieval call binding the contract method 0xa1eded87.
+//
+// Solidity: function getPluginFeePending() view returns(uint128, uint128)
+func (_Pool *PoolCallerSession) GetPluginFeePending() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetPluginFeePending(&_Pool.CallOpts)
+}
+
+// GetReserves is a free data retrieval call binding the contract method 0x0902f1ac.
+//
+// Solidity: function getReserves() view returns(uint128, uint128)
+func (_Pool *PoolCaller) GetReserves(opts *bind.CallOpts) (*big.Int, *big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "getReserves")
+
+	if err != nil {
+		return *new(*big.Int), *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out1 := *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+
+	return out0, out1, err
+
+}
+
+// GetReserves is a free data retrieval call binding the contract method 0x0902f1ac.
+//
+// Solidity: function getReserves() view returns(uint128, uint128)
+func (_Pool *PoolSession) GetReserves() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetReserves(&_Pool.CallOpts)
+}
+
+// GetReserves is a free data retrieval call binding the contract method 0x0902f1ac.
+//
+// Solidity: function getReserves() view returns(uint128, uint128)
+func (_Pool *PoolCallerSession) GetReserves() (*big.Int, *big.Int, error) {
+	return _Pool.Contract.GetReserves(&_Pool.CallOpts)
+}
+
+// GlobalState is a free data retrieval call binding the contract method 0xe76c01e4.
+//
+// Solidity: function globalState() view returns(uint160 price, int24 tick, uint16 lastFee, uint8 pluginConfig, uint16 communityFee, bool unlocked)
+func (_Pool *PoolCaller) GlobalState(opts *bind.CallOpts) (struct {
+	Price        *big.Int
+	Tick         *big.Int
+	LastFee      uint16
+	PluginConfig uint8
+	CommunityFee uint16
+	Unlocked     bool
+}, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "globalState")
+
+	outstruct := new(struct {
+		Price        *big.Int
+		Tick         *big.Int
+		LastFee      uint16
+		PluginConfig uint8
+		CommunityFee uint16
+		Unlocked     bool
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Price = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.Tick = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.LastFee = *abi.ConvertType(out[2], new(uint16)).(*uint16)
+	outstruct.PluginConfig = *abi.ConvertType(out[3], new(uint8)).(*uint8)
+	outstruct.CommunityFee = *abi.ConvertType(out[4], new(uint16)).(*uint16)
+	outstruct.Unlocked = *abi.ConvertType(out[5], new(bool)).(*bool)
+
+	return *outstruct, err
+
+}
+
+// GlobalState is a free data retrieval call binding the contract method 0xe76c01e4.
+//
+// Solidity: function globalState() view returns(uint160 price, int24 tick, uint16 lastFee, uint8 pluginConfig, uint16 communityFee, bool unlocked)
+func (_Pool *PoolSession) GlobalState() (struct {
+	Price        *big.Int
+	Tick         *big.Int
+	LastFee      uint16
+	PluginConfig uint8
+	CommunityFee uint16
+	Unlocked     bool
+}, error) {
+	return _Pool.Contract.GlobalState(&_Pool.CallOpts)
+}
+
+// GlobalState is a free data retrieval call binding the contract method 0xe76c01e4.
+//
+// Solidity: function globalState() view returns(uint160 price, int24 tick, uint16 lastFee, uint8 pluginConfig, uint16 communityFee, bool unlocked)
+func (_Pool *PoolCallerSession) GlobalState() (struct {
+	Price        *big.Int
+	Tick         *big.Int
+	LastFee      uint16
+	PluginConfig uint8
+	CommunityFee uint16
+	Unlocked     bool
+}, error) {
+	return _Pool.Contract.GlobalState(&_Pool.CallOpts)
+}
+
+// IsUnlocked is a free data retrieval call binding the contract method 0x8380edb7.
+//
+// Solidity: function isUnlocked() view returns(bool unlocked)
+func (_Pool *PoolCaller) IsUnlocked(opts *bind.CallOpts) (bool, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "isUnlocked")
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// IsUnlocked is a free data retrieval call binding the contract method 0x8380edb7.
+//
+// Solidity: function isUnlocked() view returns(bool unlocked)
+func (_Pool *PoolSession) IsUnlocked() (bool, error) {
+	return _Pool.Contract.IsUnlocked(&_Pool.CallOpts)
+}
+
+// IsUnlocked is a free data retrieval call binding the contract method 0x8380edb7.
+//
+// Solidity: function isUnlocked() view returns(bool unlocked)
+func (_Pool *PoolCallerSession) IsUnlocked() (bool, error) {
+	return _Pool.Contract.IsUnlocked(&_Pool.CallOpts)
+}
+
+// LastFeeTransferTimestamp is a free data retrieval call binding the contract method 0x77f8c3a9.
+//
+// Solidity: function lastFeeTransferTimestamp() view returns(uint32)
+func (_Pool *PoolCaller) LastFeeTransferTimestamp(opts *bind.CallOpts) (uint32, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "lastFeeTransferTimestamp")
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// LastFeeTransferTimestamp is a free data retrieval call binding the contract method 0x77f8c3a9.
+//
+// Solidity: function lastFeeTransferTimestamp() view returns(uint32)
+func (_Pool *PoolSession) LastFeeTransferTimestamp() (uint32, error) {
+	return _Pool.Contract.LastFeeTransferTimestamp(&_Pool.CallOpts)
+}
+
+// LastFeeTransferTimestamp is a free data retrieval call binding the contract method 0x77f8c3a9.
+//
+// Solidity: function lastFeeTransferTimestamp() view returns(uint32)
+func (_Pool *PoolCallerSession) LastFeeTransferTimestamp() (uint32, error) {
+	return _Pool.Contract.LastFeeTransferTimestamp(&_Pool.CallOpts)
+}
+
+// Liquidity is a free data retrieval call binding the contract method 0x1a686502.
+//
+// Solidity: function liquidity() view returns(uint128)
+func (_Pool *PoolCaller) Liquidity(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "liquidity")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// Liquidity is a free data retrieval call binding the contract method 0x1a686502.
+//
+// Solidity: function liquidity() view returns(uint128)
+func (_Pool *PoolSession) Liquidity() (*big.Int, error) {
+	return _Pool.Contract.Liquidity(&_Pool.CallOpts)
+}
+
+// Liquidity is a free data retrieval call binding the contract method 0x1a686502.
+//
+// Solidity: function liquidity() view returns(uint128)
+func (_Pool *PoolCallerSession) Liquidity() (*big.Int, error) {
+	return _Pool.Contract.Liquidity(&_Pool.CallOpts)
+}
+
+// MaxLiquidityPerTick is a free data retrieval call binding the contract method 0x70cf754a.
+//
+// Solidity: function maxLiquidityPerTick() view returns(uint128)
+func (_Pool *PoolCaller) MaxLiquidityPerTick(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "maxLiquidityPerTick")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MaxLiquidityPerTick is a free data retrieval call binding the contract method 0x70cf754a.
+//
+// Solidity: function maxLiquidityPerTick() view returns(uint128)
+func (_Pool *PoolSession) MaxLiquidityPerTick() (*big.Int, error) {
+	return _Pool.Contract.MaxLiquidityPerTick(&_Pool.CallOpts)
+}
+
+// MaxLiquidityPerTick is a free data retrieval call binding the contract method 0x70cf754a.
+//
+// Solidity: function maxLiquidityPerTick() view returns(uint128)
+func (_Pool *PoolCallerSession) MaxLiquidityPerTick() (*big.Int, error) {
+	return _Pool.Contract.MaxLiquidityPerTick(&_Pool.CallOpts)
+}
+
+// NextTickGlobal is a free data retrieval call binding the contract method 0xd5c35a7e.
+//
+// Solidity: function nextTickGlobal() view returns(int24)
+func (_Pool *PoolCaller) NextTickGlobal(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "nextTickGlobal")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// NextTickGlobal is a free data retrieval call binding the contract method 0xd5c35a7e.
+//
+// Solidity: function nextTickGlobal() view returns(int24)
+func (_Pool *PoolSession) NextTickGlobal() (*big.Int, error) {
+	return _Pool.Contract.NextTickGlobal(&_Pool.CallOpts)
+}
+
+// NextTickGlobal is a free data retrieval call binding the contract method 0xd5c35a7e.
+//
+// Solidity: function nextTickGlobal() view returns(int24)
+func (_Pool *PoolCallerSession) NextTickGlobal() (*big.Int, error) {
+	return _Pool.Contract.NextTickGlobal(&_Pool.CallOpts)
+}
+
+// Plugin is a free data retrieval call binding the contract method 0xef01df4f.
+//
+// Solidity: function plugin() view returns(address)
+func (_Pool *PoolCaller) Plugin(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "plugin")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Plugin is a free data retrieval call binding the contract method 0xef01df4f.
+//
+// Solidity: function plugin() view returns(address)
+func (_Pool *PoolSession) Plugin() (common.Address, error) {
+	return _Pool.Contract.Plugin(&_Pool.CallOpts)
+}
+
+// Plugin is a free data retrieval call binding the contract method 0xef01df4f.
+//
+// Solidity: function plugin() view returns(address)
+func (_Pool *PoolCallerSession) Plugin() (common.Address, error) {
+	return _Pool.Contract.Plugin(&_Pool.CallOpts)
+}
+
+// Positions is a free data retrieval call binding the contract method 0x514ea4bf.
+//
+// Solidity: function positions(bytes32 ) view returns(uint256 liquidity, uint256 innerFeeGrowth0Token, uint256 innerFeeGrowth1Token, uint128 fees0, uint128 fees1)
+func (_Pool *PoolCaller) Positions(opts *bind.CallOpts, arg0 [32]byte) (struct {
+	Liquidity            *big.Int
+	InnerFeeGrowth0Token *big.Int
+	InnerFeeGrowth1Token *big.Int
+	Fees0                *big.Int
+	Fees1                *big.Int
+}, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "positions", arg0)
+
+	outstruct := new(struct {
+		Liquidity            *big.Int
+		InnerFeeGrowth0Token *big.Int
+		InnerFeeGrowth1Token *big.Int
+		Fees0                *big.Int
+		Fees1                *big.Int
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.Liquidity = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.InnerFeeGrowth0Token = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.InnerFeeGrowth1Token = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
+	outstruct.Fees0 = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
+	outstruct.Fees1 = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
+
+	return *outstruct, err
+
+}
+
+// Positions is a free data retrieval call binding the contract method 0x514ea4bf.
+//
+// Solidity: function positions(bytes32 ) view returns(uint256 liquidity, uint256 innerFeeGrowth0Token, uint256 innerFeeGrowth1Token, uint128 fees0, uint128 fees1)
+func (_Pool *PoolSession) Positions(arg0 [32]byte) (struct {
+	Liquidity            *big.Int
+	InnerFeeGrowth0Token *big.Int
+	InnerFeeGrowth1Token *big.Int
+	Fees0                *big.Int
+	Fees1                *big.Int
+}, error) {
+	return _Pool.Contract.Positions(&_Pool.CallOpts, arg0)
+}
+
+// Positions is a free data retrieval call binding the contract method 0x514ea4bf.
+//
+// Solidity: function positions(bytes32 ) view returns(uint256 liquidity, uint256 innerFeeGrowth0Token, uint256 innerFeeGrowth1Token, uint128 fees0, uint128 fees1)
+func (_Pool *PoolCallerSession) Positions(arg0 [32]byte) (struct {
+	Liquidity            *big.Int
+	InnerFeeGrowth0Token *big.Int
+	InnerFeeGrowth1Token *big.Int
+	Fees0                *big.Int
+	Fees1                *big.Int
+}, error) {
+	return _Pool.Contract.Positions(&_Pool.CallOpts, arg0)
+}
+
+// PrevTickGlobal is a free data retrieval call binding the contract method 0x050a4d21.
+//
+// Solidity: function prevTickGlobal() view returns(int24)
+func (_Pool *PoolCaller) PrevTickGlobal(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "prevTickGlobal")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// PrevTickGlobal is a free data retrieval call binding the contract method 0x050a4d21.
+//
+// Solidity: function prevTickGlobal() view returns(int24)
+func (_Pool *PoolSession) PrevTickGlobal() (*big.Int, error) {
+	return _Pool.Contract.PrevTickGlobal(&_Pool.CallOpts)
+}
+
+// PrevTickGlobal is a free data retrieval call binding the contract method 0x050a4d21.
+//
+// Solidity: function prevTickGlobal() view returns(int24)
+func (_Pool *PoolCallerSession) PrevTickGlobal() (*big.Int, error) {
+	return _Pool.Contract.PrevTickGlobal(&_Pool.CallOpts)
+}
+
+// SafelyGetStateOfAMM is a free data retrieval call binding the contract method 0x97ce1c51.
+//
+// Solidity: function safelyGetStateOfAMM() view returns(uint160 sqrtPrice, int24 tick, uint16 lastFee, uint8 pluginConfig, uint128 activeLiquidity, int24 nextTick, int24 previousTick)
+func (_Pool *PoolCaller) SafelyGetStateOfAMM(opts *bind.CallOpts) (struct {
+	SqrtPrice       *big.Int
+	Tick            *big.Int
+	LastFee         uint16
+	PluginConfig    uint8
+	ActiveLiquidity *big.Int
+	NextTick        *big.Int
+	PreviousTick    *big.Int
+}, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "safelyGetStateOfAMM")
+
+	outstruct := new(struct {
+		SqrtPrice       *big.Int
+		Tick            *big.Int
+		LastFee         uint16
+		PluginConfig    uint8
+		ActiveLiquidity *big.Int
+		NextTick        *big.Int
+		PreviousTick    *big.Int
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.SqrtPrice = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.Tick = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.LastFee = *abi.ConvertType(out[2], new(uint16)).(*uint16)
+	outstruct.PluginConfig = *abi.ConvertType(out[3], new(uint8)).(*uint8)
+	outstruct.ActiveLiquidity = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
+	outstruct.NextTick = *abi.ConvertType(out[5], new(*big.Int)).(**big.Int)
+	outstruct.PreviousTick = *abi.ConvertType(out[6], new(*big.Int)).(**big.Int)
+
+	return *outstruct, err
+
+}
+
+// SafelyGetStateOfAMM is a free data retrieval call binding the contract method 0x97ce1c51.
+//
+// Solidity: function safelyGetStateOfAMM() view returns(uint160 sqrtPrice, int24 tick, uint16 lastFee, uint8 pluginConfig, uint128 activeLiquidity, int24 nextTick, int24 previousTick)
+func (_Pool *PoolSession) SafelyGetStateOfAMM() (struct {
+	SqrtPrice       *big.Int
+	Tick            *big.Int
+	LastFee         uint16
+	PluginConfig    uint8
+	ActiveLiquidity *big.Int
+	NextTick        *big.Int
+	PreviousTick    *big.Int
+}, error) {
+	return _Pool.Contract.SafelyGetStateOfAMM(&_Pool.CallOpts)
+}
+
+// SafelyGetStateOfAMM is a free data retrieval call binding the contract method 0x97ce1c51.
+//
+// Solidity: function safelyGetStateOfAMM() view returns(uint160 sqrtPrice, int24 tick, uint16 lastFee, uint8 pluginConfig, uint128 activeLiquidity, int24 nextTick, int24 previousTick)
+func (_Pool *PoolCallerSession) SafelyGetStateOfAMM() (struct {
+	SqrtPrice       *big.Int
+	Tick            *big.Int
+	LastFee         uint16
+	PluginConfig    uint8
+	ActiveLiquidity *big.Int
+	NextTick        *big.Int
+	PreviousTick    *big.Int
+}, error) {
+	return _Pool.Contract.SafelyGetStateOfAMM(&_Pool.CallOpts)
+}
+
+// TickSpacing is a free data retrieval call binding the contract method 0xd0c93a7c.
+//
+// Solidity: function tickSpacing() view returns(int24)
+func (_Pool *PoolCaller) TickSpacing(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "tickSpacing")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TickSpacing is a free data retrieval call binding the contract method 0xd0c93a7c.
+//
+// Solidity: function tickSpacing() view returns(int24)
+func (_Pool *PoolSession) TickSpacing() (*big.Int, error) {
+	return _Pool.Contract.TickSpacing(&_Pool.CallOpts)
+}
+
+// TickSpacing is a free data retrieval call binding the contract method 0xd0c93a7c.
+//
+// Solidity: function tickSpacing() view returns(int24)
+func (_Pool *PoolCallerSession) TickSpacing() (*big.Int, error) {
+	return _Pool.Contract.TickSpacing(&_Pool.CallOpts)
+}
+
+// TickTable is a free data retrieval call binding the contract method 0xc677e3e0.
+//
+// Solidity: function tickTable(int16 ) view returns(uint256)
+func (_Pool *PoolCaller) TickTable(opts *bind.CallOpts, arg0 int16) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "tickTable", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TickTable is a free data retrieval call binding the contract method 0xc677e3e0.
+//
+// Solidity: function tickTable(int16 ) view returns(uint256)
+func (_Pool *PoolSession) TickTable(arg0 int16) (*big.Int, error) {
+	return _Pool.Contract.TickTable(&_Pool.CallOpts, arg0)
+}
+
+// TickTable is a free data retrieval call binding the contract method 0xc677e3e0.
+//
+// Solidity: function tickTable(int16 ) view returns(uint256)
+func (_Pool *PoolCallerSession) TickTable(arg0 int16) (*big.Int, error) {
+	return _Pool.Contract.TickTable(&_Pool.CallOpts, arg0)
+}
+
+// TickTreeRoot is a free data retrieval call binding the contract method 0x578b9a36.
+//
+// Solidity: function tickTreeRoot() view returns(uint32)
+func (_Pool *PoolCaller) TickTreeRoot(opts *bind.CallOpts) (uint32, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "tickTreeRoot")
+
+	if err != nil {
+		return *new(uint32), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint32)).(*uint32)
+
+	return out0, err
+
+}
+
+// TickTreeRoot is a free data retrieval call binding the contract method 0x578b9a36.
+//
+// Solidity: function tickTreeRoot() view returns(uint32)
+func (_Pool *PoolSession) TickTreeRoot() (uint32, error) {
+	return _Pool.Contract.TickTreeRoot(&_Pool.CallOpts)
+}
+
+// TickTreeRoot is a free data retrieval call binding the contract method 0x578b9a36.
+//
+// Solidity: function tickTreeRoot() view returns(uint32)
+func (_Pool *PoolCallerSession) TickTreeRoot() (uint32, error) {
+	return _Pool.Contract.TickTreeRoot(&_Pool.CallOpts)
+}
+
+// TickTreeSecondLayer is a free data retrieval call binding the contract method 0xd8619037.
+//
+// Solidity: function tickTreeSecondLayer(int16 ) view returns(uint256)
+func (_Pool *PoolCaller) TickTreeSecondLayer(opts *bind.CallOpts, arg0 int16) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "tickTreeSecondLayer", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TickTreeSecondLayer is a free data retrieval call binding the contract method 0xd8619037.
+//
+// Solidity: function tickTreeSecondLayer(int16 ) view returns(uint256)
+func (_Pool *PoolSession) TickTreeSecondLayer(arg0 int16) (*big.Int, error) {
+	return _Pool.Contract.TickTreeSecondLayer(&_Pool.CallOpts, arg0)
+}
+
+// TickTreeSecondLayer is a free data retrieval call binding the contract method 0xd8619037.
+//
+// Solidity: function tickTreeSecondLayer(int16 ) view returns(uint256)
+func (_Pool *PoolCallerSession) TickTreeSecondLayer(arg0 int16) (*big.Int, error) {
+	return _Pool.Contract.TickTreeSecondLayer(&_Pool.CallOpts, arg0)
+}
+
+// Ticks is a free data retrieval call binding the contract method 0xf30dba93.
+//
+// Solidity: function ticks(int24 ) view returns(uint256 liquidityTotal, int128 liquidityDelta, int24 prevTick, int24 nextTick, uint256 outerFeeGrowth0Token, uint256 outerFeeGrowth1Token)
+func (_Pool *PoolCaller) Ticks(opts *bind.CallOpts, arg0 *big.Int) (struct {
+	LiquidityTotal       *big.Int
+	LiquidityDelta       *big.Int
+	PrevTick             *big.Int
+	NextTick             *big.Int
+	OuterFeeGrowth0Token *big.Int
+	OuterFeeGrowth1Token *big.Int
+}, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "ticks", arg0)
+
+	outstruct := new(struct {
+		LiquidityTotal       *big.Int
+		LiquidityDelta       *big.Int
+		PrevTick             *big.Int
+		NextTick             *big.Int
+		OuterFeeGrowth0Token *big.Int
+		OuterFeeGrowth1Token *big.Int
+	})
+	if err != nil {
+		return *outstruct, err
+	}
+
+	outstruct.LiquidityTotal = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.LiquidityDelta = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.PrevTick = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
+	outstruct.NextTick = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
+	outstruct.OuterFeeGrowth0Token = *abi.ConvertType(out[4], new(*big.Int)).(**big.Int)
+	outstruct.OuterFeeGrowth1Token = *abi.ConvertType(out[5], new(*big.Int)).(**big.Int)
+
+	return *outstruct, err
+
+}
+
+// Ticks is a free data retrieval call binding the contract method 0xf30dba93.
+//
+// Solidity: function ticks(int24 ) view returns(uint256 liquidityTotal, int128 liquidityDelta, int24 prevTick, int24 nextTick, uint256 outerFeeGrowth0Token, uint256 outerFeeGrowth1Token)
+func (_Pool *PoolSession) Ticks(arg0 *big.Int) (struct {
+	LiquidityTotal       *big.Int
+	LiquidityDelta       *big.Int
+	PrevTick             *big.Int
+	NextTick             *big.Int
+	OuterFeeGrowth0Token *big.Int
+	OuterFeeGrowth1Token *big.Int
+}, error) {
+	return _Pool.Contract.Ticks(&_Pool.CallOpts, arg0)
+}
+
+// Ticks is a free data retrieval call binding the contract method 0xf30dba93.
+//
+// Solidity: function ticks(int24 ) view returns(uint256 liquidityTotal, int128 liquidityDelta, int24 prevTick, int24 nextTick, uint256 outerFeeGrowth0Token, uint256 outerFeeGrowth1Token)
+func (_Pool *PoolCallerSession) Ticks(arg0 *big.Int) (struct {
+	LiquidityTotal       *big.Int
+	LiquidityDelta       *big.Int
+	PrevTick             *big.Int
+	NextTick             *big.Int
+	OuterFeeGrowth0Token *big.Int
+	OuterFeeGrowth1Token *big.Int
+}, error) {
+	return _Pool.Contract.Ticks(&_Pool.CallOpts, arg0)
+}
+
+// Token0 is a free data retrieval call binding the contract method 0x0dfe1681.
+//
+// Solidity: function token0() view returns(address)
+func (_Pool *PoolCaller) Token0(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "token0")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Token0 is a free data retrieval call binding the contract method 0x0dfe1681.
+//
+// Solidity: function token0() view returns(address)
+func (_Pool *PoolSession) Token0() (common.Address, error) {
+	return _Pool.Contract.Token0(&_Pool.CallOpts)
+}
+
+// Token0 is a free data retrieval call binding the contract method 0x0dfe1681.
+//
+// Solidity: function token0() view returns(address)
+func (_Pool *PoolCallerSession) Token0() (common.Address, error) {
+	return _Pool.Contract.Token0(&_Pool.CallOpts)
+}
+
+// Token1 is a free data retrieval call binding the contract method 0xd21220a7.
+//
+// Solidity: function token1() view returns(address)
+func (_Pool *PoolCaller) Token1(opts *bind.CallOpts) (common.Address, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "token1")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
+}
+
+// Token1 is a free data retrieval call binding the contract method 0xd21220a7.
+//
+// Solidity: function token1() view returns(address)
+func (_Pool *PoolSession) Token1() (common.Address, error) {
+	return _Pool.Contract.Token1(&_Pool.CallOpts)
+}
+
+// Token1 is a free data retrieval call binding the contract method 0xd21220a7.
+//
+// Solidity: function token1() view returns(address)
+func (_Pool *PoolCallerSession) Token1() (common.Address, error) {
+	return _Pool.Contract.Token1(&_Pool.CallOpts)
+}
+
+// TotalFeeGrowth0Token is a free data retrieval call binding the contract method 0x6378ae44.
+//
+// Solidity: function totalFeeGrowth0Token() view returns(uint256)
+func (_Pool *PoolCaller) TotalFeeGrowth0Token(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "totalFeeGrowth0Token")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TotalFeeGrowth0Token is a free data retrieval call binding the contract method 0x6378ae44.
+//
+// Solidity: function totalFeeGrowth0Token() view returns(uint256)
+func (_Pool *PoolSession) TotalFeeGrowth0Token() (*big.Int, error) {
+	return _Pool.Contract.TotalFeeGrowth0Token(&_Pool.CallOpts)
+}
+
+// TotalFeeGrowth0Token is a free data retrieval call binding the contract method 0x6378ae44.
+//
+// Solidity: function totalFeeGrowth0Token() view returns(uint256)
+func (_Pool *PoolCallerSession) TotalFeeGrowth0Token() (*big.Int, error) {
+	return _Pool.Contract.TotalFeeGrowth0Token(&_Pool.CallOpts)
+}
+
+// TotalFeeGrowth1Token is a free data retrieval call binding the contract method 0xecdecf42.
+//
+// Solidity: function totalFeeGrowth1Token() view returns(uint256)
+func (_Pool *PoolCaller) TotalFeeGrowth1Token(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _Pool.contract.Call(opts, &out, "totalFeeGrowth1Token")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TotalFeeGrowth1Token is a free data retrieval call binding the contract method 0xecdecf42.
+//
+// Solidity: function totalFeeGrowth1Token() view returns(uint256)
+func (_Pool *PoolSession) TotalFeeGrowth1Token() (*big.Int, error) {
+	return _Pool.Contract.TotalFeeGrowth1Token(&_Pool.CallOpts)
+}
+
+// TotalFeeGrowth1Token is a free data retrieval call binding the contract method 0xecdecf42.
+//
+// Solidity: function totalFeeGrowth1Token() view returns(uint256)
+func (_Pool *PoolCallerSession) TotalFeeGrowth1Token() (*big.Int, error) {
+	return _Pool.Contract.TotalFeeGrowth1Token(&_Pool.CallOpts)
+}
+
+// Burn is a paid mutator transaction binding the contract method 0x3b3bc70e.
+//
+// Solidity: function burn(int24 bottomTick, int24 topTick, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
+func (_Pool *PoolTransactor) Burn(opts *bind.TransactOpts, bottomTick *big.Int, topTick *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "burn", bottomTick, topTick, amount, data)
+}
+
+// Burn is a paid mutator transaction binding the contract method 0x3b3bc70e.
+//
+// Solidity: function burn(int24 bottomTick, int24 topTick, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
+func (_Pool *PoolSession) Burn(bottomTick *big.Int, topTick *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Burn(&_Pool.TransactOpts, bottomTick, topTick, amount, data)
+}
+
+// Burn is a paid mutator transaction binding the contract method 0x3b3bc70e.
+//
+// Solidity: function burn(int24 bottomTick, int24 topTick, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
+func (_Pool *PoolTransactorSession) Burn(bottomTick *big.Int, topTick *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Burn(&_Pool.TransactOpts, bottomTick, topTick, amount, data)
+}
+
+// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
+//
+// Solidity: function collect(address recipient, int24 bottomTick, int24 topTick, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
+func (_Pool *PoolTransactor) Collect(opts *bind.TransactOpts, recipient common.Address, bottomTick *big.Int, topTick *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "collect", recipient, bottomTick, topTick, amount0Requested, amount1Requested)
+}
+
+// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
+//
+// Solidity: function collect(address recipient, int24 bottomTick, int24 topTick, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
+func (_Pool *PoolSession) Collect(recipient common.Address, bottomTick *big.Int, topTick *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.Collect(&_Pool.TransactOpts, recipient, bottomTick, topTick, amount0Requested, amount1Requested)
+}
+
+// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
+//
+// Solidity: function collect(address recipient, int24 bottomTick, int24 topTick, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
+func (_Pool *PoolTransactorSession) Collect(recipient common.Address, bottomTick *big.Int, topTick *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.Collect(&_Pool.TransactOpts, recipient, bottomTick, topTick, amount0Requested, amount1Requested)
+}
+
+// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
+//
+// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
+func (_Pool *PoolTransactor) Flash(opts *bind.TransactOpts, recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "flash", recipient, amount0, amount1, data)
+}
+
+// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
+//
+// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
+func (_Pool *PoolSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Flash(&_Pool.TransactOpts, recipient, amount0, amount1, data)
+}
+
+// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
+//
+// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
+func (_Pool *PoolTransactorSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Flash(&_Pool.TransactOpts, recipient, amount0, amount1, data)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
+//
+// Solidity: function initialize(uint160 initialPrice) returns()
+func (_Pool *PoolTransactor) Initialize(opts *bind.TransactOpts, initialPrice *big.Int) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "initialize", initialPrice)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
+//
+// Solidity: function initialize(uint160 initialPrice) returns()
+func (_Pool *PoolSession) Initialize(initialPrice *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.Initialize(&_Pool.TransactOpts, initialPrice)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0xf637731d.
+//
+// Solidity: function initialize(uint160 initialPrice) returns()
+func (_Pool *PoolTransactorSession) Initialize(initialPrice *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.Initialize(&_Pool.TransactOpts, initialPrice)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xaafe29c0.
+//
+// Solidity: function mint(address leftoversRecipient, address recipient, int24 bottomTick, int24 topTick, uint128 liquidityDesired, bytes data) returns(uint256 amount0, uint256 amount1, uint128 liquidityActual)
+func (_Pool *PoolTransactor) Mint(opts *bind.TransactOpts, leftoversRecipient common.Address, recipient common.Address, bottomTick *big.Int, topTick *big.Int, liquidityDesired *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "mint", leftoversRecipient, recipient, bottomTick, topTick, liquidityDesired, data)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xaafe29c0.
+//
+// Solidity: function mint(address leftoversRecipient, address recipient, int24 bottomTick, int24 topTick, uint128 liquidityDesired, bytes data) returns(uint256 amount0, uint256 amount1, uint128 liquidityActual)
+func (_Pool *PoolSession) Mint(leftoversRecipient common.Address, recipient common.Address, bottomTick *big.Int, topTick *big.Int, liquidityDesired *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Mint(&_Pool.TransactOpts, leftoversRecipient, recipient, bottomTick, topTick, liquidityDesired, data)
+}
+
+// Mint is a paid mutator transaction binding the contract method 0xaafe29c0.
+//
+// Solidity: function mint(address leftoversRecipient, address recipient, int24 bottomTick, int24 topTick, uint128 liquidityDesired, bytes data) returns(uint256 amount0, uint256 amount1, uint128 liquidityActual)
+func (_Pool *PoolTransactorSession) Mint(leftoversRecipient common.Address, recipient common.Address, bottomTick *big.Int, topTick *big.Int, liquidityDesired *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Mint(&_Pool.TransactOpts, leftoversRecipient, recipient, bottomTick, topTick, liquidityDesired, data)
+}
+
+// SetCommunityFee is a paid mutator transaction binding the contract method 0x240a875a.
+//
+// Solidity: function setCommunityFee(uint16 newCommunityFee) returns()
+func (_Pool *PoolTransactor) SetCommunityFee(opts *bind.TransactOpts, newCommunityFee uint16) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setCommunityFee", newCommunityFee)
+}
+
+// SetCommunityFee is a paid mutator transaction binding the contract method 0x240a875a.
+//
+// Solidity: function setCommunityFee(uint16 newCommunityFee) returns()
+func (_Pool *PoolSession) SetCommunityFee(newCommunityFee uint16) (*types.Transaction, error) {
+	return _Pool.Contract.SetCommunityFee(&_Pool.TransactOpts, newCommunityFee)
+}
+
+// SetCommunityFee is a paid mutator transaction binding the contract method 0x240a875a.
+//
+// Solidity: function setCommunityFee(uint16 newCommunityFee) returns()
+func (_Pool *PoolTransactorSession) SetCommunityFee(newCommunityFee uint16) (*types.Transaction, error) {
+	return _Pool.Contract.SetCommunityFee(&_Pool.TransactOpts, newCommunityFee)
+}
+
+// SetCommunityVault is a paid mutator transaction binding the contract method 0xd8544cf3.
+//
+// Solidity: function setCommunityVault(address newCommunityVault) returns()
+func (_Pool *PoolTransactor) SetCommunityVault(opts *bind.TransactOpts, newCommunityVault common.Address) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setCommunityVault", newCommunityVault)
+}
+
+// SetCommunityVault is a paid mutator transaction binding the contract method 0xd8544cf3.
+//
+// Solidity: function setCommunityVault(address newCommunityVault) returns()
+func (_Pool *PoolSession) SetCommunityVault(newCommunityVault common.Address) (*types.Transaction, error) {
+	return _Pool.Contract.SetCommunityVault(&_Pool.TransactOpts, newCommunityVault)
+}
+
+// SetCommunityVault is a paid mutator transaction binding the contract method 0xd8544cf3.
+//
+// Solidity: function setCommunityVault(address newCommunityVault) returns()
+func (_Pool *PoolTransactorSession) SetCommunityVault(newCommunityVault common.Address) (*types.Transaction, error) {
+	return _Pool.Contract.SetCommunityVault(&_Pool.TransactOpts, newCommunityVault)
+}
+
+// SetFee is a paid mutator transaction binding the contract method 0x8e005553.
+//
+// Solidity: function setFee(uint16 newFee) returns()
+func (_Pool *PoolTransactor) SetFee(opts *bind.TransactOpts, newFee uint16) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setFee", newFee)
+}
+
+// SetFee is a paid mutator transaction binding the contract method 0x8e005553.
+//
+// Solidity: function setFee(uint16 newFee) returns()
+func (_Pool *PoolSession) SetFee(newFee uint16) (*types.Transaction, error) {
+	return _Pool.Contract.SetFee(&_Pool.TransactOpts, newFee)
+}
+
+// SetFee is a paid mutator transaction binding the contract method 0x8e005553.
+//
+// Solidity: function setFee(uint16 newFee) returns()
+func (_Pool *PoolTransactorSession) SetFee(newFee uint16) (*types.Transaction, error) {
+	return _Pool.Contract.SetFee(&_Pool.TransactOpts, newFee)
+}
+
+// SetPlugin is a paid mutator transaction binding the contract method 0xcc1f97cf.
+//
+// Solidity: function setPlugin(address newPluginAddress) returns()
+func (_Pool *PoolTransactor) SetPlugin(opts *bind.TransactOpts, newPluginAddress common.Address) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setPlugin", newPluginAddress)
+}
+
+// SetPlugin is a paid mutator transaction binding the contract method 0xcc1f97cf.
+//
+// Solidity: function setPlugin(address newPluginAddress) returns()
+func (_Pool *PoolSession) SetPlugin(newPluginAddress common.Address) (*types.Transaction, error) {
+	return _Pool.Contract.SetPlugin(&_Pool.TransactOpts, newPluginAddress)
+}
+
+// SetPlugin is a paid mutator transaction binding the contract method 0xcc1f97cf.
+//
+// Solidity: function setPlugin(address newPluginAddress) returns()
+func (_Pool *PoolTransactorSession) SetPlugin(newPluginAddress common.Address) (*types.Transaction, error) {
+	return _Pool.Contract.SetPlugin(&_Pool.TransactOpts, newPluginAddress)
+}
+
+// SetPluginConfig is a paid mutator transaction binding the contract method 0xbca57f81.
+//
+// Solidity: function setPluginConfig(uint8 newConfig) returns()
+func (_Pool *PoolTransactor) SetPluginConfig(opts *bind.TransactOpts, newConfig uint8) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setPluginConfig", newConfig)
+}
+
+// SetPluginConfig is a paid mutator transaction binding the contract method 0xbca57f81.
+//
+// Solidity: function setPluginConfig(uint8 newConfig) returns()
+func (_Pool *PoolSession) SetPluginConfig(newConfig uint8) (*types.Transaction, error) {
+	return _Pool.Contract.SetPluginConfig(&_Pool.TransactOpts, newConfig)
+}
+
+// SetPluginConfig is a paid mutator transaction binding the contract method 0xbca57f81.
+//
+// Solidity: function setPluginConfig(uint8 newConfig) returns()
+func (_Pool *PoolTransactorSession) SetPluginConfig(newConfig uint8) (*types.Transaction, error) {
+	return _Pool.Contract.SetPluginConfig(&_Pool.TransactOpts, newConfig)
+}
+
+// SetTickSpacing is a paid mutator transaction binding the contract method 0xf085a610.
+//
+// Solidity: function setTickSpacing(int24 newTickSpacing) returns()
+func (_Pool *PoolTransactor) SetTickSpacing(opts *bind.TransactOpts, newTickSpacing *big.Int) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "setTickSpacing", newTickSpacing)
+}
+
+// SetTickSpacing is a paid mutator transaction binding the contract method 0xf085a610.
+//
+// Solidity: function setTickSpacing(int24 newTickSpacing) returns()
+func (_Pool *PoolSession) SetTickSpacing(newTickSpacing *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.SetTickSpacing(&_Pool.TransactOpts, newTickSpacing)
+}
+
+// SetTickSpacing is a paid mutator transaction binding the contract method 0xf085a610.
+//
+// Solidity: function setTickSpacing(int24 newTickSpacing) returns()
+func (_Pool *PoolTransactorSession) SetTickSpacing(newTickSpacing *big.Int) (*types.Transaction, error) {
+	return _Pool.Contract.SetTickSpacing(&_Pool.TransactOpts, newTickSpacing)
+}
+
+// Skim is a paid mutator transaction binding the contract method 0x1dd19cb4.
+//
+// Solidity: function skim() returns()
+func (_Pool *PoolTransactor) Skim(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "skim")
+}
+
+// Skim is a paid mutator transaction binding the contract method 0x1dd19cb4.
+//
+// Solidity: function skim() returns()
+func (_Pool *PoolSession) Skim() (*types.Transaction, error) {
+	return _Pool.Contract.Skim(&_Pool.TransactOpts)
+}
+
+// Skim is a paid mutator transaction binding the contract method 0x1dd19cb4.
+//
+// Solidity: function skim() returns()
+func (_Pool *PoolTransactorSession) Skim() (*types.Transaction, error) {
+	return _Pool.Contract.Skim(&_Pool.TransactOpts)
+}
+
+// Swap is a paid mutator transaction binding the contract method 0x128acb08.
+//
+// Solidity: function swap(address recipient, bool zeroToOne, int256 amountRequired, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolTransactor) Swap(opts *bind.TransactOpts, recipient common.Address, zeroToOne bool, amountRequired *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "swap", recipient, zeroToOne, amountRequired, limitSqrtPrice, data)
+}
+
+// Swap is a paid mutator transaction binding the contract method 0x128acb08.
+//
+// Solidity: function swap(address recipient, bool zeroToOne, int256 amountRequired, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolSession) Swap(recipient common.Address, zeroToOne bool, amountRequired *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Swap(&_Pool.TransactOpts, recipient, zeroToOne, amountRequired, limitSqrtPrice, data)
+}
+
+// Swap is a paid mutator transaction binding the contract method 0x128acb08.
+//
+// Solidity: function swap(address recipient, bool zeroToOne, int256 amountRequired, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolTransactorSession) Swap(recipient common.Address, zeroToOne bool, amountRequired *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.Swap(&_Pool.TransactOpts, recipient, zeroToOne, amountRequired, limitSqrtPrice, data)
+}
+
+// SwapWithPaymentInAdvance is a paid mutator transaction binding the contract method 0x9e4e0227.
+//
+// Solidity: function swapWithPaymentInAdvance(address leftoversRecipient, address recipient, bool zeroToOne, int256 amountToSell, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolTransactor) SwapWithPaymentInAdvance(opts *bind.TransactOpts, leftoversRecipient common.Address, recipient common.Address, zeroToOne bool, amountToSell *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "swapWithPaymentInAdvance", leftoversRecipient, recipient, zeroToOne, amountToSell, limitSqrtPrice, data)
+}
+
+// SwapWithPaymentInAdvance is a paid mutator transaction binding the contract method 0x9e4e0227.
+//
+// Solidity: function swapWithPaymentInAdvance(address leftoversRecipient, address recipient, bool zeroToOne, int256 amountToSell, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolSession) SwapWithPaymentInAdvance(leftoversRecipient common.Address, recipient common.Address, zeroToOne bool, amountToSell *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.SwapWithPaymentInAdvance(&_Pool.TransactOpts, leftoversRecipient, recipient, zeroToOne, amountToSell, limitSqrtPrice, data)
+}
+
+// SwapWithPaymentInAdvance is a paid mutator transaction binding the contract method 0x9e4e0227.
+//
+// Solidity: function swapWithPaymentInAdvance(address leftoversRecipient, address recipient, bool zeroToOne, int256 amountToSell, uint160 limitSqrtPrice, bytes data) returns(int256 amount0, int256 amount1)
+func (_Pool *PoolTransactorSession) SwapWithPaymentInAdvance(leftoversRecipient common.Address, recipient common.Address, zeroToOne bool, amountToSell *big.Int, limitSqrtPrice *big.Int, data []byte) (*types.Transaction, error) {
+	return _Pool.Contract.SwapWithPaymentInAdvance(&_Pool.TransactOpts, leftoversRecipient, recipient, zeroToOne, amountToSell, limitSqrtPrice, data)
+}
+
+// Sync is a paid mutator transaction binding the contract method 0xfff6cae9.
+//
+// Solidity: function sync() returns()
+func (_Pool *PoolTransactor) Sync(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Pool.contract.Transact(opts, "sync")
+}
+
+// Sync is a paid mutator transaction binding the contract method 0xfff6cae9.
+//
+// Solidity: function sync() returns()
+func (_Pool *PoolSession) Sync() (*types.Transaction, error) {
+	return _Pool.Contract.Sync(&_Pool.TransactOpts)
+}
+
+// Sync is a paid mutator transaction binding the contract method 0xfff6cae9.
+//
+// Solidity: function sync() returns()
+func (_Pool *PoolTransactorSession) Sync() (*types.Transaction, error) {
+	return _Pool.Contract.Sync(&_Pool.TransactOpts)
+}
+
+// PoolBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the Pool contract.
+type PoolBurnIterator struct {
+	Event *PoolBurn // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolBurnIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolBurn)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolBurn)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolBurnIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolBurnIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolBurn represents a Burn event raised by the Pool contract.
+type PoolBurn struct {
+	Owner           common.Address
+	BottomTick      *big.Int
+	TopTick         *big.Int
+	LiquidityAmount *big.Int
+	Amount0         *big.Int
+	Amount1         *big.Int
+	PluginFee       *big.Int
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterBurn is a free log retrieval operation binding the contract event 0x932214d4a69c27c086643126ed97c32681da179064c678836c173f99bd13ca01.
+//
+// Solidity: event Burn(address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1, uint24 pluginFee)
+func (_Pool *PoolFilterer) FilterBurn(opts *bind.FilterOpts, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (*PoolBurnIterator, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Burn", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolBurnIterator{contract: _Pool.contract, event: "Burn", logs: logs, sub: sub}, nil
+}
+
+// WatchBurn is a free log subscription operation binding the contract event 0x932214d4a69c27c086643126ed97c32681da179064c678836c173f99bd13ca01.
+//
+// Solidity: event Burn(address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1, uint24 pluginFee)
+func (_Pool *PoolFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *PoolBurn, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (event.Subscription, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Burn", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolBurn)
+				if err := _Pool.contract.UnpackLog(event, "Burn", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseBurn is a log parse operation binding the contract event 0x932214d4a69c27c086643126ed97c32681da179064c678836c173f99bd13ca01.
+//
+// Solidity: event Burn(address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1, uint24 pluginFee)
+func (_Pool *PoolFilterer) ParseBurn(log types.Log) (*PoolBurn, error) {
+	event := new(PoolBurn)
+	if err := _Pool.contract.UnpackLog(event, "Burn", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolCollectIterator is returned from FilterCollect and is used to iterate over the raw logs and unpacked data for Collect events raised by the Pool contract.
+type PoolCollectIterator struct {
+	Event *PoolCollect // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolCollectIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolCollect)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolCollect)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolCollectIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolCollectIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolCollect represents a Collect event raised by the Pool contract.
+type PoolCollect struct {
+	Owner      common.Address
+	Recipient  common.Address
+	BottomTick *big.Int
+	TopTick    *big.Int
+	Amount0    *big.Int
+	Amount1    *big.Int
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterCollect is a free log retrieval operation binding the contract event 0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0.
+//
+// Solidity: event Collect(address indexed owner, address recipient, int24 indexed bottomTick, int24 indexed topTick, uint128 amount0, uint128 amount1)
+func (_Pool *PoolFilterer) FilterCollect(opts *bind.FilterOpts, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (*PoolCollectIterator, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Collect", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolCollectIterator{contract: _Pool.contract, event: "Collect", logs: logs, sub: sub}, nil
+}
+
+// WatchCollect is a free log subscription operation binding the contract event 0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0.
+//
+// Solidity: event Collect(address indexed owner, address recipient, int24 indexed bottomTick, int24 indexed topTick, uint128 amount0, uint128 amount1)
+func (_Pool *PoolFilterer) WatchCollect(opts *bind.WatchOpts, sink chan<- *PoolCollect, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (event.Subscription, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Collect", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolCollect)
+				if err := _Pool.contract.UnpackLog(event, "Collect", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCollect is a log parse operation binding the contract event 0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0.
+//
+// Solidity: event Collect(address indexed owner, address recipient, int24 indexed bottomTick, int24 indexed topTick, uint128 amount0, uint128 amount1)
+func (_Pool *PoolFilterer) ParseCollect(log types.Log) (*PoolCollect, error) {
+	event := new(PoolCollect)
+	if err := _Pool.contract.UnpackLog(event, "Collect", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolCommunityFeeIterator is returned from FilterCommunityFee and is used to iterate over the raw logs and unpacked data for CommunityFee events raised by the Pool contract.
+type PoolCommunityFeeIterator struct {
+	Event *PoolCommunityFee // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolCommunityFeeIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolCommunityFee)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolCommunityFee)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolCommunityFeeIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolCommunityFeeIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolCommunityFee represents a CommunityFee event raised by the Pool contract.
+type PoolCommunityFee struct {
+	CommunityFeeNew uint16
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterCommunityFee is a free log retrieval operation binding the contract event 0x3647dccc990d4941b0b05b32527ef493a98d6187b20639ca2f9743f3b55ca5e1.
+//
+// Solidity: event CommunityFee(uint16 communityFeeNew)
+func (_Pool *PoolFilterer) FilterCommunityFee(opts *bind.FilterOpts) (*PoolCommunityFeeIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "CommunityFee")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolCommunityFeeIterator{contract: _Pool.contract, event: "CommunityFee", logs: logs, sub: sub}, nil
+}
+
+// WatchCommunityFee is a free log subscription operation binding the contract event 0x3647dccc990d4941b0b05b32527ef493a98d6187b20639ca2f9743f3b55ca5e1.
+//
+// Solidity: event CommunityFee(uint16 communityFeeNew)
+func (_Pool *PoolFilterer) WatchCommunityFee(opts *bind.WatchOpts, sink chan<- *PoolCommunityFee) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "CommunityFee")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolCommunityFee)
+				if err := _Pool.contract.UnpackLog(event, "CommunityFee", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCommunityFee is a log parse operation binding the contract event 0x3647dccc990d4941b0b05b32527ef493a98d6187b20639ca2f9743f3b55ca5e1.
+//
+// Solidity: event CommunityFee(uint16 communityFeeNew)
+func (_Pool *PoolFilterer) ParseCommunityFee(log types.Log) (*PoolCommunityFee, error) {
+	event := new(PoolCommunityFee)
+	if err := _Pool.contract.UnpackLog(event, "CommunityFee", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolCommunityVaultIterator is returned from FilterCommunityVault and is used to iterate over the raw logs and unpacked data for CommunityVault events raised by the Pool contract.
+type PoolCommunityVaultIterator struct {
+	Event *PoolCommunityVault // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolCommunityVaultIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolCommunityVault)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolCommunityVault)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolCommunityVaultIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolCommunityVaultIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolCommunityVault represents a CommunityVault event raised by the Pool contract.
+type PoolCommunityVault struct {
+	NewCommunityVault common.Address
+	Raw               types.Log // Blockchain specific contextual infos
+}
+
+// FilterCommunityVault is a free log retrieval operation binding the contract event 0xb0b573c1f636e1f8bd9b415ba6c04d6dd49100bc25493fc6305b65ec0e581df3.
+//
+// Solidity: event CommunityVault(address newCommunityVault)
+func (_Pool *PoolFilterer) FilterCommunityVault(opts *bind.FilterOpts) (*PoolCommunityVaultIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "CommunityVault")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolCommunityVaultIterator{contract: _Pool.contract, event: "CommunityVault", logs: logs, sub: sub}, nil
+}
+
+// WatchCommunityVault is a free log subscription operation binding the contract event 0xb0b573c1f636e1f8bd9b415ba6c04d6dd49100bc25493fc6305b65ec0e581df3.
+//
+// Solidity: event CommunityVault(address newCommunityVault)
+func (_Pool *PoolFilterer) WatchCommunityVault(opts *bind.WatchOpts, sink chan<- *PoolCommunityVault) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "CommunityVault")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolCommunityVault)
+				if err := _Pool.contract.UnpackLog(event, "CommunityVault", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseCommunityVault is a log parse operation binding the contract event 0xb0b573c1f636e1f8bd9b415ba6c04d6dd49100bc25493fc6305b65ec0e581df3.
+//
+// Solidity: event CommunityVault(address newCommunityVault)
+func (_Pool *PoolFilterer) ParseCommunityVault(log types.Log) (*PoolCommunityVault, error) {
+	event := new(PoolCommunityVault)
+	if err := _Pool.contract.UnpackLog(event, "CommunityVault", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolExcessTokensIterator is returned from FilterExcessTokens and is used to iterate over the raw logs and unpacked data for ExcessTokens events raised by the Pool contract.
+type PoolExcessTokensIterator struct {
+	Event *PoolExcessTokens // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolExcessTokensIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolExcessTokens)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolExcessTokens)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolExcessTokensIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolExcessTokensIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolExcessTokens represents a ExcessTokens event raised by the Pool contract.
+type PoolExcessTokens struct {
+	Amount0 *big.Int
+	Amount1 *big.Int
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterExcessTokens is a free log retrieval operation binding the contract event 0xef10ebb00f0dbc72ad4602e94abbbda6f3d40632714f70e9c8fa30d5d44289c9.
+//
+// Solidity: event ExcessTokens(uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) FilterExcessTokens(opts *bind.FilterOpts) (*PoolExcessTokensIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "ExcessTokens")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolExcessTokensIterator{contract: _Pool.contract, event: "ExcessTokens", logs: logs, sub: sub}, nil
+}
+
+// WatchExcessTokens is a free log subscription operation binding the contract event 0xef10ebb00f0dbc72ad4602e94abbbda6f3d40632714f70e9c8fa30d5d44289c9.
+//
+// Solidity: event ExcessTokens(uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) WatchExcessTokens(opts *bind.WatchOpts, sink chan<- *PoolExcessTokens) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "ExcessTokens")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolExcessTokens)
+				if err := _Pool.contract.UnpackLog(event, "ExcessTokens", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseExcessTokens is a log parse operation binding the contract event 0xef10ebb00f0dbc72ad4602e94abbbda6f3d40632714f70e9c8fa30d5d44289c9.
+//
+// Solidity: event ExcessTokens(uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) ParseExcessTokens(log types.Log) (*PoolExcessTokens, error) {
+	event := new(PoolExcessTokens)
+	if err := _Pool.contract.UnpackLog(event, "ExcessTokens", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolFeeIterator is returned from FilterFee and is used to iterate over the raw logs and unpacked data for Fee events raised by the Pool contract.
+type PoolFeeIterator struct {
+	Event *PoolFee // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolFeeIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolFee)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolFee)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolFeeIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolFeeIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolFee represents a Fee event raised by the Pool contract.
+type PoolFee struct {
+	Fee uint16
+	Raw types.Log // Blockchain specific contextual infos
+}
+
+// FilterFee is a free log retrieval operation binding the contract event 0x598b9f043c813aa6be3426ca60d1c65d17256312890be5118dab55b0775ebe2a.
+//
+// Solidity: event Fee(uint16 fee)
+func (_Pool *PoolFilterer) FilterFee(opts *bind.FilterOpts) (*PoolFeeIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Fee")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolFeeIterator{contract: _Pool.contract, event: "Fee", logs: logs, sub: sub}, nil
+}
+
+// WatchFee is a free log subscription operation binding the contract event 0x598b9f043c813aa6be3426ca60d1c65d17256312890be5118dab55b0775ebe2a.
+//
+// Solidity: event Fee(uint16 fee)
+func (_Pool *PoolFilterer) WatchFee(opts *bind.WatchOpts, sink chan<- *PoolFee) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Fee")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolFee)
+				if err := _Pool.contract.UnpackLog(event, "Fee", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseFee is a log parse operation binding the contract event 0x598b9f043c813aa6be3426ca60d1c65d17256312890be5118dab55b0775ebe2a.
+//
+// Solidity: event Fee(uint16 fee)
+func (_Pool *PoolFilterer) ParseFee(log types.Log) (*PoolFee, error) {
+	event := new(PoolFee)
+	if err := _Pool.contract.UnpackLog(event, "Fee", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolFlashIterator is returned from FilterFlash and is used to iterate over the raw logs and unpacked data for Flash events raised by the Pool contract.
+type PoolFlashIterator struct {
+	Event *PoolFlash // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolFlashIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolFlash)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolFlash)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolFlashIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolFlashIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolFlash represents a Flash event raised by the Pool contract.
+type PoolFlash struct {
+	Sender    common.Address
+	Recipient common.Address
+	Amount0   *big.Int
+	Amount1   *big.Int
+	Paid0     *big.Int
+	Paid1     *big.Int
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterFlash is a free log retrieval operation binding the contract event 0xbdbdb71d7860376ba52b25a5028beea23581364a40522f6bcfb86bb1f2dca633.
+//
+// Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
+func (_Pool *PoolFilterer) FilterFlash(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*PoolFlashIterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Flash", senderRule, recipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolFlashIterator{contract: _Pool.contract, event: "Flash", logs: logs, sub: sub}, nil
+}
+
+// WatchFlash is a free log subscription operation binding the contract event 0xbdbdb71d7860376ba52b25a5028beea23581364a40522f6bcfb86bb1f2dca633.
+//
+// Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
+func (_Pool *PoolFilterer) WatchFlash(opts *bind.WatchOpts, sink chan<- *PoolFlash, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Flash", senderRule, recipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolFlash)
+				if err := _Pool.contract.UnpackLog(event, "Flash", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseFlash is a log parse operation binding the contract event 0xbdbdb71d7860376ba52b25a5028beea23581364a40522f6bcfb86bb1f2dca633.
+//
+// Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
+func (_Pool *PoolFilterer) ParseFlash(log types.Log) (*PoolFlash, error) {
+	event := new(PoolFlash)
+	if err := _Pool.contract.UnpackLog(event, "Flash", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolInitializeIterator is returned from FilterInitialize and is used to iterate over the raw logs and unpacked data for Initialize events raised by the Pool contract.
+type PoolInitializeIterator struct {
+	Event *PoolInitialize // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolInitializeIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolInitialize)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolInitialize)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolInitializeIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolInitializeIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolInitialize represents a Initialize event raised by the Pool contract.
+type PoolInitialize struct {
+	Price *big.Int
+	Tick  *big.Int
+	Raw   types.Log // Blockchain specific contextual infos
+}
+
+// FilterInitialize is a free log retrieval operation binding the contract event 0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95.
+//
+// Solidity: event Initialize(uint160 price, int24 tick)
+func (_Pool *PoolFilterer) FilterInitialize(opts *bind.FilterOpts) (*PoolInitializeIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Initialize")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolInitializeIterator{contract: _Pool.contract, event: "Initialize", logs: logs, sub: sub}, nil
+}
+
+// WatchInitialize is a free log subscription operation binding the contract event 0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95.
+//
+// Solidity: event Initialize(uint160 price, int24 tick)
+func (_Pool *PoolFilterer) WatchInitialize(opts *bind.WatchOpts, sink chan<- *PoolInitialize) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Initialize")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolInitialize)
+				if err := _Pool.contract.UnpackLog(event, "Initialize", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseInitialize is a log parse operation binding the contract event 0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95.
+//
+// Solidity: event Initialize(uint160 price, int24 tick)
+func (_Pool *PoolFilterer) ParseInitialize(log types.Log) (*PoolInitialize, error) {
+	event := new(PoolInitialize)
+	if err := _Pool.contract.UnpackLog(event, "Initialize", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolMintIterator is returned from FilterMint and is used to iterate over the raw logs and unpacked data for Mint events raised by the Pool contract.
+type PoolMintIterator struct {
+	Event *PoolMint // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolMintIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolMint)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolMint)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolMintIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolMintIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolMint represents a Mint event raised by the Pool contract.
+type PoolMint struct {
+	Sender          common.Address
+	Owner           common.Address
+	BottomTick      *big.Int
+	TopTick         *big.Int
+	LiquidityAmount *big.Int
+	Amount0         *big.Int
+	Amount1         *big.Int
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterMint is a free log retrieval operation binding the contract event 0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde.
+//
+// Solidity: event Mint(address sender, address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) FilterMint(opts *bind.FilterOpts, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (*PoolMintIterator, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Mint", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolMintIterator{contract: _Pool.contract, event: "Mint", logs: logs, sub: sub}, nil
+}
+
+// WatchMint is a free log subscription operation binding the contract event 0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde.
+//
+// Solidity: event Mint(address sender, address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *PoolMint, owner []common.Address, bottomTick []*big.Int, topTick []*big.Int) (event.Subscription, error) {
+
+	var ownerRule []interface{}
+	for _, ownerItem := range owner {
+		ownerRule = append(ownerRule, ownerItem)
+	}
+	var bottomTickRule []interface{}
+	for _, bottomTickItem := range bottomTick {
+		bottomTickRule = append(bottomTickRule, bottomTickItem)
+	}
+	var topTickRule []interface{}
+	for _, topTickItem := range topTick {
+		topTickRule = append(topTickRule, topTickItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Mint", ownerRule, bottomTickRule, topTickRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolMint)
+				if err := _Pool.contract.UnpackLog(event, "Mint", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseMint is a log parse operation binding the contract event 0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde.
+//
+// Solidity: event Mint(address sender, address indexed owner, int24 indexed bottomTick, int24 indexed topTick, uint128 liquidityAmount, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) ParseMint(log types.Log) (*PoolMint, error) {
+	event := new(PoolMint)
+	if err := _Pool.contract.UnpackLog(event, "Mint", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolPluginIterator is returned from FilterPlugin and is used to iterate over the raw logs and unpacked data for Plugin events raised by the Pool contract.
+type PoolPluginIterator struct {
+	Event *PoolPlugin // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolPluginIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolPlugin)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolPlugin)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolPluginIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolPluginIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolPlugin represents a Plugin event raised by the Pool contract.
+type PoolPlugin struct {
+	NewPluginAddress common.Address
+	Raw              types.Log // Blockchain specific contextual infos
+}
+
+// FilterPlugin is a free log retrieval operation binding the contract event 0x27a3944eff2135a57675f17e72501038982b73620d01f794c72e93d61a3932a2.
+//
+// Solidity: event Plugin(address newPluginAddress)
+func (_Pool *PoolFilterer) FilterPlugin(opts *bind.FilterOpts) (*PoolPluginIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Plugin")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolPluginIterator{contract: _Pool.contract, event: "Plugin", logs: logs, sub: sub}, nil
+}
+
+// WatchPlugin is a free log subscription operation binding the contract event 0x27a3944eff2135a57675f17e72501038982b73620d01f794c72e93d61a3932a2.
+//
+// Solidity: event Plugin(address newPluginAddress)
+func (_Pool *PoolFilterer) WatchPlugin(opts *bind.WatchOpts, sink chan<- *PoolPlugin) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Plugin")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolPlugin)
+				if err := _Pool.contract.UnpackLog(event, "Plugin", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParsePlugin is a log parse operation binding the contract event 0x27a3944eff2135a57675f17e72501038982b73620d01f794c72e93d61a3932a2.
+//
+// Solidity: event Plugin(address newPluginAddress)
+func (_Pool *PoolFilterer) ParsePlugin(log types.Log) (*PoolPlugin, error) {
+	event := new(PoolPlugin)
+	if err := _Pool.contract.UnpackLog(event, "Plugin", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolPluginConfigIterator is returned from FilterPluginConfig and is used to iterate over the raw logs and unpacked data for PluginConfig events raised by the Pool contract.
+type PoolPluginConfigIterator struct {
+	Event *PoolPluginConfig // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolPluginConfigIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolPluginConfig)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolPluginConfig)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolPluginConfigIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolPluginConfigIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolPluginConfig represents a PluginConfig event raised by the Pool contract.
+type PoolPluginConfig struct {
+	NewPluginConfig uint8
+	Raw             types.Log // Blockchain specific contextual infos
+}
+
+// FilterPluginConfig is a free log retrieval operation binding the contract event 0x3a6271b36c1b44bd6a0a0d56230602dc6919b7c17af57254306fadf5fee69dc3.
+//
+// Solidity: event PluginConfig(uint8 newPluginConfig)
+func (_Pool *PoolFilterer) FilterPluginConfig(opts *bind.FilterOpts) (*PoolPluginConfigIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "PluginConfig")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolPluginConfigIterator{contract: _Pool.contract, event: "PluginConfig", logs: logs, sub: sub}, nil
+}
+
+// WatchPluginConfig is a free log subscription operation binding the contract event 0x3a6271b36c1b44bd6a0a0d56230602dc6919b7c17af57254306fadf5fee69dc3.
+//
+// Solidity: event PluginConfig(uint8 newPluginConfig)
+func (_Pool *PoolFilterer) WatchPluginConfig(opts *bind.WatchOpts, sink chan<- *PoolPluginConfig) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "PluginConfig")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolPluginConfig)
+				if err := _Pool.contract.UnpackLog(event, "PluginConfig", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParsePluginConfig is a log parse operation binding the contract event 0x3a6271b36c1b44bd6a0a0d56230602dc6919b7c17af57254306fadf5fee69dc3.
+//
+// Solidity: event PluginConfig(uint8 newPluginConfig)
+func (_Pool *PoolFilterer) ParsePluginConfig(log types.Log) (*PoolPluginConfig, error) {
+	event := new(PoolPluginConfig)
+	if err := _Pool.contract.UnpackLog(event, "PluginConfig", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolSkimIterator is returned from FilterSkim and is used to iterate over the raw logs and unpacked data for Skim events raised by the Pool contract.
+type PoolSkimIterator struct {
+	Event *PoolSkim // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolSkimIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolSkim)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolSkim)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolSkimIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolSkimIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolSkim represents a Skim event raised by the Pool contract.
+type PoolSkim struct {
+	To      common.Address
+	Amount0 *big.Int
+	Amount1 *big.Int
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterSkim is a free log retrieval operation binding the contract event 0xb94331e4420f16b156f53c397a8adcd09481283ee7830f7b688b22858e9db80b.
+//
+// Solidity: event Skim(address indexed to, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) FilterSkim(opts *bind.FilterOpts, to []common.Address) (*PoolSkimIterator, error) {
+
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Skim", toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolSkimIterator{contract: _Pool.contract, event: "Skim", logs: logs, sub: sub}, nil
+}
+
+// WatchSkim is a free log subscription operation binding the contract event 0xb94331e4420f16b156f53c397a8adcd09481283ee7830f7b688b22858e9db80b.
+//
+// Solidity: event Skim(address indexed to, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) WatchSkim(opts *bind.WatchOpts, sink chan<- *PoolSkim, to []common.Address) (event.Subscription, error) {
+
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Skim", toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolSkim)
+				if err := _Pool.contract.UnpackLog(event, "Skim", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSkim is a log parse operation binding the contract event 0xb94331e4420f16b156f53c397a8adcd09481283ee7830f7b688b22858e9db80b.
+//
+// Solidity: event Skim(address indexed to, uint256 amount0, uint256 amount1)
+func (_Pool *PoolFilterer) ParseSkim(log types.Log) (*PoolSkim, error) {
+	event := new(PoolSkim)
+	if err := _Pool.contract.UnpackLog(event, "Skim", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolSwapIterator is returned from FilterSwap and is used to iterate over the raw logs and unpacked data for Swap events raised by the Pool contract.
+type PoolSwapIterator struct {
+	Event *PoolSwap // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolSwapIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolSwap)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolSwap)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolSwapIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolSwapIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolSwap represents a Swap event raised by the Pool contract.
+type PoolSwap struct {
+	Sender      common.Address
+	Recipient   common.Address
+	Amount0     *big.Int
+	Amount1     *big.Int
+	Price       *big.Int
+	Liquidity   *big.Int
+	Tick        *big.Int
+	OverrideFee *big.Int
+	PluginFee   *big.Int
+	Raw         types.Log // Blockchain specific contextual infos
+}
+
+// FilterSwap is a free log retrieval operation binding the contract event 0x121cb44ee54098b1a04743c487e7460d8dd429b27f88b1f4d4767396e1a59f79.
+//
+// Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick, uint24 overrideFee, uint24 pluginFee)
+func (_Pool *PoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*PoolSwapIterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "Swap", senderRule, recipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return &PoolSwapIterator{contract: _Pool.contract, event: "Swap", logs: logs, sub: sub}, nil
+}
+
+// WatchSwap is a free log subscription operation binding the contract event 0x121cb44ee54098b1a04743c487e7460d8dd429b27f88b1f4d4767396e1a59f79.
+//
+// Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick, uint24 overrideFee, uint24 pluginFee)
+func (_Pool *PoolFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *PoolSwap, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var recipientRule []interface{}
+	for _, recipientItem := range recipient {
+		recipientRule = append(recipientRule, recipientItem)
+	}
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "Swap", senderRule, recipientRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolSwap)
+				if err := _Pool.contract.UnpackLog(event, "Swap", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSwap is a log parse operation binding the contract event 0x121cb44ee54098b1a04743c487e7460d8dd429b27f88b1f4d4767396e1a59f79.
+//
+// Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 price, uint128 liquidity, int24 tick, uint24 overrideFee, uint24 pluginFee)
+func (_Pool *PoolFilterer) ParseSwap(log types.Log) (*PoolSwap, error) {
+	event := new(PoolSwap)
+	if err := _Pool.contract.UnpackLog(event, "Swap", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// PoolTickSpacingIterator is returned from FilterTickSpacing and is used to iterate over the raw logs and unpacked data for TickSpacing events raised by the Pool contract.
+type PoolTickSpacingIterator struct {
+	Event *PoolTickSpacing // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *PoolTickSpacingIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(PoolTickSpacing)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(PoolTickSpacing)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *PoolTickSpacingIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *PoolTickSpacingIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// PoolTickSpacing represents a TickSpacing event raised by the Pool contract.
+type PoolTickSpacing struct {
+	NewTickSpacing *big.Int
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterTickSpacing is a free log retrieval operation binding the contract event 0x01413b1d5d4c359e9a0daa7909ecda165f6e8c51fe2ff529d74b22a5a7c02645.
+//
+// Solidity: event TickSpacing(int24 newTickSpacing)
+func (_Pool *PoolFilterer) FilterTickSpacing(opts *bind.FilterOpts) (*PoolTickSpacingIterator, error) {
+
+	logs, sub, err := _Pool.contract.FilterLogs(opts, "TickSpacing")
+	if err != nil {
+		return nil, err
+	}
+	return &PoolTickSpacingIterator{contract: _Pool.contract, event: "TickSpacing", logs: logs, sub: sub}, nil
+}
+
+// WatchTickSpacing is a free log subscription operation binding the contract event 0x01413b1d5d4c359e9a0daa7909ecda165f6e8c51fe2ff529d74b22a5a7c02645.
+//
+// Solidity: event TickSpacing(int24 newTickSpacing)
+func (_Pool *PoolFilterer) WatchTickSpacing(opts *bind.WatchOpts, sink chan<- *PoolTickSpacing) (event.Subscription, error) {
+
+	logs, sub, err := _Pool.contract.WatchLogs(opts, "TickSpacing")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(PoolTickSpacing)
+				if err := _Pool.contract.UnpackLog(event, "TickSpacing", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseTickSpacing is a log parse operation binding the contract event 0x01413b1d5d4c359e9a0daa7909ecda165f6e8c51fe2ff529d74b22a5a7c02645.
+//
+// Solidity: event TickSpacing(int24 newTickSpacing)
+func (_Pool *PoolFilterer) ParseTickSpacing(log types.Log) (*PoolTickSpacing, error) {
+	event := new(PoolTickSpacing)
+	if err := _Pool.contract.UnpackLog(event, "TickSpacing", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}

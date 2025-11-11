@@ -50,7 +50,7 @@ func TestPoolListUpdater(t *testing.T) {
 	})
 
 	expectedPool0 := entity.Pool{
-		Address:  "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+		Address:  "0x0b1a513ee24972daef112bc777a5610d4325c9e7",
 		Exchange: "fluid-dex-t1",
 		Type:     "fluid-dex-t1",
 		Reserves: pools[0].Reserves,

@@ -697,6 +697,45 @@
         "internalType": "PoolId",
         "name": "id",
         "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "_owner",
+        "type": "address"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "salt",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getLiquidity",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "liquidity",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "PoolId",
+        "name": "id",
+        "type": "bytes32"
       }
     ],
     "name": "getLiquidity",
@@ -859,12 +898,12 @@
       {
         "internalType": "uint24",
         "name": "protocolFee",
-        "type": "uint32"
+        "type": "uint24"
       },
       {
         "internalType": "uint24",
         "name": "lpFee",
-        "type": "uint32"
+        "type": "uint24"
       }
     ],
     "stateMutability": "view",

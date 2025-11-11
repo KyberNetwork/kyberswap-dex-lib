@@ -24,10 +24,11 @@ const (
 	methodGetTimepoints          = "timepoints"
 	methodGetTickSpacing         = "tickSpacing"
 	methodGetTicks               = "ticks"
-	erc20MethodBalanceOf         = "balanceOf"
 
 	maxSwapLoop         = 1000000
 	maxBinarySearchLoop = 1000
+
+	tickChunkSize = 100
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536

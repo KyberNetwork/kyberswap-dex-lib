@@ -4,12 +4,6 @@ import (
 	_ "embed"
 )
 
-//go:embed abis/UniswapV3Pool.json
-var uniswapV3PoolJson []byte
-
-//go:embed abis/ERC20.json
-var erc20Json []byte
-
 //go:embed pregenesispools/optimism.json
 var optimismPreGenesisPoolsBytes []byte
 

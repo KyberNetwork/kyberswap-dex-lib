@@ -89,6 +89,30 @@ type FetchRPCResult struct {
 	BlockNumber uint64
 }
 
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	BoostedLiquidityGross          *big.Int
+	BoostedLiquidityNet            *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
+type TicksRespV3 struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
 func transformTickRespToTick(tickResp ticklens.TickResp) (Tick, error) {
 	liquidityGross, ok := new(big.Int).SetString(tickResp.LiquidityGross, 10)
 	if !ok {

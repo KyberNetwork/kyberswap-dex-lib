@@ -46,6 +46,13 @@ type FetchRPCResult struct {
 	SwapFee uint64    `json:"swapFee"`
 }
 
+type BinResp struct {
+	BinReserveX  *big.Int
+	BinReserveY  *big.Int
+	BinLiquidity *big.Int
+	TotalShares  *big.Int
+}
+
 type Extra struct {
 	ProtocolFee uint32 `json:"protocolFee"`
 	ActiveBinID uint32 `json:"activeBinId"`

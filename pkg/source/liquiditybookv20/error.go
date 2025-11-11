@@ -11,4 +11,7 @@ var (
 	ErrMulShiftOverflow = errors.New("mul shift overflow")
 	ErrNotFoundBinID    = errors.New("not found bin id")
 	ErrFeeTooLarge      = errors.New("fee too large")
+
+	ErrUpdateStateByDexLibFailed = errors.New("update state by dex lib failed")
+	ErrUpdateBinsDataFailed      = errors.New("update bins data failed")
 )
