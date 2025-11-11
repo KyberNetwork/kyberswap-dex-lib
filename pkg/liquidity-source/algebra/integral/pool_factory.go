@@ -89,6 +89,8 @@ func (f *PoolFactory) newPool(p *abis.FactoryPool, blockNbr uint64) (*entity.Poo
 
 	return &entity.Pool{
 		Address:     poolAddress,
+		Exchange:    f.config.DexID,
+		Type:        DexType,
 		Timestamp:   time.Now().Unix(),
 		Reserves:    reserves,
 		Tokens:      []*entity.PoolToken{&token0, &token1},
