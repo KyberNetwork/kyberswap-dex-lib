@@ -34,8 +34,8 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 			ABI:    algebraIntegralPoolABI,
 			Target: pool.Address,
 			Method: poolTicksMethod,
-			Params: []interface{}{new(big.Int).SetInt64(tick)},
-		}, []interface{}{&populatedTicks[i]})
+			Params: []any{big.NewInt(tick)},
+		}, []any{&populatedTicks[i]})
 	}
 
 	resp, err := rpcRequest.Aggregate()
