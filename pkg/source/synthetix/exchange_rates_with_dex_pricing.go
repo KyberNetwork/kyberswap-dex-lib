@@ -110,7 +110,7 @@ func (er *ExchangeRatesWithDexPricing) _getRateAndUpdatedTime(currencyKey string
 //func (er *ExchangeRatesWithDexPricing) _getRateAndTimestampAtRound(currencyKey string, roundId *big.Int) (*big.Int, *big.Int, error) {
 //	// short circuit sUSD
 //	if currencyKey == er.SUSDCurrencyKey {
-//		// sUSD has no rounds, and 0 time is preferrable for "volatility" heuristics
+//		// sUSD has no rounds, and 0 time is preferable for "volatility" heuristics
 //		// which are used in atomic swaps and fee reclamation
 //		return unit(), constant.Zero, nil
 //	}

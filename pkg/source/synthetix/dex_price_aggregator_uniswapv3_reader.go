@@ -325,7 +325,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolTickCumulativeData(
 		logger.WithFields(logger.Fields{
 			"dexID": r.cfg.DexID,
 			"error": err,
-		}).Error("dex price aggregator uniswapV3 reader reads pool tick cummulative data error")
+		}).Error("dex price aggregator uniswapV3 reader reads pool tick cumulative data error")
 		return err
 	}
 

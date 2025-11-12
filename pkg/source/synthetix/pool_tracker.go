@@ -136,7 +136,7 @@ func (d *PoolTracker) GetNewPoolState(
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
 			"error": err,
-		}).Error("can not initialze new pool")
+		}).Error("can not initialize new pool")
 		return entity.Pool{}, err
 	}
 

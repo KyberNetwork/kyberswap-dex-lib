@@ -59,6 +59,6 @@ var (
 var (
 	// Scale factor for all values of prices
 	SCALE_FACTOR = big.NewInt(1e18)
-	// The maxmimum staleness allowed for a price feed from chainlink
+	// The maximum staleness allowed for a price feed from chainlink
 	MAX_TIME_WINDOW int64 = 86400 + 60 // 24 hours + 60 seconds
 )

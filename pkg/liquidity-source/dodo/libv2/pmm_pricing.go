@@ -43,7 +43,7 @@ func SellBaseToken(state PMMState, payBaseAmount *uint256.Int) (receiveQuoteAmou
 			newR = RStateAboveOne
 			if receiveQuoteAmount.Cmp(backToOneReceiveQuote) > 0 {
 				// [Important corner case!] may enter this branch when some precision problem happens. And consequently contribute to negative spare quote amount
-				// to make sure spare quote>=0, mannually set receiveQuote=backToOneReceiveQuote
+				// to make sure spare quote>=0, manually set receiveQuote=backToOneReceiveQuote
 				receiveQuoteAmount = backToOneReceiveQuote
 			}
 		} else if payBaseAmount.Cmp(backToOnePayBase) == 0 {

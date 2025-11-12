@@ -16,5 +16,5 @@ Implements 3 things in pkg/liquidity-source (pkg/source contains legacy code usi
 1. PoolsListUpdater: fetches latest pool list incrementally
 2. PoolTracker: tracks latest pool state on new log event or on an interval
 3. PoolSimulator: simulates expected output for a given input swap amount
-  a. It's recommened to use uint256.Int for better performance
+  a. It's recommended to use uint256.Int for better performance
   b. CloneState should also be implemented
