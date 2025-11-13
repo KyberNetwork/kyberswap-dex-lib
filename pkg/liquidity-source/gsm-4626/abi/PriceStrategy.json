@@ -1,0 +1,123 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "priceRatio",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "underlyingAsset",
+                "type": "address"
+            },
+            {
+                "internalType": "uint8",
+                "name": "underlyingAssetDecimals",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "GHO_DECIMALS",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "PRICE_RATIO",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "UNDERLYING_ASSET",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "UNDERLYING_ASSET_DECIMALS",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "assetAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "roundUp",
+                "type": "bool"
+            }
+        ],
+        "name": "getAssetPriceInGho",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "ghoAmount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "roundUp",
+                "type": "bool"
+            }
+        ],
+        "name": "getGhoPriceInAsset",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

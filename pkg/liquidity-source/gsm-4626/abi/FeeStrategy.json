@@ -1,0 +1,94 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "buyFee",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "sellFee",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "grossAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "getBuyFee",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "getGrossAmountFromTotalBought",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "getGrossAmountFromTotalSold",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "grossAmount",
+                "type": "uint256"
+            }
+        ],
+        "name": "getSellFee",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
