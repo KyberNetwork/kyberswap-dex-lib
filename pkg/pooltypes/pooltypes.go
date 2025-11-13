@@ -58,6 +58,7 @@ import (
 	sfrxethconvertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	genericarm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-arm"
 	genericsimplerate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
+	gsm4626 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gsm-4626"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -341,6 +342,7 @@ type Types struct {
 	CUSD                       string
 	ArberaZap                  string
 	MapleSyrup                 string
+	Gsm4626                    string
 }
 
 var (
@@ -521,5 +523,6 @@ var (
 		CUSD:                       cusd.DexType,
 		ArberaZap:                  arberazap.DexType,
 		MapleSyrup:                 maplesyrup.DexType,
+		Gsm4626:                    gsm4626.DexType,
 	}
 )
