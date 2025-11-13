@@ -110,6 +110,9 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		BuyFee:          uint256.MustFromBig(buyFee),
 		SellFee:         uint256.MustFromBig(sellFee),
 	})
+	if err != nil {
+		return p, err
+	}
 	p.Extra = string(extraBytes)
 
 	if resp.BlockNumber != nil {
