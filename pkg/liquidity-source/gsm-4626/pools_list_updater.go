@@ -21,7 +21,6 @@ type PoolsListUpdater struct {
 	cfg          *Config
 	ethrpcClient *ethrpc.Client
 
-	logger      logger.Logger
 	initialized bool
 }
 
