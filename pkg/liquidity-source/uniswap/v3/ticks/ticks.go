@@ -7,12 +7,13 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 )
 
 var ErrTickNetDeltaZero = errors.New("tick net delta must be zero")

@@ -3,12 +3,13 @@ package integral
 import (
 	"bytes"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis"
-	intergralpoolv10 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v10"
-	intergralpoolv12 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v12"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis"
+	intergralpoolv10 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v10"
+	intergralpoolv12 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v12"
 )
 
 var (

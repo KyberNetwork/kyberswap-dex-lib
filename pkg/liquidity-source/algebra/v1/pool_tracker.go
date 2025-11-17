@@ -7,10 +7,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/logger"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -22,10 +18,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	abipkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 

@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolsListUpdater struct {
@@ -41,9 +40,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 	}
-
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	var lengthBI *big.Int
 
@@ -105,7 +101,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan BiswapFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools, totalNumberOfPools)
+		logger.Infof("scan BiswapFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools,
+			totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil

@@ -3,13 +3,14 @@ package ramsesv2
 import (
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 var _ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewPoolFactory)

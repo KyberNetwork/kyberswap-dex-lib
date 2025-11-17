@@ -3,10 +3,11 @@ package solidlyv3
 import (
 	"bytes"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
 )
 
 var (

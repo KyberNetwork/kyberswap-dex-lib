@@ -7,14 +7,13 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 func (t *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
@@ -26,8 +25,7 @@ func (t *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 
 	logger.Infof("Fetch changed ticks (%v)", changedTicks)
 
-	rpcRequest := t.EthrpcClient.NewRequest()
-	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+	rpcRequest := t.EthrpcClient.NewRequest().SetContext(ctx)
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{

@@ -3,10 +3,11 @@ package solidlyv3
 import (
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 func TestSolidlyV3Decoder(t *testing.T) {

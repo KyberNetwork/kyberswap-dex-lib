@@ -13,9 +13,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -25,11 +22,13 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 var _ = pooltrack.RegisterFactoryCEG0(DexType, NewPoolTracker)
@@ -311,7 +310,7 @@ func (t *PoolTracker) getPoolTicksFromStateView(
 	}
 
 	rpcRequest := t.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+	rpcRequest.SetContext(ctx)
 
 	stateViewTicks := make([]stateViewTick, changedTicksCount)
 	for i, tickIdx := range changedTicks {

@@ -3,14 +3,15 @@ package solidlyv3
 import (
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
 )
 
 var _ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)

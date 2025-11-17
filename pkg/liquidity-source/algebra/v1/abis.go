@@ -3,10 +3,11 @@ package algebrav1
 import (
 	"bytes"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1/abis"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/v1/abis"
 )
 
 var (

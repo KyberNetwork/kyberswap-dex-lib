@@ -3,12 +3,13 @@ package liquiditybookv21
 import (
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21/abis"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 var _ = poolfactory.RegisterFactoryC(DexTypeLiquidityBookV21, NewPoolFactory)

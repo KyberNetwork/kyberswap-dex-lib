@@ -3,12 +3,13 @@ package slipstream
 import (
 	"testing"
 
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
+
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
 func TestSlipstreamDecoder(t *testing.T) {

@@ -15,7 +15,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 var (
@@ -48,7 +47,7 @@ func NewPoolsListUpdater(
 }
 
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	ctx = util.NewContextWithTimestamp(ctx)
+
 	startTime := time.Now()
 
 	logger.WithFields(logger.Fields{"dex_id": u.config.DexID}).Debug("Start getting new pools")

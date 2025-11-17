@@ -4,17 +4,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
+	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v4/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)

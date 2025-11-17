@@ -7,12 +7,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/logger"
 	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,9 +16,15 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 

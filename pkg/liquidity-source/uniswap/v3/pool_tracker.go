@@ -9,6 +9,13 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/pool"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
@@ -19,12 +26,6 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/metrics"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/goccy/go-json"
-	"github.com/samber/lo"
-	"github.com/sourcegraph/conc/pool"
 )
 
 var _ = pooltrack.RegisterFactoryCEG(DexTypeUniswapV3, NewTracker)

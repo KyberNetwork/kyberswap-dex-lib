@@ -89,6 +89,7 @@ const (
 	ExchangeCUSD                       = "cusd"
 	ExchangeCamelot                    = "camelot"
 	ExchangeCamelotV3                  = "camelot-v3"
+	ExchangeCamelotV4                  = "camelot-v4"
 	ExchangeChronos                    = "chronos"
 	ExchangeChronosV3                  = "chronos-v3"
 	ExchangeCleopatra                  = "cleopatra"
@@ -113,6 +114,7 @@ const (
 	ExchangeCurveTriCryptoNg           = "curve-tricrypto-ng"
 	ExchangeCurveTwoCryptoNg           = "curve-twocrypto-ng"
 	ExchangeCyberblastV3               = "cyberblast-v3"
+	ExchangeCypherV4                   = "cypher-v4"
 	ExchangeDFYN                       = "dfyn"
 	ExchangeDMM                        = "dmm"
 	ExchangeDackieV2                   = "dackie-v2"
@@ -322,6 +324,7 @@ const (
 	ExchangePmm2                       = "pmm-2"
 	ExchangePmm3                       = "pmm-3"
 	ExchangePmm4                       = "pmm-4"
+	ExchangePmm5                       = "pmm-5"
 	ExchangePolMatic                   = "pol-matic"
 	ExchangePolyDex                    = "polydex"
 	ExchangePolycat                    = "polycat"
@@ -413,6 +416,7 @@ const (
 	ExchangeThenaFusion                = "thena-fusion"
 	ExchangeThenaFusionV3              = "thena-fusion-v3"
 	ExchangeThick                      = "thick"
+	ExchangeThirdfyV4                  = "thirdfy-v4"
 	ExchangeThrusterV2                 = "thruster-v2"
 	ExchangeThrusterV2Degen            = "thruster-v2-degen"
 	ExchangeThrusterV3                 = "thruster-v3"
@@ -584,6 +588,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCUSD:                       {},
 	ExchangeCamelot:                    {},
 	ExchangeCamelotV3:                  {},
+	ExchangeCamelotV4:                  {},
 	ExchangeChronos:                    {},
 	ExchangeChronosV3:                  {},
 	ExchangeCleopatra:                  {},
@@ -607,6 +612,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveTriCryptoNg:           {},
 	ExchangeCurveTwoCryptoNg:           {},
 	ExchangeCyberblastV3:               {},
+	ExchangeCypherV4:                   {},
 	ExchangeDFYN:                       {},
 	ExchangeDMM:                        {},
 	ExchangeDackieV2:                   {},
@@ -895,6 +901,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeThenaFusion:                {},
 	ExchangeThenaFusionV3:              {},
 	ExchangeThick:                      {},
+	ExchangeThirdfyV4:                  {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
 	ExchangeThrusterV3:                 {},
@@ -999,6 +1006,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangePmm2:       {},
 	ExchangePmm3:       {},
 	ExchangePmm4:       {},
+	ExchangePmm5:       {},
 	ExchangeUniswapLO:  {},
 	ExchangeSwaapV2:    {},
 }
