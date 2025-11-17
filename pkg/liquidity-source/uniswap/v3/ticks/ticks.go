@@ -111,7 +111,7 @@ func ValidatePoolTicks(pool TicksBasedPool, ticks []Tick) error {
 		sum.Add(sum, tick.LiquidityNet)
 	}
 
-	if sum.Cmp(integer.Zero()) != 0 {
+	if sum.Sign() != 0 {
 		if len(ticks) < 10 {
 			logFields := logger.Fields{
 				"address":         pool.Address,
