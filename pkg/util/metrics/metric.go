@@ -8,35 +8,35 @@ const (
 	MetricNameUnprocessedEventTopic = "unprocessed_event_topic_count"
 )
 
-type IncrFnType func(ctx context.Context, name string, tags map[string]string, value float64)
+type incrFnType func(ctx context.Context, name string, tags map[string]string, value float64)
 
 var (
-	IncrFn IncrFnType = func(context.Context, string, map[string]string, float64) {}
+	incrFn incrFnType = func(context.Context, string, map[string]string, float64) {}
 )
 
-func SetIncrFn(fn IncrFnType) {
+func SetIncrFn(fn incrFnType) {
 	if fn != nil {
-		IncrFn = fn
+		incrFn = fn
 	}
 }
 
 func IncrInvalidPoolTicks(exchange string) {
-	if IncrFn != nil {
-		IncrFn(context.Background(), MetricNameInvalidPoolTicks, map[string]string{
+	if incrFn != nil {
+		incrFn(context.Background(), MetricNameInvalidPoolTicks, map[string]string{
 			"exchange": exchange,
 		}, 1)
 	}
 }
 
 func IncrMissingTrieNode() {
-	if IncrFn != nil {
-		IncrFn(context.Background(), MetricNameMissingTrieNode, nil, 1)
+	if incrFn != nil {
+		incrFn(context.Background(), MetricNameMissingTrieNode, nil, 1)
 	}
 }
 
 func IncrUnprocessedEventTopic(poolType string, topic string) {
-	if IncrFn != nil {
-		IncrFn(context.Background(), MetricNameUnprocessedEventTopic, map[string]string{
+	if incrFn != nil {
+		incrFn(context.Background(), MetricNameUnprocessedEventTopic, map[string]string{
 			"poolType": poolType,
 			"topic":    topic,
 		}, 0.1)
