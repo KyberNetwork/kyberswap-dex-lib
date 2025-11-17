@@ -173,6 +173,7 @@ const (
 	ExchangeGenericArm                 = "generic-arm"
 	ExchangeGliquid                    = "gliquid"
 	ExchangeGravity                    = "gravity"
+	ExchangeGsm4626                    = "gsm-4626"
 	ExchangeGyroscope2CLP              = "gyroscope-2clp"
 	ExchangeGyroscope3CLP              = "gyroscope-3clp"
 	ExchangeGyroscopeECLP              = "gyroscope-eclp"
@@ -669,6 +670,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeGenericArm:                 {},
 	ExchangeGliquid:                    {},
 	ExchangeGravity:                    {},
+	ExchangeGsm4626:                    {},
 	ExchangeGyroscope2CLP:              {},
 	ExchangeGyroscope3CLP:              {},
 	ExchangeGyroscopeECLP:              {},
