@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/swap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 func getPointDelta(fee int) int {
@@ -45,7 +44,7 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 	for start := leftPoint; start < rightPoint; start += batchLen {
 		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+		rpcRequest.SetContext(ctx)
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
@@ -113,7 +112,7 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 	for start := leftPoint; start < rightPoint; start += batchLen {
 		end := min(start+batchLen, rightPoint)
 		rpcRequest := d.ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+		rpcRequest.SetContext(ctx)
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,

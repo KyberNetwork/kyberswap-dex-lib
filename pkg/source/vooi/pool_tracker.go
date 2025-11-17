@@ -13,7 +13,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolTracker struct {
@@ -51,8 +50,6 @@ func (t *PoolTracker) GetNewPoolState(
 				}).
 			Debug("Finish getting new pool state")
 	}()
-
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	// Get lastIndex
 	lastIndex, err := t.getLastIndex(ctx, p.Address)

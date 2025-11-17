@@ -41,7 +41,8 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
+	error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
@@ -101,65 +102,43 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
+func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult,
+	error) {
 	var (
-		blockTimestamp uint64
-		binStep        uint16
-
+		binStep               uint16
 		staticFeeParamsResp   staticFeeParamsResp
 		variableFeeParamsResp variableFeeParamsResp
-
-		reserves    reserves
-		activeBinID *big.Int
-
-		priceX128 *big.Int
-
-		err error
+		reserves              reserves
+		activeBinID           *big.Int
+		priceX128             *big.Int
+		blockNumberBI         *big.Int
 	)
 
-	req := d.ethrpcClient.R().SetContext(ctx)
 	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		req.SetBlockNumber(&blockNumberBI)
+		blockNumberBI = big.NewInt(int64(blockNumber))
 	}
 
-	req.AddCall(&ethrpc.Call{
+	if _, err := d.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetStaticFeeParameters,
-	}, []interface{}{&staticFeeParamsResp})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&staticFeeParamsResp}).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetVariableFeeParameters,
-	}, []interface{}{&variableFeeParamsResp})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&variableFeeParamsResp}).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
-	}, []interface{}{&reserves})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&reserves}).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetActiveID,
-	}, []interface{}{&activeBinID})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&activeBinID}).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetBinStep,
-	}, []interface{}{&binStep})
-
-	if _, err := req.Aggregate(); err != nil {
-		return nil, err
-	}
-
-	req = d.ethrpcClient.R().SetContext(ctx)
-	if blockTimestamp, err = req.GetCurrentBlockTimestamp(); err != nil {
+	}, []any{&binStep}).Aggregate(); err != nil {
 		return nil, err
 	}
 
@@ -173,7 +152,6 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		ProtocolShare:            staticFeeParamsResp.ProtocolShare,
 		MaxVolatilityAccumulator: uint32(staticFeeParamsResp.MaxVolatilityAccumulator.Uint64()),
 	}
-
 	variableFeeParams := variableFeeParams{
 		VolatilityAccumulator: uint32(variableFeeParamsResp.VolatilityAccumulator.Uint64()),
 		VolatilityReference:   uint32(variableFeeParamsResp.VolatilityReference.Uint64()),
@@ -181,27 +159,17 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		TimeOfLastUpdate:      variableFeeParamsResp.TimeOfLastUpdate.Uint64(),
 	}
 
-	req = d.ethrpcClient.NewRequest()
-	req.SetContext(ctx)
-	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		req.SetBlockNumber(&blockNumberBI)
-	}
-
-	req.AddCall(&ethrpc.Call{
+	if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairGetPriceFromID,
-		Params: []interface{}{activeBinID},
-	}, []interface{}{&priceX128})
-
-	if _, err := req.Aggregate(); err != nil {
+		Params: []any{activeBinID},
+	}, []any{&priceX128}).Call(); err != nil {
 		return nil, err
 	}
 
 	return &QueryRpcPoolStateResult{
-		BlockTimestamp:    blockTimestamp,
+		BlockTimestamp:    uint64(time.Now().Unix()),
 		StaticFeeParams:   staticFeeParams,
 		VariableFeeParams: variableFeeParams,
 		Reserves:          reserves,

@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolsListUpdater struct {
@@ -34,7 +33,6 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 		}
 	}
 
-	ctx = util.NewContextWithTimestamp(ctx)
 	calls := d.EthrpcClient.NewRequest().SetContext(ctx)
 	lengthBI := make([]*big.Int, len(d.Config.MasterAddress))
 	for i, masterAddress := range d.Config.MasterAddress {
