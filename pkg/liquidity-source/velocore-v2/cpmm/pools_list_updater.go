@@ -15,7 +15,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -59,8 +58,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			"duration": time.Since(s).String(),
 		}).Info("finish get new pools")
 	}(time.Now())
-
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	totalNumberOfPools, err := d.getPoolsLength(ctx)
 	if err != nil {

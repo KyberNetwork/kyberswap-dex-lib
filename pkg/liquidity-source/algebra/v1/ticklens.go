@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
@@ -27,7 +26,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 	logger.Infof("Fetch changed ticks (%v)", changedTicks)
 
 	rpcRequest := d.EthrpcClient.NewRequest()
-	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+	rpcRequest.SetContext(ctx)
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
