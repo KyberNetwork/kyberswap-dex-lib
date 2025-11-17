@@ -125,6 +125,17 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int    `json:"reserve1"`
 }
 
+type TicksResp struct {
+	LiquidityTotal           *big.Int
+	LiquidityDelta           *big.Int
+	OuterFeeGrowth0Token     *big.Int
+	OuterFeeGrowth1Token     *big.Int
+	OuterTickCumulative      *big.Int
+	OuterSecondsPerLiquidity *big.Int
+	OuterSecondsSpent        uint32
+	Initialized              bool
+}
+
 type TimepointUint256 struct {
 	Initialized                   bool         `json:"initialized"`                   // whether or not the timepoint is initialized
 	BlockTimestamp                uint32       `json:"blockTimestamp"`                // the block timestamp of the timepoint

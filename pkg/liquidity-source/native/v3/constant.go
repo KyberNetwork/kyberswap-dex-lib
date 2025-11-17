@@ -10,12 +10,12 @@ const (
 	DexType         = "native-v3"
 	graphFirstLimit = 1000
 	rpcChunkSize    = 100
+	tickChunkSize   = 100
 
 	poolMethodGetLiquidity = "liquidity"
 	poolMethodGetSlot0     = "slot0"
 	poolMethodTickSpacing  = "tickSpacing"
-
-	erc20MethodBalanceOf = "balanceOf"
+	poolMethodTicks        = "ticks"
 
 	lpTokenMethodUnderlying           = "underlying"
 	lpTokenMethodMinDeposit           = "minDeposit"

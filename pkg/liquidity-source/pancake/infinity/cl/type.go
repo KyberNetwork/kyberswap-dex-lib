@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
+	factory "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/cl/abi"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
 )
 
@@ -51,6 +52,10 @@ type FetchRPCResult struct {
 	Slot0       Slot0Data `json:"slot0"`
 	TickSpacing uint64    `json:"tickSpacing"`
 	SwapFee     uint32    `json:"swapFee"`
+}
+
+type TicksResp struct {
+	Data factory.TickInfo
 }
 
 type Tick = uniswapv3.Tick

@@ -4,11 +4,20 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream/abis"
 )
 
 var (
-	poolABI  abi.ABI
-	erc20ABI abi.ABI
+	poolABI    abi.ABI
+	factoryABI abi.ABI
+)
+
+var (
+	poolFilterer    *abis.PoolFilterer
+	factoryFilterer *abis.FactoryFilterer
 )
 
 func init() {
@@ -17,7 +26,7 @@ func init() {
 		data []byte
 	}{
 		{&poolABI, poolJson},
-		{&erc20ABI, erc20Json},
+		{&factoryABI, factoryJson},
 	}
 
 	for _, b := range builder {
@@ -27,4 +36,7 @@ func init() {
 			panic(err)
 		}
 	}
+
+	poolFilterer = lo.Must(abis.NewPoolFilterer(common.Address{}, nil))
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
 }

@@ -14,10 +14,15 @@ const (
 
 	graphFirstLimit = 1000
 	maxChangedTicks = 10
+	tickChunkSize   = 100
 
 	_OFFSET_TICK_SPACING = 16
 
 	_MASK12 = 0xfff
+)
+
+const (
+	getPoolTickInfoMethod = "getPoolTickInfo"
 )
 
 var (

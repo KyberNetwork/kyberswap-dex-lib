@@ -67,6 +67,11 @@ type FetchRPCResult struct {
 	HookExtra   string              `json:"hX,omitempty"`
 }
 
+type TicksResp struct {
+	LiquidityGross *big.Int
+	LiquidityNet   *big.Int
+}
+
 type Tick = uniswapv3.Tick
 
 type PoolMetaInfo struct {

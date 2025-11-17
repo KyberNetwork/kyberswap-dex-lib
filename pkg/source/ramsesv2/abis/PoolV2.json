@@ -1,5 +1,294 @@
 [
   {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      }
+    ],
+    "name": "Burn",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount0",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount1",
+        "type": "uint128"
+      }
+    ],
+    "name": "Collect",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount0",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount1",
+        "type": "uint128"
+      }
+    ],
+    "name": "CollectProtocol",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "paid0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "paid1",
+        "type": "uint256"
+      }
+    ],
+    "name": "Flash",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "observationCardinalityNextOld",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "observationCardinalityNextNew",
+        "type": "uint16"
+      }
+    ],
+    "name": "IncreaseObservationCardinalityNext",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint160",
+        "name": "sqrtPriceX96",
+        "type": "uint160"
+      },
+      {
+        "internalType": "int24",
+        "name": "tick",
+        "type": "int24"
+      }
+    ],
+    "name": "Initialize",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "indexed": true,
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      },
+      {
+        "internalType": "uint128",
+        "name": "amount",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount0",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount1",
+        "type": "uint256"
+      }
+    ],
+    "name": "Mint",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "feeProtocol0Old",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "feeProtocol1Old",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "feeProtocol0New",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "feeProtocol1New",
+        "type": "uint32"
+      }
+    ],
+    "name": "SetFeeProtocol",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "amount0",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "amount1",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint160",
+        "name": "sqrtPriceX96",
+        "type": "uint160"
+      },
+      {
+        "internalType": "uint128",
+        "name": "liquidity",
+        "type": "uint128"
+      },
+      {
+        "internalType": "int24",
+        "name": "tick",
+        "type": "int24"
+      }
+    ],
+    "name": "Swap",
+    "type": "event"
+  },
+  {
     "inputs": [],
     "name": "factory",
     "outputs": [
@@ -112,6 +401,11 @@
         "internalType": "bool",
         "name": "initialized",
         "type": "bool"
+      },
+      {
+        "internalType": "uint160",
+        "name": "secondsPerBoostedLiquidityPeriodX128",
+        "type": "uint160"
       }
     ],
     "stateMutability": "view",
@@ -136,6 +430,45 @@
         "internalType": "uint160[]",
         "name": "secondsPerLiquidityCumulativeX128s",
         "type": "uint160[]"
+      },
+      {
+        "internalType": "uint160[]",
+        "name": "secondsPerBoostedLiquidityPeriodX128s",
+        "type": "uint160[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint32",
+        "name": "period",
+        "type": "uint32"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      }
+    ],
+    "name": "periodCumulativesInside",
+    "outputs": [
+      {
+        "internalType": "uint160",
+        "name": "secondsPerLiquidityInsideX128",
+        "type": "uint160"
+      },
+      {
+        "internalType": "uint160",
+        "name": "secondsPerBoostedLiquidityInsideX128",
+        "type": "uint160"
       }
     ],
     "stateMutability": "view",
@@ -170,6 +503,60 @@
         "internalType": "uint160",
         "name": "endSecondsPerLiquidityPeriodX128",
         "type": "uint160"
+      },
+      {
+        "internalType": "uint160",
+        "name": "endSecondsPerBoostedLiquidityPeriodX128",
+        "type": "uint160"
+      },
+      {
+        "internalType": "uint32",
+        "name": "boostedInRange",
+        "type": "uint32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "period",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickLower",
+        "type": "int24"
+      },
+      {
+        "internalType": "int24",
+        "name": "tickUpper",
+        "type": "int24"
+      }
+    ],
+    "name": "positionPeriodDebt",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "secondsDebtX96",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "boostedSecondsDebtX96",
+        "type": "int256"
       }
     ],
     "stateMutability": "view",
@@ -208,6 +595,11 @@
       {
         "internalType": "uint256",
         "name": "periodSecondsInsideX96",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "periodBoostedSecondsInsideX96",
         "type": "uint256"
       }
     ],
@@ -248,6 +640,11 @@
         "internalType": "uint128",
         "name": "tokensOwed1",
         "type": "uint128"
+      },
+      {
+        "internalType": "uint256",
+        "name": "attachedVeRamId",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -259,10 +656,12 @@
     "outputs": [
       {
         "internalType": "uint128",
+        "name": "token0",
         "type": "uint128"
       },
       {
         "internalType": "uint128",
+        "name": "token1",
         "type": "uint128"
       }
     ],
@@ -357,6 +756,11 @@
         "type": "uint160"
       },
       {
+        "internalType": "uint160",
+        "name": "secondsPerBoostedLiquidityInsideX128",
+        "type": "uint160"
+      },
+      {
         "internalType": "uint32",
         "name": "secondsInside",
         "type": "uint32"
@@ -413,6 +817,16 @@
       {
         "internalType": "int128",
         "name": "liquidityNet",
+        "type": "int128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "boostedLiquidityGross",
+        "type": "uint128"
+      },
+      {
+        "internalType": "int128",
+        "name": "boostedLiquidityNet",
         "type": "int128"
       },
       {

@@ -17,7 +17,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type TickResp struct {
@@ -58,7 +57,7 @@ func GetPoolTicksFromSC(
 	ethrpcClient *ethrpc.Client,
 	tickLensAddress string,
 	pool entity.Pool,
-	param pool.GetNewPoolStateParams,
+	logs []types.Log,
 ) ([]TickResp, error) {
 	var extra commonExtra
 	if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
@@ -68,7 +67,7 @@ func GetPoolTicksFromSC(
 
 	var wordIndexes []int16
 
-	changedTicks := GetChangedTicks(param.Logs)
+	changedTicks := GetChangedTicks(logs)
 
 	if len(changedTicks) > 0 {
 		// only refetch changed tick if possible

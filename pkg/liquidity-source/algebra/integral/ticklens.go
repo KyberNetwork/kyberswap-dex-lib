@@ -30,7 +30,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 	populatedTicks := make([]Tick, len(changedTicks))
 	for i, tick := range changedTicks {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    algebraIntegralPoolABI,
+			ABI:    poolV12ABI,
 			Target: pool.Address,
 			Method: poolTicksMethod,
 			Params: []any{big.NewInt(tick)},

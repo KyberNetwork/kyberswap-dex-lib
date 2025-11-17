@@ -57,9 +57,9 @@ func NewPoolSimulatorWithExtra(entityPool entity.Pool, chainID valueobject.Chain
 	reserves := make([]*big.Int, 2)
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
 		tokens[0] = entityPool.Tokens[0].Address
-		reserves[0] = NewBig10(entityPool.Reserves[0])
+		reserves[0] = bignumber.NewBig10(entityPool.Reserves[0])
 		tokens[1] = entityPool.Tokens[1].Address
-		reserves[1] = NewBig10(entityPool.Reserves[1])
+		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
 	}
 
 	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))

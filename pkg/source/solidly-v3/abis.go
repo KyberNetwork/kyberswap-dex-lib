@@ -4,11 +4,20 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3/abis"
 )
 
 var (
-	solidlyV3PoolABI abi.ABI
-	erc20ABI         abi.ABI
+	solidlyV3PoolABI    abi.ABI
+	solidlyV3FactoryABI abi.ABI
+)
+
+var (
+	poolFilterer    *abis.PoolFilterer
+	factoryFilterer *abis.FactoryFilterer
 )
 
 func init() {
@@ -17,7 +26,7 @@ func init() {
 		data []byte
 	}{
 		{&solidlyV3PoolABI, solidlyV3PoolJson},
-		{&erc20ABI, erc20Json},
+		{&solidlyV3FactoryABI, solidlyV3FactoryJson},
 	}
 
 	for _, b := range builder {
@@ -27,4 +36,7 @@ func init() {
 			panic(err)
 		}
 	}
+
+	poolFilterer = lo.Must(abis.NewPoolFilterer(common.Address{}, nil))
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
 }

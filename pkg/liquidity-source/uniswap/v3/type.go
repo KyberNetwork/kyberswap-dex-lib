@@ -100,6 +100,17 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int `json:"reserve1"`
 }
 
+type TicksResp struct {
+	LiquidityGross                 *big.Int
+	LiquidityNet                   *big.Int
+	FeeGrowthOutside0X128          *big.Int
+	FeeGrowthOutside1X128          *big.Int
+	TickCumulativeOutside          *big.Int
+	SecondsPerLiquidityOutsideX128 *big.Int
+	SecondsOutside                 uint32
+	Initialized                    bool
+}
+
 type PoolMeta struct {
 	SwapFee    uint32       `json:"swapFee"`
 	PriceLimit *uint256.Int `json:"priceLimit"`

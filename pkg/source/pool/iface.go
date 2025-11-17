@@ -122,11 +122,24 @@ type IPoolRFQ interface {
 	SupportBatch() bool
 }
 
-type ITicksBasedPoolTracker[T any] interface {
-	FetchRPCData(ctx context.Context, pool *entity.Pool, blockNumber uint64) (T, error)
-}
-
 type IPoolDecoder interface {
 	Decode(ctx context.Context, logs []types.Log) (addressLogs map[string][]types.Log, err error)
 	GetKeys(ctx context.Context) ([]string, error)
+}
+
+type ITBPoolTracker[T any] interface {
+	FetchRPCData(ctx context.Context, pool *entity.Pool, blockNumber uint64) (T, error)
+}
+
+// ITicksBasedPoolTracker fetches ticks for pool from Swap, Mint and Burn events.
+type ITicksBasedPoolTracker interface {
+	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
+	GetNewState(ctx context.Context, p entity.Pool, logs []types.Log,
+		blockHeaders map[uint64]entity.BlockHeader) (entity.Pool, error)
+	FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error)
+}
+
+type IPoolFactoryDecoder interface {
+	DecodePoolCreated(event types.Log) (*entity.Pool, error)
+	IsEventSupported(event common.Hash) bool
 }

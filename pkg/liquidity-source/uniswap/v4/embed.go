@@ -4,3 +4,6 @@ import _ "embed"
 
 //go:embed abi/StateView.json
 var stateViewABIJson []byte
+
+//go:embed abi/PoolManager.json
+var poolManagerABIJson []byte
