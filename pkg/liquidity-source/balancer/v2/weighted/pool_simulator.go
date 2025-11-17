@@ -772,32 +772,35 @@ func (s *PoolSimulator) validateMaxOutRatio(tokenIndex int, amountOut *uint256.I
 }
 
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	if params.SwapInfo == nil {
+	swapInfo, ok := params.SwapInfo.(shared.SwapInfo)
+	if !ok {
+		return
+	}
+
+	if len(swapInfo.Hops) == 0 {
 		s.updateBalance(params.TokenAmountIn.Token, params.TokenAmountOut.Token,
 			params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
 
 		return
 	}
 
-	if swapInfo, ok := params.SwapInfo.(shared.SwapInfo); ok {
-		for _, hop := range swapInfo.Hops {
-			amountIn := hop.AmountIn.ToBig()
-			amountOut := hop.AmountOut.ToBig()
+	for _, hop := range swapInfo.Hops {
+		amountIn := hop.AmountIn.ToBig()
+		amountOut := hop.AmountOut.ToBig()
 
-			if basePool, ok := s.basePools[hop.Pool]; ok {
-				basePool.UpdateBalance(pool.UpdateBalanceParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  hop.TokenIn,
-						Amount: amountIn,
-					},
-					TokenAmountOut: pool.TokenAmount{
-						Token:  hop.TokenOut,
-						Amount: amountOut,
-					},
-				})
-			} else {
-				s.updateBalance(hop.TokenIn, hop.TokenOut, amountIn, amountOut)
-			}
+		if basePool, ok := s.basePools[hop.Pool]; ok {
+			basePool.UpdateBalance(pool.UpdateBalanceParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  hop.TokenIn,
+					Amount: amountIn,
+				},
+				TokenAmountOut: pool.TokenAmount{
+					Token:  hop.TokenOut,
+					Amount: amountOut,
+				},
+			})
+		} else {
+			s.updateBalance(hop.TokenIn, hop.TokenOut, amountIn, amountOut)
 		}
 	}
 }
