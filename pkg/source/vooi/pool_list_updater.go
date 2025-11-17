@@ -15,7 +15,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 var (
@@ -100,7 +99,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity.Pool, error) {
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	// Get lastIndex
 	lastIndex, err := u.getLastIndex(ctx, address)

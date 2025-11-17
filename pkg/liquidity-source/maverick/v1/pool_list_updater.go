@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -46,7 +45,6 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 	}
 
-	ctx = util.NewContextWithTimestamp(ctx)
 	pools, lastCreatedTime, err := d.getNewPoolFromSubgraph(ctx, metadata.LastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{

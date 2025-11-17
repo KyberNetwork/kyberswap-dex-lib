@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
@@ -49,8 +48,6 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		meta      PoolListUpdaterMetadata
 	)
 	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
-
-	ctx = util.NewContextWithTimestamp(ctx)
 
 	if len(metadataBytes) != 0 {
 		if err := json.Unmarshal(metadataBytes, &meta); err != nil {

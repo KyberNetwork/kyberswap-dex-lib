@@ -18,7 +18,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type TickResp struct {
@@ -95,7 +94,7 @@ func GetPoolTicksFromSC(
 
 	for _, chunk := range chunkedWordIndexes {
 		rpcRequest := ethrpcClient.NewRequest()
-		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+		rpcRequest.SetContext(ctx)
 
 		// In each word index, there will be 256 populatedTick, that's why the type is [][]populatedTick
 		populatedTicks := make([][]PopulatedTick, multicallBatchSize)

@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolsListUpdater struct {
@@ -40,7 +39,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 	}
-	ctx = util.NewContextWithTimestamp(ctx)
+
 	stableFactoryABI, _ := NomiStableFactoryMetaData.GetAbi()
 	var lengthBI *big.Int
 	if _, err := d.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{

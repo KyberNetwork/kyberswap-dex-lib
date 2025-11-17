@@ -18,7 +18,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
@@ -300,7 +299,7 @@ func (t *PoolTracker) getPoolTicksFromRPC(
 	}
 
 	rpcRequest := t.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
+	rpcRequest.SetContext(ctx)
 
 	rpcTicks := make([]rpcTick, changedTicksCount)
 	for i, tickIdx := range changedTicks {

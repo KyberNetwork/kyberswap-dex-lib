@@ -12,7 +12,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolsListUpdater struct {
@@ -39,25 +38,18 @@ func (p *PoolsListUpdater) InitPool(_ context.Context) error {
 func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
-		if err != nil {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, metadataBytes, err
 		}
 	}
 
-	// Add timestamp to the context so that each run iteration will have something different
-	ctx = util.NewContextWithTimestamp(ctx)
-
 	var lengthBI *big.Int
 
-	getNumPoolsRequest := p.ethrpcClient.NewRequest()
-	getNumPoolsRequest.AddCall(&ethrpc.Call{
+	if _, err := p.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: p.config.FactoryAddress,
 		Method: factoryMethodGetNumberOfLBPairs,
-	}, []interface{}{&lengthBI})
-
-	if _, err := getNumPoolsRequest.Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
 		return nil, metadataBytes, err
 	}
@@ -73,7 +65,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	getPairAddressRequest := p.ethrpcClient.NewRequest()
+	getPairAddressRequest := p.ethrpcClient.NewRequest().SetContext(ctx)
 
 	var pairAddresses = make([]common.Address, batchSize)
 	for j := 0; j < batchSize; j++ {
@@ -81,8 +73,8 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    factoryABI,
 			Target: p.config.FactoryAddress,
 			Method: factoryMethodGetLBPairAtIndex,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 	resp, err := getPairAddressRequest.TryAggregate()
 	if err != nil {
@@ -112,7 +104,8 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
+		logger.Infof("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d", batchSize,
+			currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -122,24 +115,19 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	var tokenXAddresses = make([]common.Address, len(pairAddresses))
 	var tokenYAddresses = make([]common.Address, len(pairAddresses))
 
-	rpcRequest := p.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
-
+	req := p.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < len(pairAddresses); i++ {
-		rpcRequest.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodGetTokenX,
-		}, []interface{}{&tokenXAddresses[i]})
-
-		rpcRequest.AddCall(&ethrpc.Call{
+		}, []any{&tokenXAddresses[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodGetTokenY,
-		}, []interface{}{&tokenYAddresses[i]})
+		}, []any{&tokenYAddresses[i]})
 	}
-
-	if _, err := rpcRequest.Aggregate(); err != nil {
+	if _, err := req.Aggregate(); err != nil {
 		logger.Errorf("failed to process aggregate to get 2 tokens from pair contract, err: %v", err)
 		return nil, err
 	}
