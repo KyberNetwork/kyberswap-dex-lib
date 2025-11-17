@@ -2,13 +2,14 @@ package ramsesv2
 
 import (
 	"context"
+	"maps"
 	"math/big"
+	"slices"
 	"sort"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	ethabi "github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
@@ -19,7 +20,6 @@ import (
 	tickspkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/ticks"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -35,11 +35,6 @@ type PoolTracker struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphqlpkg.Client
-
-	isPoolV3    bool
-	poolABI     ethabi.ABI
-	parseMintFn func(log ethtypes.Log) (int64, int64, error)
-	parseBurnFn func(log ethtypes.Log) (int64, int64, error)
 }
 
 func NewPoolTracker(
@@ -47,19 +42,11 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 	graphqlClient *graphqlpkg.Client,
 ) (*PoolTracker, error) {
-	parseMintFn, parseBurnFn, err := getParseFn(valueobject.Exchange(cfg.DexID))
-	if err != nil {
-		return nil, err
-	}
 
 	return &PoolTracker{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
-		isPoolV3:      cfg.IsPoolV3,
-		poolABI:       lo.Ternary(cfg.IsPoolV3, ramsesV3PoolABI, ramsesV2PoolABI),
-		parseMintFn:   parseMintFn,
-		parseBurnFn:   parseBurnFn,
 	}, nil
 }
 
@@ -183,32 +170,32 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 
 	if d.config.IsPoolV3 {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV3PoolABI,
+			ABI:    poolV3ABI,
 			Target: p.Address,
 			Method: methodV3Fee,
 		}, []any{&feeTier})
 	} else {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ramsesV2PoolABI,
+			ABI:    poolV2ABI,
 			Target: p.Address,
 			Method: methodV2CurrentFee,
 		}, []any{&feeTier})
 	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    ramsesV2PoolABI,
+		ABI:    poolV2ABI,
 		Target: p.Address,
 		Method: methodV2GetLiquidity,
 	}, []any{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    ramsesV2PoolABI,
+		ABI:    poolV2ABI,
 		Target: p.Address,
 		Method: methodV2GetSlot0,
 	}, []any{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    ramsesV2PoolABI,
+		ABI:    poolV2ABI,
 		Target: p.Address,
 		Method: methodV2TickSpacing,
 	}, []any{&tickSpacing})
@@ -305,10 +292,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]t
 
 func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
 	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+	l := logger.WithFields(logger.Fields{"address": p.Address, "exchange": p.Exchange})
 
 	ticksBasedPool, err := t.newTicksBasedPool(ctx, p, logs)
 	if err != nil {
@@ -372,9 +356,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to marshal extra data")
+		logger.WithFields(logger.Fields{"error": err}).Error("failed to marshal extra data")
 		return p, err
 	}
 
@@ -396,17 +378,13 @@ func (t *PoolTracker) newTicksBasedPool(
 
 	ticksBasedPool, err := tickspkg.NewTicksBasedPool(p)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to transform entity pool to ticks based pool")
+		l.WithFields(logger.Fields{"error": err}).Error("failed to transform entity pool to ticks based pool")
 		return ticksBasedPool, err
 	}
 
 	ticks, err := t.fetchTicksFromLogs(ctx, p, logs)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to FetchTicksFromLogs")
+		l.WithFields(logger.Fields{"error": err}).Error("failed to FetchTicksFromLogs")
 		return ticksBasedPool, err
 	}
 
@@ -418,29 +396,21 @@ func (t *PoolTracker) newTicksBasedPool(
 	}
 
 	if err := tickspkg.ValidatePoolTicks(ticksBasedPool, ticks); err != nil {
-		l.WithFields(logger.Fields{
-			"numTicks": len(ticks),
-			"error":    err,
-		}).Warn("invalid pool ticks data after fetching ticks from logs")
+		l.WithFields(logger.Fields{"numTicks": len(ticks), "error": err}).
+			Warn("invalid pool ticks data after fetching ticks from logs")
 
-		l.WithFields(logger.Fields{
-			"numTicks": len(ticksBasedPool.Ticks),
-		}).Info("fetch all ticks for pool")
+		l.WithFields(logger.Fields{"numTicks": len(ticksBasedPool.Ticks)}).Info("fetch all ticks for pool")
 
 		ticks, err = t.fetchAllTicksForPool(ctx, ticksBasedPool, ticks)
 		if err != nil {
-			l.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to fetch all ticks")
+			l.WithFields(logger.Fields{"error": err}).Error("failed to fetch all ticks")
 
 			return ticksBasedPool, err
 		}
 
 		if err := tickspkg.ValidateAllPoolTicks(ticksBasedPool, ticks); err != nil {
-			l.WithFields(logger.Fields{
-				"numTicks": len(ticks),
-				"error":    err,
-			}).Warnf("invalid pool ticks data after fetching all ticks stored in pool")
+			l.WithFields(logger.Fields{"numTicks": len(ticks), "error": err}).
+				Warnf("invalid pool ticks data after fetching all ticks stored in pool")
 		}
 	}
 
@@ -451,7 +421,8 @@ func (t *PoolTracker) newTicksBasedPool(
 	return ticksBasedPool, nil
 }
 
-func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool, error) {
+func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBasedPool tickspkg.TicksBasedPool) (entity.Pool,
+	error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
@@ -463,16 +434,12 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
 			rpcState, err = t.FetchRPCData(ctx, &p, 0)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
+				l.WithFields(logger.Fields{"error": err}).Error("failed to fetch latest state from RPC")
 				return p, err
 			}
 		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
+			l.WithFields(logger.Fields{"error": err, "blockNumber": blockNumber}).
+				Error("failed to fetch state from RPC")
 			return p, err
 		}
 	}
@@ -506,9 +473,7 @@ func (t *PoolTracker) updateState(ctx context.Context, p entity.Pool, ticksBased
 		Unlocked:     rpcState.Slot0.Unlocked,
 	})
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to marshal extra data")
+		l.WithFields(logger.Fields{"error": err}).Error("failed to marshal extra data")
 		return entity.Pool{}, err
 	}
 
@@ -559,10 +524,7 @@ func (t *PoolTracker) fetchAllTicksForPool(
 func (t *PoolTracker) fetchTicksFromLogs(
 	ctx context.Context, pool entity.Pool, logs []ethtypes.Log,
 ) ([]tickspkg.Tick, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  pool.Address,
-		"exchange": pool.Exchange,
-	})
+	l := logger.WithFields(logger.Fields{"address": pool.Address, "exchange": pool.Exchange})
 
 	if len(logs) == 0 {
 		return nil, nil
@@ -570,9 +532,7 @@ func (t *PoolTracker) fetchTicksFromLogs(
 
 	tickIndexes, err := t.getTickIndexesFromLogs(logs)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to getTickIndexesFromEvents")
+		l.WithFields(logger.Fields{"error": err}).Error("failed to getTickIndexesFromEvents")
 		return nil, err
 	}
 
@@ -588,7 +548,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 	ctx context.Context, address string, tickIndexes []int, blockNumber uint64,
 ) ([]tickspkg.Tick, error) {
 	if len(tickIndexes) <= tickChunkSize {
-		if t.isPoolV3 {
+		if t.config.IsPoolV3 {
 			return t.queryRPCTicksV3ByChunk(ctx, address, tickIndexes, blockNumber)
 		}
 
@@ -608,7 +568,7 @@ func (t *PoolTracker) queryRPCTicksByIndexes(
 			toIdx = totalTicks
 		}
 
-		if t.isPoolV3 {
+		if t.config.IsPoolV3 {
 			newTicks, err = t.queryRPCTicksV3ByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
 		} else {
 			newTicks, err = t.queryRPCTicksV2ByChunk(ctx, address, tickIndexes[i:toIdx], blockNumber)
@@ -632,43 +592,48 @@ func (t *PoolTracker) getTickIndexesFromLogs(logs []ethtypes.Log) ([]int, error)
 		}
 
 		switch event.Topics[0] {
-		case ramsesV2PoolABI.Events["Mint"].ID,
-			pharaohV3PoolABI.Events["Mint"].ID:
-			tickLower, tickUpper, err := t.parseMintFn(event)
+		case poolV2ABI.Events["Mint"].ID:
+			mint, err := poolFiltererV2.ParseMint(event)
 			if err != nil {
-				logger.WithFields(logger.Fields{
-					"event": event,
-					"error": err,
-				}).Error("failed to parse mint event")
+				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse mint event")
 				return nil, err
 			}
+			tickSet[int(mint.TickLower.Int64())] = struct{}{}
+			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 
-			tickSet[int(tickLower)] = struct{}{}
-			tickSet[int(tickUpper)] = struct{}{}
-
-		case t.poolABI.Events["Burn"].ID:
-			tickLower, tickUpper, err := t.parseBurnFn(event)
+		case poolV3ABI.Events["Mint"].ID:
+			mint, err := poolFiltererV3.ParseMint(event)
 			if err != nil {
-				logger.WithFields(logger.Fields{
-					"event": event,
-					"error": err,
-				}).Error("failed to parse burn event")
+				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse mint event")
 				return nil, err
 			}
+			tickSet[int(mint.TickLower.Int64())] = struct{}{}
+			tickSet[int(mint.TickUpper.Int64())] = struct{}{}
 
-			tickSet[int(tickLower)] = struct{}{}
-			tickSet[int(tickUpper)] = struct{}{}
+		case poolV2ABI.Events["Burn"].ID:
+			burn, err := poolFiltererV2.ParseBurn(event)
+			if err != nil {
+				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse burn event")
+				return nil, err
+			}
+			tickSet[int(burn.TickLower.Int64())] = struct{}{}
+			tickSet[int(burn.TickUpper.Int64())] = struct{}{}
+
+		case poolV3ABI.Events["Burn"].ID:
+			burn, err := poolFiltererV3.ParseBurn(event)
+			if err != nil {
+				logger.WithFields(logger.Fields{"event": event, "error": err}).Error("failed to parse burn event")
+				return nil, err
+			}
+			tickSet[int(burn.TickLower.Int64())] = struct{}{}
+			tickSet[int(burn.TickUpper.Int64())] = struct{}{}
+
 		default:
 			metrics.IncrUnprocessedEventTopic(DexTypeRamsesV2, event.Topics[0].Hex())
 		}
 	}
 
-	ticks := make([]int, 0, len(tickSet))
-	for tick := range tickSet {
-		ticks = append(ticks, tick)
-	}
-
-	return ticks, nil
+	return slices.Collect(maps.Keys(tickSet)), nil
 }
 
 func (t *PoolTracker) queryRPCTicksV2ByChunk(
@@ -686,21 +651,15 @@ func (t *PoolTracker) queryRPCTicksV2ByChunk(
 
 	for id, tick := range ticks {
 		ticksRequest.AddCall(&ethrpc.Call{
-			ABI:    t.poolABI,
+			ABI:    poolV2ABI,
 			Target: addr,
 			Method: methodTicks,
 			Params: []any{big.NewInt(int64(tick))},
 		}, []any{&tickResponses[id]})
 	}
 
-	l := logger.WithFields(logger.Fields{
-		"address": addr,
-	})
-
-	l.WithFields(logger.Fields{
-		"len":   len(ticksRequest.Calls),
-		"ticks": ticks,
-	}).Debug("fetching ticks")
+	l := logger.WithFields(logger.Fields{"address": addr})
+	l.WithFields(logger.Fields{"len": len(ticksRequest.Calls), "ticks": ticks}).Debug("fetching ticks")
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
@@ -708,9 +667,7 @@ func (t *PoolTracker) queryRPCTicksV2ByChunk(
 			return t.queryRPCTicksV2ByChunk(ctx, addr, ticks, 0)
 		}
 
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to process aggregate to get ticks")
+		logger.WithFields(logger.Fields{"error": err}).Error("failed to process aggregate to get ticks")
 		return nil, err
 	}
 
@@ -742,21 +699,15 @@ func (t *PoolTracker) queryRPCTicksV3ByChunk(
 
 	for id, tick := range ticks {
 		ticksRequest.AddCall(&ethrpc.Call{
-			ABI:    t.poolABI,
+			ABI:    poolV3ABI,
 			Target: addr,
 			Method: methodTicks,
 			Params: []any{big.NewInt(int64(tick))},
 		}, []any{&tickResponses[id]})
 	}
 
-	l := logger.WithFields(logger.Fields{
-		"address": addr,
-	})
-
-	l.WithFields(logger.Fields{
-		"len":   len(ticksRequest.Calls),
-		"ticks": ticks,
-	}).Debug("fetching ticks")
+	l := logger.WithFields(logger.Fields{"address": addr})
+	l.WithFields(logger.Fields{"len": len(ticksRequest.Calls), "ticks": ticks}).Debug("fetching ticks")
 
 	if _, err := ticksRequest.Aggregate(); err != nil {
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
@@ -764,9 +715,7 @@ func (t *PoolTracker) queryRPCTicksV3ByChunk(
 			return t.queryRPCTicksV3ByChunk(ctx, addr, ticks, 0)
 		}
 
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to process aggregate to get ticks")
+		logger.WithFields(logger.Fields{"error": err}).Error("failed to process aggregate to get ticks")
 		return nil, err
 	}
 
@@ -781,50 +730,4 @@ func (t *PoolTracker) queryRPCTicksV3ByChunk(
 	}
 
 	return result, nil
-}
-
-func getParseFn(exchange valueobject.Exchange) (
-	func(log ethtypes.Log) (int64, int64, error),
-	func(log ethtypes.Log) (int64, int64, error),
-	error) {
-	filterer, err := abis.NewPoolFilterer(common.Address{}, nil)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to initiate ramsesV2 filterer")
-		return nil, nil, err
-	}
-
-	parseMintFn := func(log ethtypes.Log) (int64, int64, error) {
-		if mint, err := filterer.ParseMint(log); err == nil {
-			return mint.TickLower.Int64(), mint.TickUpper.Int64(), nil
-		}
-		return 0, 0, err
-	}
-
-	parseBurnFn := func(log ethtypes.Log) (int64, int64, error) {
-		if mint, err := filterer.ParseBurn(log); err == nil {
-			return mint.TickLower.Int64(), mint.TickUpper.Int64(), nil
-		}
-		return 0, 0, err
-	}
-
-	if exchange == valueobject.ExchangePharaohV3 {
-		pharaohV3Filterer, err := abis.NewPharaohV3Filterer(common.Address{}, nil)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error": err,
-			}).Error("failed to initiate pharaoh-v3 filterer")
-			return nil, nil, err
-		}
-
-		parseMintFn = func(log ethtypes.Log) (int64, int64, error) {
-			if mint, err := pharaohV3Filterer.ParseMint(log); err == nil {
-				return mint.TickLower.Int64(), mint.TickUpper.Int64(), nil
-			}
-			return 0, 0, err
-		}
-	}
-
-	return parseMintFn, parseBurnFn, nil
 }

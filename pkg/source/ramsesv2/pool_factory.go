@@ -9,14 +9,14 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
 )
 
 var _ = poolfactory.RegisterFactoryC(DexTypeRamsesV2, NewPoolFactory)
 
 var (
-	eventHashPoolCreated = abis.UniswapV3FactoryABI.Events["PoolCreated"].ID
+	eventHashPoolCreated = factoryV2ABI.Events["PoolCreated"].ID
 )
 
 type PoolFactory struct {
@@ -34,7 +34,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
-	p, err := abis.UniswapV3FactoryFilterer.ParsePoolCreated(event)
+	p, err := factoryFilterer.ParsePoolCreated(event)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 	}
 
 	return &entity.Pool{
-		Address:     poolAddress,
+		Address:     hexutil.Encode(p.Pool[:]),
 		SwapFee:     swapFee,
 		Exchange:    f.config.DexID,
 		Type:        DexTypeRamsesV2,

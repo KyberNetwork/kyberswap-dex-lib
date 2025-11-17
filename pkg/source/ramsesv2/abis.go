@@ -4,14 +4,22 @@ import (
 	"bytes"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2/abis"
 )
 
 var (
-	ramsesV2PoolABI    abi.ABI
-	ramsesV3PoolABI    abi.ABI
-	pharaohV3PoolABI   abi.ABI
-	ramsesV2FactoryABI abi.ABI
-	ramsesV3FactoryABI abi.ABI
+	poolV2ABI    abi.ABI
+	poolV3ABI    abi.ABI
+	factoryV2ABI abi.ABI
+)
+
+var (
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
+	poolFiltererV2  = lo.Must(abis.NewV2PoolFilterer(common.Address{}, nil))
+	poolFiltererV3  = lo.Must(abis.NewV3PoolFilterer(common.Address{}, nil))
 )
 
 func init() {
@@ -19,11 +27,9 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&ramsesV2PoolABI, ramsesV2PoolJson},
-		{&ramsesV3PoolABI, ramsesV3PoolJson},
-		{&pharaohV3PoolABI, pharaohV3PoolJson},
-		{&ramsesV2FactoryABI, factoryV2Json},
-		{&ramsesV3FactoryABI, factoryV3Json},
+		{&poolV2ABI, ramsesV2PoolJson},
+		{&poolV3ABI, ramsesV3PoolJson},
+		{&factoryV2ABI, factoryV2Json},
 	}
 
 	for _, b := range builder {
