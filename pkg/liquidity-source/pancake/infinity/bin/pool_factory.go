@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/pancake/infinity/bin/abi"
@@ -20,12 +19,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
 
-var (
-	EmptyAddress         = common.Address{}
-	eventHashPoolCreated = shared.CLPoolManagerABI.Events["Initialize"].ID
-	poolManagerFilterer  = lo.Must(abi.NewPancakeInfinityPoolManagerFilterer(EmptyAddress, nil))
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -35,13 +28,13 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated: {},
+			shared.BinPoolManagerABI.Events["Initialize"].ID: {},
 		},
 	}
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
-	p, err := poolManagerFilterer.ParseInitialize(event)
+	p, err := shared.BinPoolManagerFilterer.ParseInitialize(event)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +62,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 	staticExtra := StaticExtra{
 		HasSwapPermissions: hasSwapPermissions,
 		Fee:                uint32(p.Fee.Uint64()),
-		IsNative:           [2]bool{p.Currency0 == EmptyAddress, p.Currency1 == EmptyAddress},
+		IsNative:           [2]bool{eth.IsZeroAddress(p.Currency0), eth.IsZeroAddress(p.Currency1)},
 		Parameters:         hexutil.Encode(params),
 		BinStep:            binStep,
 		PoolManagerAddress: common.HexToAddress(f.config.BinPoolManagerAddress),
@@ -98,7 +91,7 @@ func (f *PoolFactory) newPool(p *abi.PancakeInfinityPoolManagerInitialize, block
 }
 
 func currencyToToken(currency common.Address, chainId valueobject.ChainID) string {
-	if currency == EmptyAddress {
+	if eth.IsZeroAddress(currency) {
 		return strings.ToLower(valueobject.WrappedNativeMap[chainId])
 	}
 	return hexutil.Encode(currency[:])

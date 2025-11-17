@@ -35,8 +35,6 @@ func init() {
 			panic(err)
 		}
 	}
-}
 
-func init() {
 	poolManagerFilterer = lo.Must(abis.NewUniswapV4PoolManagerFilterer(common.Address{}, nil))
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap/v3"
@@ -20,12 +19,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
 
-var (
-	emptyAddress         = common.Address{}
-	eventHashPoolCreated = poolManagerABI.Events["Initialize"].ID
-	univ4Filterer        = lo.Must(abis.NewUniswapV4PoolManagerFilterer(emptyAddress, nil))
-)
-
 type PoolFactory struct {
 	cfg                 *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -35,13 +28,13 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		cfg: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated: {},
+			poolManagerABI.Events["Initialize"].ID: {},
 		},
 	}
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
-	p, err := univ4Filterer.ParseInitialize(event)
+	p, err := poolManagerFilterer.ParseInitialize(event)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +84,7 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 		},
 	})
 	staticExtra := StaticExtra{
-		IsNative:               [2]bool{p.Currency0 == emptyAddress, p.Currency1 == emptyAddress},
+		IsNative:               [2]bool{eth.IsZeroAddress(p.Currency0), eth.IsZeroAddress(p.Currency1)},
 		Fee:                    uint32(p.Fee.Uint64()),
 		TickSpacing:            int32(p.TickSpacing.Int64()),
 		HooksAddress:           p.Hooks,
@@ -119,7 +112,7 @@ func (f *PoolFactory) newPool(p *abis.UniswapV4PoolManagerInitialize, blockNbr u
 }
 
 func currencyToToken(currency common.Address, chainId valueobject.ChainID) string {
-	if currency == emptyAddress {
+	if eth.IsZeroAddress(currency) {
 		return strings.ToLower(valueobject.WrappedNativeMap[chainId])
 	}
 	return hexutil.Encode(currency[:])

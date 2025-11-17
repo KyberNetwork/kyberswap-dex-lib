@@ -16,10 +16,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexTypeAlgebraV1, NewPoolFactory)
 
-var (
-	eventHashPoolCreated = algebraV1FactoryABI.Events["Pool"].ID
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -29,7 +25,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated: {},
+			algebraV1FactoryABI.Events["Pool"].ID: {},
 		},
 	}
 }

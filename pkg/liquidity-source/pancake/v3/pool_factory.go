@@ -15,10 +15,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexTypePancakeV3, NewPoolFactory)
 
-var (
-	eventHashPoolCreated = pancakeV3FactoryABI.Events["PoolCreated"].ID
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -28,7 +24,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated: {},
+			pancakeV3FactoryABI.Events["PoolCreated"].ID: {},
 		},
 	}
 }

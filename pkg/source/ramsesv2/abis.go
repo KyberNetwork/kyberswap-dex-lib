@@ -17,9 +17,9 @@ var (
 )
 
 var (
-	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
-	poolFiltererV2  = lo.Must(abis.NewV2PoolFilterer(common.Address{}, nil))
-	poolFiltererV3  = lo.Must(abis.NewV3PoolFilterer(common.Address{}, nil))
+	factoryFilterer *abis.FactoryFilterer
+	poolFiltererV2  *abis.V2PoolFilterer
+	poolFiltererV3  *abis.V3PoolFilterer
 )
 
 func init() {
@@ -39,4 +39,8 @@ func init() {
 			panic(err)
 		}
 	}
+
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
+	poolFiltererV2 = lo.Must(abis.NewV2PoolFilterer(common.Address{}, nil))
+	poolFiltererV3 = lo.Must(abis.NewV3PoolFilterer(common.Address{}, nil))
 }

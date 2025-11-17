@@ -17,8 +17,8 @@ var (
 )
 
 var (
-	pairFilterer    = lo.Must(abis.NewLBPairFilterer(common.Address{}, nil))
-	factoryFilterer = lo.Must(abis.NewLBFactoryFilterer(common.Address{}, nil))
+	pairFilterer    *abis.LBPairFilterer
+	factoryFilterer *abis.LBFactoryFilterer
 )
 
 func init() {
@@ -44,4 +44,7 @@ func init() {
 			panic(err)
 		}
 	}
+
+	pairFilterer = lo.Must(abis.NewLBPairFilterer(common.Address{}, nil))
+	factoryFilterer = lo.Must(abis.NewLBFactoryFilterer(common.Address{}, nil))
 }

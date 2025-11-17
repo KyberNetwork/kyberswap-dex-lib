@@ -16,10 +16,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexTypeSolidlyV3, NewPoolFactory)
 
-var (
-	eventHashPoolCreated = solidlyV3FactoryABI.Events["PoolCreated"].ID
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -29,7 +25,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated: {},
+			solidlyV3FactoryABI.Events["PoolCreated"].ID: {},
 		},
 	}
 }

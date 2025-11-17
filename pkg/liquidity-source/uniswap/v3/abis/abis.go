@@ -14,8 +14,8 @@ var (
 )
 
 var (
-	UniswapV3PoolFilterer    = lo.Must(NewPoolFilterer(common.Address{}, nil))
-	UniswapV3FactoryFilterer = lo.Must(NewFactoryFilterer(common.Address{}, nil))
+	UniswapV3PoolFilterer    *PoolFilterer
+	UniswapV3FactoryFilterer *FactoryFilterer
 )
 
 func init() {
@@ -34,4 +34,7 @@ func init() {
 			panic(err)
 		}
 	}
+
+	UniswapV3PoolFilterer = lo.Must(NewPoolFilterer(common.Address{}, nil))
+	UniswapV3FactoryFilterer = lo.Must(NewFactoryFilterer(common.Address{}, nil))
 }

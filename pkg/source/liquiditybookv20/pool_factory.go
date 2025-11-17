@@ -14,10 +14,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexTypeLiquidityBookV20, NewPoolFactory)
 
-var (
-	eventLBPairCreated = factoryABI.Events["LBPairCreated"].ID
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -27,7 +23,7 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventLBPairCreated: {},
+			factoryABI.Events["LBPairCreated"].ID: {},
 		},
 	}
 }

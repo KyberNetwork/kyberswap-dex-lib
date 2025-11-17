@@ -18,11 +18,6 @@ import (
 
 var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
 
-var (
-	eventHashPoolCreated       = factoryABI.Events["Pool"].ID
-	eventHashCustomPoolCreated = factoryABI.Events["CustomPool"].ID
-)
-
 type PoolFactory struct {
 	config              *Config
 	poolCreatedEventIds map[common.Hash]struct{}
@@ -32,8 +27,8 @@ func NewPoolFactory(config *Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
-			eventHashPoolCreated:       {},
-			eventHashCustomPoolCreated: {},
+			factoryABI.Events["Pool"].ID:       {},
+			factoryABI.Events["CustomPool"].ID: {},
 		},
 	}
 }
@@ -44,13 +39,13 @@ func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error
 	}
 
 	switch event.Topics[0] {
-	case eventHashPoolCreated:
+	case factoryABI.Events["Pool"].ID:
 		pool, err := factoryFilterer.ParsePool(event)
 		if err != nil {
 			return nil, err
 		}
 		return f.newPool(pool, event.BlockNumber)
-	case eventHashCustomPoolCreated:
+	case factoryABI.Events["CustomPool"].ID:
 		customPool, err := factoryFilterer.ParseCustomPool(event)
 		if err != nil {
 			return nil, err

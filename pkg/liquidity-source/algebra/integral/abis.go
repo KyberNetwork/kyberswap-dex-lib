@@ -8,8 +8,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis"
-	intergralpoolv10 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v10"
-	intergralpoolv12 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v12"
+	v10 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v10"
+	v12 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral/abis/v12"
 )
 
 var (
@@ -21,9 +21,9 @@ var (
 )
 
 var (
-	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
-	poolV10Filterer = lo.Must(intergralpoolv10.NewPoolFilterer(common.Address{}, nil))
-	poolV12Filterer = lo.Must(intergralpoolv12.NewPoolFilterer(common.Address{}, nil))
+	factoryFilterer *abis.FactoryFilterer
+	poolV10Filterer *v10.PoolFilterer
+	poolV12Filterer *v12.PoolFilterer
 )
 
 func init() {
@@ -45,4 +45,8 @@ func init() {
 			panic(err)
 		}
 	}
+
+	factoryFilterer = lo.Must(abis.NewFactoryFilterer(common.Address{}, nil))
+	poolV10Filterer = lo.Must(v10.NewPoolFilterer(common.Address{}, nil))
+	poolV12Filterer = lo.Must(v12.NewPoolFilterer(common.Address{}, nil))
 }
