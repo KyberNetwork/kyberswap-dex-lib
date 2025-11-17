@@ -79,7 +79,7 @@ func (f *PoolFactory) newPool(p *abis.FactoryPoolCreated, blockNumber uint64) (*
 	}
 
 	return &entity.Pool{
-		Address:     hexutil.Encode(p.Pool[:]),
+		Address:     poolAddress,
 		SwapFee:     swapFee,
 		Exchange:    f.config.DexID,
 		Type:        DexTypeRamsesV2,
