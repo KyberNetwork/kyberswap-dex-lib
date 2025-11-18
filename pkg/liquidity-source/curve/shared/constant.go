@@ -50,6 +50,7 @@ var (
 	CurveAddressProvider = map[valueobject.ChainID]string{
 		valueobject.ChainIDEtherlink: "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
 		valueobject.ChainIDHyperEVM:  "0x1764ee18e8B3ccA4787249Ceb249356192594585",
+		valueobject.ChainIDMonad:     "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
 		valueobject.ChainIDPlasma:    "0x4574921eb950d3Fd5B01562162EC566Cb8bc3648",
 		valueobject.ChainIDSonic:     "0x87FE17697D0f14A222e8bEf386a0860eCffDD617",
 	}

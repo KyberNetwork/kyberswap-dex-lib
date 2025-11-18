@@ -10,7 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	big256 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/big256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -87,7 +87,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	var feeAmount uint256.Int
-	feeAmount.Div(feeAmount.Mul(amountIn, p.fee), p.feePrecision)
+	feeAmount.MulDivOverflow(amountIn, p.fee, p.feePrecision)
 	amountInAfterFee := amountIn.Sub(amountIn, &feeAmount)
 
 	amountOut, err := p.getAmountOut(amountInAfterFee, indexIn, indexOut)

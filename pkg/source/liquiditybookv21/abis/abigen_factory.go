@@ -39,7 +39,7 @@ type ILBFactoryLBPairInformation struct {
 
 // LBFactoryMetaData contains all meta data concerning the LBFactory contract.
 var LBFactoryMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"flashLoanFee\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"LBFactory__AddressZero\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__BinStepHasNoPreset\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__BinStepTooLow\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"fees\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxFees\",\"type\":\"uint256\"}],\"name\":\"LBFactory__FlashLoanFeeAboveMax\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"LBFactory__IdenticalAddresses\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBFactory__ImplementationNotSet\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__LBPairAlreadyExists\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__LBPairDoesNotExist\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBFactory__LBPairIgnoredIsAlreadyInTheSameState\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__LBPairNotCreated\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"LBPairImplementation\",\"type\":\"address\"}],\"name\":\"LBFactory__LBPairSafetyCheckFailed\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"LBFactory__PresetIsLockedForUsers\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBFactory__PresetOpenStateIsAlreadyInTheSameState\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"LBFactory__QuoteAssetAlreadyWhitelisted\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"LBFactory__QuoteAssetNotWhitelisted\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"}],\"name\":\"LBFactory__SameFeeRecipient\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"flashLoanFee\",\"type\":\"uint256\"}],\"name\":\"LBFactory__SameFlashLoanFee\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"LBPairImplementation\",\"type\":\"address\"}],\"name\":\"LBFactory__SameImplementation\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PairParametersHelper__InvalidParameter\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PendingOwnable__AddressZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PendingOwnable__NoPendingOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PendingOwnable__NotOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PendingOwnable__NotPendingOwner\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PendingOwnable__PendingOwnerAlreadySet\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SafeCast__Exceeds16Bits\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"x\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"y\",\"type\":\"int256\"}],\"name\":\"Uint128x128Math__PowUnderflow\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldRecipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newRecipient\",\"type\":\"address\"}],\"name\":\"FeeRecipientSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"oldFlashLoanFee\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"newFlashLoanFee\",\"type\":\"uint256\"}],\"name\":\"FlashLoanFeeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"pid\",\"type\":\"uint256\"}],\"name\":\"LBPairCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"ignored\",\"type\":\"bool\"}],\"name\":\"LBPairIgnoredStateChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldLBPairImplementation\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"LBPairImplementation\",\"type\":\"address\"}],\"name\":\"LBPairImplementationSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"pendingOwner\",\"type\":\"address\"}],\"name\":\"PendingOwnerSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"name\":\"PresetOpenStateChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"PresetRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"baseFactor\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"filterPeriod\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"decayPeriod\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"reductionFactor\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"variableFeeControl\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"protocolShare\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint256\"}],\"name\":\"PresetSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"QuoteAssetAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"QuoteAssetRemoved\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"addQuoteAsset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"becomeOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"}],\"name\":\"createLBPair\",\"outputs\":[{\"internalType\":\"contractILBPair\",\"name\":\"pair\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractILBPair\",\"name\":\"pair\",\"type\":\"address\"}],\"name\":\"forceDecay\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getAllBinSteps\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"binStepWithPreset\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"}],\"name\":\"getAllLBPairs\",\"outputs\":[{\"components\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"createdByOwner\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"ignoredForRouting\",\"type\":\"bool\"}],\"internalType\":\"structILBFactory.LBPairInformation[]\",\"name\":\"lbPairsAvailable\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFeeRecipient\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFlashLoanFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"flashLoanFee\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"getLBPairAtIndex\",\"outputs\":[{\"internalType\":\"contractILBPair\",\"name\":\"lbPair\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLBPairImplementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"lbPairImplementation\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenA\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenB\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"getLBPairInformation\",\"outputs\":[{\"components\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"createdByOwner\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"ignoredForRouting\",\"type\":\"bool\"}],\"internalType\":\"structILBFactory.LBPairInformation\",\"name\":\"lbPairInformation\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getMaxFlashLoanFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"maxFee\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getMinBinStep\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"minBinStep\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getNumberOfLBPairs\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"lbPairNumber\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getNumberOfQuoteAssets\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"numberOfQuoteAssets\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOpenBinSteps\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"openBinStep\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"getPreset\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"baseFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"filterPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"decayPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reductionFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"variableFeeControl\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"protocolShare\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"getQuoteAssetAtIndex\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"asset\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"isQuoteAsset\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isQuote\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pendingOwner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"}],\"name\":\"removePreset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"removeQuoteAsset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"revokePendingOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"}],\"name\":\"setFeeRecipient\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"name\":\"setFeesParametersOnPair\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"flashLoanFee\",\"type\":\"uint256\"}],\"name\":\"setFlashLoanFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"bool\",\"name\":\"ignored\",\"type\":\"bool\"}],\"name\":\"setLBPairIgnored\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newLBPairImplementation\",\"type\":\"address\"}],\"name\":\"setLBPairImplementation\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"pendingOwner_\",\"type\":\"address\"}],\"name\":\"setPendingOwner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"name\":\"setPreset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"name\":\"setPresetOpenState\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oldRecipient\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"newRecipient\",\"type\":\"address\"}],\"name\":\"FeeRecipientSet\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"oldFlashLoanFee\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"newFlashLoanFee\",\"type\":\"uint256\"}],\"name\":\"FlashLoanFeeSet\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pid\",\"type\":\"uint256\"}],\"name\":\"LBPairCreated\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"pid\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"nativePriceUSD\",\"type\":\"uint256\"}],\"name\":\"LBPairCreated\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"ignored\",\"type\":\"bool\"}],\"name\":\"LBPairIgnoredStateChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"oldLBPairImplementation\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"LBPairImplementation\",\"type\":\"address\"}],\"name\":\"LBPairImplementationSet\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"pendingOwner\",\"type\":\"address\"}],\"name\":\"PendingOwnerSet\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"name\":\"PresetOpenStateChanged\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"PresetRemoved\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"baseFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"filterPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"decayPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reductionFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"variableFeeControl\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"protocolShare\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint256\"}],\"name\":\"PresetSet\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"QuoteAssetAdded\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"contractIERC20\",\"name\":\"quoteAsset\",\"type\":\"address\"}],\"name\":\"QuoteAssetRemoved\",\"type\":\"event\"},{\"name\":\"getAllBinSteps\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"binStepWithPreset\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"}],\"name\":\"getAllLBPairs\",\"outputs\":[{\"components\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"createdByOwner\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"ignoredForRouting\",\"type\":\"bool\"}],\"internalType\":\"structILBFactory.LBPairInformation[]\",\"name\":\"lbPairsAvailable\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getFeeRecipient\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getFlashLoanFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"flashLoanFee\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"getLBPairAtIndex\",\"outputs\":[{\"internalType\":\"contractILBPair\",\"name\":\"lbPair\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getLBPairImplementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"lbPairImplementation\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenA\",\"type\":\"address\"},{\"internalType\":\"contractIERC20\",\"name\":\"tokenB\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"getLBPairInformation\",\"outputs\":[{\"components\":[{\"internalType\":\"uint16\",\"name\":\"binStep\",\"type\":\"uint16\"},{\"internalType\":\"contractILBPair\",\"name\":\"LBPair\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"createdByOwner\",\"type\":\"bool\"},{\"internalType\":\"bool\",\"name\":\"ignoredForRouting\",\"type\":\"bool\"}],\"internalType\":\"structILBFactory.LBPairInformation\",\"name\":\"lbPairInformation\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getMaxFlashLoanFee\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"maxFee\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getMinBinStep\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"minBinStep\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getNumberOfLBPairs\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"lbPairNumber\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getNumberOfQuoteAssets\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"numberOfQuoteAssets\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getOpenBinSteps\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"openBinStep\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"binStep\",\"type\":\"uint256\"}],\"name\":\"getPreset\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"baseFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"filterPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"decayPeriod\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"reductionFactor\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"variableFeeControl\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"protocolShare\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"isOpen\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"getQuoteAssetAtIndex\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"asset\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"token\",\"type\":\"address\"}],\"name\":\"isQuoteAsset\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isQuote\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"pendingOwner\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // LBFactoryABI is the input ABI used to generate the binding from.
@@ -759,342 +759,6 @@ func (_LBFactory *LBFactoryCallerSession) PendingOwner() (common.Address, error)
 	return _LBFactory.Contract.PendingOwner(&_LBFactory.CallOpts)
 }
 
-// AddQuoteAsset is a paid mutator transaction binding the contract method 0x5a440923.
-//
-// Solidity: function addQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactoryTransactor) AddQuoteAsset(opts *bind.TransactOpts, quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "addQuoteAsset", quoteAsset)
-}
-
-// AddQuoteAsset is a paid mutator transaction binding the contract method 0x5a440923.
-//
-// Solidity: function addQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactorySession) AddQuoteAsset(quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.AddQuoteAsset(&_LBFactory.TransactOpts, quoteAsset)
-}
-
-// AddQuoteAsset is a paid mutator transaction binding the contract method 0x5a440923.
-//
-// Solidity: function addQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactoryTransactorSession) AddQuoteAsset(quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.AddQuoteAsset(&_LBFactory.TransactOpts, quoteAsset)
-}
-
-// BecomeOwner is a paid mutator transaction binding the contract method 0xf9dca989.
-//
-// Solidity: function becomeOwner() returns()
-func (_LBFactory *LBFactoryTransactor) BecomeOwner(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "becomeOwner")
-}
-
-// BecomeOwner is a paid mutator transaction binding the contract method 0xf9dca989.
-//
-// Solidity: function becomeOwner() returns()
-func (_LBFactory *LBFactorySession) BecomeOwner() (*types.Transaction, error) {
-	return _LBFactory.Contract.BecomeOwner(&_LBFactory.TransactOpts)
-}
-
-// BecomeOwner is a paid mutator transaction binding the contract method 0xf9dca989.
-//
-// Solidity: function becomeOwner() returns()
-func (_LBFactory *LBFactoryTransactorSession) BecomeOwner() (*types.Transaction, error) {
-	return _LBFactory.Contract.BecomeOwner(&_LBFactory.TransactOpts)
-}
-
-// CreateLBPair is a paid mutator transaction binding the contract method 0x659ac74b.
-//
-// Solidity: function createLBPair(address tokenX, address tokenY, uint24 activeId, uint16 binStep) returns(address pair)
-func (_LBFactory *LBFactoryTransactor) CreateLBPair(opts *bind.TransactOpts, tokenX common.Address, tokenY common.Address, activeId *big.Int, binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "createLBPair", tokenX, tokenY, activeId, binStep)
-}
-
-// CreateLBPair is a paid mutator transaction binding the contract method 0x659ac74b.
-//
-// Solidity: function createLBPair(address tokenX, address tokenY, uint24 activeId, uint16 binStep) returns(address pair)
-func (_LBFactory *LBFactorySession) CreateLBPair(tokenX common.Address, tokenY common.Address, activeId *big.Int, binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.Contract.CreateLBPair(&_LBFactory.TransactOpts, tokenX, tokenY, activeId, binStep)
-}
-
-// CreateLBPair is a paid mutator transaction binding the contract method 0x659ac74b.
-//
-// Solidity: function createLBPair(address tokenX, address tokenY, uint24 activeId, uint16 binStep) returns(address pair)
-func (_LBFactory *LBFactoryTransactorSession) CreateLBPair(tokenX common.Address, tokenY common.Address, activeId *big.Int, binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.Contract.CreateLBPair(&_LBFactory.TransactOpts, tokenX, tokenY, activeId, binStep)
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0x3c78a941.
-//
-// Solidity: function forceDecay(address pair) returns()
-func (_LBFactory *LBFactoryTransactor) ForceDecay(opts *bind.TransactOpts, pair common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "forceDecay", pair)
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0x3c78a941.
-//
-// Solidity: function forceDecay(address pair) returns()
-func (_LBFactory *LBFactorySession) ForceDecay(pair common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.ForceDecay(&_LBFactory.TransactOpts, pair)
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0x3c78a941.
-//
-// Solidity: function forceDecay(address pair) returns()
-func (_LBFactory *LBFactoryTransactorSession) ForceDecay(pair common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.ForceDecay(&_LBFactory.TransactOpts, pair)
-}
-
-// RemovePreset is a paid mutator transaction binding the contract method 0xe203a31f.
-//
-// Solidity: function removePreset(uint16 binStep) returns()
-func (_LBFactory *LBFactoryTransactor) RemovePreset(opts *bind.TransactOpts, binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "removePreset", binStep)
-}
-
-// RemovePreset is a paid mutator transaction binding the contract method 0xe203a31f.
-//
-// Solidity: function removePreset(uint16 binStep) returns()
-func (_LBFactory *LBFactorySession) RemovePreset(binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.Contract.RemovePreset(&_LBFactory.TransactOpts, binStep)
-}
-
-// RemovePreset is a paid mutator transaction binding the contract method 0xe203a31f.
-//
-// Solidity: function removePreset(uint16 binStep) returns()
-func (_LBFactory *LBFactoryTransactorSession) RemovePreset(binStep uint16) (*types.Transaction, error) {
-	return _LBFactory.Contract.RemovePreset(&_LBFactory.TransactOpts, binStep)
-}
-
-// RemoveQuoteAsset is a paid mutator transaction binding the contract method 0xddbfd941.
-//
-// Solidity: function removeQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactoryTransactor) RemoveQuoteAsset(opts *bind.TransactOpts, quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "removeQuoteAsset", quoteAsset)
-}
-
-// RemoveQuoteAsset is a paid mutator transaction binding the contract method 0xddbfd941.
-//
-// Solidity: function removeQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactorySession) RemoveQuoteAsset(quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.RemoveQuoteAsset(&_LBFactory.TransactOpts, quoteAsset)
-}
-
-// RemoveQuoteAsset is a paid mutator transaction binding the contract method 0xddbfd941.
-//
-// Solidity: function removeQuoteAsset(address quoteAsset) returns()
-func (_LBFactory *LBFactoryTransactorSession) RemoveQuoteAsset(quoteAsset common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.RemoveQuoteAsset(&_LBFactory.TransactOpts, quoteAsset)
-}
-
-// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
-//
-// Solidity: function renounceOwnership() returns()
-func (_LBFactory *LBFactoryTransactor) RenounceOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "renounceOwnership")
-}
-
-// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
-//
-// Solidity: function renounceOwnership() returns()
-func (_LBFactory *LBFactorySession) RenounceOwnership() (*types.Transaction, error) {
-	return _LBFactory.Contract.RenounceOwnership(&_LBFactory.TransactOpts)
-}
-
-// RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
-//
-// Solidity: function renounceOwnership() returns()
-func (_LBFactory *LBFactoryTransactorSession) RenounceOwnership() (*types.Transaction, error) {
-	return _LBFactory.Contract.RenounceOwnership(&_LBFactory.TransactOpts)
-}
-
-// RevokePendingOwner is a paid mutator transaction binding the contract method 0x67ab8a4e.
-//
-// Solidity: function revokePendingOwner() returns()
-func (_LBFactory *LBFactoryTransactor) RevokePendingOwner(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "revokePendingOwner")
-}
-
-// RevokePendingOwner is a paid mutator transaction binding the contract method 0x67ab8a4e.
-//
-// Solidity: function revokePendingOwner() returns()
-func (_LBFactory *LBFactorySession) RevokePendingOwner() (*types.Transaction, error) {
-	return _LBFactory.Contract.RevokePendingOwner(&_LBFactory.TransactOpts)
-}
-
-// RevokePendingOwner is a paid mutator transaction binding the contract method 0x67ab8a4e.
-//
-// Solidity: function revokePendingOwner() returns()
-func (_LBFactory *LBFactoryTransactorSession) RevokePendingOwner() (*types.Transaction, error) {
-	return _LBFactory.Contract.RevokePendingOwner(&_LBFactory.TransactOpts)
-}
-
-// SetFeeRecipient is a paid mutator transaction binding the contract method 0xe74b981b.
-//
-// Solidity: function setFeeRecipient(address feeRecipient) returns()
-func (_LBFactory *LBFactoryTransactor) SetFeeRecipient(opts *bind.TransactOpts, feeRecipient common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setFeeRecipient", feeRecipient)
-}
-
-// SetFeeRecipient is a paid mutator transaction binding the contract method 0xe74b981b.
-//
-// Solidity: function setFeeRecipient(address feeRecipient) returns()
-func (_LBFactory *LBFactorySession) SetFeeRecipient(feeRecipient common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFeeRecipient(&_LBFactory.TransactOpts, feeRecipient)
-}
-
-// SetFeeRecipient is a paid mutator transaction binding the contract method 0xe74b981b.
-//
-// Solidity: function setFeeRecipient(address feeRecipient) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetFeeRecipient(feeRecipient common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFeeRecipient(&_LBFactory.TransactOpts, feeRecipient)
-}
-
-// SetFeesParametersOnPair is a paid mutator transaction binding the contract method 0x093ff769.
-//
-// Solidity: function setFeesParametersOnPair(address tokenX, address tokenY, uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBFactory *LBFactoryTransactor) SetFeesParametersOnPair(opts *bind.TransactOpts, tokenX common.Address, tokenY common.Address, binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setFeesParametersOnPair", tokenX, tokenY, binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// SetFeesParametersOnPair is a paid mutator transaction binding the contract method 0x093ff769.
-//
-// Solidity: function setFeesParametersOnPair(address tokenX, address tokenY, uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBFactory *LBFactorySession) SetFeesParametersOnPair(tokenX common.Address, tokenY common.Address, binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFeesParametersOnPair(&_LBFactory.TransactOpts, tokenX, tokenY, binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// SetFeesParametersOnPair is a paid mutator transaction binding the contract method 0x093ff769.
-//
-// Solidity: function setFeesParametersOnPair(address tokenX, address tokenY, uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetFeesParametersOnPair(tokenX common.Address, tokenY common.Address, binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFeesParametersOnPair(&_LBFactory.TransactOpts, tokenX, tokenY, binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// SetFlashLoanFee is a paid mutator transaction binding the contract method 0xe92d0d5d.
-//
-// Solidity: function setFlashLoanFee(uint256 flashLoanFee) returns()
-func (_LBFactory *LBFactoryTransactor) SetFlashLoanFee(opts *bind.TransactOpts, flashLoanFee *big.Int) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setFlashLoanFee", flashLoanFee)
-}
-
-// SetFlashLoanFee is a paid mutator transaction binding the contract method 0xe92d0d5d.
-//
-// Solidity: function setFlashLoanFee(uint256 flashLoanFee) returns()
-func (_LBFactory *LBFactorySession) SetFlashLoanFee(flashLoanFee *big.Int) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFlashLoanFee(&_LBFactory.TransactOpts, flashLoanFee)
-}
-
-// SetFlashLoanFee is a paid mutator transaction binding the contract method 0xe92d0d5d.
-//
-// Solidity: function setFlashLoanFee(uint256 flashLoanFee) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetFlashLoanFee(flashLoanFee *big.Int) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetFlashLoanFee(&_LBFactory.TransactOpts, flashLoanFee)
-}
-
-// SetLBPairIgnored is a paid mutator transaction binding the contract method 0x69d56ea3.
-//
-// Solidity: function setLBPairIgnored(address tokenX, address tokenY, uint16 binStep, bool ignored) returns()
-func (_LBFactory *LBFactoryTransactor) SetLBPairIgnored(opts *bind.TransactOpts, tokenX common.Address, tokenY common.Address, binStep uint16, ignored bool) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setLBPairIgnored", tokenX, tokenY, binStep, ignored)
-}
-
-// SetLBPairIgnored is a paid mutator transaction binding the contract method 0x69d56ea3.
-//
-// Solidity: function setLBPairIgnored(address tokenX, address tokenY, uint16 binStep, bool ignored) returns()
-func (_LBFactory *LBFactorySession) SetLBPairIgnored(tokenX common.Address, tokenY common.Address, binStep uint16, ignored bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetLBPairIgnored(&_LBFactory.TransactOpts, tokenX, tokenY, binStep, ignored)
-}
-
-// SetLBPairIgnored is a paid mutator transaction binding the contract method 0x69d56ea3.
-//
-// Solidity: function setLBPairIgnored(address tokenX, address tokenY, uint16 binStep, bool ignored) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetLBPairIgnored(tokenX common.Address, tokenY common.Address, binStep uint16, ignored bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetLBPairIgnored(&_LBFactory.TransactOpts, tokenX, tokenY, binStep, ignored)
-}
-
-// SetLBPairImplementation is a paid mutator transaction binding the contract method 0xb0384781.
-//
-// Solidity: function setLBPairImplementation(address newLBPairImplementation) returns()
-func (_LBFactory *LBFactoryTransactor) SetLBPairImplementation(opts *bind.TransactOpts, newLBPairImplementation common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setLBPairImplementation", newLBPairImplementation)
-}
-
-// SetLBPairImplementation is a paid mutator transaction binding the contract method 0xb0384781.
-//
-// Solidity: function setLBPairImplementation(address newLBPairImplementation) returns()
-func (_LBFactory *LBFactorySession) SetLBPairImplementation(newLBPairImplementation common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetLBPairImplementation(&_LBFactory.TransactOpts, newLBPairImplementation)
-}
-
-// SetLBPairImplementation is a paid mutator transaction binding the contract method 0xb0384781.
-//
-// Solidity: function setLBPairImplementation(address newLBPairImplementation) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetLBPairImplementation(newLBPairImplementation common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetLBPairImplementation(&_LBFactory.TransactOpts, newLBPairImplementation)
-}
-
-// SetPendingOwner is a paid mutator transaction binding the contract method 0xc42069ec.
-//
-// Solidity: function setPendingOwner(address pendingOwner_) returns()
-func (_LBFactory *LBFactoryTransactor) SetPendingOwner(opts *bind.TransactOpts, pendingOwner_ common.Address) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setPendingOwner", pendingOwner_)
-}
-
-// SetPendingOwner is a paid mutator transaction binding the contract method 0xc42069ec.
-//
-// Solidity: function setPendingOwner(address pendingOwner_) returns()
-func (_LBFactory *LBFactorySession) SetPendingOwner(pendingOwner_ common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPendingOwner(&_LBFactory.TransactOpts, pendingOwner_)
-}
-
-// SetPendingOwner is a paid mutator transaction binding the contract method 0xc42069ec.
-//
-// Solidity: function setPendingOwner(address pendingOwner_) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetPendingOwner(pendingOwner_ common.Address) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPendingOwner(&_LBFactory.TransactOpts, pendingOwner_)
-}
-
-// SetPreset is a paid mutator transaction binding the contract method 0x379ee803.
-//
-// Solidity: function setPreset(uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, bool isOpen) returns()
-func (_LBFactory *LBFactoryTransactor) SetPreset(opts *bind.TransactOpts, binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setPreset", binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, isOpen)
-}
-
-// SetPreset is a paid mutator transaction binding the contract method 0x379ee803.
-//
-// Solidity: function setPreset(uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, bool isOpen) returns()
-func (_LBFactory *LBFactorySession) SetPreset(binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPreset(&_LBFactory.TransactOpts, binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, isOpen)
-}
-
-// SetPreset is a paid mutator transaction binding the contract method 0x379ee803.
-//
-// Solidity: function setPreset(uint16 binStep, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, bool isOpen) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetPreset(binStep uint16, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPreset(&_LBFactory.TransactOpts, binStep, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, isOpen)
-}
-
-// SetPresetOpenState is a paid mutator transaction binding the contract method 0x4cd161d3.
-//
-// Solidity: function setPresetOpenState(uint16 binStep, bool isOpen) returns()
-func (_LBFactory *LBFactoryTransactor) SetPresetOpenState(opts *bind.TransactOpts, binStep uint16, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.contract.Transact(opts, "setPresetOpenState", binStep, isOpen)
-}
-
-// SetPresetOpenState is a paid mutator transaction binding the contract method 0x4cd161d3.
-//
-// Solidity: function setPresetOpenState(uint16 binStep, bool isOpen) returns()
-func (_LBFactory *LBFactorySession) SetPresetOpenState(binStep uint16, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPresetOpenState(&_LBFactory.TransactOpts, binStep, isOpen)
-}
-
-// SetPresetOpenState is a paid mutator transaction binding the contract method 0x4cd161d3.
-//
-// Solidity: function setPresetOpenState(uint16 binStep, bool isOpen) returns()
-func (_LBFactory *LBFactoryTransactorSession) SetPresetOpenState(binStep uint16, isOpen bool) (*types.Transaction, error) {
-	return _LBFactory.Contract.SetPresetOpenState(&_LBFactory.TransactOpts, binStep, isOpen)
-}
-
 // LBFactoryFeeRecipientSetIterator is returned from FilterFeeRecipientSet and is used to iterate over the raw logs and unpacked data for FeeRecipientSet events raised by the LBFactory contract.
 type LBFactoryFeeRecipientSetIterator struct {
 	Event *LBFactoryFeeRecipientSet // Event containing the contract specifics and raw log
@@ -1523,6 +1187,171 @@ func (_LBFactory *LBFactoryFilterer) WatchLBPairCreated(opts *bind.WatchOpts, si
 func (_LBFactory *LBFactoryFilterer) ParseLBPairCreated(log types.Log) (*LBFactoryLBPairCreated, error) {
 	event := new(LBFactoryLBPairCreated)
 	if err := _LBFactory.contract.UnpackLog(event, "LBPairCreated", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// LBFactoryLBPairCreated0Iterator is returned from FilterLBPairCreated0 and is used to iterate over the raw logs and unpacked data for LBPairCreated0 events raised by the LBFactory contract.
+type LBFactoryLBPairCreated0Iterator struct {
+	Event *LBFactoryLBPairCreated0 // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *LBFactoryLBPairCreated0Iterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(LBFactoryLBPairCreated0)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(LBFactoryLBPairCreated0)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *LBFactoryLBPairCreated0Iterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *LBFactoryLBPairCreated0Iterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// LBFactoryLBPairCreated0 represents a LBPairCreated0 event raised by the LBFactory contract.
+type LBFactoryLBPairCreated0 struct {
+	TokenX         common.Address
+	TokenY         common.Address
+	BinStep        *big.Int
+	LBPair         common.Address
+	Pid            *big.Int
+	NativePriceUSD *big.Int
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterLBPairCreated0 is a free log retrieval operation binding the contract event 0x58ec17066e02d81c6cbaa59d0167362f9fcbf8b93254183e0817644693658dff.
+//
+// Solidity: event LBPairCreated(address indexed tokenX, address indexed tokenY, uint256 indexed binStep, address LBPair, uint256 pid, uint256 nativePriceUSD)
+func (_LBFactory *LBFactoryFilterer) FilterLBPairCreated0(opts *bind.FilterOpts, tokenX []common.Address, tokenY []common.Address, binStep []*big.Int) (*LBFactoryLBPairCreated0Iterator, error) {
+
+	var tokenXRule []interface{}
+	for _, tokenXItem := range tokenX {
+		tokenXRule = append(tokenXRule, tokenXItem)
+	}
+	var tokenYRule []interface{}
+	for _, tokenYItem := range tokenY {
+		tokenYRule = append(tokenYRule, tokenYItem)
+	}
+	var binStepRule []interface{}
+	for _, binStepItem := range binStep {
+		binStepRule = append(binStepRule, binStepItem)
+	}
+
+	logs, sub, err := _LBFactory.contract.FilterLogs(opts, "LBPairCreated0", tokenXRule, tokenYRule, binStepRule)
+	if err != nil {
+		return nil, err
+	}
+	return &LBFactoryLBPairCreated0Iterator{contract: _LBFactory.contract, event: "LBPairCreated0", logs: logs, sub: sub}, nil
+}
+
+// WatchLBPairCreated0 is a free log subscription operation binding the contract event 0x58ec17066e02d81c6cbaa59d0167362f9fcbf8b93254183e0817644693658dff.
+//
+// Solidity: event LBPairCreated(address indexed tokenX, address indexed tokenY, uint256 indexed binStep, address LBPair, uint256 pid, uint256 nativePriceUSD)
+func (_LBFactory *LBFactoryFilterer) WatchLBPairCreated0(opts *bind.WatchOpts, sink chan<- *LBFactoryLBPairCreated0, tokenX []common.Address, tokenY []common.Address, binStep []*big.Int) (event.Subscription, error) {
+
+	var tokenXRule []interface{}
+	for _, tokenXItem := range tokenX {
+		tokenXRule = append(tokenXRule, tokenXItem)
+	}
+	var tokenYRule []interface{}
+	for _, tokenYItem := range tokenY {
+		tokenYRule = append(tokenYRule, tokenYItem)
+	}
+	var binStepRule []interface{}
+	for _, binStepItem := range binStep {
+		binStepRule = append(binStepRule, binStepItem)
+	}
+
+	logs, sub, err := _LBFactory.contract.WatchLogs(opts, "LBPairCreated0", tokenXRule, tokenYRule, binStepRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(LBFactoryLBPairCreated0)
+				if err := _LBFactory.contract.UnpackLog(event, "LBPairCreated0", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseLBPairCreated0 is a log parse operation binding the contract event 0x58ec17066e02d81c6cbaa59d0167362f9fcbf8b93254183e0817644693658dff.
+//
+// Solidity: event LBPairCreated(address indexed tokenX, address indexed tokenY, uint256 indexed binStep, address LBPair, uint256 pid, uint256 nativePriceUSD)
+func (_LBFactory *LBFactoryFilterer) ParseLBPairCreated0(log types.Log) (*LBFactoryLBPairCreated0, error) {
+	event := new(LBFactoryLBPairCreated0)
+	if err := _LBFactory.contract.UnpackLog(event, "LBPairCreated0", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

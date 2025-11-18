@@ -188,6 +188,17 @@ const (
 	ExchangeHybraV2                    = "hybra-v2"
 	ExchangeHybraV3                    = "hybra-v3"
 	ExchangeHydrexV4                   = "hydrex-v4"
+	ExchangeOctoswapV2                 = "octoswap-v2"
+	ExchangePinotV2                    = "pinot-v2"
+	ExchangePurpsV2                    = "purps-v2"
+	ExchangeTayaV2                     = "taya-v2"
+	ExchangeKanseiV2                   = "kansei-v2"
+	ExchangeSwyrlV2                    = "swyrl-v2"
+	ExchangeCapricornV3                = "capricorn-v3"
+	ExchangeOctoswapV3                 = "octoswap-v3"
+	ExchangePinotV3                    = "pinot-v3"
+	ExchangeSwyrlV3                    = "swyrl-v3"
+	ExchangeBeanexchangeLB             = "beanexchange-lb"
 	ExchangeHyeth                      = "hyeth"
 	ExchangeHyperBlast                 = "hyper-blast"
 	ExchangeHyperBrickLB               = "hyperbrick-lb"
@@ -445,6 +456,7 @@ const (
 	ExchangeUniswapV4BunniV2           = "uniswap-v4-bunni-v2"
 	ExchangeUniswapV4Clanker           = "uniswap-v4-clanker"
 	ExchangeUniswapV4Deli              = "uniswap-v4-deli"
+	ExchangeUniswapV4Doppler           = "uniswap-v4-doppler"
 	ExchangeUniswapV4Euler             = "uniswap-v4-euler"
 	ExchangeUniswapV4FairFlow          = "uniswap-v4-fairflow"
 	ExchangeUniswapV4Flaunch           = "uniswap-v4-flaunch"
@@ -684,6 +696,17 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHybraV2:                    {},
 	ExchangeHybraV3:                    {},
 	ExchangeHydrexV4:                   {},
+	ExchangeOctoswapV2:                 {},
+	ExchangePinotV2:                    {},
+	ExchangePurpsV2:                    {},
+	ExchangeTayaV2:                     {},
+	ExchangeKanseiV2:                   {},
+	ExchangeSwyrlV2:                    {},
+	ExchangeCapricornV3:                {},
+	ExchangeOctoswapV3:                 {},
+	ExchangePinotV3:                    {},
+	ExchangeSwyrlV3:                    {},
+	ExchangeBeanexchangeLB:             {},
 	ExchangeHyeth:                      {},
 	ExchangeHyperBlast:                 {},
 	ExchangeHyperBrickLB:               {},

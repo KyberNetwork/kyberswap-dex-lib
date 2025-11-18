@@ -1,4 +1,4 @@
-package noice
+package doppler
 
 import (
 	"bytes"

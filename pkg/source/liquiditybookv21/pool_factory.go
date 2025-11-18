@@ -1,6 +1,7 @@
 package liquiditybookv21
 
 import (
+	"errors"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -8,7 +9,6 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21/abis"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
 )
 
@@ -24,17 +24,28 @@ func NewPoolFactory(config *Config) *PoolFactory {
 		config: config,
 		poolCreatedEventIds: map[common.Hash]struct{}{
 			factoryABI.Events["LBPairCreated"].ID: {},
+			factoryABI.Events["LBPairCreated0"].ID: {},
 		},
 	}
 }
 
 func (f *PoolFactory) DecodePoolCreated(event ethtypes.Log) (*entity.Pool, error) {
-	p, err := factoryFilterer.ParseLBPairCreated(event)
-	if err != nil {
-		return nil, err
+	switch event.Topics[0] {
+	case factoryABI.Events["LBPairCreated"].ID:
+		p, err := factoryFilterer.ParseLBPairCreated(event)
+		if err != nil {
+			return nil, err
+		}
+		return f.newPool(p.LBPair, p.TokenX, p.TokenY, event.BlockNumber)
+	case factoryABI.Events["LBPairCreated0"].ID:
+		p, err := factoryFilterer.ParseLBPairCreated0(event)
+		if err != nil {
+			return nil, err
+		}
+		return f.newPool(p.LBPair, p.TokenX, p.TokenY, event.BlockNumber)
+	default:
+		return nil, errors.New("event is not supported")
 	}
-
-	return f.newPool(p, event.BlockNumber)
 }
 
 func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
@@ -42,18 +53,18 @@ func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
 	return ok
 }
 
-func (f *PoolFactory) newPool(p *abis.LBFactoryLBPairCreated, blockNbr uint64) (*entity.Pool, error) {
+func (f *PoolFactory) newPool(pair, tokenX, tokenY common.Address, blockNbr uint64) (*entity.Pool, error) {
 	token0 := entity.PoolToken{
-		Address:   hexutil.Encode(p.TokenX[:]),
+		Address:   hexutil.Encode(tokenX[:]),
 		Swappable: true,
 	}
 	token1 := entity.PoolToken{
-		Address:   hexutil.Encode(p.TokenY[:]),
+		Address:   hexutil.Encode(tokenY[:]),
 		Swappable: true,
 	}
 
 	return &entity.Pool{
-		Address:     hexutil.Encode(p.LBPair[:]),
+		Address:     hexutil.Encode(pair[:]),
 		Exchange:    f.config.DexID,
 		Type:        DexTypeLiquidityBookV21,
 		Timestamp:   time.Now().Unix(),

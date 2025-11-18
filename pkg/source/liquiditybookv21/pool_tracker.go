@@ -8,10 +8,11 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 
@@ -47,11 +48,10 @@ func NewPoolTracker(
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
+func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool,
 	error) {
-	logger.WithFields(logger.Fields{
-		"address": p.Address,
-	}).Infof("[%s] Start getting new state of pool", p.Type)
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
+	l.Info().Msg("GetNewPoolState starts")
 
 	var (
 		rpcData        *QueryRpcPoolStateResult
@@ -61,14 +61,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcData, err = d.FetchRPCData(ctx, &p, 0)
+		rpcData, err = t.FetchRPCData(ctx, &p, 0)
 		if err != nil {
 			return err
 		}
 		return nil
 	})
 	g.Go(func() error {
-		subgraphResult, err = d.querySubgraph(ctx, p)
+		subgraphResult, err = t.querySubgraph(ctx, p)
 		if err != nil {
 			return err
 		}
@@ -101,14 +101,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 
-	logger.WithFields(logger.Fields{
-		"address": p.Address,
-	}).Infof("[%s] Finish getting new state of pool", p.Type)
-
+	l.Info().Msg("GetNewPoolState finished")
 	return p, nil
 }
 
-func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult,
+func (t *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult,
 	error) {
 	var (
 		binStep               uint16
@@ -124,7 +121,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		blockNumberBI = big.NewInt(int64(blockNumber))
 	}
 
-	if _, err := d.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
+	if _, err := t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetStaticFeeParameters,
@@ -165,7 +162,7 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		TimeOfLastUpdate:      variableFeeParamsResp.TimeOfLastUpdate.Uint64(),
 	}
 
-	if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
+	if _, err := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumberBI).AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairGetPriceFromID,
@@ -186,7 +183,8 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 	}, nil
 }
 
-func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
+func (t *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 	var (
 		bins           []Bin
 		blockTimestamp int64
@@ -208,26 +206,13 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 			}
 		)
 
-		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
-			if !d.cfg.AllowSubgraphError {
-				logger.WithFields(logger.Fields{
-					"poolAddress":        p.Address,
-					"error":              err,
-					"allowSubgraphError": d.cfg.AllowSubgraphError,
-				}).Errorf("failed to query subgraph")
-				return nil, err
-			}
-
-			if resp.Pair == nil {
-				logger.WithFields(logger.Fields{
-					"poolAddress":        p.Address,
-					"error":              err,
-					"allowSubgraphError": d.cfg.AllowSubgraphError,
-				}).Errorf("failed to query subgraph")
+		if err := t.graphqlClient.Run(ctx, req, &resp); err != nil {
+			if !t.cfg.AllowSubgraphError || resp.Pair == nil {
+				l.Err(err).Msg("failed to query subgraph")
 				return nil, err
 			}
 		}
-		resp.Meta.CheckIsLagging(d.cfg.DexID, p.Address)
+		resp.Meta.CheckIsLagging(t.cfg.DexID, p.Address)
 
 		// init value
 		if blockTimestamp == 0 && resp.Meta != nil {
@@ -236,9 +221,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 
 		// if no bin returned, stop
 		if resp.Pair == nil || len(resp.Pair.Bins) == 0 {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-			}).Info("no bin returned")
+			l.Info().Msg("no bin returned")
 			break
 		}
 
@@ -286,42 +269,28 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 
 func (t *PoolTracker) GetNewState(ctx context.Context, p entity.Pool, logs []ethtypes.Log,
 	_ map[uint64]entity.BlockHeader) (entity.Pool, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	if err := t.updateStateByDexLib(ctx, &p, logs); err != nil {
-		l.WithFields(logger.Fields{
-			"msg": err.Error(),
-		}).Error(ErrUpdateStateByDexLibFailed.Error())
-
+		l.Err(err).Msg(ErrUpdateStateByDexLibFailed.Error())
 		return p, errors.Wrap(ErrUpdateStateByDexLibFailed, err.Error())
 	}
-
 	if err := t.updateBinsData(ctx, &p, logs); err != nil {
-		l.WithFields(logger.Fields{
-			"msg": err.Error(),
-		}).Error(ErrUpdateBinsDataFailed.Error())
-
+		l.Err(err).Msg(ErrUpdateBinsDataFailed.Error())
 		return p, errors.Wrap(ErrUpdateBinsDataFailed, err.Error())
 	}
 
 	p.Timestamp = time.Now().Unix()
-
 	return p, nil
 }
 
 func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.Error(err.Error())
+			l.Err(err).Msg("failed to unmarshal extra")
 			return p, err
 		}
 	}
@@ -331,7 +300,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	})
 	bins, err := t.queryRPCBins(ctx, p.Address, binIDs, p.BlockNumber)
 	if err != nil {
-		l.Error(err.Error())
+		l.Err(err).Msg("failed to query RPC bins")
 		return p, err
 	}
 	bins = filterEmptyAndSortBins(bins)
@@ -339,7 +308,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 	extra.Bins = bins
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		l.Error(err.Error())
+		l.Err(err).Msg("failed to marshal extra")
 		return p, err
 	}
 
@@ -350,10 +319,7 @@ func (t *PoolTracker) FetchPoolTicks(ctx context.Context, p entity.Pool) (entity
 }
 
 func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	var blockNumber uint64
 	if len(logs) > 0 {
@@ -365,16 +331,11 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 		if blockNumber > 0 && tickspkg.IsMissingTrieNodeError(err) {
 			rpcState, err = t.FetchRPCData(ctx, p, 0)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to fetch latest state from RPC")
+				l.Err(err).Msg("failed to FetchRPCData")
 				return err
 			}
 		} else {
-			l.WithFields(logger.Fields{
-				"error":       err,
-				"blockNumber": blockNumber,
-			}).Error("failed to fetch state from RPC")
+			l.Err(err).Uint64("blockNumber", blockNumber).Msg("failed to FetchRPCData")
 			return err
 		}
 	}
@@ -387,7 +348,7 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.Error(err.Error())
+			l.Err(err).Msg("failed to unmarshal extra")
 			return err
 		}
 	}
@@ -402,7 +363,7 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		l.Error(err.Error())
+		l.Err(err).Msg("failed to marshal extra")
 		return err
 	}
 
@@ -412,17 +373,13 @@ func (t *PoolTracker) updateStateByDexLib(ctx context.Context, p *entity.Pool, l
 }
 
 func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs []ethtypes.Log) error {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
-
 	if len(logs) == 0 {
 		return nil
 	}
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 	blockNumber := eth.GetBlockNumberFromLogs(logs)
 
-	binIDsFromLogs, err := t.binIDsFromLogs(logs)
+	binIDsFromLogs, err := t.binIDsFromLogs(l, logs)
 	if err != nil {
 		return err
 	}
@@ -432,24 +389,24 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 		return err
 	}
 
-	bins, err := t.mergeBinsFromLogsToPoolBins(p, binsFromLogs)
+	bins, err := t.mergeBinsFromLogsToPoolBins(ctx, p, binsFromLogs)
 	if err != nil {
 		return err
 	}
 
-	if err := t.validateBins(p, bins); err != nil {
+	if err := t.validateBins(ctx, p, bins); err != nil {
 		bins, err = t.fetchAllBins(ctx, p, binsFromLogs, blockNumber)
 		if err != nil {
 			return err
 		}
 
-		_ = t.validateBins(p, bins)
+		_ = t.validateBins(ctx, p, bins)
 	}
 
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.Error(err.Error())
+			l.Err(err).Msg("failed to unmarshal extra")
 			return err
 		}
 	}
@@ -457,7 +414,7 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 	extra.Bins = bins
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		l.Error(err.Error())
+		l.Err(err).Msg("failed to marshal extra")
 		return err
 	}
 	p.Extra = string(extraBytes)
@@ -465,11 +422,9 @@ func (t *PoolTracker) updateBinsData(ctx context.Context, p *entity.Pool, logs [
 	return nil
 }
 
-func (t *PoolTracker) fetchAllBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin, blockNumber uint64) ([]Bin, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+func (t *PoolTracker) fetchAllBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin, blockNumber uint64) ([]Bin,
+	error) {
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	isBinFromLogs := map[uint32]struct{}{}
 	lo.ForEach(binsFromLogs, func(item Bin, _ int) {
@@ -479,7 +434,7 @@ func (t *PoolTracker) fetchAllBins(ctx context.Context, p *entity.Pool, binsFrom
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.Error(err.Error())
+			l.Err(err).Msg("failed to unmarshal extra")
 			return nil, err
 		}
 	}
@@ -501,49 +456,39 @@ func (t *PoolTracker) fetchAllBins(ctx context.Context, p *entity.Pool, binsFrom
 	return filterEmptyAndSortBins(bins), nil
 }
 
-func (t *PoolTracker) validateBins(p *entity.Pool, bins []Bin) error {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+func (t *PoolTracker) validateBins(ctx context.Context, p *entity.Pool, bins []Bin) error {
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	binsReserveX := lo.Reduce(bins, func(agg *big.Int, item Bin, _ int) *big.Int {
 		return agg.Add(agg, item.ReserveX)
-	}, big.NewInt(0))
+	}, new(big.Int))
 
 	binsReserveY := lo.Reduce(bins, func(agg *big.Int, item Bin, _ int) *big.Int {
 		return agg.Add(agg, item.ReserveY)
-	}, big.NewInt(0))
+	}, new(big.Int))
 
 	reserveX, ok := new(big.Int).SetString(p.Reserves[0], 10)
 	if !ok {
-		l.WithFields(logger.Fields{
-			"msg": "can not parse reserve X",
-		}).Error(ErrInvalidReserve.Error())
+		l.Err(ErrInvalidReserve).Msg("can not parse reserve X")
 		return ErrInvalidReserve
 	}
 
 	reserveY, ok := new(big.Int).SetString(p.Reserves[1], 10)
 	if !ok {
-		l.WithFields(logger.Fields{
-			"msg": "can not parse reserve Y",
-		}).Error(ErrInvalidReserve.Error())
+		l.Err(ErrInvalidReserve).Msg("can not parse reserve Y")
 		return ErrInvalidReserve
 	}
 
 	if binsReserveX.Cmp(reserveX) != 0 || binsReserveY.Cmp(reserveY) != 0 {
-		l.WithFields(logger.Fields{
-			"msg": "reserves are not equal to the total reserves of bins",
-		}).Error(ErrInvalidReserve.Error())
+		l.Err(ErrInvalidReserve).Msg("reserves are not equal to the total reserves of bins")
 		return ErrInvalidReserve
 	}
-
-	l.Debug("valid bins")
 
 	return nil
 }
 
-func (t *PoolTracker) queryRPCBins(ctx context.Context, poolAddress string, binIDs []uint32, blockNumber uint64) ([]Bin, error) {
+func (t *PoolTracker) queryRPCBins(ctx context.Context, poolAddress string, binIDs []uint32, blockNumber uint64) ([]Bin,
+	error) {
 	if len(binIDs) == 0 {
 		return []Bin{}, nil
 	}
@@ -567,16 +512,16 @@ func (t *PoolTracker) queryRPCBins(ctx context.Context, poolAddress string, binI
 	return bins, nil
 }
 
-func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress string, binIDs []uint32, blockNumber uint64) ([]Bin, error) {
+func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress string, binIDs []uint32,
+	blockNumber uint64) ([]Bin, error) {
 	if len(binIDs) == 0 {
 		return []Bin{}, nil
 	}
+	l := log.Ctx(ctx).With().Str("address", poolAddress).Logger()
 
 	req := t.ethrpcClient.R().SetContext(ctx)
 	if blockNumber > 0 {
-		var blockNumberBI big.Int
-		blockNumberBI.SetUint64(blockNumber)
-		req.SetBlockNumber(&blockNumberBI)
+		req.SetBlockNumber(big.NewInt(int64(blockNumber)))
 	}
 	bins := make([]bin, len(binIDs))
 	for idx, binID := range binIDs {
@@ -593,9 +538,7 @@ func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress strin
 			return t.queryRPCBinsByChunk(ctx, poolAddress, binIDs, 0)
 		}
 
-		logger.WithFields(logger.Fields{
-			"address": poolAddress,
-		}).Error(err.Error())
+		l.Err(err).Msg("failed to query RPC bin chunk")
 		return nil, err
 	}
 
@@ -608,11 +551,9 @@ func (t *PoolTracker) queryRPCBinsByChunk(ctx context.Context, poolAddress strin
 	}), nil
 }
 
-func (t *PoolTracker) mergeBinsFromLogsToPoolBins(p *entity.Pool, binsFromLogs []Bin) ([]Bin, error) {
-	l := logger.WithFields(logger.Fields{
-		"address":  p.Address,
-		"exchange": p.Exchange,
-	})
+func (t *PoolTracker) mergeBinsFromLogsToPoolBins(ctx context.Context, p *entity.Pool, binsFromLogs []Bin) ([]Bin,
+	error) {
+	l := log.Ctx(ctx).With().Str("address", p.Address).Str("exchange", p.Exchange).Logger()
 
 	bins := binsFromLogs
 
@@ -624,7 +565,7 @@ func (t *PoolTracker) mergeBinsFromLogsToPoolBins(p *entity.Pool, binsFromLogs [
 	var extra Extra
 	if p.Extra != "" {
 		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-			l.Error(err.Error())
+			l.Err(err).Msg("failed to unmarshal extra")
 			return nil, err
 		}
 	}
@@ -639,7 +580,7 @@ func (t *PoolTracker) mergeBinsFromLogsToPoolBins(p *entity.Pool, binsFromLogs [
 	return filterEmptyAndSortBins(bins), nil
 }
 
-func (t *PoolTracker) binIDsFromLogs(logs []ethtypes.Log) ([]uint32, error) {
+func (t *PoolTracker) binIDsFromLogs(l zerolog.Logger, logs []ethtypes.Log) ([]uint32, error) {
 	binSet := map[uint64]struct{}{}
 
 	for _, event := range logs {
@@ -647,68 +588,56 @@ func (t *PoolTracker) binIDsFromLogs(logs []ethtypes.Log) ([]uint32, error) {
 			continue
 		}
 
-		l := logger.WithFields(logger.Fields{
-			"blockNumber": event.BlockNumber,
-			"blockHash":   event.BlockHash,
-			"logIndex":    event.Index,
-		})
+		l := l.With().Uint64("blockNumber", event.BlockNumber).
+			Stringer("blockHash", event.BlockHash).
+			Uint("logIndex", event.Index).Logger()
 
 		switch event.Topics[0] {
-		case pairABI.Events["Swap"].ID:
+		case pairABI.Events["Swap"].ID, pairABI.Events["Swap0"].ID:
 			swap, err := pairFilterer.ParseSwap(event)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to parse Swap event")
+				l.Err(err).Msg("failed to parse Swap event")
 				return nil, err
 			}
 			binSet[swap.Id.Uint64()] = struct{}{}
 
-		case pairABI.Events["DepositedToBins"].ID:
+		case pairABI.Events["DepositedToBins"].ID, pairABI.Events["DepositedToBins0"].ID:
 			depositedToBins, err := pairFilterer.ParseDepositedToBins(event)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to parse DepositedToBins event")
+				l.Err(err).Msg("failed to parse DepositedToBins event")
 				return nil, err
 			}
 			for _, id := range depositedToBins.Ids {
 				binSet[id.Uint64()] = struct{}{}
 			}
 
-		case pairABI.Events["WithdrawnFromBins"].ID:
+		case pairABI.Events["WithdrawnFromBins"].ID, pairABI.Events["WithdrawnFromBins0"].ID:
 			withdrawnFromBins, err := pairFilterer.ParseWithdrawnFromBins(event)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to parse WithdrawnFromBins event")
+				l.Err(err).Msg("failed to parse WithdrawnFromBins event")
 				return nil, err
 			}
 			for _, id := range withdrawnFromBins.Ids {
 				binSet[id.Uint64()] = struct{}{}
 			}
 
+		case pairABI.Events["FlashLoan"].ID, pairABI.Events["FlashLoan0"].ID:
+			flashLoan, err := pairFilterer.ParseFlashLoan(event)
+			if err != nil {
+				l.Err(err).Msg("failed to parse FlashLoan event")
+				return nil, err
+			}
+			binSet[flashLoan.ActiveId.Uint64()] = struct{}{}
+
 		case pairABI.Events["TransferBatch"].ID:
 			transferBatch, err := pairFilterer.ParseTransferBatch(event)
 			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to parse TransferBatch event")
+				l.Err(err).Msg("failed to parse TransferBatch event")
 				return nil, err
 			}
 			for _, id := range transferBatch.Ids {
 				binSet[id.Uint64()] = struct{}{}
 			}
-
-		case pairABI.Events["FlashLoan"].ID:
-			flashloan, err := pairFilterer.ParseFlashLoan(event)
-			if err != nil {
-				l.WithFields(logger.Fields{
-					"error": err,
-				}).Error("failed to parse FlashLoan event")
-				return nil, err
-			}
-			binSet[flashloan.ActiveId.Uint64()] = struct{}{}
 		}
 	}
 
@@ -722,8 +651,7 @@ func (t *PoolTracker) binIDsFromLogs(logs []ethtypes.Log) ([]uint32, error) {
 
 func filterEmptyAndSortBins(bins []Bin) []Bin {
 	b := lo.Filter(bins, func(item Bin, _ int) bool {
-		return item.ReserveX.Sign() > 0 ||
-			item.ReserveY.Sign() > 0
+		return item.ReserveX.Sign() > 0 || item.ReserveY.Sign() > 0
 	})
 	sort.Slice(b, func(i, j int) bool {
 		return b[i].ID < b[j].ID

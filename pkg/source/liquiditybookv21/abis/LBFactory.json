@@ -69,6 +69,45 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenX",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenY",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "binStep",
+        "type": "uint256"
+      },
+      {
+        "internalType": "contract ILBPair",
+        "name": "LBPair",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "nativePriceUSD",
+        "type": "uint256"
+      }
+    ],
+    "name": "LBPairCreated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "contract ILBPair",
         "name": "LBPair",
         "type": "address"
