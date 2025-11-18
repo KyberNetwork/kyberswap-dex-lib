@@ -886,5 +886,17 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentFee",
+    "outputs": [
+      {
+        "internalType": "uint24",
+        "type": "uint24"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]
