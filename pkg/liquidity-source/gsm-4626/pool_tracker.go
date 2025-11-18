@@ -3,17 +3,20 @@ package gsm4626
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/erc4626"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	pooltrack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/tracker"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 var _ = pooltrack.RegisterFactoryCE0(DexType, NewPoolTracker)
@@ -31,7 +34,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 }
 
 func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
-	params poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
+	_ poolpkg.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.Infof("start get new state %v", p.Address)
 	defer func() {
 		logger.Infof("finish get new pool state %v", p.Address)
@@ -43,6 +46,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		exposureCap     *big.Int
 		rate            *big.Int
 		feeStrategy     common.Address
+		tokenBalance    *big.Int
 	)
 	resp, err := t.ethrpcClient.NewRequest().SetContext(ctx).
 		AddCall(&ethrpc.Call{
@@ -71,6 +75,12 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 			Target: p.Address,
 			Method: gsmMethodGetFeeStrategy,
 		}, []any{&feeStrategy}).
+		AddCall(&ethrpc.Call{
+			ABI:    abi.Erc20ABI,
+			Target: p.Tokens[0].Address,
+			Method: abi.Erc20BalanceOfMethod,
+			Params: []any{common.HexToAddress(p.Address)},
+		}, []any{&tokenBalance}).
 		Aggregate()
 	if err != nil {
 		return p, err
@@ -114,6 +124,8 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool,
 		return p, err
 	}
 	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	p.Reserves = []string{tokenBalance.String(), currentExposure.String()}
 
 	if resp.BlockNumber != nil {
 		p.BlockNumber = resp.BlockNumber.Uint64()
