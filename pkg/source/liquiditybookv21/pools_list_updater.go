@@ -5,10 +5,10 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
@@ -36,6 +36,7 @@ func (p *PoolsListUpdater) InitPool(_ context.Context) error {
 }
 
 func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	l := log.Ctx(ctx).With().Str("exchange", p.config.DexID).Logger()
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
 		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
@@ -50,7 +51,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: p.config.FactoryAddress,
 		Method: factoryMethodGetNumberOfLBPairs,
 	}, []any{&lengthBI}).Call(); err != nil {
-		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
+		l.Err(err).Msg("failed to get number of pairs from factory")
 		return nil, metadataBytes, err
 	}
 
@@ -78,7 +79,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 	resp, err := getPairAddressRequest.TryAggregate()
 	if err != nil {
-		logger.Errorf("failed to process aggregate, err: %v", err)
+		l.Err(err).Msg("failed to process aggregate")
 		return nil, metadataBytes, err
 	}
 
@@ -91,7 +92,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	pools, err := p.processBatch(ctx, successPairAddresses, currentOffset)
 	if err != nil {
-		logger.Errorf("failed to process update new pool, err: %v", err)
+		l.Err(err).Msg("failed to process update new pool")
 		return nil, metadataBytes, err
 	}
 
@@ -104,8 +105,8 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d", batchSize,
-			currentOffset+batchSize, totalNumberOfPools)
+		l.Info().Msgf("scan Liquidity Book V2.1 LBFactory with batch size %v, progress: %d/%d",
+			batchSize, currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -116,19 +117,20 @@ func (p *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	var tokenYAddresses = make([]common.Address, len(pairAddresses))
 
 	req := p.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < len(pairAddresses); i++ {
+	for i, pairAddr := range pairAddresses {
+		pair := hexutil.Encode(pairAddr[:])
 		req.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddresses[i].Hex(),
+			Target: pair,
 			Method: pairMethodGetTokenX,
 		}, []any{&tokenXAddresses[i]}).AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: pairAddresses[i].Hex(),
+			Target: pair,
 			Method: pairMethodGetTokenY,
 		}, []any{&tokenYAddresses[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
-		logger.Errorf("failed to process aggregate to get 2 tokens from pair contract, err: %v", err)
+		log.Ctx(ctx).Err(err).Msg("failed to process aggregate to get 2 tokens from pair contract")
 		return nil, err
 	}
 

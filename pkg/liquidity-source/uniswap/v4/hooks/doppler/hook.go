@@ -1,4 +1,4 @@
-package noice
+package doppler
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type Hook struct {
+type Hook struct { // scheduled
 	uniswapv4.Hook
 	Extra
 }
@@ -23,15 +23,19 @@ type Extra struct {
 }
 
 var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
+	return &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler}
+}, NoopHookAddresses...)
+
+var _ = uniswapv4.RegisterHooksFactory(func(param *uniswapv4.HookParam) uniswapv4.Hook {
 	var extra Extra
 	if param.HookExtra != "" {
 		_ = json.Unmarshal([]byte(param.HookExtra), &extra)
 	}
 	return &Hook{
-		Hook:  &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Noice},
+		Hook:  &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Doppler},
 		Extra: extra,
 	}
-}, HookAddresses...)
+}, ScheduledHookAddresses...)
 
 func (h *Hook) Track(ctx context.Context, param *uniswapv4.HookParam) (string, error) {
 	var extra Extra

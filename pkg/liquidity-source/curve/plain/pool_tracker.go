@@ -113,65 +113,42 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodInitialA,
-		Params: nil,
-	}, []interface{}{&initialA})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&initialA}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
-		Params: nil,
-	}, []interface{}{&futureA})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&futureA}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
-		Params: nil,
-	}, []interface{}{&initialATime})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&initialATime}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
-		Params: nil,
-	}, []interface{}{&futureATime})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&futureATime}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodFee,
-		Params: nil,
-	}, []interface{}{&swapFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&swapFee}).AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
-		Params: nil,
-	}, []interface{}{&adminFee})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&adminFee}).AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: staticExtra.LpToken,
 		Method: shared.ERC20MethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&lpSupply})
-
-	req.AddCall(&ethrpc.Call{
+	}, []any{&lpSupply}).AddCall(&ethrpc.Call{
 		ABI:    numTokenDependedABIs[numTokens],
 		Target: p.Address,
 		Method: poolMethodStoredRates,
-		Params: nil,
-	}, []interface{}{&storedRates})
+	}, []any{&storedRates})
 
 	if len(staticExtra.Oracle) > 0 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    shared.OracleABI,
 			Target: staticExtra.Oracle,
 			Method: poolMethodLatestAnswer,
-			Params: nil,
-		}, []interface{}{&oracleRate})
+		}, []any{&oracleRate})
 	}
 
 	if dataSourceAddresses, ok := shared.DataSourceAddresses[t.config.ChainCode]; ok {
@@ -180,8 +157,8 @@ func (t *PoolTracker) getNewPoolState(
 				ABI:    shared.MainRegistryABI,
 				Target: mainRegistryAddress,
 				Method: mainRegistryMethodGetRates,
-				Params: []interface{}{common.HexToAddress(p.Address)},
-			}, []interface{}{&registryRates})
+				Params: []any{common.HexToAddress(p.Address)},
+			}, []any{&registryRates})
 		}
 	}
 
@@ -190,15 +167,13 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    curvePlainABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
-
-		req.AddCall(&ethrpc.Call{
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]}).AddCall(&ethrpc.Call{
 			ABI:    getBalances128ABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balancesV1[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balancesV1[i]})
 	}
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
@@ -270,7 +245,8 @@ func (t *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int, customRates []*big.Int) error {
+func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numTokens int,
+	customRates []*big.Int) error {
 	extra.RateMultipliers = make([]uint256.Int, numTokens)
 	lg.Debugf("pool use stored rate %v", customRates)
 

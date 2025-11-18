@@ -104,6 +104,56 @@
       },
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "ids",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "amounts",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "struct ILBPair.PriceData",
+        "name": "priceData",
+        "type": "tuple",
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nativePriceUSD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenXPriceUSD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenYPriceUSD",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "DepositedToBins",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
         "internalType": "contract ILBFlashLoanCallback",
         "name": "receiver",
         "type": "address"
@@ -127,6 +177,66 @@
         "internalType": "bytes32",
         "name": "protocolFees",
         "type": "bytes32"
+      }
+    ],
+    "name": "FlashLoan",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract ILBFlashLoanCallback",
+        "name": "receiver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint24",
+        "name": "activeId",
+        "type": "uint24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "amounts",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "totalFees",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "protocolFees",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "struct ILBPair.PriceData",
+        "name": "priceData",
+        "type": "tuple",
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nativePriceUSD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenXPriceNative",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenYPriceNative",
+            "type": "uint256"
+          }
+        ]
       }
     ],
     "name": "FlashLoan",
@@ -277,6 +387,76 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint24",
+        "name": "id",
+        "type": "uint24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "amountsIn",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "amountsOut",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint24",
+        "name": "volatilityAccumulator",
+        "type": "uint24"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "totalFees",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "protocolFees",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "struct ILBPair.PriceData",
+        "name": "priceData",
+        "type": "tuple",
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nativePriceUSD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenXPriceNative",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenYPriceNative",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "name": "Swap",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "from",
         "type": "address"
       },
@@ -323,6 +503,56 @@
         "internalType": "bytes32[]",
         "name": "amounts",
         "type": "bytes32[]"
+      }
+    ],
+    "name": "WithdrawnFromBins",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "ids",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "bytes32[]",
+        "name": "amounts",
+        "type": "bytes32[]"
+      },
+      {
+        "internalType": "struct ILBPair.PriceData",
+        "name": "priceData",
+        "type": "tuple",
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "nativePriceUSD",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenXPriceNative",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "tokenYPriceNative",
+            "type": "uint256"
+          }
+        ]
       }
     ],
     "name": "WithdrawnFromBins",

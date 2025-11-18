@@ -29,9 +29,16 @@ var (
 	_ = abi.ConvertType
 )
 
+// ILBPairPriceData is an auto generated low-level Go binding around an user-defined struct.
+type ILBPairPriceData struct {
+	NativePriceUSD    *big.Int
+	TokenXPriceNative *big.Int
+	TokenYPriceNative *big.Int
+}
+
 // LBPairMetaData contains all meta data concerning the LBPair contract.
 var LBPairMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"contractILBFactory\",\"name\":\"factory_\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AddressHelper__CallFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"AddressHelper__NonContract\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"BinHelper__CompositionFactorFlawed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"BinHelper__LiquidityOverflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FeeHelper__FeeTooLarge\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__AddressZero\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__AlreadyInitialized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__EmptyMarketConfigs\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__FlashLoanCallbackFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__FlashLoanInsufficientAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__InsufficientAmountIn\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__InsufficientAmountOut\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__InvalidInput\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__InvalidStaticFeeParameters\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__MaxTotalFeeExceeded\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__OnlyFactory\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__OnlyProtocolFeeRecipient\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__OutOfLiquidity\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__TokenNotSupported\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"LBPair__ZeroAmount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"LBPair__ZeroAmountsOut\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBPair__ZeroBorrowAmount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"LBPair__ZeroShares\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBToken__AddressThisOrZero\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"LBToken__BurnExceedsBalance\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LBToken__InvalidLength\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"LBToken__SelfApproval\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"LBToken__SpenderNotApproved\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"LBToken__TransferExceedsBalance\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LiquidityConfigurations__InvalidConfig\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OracleHelper__InvalidOracleId\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OracleHelper__LookUpTimestampTooOld\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OracleHelper__NewLengthTooSmall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PackedUint128Math__AddOverflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PackedUint128Math__MultiplierTooLarge\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PackedUint128Math__SubUnderflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PairParametersHelper__InvalidParameter\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrancyGuard__ReentrantCall\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SafeCast__Exceeds128Bits\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SafeCast__Exceeds24Bits\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SafeCast__Exceeds40Bits\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"TokenHelper__TransferFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Uint128x128Math__LogUnderflow\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"x\",\"type\":\"uint256\"},{\"internalType\":\"int256\",\"name\":\"y\",\"type\":\"int256\"}],\"name\":\"Uint128x128Math__PowUnderflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Uint256x256Math__MulDivOverflow\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Uint256x256Math__MulShiftOverflow\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\"}],\"name\":\"ApprovalForAll\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"CollectedProtocolFees\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"CompositionFees\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"}],\"name\":\"DepositedToBins\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractILBFlashLoanCallback\",\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"amounts\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"FlashLoan\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"idReference\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"volatilityReference\",\"type\":\"uint24\"}],\"name\":\"ForcedDecay\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"oracleLength\",\"type\":\"uint16\"}],\"name\":\"OracleLengthIncreased\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"name\":\"StaticFeeParametersSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"amountsIn\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"amountsOut\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"volatilityAccumulator\",\"type\":\"uint24\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"}],\"name\":\"TransferBatch\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"indexed\":false,\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"}],\"name\":\"WithdrawnFromBins\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\"}],\"name\":\"approveForAll\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"}],\"name\":\"balanceOfBatch\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"batchBalances\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"}],\"name\":\"batchTransferFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amountsToBurn\",\"type\":\"uint256[]\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"collectProtocolFees\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"collectedProtocolFees\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contractILBFlashLoanCallback\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"amounts\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"flashLoan\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"forceDecay\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getActiveId\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getBin\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"binReserveX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"binReserveY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getBinStep\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"\",\"type\":\"uint16\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getFactory\",\"outputs\":[{\"internalType\":\"contractILBFactory\",\"name\":\"factory\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"getIdFromPrice\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"},{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getNextNonEmptyBin\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"nextId\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getOracleParameters\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"sampleLifetime\",\"type\":\"uint8\"},{\"internalType\":\"uint16\",\"name\":\"size\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"activeSize\",\"type\":\"uint16\"},{\"internalType\":\"uint40\",\"name\":\"lastUpdated\",\"type\":\"uint40\"},{\"internalType\":\"uint40\",\"name\":\"firstTimestamp\",\"type\":\"uint40\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint40\",\"name\":\"lookupTimestamp\",\"type\":\"uint40\"}],\"name\":\"getOracleSampleAt\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"cumulativeId\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"cumulativeVolatility\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"cumulativeBinCrossed\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getPriceFromId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getProtocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"protocolFeeX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"protocolFeeY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getReserves\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"reserveX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"reserveY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getStaticFeeParameters\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint128\",\"name\":\"amountOut\",\"type\":\"uint128\"},{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"}],\"name\":\"getSwapIn\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amountIn\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amountOutLeft\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"fee\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint128\",\"name\":\"amountIn\",\"type\":\"uint128\"},{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"}],\"name\":\"getSwapOut\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amountInLeft\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amountOut\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"fee\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTokenX\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTokenY\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getVariableFeeParameters\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"volatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"volatilityReference\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"idReference\",\"type\":\"uint24\"},{\"internalType\":\"uint40\",\"name\":\"timeOfLastUpdate\",\"type\":\"uint40\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"newLength\",\"type\":\"uint16\"}],\"name\":\"increaseOracleLength\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"isApprovedForAll\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"bytes32[]\",\"name\":\"liquidityConfigs\",\"type\":\"bytes32[]\"},{\"internalType\":\"address\",\"name\":\"refundTo\",\"type\":\"address\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"amountsReceived\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"amountsLeft\",\"type\":\"bytes32\"},{\"internalType\":\"uint256[]\",\"name\":\"liquidityMinted\",\"type\":\"uint256[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"name\":\"setStaticFeeParameters\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"}],\"name\":\"swap\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"amountsOut\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\"}],\"name\":\"ApprovalForAll\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"feeRecipient\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"CollectedProtocolFees\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"CompositionFees\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"}],\"name\":\"DepositedToBins\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"},{\"internalType\":\"structILBPair.PriceData\",\"name\":\"priceData\",\"type\":\"tuple\",\"components\":[{\"internalType\":\"uint256\",\"name\":\"nativePriceUSD\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenXPriceUSD\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenYPriceUSD\",\"type\":\"uint256\"}]}],\"name\":\"DepositedToBins\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractILBFlashLoanCallback\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"amounts\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"FlashLoan\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"contractILBFlashLoanCallback\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"amounts\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"},{\"internalType\":\"structILBPair.PriceData\",\"name\":\"priceData\",\"type\":\"tuple\",\"components\":[{\"internalType\":\"uint256\",\"name\":\"nativePriceUSD\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenXPriceNative\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenYPriceNative\",\"type\":\"uint256\"}]}],\"name\":\"FlashLoan\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"idReference\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"volatilityReference\",\"type\":\"uint24\"}],\"name\":\"ForcedDecay\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"oracleLength\",\"type\":\"uint16\"}],\"name\":\"OracleLengthIncreased\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"name\":\"StaticFeeParametersSet\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"amountsIn\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"amountsOut\",\"type\":\"bytes32\"},{\"internalType\":\"uint24\",\"name\":\"volatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"amountsIn\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"amountsOut\",\"type\":\"bytes32\"},{\"internalType\":\"uint24\",\"name\":\"volatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"bytes32\",\"name\":\"totalFees\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"protocolFees\",\"type\":\"bytes32\"},{\"internalType\":\"structILBPair.PriceData\",\"name\":\"priceData\",\"type\":\"tuple\",\"components\":[{\"internalType\":\"uint256\",\"name\":\"nativePriceUSD\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenXPriceNative\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenYPriceNative\",\"type\":\"uint256\"}]}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"uint256[]\",\"name\":\"amounts\",\"type\":\"uint256[]\"}],\"name\":\"TransferBatch\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"}],\"name\":\"WithdrawnFromBins\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"amounts\",\"type\":\"bytes32[]\"},{\"internalType\":\"structILBPair.PriceData\",\"name\":\"priceData\",\"type\":\"tuple\",\"components\":[{\"internalType\":\"uint256\",\"name\":\"nativePriceUSD\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenXPriceNative\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"tokenYPriceNative\",\"type\":\"uint256\"}]}],\"name\":\"WithdrawnFromBins\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"accounts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"ids\",\"type\":\"uint256[]\"}],\"name\":\"balanceOfBatch\",\"outputs\":[{\"internalType\":\"uint256[]\",\"name\":\"batchBalances\",\"type\":\"uint256[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getActiveId\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"activeId\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getBin\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"binReserveX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"binReserveY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getBinStep\",\"outputs\":[{\"internalType\":\"uint16\",\"type\":\"uint16\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getFactory\",\"outputs\":[{\"internalType\":\"contractILBFactory\",\"name\":\"factory\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"getIdFromPrice\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"},{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getNextNonEmptyBin\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"nextId\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getOracleParameters\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"sampleLifetime\",\"type\":\"uint8\"},{\"internalType\":\"uint16\",\"name\":\"size\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"activeSize\",\"type\":\"uint16\"},{\"internalType\":\"uint40\",\"name\":\"lastUpdated\",\"type\":\"uint40\"},{\"internalType\":\"uint40\",\"name\":\"firstTimestamp\",\"type\":\"uint40\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint40\",\"name\":\"lookupTimestamp\",\"type\":\"uint40\"}],\"name\":\"getOracleSampleAt\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"cumulativeId\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"cumulativeVolatility\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"cumulativeBinCrossed\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"id\",\"type\":\"uint24\"}],\"name\":\"getPriceFromId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getProtocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"protocolFeeX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"protocolFeeY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getReserves\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"reserveX\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"reserveY\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getStaticFeeParameters\",\"outputs\":[{\"internalType\":\"uint16\",\"name\":\"baseFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"filterPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"decayPeriod\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"reductionFactor\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"variableFeeControl\",\"type\":\"uint24\"},{\"internalType\":\"uint16\",\"name\":\"protocolShare\",\"type\":\"uint16\"},{\"internalType\":\"uint24\",\"name\":\"maxVolatilityAccumulator\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint128\",\"name\":\"amountOut\",\"type\":\"uint128\"},{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"}],\"name\":\"getSwapIn\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amountIn\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amountOutLeft\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"fee\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint128\",\"name\":\"amountIn\",\"type\":\"uint128\"},{\"internalType\":\"bool\",\"name\":\"swapForY\",\"type\":\"bool\"}],\"name\":\"getSwapOut\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amountInLeft\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amountOut\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"fee\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"getTokenX\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenX\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getTokenY\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"tokenY\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"name\":\"getVariableFeeParameters\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"volatilityAccumulator\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"volatilityReference\",\"type\":\"uint24\"},{\"internalType\":\"uint24\",\"name\":\"idReference\",\"type\":\"uint24\"},{\"internalType\":\"uint40\",\"name\":\"timeOfLastUpdate\",\"type\":\"uint40\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"isApprovedForAll\",\"outputs\":[{\"internalType\":\"bool\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"}],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // LBPairABI is the input ABI used to generate the binding from.
@@ -1084,237 +1091,6 @@ func (_LBPair *LBPairCallerSession) TotalSupply(id *big.Int) (*big.Int, error) {
 	return _LBPair.Contract.TotalSupply(&_LBPair.CallOpts, id)
 }
 
-// ApproveForAll is a paid mutator transaction binding the contract method 0xe584b654.
-//
-// Solidity: function approveForAll(address spender, bool approved) returns()
-func (_LBPair *LBPairTransactor) ApproveForAll(opts *bind.TransactOpts, spender common.Address, approved bool) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "approveForAll", spender, approved)
-}
-
-// ApproveForAll is a paid mutator transaction binding the contract method 0xe584b654.
-//
-// Solidity: function approveForAll(address spender, bool approved) returns()
-func (_LBPair *LBPairSession) ApproveForAll(spender common.Address, approved bool) (*types.Transaction, error) {
-	return _LBPair.Contract.ApproveForAll(&_LBPair.TransactOpts, spender, approved)
-}
-
-// ApproveForAll is a paid mutator transaction binding the contract method 0xe584b654.
-//
-// Solidity: function approveForAll(address spender, bool approved) returns()
-func (_LBPair *LBPairTransactorSession) ApproveForAll(spender common.Address, approved bool) (*types.Transaction, error) {
-	return _LBPair.Contract.ApproveForAll(&_LBPair.TransactOpts, spender, approved)
-}
-
-// BatchTransferFrom is a paid mutator transaction binding the contract method 0x17fad7fc.
-//
-// Solidity: function batchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts) returns()
-func (_LBPair *LBPairTransactor) BatchTransferFrom(opts *bind.TransactOpts, from common.Address, to common.Address, ids []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "batchTransferFrom", from, to, ids, amounts)
-}
-
-// BatchTransferFrom is a paid mutator transaction binding the contract method 0x17fad7fc.
-//
-// Solidity: function batchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts) returns()
-func (_LBPair *LBPairSession) BatchTransferFrom(from common.Address, to common.Address, ids []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.BatchTransferFrom(&_LBPair.TransactOpts, from, to, ids, amounts)
-}
-
-// BatchTransferFrom is a paid mutator transaction binding the contract method 0x17fad7fc.
-//
-// Solidity: function batchTransferFrom(address from, address to, uint256[] ids, uint256[] amounts) returns()
-func (_LBPair *LBPairTransactorSession) BatchTransferFrom(from common.Address, to common.Address, ids []*big.Int, amounts []*big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.BatchTransferFrom(&_LBPair.TransactOpts, from, to, ids, amounts)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0xc9939f5e.
-//
-// Solidity: function burn(address from, address to, uint256[] ids, uint256[] amountsToBurn) returns(bytes32[] amounts)
-func (_LBPair *LBPairTransactor) Burn(opts *bind.TransactOpts, from common.Address, to common.Address, ids []*big.Int, amountsToBurn []*big.Int) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "burn", from, to, ids, amountsToBurn)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0xc9939f5e.
-//
-// Solidity: function burn(address from, address to, uint256[] ids, uint256[] amountsToBurn) returns(bytes32[] amounts)
-func (_LBPair *LBPairSession) Burn(from common.Address, to common.Address, ids []*big.Int, amountsToBurn []*big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.Burn(&_LBPair.TransactOpts, from, to, ids, amountsToBurn)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0xc9939f5e.
-//
-// Solidity: function burn(address from, address to, uint256[] ids, uint256[] amountsToBurn) returns(bytes32[] amounts)
-func (_LBPair *LBPairTransactorSession) Burn(from common.Address, to common.Address, ids []*big.Int, amountsToBurn []*big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.Burn(&_LBPair.TransactOpts, from, to, ids, amountsToBurn)
-}
-
-// CollectProtocolFees is a paid mutator transaction binding the contract method 0xa1af5b9a.
-//
-// Solidity: function collectProtocolFees() returns(bytes32 collectedProtocolFees)
-func (_LBPair *LBPairTransactor) CollectProtocolFees(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "collectProtocolFees")
-}
-
-// CollectProtocolFees is a paid mutator transaction binding the contract method 0xa1af5b9a.
-//
-// Solidity: function collectProtocolFees() returns(bytes32 collectedProtocolFees)
-func (_LBPair *LBPairSession) CollectProtocolFees() (*types.Transaction, error) {
-	return _LBPair.Contract.CollectProtocolFees(&_LBPair.TransactOpts)
-}
-
-// CollectProtocolFees is a paid mutator transaction binding the contract method 0xa1af5b9a.
-//
-// Solidity: function collectProtocolFees() returns(bytes32 collectedProtocolFees)
-func (_LBPair *LBPairTransactorSession) CollectProtocolFees() (*types.Transaction, error) {
-	return _LBPair.Contract.CollectProtocolFees(&_LBPair.TransactOpts)
-}
-
-// FlashLoan is a paid mutator transaction binding the contract method 0xea3446bf.
-//
-// Solidity: function flashLoan(address receiver, bytes32 amounts, bytes data) returns()
-func (_LBPair *LBPairTransactor) FlashLoan(opts *bind.TransactOpts, receiver common.Address, amounts [32]byte, data []byte) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "flashLoan", receiver, amounts, data)
-}
-
-// FlashLoan is a paid mutator transaction binding the contract method 0xea3446bf.
-//
-// Solidity: function flashLoan(address receiver, bytes32 amounts, bytes data) returns()
-func (_LBPair *LBPairSession) FlashLoan(receiver common.Address, amounts [32]byte, data []byte) (*types.Transaction, error) {
-	return _LBPair.Contract.FlashLoan(&_LBPair.TransactOpts, receiver, amounts, data)
-}
-
-// FlashLoan is a paid mutator transaction binding the contract method 0xea3446bf.
-//
-// Solidity: function flashLoan(address receiver, bytes32 amounts, bytes data) returns()
-func (_LBPair *LBPairTransactorSession) FlashLoan(receiver common.Address, amounts [32]byte, data []byte) (*types.Transaction, error) {
-	return _LBPair.Contract.FlashLoan(&_LBPair.TransactOpts, receiver, amounts, data)
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0xd3b9fbe4.
-//
-// Solidity: function forceDecay() returns()
-func (_LBPair *LBPairTransactor) ForceDecay(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "forceDecay")
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0xd3b9fbe4.
-//
-// Solidity: function forceDecay() returns()
-func (_LBPair *LBPairSession) ForceDecay() (*types.Transaction, error) {
-	return _LBPair.Contract.ForceDecay(&_LBPair.TransactOpts)
-}
-
-// ForceDecay is a paid mutator transaction binding the contract method 0xd3b9fbe4.
-//
-// Solidity: function forceDecay() returns()
-func (_LBPair *LBPairTransactorSession) ForceDecay() (*types.Transaction, error) {
-	return _LBPair.Contract.ForceDecay(&_LBPair.TransactOpts)
-}
-
-// IncreaseOracleLength is a paid mutator transaction binding the contract method 0xc7bd6586.
-//
-// Solidity: function increaseOracleLength(uint16 newLength) returns()
-func (_LBPair *LBPairTransactor) IncreaseOracleLength(opts *bind.TransactOpts, newLength uint16) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "increaseOracleLength", newLength)
-}
-
-// IncreaseOracleLength is a paid mutator transaction binding the contract method 0xc7bd6586.
-//
-// Solidity: function increaseOracleLength(uint16 newLength) returns()
-func (_LBPair *LBPairSession) IncreaseOracleLength(newLength uint16) (*types.Transaction, error) {
-	return _LBPair.Contract.IncreaseOracleLength(&_LBPair.TransactOpts, newLength)
-}
-
-// IncreaseOracleLength is a paid mutator transaction binding the contract method 0xc7bd6586.
-//
-// Solidity: function increaseOracleLength(uint16 newLength) returns()
-func (_LBPair *LBPairTransactorSession) IncreaseOracleLength(newLength uint16) (*types.Transaction, error) {
-	return _LBPair.Contract.IncreaseOracleLength(&_LBPair.TransactOpts, newLength)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x47973bff.
-//
-// Solidity: function initialize(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, uint24 activeId) returns()
-func (_LBPair *LBPairTransactor) Initialize(opts *bind.TransactOpts, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, activeId *big.Int) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "initialize", baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, activeId)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x47973bff.
-//
-// Solidity: function initialize(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, uint24 activeId) returns()
-func (_LBPair *LBPairSession) Initialize(baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, activeId *big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.Initialize(&_LBPair.TransactOpts, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, activeId)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x47973bff.
-//
-// Solidity: function initialize(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator, uint24 activeId) returns()
-func (_LBPair *LBPairTransactorSession) Initialize(baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int, activeId *big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.Initialize(&_LBPair.TransactOpts, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator, activeId)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x383d15c5.
-//
-// Solidity: function mint(address to, bytes32[] liquidityConfigs, address refundTo) returns(bytes32 amountsReceived, bytes32 amountsLeft, uint256[] liquidityMinted)
-func (_LBPair *LBPairTransactor) Mint(opts *bind.TransactOpts, to common.Address, liquidityConfigs [][32]byte, refundTo common.Address) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "mint", to, liquidityConfigs, refundTo)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x383d15c5.
-//
-// Solidity: function mint(address to, bytes32[] liquidityConfigs, address refundTo) returns(bytes32 amountsReceived, bytes32 amountsLeft, uint256[] liquidityMinted)
-func (_LBPair *LBPairSession) Mint(to common.Address, liquidityConfigs [][32]byte, refundTo common.Address) (*types.Transaction, error) {
-	return _LBPair.Contract.Mint(&_LBPair.TransactOpts, to, liquidityConfigs, refundTo)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x383d15c5.
-//
-// Solidity: function mint(address to, bytes32[] liquidityConfigs, address refundTo) returns(bytes32 amountsReceived, bytes32 amountsLeft, uint256[] liquidityMinted)
-func (_LBPair *LBPairTransactorSession) Mint(to common.Address, liquidityConfigs [][32]byte, refundTo common.Address) (*types.Transaction, error) {
-	return _LBPair.Contract.Mint(&_LBPair.TransactOpts, to, liquidityConfigs, refundTo)
-}
-
-// SetStaticFeeParameters is a paid mutator transaction binding the contract method 0x6653851a.
-//
-// Solidity: function setStaticFeeParameters(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBPair *LBPairTransactor) SetStaticFeeParameters(opts *bind.TransactOpts, baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "setStaticFeeParameters", baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// SetStaticFeeParameters is a paid mutator transaction binding the contract method 0x6653851a.
-//
-// Solidity: function setStaticFeeParameters(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBPair *LBPairSession) SetStaticFeeParameters(baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.SetStaticFeeParameters(&_LBPair.TransactOpts, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// SetStaticFeeParameters is a paid mutator transaction binding the contract method 0x6653851a.
-//
-// Solidity: function setStaticFeeParameters(uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator) returns()
-func (_LBPair *LBPairTransactorSession) SetStaticFeeParameters(baseFactor uint16, filterPeriod uint16, decayPeriod uint16, reductionFactor uint16, variableFeeControl *big.Int, protocolShare uint16, maxVolatilityAccumulator *big.Int) (*types.Transaction, error) {
-	return _LBPair.Contract.SetStaticFeeParameters(&_LBPair.TransactOpts, baseFactor, filterPeriod, decayPeriod, reductionFactor, variableFeeControl, protocolShare, maxVolatilityAccumulator)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x53c059a0.
-//
-// Solidity: function swap(bool swapForY, address to) returns(bytes32 amountsOut)
-func (_LBPair *LBPairTransactor) Swap(opts *bind.TransactOpts, swapForY bool, to common.Address) (*types.Transaction, error) {
-	return _LBPair.contract.Transact(opts, "swap", swapForY, to)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x53c059a0.
-//
-// Solidity: function swap(bool swapForY, address to) returns(bytes32 amountsOut)
-func (_LBPair *LBPairSession) Swap(swapForY bool, to common.Address) (*types.Transaction, error) {
-	return _LBPair.Contract.Swap(&_LBPair.TransactOpts, swapForY, to)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x53c059a0.
-//
-// Solidity: function swap(bool swapForY, address to) returns(bytes32 amountsOut)
-func (_LBPair *LBPairTransactorSession) Swap(swapForY bool, to common.Address) (*types.Transaction, error) {
-	return _LBPair.Contract.Swap(&_LBPair.TransactOpts, swapForY, to)
-}
-
 // LBPairApprovalForAllIterator is returned from FilterApprovalForAll and is used to iterate over the raw logs and unpacked data for ApprovalForAll events raised by the LBPair contract.
 type LBPairApprovalForAllIterator struct {
 	Event *LBPairApprovalForAll // Event containing the contract specifics and raw log
@@ -1916,6 +1692,162 @@ func (_LBPair *LBPairFilterer) ParseDepositedToBins(log types.Log) (*LBPairDepos
 	return event, nil
 }
 
+// LBPairDepositedToBins0Iterator is returned from FilterDepositedToBins0 and is used to iterate over the raw logs and unpacked data for DepositedToBins0 events raised by the LBPair contract.
+type LBPairDepositedToBins0Iterator struct {
+	Event *LBPairDepositedToBins0 // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *LBPairDepositedToBins0Iterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(LBPairDepositedToBins0)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(LBPairDepositedToBins0)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *LBPairDepositedToBins0Iterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *LBPairDepositedToBins0Iterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// LBPairDepositedToBins0 represents a DepositedToBins0 event raised by the LBPair contract.
+type LBPairDepositedToBins0 struct {
+	Sender    common.Address
+	To        common.Address
+	Ids       []*big.Int
+	Amounts   [][32]byte
+	PriceData ILBPairPriceData
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterDepositedToBins0 is a free log retrieval operation binding the contract event 0xd1940621deed4d2534f11049d437a78045133333c214f098e79d0fd6693125e2.
+//
+// Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) FilterDepositedToBins0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairDepositedToBins0Iterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.FilterLogs(opts, "DepositedToBins0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &LBPairDepositedToBins0Iterator{contract: _LBPair.contract, event: "DepositedToBins0", logs: logs, sub: sub}, nil
+}
+
+// WatchDepositedToBins0 is a free log subscription operation binding the contract event 0xd1940621deed4d2534f11049d437a78045133333c214f098e79d0fd6693125e2.
+//
+// Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) WatchDepositedToBins0(opts *bind.WatchOpts, sink chan<- *LBPairDepositedToBins0, sender []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.WatchLogs(opts, "DepositedToBins0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(LBPairDepositedToBins0)
+				if err := _LBPair.contract.UnpackLog(event, "DepositedToBins0", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseDepositedToBins0 is a log parse operation binding the contract event 0xd1940621deed4d2534f11049d437a78045133333c214f098e79d0fd6693125e2.
+//
+// Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) ParseDepositedToBins0(log types.Log) (*LBPairDepositedToBins0, error) {
+	event := new(LBPairDepositedToBins0)
+	if err := _LBPair.contract.UnpackLog(event, "DepositedToBins0", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // LBPairFlashLoanIterator is returned from FilterFlashLoan and is used to iterate over the raw logs and unpacked data for FlashLoan events raised by the LBPair contract.
 type LBPairFlashLoanIterator struct {
 	Event *LBPairFlashLoan // Event containing the contract specifics and raw log
@@ -2067,6 +1999,164 @@ func (_LBPair *LBPairFilterer) WatchFlashLoan(opts *bind.WatchOpts, sink chan<- 
 func (_LBPair *LBPairFilterer) ParseFlashLoan(log types.Log) (*LBPairFlashLoan, error) {
 	event := new(LBPairFlashLoan)
 	if err := _LBPair.contract.UnpackLog(event, "FlashLoan", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// LBPairFlashLoan0Iterator is returned from FilterFlashLoan0 and is used to iterate over the raw logs and unpacked data for FlashLoan0 events raised by the LBPair contract.
+type LBPairFlashLoan0Iterator struct {
+	Event *LBPairFlashLoan0 // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *LBPairFlashLoan0Iterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(LBPairFlashLoan0)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(LBPairFlashLoan0)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *LBPairFlashLoan0Iterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *LBPairFlashLoan0Iterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// LBPairFlashLoan0 represents a FlashLoan0 event raised by the LBPair contract.
+type LBPairFlashLoan0 struct {
+	Sender       common.Address
+	Receiver     common.Address
+	ActiveId     *big.Int
+	Amounts      [32]byte
+	TotalFees    [32]byte
+	ProtocolFees [32]byte
+	PriceData    ILBPairPriceData
+	Raw          types.Log // Blockchain specific contextual infos
+}
+
+// FilterFlashLoan0 is a free log retrieval operation binding the contract event 0x4982622959c7520f0d1d70ab83b6da3fcd99f7a5f0baee8a79dee3590fa10ddc.
+//
+// Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) FilterFlashLoan0(opts *bind.FilterOpts, sender []common.Address, receiver []common.Address) (*LBPairFlashLoan0Iterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var receiverRule []interface{}
+	for _, receiverItem := range receiver {
+		receiverRule = append(receiverRule, receiverItem)
+	}
+
+	logs, sub, err := _LBPair.contract.FilterLogs(opts, "FlashLoan0", senderRule, receiverRule)
+	if err != nil {
+		return nil, err
+	}
+	return &LBPairFlashLoan0Iterator{contract: _LBPair.contract, event: "FlashLoan0", logs: logs, sub: sub}, nil
+}
+
+// WatchFlashLoan0 is a free log subscription operation binding the contract event 0x4982622959c7520f0d1d70ab83b6da3fcd99f7a5f0baee8a79dee3590fa10ddc.
+//
+// Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) WatchFlashLoan0(opts *bind.WatchOpts, sink chan<- *LBPairFlashLoan0, sender []common.Address, receiver []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var receiverRule []interface{}
+	for _, receiverItem := range receiver {
+		receiverRule = append(receiverRule, receiverItem)
+	}
+
+	logs, sub, err := _LBPair.contract.WatchLogs(opts, "FlashLoan0", senderRule, receiverRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(LBPairFlashLoan0)
+				if err := _LBPair.contract.UnpackLog(event, "FlashLoan0", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseFlashLoan0 is a log parse operation binding the contract event 0x4982622959c7520f0d1d70ab83b6da3fcd99f7a5f0baee8a79dee3590fa10ddc.
+//
+// Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) ParseFlashLoan0(log types.Log) (*LBPairFlashLoan0, error) {
+	event := new(LBPairFlashLoan0)
+	if err := _LBPair.contract.UnpackLog(event, "FlashLoan0", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
@@ -2674,6 +2764,166 @@ func (_LBPair *LBPairFilterer) ParseSwap(log types.Log) (*LBPairSwap, error) {
 	return event, nil
 }
 
+// LBPairSwap0Iterator is returned from FilterSwap0 and is used to iterate over the raw logs and unpacked data for Swap0 events raised by the LBPair contract.
+type LBPairSwap0Iterator struct {
+	Event *LBPairSwap0 // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *LBPairSwap0Iterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(LBPairSwap0)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(LBPairSwap0)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *LBPairSwap0Iterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *LBPairSwap0Iterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// LBPairSwap0 represents a Swap0 event raised by the LBPair contract.
+type LBPairSwap0 struct {
+	Sender                common.Address
+	To                    common.Address
+	Id                    *big.Int
+	AmountsIn             [32]byte
+	AmountsOut            [32]byte
+	VolatilityAccumulator *big.Int
+	TotalFees             [32]byte
+	ProtocolFees          [32]byte
+	PriceData             ILBPairPriceData
+	Raw                   types.Log // Blockchain specific contextual infos
+}
+
+// FilterSwap0 is a free log retrieval operation binding the contract event 0x8b7ff4e98ef6b513fa9b897cabe874443711a7c76b08c2f2346b3316df396351.
+//
+// Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) FilterSwap0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairSwap0Iterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.FilterLogs(opts, "Swap0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &LBPairSwap0Iterator{contract: _LBPair.contract, event: "Swap0", logs: logs, sub: sub}, nil
+}
+
+// WatchSwap0 is a free log subscription operation binding the contract event 0x8b7ff4e98ef6b513fa9b897cabe874443711a7c76b08c2f2346b3316df396351.
+//
+// Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) WatchSwap0(opts *bind.WatchOpts, sink chan<- *LBPairSwap0, sender []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.WatchLogs(opts, "Swap0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(LBPairSwap0)
+				if err := _LBPair.contract.UnpackLog(event, "Swap0", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseSwap0 is a log parse operation binding the contract event 0x8b7ff4e98ef6b513fa9b897cabe874443711a7c76b08c2f2346b3316df396351.
+//
+// Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) ParseSwap0(log types.Log) (*LBPairSwap0, error) {
+	event := new(LBPairSwap0)
+	if err := _LBPair.contract.UnpackLog(event, "Swap0", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // LBPairTransferBatchIterator is returned from FilterTransferBatch and is used to iterate over the raw logs and unpacked data for TransferBatch events raised by the LBPair contract.
 type LBPairTransferBatchIterator struct {
 	Event *LBPairTransferBatch // Event containing the contract specifics and raw log
@@ -2987,6 +3237,162 @@ func (_LBPair *LBPairFilterer) WatchWithdrawnFromBins(opts *bind.WatchOpts, sink
 func (_LBPair *LBPairFilterer) ParseWithdrawnFromBins(log types.Log) (*LBPairWithdrawnFromBins, error) {
 	event := new(LBPairWithdrawnFromBins)
 	if err := _LBPair.contract.UnpackLog(event, "WithdrawnFromBins", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// LBPairWithdrawnFromBins0Iterator is returned from FilterWithdrawnFromBins0 and is used to iterate over the raw logs and unpacked data for WithdrawnFromBins0 events raised by the LBPair contract.
+type LBPairWithdrawnFromBins0Iterator struct {
+	Event *LBPairWithdrawnFromBins0 // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *LBPairWithdrawnFromBins0Iterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(LBPairWithdrawnFromBins0)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(LBPairWithdrawnFromBins0)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *LBPairWithdrawnFromBins0Iterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *LBPairWithdrawnFromBins0Iterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// LBPairWithdrawnFromBins0 represents a WithdrawnFromBins0 event raised by the LBPair contract.
+type LBPairWithdrawnFromBins0 struct {
+	Sender    common.Address
+	To        common.Address
+	Ids       []*big.Int
+	Amounts   [][32]byte
+	PriceData ILBPairPriceData
+	Raw       types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawnFromBins0 is a free log retrieval operation binding the contract event 0x97aca70579f5049b7872b1d30aef1eab31c1c91ebf2e73d812cd626af0dcbba3.
+//
+// Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) FilterWithdrawnFromBins0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairWithdrawnFromBins0Iterator, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.FilterLogs(opts, "WithdrawnFromBins0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return &LBPairWithdrawnFromBins0Iterator{contract: _LBPair.contract, event: "WithdrawnFromBins0", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawnFromBins0 is a free log subscription operation binding the contract event 0x97aca70579f5049b7872b1d30aef1eab31c1c91ebf2e73d812cd626af0dcbba3.
+//
+// Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) WatchWithdrawnFromBins0(opts *bind.WatchOpts, sink chan<- *LBPairWithdrawnFromBins0, sender []common.Address, to []common.Address) (event.Subscription, error) {
+
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+	var toRule []interface{}
+	for _, toItem := range to {
+		toRule = append(toRule, toItem)
+	}
+
+	logs, sub, err := _LBPair.contract.WatchLogs(opts, "WithdrawnFromBins0", senderRule, toRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(LBPairWithdrawnFromBins0)
+				if err := _LBPair.contract.UnpackLog(event, "WithdrawnFromBins0", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawnFromBins0 is a log parse operation binding the contract event 0x97aca70579f5049b7872b1d30aef1eab31c1c91ebf2e73d812cd626af0dcbba3.
+//
+// Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
+func (_LBPair *LBPairFilterer) ParseWithdrawnFromBins0(log types.Log) (*LBPairWithdrawnFromBins0, error) {
+	event := new(LBPairWithdrawnFromBins0)
+	if err := _LBPair.contract.UnpackLog(event, "WithdrawnFromBins0", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
