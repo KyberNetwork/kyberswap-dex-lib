@@ -4,15 +4,17 @@ import (
 	"context"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poollist "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/list"
 )
 
 var _ = poollist.RegisterFactoryCE(DexType, NewPoolsListUpdater)
@@ -90,9 +92,11 @@ func (u *PoolsListUpdater) getNewPool(ctx context.Context, gsm string) (*entity.
 	}
 
 	return &entity.Pool{
-		Address:  strings.ToLower(gsm),
-		Exchange: u.cfg.DexId,
-		Type:     DexType,
+		Address:   strings.ToLower(gsm),
+		Exchange:  u.cfg.DexId,
+		Type:      DexType,
+		Reserves:  []string{"0", "0"},
+		Timestamp: time.Now().Unix(),
 		Tokens: []*entity.PoolToken{
 			{Address: hexutil.Encode(ghoToken[:]), Swappable: true},
 			{Address: hexutil.Encode(underlyingAsset[:]), Swappable: true},
