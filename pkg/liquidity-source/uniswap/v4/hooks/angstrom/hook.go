@@ -28,10 +28,13 @@ var _ = uniswapv4.RegisterHooksFactory(NewHook, HookAddresses...)
 
 func NewHook(param *uniswapv4.HookParam) uniswapv4.Hook {
 	hook := &Hook{
-		Hook:   &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom},
-		hook:   param.HookAddress,
-		asset0: common.HexToAddress(param.Pool.Tokens[0].Address),
-		asset1: common.HexToAddress(param.Pool.Tokens[1].Address),
+		Hook: &uniswapv4.BaseHook{Exchange: valueobject.ExchangeUniswapV4Angstrom},
+		hook: param.HookAddress,
+	}
+
+	if param.Pool != nil {
+		hook.asset0 = common.HexToAddress(param.Pool.Tokens[0].Address)
+		hook.asset1 = common.HexToAddress(param.Pool.Tokens[1].Address)
 	}
 
 	if param.HookExtra != "" {
