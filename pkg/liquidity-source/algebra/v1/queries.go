@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"strings"
 	"text/template"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolsListQueryParams struct {
@@ -25,6 +27,11 @@ type PoolTicksQueryParams struct {
 func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int, lastPoolIds []string, first, skip int) string {
 	var tpl bytes.Buffer
 	var lastPoolIdsQ string
+
+	if lastCreatedAtTimestamp == nil {
+		lastCreatedAtTimestamp = bignumber.ZeroBI
+	}
+
 	if len(lastPoolIds) > 0 {
 		lastPoolIdsQ = fmt.Sprintf(", id_not_in: [\"%s\"]", strings.Join(lastPoolIds, "\",\""))
 	} else {
