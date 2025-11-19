@@ -26,6 +26,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/brownfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/cap/cusd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	cloberob "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob"
 	compoundv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v2"
 	compoundv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/compound/v3"
 	curvelending "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/lending"
@@ -343,6 +344,7 @@ type Types struct {
 	ArberaZap                  string
 	MapleSyrup                 string
 	Gsm4626                    string
+	CloberOB                   string
 }
 
 var (
@@ -524,5 +526,6 @@ var (
 		ArberaZap:                  arberazap.DexType,
 		MapleSyrup:                 maplesyrup.DexType,
 		Gsm4626:                    gsm4626.DexType,
+		CloberOB:                   cloberob.DexType,
 	}
 )
