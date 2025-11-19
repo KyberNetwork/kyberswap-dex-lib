@@ -46,7 +46,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		Target: ts.updater.config.RelayerAddress,
 		Method: relayerFactoryMethod,
 		Params: nil,
-	}, []interface{}{&factory})
+	}, []any{&factory})
 	_, err := req.TryAggregate()
 	if err != nil {
 		return
@@ -60,7 +60,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		Target: "0x717EF162cf831db83c51134734A15D1EBe9E516a",
 		Method: factoryAllPairsLengthMethod,
 		Params: nil,
-	}, []interface{}{&length})
+	}, []any{&length})
 	_, err = req.TryAggregate()
 	if err != nil {
 		return

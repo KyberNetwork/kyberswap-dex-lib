@@ -407,7 +407,7 @@ func TestUpdateBalance(t *testing.T) {
 		in               string
 		inAmount         string
 		out              string
-		errorOrAmountOut interface{}
+		errorOrAmountOut any
 	}{
 		// meta swap
 		{0, "0x4591dbff62656e7859afe5e45f6f47d3669fbb28", "50000000000000000", "0x383e6b4437b59fff47b619cba855ca29342a8559", "49183803117034717"},

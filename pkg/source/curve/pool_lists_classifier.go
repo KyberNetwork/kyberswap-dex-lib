@@ -55,43 +55,43 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&coins[i]})
+			Params: []any{poolAddress},
+		}, []any{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&underlyingCoins[i]})
+			Params: []any{poolAddress},
+		}, []any{&underlyingCoins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodIsMeta,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&isMetaList[i]})
+			Params: []any{poolAddress},
+		}, []any{&isMetaList[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    aaveABI,
 			Target: poolAddresses[i].Hex(),
 			Method: aaveMethodOffpegFeeMultiplier,
 			Params: nil,
-		}, []interface{}{&aaveSignatures[i]})
+		}, []any{&aaveSignatures[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    plainOracleABI,
 			Target: poolAddresses[i].Hex(),
 			Method: plainOracleMethodOracle,
 			Params: nil,
-		}, []interface{}{&plainOracleSignatures[i]})
+		}, []any{&plainOracleSignatures[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    twoABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGamma,
 			Params: nil,
-		}, []interface{}{&gammaList[i]})
+		}, []any{&gammaList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -168,8 +168,8 @@ func (d *PoolsListUpdater) classifyPoolsFromMetaPoolsFactory(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodIsMeta,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&isMetaList[i]})
+			Params: []any{poolAddress},
+		}, []any{&isMetaList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {
@@ -203,8 +203,8 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&coins[i]})
+			Params: []any{poolAddress},
+		}, []any{&coins[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -291,7 +291,7 @@ func (d *PoolsListUpdater) isCompoundPool(
 			Target: coin.Hex(),
 			Method: erc20MethodName,
 			Params: nil,
-		}, []interface{}{&tokenNames[i]})
+		}, []any{&tokenNames[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

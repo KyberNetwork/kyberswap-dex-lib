@@ -87,7 +87,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryAllPairsMethod,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
+			Params: []any{big.NewInt(int64(currentOffset + i))},
 		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressReq.Aggregate(); err != nil {

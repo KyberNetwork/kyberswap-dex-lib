@@ -52,20 +52,20 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodPoolType,
 			Params: nil,
-		}, []interface{}{&poolTypes[i]})
+		}, []any{&poolTypes[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    aquaPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGetAssets,
 			Params: nil,
-		}, []interface{}{&assets[i]})
+		}, []any{&assets[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    masterABI,
 			Target: masterAddresses[i],
 			Method: poolMethodGetFeeManager,
 			Params: nil,
-		}, []interface{}{&feeManagers[i]})
+		}, []any{&feeManagers[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

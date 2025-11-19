@@ -62,8 +62,8 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			ABI:    MainPoolABI,
 			Target: d.config.MainPoolAddress,
 			Method: mainPoolMethodLpList,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&lpList[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&lpList[i]})
 	}
 	if _, err := callLpList.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
@@ -86,7 +86,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			Target: lpList[i].Hex(),
 			Method: lpMethodUnderlier,
 			Params: nil,
-		}, []interface{}{&underliers[i]})
+		}, []any{&underliers[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)

@@ -220,7 +220,7 @@ func (s *PoolSimulator) _downscaleDown(amount, scalingFactor *uint256.Int) (*uin
 	return math.GyroFixedPoint.DivDown(amount, scalingFactor)
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,

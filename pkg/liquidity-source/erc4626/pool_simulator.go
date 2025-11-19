@@ -150,7 +150,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return Meta{
 		BlockNumber: s.Info.BlockNumber,
 	}

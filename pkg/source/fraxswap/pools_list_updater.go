@@ -51,7 +51,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodAllPairsLength,
 		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get number of pools from factory")
@@ -76,8 +76,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    factoryABI,
 			Target: d.config.FactoryAddress,
 			Method: poolFactoryMethodAllPairs,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&poolAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&poolAddresses[j]})
 	}
 	if _, err := getPoolAddressRequest.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -133,14 +133,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken0,
 			Params: nil,
-		}, []interface{}{&token0Addresses[i]})
+		}, []any{&token0Addresses[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodToken1,
 			Params: nil,
-		}, []interface{}{&token1Addresses[i]})
+		}, []any{&token1Addresses[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

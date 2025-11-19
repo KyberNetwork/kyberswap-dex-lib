@@ -360,8 +360,8 @@ func Test_Quoter(t *testing.T) {
 		ABI:    bunniQuoterABI,
 		Target: "0x00000000E15009D51C6d57f7164f4Ed4996ae55C",
 		Method: "quoteSwap",
-		Params: []interface{}{sender, poolKey, swapParams},
-	}, []interface{}{&swapResult}).Call()
+		Params: []any{sender, poolKey, swapParams},
+	}, []any{&swapResult}).Call()
 
 	assert.NoError(t, err)
 	assert.Equal(t, int64(926458182427270530), swapResult.OutputAmount.Int64())
@@ -376,8 +376,8 @@ func Test_Quoter(t *testing.T) {
 		ABI:    bunniQuoterABI,
 		Target: "0x00000000E15009D51C6d57f7164f4Ed4996ae55C",
 		Method: "quoteSwap",
-		Params: []interface{}{sender, poolKey, swapParams},
-	}, []interface{}{&swapResult}).Call()
+		Params: []any{sender, poolKey, swapParams},
+	}, []any{&swapResult}).Call()
 
 	assert.NoError(t, err)
 	assert.Equal(t, swapResult.OutputAmount.Int64(), int64(1078516195426919954))

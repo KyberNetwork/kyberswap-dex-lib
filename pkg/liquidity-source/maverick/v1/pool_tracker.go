@@ -76,42 +76,42 @@ func (d *PoolTracker) getNewPoolState(
 		Target: p.Address,
 		Method: poolMethodFee,
 		Params: nil,
-	}, []interface{}{&fee})
+	}, []any{&fee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodGetState,
 		Params: nil,
-	}, []interface{}{&getStateResult})
+	}, []any{&getStateResult})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodBinBalanceA,
 		Params: nil,
-	}, []interface{}{&binBalanceA})
+	}, []any{&binBalanceA})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodBinBalanceB,
 		Params: nil,
-	}, []interface{}{&binBalanceB})
+	}, []any{&binBalanceB})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodTokenAScale,
 		Params: nil,
-	}, []interface{}{&tokenAScale})
+	}, []any{&tokenAScale})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodTokenBScale,
 		Params: nil,
-	}, []interface{}{&tokenBScale})
+	}, []any{&tokenBScale})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -151,8 +151,8 @@ func (d *PoolTracker) getNewPoolState(
 						ABI:    poolABI,
 						Target: p.Address,
 						Method: poolMethodGetBin,
-						Params: []interface{}{big.NewInt(int64(j))},
-					}, []interface{}{&binRaws[j]})
+						Params: []any{big.NewInt(int64(j))},
+					}, []any{&binRaws[j]})
 				}
 				if _, err := binCalls.Aggregate(); err != nil {
 					logger.WithFields(logger.Fields{

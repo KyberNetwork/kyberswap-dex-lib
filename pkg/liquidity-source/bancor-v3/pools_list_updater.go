@@ -106,7 +106,7 @@ func (u *PoolsListUpdater) getTokenAddresses(ctx context.Context) ([]string, err
 		ABI:    bancorNetworkABI,
 		Target: u.config.BancorNetwork,
 		Method: bancorNetworkMethodLiquidityPools,
-	}, []interface{}{&addresses})
+	}, []any{&addresses})
 
 	_, err := req.Aggregate()
 	if err != nil {

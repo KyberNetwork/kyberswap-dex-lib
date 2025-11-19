@@ -95,7 +95,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 
 func (p *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (p *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMeta{
 		BlockNumber: p.Info.BlockNumber,
 	}

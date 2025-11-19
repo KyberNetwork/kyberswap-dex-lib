@@ -11,7 +11,7 @@ import (
 type (
 	CurveCoin struct {
 		Address           string
-		Decimals          interface{}
+		Decimals          any
 		IsBasePoolLpToken bool
 		Symbol            string
 		IsOrgNative       bool // if this is an native coin (we'll convert native to wrapped, so need this to track the original data)

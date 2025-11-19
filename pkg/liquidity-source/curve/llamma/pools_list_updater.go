@@ -92,14 +92,14 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			ABI:    CurveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAmms,
-			Params: []interface{}{idx},
-		}, []interface{}{&amms[i]})
+			Params: []any{idx},
+		}, []any{&amms[i]})
 		factoryCalls.AddCall(&ethrpc.Call{
 			ABI:    CurveControllerFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodCollaterals,
-			Params: []interface{}{idx},
-		}, []interface{}{&collaterals[i]})
+			Params: []any{idx},
+		}, []any{&collaterals[i]})
 	}
 	if _, err := factoryCalls.Aggregate(); err != nil {
 		return nil, err
@@ -111,18 +111,18 @@ func (u *PoolsListUpdater) getPools(ctx context.Context, offset int, batchSize i
 			ABI:    CurveLlammaABI,
 			Target: amms[i].String(),
 			Method: LlammaMethodA,
-		}, []interface{}{&aCoefficients[i]})
+		}, []any{&aCoefficients[i]})
 		ammCalls.AddCall(&ethrpc.Call{
 			ABI:    shared.ERC20ABI,
 			Target: collaterals[i].String(),
 			Method: shared.ERC20MethodDecimals,
-		}, []interface{}{&decimals[i]})
+		}, []any{&decimals[i]})
 	}
 	ammCalls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: u.config.BorrowedToken,
 		Method: shared.ERC20MethodDecimals,
-	}, []interface{}{&decimals[batchSize]})
+	}, []any{&decimals[batchSize]})
 	if _, err := ammCalls.Aggregate(); err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (u *PoolsListUpdater) nCollaterals(ctx context.Context) (int, error) {
 		ABI:    CurveControllerFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodNCollaterals,
-	}, []interface{}{&nCollaterals})
+	}, []any{&nCollaterals})
 	if _, err := calls.TryAggregate(); err != nil {
 		return 0, err
 	}

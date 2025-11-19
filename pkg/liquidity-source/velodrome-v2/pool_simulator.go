@@ -152,7 +152,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves[indexOut] = new(big.Int).Sub(p.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		Fee:          p.fee.Uint64(),
 		FeePrecision: p.feePrecision.Uint64(),

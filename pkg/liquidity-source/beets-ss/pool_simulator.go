@@ -145,7 +145,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 	return []string{}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
 	}

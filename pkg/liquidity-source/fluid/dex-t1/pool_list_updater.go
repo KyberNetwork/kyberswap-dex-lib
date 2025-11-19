@@ -147,7 +147,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 		ABI:    dexReservesResolverABI,
 		Target: u.config.DexReservesResolver,
 		Method: DRRMethodGetAllPoolsReservesAdjusted,
-	}, []interface{}{&pools})
+	}, []any{&pools})
 
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -173,7 +173,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 			Target: token0.String(),
 			Method: TokenMethodDecimals,
 			Params: nil,
-		}, []interface{}{&decimals0})
+		}, []any{&decimals0})
 	}
 
 	if strings.EqualFold(valueobject.NativeAddress, token1.String()) {
@@ -184,7 +184,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 			Target: token1.String(),
 			Method: TokenMethodDecimals,
 			Params: nil,
-		}, []interface{}{&decimals1})
+		}, []any{&decimals1})
 	}
 
 	_, err := req.Aggregate()

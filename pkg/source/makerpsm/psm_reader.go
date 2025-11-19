@@ -33,25 +33,25 @@ func (r *PSMReader) Read(ctx context.Context, address string, overrides map[comm
 			Target: address,
 			Method: psmMethodTIn,
 			Params: nil,
-		}, []interface{}{&psm.TIn}).
+		}, []any{&psm.TIn}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodTOut,
 			Params: nil,
-		}, []interface{}{&psm.TOut}).
+		}, []any{&psm.TOut}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodVat,
 			Params: nil,
-		}, []interface{}{&psm.VatAddress}).
+		}, []any{&psm.VatAddress}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: psmMethodIlk,
 			Params: nil,
-		}, []interface{}{&psm.ILK}).SetOverrides(overrides)
+		}, []any{&psm.ILK}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

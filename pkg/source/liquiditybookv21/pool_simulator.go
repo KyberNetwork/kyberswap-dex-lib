@@ -185,7 +185,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.bins = newBins
 }
 
-func (p *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
 

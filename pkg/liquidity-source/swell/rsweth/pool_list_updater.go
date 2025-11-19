@@ -87,15 +87,15 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 		ABI:    common.AccessControlManagerABI,
 		Target: common.AccessControlManager,
 		Method: common.AccessControlManagerMethodCoreMethodsPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.RSWETHABI,
 		Target: common.RSWETH,
 		Method: common.RSWETHMethodETHTORSWETHRate,
-		Params: []interface{}{},
-	}, []interface{}{&ethToRswETHRate})
+		Params: []any{},
+	}, []any{&ethToRswETHRate})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {

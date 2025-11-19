@@ -16,46 +16,46 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		ABI:    lidoArmABI,
 		Target: armAddr,
 		Method: "token0",
-	}, []interface{}{&poolState.Token0})
+	}, []any{&poolState.Token0})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
 		Target: armAddr,
 		Method: "token1",
-	}, []interface{}{&poolState.Token1})
+	}, []any{&poolState.Token1})
 
 	if armCfg.ArmType == Pricable {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "traderate0",
-		}, []interface{}{&poolState.TradeRate0})
+		}, []any{&poolState.TradeRate0})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "traderate1",
-		}, []interface{}{&poolState.TradeRate1})
+		}, []any{&poolState.TradeRate1})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "PRICE_SCALE",
-		}, []interface{}{&poolState.PriceScale})
+		}, []any{&poolState.PriceScale})
 	}
 	if armCfg.HasWithdrawalQueue {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "liquidityAsset",
-		}, []interface{}{&poolState.LiquidityAsset})
+		}, []any{&poolState.LiquidityAsset})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "withdrawsQueued",
-		}, []interface{}{&poolState.WithdrawsQueued})
+		}, []any{&poolState.WithdrawsQueued})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    lidoArmABI,
 			Target: armAddr,
 			Method: "withdrawsClaimed",
-		}, []interface{}{&poolState.WithdrawsClaimed})
+		}, []any{&poolState.WithdrawsClaimed})
 	}
 	_, err := calls.Aggregate()
 	if err != nil {
@@ -69,14 +69,14 @@ func fetchAssetAndState(ctx context.Context, ethrpcClient *ethrpc.Client, armAdd
 		ABI:    lidoArmABI,
 		Target: poolState.Token0.Hex(),
 		Method: "balanceOf",
-		Params: []interface{}{common.HexToAddress(armAddr)},
-	}, []interface{}{&poolState.Reserve0})
+		Params: []any{common.HexToAddress(armAddr)},
+	}, []any{&poolState.Reserve0})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lidoArmABI,
 		Target: poolState.Token1.Hex(),
 		Method: "balanceOf",
-		Params: []interface{}{common.HexToAddress(armAddr)},
-	}, []interface{}{&poolState.Reserve1})
+		Params: []any{common.HexToAddress(armAddr)},
+	}, []any{&poolState.Reserve1})
 	_, err = calls.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

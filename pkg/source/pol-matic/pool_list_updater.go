@@ -84,15 +84,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    polygonMigrationABI,
 			Target: u.config.PolygonMigrationAddress,
 			Method: polygonMigrationMethodMatic,
-			Params: []interface{}{},
-		}, []interface{}{&matic})
+			Params: []any{},
+		}, []any{&matic})
 	getTokens.AddCall(
 		&ethrpc.Call{
 			ABI:    polygonMigrationABI,
 			Target: u.config.PolygonMigrationAddress,
 			Method: polygonMigrationMethodPolygon,
-			Params: []interface{}{},
-		}, []interface{}{&polygon})
+			Params: []any{},
+		}, []any{&polygon})
 
 	if _, err := getTokens.TryAggregate(); err != nil {
 		logger.
@@ -122,15 +122,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    erc20ABI,
 			Target: matic.String(),
 			Method: erc20MethodDecimals,
-			Params: []interface{}{},
-		}, []interface{}{&maticDecimals})
+			Params: []any{},
+		}, []any{&maticDecimals})
 	getTokenDecimals.AddCall(
 		&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: polygon.String(),
 			Method: erc20MethodDecimals,
-			Params: []interface{}{},
-		}, []interface{}{&polygonDecimals})
+			Params: []any{},
+		}, []any{&polygonDecimals})
 	if _, err := getTokenDecimals.TryAggregate(); err != nil {
 		logger.
 			WithFields(

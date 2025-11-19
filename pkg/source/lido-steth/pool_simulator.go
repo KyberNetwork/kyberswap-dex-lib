@@ -120,6 +120,6 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return nil
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }

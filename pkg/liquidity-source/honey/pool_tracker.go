@@ -138,8 +138,8 @@ func (t *PoolTracker) getNewPoolState(
 				ABI:    erc20ABI,
 				Target: registeredAssets[i].Hex(),
 				Method: "decimals",
-				Params: []interface{}{},
-			}, []interface{}{&assetsDecimals[i]})
+				Params: []any{},
+			}, []any{&assetsDecimals[i]})
 		}
 		if _, err = calls.Aggregate(); err != nil {
 			return p, err

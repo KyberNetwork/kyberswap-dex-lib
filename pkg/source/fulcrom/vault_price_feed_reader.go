@@ -65,8 +65,8 @@ func (r *VaultPriceFeedReader) readTokenData(
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
 
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []interface{}{tokenAddress, true}), []interface{}{&maxPrices[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []interface{}{tokenAddress, false}), []interface{}{&minPrices[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []any{tokenAddress, true}), []any{&maxPrices[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []any{tokenAddress, false}), []any{&minPrices[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

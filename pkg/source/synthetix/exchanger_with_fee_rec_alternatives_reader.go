@@ -52,13 +52,13 @@ func (r *ExchangerWithFeeRecAlternativesReader) readData(ctx context.Context, po
 			Target: address,
 			Method: ExchangerWithFeeRecAlternativesMethodAtomicMaxVolumePerBlock,
 			Params: nil,
-		}, []interface{}{&poolState.AtomicMaxVolumePerBlock}).
+		}, []any{&poolState.AtomicMaxVolumePerBlock}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: ExchangerWithFeeRecAlternativesMethodLastAtomicVolume,
 			Params: nil,
-		}, []interface{}{&lastAtomicVolume})
+		}, []any{&lastAtomicVolume})
 
 	_, err := req.Aggregate()
 	if err != nil {

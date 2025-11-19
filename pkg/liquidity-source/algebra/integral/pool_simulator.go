@@ -226,7 +226,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.globalState.Tick = si.Tick
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
 	priceLimit, _ := p.getSqrtPriceLimit(zeroForOne)
 	return PoolMeta{

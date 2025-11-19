@@ -90,13 +90,13 @@ func (r *SystemSettingsReader) readTokenData(ctx context.Context, systemSettings
 				Target: address.String(),
 				Method: TokenMethodDecimals,
 				Params: nil,
-			}, []interface{}{&decimals[i]}).
+			}, []any{&decimals[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    erc20,
 				Target: address.String(),
 				Method: TokenMethodSymbol,
 				Params: nil,
-			}, []interface{}{&symbols[i]})
+			}, []any{&symbols[i]})
 	}
 
 	_, err := req.Aggregate()
@@ -153,38 +153,38 @@ func (r *SystemSettingsReader) readCurrencyKeyData(ctx context.Context, address 
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodPureChainlinkPriceForAtomicSwapsEnabled,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&pureChainlinkPriceForAtomicSwapsEnabled[i]}).
+				Params: []any{keyByte},
+			}, []any{&pureChainlinkPriceForAtomicSwapsEnabled[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodAtomicEquivalentForDexPricing,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&atomicEquivalentForDexPricingAddresses[i]}).
+				Params: []any{keyByte},
+			}, []any{&atomicEquivalentForDexPricingAddresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodAtomicVolatilityConsiderationWindow,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&atomicVolatilityConsiderationWindows[i]}).
+				Params: []any{keyByte},
+			}, []any{&atomicVolatilityConsiderationWindows[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodAtomicVolatilityUpdateThreshold,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&atomicVolatilityUpdateThresholds[i]}).
+				Params: []any{keyByte},
+			}, []any{&atomicVolatilityUpdateThresholds[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodAtomicExchangeFeeRate,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&atomicExchangeFeeRates[i]}).
+				Params: []any{keyByte},
+			}, []any{&atomicExchangeFeeRates[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: SystemSettingsMethodExchangeFeeRate,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&exchangeFeeRates[i]})
+				Params: []any{keyByte},
+			}, []any{&exchangeFeeRates[i]})
 	}
 
 	_, err := req.Aggregate()
@@ -219,25 +219,25 @@ func (r *SystemSettingsReader) readDynamicFeeConfig(ctx context.Context, address
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeRounds,
 			Params: nil,
-		}, []interface{}{&dynamicFeeConfig.Rounds}).
+		}, []any{&dynamicFeeConfig.Rounds}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeThreshold,
 			Params: nil,
-		}, []interface{}{&dynamicFeeConfig.Threshold}).
+		}, []any{&dynamicFeeConfig.Threshold}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeDynamicFeeWeightDecay,
 			Params: nil,
-		}, []interface{}{&dynamicFeeConfig.WeightDecay}).
+		}, []any{&dynamicFeeConfig.WeightDecay}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodExchangeMaxDynamicFee,
 			Params: nil,
-		}, []interface{}{&dynamicFeeConfig.MaxFee})
+		}, []any{&dynamicFeeConfig.MaxFee})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -265,13 +265,13 @@ func (r *SystemSettingsReader) readData(ctx context.Context, address string, sys
 			Target: address,
 			Method: SystemSettingsMethodAtomicTwapWindow,
 			Params: nil,
-		}, []interface{}{&systemSettings.AtomicTwapWindow}).
+		}, []any{&systemSettings.AtomicTwapWindow}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: SystemSettingsMethodRateStalePeriod,
 			Params: nil,
-		}, []interface{}{&systemSettings.RateStalePeriod})
+		}, []any{&systemSettings.RateStalePeriod})
 
 	_, err := req.Aggregate()
 	if err != nil {

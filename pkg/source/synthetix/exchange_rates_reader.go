@@ -63,20 +63,20 @@ func (r *ExchangeRatesReader) readCurrencyKeyData(ctx context.Context, poolState
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesMethodAggregators,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&aggregatorAddresses[i]}).
+				Params: []any{keyByte},
+			}, []any{&aggregatorAddresses[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesMethodCurrencyKeyDecimals,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&currencyKeyDecimals[i]}).
+				Params: []any{keyByte},
+			}, []any{&currencyKeyDecimals[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    r.abi,
 				Target: address,
 				Method: ExchangeRatesMethodGetCurrentRoundId,
-				Params: []interface{}{keyByte},
-			}, []interface{}{&currentRoundIds[i]})
+				Params: []any{keyByte},
+			}, []any{&currentRoundIds[i]})
 	}
 
 	_, err := req.Aggregate()

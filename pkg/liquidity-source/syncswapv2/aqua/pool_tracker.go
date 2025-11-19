@@ -105,69 +105,69 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: masterAddress,
 		Method: poolMethodGetFeeManager,
 		Params: nil,
-	}, []interface{}{&feeManagerV2Address})
+	}, []any{&feeManagerV2Address})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodVault,
 		Params: nil,
-	}, []interface{}{&vaultAddress})
+	}, []any{&vaultAddress})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodToken0PrecisionMultiplier,
 		Params: nil,
-	}, []interface{}{&token0PrecisionMultiplier})
+	}, []any{&token0PrecisionMultiplier})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodToken1PrecisionMultiplier,
 		Params: nil,
-	}, []interface{}{&token1PrecisionMultiplier})
+	}, []any{&token1PrecisionMultiplier})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaPriceScale,
 		Params: nil,
-	}, []interface{}{&priceScale})
+	}, []any{&priceScale})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaD,
 		Params: nil,
-	}, []interface{}{&D})
+	}, []any{&D})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaParams,
-		Params: []interface{}{},
-	}, []interface{}{&params})
+		Params: []any{},
+	}, []any{&params})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaPoolParams,
-		Params: []interface{}{},
-	}, []interface{}{&poolParams})
+		Params: []any{},
+	}, []any{&poolParams})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaPriceOracle,
 		Params: nil,
-	}, []interface{}{&priceOracle})
+	}, []any{&priceOracle})
 
 	// lpToken := p.GetLpToken()
 	// if len(lpToken) > 0 {
@@ -176,69 +176,69 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodAquaTotalSupply,
 		Params: nil,
-	}, []interface{}{&lpSupply})
+	}, []any{&lpSupply})
 	// }
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaGetLastPrices,
-		Params: []interface{}{},
-	}, []interface{}{&lastPrices})
+		Params: []any{},
+	}, []any{&lastPrices})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaLastPricesTimestamp,
 		Params: nil,
-	}, []interface{}{&lastPriceTimestamp})
+	}, []any{&lastPriceTimestamp})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaXcpProfit,
 		Params: nil,
-	}, []interface{}{&xcpProfit})
+	}, []any{&xcpProfit})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaVirtualPrice,
 		Params: nil,
-	}, []interface{}{&virtualPrice})
+	}, []any{&virtualPrice})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    aquaPoolABI,
 		Target: p.Address,
 		Method: poolMethodAquaRebalancingParams,
 		Params: nil,
-	}, []interface{}{&rebalaceParams})
+	}, []any{&rebalaceParams})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    feeManagerV2ABI,
 		Target: feeManagerV2Address.Hex(),
 		Method: poolMethodAquaGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(p.Address),
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[0].Address),
 			common.HexToAddress(p.Tokens[1].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee0To1Aqua})
+	}, []any{&swapFee0To1Aqua})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    feeManagerV2ABI,
 		Target: feeManagerV2Address.Hex(),
 		Method: poolMethodAquaGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(p.Address),
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[1].Address),
 			common.HexToAddress(p.Tokens[0].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee1To0Aqua})
+	}, []any{&swapFee1To0Aqua})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

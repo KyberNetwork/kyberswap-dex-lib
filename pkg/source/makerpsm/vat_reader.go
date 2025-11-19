@@ -33,19 +33,19 @@ func (r *VatReader) Read(ctx context.Context, address string, ilk [32]byte, over
 			Target: address,
 			Method: vatMethodDebt,
 			Params: nil,
-		}, []interface{}{&vat.Debt}).
+		}, []any{&vat.Debt}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: vatMethodLine,
 			Params: nil,
-		}, []interface{}{&vat.Line}).
+		}, []any{&vat.Line}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: vatMethodIlks,
-			Params: []interface{}{ilk},
-		}, []interface{}{&vat.ILK}).SetOverrides(overrides)
+			Params: []any{ilk},
+		}, []any{&vat.ILK}).SetOverrides(overrides)
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{

@@ -21,29 +21,29 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(0)},
-	}, []interface{}{&mainRegistryAddress})
+		Params: []any{big.NewInt(0)},
+	}, []any{&mainRegistryAddress})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(3)},
-	}, []interface{}{&metaFactoryAddress})
+		Params: []any{big.NewInt(3)},
+	}, []any{&metaFactoryAddress})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(5)},
-	}, []interface{}{&cryptoRegistryAddress})
+		Params: []any{big.NewInt(5)},
+	}, []any{&cryptoRegistryAddress})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    addressProviderABI,
 		Target: config.AddressProvider,
 		Method: addressProviderMethodGetAddress,
-		Params: []interface{}{big.NewInt(6)},
-	}, []interface{}{&cryptoFactoryAddress})
+		Params: []any{big.NewInt(6)},
+	}, []any{&cryptoFactoryAddress})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

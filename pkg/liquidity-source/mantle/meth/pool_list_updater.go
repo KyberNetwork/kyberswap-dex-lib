@@ -118,44 +118,44 @@ func getExtra(
 		ABI:    mantlePauserABI,
 		Target: MantlePauser,
 		Method: mantlePauserMethodIsStakingPaused,
-		Params: []interface{}{},
-	}, []interface{}{&isStakingPaused})
+		Params: []any{},
+	}, []any{&isStakingPaused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantleLSPStakingABI,
 		Target: MantleLSPStaking,
 		Method: mantleLSPStakingMethodMinimumStakeBound,
-		Params: []interface{}{},
-	}, []interface{}{&minimumStakeBound})
+		Params: []any{},
+	}, []any{&minimumStakeBound})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantleLSPStakingABI,
 		Target: MantleLSPStaking,
 		Method: mantleLSPStakingMethodExchangeAdjustmentRate,
-		Params: []interface{}{},
-	}, []interface{}{&exchangeAdjustmentRate})
+		Params: []any{},
+	}, []any{&exchangeAdjustmentRate})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantleLSPStakingABI,
 		Target: MantleLSPStaking,
 		Method: mantleLSPStakingMethodMaximumDepositAmount,
-		Params: []interface{}{},
-	}, []interface{}{&maximumDepositAmount})
+		Params: []any{},
+	}, []any{&maximumDepositAmount})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantleLSPStakingABI,
 		Target: MantleLSPStaking,
 		Method: mantleLSPStakingMethodTotalControlled,
-		Params: []interface{}{},
-	}, []interface{}{&totalControlled})
+		Params: []any{},
+	}, []any{&totalControlled})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantleLSPStakingABI,
 		Target: MantleLSPStaking,
 		Method: mantleLSPStakingMethodMaximumMETHSupply,
-		Params: []interface{}{},
-	}, []interface{}{&maximumMETHSupply})
+		Params: []any{},
+	}, []any{&maximumMETHSupply})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    methABI,
 		Target: METH,
 		Method: mETHMethodTotalSupply,
-		Params: []interface{}{},
-	}, []interface{}{&mETHTotalSupply})
+		Params: []any{},
+	}, []any{&mETHTotalSupply})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

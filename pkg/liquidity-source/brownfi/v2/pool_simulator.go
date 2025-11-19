@@ -175,7 +175,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.limits[indexOut] = new(uint256.Int).Sub(s.limits[indexOut], amtOut)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		ApprovalInfo: s.approvalInfo,
 		Fee:          s.fee.Uint64(),

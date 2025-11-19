@@ -88,7 +88,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			Target: poolItems[i].ID,
 			Method: poolMethodSwapStorage,
 			Params: nil,
-		}, []interface{}{&swapStorages[i]})
+		}, []any{&swapStorages[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to try aggregate call with error %v", err)

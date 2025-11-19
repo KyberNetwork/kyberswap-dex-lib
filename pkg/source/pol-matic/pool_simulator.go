@@ -87,6 +87,6 @@ func (s *PoolSimulator) CalcAmountOut(
 func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return nil
 }

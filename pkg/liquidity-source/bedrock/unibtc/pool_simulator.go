@@ -98,7 +98,7 @@ func (s *PoolSimulator) CanSwapFrom(token string) []string {
 	return []string{s.Tokens[len(s.Tokens)-1].Address}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
 	}

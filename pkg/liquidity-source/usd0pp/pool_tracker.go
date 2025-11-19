@@ -74,8 +74,8 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    usd0ppABI,
 		Target: USD0PP,
 		Method: usd0ppMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 	_, err := calls.Call()
 	if err != nil {
 		return p, ErrFailedToGetExtra

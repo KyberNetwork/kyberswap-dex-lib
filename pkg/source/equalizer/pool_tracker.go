@@ -54,28 +54,28 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserve})
+	}, []any{&reserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodStableFee,
 		Params: nil,
-	}, []interface{}{&stableFee})
+	}, []any{&stableFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodVolatileFee,
 		Params: nil,
-	}, []interface{}{&volatileFee})
+	}, []any{&volatileFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: poolFactoryMethodGetRealFee,
-		Params: []interface{}{poolAddress},
-	}, []interface{}{&realFee})
+		Params: []any{poolAddress},
+	}, []any{&realFee})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

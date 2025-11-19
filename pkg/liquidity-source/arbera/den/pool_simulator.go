@@ -121,7 +121,7 @@ func (s *PoolSimulator) Bond(indexIn int, indexOut int, amtIn *uint256.Int) (*ui
 	return tokensMinted.Sub(tokensMinted, feeTokens), feeTokens, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return s.Fee
 }
 

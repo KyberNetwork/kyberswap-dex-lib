@@ -41,7 +41,7 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 			Target: masterAddress,
 			Method: poolMasterMethodPoolsLength,
 			Params: nil,
-		}, []interface{}{&lengthBI[i]})
+		}, []any{&lengthBI[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -88,8 +88,8 @@ func (d *PoolsListUpdater) GetPools(ctx context.Context, metadataBytes []byte, p
 				ABI:    masterABI,
 				Target: d.Config.MasterAddress[i],
 				Method: poolMasterMethodPools,
-				Params: []interface{}{big.NewInt(int64(metadata.Offset[d.Config.MasterAddress[i]] + j))},
-			}, []interface{}{&poolAddresses[k]})
+				Params: []any{big.NewInt(int64(metadata.Offset[d.Config.MasterAddress[i]] + j))},
+			}, []any{&poolAddresses[k]})
 			masterAddresses[k] = d.Config.MasterAddress[i]
 			k++
 		}

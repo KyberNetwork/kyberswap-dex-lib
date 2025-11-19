@@ -64,14 +64,14 @@ func (d *PoolTracker) getPoolReserves(ctx context.Context, p entity.Pool) (entit
 		Target: p.Address,
 		Method: methodTotalPooledEther,
 		Params: nil,
-	}, []interface{}{&totalPooledEther})
+	}, []any{&totalPooledEther})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    stEthABI,
 		Target: p.Address,
 		Method: methodTotalShares,
 		Params: nil,
-	}, []interface{}{&totalShares})
+	}, []any{&totalShares})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{

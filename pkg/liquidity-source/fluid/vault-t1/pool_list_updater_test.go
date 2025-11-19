@@ -24,7 +24,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	var (
 		pools            []entity.Pool
-		metadataBytes, _ = json.Marshal(map[string]interface{}{})
+		metadataBytes, _ = json.Marshal(map[string]any{})
 		err              error
 
 		config = Config{

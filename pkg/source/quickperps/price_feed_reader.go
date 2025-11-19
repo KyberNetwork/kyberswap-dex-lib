@@ -50,7 +50,7 @@ func (r *PriceFeedReader) read(ctx context.Context, address string, priceFeed *P
 		Target: address,
 		Method: priceFeedMethodRead,
 		Params: nil,
-	}, []interface{}{&priceFeedState})
+	}, []any{&priceFeedState})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		return err

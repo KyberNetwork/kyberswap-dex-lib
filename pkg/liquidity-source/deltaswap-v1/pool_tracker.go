@@ -63,10 +63,10 @@ func (t *PoolTracker) getNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		dsFeeInfoTuple          [2]interface{} // dsFee, dsFeeThreshold uint8
+		dsFeeInfoTuple          [2]any // dsFee, dsFeeThreshold uint8
 		reservesResult          uniswapv2.ReserveData
-		tradeLiquidityEMAParams [3]interface{} // tradeLiquidityEMA, lastTradeLiquiditySum uint112, lastTradeBlockNumber uint32
-		liquidityEMA            [2]interface{} // liquidityEMA uint112, lastLiquidityBlockNumber uint32
+		tradeLiquidityEMAParams [3]any // tradeLiquidityEMA, lastTradeLiquiditySum uint112, lastTradeBlockNumber uint32
+		liquidityEMA            [2]any // liquidityEMA uint112, lastLiquidityBlockNumber uint32
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -78,22 +78,22 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    deltaSwapV1FactoryABI,
 		Target: t.config.FactoryAddress,
 		Method: factoryMethodDsFeeInfo,
-	}, []interface{}{&dsFeeInfoTuple})
+	}, []any{&dsFeeInfoTuple})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
-	}, []interface{}{&reservesResult})
+	}, []any{&reservesResult})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
 		Method: factoryMethodGetTradeLiquidityEMAParams,
-	}, []interface{}{&tradeLiquidityEMAParams})
+	}, []any{&tradeLiquidityEMAParams})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    deltaSwapV1PairABI,
 		Target: p.Address,
 		Method: factoryMethodGetLiquidityEMA,
-	}, []interface{}{&liquidityEMA})
+	}, []any{&liquidityEMA})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

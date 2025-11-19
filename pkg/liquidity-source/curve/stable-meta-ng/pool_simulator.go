@@ -314,7 +314,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	if fromId >= 0 && toId >= 0 {

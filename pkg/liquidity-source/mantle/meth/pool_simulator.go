@@ -114,7 +114,7 @@ func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) (*uint256.Int, error)
 	return amountOut, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
 	}

@@ -113,7 +113,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
-	}, []interface{}{&allPairsLength})
+	}, []any{&allPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return 0, err
@@ -149,8 +149,8 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 			ABI:    uniswapV2FactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodGetPair,
-			Params: []interface{}{index},
-		}, []interface{}{&listPairAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPairAddressesResult[i]})
 	}
 
 	resp, err := listPairAddressesRequest.TryAggregate()
@@ -189,7 +189,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 				ABI:    fewWrappedTokenABI,
 				Target: token0List[i].Hex(),
 				Method: fewWrappedTokenGetTokenMethod,
-			}, []interface{}{&originalToken0})
+			}, []any{&originalToken0})
 
 			originalTokens[token0List[i]] = &originalToken0
 		}
@@ -200,7 +200,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 				ABI:    fewWrappedTokenABI,
 				Target: token1List[i].Hex(),
 				Method: fewWrappedTokenGetTokenMethod,
-			}, []interface{}{&originalToken1})
+			}, []any{&originalToken1})
 
 			originalTokens[token1List[i]] = &originalToken1
 		}
@@ -275,14 +275,14 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken0,
 			Params: nil,
-		}, []interface{}{&listToken0Result[i]})
+		}, []any{&listToken0Result[i]})
 
 		listTokensRequest.AddCall(&ethrpc.Call{
 			ABI:    uniswapV2PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken1,
 			Params: nil,
-		}, []interface{}{&listToken1Result[i]})
+		}, []any{&listToken1Result[i]})
 	}
 
 	if _, err := listTokensRequest.Aggregate(); err != nil {

@@ -141,32 +141,32 @@ func getExtra(
 		ABI:    tellerABI,
 		Target: teller,
 		Method: tellerMethodIsPaused,
-	}, []interface{}{&isTellerPaused})
+	}, []any{&isTellerPaused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    tellerABI,
 		Target: teller,
 		Method: tellerMethodShareLockPeriod,
-	}, []interface{}{&shareLockPeriod})
+	}, []any{&shareLockPeriod})
 	for i := range tokens {
 		tokenAddress := common.HexToAddress(tokens[i].Address)
 		calls.AddCall(&ethrpc.Call{
 			ABI:    tellerABI,
 			Target: teller,
-			Params: []interface{}{tokenAddress},
+			Params: []any{tokenAddress},
 			Method: tellerMethodAssetData,
-		}, []interface{}{&assetData[i]})
+		}, []any{&assetData[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    accountantABI,
 			Target: accountant,
-			Params: []interface{}{tokenAddress},
+			Params: []any{tokenAddress},
 			Method: accountantMethodRateProviderData,
-		}, []interface{}{&rateProviderData[i]})
+		}, []any{&rateProviderData[i]})
 	}
 	calls.AddCall(&ethrpc.Call{
 		ABI:    accountantABI,
 		Target: accountant,
 		Method: accountantMethodAccountantState,
-	}, []interface{}{&accountantState})
+	}, []any{&accountantState})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

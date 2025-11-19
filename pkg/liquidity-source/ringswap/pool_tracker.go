@@ -134,19 +134,19 @@ func (d *PoolTracker) getReserves(
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
 		Target: originalToken0.Address,
 		Method: pairMethodBalanceOf,
-		Params: []interface{}{common.HexToAddress(fwToken0.Address)},
-	}, []interface{}{&originalReserve0})
+		Params: []any{common.HexToAddress(fwToken0.Address)},
+	}, []any{&originalReserve0})
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
 		Target: originalToken1.Address,
 		Method: pairMethodBalanceOf,
-		Params: []interface{}{common.HexToAddress(fwToken1.Address)},
-	}, []interface{}{&originalReserve1})
+		Params: []any{common.HexToAddress(fwToken1.Address)},
+	}, []any{&originalReserve1})
 
 	resp, err := getReservesRequest.Aggregate()
 	if err != nil {

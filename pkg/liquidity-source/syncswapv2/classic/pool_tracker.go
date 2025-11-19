@@ -55,39 +55,39 @@ func (d *PoolTracker) GetNewPoolState(
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[0].Address),
 			common.HexToAddress(p.Tokens[1].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee0To1})
+	}, []any{&swapFee0To1})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[1].Address),
 			common.HexToAddress(p.Tokens[0].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee1To0})
+	}, []any{&swapFee1To0})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodVault,
 		Params: nil,
-	}, []interface{}{&vaultAddress})
+	}, []any{&vaultAddress})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

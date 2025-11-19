@@ -51,154 +51,154 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Target: p.Address,
 		Method: poolMethodA,
 		Params: nil,
-	}, []interface{}{&a})
+	}, []any{&a})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodD,
 		Params: nil,
-	}, []interface{}{&dExtra})
+	}, []any{&dExtra})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodGamma,
 		Params: nil,
-	}, []interface{}{&gamma})
+	}, []any{&gamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodFeeGamma,
 		Params: nil,
-	}, []interface{}{&feeGamma})
+	}, []any{&feeGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodMidFee,
 		Params: nil,
-	}, []interface{}{&midFee})
+	}, []any{&midFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodOutFee,
 		Params: nil,
-	}, []interface{}{&outFee})
+	}, []any{&outFee})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodFutureAGammaTime,
 		Params: nil,
-	}, []interface{}{&futureAGammaTime})
+	}, []any{&futureAGammaTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 		Params: nil,
-	}, []interface{}{&futureA})
+	}, []any{&futureA})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodFutureGamma,
 		Params: nil,
-	}, []interface{}{&futureGamma})
+	}, []any{&futureGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodInitialAGammaTime,
 		Params: nil,
-	}, []interface{}{&initialAGammaTime})
+	}, []any{&initialAGammaTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodInitialA,
 		Params: nil,
-	}, []interface{}{&initialA})
+	}, []any{&initialA})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodInitialGamma,
 		Params: nil,
-	}, []interface{}{&initialGamma})
+	}, []any{&initialGamma})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodLastPricesTimestamp,
 		Params: nil,
-	}, []interface{}{&lastPriceTimestamp})
+	}, []any{&lastPriceTimestamp})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodXcpProfit,
 		Params: nil,
-	}, []interface{}{&xcpProfit})
+	}, []any{&xcpProfit})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodVirtualPrice,
 		Params: nil,
-	}, []interface{}{&virtualPrice})
+	}, []any{&virtualPrice})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodAllowedExtraProfit,
 		Params: nil,
-	}, []interface{}{&allowedExtraProfit})
+	}, []any{&allowedExtraProfit})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodAdjustmentStep,
 		Params: nil,
-	}, []interface{}{&adjustmentStep})
+	}, []any{&adjustmentStep})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodMaHalfTime,
 		Params: nil,
-	}, []interface{}{&maHalfTime})
+	}, []any{&maHalfTime})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodPriceScale,
 		Params: nil,
-	}, []interface{}{&priceScale})
+	}, []any{&priceScale})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodPriceOracle,
 		Params: nil,
-	}, []interface{}{&priceOracle})
+	}, []any{&priceOracle})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodLastPrices,
 		Params: nil,
-	}, []interface{}{&lastPrices})
+	}, []any{&lastPrices})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    cryptoSwap2PoolABI,
 		Target: p.Address,
 		Method: poolMethodMinRemainingPostRebalanceRatio,
 		Params: nil,
-	}, []interface{}{&minRemainingPostRebalanceRatio})
+	}, []any{&minRemainingPostRebalanceRatio})
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {
@@ -207,7 +207,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 			Target: lpToken,
 			Method: erc20MethodTotalSupply,
 			Params: nil,
-		}, []interface{}{&lpSupply})
+		}, []any{&lpSupply})
 	}
 
 	for i := range p.Tokens {
@@ -215,8 +215,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 			ABI:    cryptoSwap2PoolABI,
 			Target: p.Address,
 			Method: poolMethodBalances,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

@@ -52,7 +52,7 @@ func (h *RFQHandler) getAttestations(ctx context.Context) ([]Attestation, error)
 		return h.latestAttestations, nil
 	}
 
-	_, err, _ := h.g.Do("rfqAttestations", func() (interface{}, error) {
+	_, err, _ := h.g.Do("rfqAttestations", func() (any, error) {
 		var resp AttestationsResponse
 
 		_, err := h.httpClient.R().

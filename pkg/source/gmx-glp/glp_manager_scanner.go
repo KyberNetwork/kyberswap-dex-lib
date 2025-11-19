@@ -35,19 +35,19 @@ func (g *GlpManagerScanner) getGlpManager(ctx context.Context, address string) (
 		Target: address,
 		Method: glpManagerMethodGlp,
 		Params: nil,
-	}, []interface{}{&glp})
+	}, []any{&glp})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    glpManagerABI,
 		Target: address,
 		Method: glpManagerMethodGetAumInUsdg,
-		Params: []interface{}{true},
-	}, []interface{}{&maximiseAumInUsdg})
+		Params: []any{true},
+	}, []any{&maximiseAumInUsdg})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    glpManagerABI,
 		Target: address,
 		Method: glpManagerMethodGetAumInUsdg,
-		Params: []interface{}{false},
-	}, []interface{}{&notMaximiseAumInUsdg})
+		Params: []any{false},
+	}, []any{&notMaximiseAumInUsdg})
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("error when call aggreate request: %s", err)
 		return nil, err
@@ -58,7 +58,7 @@ func (g *GlpManagerScanner) getGlpManager(ctx context.Context, address string) (
 		Target: glp.Hex(),
 		Method: erc20MethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&glpTotalSupply}).Call(); err != nil {
+	}, []any{&glpTotalSupply}).Call(); err != nil {
 		logger.Errorf("error when call request: %s", err)
 		return nil, err
 	}

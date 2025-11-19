@@ -86,20 +86,20 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 		ABI:    StakingABI,
 		Target: Staking,
 		Method: StakingMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    StakingABI,
 		Target: Staking,
 		Method: StakingMethodCurrentReserve,
-		Params: []interface{}{},
-	}, []interface{}{&currentReserve})
+		Params: []any{},
+	}, []any{&currentReserve})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RockXETHABI,
 		Target: UNIETH,
 		Method: UniETHMethodTotalSupply,
-		Params: []interface{}{},
-	}, []interface{}{&totalSupply})
+		Params: []any{},
+	}, []any{&totalSupply})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {

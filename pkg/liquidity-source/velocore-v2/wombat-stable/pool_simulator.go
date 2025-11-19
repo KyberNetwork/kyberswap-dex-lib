@@ -136,7 +136,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return Meta{
 		Vault:       t.vault,
 		Wrappers:    t.wrappers,

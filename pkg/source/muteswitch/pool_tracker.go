@@ -51,14 +51,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserve})
+	}, []any{&reserve})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: poolMethodPairFee,
 		Params: nil,
-	}, []interface{}{&pairFee})
+	}, []any{&pairFee})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

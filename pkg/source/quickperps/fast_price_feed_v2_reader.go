@@ -61,15 +61,15 @@ func (r *FastPriceFeedV2Reader) readData(ctx context.Context, address string, fa
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2DisableFastPriceVoteCount, nil), []interface{}{&fastPriceFeed.DisableFastPriceVoteCount})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2IsSpreadEnabled, nil), []interface{}{&fastPriceFeed.IsSpreadEnabled})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2LastUpdatedAt, nil), []interface{}{&fastPriceFeed.LastUpdatedAt})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxDeviationBasisPoints, nil), []interface{}{&fastPriceFeed.MaxDeviationBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MinAuthorizations, nil), []interface{}{&fastPriceFeed.MinAuthorizations})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2PriceDuration, nil), []interface{}{&fastPriceFeed.PriceDuration})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxPriceUpdateDelay, nil), []interface{}{&fastPriceFeed.MaxPriceUpdateDelay})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2SpreadBasisPointsIfChainError, nil), []interface{}{&fastPriceFeed.SpreadBasisPointsIfChainError})
-	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2SpreadBasisPointsIfInactive, nil), []interface{}{&fastPriceFeed.SpreadBasisPointsIfInactive})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2DisableFastPriceVoteCount, nil), []any{&fastPriceFeed.DisableFastPriceVoteCount})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2IsSpreadEnabled, nil), []any{&fastPriceFeed.IsSpreadEnabled})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2LastUpdatedAt, nil), []any{&fastPriceFeed.LastUpdatedAt})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxDeviationBasisPoints, nil), []any{&fastPriceFeed.MaxDeviationBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MinAuthorizations, nil), []any{&fastPriceFeed.MinAuthorizations})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2PriceDuration, nil), []any{&fastPriceFeed.PriceDuration})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxPriceUpdateDelay, nil), []any{&fastPriceFeed.MaxPriceUpdateDelay})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2SpreadBasisPointsIfChainError, nil), []any{&fastPriceFeed.SpreadBasisPointsIfChainError})
+	rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2SpreadBasisPointsIfInactive, nil), []any{&fastPriceFeed.SpreadBasisPointsIfInactive})
 
 	_, err := rpcRequest.TryAggregate()
 	return err
@@ -91,9 +91,9 @@ func (r *FastPriceFeedV2Reader) readTokenData(
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, token := range tokens {
-		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2Prices, []interface{}{common.HexToAddress(token)}), []interface{}{&prices[i]})
-		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxCumulativeDeltaDiffs, []interface{}{common.HexToAddress(token)}), []interface{}{&maxCumulativeDeltaDiffs[i]})
-		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2GetPriceData, []interface{}{common.HexToAddress(token)}), []interface{}{&priceData[i]})
+		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2Prices, []any{common.HexToAddress(token)}), []any{&prices[i]})
+		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2MaxCumulativeDeltaDiffs, []any{common.HexToAddress(token)}), []any{&maxCumulativeDeltaDiffs[i]})
+		rpcRequest.AddCall(callParamsFactory(fastPriceFeedMethodV2GetPriceData, []any{common.HexToAddress(token)}), []any{&priceData[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

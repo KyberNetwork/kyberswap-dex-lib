@@ -103,27 +103,27 @@ func (d *PoolTracker) getPoolData(
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodStableFee,
 			Params: nil,
-		}, []interface{}{&fee})
+		}, []any{&fee})
 	} else {
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodVolatileFee,
 			Params: nil,
-		}, []interface{}{&fee})
+		}, []any{&fee})
 	}
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {

@@ -89,21 +89,21 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			Target: curvePool.Address,
 			Method: poolMethodA,
 			Params: nil,
-		}, []interface{}{&aList[i]})
+		}, []any{&aList[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodAPrecise,
 			Params: nil,
-		}, []interface{}{&aPreciseList[i]})
+		}, []any{&aPreciseList[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curvePlainABI,
 			Target: curvePool.Address,
 			Method: poolMethodOracle,
 			Params: nil,
-		}, []interface{}{&oracleList[i]})
+		}, []any{&oracleList[i]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {

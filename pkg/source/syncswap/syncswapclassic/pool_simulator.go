@@ -195,7 +195,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return syncswap.Meta{
 		VaultAddress: p.vaultAddress,
 	}

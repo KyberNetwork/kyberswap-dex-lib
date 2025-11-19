@@ -208,34 +208,34 @@ func (t *PoolTracker) queryRPC(
 		ABI:    shared.VaultABI,
 		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
-		Params: []interface{}{poolIDHash},
-	}, []interface{}{&poolTokens})
+		Params: []any{poolIDHash},
+	}, []any{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
+	}, []any{&swapFeePercentage})
 
 	if poolTypeVer > poolTypeVer1 {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodGetTokenRates,
-		}, []interface{}{&tokenRates})
+		}, []any{&tokenRates})
 	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetECLPParams,
-	}, []interface{}{&eclpParams})
+	}, []any{&eclpParams})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
-	}, []interface{}{&pausedState})
+	}, []any{&pausedState})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {

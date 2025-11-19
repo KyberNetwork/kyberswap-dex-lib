@@ -71,7 +71,7 @@ func (s *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMeta{
 		BlockNumber:     s.Info.BlockNumber,
 		ApprovalAddress: s.GetApprovalAddress(tokenIn, tokenOut),

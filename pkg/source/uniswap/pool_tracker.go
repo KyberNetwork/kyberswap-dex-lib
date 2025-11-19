@@ -92,7 +92,7 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	_, err := rpcRequest.Call()
 	if err != nil {

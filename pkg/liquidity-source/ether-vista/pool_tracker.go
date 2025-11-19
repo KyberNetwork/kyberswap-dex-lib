@@ -147,25 +147,25 @@ func (d *PoolTracker) getRPCState(
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: poolAddress,
 		Method: pairMethodBuyTotalFee,
 		Params: nil,
-	}, []interface{}{&buyTotalFee})
+	}, []any{&buyTotalFee})
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: poolAddress,
 		Method: pairMethodSellTotalFee,
 		Params: nil,
-	}, []interface{}{&sellTotalFee})
+	}, []any{&sellTotalFee})
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodRouter,
 		Params: nil,
-	}, []interface{}{&routerAddress})
+	}, []any{&routerAddress})
 
 	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -186,14 +186,14 @@ func (d *PoolTracker) getRPCState(
 		ABI:    routerABI,
 		Target: routerAddress.Hex(),
 		Method: routerMethodUSDCToEth,
-		Params: []interface{}{big.NewInt(int64(buyTotalFee))},
-	}, []interface{}{&usdcToETHBuyTotalFee})
+		Params: []any{big.NewInt(int64(buyTotalFee))},
+	}, []any{&usdcToETHBuyTotalFee})
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    routerABI,
 		Target: routerAddress.Hex(),
 		Method: routerMethodUSDCToEth,
-		Params: []interface{}{big.NewInt(int64(sellTotalFee))},
-	}, []interface{}{&usdcToETHSellTotalFee})
+		Params: []any{big.NewInt(int64(sellTotalFee))},
+	}, []any{&usdcToETHSellTotalFee})
 
 	_, err = rpcRequest.TryBlockAndAggregate()
 	if err != nil {

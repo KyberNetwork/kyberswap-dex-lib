@@ -76,19 +76,19 @@ func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData
 		Target: address,
 		Method: bPoolMethodGetCurrentTokens,
 		Params: nil,
-	}, []interface{}{&tokenAddresses})
+	}, []any{&tokenAddresses})
 	getPoolRequest.AddCall(&ethrpc.Call{
 		ABI:    bPoolABI,
 		Target: address,
 		Method: bPoolMethodGetSwapFee,
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 	getPoolRequest.AddCall(&ethrpc.Call{
 		ABI:    bPoolABI,
 		Target: address,
 		Method: bPoolMethodIsPublicSwap,
 		Params: nil,
-	}, []interface{}{&isPublicSwap})
+	}, []any{&isPublicSwap})
 
 	resp, err := getPoolRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -106,20 +106,20 @@ func (t *PoolTracker) getPoolData(ctx context.Context, address string) (PoolData
 			ABI:    bPoolABI,
 			Target: address,
 			Method: bPoolMethodIsBound,
-			Params: []interface{}{token},
-		}, []interface{}{&boundList[i]})
+			Params: []any{token},
+		}, []any{&boundList[i]})
 		getPoolRecordsRequest.AddCall(&ethrpc.Call{
 			ABI:    bPoolABI,
 			Target: address,
 			Method: bPoolMethodGetBalance,
-			Params: []interface{}{token},
-		}, []interface{}{&balanceList[i]})
+			Params: []any{token},
+		}, []any{&balanceList[i]})
 		getPoolRecordsRequest.AddCall(&ethrpc.Call{
 			ABI:    bPoolABI,
 			Target: address,
 			Method: bPoolMethodGetDenormalizedWeight,
-			Params: []interface{}{token},
-		}, []interface{}{&denormList[i]})
+			Params: []any{token},
+		}, []any{&denormList[i]})
 	}
 
 	resp, err = getPoolRecordsRequest.TryBlockAndAggregate()

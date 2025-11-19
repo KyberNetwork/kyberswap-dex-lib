@@ -162,7 +162,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,

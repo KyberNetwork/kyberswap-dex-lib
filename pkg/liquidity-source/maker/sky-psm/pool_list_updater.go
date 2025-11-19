@@ -49,11 +49,11 @@ func (u *PoolListUpdater) GetNewPools(_ context.Context, metadataBytes []byte) (
 		ABI:    psm3ABI,
 		Target: u.config.PsmAddress,
 		Method: psm3MethodRateProvider,
-	}, []interface{}{&rateProvider}).AddCall(&ethrpc.Call{
+	}, []any{&rateProvider}).AddCall(&ethrpc.Call{
 		ABI:    psm3ABI,
 		Target: u.config.PsmAddress,
 		Method: psm3MethodPocket,
-	}, []interface{}{&pocket}).Aggregate(); err != nil {
+	}, []any{&pocket}).Aggregate(); err != nil {
 		return nil, nil, err
 	}
 

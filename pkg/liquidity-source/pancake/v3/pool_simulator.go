@@ -290,7 +290,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	zeroForOne := strings.EqualFold(tokenIn, hexutil.Encode(p.V3Pool.Token0.Address[:]))
 	var priceLimit v3Utils.Uint160
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)

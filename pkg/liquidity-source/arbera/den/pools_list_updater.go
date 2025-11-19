@@ -81,7 +81,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.IndexManager,
 		Method: "allIndexes",
 		Params: nil,
-	}, []interface{}{&indexes})
+	}, []any{&indexes})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -123,7 +123,7 @@ func InitPools(ctx context.Context, addresses []string, cfg *Config, rpcClient *
 			Target: address,
 			Method: "getAllAssets",
 			Params: nil,
-		}, []interface{}{&poolStates[i].Assets})
+		}, []any{&poolStates[i].Assets})
 	}
 	_, err := req.Aggregate()
 	if err != nil {
@@ -190,21 +190,21 @@ func TrackPools(ctx context.Context, pools []entity.Pool, rpcClient *ethrpc.Clie
 				ABI:    weightedIndexABI,
 				Target: asset.Address,
 				Method: "balanceOf",
-				Params: []interface{}{common.HexToAddress(pool.Address)},
-			}, []interface{}{&poolStates[i].AssetSupplies[j]})
+				Params: []any{common.HexToAddress(pool.Address)},
+			}, []any{&poolStates[i].AssetSupplies[j]})
 		}
 		req.AddCall(&ethrpc.Call{
 			ABI:    weightedIndexABI,
 			Target: pool.Address,
 			Method: "totalSupply",
 			Params: nil,
-		}, []interface{}{&poolStates[i].Supply})
+		}, []any{&poolStates[i].Supply})
 		req.AddCall(&ethrpc.Call{
 			ABI:    weightedIndexABI,
 			Target: pool.Address,
 			Method: "fees",
 			Params: nil,
-		}, []interface{}{&poolStates[i].Fee})
+		}, []any{&poolStates[i].Fee})
 	}
 
 	_, err := req.Aggregate()

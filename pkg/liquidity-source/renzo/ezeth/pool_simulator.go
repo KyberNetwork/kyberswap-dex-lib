@@ -133,7 +133,7 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	s.totalSupply.Add(s.totalSupply, param.TokenAmountOut.Amount)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
 	}

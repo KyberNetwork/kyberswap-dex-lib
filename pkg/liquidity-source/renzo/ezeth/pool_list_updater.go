@@ -103,7 +103,7 @@ func getExtra(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (PoolExtra, uint64, error) {
 	var (
-		calculateTVLsResult [3]interface{}
+		calculateTVLsResult [3]any
 		calculateTVLs       struct {
 			OperatorDelegatorTokenTVLs [][]*big.Int
 			OperatorDelegatorTVLs      []*big.Int
@@ -127,44 +127,44 @@ func getExtra(
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
 		Method: RestakeManagerMethodCalculateTVLs,
-		Params: []interface{}{},
-	}, []interface{}{&calculateTVLsResult})
+		Params: []any{},
+	}, []any{&calculateTVLsResult})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
 		Method: RestakeManagerMethodGetCollateralTokensLength,
-		Params: []interface{}{},
-	}, []interface{}{&collateralTokenLength})
+		Params: []any{},
+	}, []any{&collateralTokenLength})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    EzETHTokenABI,
 		Target: EzEthToken,
 		Method: EzEthTokenMethodTotalSupply,
-		Params: []interface{}{},
-	}, []interface{}{&totalSupply})
+		Params: []any{},
+	}, []any{&totalSupply})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
 		Method: RestakeManagerMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
 		Method: RestakeManagerMethodRenzoOracle,
-		Params: []interface{}{},
-	}, []interface{}{&renzoOracle})
+		Params: []any{},
+	}, []any{&renzoOracle})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
 		Method: RestakeManagerMethodGetOperatorDelegatorsLength,
-		Params: []interface{}{},
-	}, []interface{}{&operatorDelegatorsLength})
+		Params: []any{},
+	}, []any{&operatorDelegatorsLength})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    StrategyManagerABI,
 		Target: StrategyManager,
 		Method: StrategyManagerMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&strategyManagerPaused})
+		Params: []any{},
+	}, []any{&strategyManagerPaused})
 
 	resp, err := getPoolStateRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -190,8 +190,8 @@ func getExtra(
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
 			Method: RestakeManagerMethodCollateralTokens,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&collaterals[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&collaterals[i]})
 	}
 	resp, err = getCollateralsRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -216,22 +216,22 @@ func getExtra(
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
 			Method: RestakeManagerMethodOperatorDelegators,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&operatorDelegators[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&operatorDelegators[i]})
 	}
 	for i := 0; i < len(collaterals); i++ {
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RenzoOracleABI,
 			Target: renzoOracle.Hex(),
 			Method: RenzoOracleMethodTokenOracleLookUp,
-			Params: []interface{}{collaterals[i]},
-		}, []interface{}{&tokenOracleAddresses[i]})
+			Params: []any{collaterals[i]},
+		}, []any{&tokenOracleAddresses[i]})
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
 			Method: RestakeManagerMethodCollateralTokenTvlLimits,
-			Params: []interface{}{collaterals[i]},
-		}, []interface{}{&collateralTokenTvlLimits[i]})
+			Params: []any{collaterals[i]},
+		}, []any{&collateralTokenTvlLimits[i]})
 	}
 	resp, err = operatorDelegatorsRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -255,8 +255,8 @@ func getExtra(
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
 			Method: RestakeManagerMethodOperatorDelegatorAllocations,
-			Params: []interface{}{operatorDelegators[i]},
-		}, []interface{}{&operatorDelegatorAllocations[i]})
+			Params: []any{operatorDelegators[i]},
+		}, []any{&operatorDelegatorAllocations[i]})
 	}
 
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
@@ -266,8 +266,8 @@ func getExtra(
 				ABI:    OperatorDelegatorABI,
 				Target: operatorDelegators[i].String(),
 				Method: OperatorDelegatorMethodTokenStrategyMapping,
-				Params: []interface{}{collaterals[j]},
-			}, []interface{}{&tokenStrategies[i][j]})
+				Params: []any{collaterals[j]},
+			}, []any{&tokenStrategies[i][j]})
 		}
 	}
 
@@ -276,8 +276,8 @@ func getExtra(
 			ABI:    TokenOracleABI,
 			Target: tokenOracleAddresses[i].String(),
 			Method: TokenOracleMethodLatestRoundData,
-			Params: []interface{}{},
-		}, []interface{}{&oracleInfo[i]})
+			Params: []any{},
+		}, []any{&oracleInfo[i]})
 	}
 
 	resp, err = operatorDelegatorInfoRequest.TryBlockAndAggregate()

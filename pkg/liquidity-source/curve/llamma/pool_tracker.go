@@ -117,13 +117,13 @@ func (t *PoolTracker) GetNewPoolState(
 		ABI:    shared.ERC20ABI,
 		Target: p.Tokens[0].Address,
 		Method: shared.ERC20MethodBalanceOf,
-		Params: []interface{}{common.HexToAddress(p.Address)},
+		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&balances[0]})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    shared.ERC20ABI,
 		Target: p.Tokens[1].Address,
 		Method: shared.ERC20MethodBalanceOf,
-		Params: []interface{}{common.HexToAddress(p.Address)},
+		Params: []any{common.HexToAddress(p.Address)},
 	}, []any{&balances[1]})
 	resp, err := calls.Aggregate()
 	if err != nil {
@@ -199,13 +199,13 @@ func (t *PoolTracker) getBands(
 			ABI:    CurveLlammaABI,
 			Target: poolAddress,
 			Method: llammaMethodBandsX,
-			Params: []interface{}{bandIndex},
+			Params: []any{bandIndex},
 		}, []any{&bandsX[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    CurveLlammaABI,
 			Target: poolAddress,
 			Method: llammaMethodBandsY,
-			Params: []interface{}{bandIndex},
+			Params: []any{bandIndex},
 		}, []any{&bandsY[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {

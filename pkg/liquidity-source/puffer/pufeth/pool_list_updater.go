@@ -95,29 +95,29 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 		ABI:    pufferVaultABI,
 		Target: PUFETH,
 		Method: PufferVaultMethodTotalSupply,
-		Params: []interface{}{},
-	}, []interface{}{&totalSupply})
+		Params: []any{},
+	}, []any{&totalSupply})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    pufferVaultABI,
 		Target: PUFETH,
 		Method: PufferVaultMethodTotalAssets,
-		Params: []interface{}{},
-	}, []interface{}{&totalAssets})
+		Params: []any{},
+	}, []any{&totalAssets})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    lidoABI,
 		Target: STETH,
 		Method: LidoMethodGetTotalShares,
-		Params: []interface{}{},
-	}, []interface{}{&totalShares})
+		Params: []any{},
+	}, []any{&totalShares})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    lidoABI,
 		Target: STETH,
 		Method: LidoMethodGetTotalPooledEther,
-		Params: []interface{}{},
-	}, []interface{}{&totalPooledEther})
+		Params: []any{},
+	}, []any{&totalPooledEther})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {
