@@ -1,0 +1,102 @@
+package cloberob
+
+import (
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/goccy/go-json"
+
+	abis "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/abi"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clober-ob/libraries"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool/poolfactory"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+var _ = poolfactory.RegisterFactoryC(DexType, NewPoolFactory)
+
+type PoolFactory struct {
+	config              *Config
+	bookCreatedEventIds map[common.Hash]struct{}
+}
+
+func NewPoolFactory(config *Config) *PoolFactory {
+	return &PoolFactory{
+		config: config,
+		bookCreatedEventIds: map[common.Hash]struct{}{
+			bookManagerABI.Events["Open"].ID: {},
+		},
+	}
+}
+
+func (f *PoolFactory) DecodePoolCreated(event types.Log) (*entity.Pool, error) {
+	p, err := bookManagerFilterer.ParseOpen(event)
+	if err != nil {
+		return nil, err
+	}
+
+	return f.newPool(p, event.BlockNumber)
+}
+
+func (f *PoolFactory) IsEventSupported(event common.Hash) bool {
+	_, ok := f.bookCreatedEventIds[event]
+	return ok
+}
+
+func DecodePoolAddress(log types.Log) (string, error) {
+	if len(log.Topics) == 0 || eth.IsZeroAddress(log.Address) {
+		return "", nil
+	}
+
+	switch log.Topics[0] {
+	case bookManagerABI.Events["Open"].ID,
+		bookManagerABI.Events["Make"].ID,
+		bookManagerABI.Events["Take"].ID:
+		if len(log.Topics) < 2 {
+			break
+		}
+		return hexutil.Encode(log.Topics[1][:]), nil
+	case bookManagerABI.Events["Claim"].ID,
+		bookManagerABI.Events["Cancel"].ID:
+		// decode
+	}
+
+	return "", nil
+}
+
+func (f *PoolFactory) newPool(p *abis.BookManagerOpen, blockNumber uint64) (*entity.Pool, error) {
+	staticExtraBytes, err := json.Marshal(StaticExtra{
+		UnitSize:    p.UnitSize,
+		MakerPolicy: cloberlib.FeePolicy(p.MakerPolicy.Uint64()),
+		TakerPolicy: cloberlib.FeePolicy(p.TakerPolicy.Uint64()),
+		Hooks:       p.Hooks,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &entity.Pool{
+		Address:   p.Id.String(),
+		Exchange:  GetExchangeByHook(p.Hooks),
+		Type:      DexType,
+		Timestamp: time.Now().Unix(),
+		Reserves:  entity.PoolReserves{"0", "0"},
+		Tokens: []*entity.PoolToken{
+			{
+				Address:   valueobject.ZeroToWrappedLower(p.Base.String(), f.config.ChainId),
+				Swappable: true,
+			},
+			{
+				Address:   valueobject.ZeroToWrappedLower(p.Base.String(), f.config.ChainId),
+				Swappable: true,
+			},
+		},
+		Extra:       "{}",
+		StaticExtra: string(staticExtraBytes),
+		BlockNumber: blockNumber,
+	}, nil
+}

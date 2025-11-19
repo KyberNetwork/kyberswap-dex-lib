@@ -163,6 +163,10 @@ func MulDivDown(res, x, y, denominator *uint256.Int) *uint256.Int {
 	return res
 }
 
+func MulDivRounding(res, x, y, denominator *uint256.Int, roundingUp bool) *uint256.Int {
+	return lo.Ternary(roundingUp, MulDivUp, MulDivDown)(res, x, y, denominator)
+}
+
 // MulWadUp multiplies x and y, then divides by BONE, rounding up, and stores the result in res.
 func MulWadUp(res, x, y *uint256.Int) *uint256.Int {
 	return MulDivUp(res, x, y, BONE)
