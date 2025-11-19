@@ -124,7 +124,9 @@ func (d *PoolTracker) updatePool(p entity.Pool, reserveData ReserveData, fee uin
 	}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber.Uint64()
-	p.Timestamp = int64(reserveData.BlockTimestampLast)
+
+	// Keep pool listing timestamp if reserves unchanged since pool creation
+	p.Timestamp = max(p.Timestamp, int64(reserveData.BlockTimestampLast))
 
 	return p, nil
 }
