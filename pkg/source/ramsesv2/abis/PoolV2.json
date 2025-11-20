@@ -222,24 +222,24 @@
   {
     "inputs": [
       {
-        "internalType": "uint32",
+        "internalType": "uint8",
         "name": "feeProtocol0Old",
-        "type": "uint32"
+        "type": "uint8"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint8",
         "name": "feeProtocol1Old",
-        "type": "uint32"
+        "type": "uint8"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint8",
         "name": "feeProtocol0New",
-        "type": "uint32"
+        "type": "uint8"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint8",
         "name": "feeProtocol1New",
-        "type": "uint32"
+        "type": "uint8"
       }
     ],
     "name": "SetFeeProtocol",

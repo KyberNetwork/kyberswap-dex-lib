@@ -31,7 +31,7 @@ var (
 
 // V2PoolMetaData contains all meta data concerning the V2Pool contract.
 var V2PoolMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"Collect\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"CollectProtocol\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"paid1\",\"type\":\"uint256\"}],\"name\":\"Flash\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextOld\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextNew\",\"type\":\"uint16\"}],\"name\":\"IncreaseObservationCardinalityNext\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Initialize\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol0Old\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol1Old\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol0New\",\"type\":\"uint8\"},{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"feeProtocol1New\",\"type\":\"uint8\"}],\"name\":\"SetFeeProtocol\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"},{\"indexed\":false,\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"indexed\":false,\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"indexed\":false,\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"boostInfos\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"totalBoostAmount\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"totalVeRamAmount\",\"type\":\"int128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"bytes32\",\"name\":\"key\",\"type\":\"bytes32\"}],\"name\":\"boostInfos\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"boostAmount\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"veRamAmount\",\"type\":\"int128\"},{\"internalType\":\"int256\",\"name\":\"secondsDebtX96\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"boostedSecondsDebtX96\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"boostedLiquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"veRamTokenId\",\"type\":\"uint256\"}],\"name\":\"burn\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collect\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collect\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint128\",\"name\":\"amount0Requested\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1Requested\",\"type\":\"uint128\"}],\"name\":\"collectProtocol\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentFee\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fee\",\"outputs\":[{\"internalType\":\"uint24\",\"name\":\"\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal0X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal1X128\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"flash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"}],\"name\":\"increaseObservationCardinalityNext\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_nfpManager\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_veRam\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_voter\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token0\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_token1\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"_fee\",\"type\":\"uint24\"},{\"internalType\":\"int24\",\"name\":\"_tickSpacing\",\"type\":\"int24\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastPeriod\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxLiquidityPerTick\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"veRamTokenId\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"mint\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"nfpManager\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"observations\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"blockTimestamp\",\"type\":\"uint32\"},{\"internalType\":\"int56\",\"name\":\"tickCumulative\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityCumulativeX128\",\"type\":\"uint160\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityPeriodX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"}],\"name\":\"observe\",\"outputs\":[{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerBoostedLiquidityPeriodX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"period\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"periodCumulativesInside\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityInsideX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"periods\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"previousPeriod\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"startTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"lastTick\",\"type\":\"int24\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerLiquidityPeriodX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerBoostedLiquidityPeriodX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"boostedInRange\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodDebt\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"secondsDebtX96\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"boostedSecondsDebtX96\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodSecondsInRange\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"periodSecondsInsideX96\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"periodBoostedSecondsInsideX96\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"key\",\"type\":\"bytes32\"}],\"name\":\"positions\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside0LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside1LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed1\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"attachedVeRamId\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"protocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"token0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"token1\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"slots\",\"type\":\"bytes32[]\"}],\"name\":\"readStorage\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"returnData\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint24\",\"name\":\"_fee\",\"type\":\"uint24\"}],\"name\":\"setFee\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"setFeeProtocol\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"slot0\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"observationIndex\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinality\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"},{\"internalType\":\"uint8\",\"name\":\"feeProtocol\",\"type\":\"uint8\"},{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"snapshotCumulativesInside\",\"outputs\":[{\"internalType\":\"int56\",\"name\":\"tickCumulativeInside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsInside\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"zeroForOne\",\"type\":\"bool\"},{\"internalType\":\"int256\",\"name\":\"amountSpecified\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceLimitX96\",\"type\":\"uint160\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"swap\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"tick\",\"type\":\"int16\"}],\"name\":\"tickBitmap\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickSpacing\",\"outputs\":[{\"internalType\":\"int24\",\"name\":\"\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"ticks\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"liquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint128\",\"name\":\"boostedLiquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"boostedLiquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside0X128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside1X128\",\"type\":\"uint256\"},{\"internalType\":\"int56\",\"name\":\"tickCumulativeOutside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityOutsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsOutside\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token0\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token1\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"veRam\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"voter\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Burn\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"Collect\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint128\",\"name\":\"amount0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"amount1\",\"type\":\"uint128\"}],\"name\":\"CollectProtocol\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"paid0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"paid1\",\"type\":\"uint256\"}],\"name\":\"Flash\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextOld\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNextNew\",\"type\":\"uint16\"}],\"name\":\"IncreaseObservationCardinalityNext\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Initialize\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"indexed\":true,\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"},{\"internalType\":\"uint128\",\"name\":\"amount\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"amount0\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount1\",\"type\":\"uint256\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"feeProtocol0Old\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"feeProtocol1Old\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"feeProtocol0New\",\"type\":\"uint8\"},{\"internalType\":\"uint8\",\"name\":\"feeProtocol1New\",\"type\":\"uint8\"}],\"name\":\"SetFeeProtocol\",\"type\":\"event\"},{\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"int256\",\"name\":\"amount0\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"amount1\",\"type\":\"int256\"},{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"Swap\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fee\",\"outputs\":[{\"internalType\":\"uint24\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal0X128\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"feeGrowthGlobal1X128\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastPeriod\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"liquidity\",\"outputs\":[{\"internalType\":\"uint128\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"maxLiquidityPerTick\",\"outputs\":[{\"internalType\":\"uint128\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"}],\"name\":\"observations\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"blockTimestamp\",\"type\":\"uint32\"},{\"internalType\":\"int56\",\"name\":\"tickCumulative\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityCumulativeX128\",\"type\":\"uint160\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityPeriodX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32[]\",\"name\":\"secondsAgos\",\"type\":\"uint32[]\"}],\"name\":\"observe\",\"outputs\":[{\"internalType\":\"int56[]\",\"name\":\"tickCumulatives\",\"type\":\"int56[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerLiquidityCumulativeX128s\",\"type\":\"uint160[]\"},{\"internalType\":\"uint160[]\",\"name\":\"secondsPerBoostedLiquidityPeriodX128s\",\"type\":\"uint160[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint32\",\"name\":\"period\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"periodCumulativesInside\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityInsideX128\",\"type\":\"uint160\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"periods\",\"outputs\":[{\"internalType\":\"uint32\",\"name\":\"previousPeriod\",\"type\":\"uint32\"},{\"internalType\":\"int24\",\"name\":\"startTick\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"lastTick\",\"type\":\"int24\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerLiquidityPeriodX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"endSecondsPerBoostedLiquidityPeriodX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"boostedInRange\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodDebt\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"secondsDebtX96\",\"type\":\"int256\"},{\"internalType\":\"int256\",\"name\":\"boostedSecondsDebtX96\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"index\",\"type\":\"uint256\"},{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"positionPeriodSecondsInRange\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"periodSecondsInsideX96\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"periodBoostedSecondsInsideX96\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"key\",\"type\":\"bytes32\"}],\"name\":\"positions\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidity\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside0LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthInside1LastX128\",\"type\":\"uint256\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"tokensOwed1\",\"type\":\"uint128\"},{\"internalType\":\"uint256\",\"name\":\"attachedVeRamId\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"protocolFees\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"token0\",\"type\":\"uint128\"},{\"internalType\":\"uint128\",\"name\":\"token1\",\"type\":\"uint128\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"slots\",\"type\":\"bytes32[]\"}],\"name\":\"readStorage\",\"outputs\":[{\"internalType\":\"bytes32[]\",\"name\":\"returnData\",\"type\":\"bytes32[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"slot0\",\"outputs\":[{\"internalType\":\"uint160\",\"name\":\"sqrtPriceX96\",\"type\":\"uint160\"},{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"},{\"internalType\":\"uint16\",\"name\":\"observationIndex\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinality\",\"type\":\"uint16\"},{\"internalType\":\"uint16\",\"name\":\"observationCardinalityNext\",\"type\":\"uint16\"},{\"internalType\":\"uint32\",\"name\":\"feeProtocol\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"unlocked\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tickLower\",\"type\":\"int24\"},{\"internalType\":\"int24\",\"name\":\"tickUpper\",\"type\":\"int24\"}],\"name\":\"snapshotCumulativesInside\",\"outputs\":[{\"internalType\":\"int56\",\"name\":\"tickCumulativeInside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerBoostedLiquidityInsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsInside\",\"type\":\"uint32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int16\",\"name\":\"tick\",\"type\":\"int16\"}],\"name\":\"tickBitmap\",\"outputs\":[{\"internalType\":\"uint256\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"tickSpacing\",\"outputs\":[{\"internalType\":\"int24\",\"type\":\"int24\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int24\",\"name\":\"tick\",\"type\":\"int24\"}],\"name\":\"ticks\",\"outputs\":[{\"internalType\":\"uint128\",\"name\":\"liquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"liquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint128\",\"name\":\"boostedLiquidityGross\",\"type\":\"uint128\"},{\"internalType\":\"int128\",\"name\":\"boostedLiquidityNet\",\"type\":\"int128\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside0X128\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"feeGrowthOutside1X128\",\"type\":\"uint256\"},{\"internalType\":\"int56\",\"name\":\"tickCumulativeOutside\",\"type\":\"int56\"},{\"internalType\":\"uint160\",\"name\":\"secondsPerLiquidityOutsideX128\",\"type\":\"uint160\"},{\"internalType\":\"uint32\",\"name\":\"secondsOutside\",\"type\":\"uint32\"},{\"internalType\":\"bool\",\"name\":\"initialized\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token0\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"token1\",\"outputs\":[{\"internalType\":\"address\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"currentFee\",\"outputs\":[{\"internalType\":\"uint24\",\"type\":\"uint24\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // V2PoolABI is the input ABI used to generate the binding from.
@@ -178,137 +178,6 @@ func (_V2Pool *V2PoolTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Tr
 // Transact invokes the (paid) contract method with params as input values.
 func (_V2Pool *V2PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _V2Pool.Contract.contract.Transact(opts, method, params...)
-}
-
-// BoostInfos is a free data retrieval call binding the contract method 0x0d63237f.
-//
-// Solidity: function boostInfos(uint256 period) view returns(uint128 totalBoostAmount, int128 totalVeRamAmount)
-func (_V2Pool *V2PoolCaller) BoostInfos(opts *bind.CallOpts, period *big.Int) (struct {
-	TotalBoostAmount *big.Int
-	TotalVeRamAmount *big.Int
-}, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "boostInfos", period)
-
-	outstruct := new(struct {
-		TotalBoostAmount *big.Int
-		TotalVeRamAmount *big.Int
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.TotalBoostAmount = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-	outstruct.TotalVeRamAmount = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
-
-	return *outstruct, err
-
-}
-
-// BoostInfos is a free data retrieval call binding the contract method 0x0d63237f.
-//
-// Solidity: function boostInfos(uint256 period) view returns(uint128 totalBoostAmount, int128 totalVeRamAmount)
-func (_V2Pool *V2PoolSession) BoostInfos(period *big.Int) (struct {
-	TotalBoostAmount *big.Int
-	TotalVeRamAmount *big.Int
-}, error) {
-	return _V2Pool.Contract.BoostInfos(&_V2Pool.CallOpts, period)
-}
-
-// BoostInfos is a free data retrieval call binding the contract method 0x0d63237f.
-//
-// Solidity: function boostInfos(uint256 period) view returns(uint128 totalBoostAmount, int128 totalVeRamAmount)
-func (_V2Pool *V2PoolCallerSession) BoostInfos(period *big.Int) (struct {
-	TotalBoostAmount *big.Int
-	TotalVeRamAmount *big.Int
-}, error) {
-	return _V2Pool.Contract.BoostInfos(&_V2Pool.CallOpts, period)
-}
-
-// BoostInfos0 is a free data retrieval call binding the contract method 0x4860e05f.
-//
-// Solidity: function boostInfos(uint256 period, bytes32 key) view returns(uint128 boostAmount, int128 veRamAmount, int256 secondsDebtX96, int256 boostedSecondsDebtX96)
-func (_V2Pool *V2PoolCaller) BoostInfos0(opts *bind.CallOpts, period *big.Int, key [32]byte) (struct {
-	BoostAmount           *big.Int
-	VeRamAmount           *big.Int
-	SecondsDebtX96        *big.Int
-	BoostedSecondsDebtX96 *big.Int
-}, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "boostInfos0", period, key)
-
-	outstruct := new(struct {
-		BoostAmount           *big.Int
-		VeRamAmount           *big.Int
-		SecondsDebtX96        *big.Int
-		BoostedSecondsDebtX96 *big.Int
-	})
-	if err != nil {
-		return *outstruct, err
-	}
-
-	outstruct.BoostAmount = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-	outstruct.VeRamAmount = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
-	outstruct.SecondsDebtX96 = *abi.ConvertType(out[2], new(*big.Int)).(**big.Int)
-	outstruct.BoostedSecondsDebtX96 = *abi.ConvertType(out[3], new(*big.Int)).(**big.Int)
-
-	return *outstruct, err
-
-}
-
-// BoostInfos0 is a free data retrieval call binding the contract method 0x4860e05f.
-//
-// Solidity: function boostInfos(uint256 period, bytes32 key) view returns(uint128 boostAmount, int128 veRamAmount, int256 secondsDebtX96, int256 boostedSecondsDebtX96)
-func (_V2Pool *V2PoolSession) BoostInfos0(period *big.Int, key [32]byte) (struct {
-	BoostAmount           *big.Int
-	VeRamAmount           *big.Int
-	SecondsDebtX96        *big.Int
-	BoostedSecondsDebtX96 *big.Int
-}, error) {
-	return _V2Pool.Contract.BoostInfos0(&_V2Pool.CallOpts, period, key)
-}
-
-// BoostInfos0 is a free data retrieval call binding the contract method 0x4860e05f.
-//
-// Solidity: function boostInfos(uint256 period, bytes32 key) view returns(uint128 boostAmount, int128 veRamAmount, int256 secondsDebtX96, int256 boostedSecondsDebtX96)
-func (_V2Pool *V2PoolCallerSession) BoostInfos0(period *big.Int, key [32]byte) (struct {
-	BoostAmount           *big.Int
-	VeRamAmount           *big.Int
-	SecondsDebtX96        *big.Int
-	BoostedSecondsDebtX96 *big.Int
-}, error) {
-	return _V2Pool.Contract.BoostInfos0(&_V2Pool.CallOpts, period, key)
-}
-
-// BoostedLiquidity is a free data retrieval call binding the contract method 0x9fdb2616.
-//
-// Solidity: function boostedLiquidity() view returns(uint128)
-func (_V2Pool *V2PoolCaller) BoostedLiquidity(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "boostedLiquidity")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// BoostedLiquidity is a free data retrieval call binding the contract method 0x9fdb2616.
-//
-// Solidity: function boostedLiquidity() view returns(uint128)
-func (_V2Pool *V2PoolSession) BoostedLiquidity() (*big.Int, error) {
-	return _V2Pool.Contract.BoostedLiquidity(&_V2Pool.CallOpts)
-}
-
-// BoostedLiquidity is a free data retrieval call binding the contract method 0x9fdb2616.
-//
-// Solidity: function boostedLiquidity() view returns(uint128)
-func (_V2Pool *V2PoolCallerSession) BoostedLiquidity() (*big.Int, error) {
-	return _V2Pool.Contract.BoostedLiquidity(&_V2Pool.CallOpts)
 }
 
 // CurrentFee is a free data retrieval call binding the contract method 0xda3c300d.
@@ -557,37 +426,6 @@ func (_V2Pool *V2PoolSession) MaxLiquidityPerTick() (*big.Int, error) {
 // Solidity: function maxLiquidityPerTick() view returns(uint128)
 func (_V2Pool *V2PoolCallerSession) MaxLiquidityPerTick() (*big.Int, error) {
 	return _V2Pool.Contract.MaxLiquidityPerTick(&_V2Pool.CallOpts)
-}
-
-// NfpManager is a free data retrieval call binding the contract method 0x98bbc3c7.
-//
-// Solidity: function nfpManager() view returns(address)
-func (_V2Pool *V2PoolCaller) NfpManager(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "nfpManager")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// NfpManager is a free data retrieval call binding the contract method 0x98bbc3c7.
-//
-// Solidity: function nfpManager() view returns(address)
-func (_V2Pool *V2PoolSession) NfpManager() (common.Address, error) {
-	return _V2Pool.Contract.NfpManager(&_V2Pool.CallOpts)
-}
-
-// NfpManager is a free data retrieval call binding the contract method 0x98bbc3c7.
-//
-// Solidity: function nfpManager() view returns(address)
-func (_V2Pool *V2PoolCallerSession) NfpManager() (common.Address, error) {
-	return _V2Pool.Contract.NfpManager(&_V2Pool.CallOpts)
 }
 
 // Observations is a free data retrieval call binding the contract method 0x252c09d7.
@@ -1043,14 +881,14 @@ func (_V2Pool *V2PoolCallerSession) ReadStorage(slots [][32]byte) ([][32]byte, e
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V2Pool *V2PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                uint8
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
 	var out []interface{}
@@ -1062,7 +900,7 @@ func (_V2Pool *V2PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 		ObservationIndex           uint16
 		ObservationCardinality     uint16
 		ObservationCardinalityNext uint16
-		FeeProtocol                uint8
+		FeeProtocol                uint32
 		Unlocked                   bool
 	})
 	if err != nil {
@@ -1074,7 +912,7 @@ func (_V2Pool *V2PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 	outstruct.ObservationIndex = *abi.ConvertType(out[2], new(uint16)).(*uint16)
 	outstruct.ObservationCardinality = *abi.ConvertType(out[3], new(uint16)).(*uint16)
 	outstruct.ObservationCardinalityNext = *abi.ConvertType(out[4], new(uint16)).(*uint16)
-	outstruct.FeeProtocol = *abi.ConvertType(out[5], new(uint8)).(*uint8)
+	outstruct.FeeProtocol = *abi.ConvertType(out[5], new(uint32)).(*uint32)
 	outstruct.Unlocked = *abi.ConvertType(out[6], new(bool)).(*bool)
 
 	return *outstruct, err
@@ -1083,14 +921,14 @@ func (_V2Pool *V2PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V2Pool *V2PoolSession) Slot0() (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                uint8
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
 	return _V2Pool.Contract.Slot0(&_V2Pool.CallOpts)
@@ -1098,14 +936,14 @@ func (_V2Pool *V2PoolSession) Slot0() (struct {
 
 // Slot0 is a free data retrieval call binding the contract method 0x3850c7bd.
 //
-// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)
+// Solidity: function slot0() view returns(uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint32 feeProtocol, bool unlocked)
 func (_V2Pool *V2PoolCallerSession) Slot0() (struct {
 	SqrtPriceX96               *big.Int
 	Tick                       *big.Int
 	ObservationIndex           uint16
 	ObservationCardinality     uint16
 	ObservationCardinalityNext uint16
-	FeeProtocol                uint8
+	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
 	return _V2Pool.Contract.Slot0(&_V2Pool.CallOpts)
@@ -1373,383 +1211,6 @@ func (_V2Pool *V2PoolSession) Token1() (common.Address, error) {
 // Solidity: function token1() view returns(address)
 func (_V2Pool *V2PoolCallerSession) Token1() (common.Address, error) {
 	return _V2Pool.Contract.Token1(&_V2Pool.CallOpts)
-}
-
-// VeRam is a free data retrieval call binding the contract method 0x97e9dc31.
-//
-// Solidity: function veRam() view returns(address)
-func (_V2Pool *V2PoolCaller) VeRam(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "veRam")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// VeRam is a free data retrieval call binding the contract method 0x97e9dc31.
-//
-// Solidity: function veRam() view returns(address)
-func (_V2Pool *V2PoolSession) VeRam() (common.Address, error) {
-	return _V2Pool.Contract.VeRam(&_V2Pool.CallOpts)
-}
-
-// VeRam is a free data retrieval call binding the contract method 0x97e9dc31.
-//
-// Solidity: function veRam() view returns(address)
-func (_V2Pool *V2PoolCallerSession) VeRam() (common.Address, error) {
-	return _V2Pool.Contract.VeRam(&_V2Pool.CallOpts)
-}
-
-// Voter is a free data retrieval call binding the contract method 0x46c96aac.
-//
-// Solidity: function voter() view returns(address)
-func (_V2Pool *V2PoolCaller) Voter(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _V2Pool.contract.Call(opts, &out, "voter")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Voter is a free data retrieval call binding the contract method 0x46c96aac.
-//
-// Solidity: function voter() view returns(address)
-func (_V2Pool *V2PoolSession) Voter() (common.Address, error) {
-	return _V2Pool.Contract.Voter(&_V2Pool.CallOpts)
-}
-
-// Voter is a free data retrieval call binding the contract method 0x46c96aac.
-//
-// Solidity: function voter() view returns(address)
-func (_V2Pool *V2PoolCallerSession) Voter() (common.Address, error) {
-	return _V2Pool.Contract.Voter(&_V2Pool.CallOpts)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactor) Burn(opts *bind.TransactOpts, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "burn", index, tickLower, tickUpper, amount)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolSession) Burn(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn(&_V2Pool.TransactOpts, index, tickLower, tickUpper, amount)
-}
-
-// Burn is a paid mutator transaction binding the contract method 0x6847456a.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Burn(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn(&_V2Pool.TransactOpts, index, tickLower, tickUpper, amount)
-}
-
-// Burn0 is a paid mutator transaction binding the contract method 0xa34123a7.
-//
-// Solidity: function burn(int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactor) Burn0(opts *bind.TransactOpts, tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "burn0", tickLower, tickUpper, amount)
-}
-
-// Burn0 is a paid mutator transaction binding the contract method 0xa34123a7.
-//
-// Solidity: function burn(int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolSession) Burn0(tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn0(&_V2Pool.TransactOpts, tickLower, tickUpper, amount)
-}
-
-// Burn0 is a paid mutator transaction binding the contract method 0xa34123a7.
-//
-// Solidity: function burn(int24 tickLower, int24 tickUpper, uint128 amount) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Burn0(tickLower *big.Int, tickUpper *big.Int, amount *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn0(&_V2Pool.TransactOpts, tickLower, tickUpper, amount)
-}
-
-// Burn1 is a paid mutator transaction binding the contract method 0xe3f9b398.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactor) Burn1(opts *bind.TransactOpts, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "burn1", index, tickLower, tickUpper, amount, veRamTokenId)
-}
-
-// Burn1 is a paid mutator transaction binding the contract method 0xe3f9b398.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolSession) Burn1(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn1(&_V2Pool.TransactOpts, index, tickLower, tickUpper, amount, veRamTokenId)
-}
-
-// Burn1 is a paid mutator transaction binding the contract method 0xe3f9b398.
-//
-// Solidity: function burn(uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Burn1(index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Burn1(&_V2Pool.TransactOpts, index, tickLower, tickUpper, amount, veRamTokenId)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
-//
-// Solidity: function collect(address recipient, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactor) Collect(opts *bind.TransactOpts, recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "collect", recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
-//
-// Solidity: function collect(address recipient, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolSession) Collect(recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Collect(&_V2Pool.TransactOpts, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect is a paid mutator transaction binding the contract method 0x4f1eb3d8.
-//
-// Solidity: function collect(address recipient, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactorSession) Collect(recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Collect(&_V2Pool.TransactOpts, recipient, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect0 is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactor) Collect0(opts *bind.TransactOpts, recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "collect0", recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect0 is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolSession) Collect0(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Collect0(&_V2Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// Collect0 is a paid mutator transaction binding the contract method 0xa02f1069.
-//
-// Solidity: function collect(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactorSession) Collect0(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Collect0(&_V2Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactor) CollectProtocol(opts *bind.TransactOpts, recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "collectProtocol", recipient, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolSession) CollectProtocol(recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.CollectProtocol(&_V2Pool.TransactOpts, recipient, amount0Requested, amount1Requested)
-}
-
-// CollectProtocol is a paid mutator transaction binding the contract method 0x85b66729.
-//
-// Solidity: function collectProtocol(address recipient, uint128 amount0Requested, uint128 amount1Requested) returns(uint128 amount0, uint128 amount1)
-func (_V2Pool *V2PoolTransactorSession) CollectProtocol(recipient common.Address, amount0Requested *big.Int, amount1Requested *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.CollectProtocol(&_V2Pool.TransactOpts, recipient, amount0Requested, amount1Requested)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V2Pool *V2PoolTransactor) Flash(opts *bind.TransactOpts, recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "flash", recipient, amount0, amount1, data)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V2Pool *V2PoolSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Flash(&_V2Pool.TransactOpts, recipient, amount0, amount1, data)
-}
-
-// Flash is a paid mutator transaction binding the contract method 0x490e6cbc.
-//
-// Solidity: function flash(address recipient, uint256 amount0, uint256 amount1, bytes data) returns()
-func (_V2Pool *V2PoolTransactorSession) Flash(recipient common.Address, amount0 *big.Int, amount1 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Flash(&_V2Pool.TransactOpts, recipient, amount0, amount1, data)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V2Pool *V2PoolTransactor) IncreaseObservationCardinalityNext(opts *bind.TransactOpts, observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "increaseObservationCardinalityNext", observationCardinalityNext)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V2Pool *V2PoolSession) IncreaseObservationCardinalityNext(observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V2Pool.Contract.IncreaseObservationCardinalityNext(&_V2Pool.TransactOpts, observationCardinalityNext)
-}
-
-// IncreaseObservationCardinalityNext is a paid mutator transaction binding the contract method 0x32148f67.
-//
-// Solidity: function increaseObservationCardinalityNext(uint16 observationCardinalityNext) returns()
-func (_V2Pool *V2PoolTransactorSession) IncreaseObservationCardinalityNext(observationCardinalityNext uint16) (*types.Transaction, error) {
-	return _V2Pool.Contract.IncreaseObservationCardinalityNext(&_V2Pool.TransactOpts, observationCardinalityNext)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x5fa9c925.
-//
-// Solidity: function initialize(address _factory, address _nfpManager, address _veRam, address _voter, address _token0, address _token1, uint24 _fee, int24 _tickSpacing) returns()
-func (_V2Pool *V2PoolTransactor) Initialize(opts *bind.TransactOpts, _factory common.Address, _nfpManager common.Address, _veRam common.Address, _voter common.Address, _token0 common.Address, _token1 common.Address, _fee *big.Int, _tickSpacing *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "initialize", _factory, _nfpManager, _veRam, _voter, _token0, _token1, _fee, _tickSpacing)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x5fa9c925.
-//
-// Solidity: function initialize(address _factory, address _nfpManager, address _veRam, address _voter, address _token0, address _token1, uint24 _fee, int24 _tickSpacing) returns()
-func (_V2Pool *V2PoolSession) Initialize(_factory common.Address, _nfpManager common.Address, _veRam common.Address, _voter common.Address, _token0 common.Address, _token1 common.Address, _fee *big.Int, _tickSpacing *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Initialize(&_V2Pool.TransactOpts, _factory, _nfpManager, _veRam, _voter, _token0, _token1, _fee, _tickSpacing)
-}
-
-// Initialize is a paid mutator transaction binding the contract method 0x5fa9c925.
-//
-// Solidity: function initialize(address _factory, address _nfpManager, address _veRam, address _voter, address _token0, address _token1, uint24 _fee, int24 _tickSpacing) returns()
-func (_V2Pool *V2PoolTransactorSession) Initialize(_factory common.Address, _nfpManager common.Address, _veRam common.Address, _voter common.Address, _token0 common.Address, _token1 common.Address, _fee *big.Int, _tickSpacing *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Initialize(&_V2Pool.TransactOpts, _factory, _nfpManager, _veRam, _voter, _token0, _token1, _fee, _tickSpacing)
-}
-
-// Initialize0 is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V2Pool *V2PoolTransactor) Initialize0(opts *bind.TransactOpts, sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "initialize0", sqrtPriceX96)
-}
-
-// Initialize0 is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V2Pool *V2PoolSession) Initialize0(sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Initialize0(&_V2Pool.TransactOpts, sqrtPriceX96)
-}
-
-// Initialize0 is a paid mutator transaction binding the contract method 0xf637731d.
-//
-// Solidity: function initialize(uint160 sqrtPriceX96) returns()
-func (_V2Pool *V2PoolTransactorSession) Initialize0(sqrtPriceX96 *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.Initialize0(&_V2Pool.TransactOpts, sqrtPriceX96)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x3c8a7d8d.
-//
-// Solidity: function mint(address recipient, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactor) Mint(opts *bind.TransactOpts, recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "mint", recipient, tickLower, tickUpper, amount, data)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x3c8a7d8d.
-//
-// Solidity: function mint(address recipient, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolSession) Mint(recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Mint(&_V2Pool.TransactOpts, recipient, tickLower, tickUpper, amount, data)
-}
-
-// Mint is a paid mutator transaction binding the contract method 0x3c8a7d8d.
-//
-// Solidity: function mint(address recipient, int24 tickLower, int24 tickUpper, uint128 amount, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Mint(recipient common.Address, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Mint(&_V2Pool.TransactOpts, recipient, tickLower, tickUpper, amount, data)
-}
-
-// Mint0 is a paid mutator transaction binding the contract method 0xa418e9e0.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactor) Mint0(opts *bind.TransactOpts, recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "mint0", recipient, index, tickLower, tickUpper, amount, veRamTokenId, data)
-}
-
-// Mint0 is a paid mutator transaction binding the contract method 0xa418e9e0.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolSession) Mint0(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Mint0(&_V2Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount, veRamTokenId, data)
-}
-
-// Mint0 is a paid mutator transaction binding the contract method 0xa418e9e0.
-//
-// Solidity: function mint(address recipient, uint256 index, int24 tickLower, int24 tickUpper, uint128 amount, uint256 veRamTokenId, bytes data) returns(uint256 amount0, uint256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Mint0(recipient common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int, amount *big.Int, veRamTokenId *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Mint0(&_V2Pool.TransactOpts, recipient, index, tickLower, tickUpper, amount, veRamTokenId, data)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V2Pool *V2PoolTransactor) SetFee(opts *bind.TransactOpts, _fee *big.Int) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "setFee", _fee)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V2Pool *V2PoolSession) SetFee(_fee *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.SetFee(&_V2Pool.TransactOpts, _fee)
-}
-
-// SetFee is a paid mutator transaction binding the contract method 0xeabb5622.
-//
-// Solidity: function setFee(uint24 _fee) returns()
-func (_V2Pool *V2PoolTransactorSession) SetFee(_fee *big.Int) (*types.Transaction, error) {
-	return _V2Pool.Contract.SetFee(&_V2Pool.TransactOpts, _fee)
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V2Pool *V2PoolTransactor) SetFeeProtocol(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "setFeeProtocol")
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V2Pool *V2PoolSession) SetFeeProtocol() (*types.Transaction, error) {
-	return _V2Pool.Contract.SetFeeProtocol(&_V2Pool.TransactOpts)
-}
-
-// SetFeeProtocol is a paid mutator transaction binding the contract method 0x7b7d549d.
-//
-// Solidity: function setFeeProtocol() returns()
-func (_V2Pool *V2PoolTransactorSession) SetFeeProtocol() (*types.Transaction, error) {
-	return _V2Pool.Contract.SetFeeProtocol(&_V2Pool.TransactOpts)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V2Pool *V2PoolTransactor) Swap(opts *bind.TransactOpts, recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.contract.Transact(opts, "swap", recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V2Pool *V2PoolSession) Swap(recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Swap(&_V2Pool.TransactOpts, recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
-}
-
-// Swap is a paid mutator transaction binding the contract method 0x128acb08.
-//
-// Solidity: function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data) returns(int256 amount0, int256 amount1)
-func (_V2Pool *V2PoolTransactorSession) Swap(recipient common.Address, zeroForOne bool, amountSpecified *big.Int, sqrtPriceLimitX96 *big.Int, data []byte) (*types.Transaction, error) {
-	return _V2Pool.Contract.Swap(&_V2Pool.TransactOpts, recipient, zeroForOne, amountSpecified, sqrtPriceLimitX96, data)
 }
 
 // V2PoolBurnIterator is returned from FilterBurn and is used to iterate over the raw logs and unpacked data for Burn events raised by the V2Pool contract.
