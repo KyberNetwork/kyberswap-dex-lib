@@ -166,7 +166,7 @@ func (t *PoolSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	return nil, ErrDDoesNotConverge
 }
 
-func (t *PoolSimulator) getY(
+func (t *PoolSimulator) GetY(
 	tokenIndexFrom int,
 	tokenIndexTo int,
 	x *big.Int,
@@ -282,7 +282,7 @@ func (t *PoolSimulator) GetDy(
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, t.Rates[i]), Precision))
 
 	// y: uint256 = self.get_y(i, j, x, xp)
-	var y, err = t.getY(i, j, x, xp, dCached)
+	var y, err = t.GetY(i, j, x, xp, dCached)
 	if err != nil {
 		return nil, nil, err
 	}
