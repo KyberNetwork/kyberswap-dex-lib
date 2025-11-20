@@ -1,4 +1,4 @@
-package listaswap
+package stable
 
 import (
 	"context"
@@ -46,7 +46,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	// Since ListaSwap supports swap with native tokens, we need to adjust the pool info accordingly.
+	// Since ListaStable supports swap with native tokens, we need to adjust the pool info accordingly.
 	// Loop through the pools and replace native token addresses with wrapped native token addresses.
 	// Also update staticExtra to indicate that the pool supports native token swap.
 	for i := range pools {

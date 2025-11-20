@@ -235,7 +235,7 @@ const (
 	ExchangeLineHubV2                  = "linehub-v2"
 	ExchangeLineHubV3                  = "linehub-v3"
 	ExchangeLiquidusFinance            = "liquidus-finance"
-	ExchangeListaSwap                  = "lista-swap"
+	ExchangeListaStable                = "lista-stable"
 	ExchangeLitePSM                    = "lite-psm"
 	ExchangeLithosV2                   = "lithos-v2"
 	ExchangeLizard                     = "lizard"
@@ -744,7 +744,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeLiquidusFinance:            {},
-	ExchangeListaSwap:                  {},
+	ExchangeListaStable:                {},
 	ExchangeLitePSM:                    {},
 	ExchangeLithosV2:                   {},
 	ExchangeLizard:                     {},

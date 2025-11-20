@@ -75,7 +75,7 @@ const (
 	PoolTypeTricrypto   = "curve-tricrypto"
 	PoolTypeTwo         = "curve-two"
 
-	PoolTypeListaSwap   = "lista-swap"
+	PoolTypeListaSwap   = "lista-stable"
 	PoolTypeUnsupported = "unsupported"
 )
 

@@ -1,4 +1,4 @@
-package listaswap
+package stable
 
 type Config struct {
 	DexID          string `json:"dexID"`

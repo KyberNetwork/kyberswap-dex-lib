@@ -1,4 +1,4 @@
-package listaswap
+package stable
 
 import "math/big"
 
