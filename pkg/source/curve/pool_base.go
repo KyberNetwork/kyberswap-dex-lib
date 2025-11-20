@@ -259,7 +259,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = reserves
 
-	logger.Infof("[Curve] Finish getting new state of pool %v with type %v", p.Address, p.Type)
+	logger.Infof("[%s] Finish getting new state of pool %v with type %v", d.config.DexID, p.Address, p.Type)
 
 	return p, nil
 }

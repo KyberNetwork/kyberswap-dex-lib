@@ -231,14 +231,15 @@ const (
 	ExchangeKyberSwapLimitOrderDS      = "kyberswap-limit-order-v2"
 	ExchangeKyberSwapStatic            = "kyberswap-static"
 	ExchangeKyberswapElastic           = "kyberswap-elastic"
-	ExchangeLO1inch                    = "lo1inch"
 	ExchangeLaminar                    = "laminar"
 	ExchangeLineHubV2                  = "linehub-v2"
 	ExchangeLineHubV3                  = "linehub-v3"
 	ExchangeLiquidusFinance            = "liquidus-finance"
+	ExchangeListaSwap                  = "lista-swap"
 	ExchangeLitePSM                    = "lite-psm"
 	ExchangeLithosV2                   = "lithos-v2"
 	ExchangeLizard                     = "lizard"
+	ExchangeLO1inch                    = "lo1inch"
 	ExchangeLydia                      = "lydia"
 	ExchangeLynex                      = "lynex"
 	ExchangeLynexV1                    = "lynex-v1"
@@ -743,6 +744,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeLiquidusFinance:            {},
+	ExchangeListaSwap:                  {},
 	ExchangeLitePSM:                    {},
 	ExchangeLithosV2:                   {},
 	ExchangeLizard:                     {},
