@@ -79,8 +79,8 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 			ABI:    r.abi,
 			Target: address,
 			Method: PoolStateMethodGetSynthAddressByCurrencyKey,
-			Params: []interface{}{keyByte},
-		}, []interface{}{&synths[i]})
+			Params: []any{keyByte},
+		}, []any{&synths[i]})
 	}
 	_, err := req.Aggregate()
 	if err != nil {
@@ -99,7 +99,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 			Target: synthAddress.String(),
 			Method: MultiCollateralSynthMethodGetProxy,
 			Params: nil,
-		}, []interface{}{&synthProxyResults[i]})
+		}, []any{&synthProxyResults[i]})
 	}
 	_, err = req.Aggregate()
 	if err != nil {
@@ -118,7 +118,7 @@ func (r *PoolStateReader) readSynthTokens(ctx context.Context, address string, p
 			Target: proxyAddress.String(),
 			Method: ProxyERC20MethodTotalSupply,
 			Params: nil,
-		}, []interface{}{&totalSupply[i]})
+		}, []any{&totalSupply[i]})
 	}
 	_, err = req.Aggregate()
 	if err != nil {
@@ -158,19 +158,19 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 			Target: address,
 			Method: PoolStateMethodAvailableCurrencyKeys,
 			Params: nil,
-		}, []interface{}{&currencyKeysResult}).
+		}, []any{&currencyKeysResult}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: PoolStateMethodAvailableSynthCount,
 			Params: nil,
-		}, []interface{}{&poolState.AvailableSynthCount}).
+		}, []any{&poolState.AvailableSynthCount}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: PoolStateMethodGetSUSDCurrencyKey,
 			Params: nil,
-		}, []interface{}{&sUSDResult})
+		}, []any{&sUSDResult})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -196,8 +196,8 @@ func (r *PoolStateReader) readData(ctx context.Context, address string, poolStat
 			ABI:    r.abi,
 			Target: address,
 			Method: PoolStateMethodTotalIssuedSynths,
-			Params: []interface{}{sUSDResult},
-		}, []interface{}{&totalIssuedSUSD})
+			Params: []any{sUSDResult},
+		}, []any{&totalIssuedSUSD})
 
 	_, err = req.Call()
 	if err != nil {

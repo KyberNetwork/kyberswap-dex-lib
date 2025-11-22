@@ -24,7 +24,7 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		ABI:    converterRegistryABI,
 		Target: converterRegistry,
 		Method: registryGetAnchors,
-	}, []interface{}{&anchors})
+	}, []any{&anchors})
 
 	_, err := listAnchorAddressesRequest.TryAggregate()
 	if err != nil {
@@ -38,8 +38,8 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 			ABI:    converterRegistryABI,
 			Target: converterRegistry,
 			Method: getConvertersByAnchors,
-			Params: []interface{}{anchors},
-		}, []interface{}{&poolAddresses}).Call(); err != nil {
+			Params: []any{anchors},
+		}, []any{&poolAddresses}).Call(); err != nil {
 		return nil, nil, err
 	}
 
@@ -53,7 +53,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 		Target: converterRegistry,
 		Method: getConvertibleTokens,
 		Params: nil,
-	}, []interface{}{&convertibleTokens}).Call(); err != nil {
+	}, []any{&convertibleTokens}).Call(); err != nil {
 		return nil, err
 	}
 
@@ -67,8 +67,8 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 			ABI:    converterRegistryABI,
 			Target: converterRegistry,
 			Method: getConvertibleTokenAnchors,
-			Params: []interface{}{convertibleToken},
-		}, []interface{}{&anchors[i]})
+			Params: []any{convertibleToken},
+		}, []any{&anchors[i]})
 	}
 
 	if _, err := anchorsRequest.Aggregate(); err != nil {
@@ -97,7 +97,7 @@ func getAllPairsLength(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 		Target: converterRegistry,
 		Method: getAnchorCount,
 		Params: nil,
-	}, []interface{}{&allPairsLength})
+	}, []any{&allPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return 0, err
@@ -118,7 +118,7 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 			Target: pairAddress.Hex(),
 			Method: converterGetTokenCount,
 			Params: nil,
-		}, []interface{}{&numToken}).Call(); err != nil {
+		}, []any{&numToken}).Call(); err != nil {
 			return nil, err
 		}
 		nTokens := int(numToken)
@@ -129,8 +129,8 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 				ABI:    converterABI,
 				Target: pairAddress.Hex(),
 				Method: converterGetTokens,
-				Params: []interface{}{big.NewInt(int64(i))},
-			}, []interface{}{&tokens[index][i]})
+				Params: []any{big.NewInt(int64(i))},
+			}, []any{&tokens[index][i]})
 		}
 	}
 

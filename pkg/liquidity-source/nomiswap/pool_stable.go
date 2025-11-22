@@ -146,7 +146,7 @@ func bindNomiStablePool(address common.Address, caller bind.ContractCaller, tran
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_NomiStablePool *NomiStablePoolRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_NomiStablePool *NomiStablePoolRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _NomiStablePool.Contract.NomiStablePoolCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_NomiStablePool *NomiStablePoolRaw) Transfer(opts *bind.TransactOpts) (*ty
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_NomiStablePool *NomiStablePoolRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_NomiStablePool *NomiStablePoolRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _NomiStablePool.Contract.NomiStablePoolTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_NomiStablePool *NomiStablePoolRaw) Transact(opts *bind.TransactOpts, meth
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_NomiStablePool *NomiStablePoolCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_NomiStablePool *NomiStablePoolCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _NomiStablePool.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_NomiStablePool *NomiStablePoolTransactorRaw) Transfer(opts *bind.Transact
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_NomiStablePool *NomiStablePoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_NomiStablePool *NomiStablePoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _NomiStablePool.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_NomiStablePool *NomiStablePoolTransactorRaw) Transact(opts *bind.Transact
 //
 // Solidity: function DOMAIN_SEPARATOR() view returns(bytes32)
 func (_NomiStablePool *NomiStablePoolCaller) DOMAINSEPARATOR(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "DOMAIN_SEPARATOR")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) DOMAINSEPARATOR() ([32]byte,
 //
 // Solidity: function MINIMUM_LIQUIDITY() view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) MINIMUMLIQUIDITY(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "MINIMUM_LIQUIDITY")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) MINIMUMLIQUIDITY() (*big.Int
 //
 // Solidity: function PERMIT_TYPEHASH() view returns(bytes32)
 func (_NomiStablePool *NomiStablePoolCaller) PERMITTYPEHASH(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "PERMIT_TYPEHASH")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) PERMITTYPEHASH() ([32]byte, 
 //
 // Solidity: function adminFee() view returns(uint128)
 func (_NomiStablePool *NomiStablePoolCaller) AdminFee(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "adminFee")
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) AdminFee() (*big.Int, error)
 //
 // Solidity: function allowance(address , address ) view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) Allowance(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "allowance", arg0, arg1)
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Allowance(arg0 common.Addres
 //
 // Solidity: function balanceOf(address ) view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) BalanceOf(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "balanceOf", arg0)
 
 	if err != nil {
@@ -370,7 +370,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) BalanceOf(arg0 common.Addres
 //
 // Solidity: function decimals() view returns(uint8)
 func (_NomiStablePool *NomiStablePoolCaller) Decimals(opts *bind.CallOpts) (uint8, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "decimals")
 
 	if err != nil {
@@ -401,7 +401,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Decimals() (uint8, error) {
 //
 // Solidity: function devFee() view returns(uint128)
 func (_NomiStablePool *NomiStablePoolCaller) DevFee(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "devFee")
 
 	if err != nil {
@@ -432,7 +432,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) DevFee() (*big.Int, error) {
 //
 // Solidity: function factory() view returns(address)
 func (_NomiStablePool *NomiStablePoolCaller) Factory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "factory")
 
 	if err != nil {
@@ -463,7 +463,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Factory() (common.Address, e
 //
 // Solidity: function getA() view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) GetA(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "getA")
 
 	if err != nil {
@@ -494,7 +494,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) GetA() (*big.Int, error) {
 //
 // Solidity: function getAmountIn(address tokenIn, uint256 amountOut) view returns(uint256 finalAmountIn)
 func (_NomiStablePool *NomiStablePoolCaller) GetAmountIn(opts *bind.CallOpts, tokenIn common.Address, amountOut *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "getAmountIn", tokenIn, amountOut)
 
 	if err != nil {
@@ -525,7 +525,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) GetAmountIn(tokenIn common.A
 //
 // Solidity: function getAmountOut(address tokenIn, uint256 amountIn) view returns(uint256 finalAmountOut)
 func (_NomiStablePool *NomiStablePoolCaller) GetAmountOut(opts *bind.CallOpts, tokenIn common.Address, amountIn *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "getAmountOut", tokenIn, amountIn)
 
 	if err != nil {
@@ -560,7 +560,7 @@ func (_NomiStablePool *NomiStablePoolCaller) GetReserves(opts *bind.CallOpts) (s
 	Reserve1           *big.Int
 	BlockTimestampLast uint32
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "getReserves")
 
 	outstruct := new(struct {
@@ -606,7 +606,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) GetReserves() (struct {
 //
 // Solidity: function name() view returns(string)
 func (_NomiStablePool *NomiStablePoolCaller) Name(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "name")
 
 	if err != nil {
@@ -637,7 +637,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Name() (string, error) {
 //
 // Solidity: function nonces(address ) view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) Nonces(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "nonces", arg0)
 
 	if err != nil {
@@ -668,7 +668,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Nonces(arg0 common.Address) 
 //
 // Solidity: function swapFee() view returns(uint32)
 func (_NomiStablePool *NomiStablePoolCaller) SwapFee(opts *bind.CallOpts) (uint32, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "swapFee")
 
 	if err != nil {
@@ -699,7 +699,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) SwapFee() (uint32, error) {
 //
 // Solidity: function symbol() view returns(string)
 func (_NomiStablePool *NomiStablePoolCaller) Symbol(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "symbol")
 
 	if err != nil {
@@ -730,7 +730,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Symbol() (string, error) {
 //
 // Solidity: function token0() view returns(address)
 func (_NomiStablePool *NomiStablePoolCaller) Token0(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "token0")
 
 	if err != nil {
@@ -761,7 +761,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Token0() (common.Address, er
 //
 // Solidity: function token0PrecisionMultiplier() view returns(uint128)
 func (_NomiStablePool *NomiStablePoolCaller) Token0PrecisionMultiplier(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "token0PrecisionMultiplier")
 
 	if err != nil {
@@ -792,7 +792,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Token0PrecisionMultiplier() 
 //
 // Solidity: function token1() view returns(address)
 func (_NomiStablePool *NomiStablePoolCaller) Token1(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "token1")
 
 	if err != nil {
@@ -823,7 +823,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Token1() (common.Address, er
 //
 // Solidity: function token1PrecisionMultiplier() view returns(uint128)
 func (_NomiStablePool *NomiStablePoolCaller) Token1PrecisionMultiplier(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "token1PrecisionMultiplier")
 
 	if err != nil {
@@ -854,7 +854,7 @@ func (_NomiStablePool *NomiStablePoolCallerSession) Token1PrecisionMultiplier() 
 //
 // Solidity: function totalSupply() view returns(uint256)
 func (_NomiStablePool *NomiStablePoolCaller) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _NomiStablePool.contract.Call(opts, &out, "totalSupply")
 
 	if err != nil {
@@ -1276,11 +1276,11 @@ type NomiStablePoolApproval struct {
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 value)
 func (_NomiStablePool *NomiStablePoolFilterer) FilterApproval(opts *bind.FilterOpts, owner []common.Address, spender []common.Address) (*NomiStablePoolApprovalIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
@@ -1297,11 +1297,11 @@ func (_NomiStablePool *NomiStablePoolFilterer) FilterApproval(opts *bind.FilterO
 // Solidity: event Approval(address indexed owner, address indexed spender, uint256 value)
 func (_NomiStablePool *NomiStablePoolFilterer) WatchApproval(opts *bind.WatchOpts, sink chan<- *NomiStablePoolApproval, owner []common.Address, spender []common.Address) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var spenderRule []interface{}
+	var spenderRule []any
 	for _, spenderItem := range spender {
 		spenderRule = append(spenderRule, spenderItem)
 	}
@@ -1431,12 +1431,12 @@ type NomiStablePoolBurn struct {
 // Solidity: event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to)
 func (_NomiStablePool *NomiStablePoolFilterer) FilterBurn(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*NomiStablePoolBurnIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1453,12 +1453,12 @@ func (_NomiStablePool *NomiStablePoolFilterer) FilterBurn(opts *bind.FilterOpts,
 // Solidity: event Burn(address indexed sender, uint256 amount0, uint256 amount1, address indexed to)
 func (_NomiStablePool *NomiStablePoolFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *NomiStablePoolBurn, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1587,7 +1587,7 @@ type NomiStablePoolMint struct {
 // Solidity: event Mint(address indexed sender, uint256 amount0, uint256 amount1)
 func (_NomiStablePool *NomiStablePoolFilterer) FilterMint(opts *bind.FilterOpts, sender []common.Address) (*NomiStablePoolMintIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1604,7 +1604,7 @@ func (_NomiStablePool *NomiStablePoolFilterer) FilterMint(opts *bind.FilterOpts,
 // Solidity: event Mint(address indexed sender, uint256 amount0, uint256 amount1)
 func (_NomiStablePool *NomiStablePoolFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *NomiStablePoolMint, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2008,12 +2008,12 @@ type NomiStablePoolSwap struct {
 // Solidity: event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)
 func (_NomiStablePool *NomiStablePoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*NomiStablePoolSwapIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2030,12 +2030,12 @@ func (_NomiStablePool *NomiStablePoolFilterer) FilterSwap(opts *bind.FilterOpts,
 // Solidity: event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)
 func (_NomiStablePool *NomiStablePoolFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *NomiStablePoolSwap, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
 
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2299,11 +2299,11 @@ type NomiStablePoolTransfer struct {
 // Solidity: event Transfer(address indexed from, address indexed to, uint256 value)
 func (_NomiStablePool *NomiStablePoolFilterer) FilterTransfer(opts *bind.FilterOpts, from []common.Address, to []common.Address) (*NomiStablePoolTransferIterator, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2320,11 +2320,11 @@ func (_NomiStablePool *NomiStablePoolFilterer) FilterTransfer(opts *bind.FilterO
 // Solidity: event Transfer(address indexed from, address indexed to, uint256 value)
 func (_NomiStablePool *NomiStablePoolFilterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *NomiStablePoolTransfer, from []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}

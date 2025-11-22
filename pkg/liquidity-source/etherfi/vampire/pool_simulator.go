@@ -119,7 +119,7 @@ func (s *PoolSimulator) UpdateBalance(param pool.UpdateBalanceParams) {
 	s.LiquidityPool.TotalPooledEther.Add(s.LiquidityPool.TotalPooledEther, swapInfo.dx)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return nil
 }
 

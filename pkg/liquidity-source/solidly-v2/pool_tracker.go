@@ -97,14 +97,14 @@ func (d *PoolTracker) updateMemecorePool(
 		ABI:    memecoreABI,
 		Target: pool.Address,
 		Method: memecoreMethodPoolFee,
-		Params: []interface{}{},
-	}, []interface{}{&poolFee})
+		Params: []any{},
+	}, []any{&poolFee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    memecoreABI,
 		Target: pool.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -139,14 +139,14 @@ func (d *PoolTracker) updateShadowLegacyPool(
 		ABI:    shadowLegacyABI,
 		Target: pool.Address,
 		Method: shadowLegacyMethodFee,
-		Params: []interface{}{},
-	}, []interface{}{&fee})
+		Params: []any{},
+	}, []any{&fee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    shadowLegacyABI,
 		Target: pool.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -183,19 +183,19 @@ func (d *PoolTracker) updateStandardPool(
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: pool.Address,
 		Method: poolMethodFeeRatio,
-		Params: []interface{}{},
-	}, []interface{}{&fee})
+		Params: []any{},
+	}, []any{&fee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: pool.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []any{&getReservesResult})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {

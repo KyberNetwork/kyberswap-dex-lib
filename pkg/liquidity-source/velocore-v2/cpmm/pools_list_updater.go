@@ -109,14 +109,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodRelevantTokens,
 			Params: nil,
-		}, []interface{}{&tokens[i]})
+		}, []any{&tokens[i]})
 
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodTokenWeights,
 			Params: nil,
-		}, []interface{}{&weights[i]})
+		}, []any{&weights[i]})
 	}
 
 	if _, err := req.Aggregate(); err != nil {
@@ -202,8 +202,8 @@ func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, b
 			ABI:    factoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(offset + j))},
-		}, []interface{}{&poolAddresses[j]})
+			Params: []any{big.NewInt(int64(offset + j))},
+		}, []any{&poolAddresses[j]})
 	}
 
 	resp, err := req.TryAggregate()
@@ -233,7 +233,7 @@ func (d *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodPoolsLength,
 		Params: nil,
-	}, []interface{}{&l})
+	}, []any{&l})
 	if _, err := req.Call(); err != nil {
 		logger.WithFields(
 			logger.Fields{

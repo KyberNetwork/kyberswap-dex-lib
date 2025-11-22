@@ -89,53 +89,53 @@ func getPoolExtra(
 		ABI:    stETHABI,
 		Target: common.STETH,
 		Method: "getTotalPooledEther",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.StETH.TotalPooledEther})
+		Params: []any{},
+	}, []any{&poolExtra.StETH.TotalPooledEther})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    stETHABI,
 		Target: common.STETH,
 		Method: "getTotalShares",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.StETH.TotalShares})
+		Params: []any{},
+	}, []any{&poolExtra.StETH.TotalShares})
 
 	// poolExtra.StETHTokenInfo
 	r.AddCall(&ethrpc.Call{
 		ABI:    vampireABI,
 		Target: vampire,
 		Method: "tokenInfos",
-		Params: []interface{}{gethcommon.HexToAddress(common.STETH)},
-	}, []interface{}{&tokenInfo})
+		Params: []any{gethcommon.HexToAddress(common.STETH)},
+	}, []any{&tokenInfo})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    vampireABI,
 		Target: vampire,
 		Method: "timeBoundCapRefreshInterval",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.Vampire.TimeBoundCapRefreshInterval})
+		Params: []any{},
+	}, []any{&poolExtra.Vampire.TimeBoundCapRefreshInterval})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    vampireABI,
 		Target: vampire,
 		Method: "quoteStEthWithCurve",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.Vampire.QuoteStEthWithCurve})
+		Params: []any{},
+	}, []any{&poolExtra.Vampire.QuoteStEthWithCurve})
 
 	// poolExtra.LiquidityPool
 	r.AddCall(&ethrpc.Call{
 		ABI:    liquidityPoolABI,
 		Target: common.LiquidityPool,
 		Method: "getTotalPooledEther",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.LiquidityPool.TotalPooledEther})
+		Params: []any{},
+	}, []any{&poolExtra.LiquidityPool.TotalPooledEther})
 
 	// poolExtra.EETH
 	r.AddCall(&ethrpc.Call{
 		ABI:    eETHABI,
 		Target: common.EETH,
 		Method: "totalShares",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.EETH.TotalShares})
+		Params: []any{},
+	}, []any{&poolExtra.EETH.TotalShares})
 
 	// Call RPC
 	resp, err := r.TryAggregate()
@@ -184,42 +184,42 @@ func getCurvePoolInfo(
 		Target: curveStETHToETHPool,
 		Method: "initial_A",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.InitialA})
+	}, []any{&curvePlainExtra.InitialA})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: curveStETHToETHPool,
 		Method: "future_A",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.FutureA})
+	}, []any{&curvePlainExtra.FutureA})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: curveStETHToETHPool,
 		Method: "initial_A_time",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.InitialATime})
+	}, []any{&curvePlainExtra.InitialATime})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: curveStETHToETHPool,
 		Method: "future_A_time",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.FutureATime})
+	}, []any{&curvePlainExtra.FutureATime})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: curveStETHToETHPool,
 		Method: "fee",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.SwapFee})
+	}, []any{&curvePlainExtra.SwapFee})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    curvePlainABI,
 		Target: curveStETHToETHPool,
 		Method: "admin_fee",
 		Params: nil,
-	}, []interface{}{&curvePlainExtra.AdminFee})
+	}, []any{&curvePlainExtra.AdminFee})
 
 	nCoins := 2
 	balances := make([]*big.Int, nCoins)
@@ -229,8 +229,8 @@ func getCurvePoolInfo(
 			ABI:    curvePlainABI,
 			Target: curveStETHToETHPool,
 			Method: "balances",
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&balances[i]})
+			Params: []any{big.NewInt(int64(i))},
+		}, []any{&balances[i]})
 	}
 
 	if _, err := r.TryAggregate(); err != nil {

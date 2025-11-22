@@ -95,19 +95,19 @@ func (d *PoolTracker) getPoolData(ctx context.Context, overrides map[common.Addr
 		Target: Beets_Staked_Sonic_Address,
 		Method: methodTotalAssets,
 		Params: nil,
-	}, []interface{}{&totalAssets})
+	}, []any{&totalAssets})
 	req.AddCall(&ethrpc.Call{
 		ABI:    sonicStakingABI,
 		Target: Beets_Staked_Sonic_Address,
 		Method: methodTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 	req.AddCall(&ethrpc.Call{
 		ABI:    sonicStakingABI,
 		Target: Beets_Staked_Sonic_Address,
 		Method: methodDepositPaused,
 		Params: nil,
-	}, []interface{}{&depositPaused})
+	}, []any{&depositPaused})
 
 	resp, err := req.Aggregate()
 	if err != nil {

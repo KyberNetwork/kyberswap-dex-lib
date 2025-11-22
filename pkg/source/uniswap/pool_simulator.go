@@ -105,7 +105,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	if t.GetInfo().SwapFee == nil {
 		return Meta{
 			SwapFee: defaultSwapFee,

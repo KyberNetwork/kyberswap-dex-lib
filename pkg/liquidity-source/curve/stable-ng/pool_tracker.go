@@ -92,63 +92,63 @@ func (t *PoolTracker) getNewPoolState(
 		Target: p.Address,
 		Method: poolMethodInitialA,
 		Params: nil,
-	}, []interface{}{&initialA})
+	}, []any{&initialA})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureA,
 		Params: nil,
-	}, []interface{}{&futureA})
+	}, []any{&futureA})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodInitialATime,
 		Params: nil,
-	}, []interface{}{&initialATime})
+	}, []any{&initialATime})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFutureATime,
 		Params: nil,
-	}, []interface{}{&futureATime})
+	}, []any{&futureATime})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodFee,
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodAdminFee,
 		Params: nil,
-	}, []interface{}{&adminFee})
+	}, []any{&adminFee})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&lpSupply})
+	}, []any{&lpSupply})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodStoredRates,
 		Params: nil,
-	}, []interface{}{&storedRates})
+	}, []any{&storedRates})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    curveStableNGABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 		Params: nil,
-	}, []interface{}{&balances})
+	}, []any{&balances})
 
 	if res, err := req.TryBlockAndAggregate(); err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to aggregate call pool data")

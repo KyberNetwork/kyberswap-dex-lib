@@ -119,7 +119,7 @@ func (u *PoolsListUpdater) getTotalExchanges(ctx context.Context) (int, error) {
 		Target: u.config.FactoryAddress,
 		Method: factoryTokenCountMethod,
 		Params: nil,
-	}, []interface{}{&totalExchanges})
+	}, []any{&totalExchanges})
 
 	if _, err := req.Call(); err != nil {
 		return 0, err
@@ -153,8 +153,8 @@ func (u *PoolsListUpdater) listExchanges(ctx context.Context, offset int, batchS
 			ABI:    uniswapFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryGetTokenWithIDMethod,
-			Params: []interface{}{index},
-		}, []interface{}{&listTokenResult[i]})
+			Params: []any{index},
+		}, []any{&listTokenResult[i]})
 	}
 
 	_, err := getTokensRequest.TryAggregate()
@@ -170,8 +170,8 @@ func (u *PoolsListUpdater) listExchanges(ctx context.Context, offset int, batchS
 			ABI:    uniswapFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryGetExchangeMethod,
-			Params: []interface{}{tokenAddress},
-		}, []interface{}{&listExchangeResult[i]})
+			Params: []any{tokenAddress},
+		}, []any{&listExchangeResult[i]})
 	}
 
 	resp, err := getExchangesRequest.TryAggregate()

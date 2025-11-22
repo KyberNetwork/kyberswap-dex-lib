@@ -231,7 +231,7 @@ func TestUpdateBalance(t *testing.T) {
 		in               string
 		inAmount         int64
 		out              string
-		errorOrAmountOut interface{}
+		errorOrAmountOut any
 	}{
 		{0, "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", 5000000, "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", big.NewInt(75900)},
 		{0, "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", 50000001, "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", big.NewInt(29)},

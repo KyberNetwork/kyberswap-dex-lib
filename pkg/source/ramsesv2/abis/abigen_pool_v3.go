@@ -146,7 +146,7 @@ func bindV3Pool(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_V3Pool *V3PoolRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_V3Pool *V3PoolRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _V3Pool.Contract.V3PoolCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_V3Pool *V3PoolRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction,
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _V3Pool.Contract.V3PoolTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_V3Pool *V3PoolRaw) Transact(opts *bind.TransactOpts, method string, param
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_V3Pool *V3PoolCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_V3Pool *V3PoolCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _V3Pool.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_V3Pool *V3PoolTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Tr
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _V3Pool.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_V3Pool *V3PoolTransactorRaw) Transact(opts *bind.TransactOpts, method str
 //
 // Solidity: function factory() view returns(address)
 func (_V3Pool *V3PoolCaller) Factory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "factory")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_V3Pool *V3PoolCallerSession) Factory() (common.Address, error) {
 //
 // Solidity: function fee() view returns(uint24)
 func (_V3Pool *V3PoolCaller) Fee(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "fee")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_V3Pool *V3PoolCallerSession) Fee() (*big.Int, error) {
 //
 // Solidity: function feeGrowthGlobal0X128() view returns(uint256)
 func (_V3Pool *V3PoolCaller) FeeGrowthGlobal0X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "feeGrowthGlobal0X128")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_V3Pool *V3PoolCallerSession) FeeGrowthGlobal0X128() (*big.Int, error) {
 //
 // Solidity: function feeGrowthGlobal1X128() view returns(uint256)
 func (_V3Pool *V3PoolCaller) FeeGrowthGlobal1X128(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "feeGrowthGlobal1X128")
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_V3Pool *V3PoolCallerSession) FeeGrowthGlobal1X128() (*big.Int, error) {
 //
 // Solidity: function lastPeriod() view returns(uint256)
 func (_V3Pool *V3PoolCaller) LastPeriod(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "lastPeriod")
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_V3Pool *V3PoolCallerSession) LastPeriod() (*big.Int, error) {
 //
 // Solidity: function liquidity() view returns(uint128)
 func (_V3Pool *V3PoolCaller) Liquidity(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "liquidity")
 
 	if err != nil {
@@ -370,7 +370,7 @@ func (_V3Pool *V3PoolCallerSession) Liquidity() (*big.Int, error) {
 //
 // Solidity: function maxLiquidityPerTick() view returns(uint128)
 func (_V3Pool *V3PoolCaller) MaxLiquidityPerTick(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "maxLiquidityPerTick")
 
 	if err != nil {
@@ -406,7 +406,7 @@ func (_V3Pool *V3PoolCaller) Observations(opts *bind.CallOpts, index *big.Int) (
 	SecondsPerLiquidityCumulativeX128 *big.Int
 	Initialized                       bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "observations", index)
 
 	outstruct := new(struct {
@@ -459,7 +459,7 @@ func (_V3Pool *V3PoolCaller) Observe(opts *bind.CallOpts, secondsAgos []uint32) 
 	TickCumulatives                    []*big.Int
 	SecondsPerLiquidityCumulativeX128s []*big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "observe", secondsAgos)
 
 	outstruct := new(struct {
@@ -506,7 +506,7 @@ func (_V3Pool *V3PoolCaller) Periods(opts *bind.CallOpts, period *big.Int) (stru
 	LastTick                         *big.Int
 	EndSecondsPerLiquidityPeriodX128 *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "periods", period)
 
 	outstruct := new(struct {
@@ -556,7 +556,7 @@ func (_V3Pool *V3PoolCallerSession) Periods(period *big.Int) (struct {
 //
 // Solidity: function positionPeriodSecondsInRange(uint256 period, address owner, uint256 index, int24 tickLower, int24 tickUpper) view returns(uint256 periodSecondsInsideX96)
 func (_V3Pool *V3PoolCaller) PositionPeriodSecondsInRange(opts *bind.CallOpts, period *big.Int, owner common.Address, index *big.Int, tickLower *big.Int, tickUpper *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "positionPeriodSecondsInRange", period, owner, index, tickLower, tickUpper)
 
 	if err != nil {
@@ -593,7 +593,7 @@ func (_V3Pool *V3PoolCaller) Positions(opts *bind.CallOpts, key [32]byte) (struc
 	TokensOwed0              *big.Int
 	TokensOwed1              *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "positions", key)
 
 	outstruct := new(struct {
@@ -647,7 +647,7 @@ func (_V3Pool *V3PoolCallerSession) Positions(key [32]byte) (struct {
 //
 // Solidity: function protocolFees() view returns(uint128, uint128)
 func (_V3Pool *V3PoolCaller) ProtocolFees(opts *bind.CallOpts) (*big.Int, *big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "protocolFees")
 
 	if err != nil {
@@ -679,7 +679,7 @@ func (_V3Pool *V3PoolCallerSession) ProtocolFees() (*big.Int, *big.Int, error) {
 //
 // Solidity: function readStorage(bytes32[] slots) view returns(bytes32[] returnData)
 func (_V3Pool *V3PoolCaller) ReadStorage(opts *bind.CallOpts, slots [][32]byte) ([][32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "readStorage", slots)
 
 	if err != nil {
@@ -718,7 +718,7 @@ func (_V3Pool *V3PoolCaller) Slot0(opts *bind.CallOpts) (struct {
 	FeeProtocol                uint32
 	Unlocked                   bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "slot0")
 
 	outstruct := new(struct {
@@ -784,7 +784,7 @@ func (_V3Pool *V3PoolCaller) SnapshotCumulativesInside(opts *bind.CallOpts, tick
 	SecondsPerLiquidityInsideX128 *big.Int
 	SecondsInside                 uint32
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "snapshotCumulativesInside", tickLower, tickUpper)
 
 	outstruct := new(struct {
@@ -830,7 +830,7 @@ func (_V3Pool *V3PoolCallerSession) SnapshotCumulativesInside(tickLower *big.Int
 //
 // Solidity: function tickBitmap(int16 tick) view returns(uint256)
 func (_V3Pool *V3PoolCaller) TickBitmap(opts *bind.CallOpts, tick int16) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "tickBitmap", tick)
 
 	if err != nil {
@@ -861,7 +861,7 @@ func (_V3Pool *V3PoolCallerSession) TickBitmap(tick int16) (*big.Int, error) {
 //
 // Solidity: function tickSpacing() view returns(int24)
 func (_V3Pool *V3PoolCaller) TickSpacing(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "tickSpacing")
 
 	if err != nil {
@@ -901,7 +901,7 @@ func (_V3Pool *V3PoolCaller) Ticks(opts *bind.CallOpts, tick *big.Int) (struct {
 	SecondsOutside                 uint32
 	Initialized                    bool
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "ticks", tick)
 
 	outstruct := new(struct {
@@ -967,7 +967,7 @@ func (_V3Pool *V3PoolCallerSession) Ticks(tick *big.Int) (struct {
 //
 // Solidity: function token0() view returns(address)
 func (_V3Pool *V3PoolCaller) Token0(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "token0")
 
 	if err != nil {
@@ -998,7 +998,7 @@ func (_V3Pool *V3PoolCallerSession) Token0() (common.Address, error) {
 //
 // Solidity: function token1() view returns(address)
 func (_V3Pool *V3PoolCaller) Token1(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _V3Pool.contract.Call(opts, &out, "token1")
 
 	if err != nil {
@@ -1108,15 +1108,15 @@ type V3PoolBurn struct {
 // Solidity: event Burn(address indexed owner, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) FilterBurn(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolBurnIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1133,15 +1133,15 @@ func (_V3Pool *V3PoolFilterer) FilterBurn(opts *bind.FilterOpts, owner []common.
 // Solidity: event Burn(address indexed owner, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) WatchBurn(opts *bind.WatchOpts, sink chan<- *V3PoolBurn, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1273,16 +1273,16 @@ type V3PoolCollect struct {
 // Solidity: event Collect(address indexed owner, address recipient, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) FilterCollect(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolCollectIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1299,16 +1299,16 @@ func (_V3Pool *V3PoolFilterer) FilterCollect(opts *bind.FilterOpts, owner []comm
 // Solidity: event Collect(address indexed owner, address recipient, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) WatchCollect(opts *bind.WatchOpts, sink chan<- *V3PoolCollect, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -1438,11 +1438,11 @@ type V3PoolCollectProtocol struct {
 // Solidity: event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) FilterCollectProtocol(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolCollectProtocolIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1459,11 +1459,11 @@ func (_V3Pool *V3PoolFilterer) FilterCollectProtocol(opts *bind.FilterOpts, send
 // Solidity: event CollectProtocol(address indexed sender, address indexed recipient, uint128 amount0, uint128 amount1)
 func (_V3Pool *V3PoolFilterer) WatchCollectProtocol(opts *bind.WatchOpts, sink chan<- *V3PoolCollectProtocol, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1595,11 +1595,11 @@ type V3PoolFlash struct {
 // Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
 func (_V3Pool *V3PoolFilterer) FilterFlash(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolFlashIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -1616,11 +1616,11 @@ func (_V3Pool *V3PoolFilterer) FilterFlash(opts *bind.FilterOpts, sender []commo
 // Solidity: event Flash(address indexed sender, address indexed recipient, uint256 amount0, uint256 amount1, uint256 paid0, uint256 paid1)
 func (_V3Pool *V3PoolFilterer) WatchFlash(opts *bind.WatchOpts, sink chan<- *V3PoolFlash, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -2024,16 +2024,16 @@ type V3PoolMint struct {
 // Solidity: event Mint(address sender, address indexed owner, uint256 index, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) FilterMint(opts *bind.FilterOpts, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (*V3PoolMintIterator, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -2050,16 +2050,16 @@ func (_V3Pool *V3PoolFilterer) FilterMint(opts *bind.FilterOpts, owner []common.
 // Solidity: event Mint(address sender, address indexed owner, uint256 index, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
 func (_V3Pool *V3PoolFilterer) WatchMint(opts *bind.WatchOpts, sink chan<- *V3PoolMint, owner []common.Address, tickLower []*big.Int, tickUpper []*big.Int) (event.Subscription, error) {
 
-	var ownerRule []interface{}
+	var ownerRule []any
 	for _, ownerItem := range owner {
 		ownerRule = append(ownerRule, ownerItem)
 	}
 
-	var tickLowerRule []interface{}
+	var tickLowerRule []any
 	for _, tickLowerItem := range tickLower {
 		tickLowerRule = append(tickLowerRule, tickLowerItem)
 	}
-	var tickUpperRule []interface{}
+	var tickUpperRule []any
 	for _, tickUpperItem := range tickUpper {
 		tickUpperRule = append(tickUpperRule, tickUpperItem)
 	}
@@ -2329,11 +2329,11 @@ type V3PoolSwap struct {
 // Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)
 func (_V3Pool *V3PoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, recipient []common.Address) (*V3PoolSwapIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}
@@ -2350,11 +2350,11 @@ func (_V3Pool *V3PoolFilterer) FilterSwap(opts *bind.FilterOpts, sender []common
 // Solidity: event Swap(address indexed sender, address indexed recipient, int256 amount0, int256 amount1, uint160 sqrtPriceX96, uint128 liquidity, int24 tick)
 func (_V3Pool *V3PoolFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *V3PoolSwap, sender []common.Address, recipient []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var recipientRule []interface{}
+	var recipientRule []any
 	for _, recipientItem := range recipient {
 		recipientRule = append(recipientRule, recipientItem)
 	}

@@ -149,7 +149,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any { return nil }
 
 // getAmountOut returns amountOutAfterFees, feeAmount and error
 func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {

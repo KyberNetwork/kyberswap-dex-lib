@@ -105,20 +105,20 @@ func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, er
 		ABI:    usd0ppABI,
 		Target: USD0PP,
 		Method: usd0ppMethodGetStartTime,
-		Params: []interface{}{},
-	}, []interface{}{&startTime})
+		Params: []any{},
+	}, []any{&startTime})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    usd0ppABI,
 		Target: USD0PP,
 		Method: usd0ppMethodGetEndTime,
-		Params: []interface{}{},
-	}, []interface{}{&endTime})
+		Params: []any{},
+	}, []any{&endTime})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    usd0ppABI,
 		Target: USD0PP,
 		Method: usd0ppMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

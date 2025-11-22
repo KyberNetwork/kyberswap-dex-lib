@@ -114,55 +114,55 @@ func (t *PoolTracker) getPoolState(ctx context.Context, address string) (PoolSta
 			Target: address,
 			Method: poolMethodGetC1,
 			Params: nil,
-		}, []interface{}{&state.C1}).
+		}, []any{&state.C1}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetHaircutRate,
 			Params: nil,
-		}, []interface{}{&state.HaircutRate}).
+		}, []any{&state.HaircutRate}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetPriceOracle,
 			Params: nil,
-		}, []interface{}{&state.PriceOracle}).
+		}, []any{&state.PriceOracle}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetRetentionRatio,
 			Params: nil,
-		}, []interface{}{&state.RetentionRatio}).
+		}, []any{&state.RetentionRatio}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetSlippageParamK,
 			Params: nil,
-		}, []interface{}{&state.SlippageParamK}).
+		}, []any{&state.SlippageParamK}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetSlippageParamN,
 			Params: nil,
-		}, []interface{}{&state.SlippageParamN}).
+		}, []any{&state.SlippageParamN}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetTokenAddresses,
 			Params: nil,
-		}, []interface{}{&state.TokenAddresses}).
+		}, []any{&state.TokenAddresses}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodGetXThreshold,
 			Params: nil,
-		}, []interface{}{&state.XThreshold}).
+		}, []any{&state.XThreshold}).
 		AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: address,
 			Method: poolMethodPaused,
 			Params: nil,
-		}, []interface{}{&state.Paused})
+		}, []any{&state.Paused})
 
 	if _, err := request.Aggregate(); err != nil {
 		return PoolState{}, err
@@ -183,8 +183,8 @@ func (t *PoolTracker) getAssetAddresses(
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodAssetOf,
-			Params: []interface{}{tokenAddress},
-		}, []interface{}{&assetAddresses[i]})
+			Params: []any{tokenAddress},
+		}, []any{&assetAddresses[i]})
 	}
 
 	if _, err := request.Aggregate(); err != nil {
@@ -207,30 +207,30 @@ func (t *PoolTracker) getAssetStates(
 				Target: address,
 				Method: assetMethodCash,
 				Params: nil,
-			}, []interface{}{&states[i].Cash}).
+			}, []any{&states[i].Cash}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
 				Method: assetMethodDecimals,
 				Params: nil,
-			}, []interface{}{&states[i].Decimals}).
+			}, []any{&states[i].Decimals}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
 				Method: assetMethodLiability,
 				Params: nil,
-			}, []interface{}{&states[i].Liability}).
+			}, []any{&states[i].Liability}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
 				Method: assetMethodUnderlyingToken,
 				Params: nil,
-			}, []interface{}{&states[i].UnderlyingToken}).
+			}, []any{&states[i].UnderlyingToken}).
 			AddCall(&ethrpc.Call{
 				ABI:    assetABI,
 				Target: address,
 				Method: assetMethodAggregateAccount,
-			}, []interface{}{&states[i].AggregateAccount})
+			}, []any{&states[i].AggregateAccount})
 	}
 
 	if _, err := request.Aggregate(); err != nil {
@@ -247,8 +247,8 @@ func (t *PoolTracker) getSAvaxRate(ctx context.Context, address string) (*big.In
 			ABI:    stakedAvaxABI,
 			Target: address,
 			Method: stakedAvaxMethodGetPooledAvaxByShares,
-			Params: []interface{}{bOne},
-		}, []interface{}{&rate})
+			Params: []any{bOne},
+		}, []any{&rate})
 	if _, err := request.Call(); err != nil {
 		return nil, err
 	}

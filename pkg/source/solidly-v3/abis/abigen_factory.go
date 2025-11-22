@@ -146,7 +146,7 @@ func bindFactory(address common.Address, caller bind.ContractCaller, transactor 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Factory *FactoryRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Factory *FactoryRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Factory.Contract.FactoryCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_Factory *FactoryRaw) Transfer(opts *bind.TransactOpts) (*types.Transactio
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Factory.Contract.FactoryTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, par
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Factory *FactoryCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Factory *FactoryCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Factory.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_Factory *FactoryTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Factory.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method s
 //
 // Solidity: function feeAmountTickSpacing(uint24 ) view returns(int24)
 func (_Factory *FactoryCaller) FeeAmountTickSpacing(opts *bind.CallOpts, arg0 *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "feeAmountTickSpacing", arg0)
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_Factory *FactoryCallerSession) FeeAmountTickSpacing(arg0 *big.Int) (*big.
 //
 // Solidity: function feeCollector() view returns(address)
 func (_Factory *FactoryCaller) FeeCollector(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "feeCollector")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_Factory *FactoryCallerSession) FeeCollector() (common.Address, error) {
 //
 // Solidity: function getFeeSetters() view returns(address[])
 func (_Factory *FactoryCaller) GetFeeSetters(opts *bind.CallOpts) ([]common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "getFeeSetters")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_Factory *FactoryCallerSession) GetFeeSetters() ([]common.Address, error) 
 //
 // Solidity: function getPool(address , address , int24 ) view returns(address)
 func (_Factory *FactoryCaller) GetPool(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address, arg2 *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "getPool", arg0, arg1, arg2)
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_Factory *FactoryCallerSession) GetPool(arg0 common.Address, arg1 common.A
 //
 // Solidity: function isFeeSetter(address ) view returns(uint256)
 func (_Factory *FactoryCaller) IsFeeSetter(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "isFeeSetter", arg0)
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_Factory *FactoryCallerSession) IsFeeSetter(arg0 common.Address) (*big.Int
 //
 // Solidity: function owner() view returns(address)
 func (_Factory *FactoryCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -376,7 +376,7 @@ func (_Factory *FactoryCaller) Parameters(opts *bind.CallOpts) (struct {
 	Fee         *big.Int
 	TickSpacing *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "parameters")
 
 	outstruct := new(struct {
@@ -610,11 +610,11 @@ type FactoryFeeAmountEnabled struct {
 // Solidity: event FeeAmountEnabled(uint24 indexed fee, int24 indexed tickSpacing)
 func (_Factory *FactoryFilterer) FilterFeeAmountEnabled(opts *bind.FilterOpts, fee []*big.Int, tickSpacing []*big.Int) (*FactoryFeeAmountEnabledIterator, error) {
 
-	var feeRule []interface{}
+	var feeRule []any
 	for _, feeItem := range fee {
 		feeRule = append(feeRule, feeItem)
 	}
-	var tickSpacingRule []interface{}
+	var tickSpacingRule []any
 	for _, tickSpacingItem := range tickSpacing {
 		tickSpacingRule = append(tickSpacingRule, tickSpacingItem)
 	}
@@ -631,11 +631,11 @@ func (_Factory *FactoryFilterer) FilterFeeAmountEnabled(opts *bind.FilterOpts, f
 // Solidity: event FeeAmountEnabled(uint24 indexed fee, int24 indexed tickSpacing)
 func (_Factory *FactoryFilterer) WatchFeeAmountEnabled(opts *bind.WatchOpts, sink chan<- *FactoryFeeAmountEnabled, fee []*big.Int, tickSpacing []*big.Int) (event.Subscription, error) {
 
-	var feeRule []interface{}
+	var feeRule []any
 	for _, feeItem := range fee {
 		feeRule = append(feeRule, feeItem)
 	}
-	var tickSpacingRule []interface{}
+	var tickSpacingRule []any
 	for _, tickSpacingItem := range tickSpacing {
 		tickSpacingRule = append(tickSpacingRule, tickSpacingItem)
 	}
@@ -763,11 +763,11 @@ type FactoryFeeCollectorChanged struct {
 // Solidity: event FeeCollectorChanged(address indexed oldFeeCollector, address indexed newFeeCollector)
 func (_Factory *FactoryFilterer) FilterFeeCollectorChanged(opts *bind.FilterOpts, oldFeeCollector []common.Address, newFeeCollector []common.Address) (*FactoryFeeCollectorChangedIterator, error) {
 
-	var oldFeeCollectorRule []interface{}
+	var oldFeeCollectorRule []any
 	for _, oldFeeCollectorItem := range oldFeeCollector {
 		oldFeeCollectorRule = append(oldFeeCollectorRule, oldFeeCollectorItem)
 	}
-	var newFeeCollectorRule []interface{}
+	var newFeeCollectorRule []any
 	for _, newFeeCollectorItem := range newFeeCollector {
 		newFeeCollectorRule = append(newFeeCollectorRule, newFeeCollectorItem)
 	}
@@ -784,11 +784,11 @@ func (_Factory *FactoryFilterer) FilterFeeCollectorChanged(opts *bind.FilterOpts
 // Solidity: event FeeCollectorChanged(address indexed oldFeeCollector, address indexed newFeeCollector)
 func (_Factory *FactoryFilterer) WatchFeeCollectorChanged(opts *bind.WatchOpts, sink chan<- *FactoryFeeCollectorChanged, oldFeeCollector []common.Address, newFeeCollector []common.Address) (event.Subscription, error) {
 
-	var oldFeeCollectorRule []interface{}
+	var oldFeeCollectorRule []any
 	for _, oldFeeCollectorItem := range oldFeeCollector {
 		oldFeeCollectorRule = append(oldFeeCollectorRule, oldFeeCollectorItem)
 	}
-	var newFeeCollectorRule []interface{}
+	var newFeeCollectorRule []any
 	for _, newFeeCollectorItem := range newFeeCollector {
 		newFeeCollectorRule = append(newFeeCollectorRule, newFeeCollectorItem)
 	}
@@ -916,11 +916,11 @@ type FactoryFeeSetterStatusToggled struct {
 // Solidity: event FeeSetterStatusToggled(address indexed addr, uint256 indexed newStatus)
 func (_Factory *FactoryFilterer) FilterFeeSetterStatusToggled(opts *bind.FilterOpts, addr []common.Address, newStatus []*big.Int) (*FactoryFeeSetterStatusToggledIterator, error) {
 
-	var addrRule []interface{}
+	var addrRule []any
 	for _, addrItem := range addr {
 		addrRule = append(addrRule, addrItem)
 	}
-	var newStatusRule []interface{}
+	var newStatusRule []any
 	for _, newStatusItem := range newStatus {
 		newStatusRule = append(newStatusRule, newStatusItem)
 	}
@@ -937,11 +937,11 @@ func (_Factory *FactoryFilterer) FilterFeeSetterStatusToggled(opts *bind.FilterO
 // Solidity: event FeeSetterStatusToggled(address indexed addr, uint256 indexed newStatus)
 func (_Factory *FactoryFilterer) WatchFeeSetterStatusToggled(opts *bind.WatchOpts, sink chan<- *FactoryFeeSetterStatusToggled, addr []common.Address, newStatus []*big.Int) (event.Subscription, error) {
 
-	var addrRule []interface{}
+	var addrRule []any
 	for _, addrItem := range addr {
 		addrRule = append(addrRule, addrItem)
 	}
-	var newStatusRule []interface{}
+	var newStatusRule []any
 	for _, newStatusItem := range newStatus {
 		newStatusRule = append(newStatusRule, newStatusItem)
 	}
@@ -1069,11 +1069,11 @@ type FactoryOwnerChanged struct {
 // Solidity: event OwnerChanged(address indexed oldOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) FilterOwnerChanged(opts *bind.FilterOpts, oldOwner []common.Address, newOwner []common.Address) (*FactoryOwnerChangedIterator, error) {
 
-	var oldOwnerRule []interface{}
+	var oldOwnerRule []any
 	for _, oldOwnerItem := range oldOwner {
 		oldOwnerRule = append(oldOwnerRule, oldOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -1090,11 +1090,11 @@ func (_Factory *FactoryFilterer) FilterOwnerChanged(opts *bind.FilterOpts, oldOw
 // Solidity: event OwnerChanged(address indexed oldOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) WatchOwnerChanged(opts *bind.WatchOpts, sink chan<- *FactoryOwnerChanged, oldOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var oldOwnerRule []interface{}
+	var oldOwnerRule []any
 	for _, oldOwnerItem := range oldOwner {
 		oldOwnerRule = append(oldOwnerRule, oldOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -1225,16 +1225,16 @@ type FactoryPoolCreated struct {
 // Solidity: event PoolCreated(address indexed token0, address indexed token1, uint24 fee, int24 indexed tickSpacing, address pool)
 func (_Factory *FactoryFilterer) FilterPoolCreated(opts *bind.FilterOpts, token0 []common.Address, token1 []common.Address, tickSpacing []*big.Int) (*FactoryPoolCreatedIterator, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
 
-	var tickSpacingRule []interface{}
+	var tickSpacingRule []any
 	for _, tickSpacingItem := range tickSpacing {
 		tickSpacingRule = append(tickSpacingRule, tickSpacingItem)
 	}
@@ -1251,16 +1251,16 @@ func (_Factory *FactoryFilterer) FilterPoolCreated(opts *bind.FilterOpts, token0
 // Solidity: event PoolCreated(address indexed token0, address indexed token1, uint24 fee, int24 indexed tickSpacing, address pool)
 func (_Factory *FactoryFilterer) WatchPoolCreated(opts *bind.WatchOpts, sink chan<- *FactoryPoolCreated, token0 []common.Address, token1 []common.Address, tickSpacing []*big.Int) (event.Subscription, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
 
-	var tickSpacingRule []interface{}
+	var tickSpacingRule []any
 	for _, tickSpacingItem := range tickSpacing {
 		tickSpacingRule = append(tickSpacingRule, tickSpacingItem)
 	}

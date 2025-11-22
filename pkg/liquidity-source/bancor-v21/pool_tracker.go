@@ -115,7 +115,7 @@ func (d *PoolTracker) getAnchorCount(ctx context.Context) (int, error) {
 		Target: d.config.ConverterRegistry,
 		Method: getAnchorCount,
 		Params: nil,
-	}, []interface{}{&anchorCount}).Call(); err != nil {
+	}, []any{&anchorCount}).Call(); err != nil {
 		return 0, err
 	}
 	return int(anchorCount.Uint64()), nil
@@ -198,7 +198,7 @@ func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64
 			Target: pool.Address,
 			Method: converterGetFee,
 			Params: nil,
-		}, []interface{}{&fees[i]})
+		}, []any{&fees[i]})
 	}
 
 	_, err := getFeeRequest.TryBlockAndAggregate()
@@ -224,8 +224,8 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, pools []entity
 				ABI:    converterABI,
 				Target: pool.Address,
 				Method: converterGetReserve,
-				Params: []interface{}{common.HexToAddress(token.Address)},
-			}, []interface{}{&reserves[i][j]})
+				Params: []any{common.HexToAddress(token.Address)},
+			}, []any{&reserves[i][j]})
 		}
 	}
 

@@ -89,7 +89,7 @@ func (s *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 func (s *PoolSimulator) UpdateBalance(_ pool.UpdateBalanceParams) {}
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		Asset:       s.Info.Tokens[0],
 		UsdPlus:     s.Info.Tokens[1],

@@ -85,20 +85,20 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: "issuanceModule",
-		Params: []interface{}{},
-	}, []interface{}{&issuanceModule}).
+		Params: []any{},
+	}, []any{&issuanceModule}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethABI,
 			Target: hyethToken,
 			Method: "getComponents",
-			Params: []interface{}{},
-		}, []interface{}{&components}).
+			Params: []any{},
+		}, []any{&components}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethABI,
 			Target: hyethToken,
 			Method: "totalSupply",
-			Params: []interface{}{},
-		}, []interface{}{&hyethTotalSupply})
+			Params: []any{},
+		}, []any{&hyethTotalSupply})
 	_, err := calls.Aggregate()
 	if err != nil {
 		return p, err
@@ -129,48 +129,48 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    issuanceModuleABI,
 			Target: issuanceModule.Hex(),
 			Method: "issuanceSettings",
-			Params: []interface{}{common.HexToAddress(hyethToken)},
-		}, []interface{}{&issuanceSettings}).
+			Params: []any{common.HexToAddress(hyethToken)},
+		}, []any{&issuanceSettings}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethABI,
 			Target: hyethToken,
 			Method: "getDefaultPositionRealUnit",
-			Params: []interface{}{components[0]},
-		}, []interface{}{&defaultPositionRealUnit}).
+			Params: []any{components[0]},
+		}, []any{&defaultPositionRealUnit}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethABI,
 			Target: hyethToken,
 			Method: "getExternalPositionModules",
-			Params: []interface{}{components[0]},
-		}, []interface{}{&externalPositionModules}).
+			Params: []any{components[0]},
+		}, []any{&externalPositionModules}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "totalSupply",
-		}, []interface{}{&totalSupply}).
+		}, []any{&totalSupply}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "totalAssets",
-		}, []interface{}{&totalAsset}).
+		}, []any{&totalAsset}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "balanceOf",
-			Params: []interface{}{common.HexToAddress(hyethToken)},
-		}, []interface{}{&componentHyethBalance}).
+			Params: []any{common.HexToAddress(hyethToken)},
+		}, []any{&componentHyethBalance}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "maxDeposit",
-			Params: []interface{}{eth.AddressZero},
-		}, []interface{}{&maxDeposit}).
+			Params: []any{eth.AddressZero},
+		}, []any{&maxDeposit}).
 		AddCall(&ethrpc.Call{
 			ABI:    hyethComponent4626ABI,
 			Target: components[0].Hex(),
 			Method: "maxRedeem",
-			Params: []interface{}{eth.AddressZero},
-		}, []interface{}{&maxRedeem})
+			Params: []any{eth.AddressZero},
+		}, []any{&maxRedeem})
 
 	_, err = calls.Aggregate()
 	if err != nil {
@@ -184,8 +184,8 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    hyethABI,
 			Target: hyethToken,
 			Method: "getExternalPositionRealUnit",
-			Params: []interface{}{components[0], module},
-		}, []interface{}{&externalPositionRealUnits[i]})
+			Params: []any{components[0], module},
+		}, []any{&externalPositionRealUnits[i]})
 	}
 
 	_, err = calls.Aggregate()

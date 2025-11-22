@@ -35,7 +35,7 @@ func (r *USDFReader) Read(ctx context.Context, address string) (*USDF, error) {
 		Target: address,
 		Method: usdfMethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := rpcRequest.Call(); err != nil {
 		r.log.Errorf("error when call rpc request %v", err)

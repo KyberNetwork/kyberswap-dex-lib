@@ -119,7 +119,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 		Target: u.config.FactoryAddress,
 		Method: factoryAllPairsLengthMethod,
 		Params: nil,
-	}, []interface{}{&allPairsLength})
+	}, []any{&allPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return 0, err
@@ -155,8 +155,8 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryGetPairMethod,
-			Params: []interface{}{index},
-		}, []interface{}{&listPairAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPairAddressesResult[i]})
 	}
 
 	resp, err := listPairAddressesRequest.TryAggregate()
@@ -234,7 +234,7 @@ func (u *PoolsListUpdater) getListToken0(ctx context.Context, pairAddresses []co
 			Target: pairAddress.Hex(),
 			Method: pairTokenAMethod,
 			Params: nil,
-		}, []interface{}{&listToken0Result[i]})
+		}, []any{&listToken0Result[i]})
 	}
 
 	res, err := listTokensRequest.Aggregate()
@@ -251,8 +251,8 @@ func (u *PoolsListUpdater) getListToken0(ctx context.Context, pairAddresses []co
 				ABI:    bondingABI,
 				Target: u.config.BondingAddress,
 				Method: bondingUnwrapTokenMethod,
-				Params: []interface{}{token, []common.Address{}},
-			}, []interface{}{temp})
+				Params: []any{token, []common.Address{}},
+			}, []any{temp})
 		}
 
 		result, err := req.TryAggregate()

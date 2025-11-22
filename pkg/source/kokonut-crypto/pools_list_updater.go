@@ -52,7 +52,7 @@ func (d *PoolsListUpdater) GetNewPools(
 		Target: d.config.RegistryAddress,
 		Method: registryMethodPoolCount,
 		Params: nil,
-	}, []interface{}{&lengthBI})
+	}, []any{&lengthBI})
 
 	if _, err := getNumPoolsRequest.Call(); err != nil {
 		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
@@ -78,8 +78,8 @@ func (d *PoolsListUpdater) GetNewPools(
 			ABI:    poolRegistryABI,
 			Target: d.config.RegistryAddress,
 			Method: registryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
+			Params: []any{big.NewInt(int64(currentOffset + j))},
+		}, []any{&pairAddresses[j]})
 	}
 	if _, err := getPairAddressRequest.Aggregate(); err != nil {
 		logger.Errorf("failed to process aggregate, err: %v", err)
@@ -127,8 +127,8 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				ABI:    cryptoSwap2PoolABI,
 				Target: poolAddress.Hex(),
 				Method: poolMethodCoins,
-				Params: []interface{}{big.NewInt(int64(j))},
-			}, []interface{}{&coins[i][j]})
+				Params: []any{big.NewInt(int64(j))},
+			}, []any{&coins[i][j]})
 		}
 	}
 	if _, err := calls.Aggregate(); err != nil {
@@ -144,14 +144,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				Target: coins[i][j].Hex(),
 				Method: poolMethodDecimals,
 				Params: nil,
-			}, []interface{}{&decimals[i][j]})
+			}, []any{&decimals[i][j]})
 		}
 		calls.AddCall(&ethrpc.Call{
 			ABI:    cryptoSwap2PoolABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodToken,
 			Params: nil,
-		}, []interface{}{&lpTokens[i]})
+		}, []any{&lpTokens[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call to get coin data, err: %v", err)

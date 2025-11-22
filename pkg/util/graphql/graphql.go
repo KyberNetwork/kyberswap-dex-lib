@@ -11,9 +11,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-type RunFunc func(ctx context.Context, req *Request, resp interface{}) error
+type RunFunc func(ctx context.Context, req *Request, resp any) error
 
-type ClientInterceptor func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error
+type ClientInterceptor func(ctx context.Context, req *Request, resp any, fn RunFunc) error
 
 // Client is a client for interacting with a GraphQL API.
 type Client struct {
@@ -23,14 +23,14 @@ type Client struct {
 	chainedInt       ClientInterceptor
 	chainInterceptor []ClientInterceptor
 
-	Log func(format string, args ...interface{})
+	Log func(format string, args ...any)
 }
 
 // NewClient makes a new Client capable of making GraphQL requests.
 func NewClient(endpoint string, opts ...ClientOption) *Client {
 	c := &Client{
 		endpoint: endpoint,
-		Log:      func(format string, args ...interface{}) {},
+		Log:      func(format string, args ...any) {},
 	}
 	for _, optionFunc := range opts {
 		optionFunc(c)
@@ -42,7 +42,7 @@ func NewClient(endpoint string, opts ...ClientOption) *Client {
 	return c
 }
 
-func (c *Client) logf(format string, args ...interface{}) {
+func (c *Client) logf(format string, args ...any) {
 	c.Log(format, args...)
 }
 
@@ -51,7 +51,7 @@ func (c *Client) logf(format string, args ...interface{}) {
 // Pass in a nil response object to skip response parsing.
 // If the request fails or the server returns an error, the first error
 // will be returned.
-func (c *Client) Run(ctx context.Context, req *Request, resp interface{}) error {
+func (c *Client) Run(ctx context.Context, req *Request, resp any) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -63,15 +63,15 @@ func (c *Client) Run(ctx context.Context, req *Request, resp interface{}) error 
 	return c.run(ctx, req, resp)
 }
 
-func (c *Client) run(ctx context.Context, req *Request, resp interface{}) error {
+func (c *Client) run(ctx context.Context, req *Request, resp any) error {
 	return c.runWithJSON(ctx, req, resp)
 }
 
-func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}) error {
+func (c *Client) runWithJSON(ctx context.Context, req *Request, resp any) error {
 	var requestBody bytes.Buffer
 	requestBodyObj := struct {
-		Query     string                 `json:"query"`
-		Variables map[string]interface{} `json:"variables"`
+		Query     string         `json:"query"`
+		Variables map[string]any `json:"variables"`
 	}{
 		Query:     req.q,
 		Variables: req.vars,
@@ -129,7 +129,7 @@ func chainClientInterceptors(client *Client) {
 	} else if len(interceptors) == 1 {
 		chainedInt = interceptors[0]
 	} else {
-		chainedInt = func(ctx context.Context, req *Request, resp interface{}, runFn RunFunc) error {
+		chainedInt = func(ctx context.Context, req *Request, resp any, runFn RunFunc) error {
 			return interceptors[0](ctx, req, resp, getChainRunFunc(interceptors, 0, runFn))
 		}
 	}
@@ -141,7 +141,7 @@ func getChainRunFunc(interceptors []ClientInterceptor, curr int, finalFn RunFunc
 	if curr == len(interceptors)-1 {
 		return finalFn
 	}
-	return func(ctx context.Context, req *Request, resp interface{}) error {
+	return func(ctx context.Context, req *Request, resp any) error {
 		return interceptors[curr+1](ctx, req, resp, getChainRunFunc(interceptors, curr+1, finalFn))
 	}
 }
@@ -175,14 +175,14 @@ func (e graphErr) Error() string {
 }
 
 type graphResponse struct {
-	Data   interface{}
+	Data   any
 	Errors []graphErr
 }
 
 // Request is a GraphQL request.
 type Request struct {
 	q    string
-	vars map[string]interface{}
+	vars map[string]any
 
 	// Header represent any request headers that will be set
 	// when the request is made.
@@ -203,15 +203,15 @@ func NewRequest(q string) *Request {
 }
 
 // Var sets a variable.
-func (req *Request) Var(key string, value interface{}) {
+func (req *Request) Var(key string, value any) {
 	if req.vars == nil {
-		req.vars = make(map[string]interface{})
+		req.vars = make(map[string]any)
 	}
 	req.vars[key] = value
 }
 
 // Vars gets the variables for this Request.
-func (req *Request) Vars() map[string]interface{} {
+func (req *Request) Vars() map[string]any {
 	return req.vars
 }
 

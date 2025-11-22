@@ -2,11 +2,12 @@ package fulcrom
 
 import (
 	"context"
+	"math/big"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
 )
 
 type VaultPriceFeedReader struct {
@@ -65,8 +66,8 @@ func (r *VaultPriceFeedReader) readTokenData(
 	for i, token := range tokens {
 		tokenAddress := common.HexToAddress(token)
 
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []interface{}{tokenAddress, true}), []interface{}{&maxPrices[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []interface{}{tokenAddress, false}), []interface{}{&minPrices[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []any{tokenAddress, true}), []any{&maxPrices[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodGetPrice, []any{tokenAddress, false}), []any{&minPrices[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

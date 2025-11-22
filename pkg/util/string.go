@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Join(args ...interface{}) string {
+func Join(args ...any) string {
 	s := make([]string, len(args))
 	for i, v := range args {
 		switch v := v.(type) {

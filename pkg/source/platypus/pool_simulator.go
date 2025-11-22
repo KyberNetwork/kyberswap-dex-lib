@@ -184,7 +184,7 @@ func (p *PoolSimulator) CalcExactQuote(
 func (p *PoolSimulator) GetMetaInfo(
 	tokenIn string,
 	tokenOut string,
-) interface{} {
+) any {
 	return nil
 }
 

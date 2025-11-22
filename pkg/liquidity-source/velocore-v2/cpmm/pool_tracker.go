@@ -57,21 +57,21 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Target: p.Address,
 		Method: poolMethodPoolBalances,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodFee1e9,
 		Params: nil,
-	}, []interface{}{&fee1e9})
+	}, []any{&fee1e9})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodFeeMultiplier,
 		Params: nil,
-	}, []interface{}{&feeMultiplier})
+	}, []any{&feeMultiplier})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {

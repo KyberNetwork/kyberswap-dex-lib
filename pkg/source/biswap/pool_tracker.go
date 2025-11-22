@@ -73,14 +73,14 @@ func (d *PoolTracker) getNewPoolState(
 		Target: p.Address,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    biswapPairABI,
 		Target: p.Address,
 		Method: pairMethodGetSwapFee,
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 
 	resp, err := rpcRequest.TryAggregate()
 	if err != nil {

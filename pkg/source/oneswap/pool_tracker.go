@@ -46,14 +46,14 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodSwapStorage,
 		Params: nil,
-	}, []interface{}{&swapStorage})
+	}, []any{&swapStorage})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    oneSwapABI,
 		Target: p.Address,
 		Method: poolMethodGetBalances,
 		Params: nil,
-	}, []interface{}{&balances})
+	}, []any{&balances})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -99,7 +99,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: lpToken,
 		Method: methodGetTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{

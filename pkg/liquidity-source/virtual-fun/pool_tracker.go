@@ -138,8 +138,8 @@ func (d *PoolTracker) getBondingData(
 			ABI:    erc20ABI,
 			Target: token.Address,
 			Method: erc20BalanceOfMethod,
-			Params: []interface{}{common.HexToAddress(poolAddress)},
-		}, []interface{}{&tokenReserves[i]})
+			Params: []any{common.HexToAddress(poolAddress)},
+		}, []any{&tokenReserves[i]})
 	}
 
 	// Fetch pair reserves used for AMM calculations
@@ -148,22 +148,22 @@ func (d *PoolTracker) getBondingData(
 		Target: poolAddress,
 		Method: pairGetReservesMethod,
 		Params: nil,
-	}, []interface{}{&pairReserves})
+	}, []any{&pairReserves})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    bondingABI,
 		Target: d.config.BondingAddress,
 		Method: bondingGradThresholdMethod,
 		Params: nil,
-	}, []interface{}{&gradThreshold})
+	}, []any{&gradThreshold})
 
 	// Call to detect if pool can tradable ? Tradable if there is an error
 	req.AddCall(&ethrpc.Call{
 		ABI:    bondingABI,
 		Target: d.config.BondingAddress,
 		Method: bondingUnwrapTokenMethod,
-		Params: []interface{}{common.HexToAddress(tokens[0].Address), []common.Address{}},
-	}, []interface{}{&struct{}{}})
+		Params: []any{common.HexToAddress(tokens[0].Address), []common.Address{}},
+	}, []any{&struct{}{}})
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
@@ -195,19 +195,19 @@ func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumbe
 		Target: d.config.FactoryAddress,
 		Method: factoryBuyTaxMethod,
 		Params: nil,
-	}, []interface{}{&buyTax})
+	}, []any{&buyTax})
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factorySellTaxMethod,
 		Params: nil,
-	}, []interface{}{&sellTax})
+	}, []any{&sellTax})
 	req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: poolAddress,
 		Method: pairKLastMethod,
 		Params: nil,
-	}, []interface{}{&kLast})
+	}, []any{&kLast})
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, nil, nil, err

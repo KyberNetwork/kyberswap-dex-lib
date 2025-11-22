@@ -85,15 +85,15 @@ func (t *PoolTracker) getExtra(
 		ABI:    common.AccessControlManagerABI,
 		Target: common.AccessControlManager,
 		Method: common.AccessControlManagerMethodCoreMethodsPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.SWETHABI,
 		Target: common.SWETH,
 		Method: common.SWETHMethodSWETHToETHRate,
-		Params: []interface{}{},
-	}, []interface{}{&swETHToETHRate})
+		Params: []any{},
+	}, []any{&swETHToETHRate})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {

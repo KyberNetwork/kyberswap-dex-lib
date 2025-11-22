@@ -302,7 +302,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn, tokenOut string) any {
 	// convert to native if is wrapped token and p.isNativeToken = true
 	if p.isNativeToken0 && strings.EqualFold(tokenIn, valueobject.WrappedNativeMap[p.chainID]) {
 		tokenIn = valueobject.ZeroAddress

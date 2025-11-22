@@ -146,8 +146,8 @@ func (u *PoolsListUpdater) getPoolsFromFactory(ctx context.Context, startIndex *
 		ABI:    maverickV2FactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodLookup,
-		Params: []interface{}{startIndex, endIndex},
-	}, []interface{}{&poolAddrs})
+		Params: []any{startIndex, endIndex},
+	}, []any{&poolAddrs})
 
 	if _, err := lookupRequest.Call(); err != nil {
 		return nil, err
@@ -172,21 +172,21 @@ func (u *PoolsListUpdater) listPoolData(ctx context.Context, poolAddresses []com
 			Target: pairAddress.Hex(),
 			Method: poolMethodTokenA,
 			Params: nil,
-		}, []interface{}{&listTokenAResult[i]})
+		}, []any{&listTokenAResult[i]})
 
 		listDataRequest.AddCall(&ethrpc.Call{
 			ABI:    maverickV2PoolABI,
 			Target: pairAddress.Hex(),
 			Method: poolMethodTokenB,
 			Params: nil,
-		}, []interface{}{&listTokenBResult[i]})
+		}, []any{&listTokenBResult[i]})
 
 		listDataRequest.AddCall(&ethrpc.Call{
 			ABI:    maverickV2PoolABI,
 			Target: pairAddress.Hex(),
 			Method: "tickSpacing",
 			Params: nil,
-		}, []interface{}{&tickSpacingList[i]})
+		}, []any{&tickSpacingList[i]})
 	}
 
 	if _, err := listDataRequest.Aggregate(); err != nil {

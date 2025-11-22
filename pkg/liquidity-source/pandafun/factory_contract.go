@@ -154,7 +154,7 @@ func bindFactoryContract(address common.Address, caller bind.ContractCaller, tra
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_FactoryContract *FactoryContractRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_FactoryContract *FactoryContractRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _FactoryContract.Contract.FactoryContractCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_FactoryContract *FactoryContractRaw) Transfer(opts *bind.TransactOpts) (*
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_FactoryContract *FactoryContractRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_FactoryContract *FactoryContractRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _FactoryContract.Contract.FactoryContractTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -173,7 +173,7 @@ func (_FactoryContract *FactoryContractRaw) Transact(opts *bind.TransactOpts, me
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_FactoryContract *FactoryContractCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_FactoryContract *FactoryContractCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _FactoryContract.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_FactoryContract *FactoryContractTransactorRaw) Transfer(opts *bind.Transa
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_FactoryContract *FactoryContractTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_FactoryContract *FactoryContractTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _FactoryContract.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -192,7 +192,7 @@ func (_FactoryContract *FactoryContractTransactorRaw) Transact(opts *bind.Transa
 //
 // Solidity: function DEPLOYER_MAX_BPS() view returns(uint16)
 func (_FactoryContract *FactoryContractCaller) DEPLOYERMAXBPS(opts *bind.CallOpts) (uint16, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "DEPLOYER_MAX_BPS")
 
 	if err != nil {
@@ -223,7 +223,7 @@ func (_FactoryContract *FactoryContractCallerSession) DEPLOYERMAXBPS() (uint16, 
 //
 // Solidity: function MAX_SQRTP_MULTIPLE() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MAXSQRTPMULTIPLE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "MAX_SQRTP_MULTIPLE")
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (_FactoryContract *FactoryContractCallerSession) MAXSQRTPMULTIPLE() (*big.I
 //
 // Solidity: function MAX_TOKENSINPOOL_SHARE() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MAXTOKENSINPOOLSHARE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "MAX_TOKENSINPOOL_SHARE")
 
 	if err != nil {
@@ -285,7 +285,7 @@ func (_FactoryContract *FactoryContractCallerSession) MAXTOKENSINPOOLSHARE() (*b
 //
 // Solidity: function MIN_SQRTP_MULTIPLE() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MINSQRTPMULTIPLE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "MIN_SQRTP_MULTIPLE")
 
 	if err != nil {
@@ -316,7 +316,7 @@ func (_FactoryContract *FactoryContractCallerSession) MINSQRTPMULTIPLE() (*big.I
 //
 // Solidity: function MIN_TOKENSINPOOL_SHARE() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MINTOKENSINPOOLSHARE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "MIN_TOKENSINPOOL_SHARE")
 
 	if err != nil {
@@ -347,7 +347,7 @@ func (_FactoryContract *FactoryContractCallerSession) MINTOKENSINPOOLSHARE() (*b
 //
 // Solidity: function TOKEN_SUPPLY() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) TOKENSUPPLY(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "TOKEN_SUPPLY")
 
 	if err != nil {
@@ -378,7 +378,7 @@ func (_FactoryContract *FactoryContractCallerSession) TOKENSUPPLY() (*big.Int, e
 //
 // Solidity: function allPools(uint256 ) view returns(address)
 func (_FactoryContract *FactoryContractCaller) AllPools(opts *bind.CallOpts, arg0 *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "allPools", arg0)
 
 	if err != nil {
@@ -409,7 +409,7 @@ func (_FactoryContract *FactoryContractCallerSession) AllPools(arg0 *big.Int) (c
 //
 // Solidity: function allPoolsLength() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) AllPoolsLength(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "allPoolsLength")
 
 	if err != nil {
@@ -440,7 +440,7 @@ func (_FactoryContract *FactoryContractCallerSession) AllPoolsLength() (*big.Int
 //
 // Solidity: function allowedImplementations(uint256 ) view returns(address)
 func (_FactoryContract *FactoryContractCaller) AllowedImplementations(opts *bind.CallOpts, arg0 *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "allowedImplementations", arg0)
 
 	if err != nil {
@@ -471,7 +471,7 @@ func (_FactoryContract *FactoryContractCallerSession) AllowedImplementations(arg
 //
 // Solidity: function allowedImplementationsLength() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) AllowedImplementationsLength(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "allowedImplementationsLength")
 
 	if err != nil {
@@ -502,7 +502,7 @@ func (_FactoryContract *FactoryContractCallerSession) AllowedImplementationsLeng
 //
 // Solidity: function deployerNonce(address ) view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) DeployerNonce(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "deployerNonce", arg0)
 
 	if err != nil {
@@ -533,7 +533,7 @@ func (_FactoryContract *FactoryContractCallerSession) DeployerNonce(arg0 common.
 //
 // Solidity: function dexFactory() view returns(address)
 func (_FactoryContract *FactoryContractCaller) DexFactory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "dexFactory")
 
 	if err != nil {
@@ -564,7 +564,7 @@ func (_FactoryContract *FactoryContractCallerSession) DexFactory() (common.Addre
 //
 // Solidity: function getPoolFees() view returns((uint16,uint16,uint16,uint16))
 func (_FactoryContract *FactoryContractCaller) GetPoolFees(opts *bind.CallOpts) (IPandaStructsPandaFees, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "getPoolFees")
 
 	if err != nil {
@@ -595,7 +595,7 @@ func (_FactoryContract *FactoryContractCallerSession) GetPoolFees() (IPandaStruc
 //
 // Solidity: function getSqrtP(uint256 scaledPrice) pure returns(uint256)
 func (_FactoryContract *FactoryContractCaller) GetSqrtP(opts *bind.CallOpts, scaledPrice *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "getSqrtP", scaledPrice)
 
 	if err != nil {
@@ -626,7 +626,7 @@ func (_FactoryContract *FactoryContractCallerSession) GetSqrtP(scaledPrice *big.
 //
 // Solidity: function incentiveAmount() view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) IncentiveAmount(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "incentiveAmount")
 
 	if err != nil {
@@ -657,7 +657,7 @@ func (_FactoryContract *FactoryContractCallerSession) IncentiveAmount() (*big.In
 //
 // Solidity: function incentiveToken() view returns(address)
 func (_FactoryContract *FactoryContractCaller) IncentiveToken(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "incentiveToken")
 
 	if err != nil {
@@ -688,7 +688,7 @@ func (_FactoryContract *FactoryContractCallerSession) IncentiveToken() (common.A
 //
 // Solidity: function initCodeHash() view returns(bytes32)
 func (_FactoryContract *FactoryContractCaller) InitCodeHash(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "initCodeHash")
 
 	if err != nil {
@@ -719,7 +719,7 @@ func (_FactoryContract *FactoryContractCallerSession) InitCodeHash() ([32]byte, 
 //
 // Solidity: function isImplementationAllowed(address ) view returns(bool)
 func (_FactoryContract *FactoryContractCaller) IsImplementationAllowed(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "isImplementationAllowed", arg0)
 
 	if err != nil {
@@ -750,7 +750,7 @@ func (_FactoryContract *FactoryContractCallerSession) IsImplementationAllowed(ar
 //
 // Solidity: function isLegitPool(address _pandaPool) view returns(bool)
 func (_FactoryContract *FactoryContractCaller) IsLegitPool(opts *bind.CallOpts, _pandaPool common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "isLegitPool", _pandaPool)
 
 	if err != nil {
@@ -781,7 +781,7 @@ func (_FactoryContract *FactoryContractCallerSession) IsLegitPool(_pandaPool com
 //
 // Solidity: function minRaise(address ) view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MinRaise(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "minRaise", arg0)
 
 	if err != nil {
@@ -812,7 +812,7 @@ func (_FactoryContract *FactoryContractCallerSession) MinRaise(arg0 common.Addre
 //
 // Solidity: function minTradeSize(address ) view returns(uint256)
 func (_FactoryContract *FactoryContractCaller) MinTradeSize(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "minTradeSize", arg0)
 
 	if err != nil {
@@ -843,7 +843,7 @@ func (_FactoryContract *FactoryContractCallerSession) MinTradeSize(arg0 common.A
 //
 // Solidity: function owner() view returns(address)
 func (_FactoryContract *FactoryContractCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -874,7 +874,7 @@ func (_FactoryContract *FactoryContractCallerSession) Owner() (common.Address, e
 //
 // Solidity: function poolToImplementation(address ) view returns(address)
 func (_FactoryContract *FactoryContractCaller) PoolToImplementation(opts *bind.CallOpts, arg0 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "poolToImplementation", arg0)
 
 	if err != nil {
@@ -905,7 +905,7 @@ func (_FactoryContract *FactoryContractCallerSession) PoolToImplementation(arg0 
 //
 // Solidity: function poolToIncentiveClaimed(address ) view returns(bool)
 func (_FactoryContract *FactoryContractCaller) PoolToIncentiveClaimed(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "poolToIncentiveClaimed", arg0)
 
 	if err != nil {
@@ -936,7 +936,7 @@ func (_FactoryContract *FactoryContractCallerSession) PoolToIncentiveClaimed(arg
 //
 // Solidity: function predictPoolAddress(address implementation, address deployer) view returns(address)
 func (_FactoryContract *FactoryContractCaller) PredictPoolAddress(opts *bind.CallOpts, implementation common.Address, deployer common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "predictPoolAddress", implementation, deployer)
 
 	if err != nil {
@@ -967,7 +967,7 @@ func (_FactoryContract *FactoryContractCallerSession) PredictPoolAddress(impleme
 //
 // Solidity: function treasury() view returns(address)
 func (_FactoryContract *FactoryContractCaller) Treasury(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "treasury")
 
 	if err != nil {
@@ -998,7 +998,7 @@ func (_FactoryContract *FactoryContractCallerSession) Treasury() (common.Address
 //
 // Solidity: function wbera() view returns(address)
 func (_FactoryContract *FactoryContractCaller) Wbera(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _FactoryContract.contract.Call(opts, &out, "wbera")
 
 	if err != nil {
@@ -1398,7 +1398,7 @@ type FactoryContractAllowedImplementationSet struct {
 // Solidity: event AllowedImplementationSet(address indexed implementation, bool allowed)
 func (_FactoryContract *FactoryContractFilterer) FilterAllowedImplementationSet(opts *bind.FilterOpts, implementation []common.Address) (*FactoryContractAllowedImplementationSetIterator, error) {
 
-	var implementationRule []interface{}
+	var implementationRule []any
 	for _, implementationItem := range implementation {
 		implementationRule = append(implementationRule, implementationItem)
 	}
@@ -1415,7 +1415,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterAllowedImplementationSet(
 // Solidity: event AllowedImplementationSet(address indexed implementation, bool allowed)
 func (_FactoryContract *FactoryContractFilterer) WatchAllowedImplementationSet(opts *bind.WatchOpts, sink chan<- *FactoryContractAllowedImplementationSet, implementation []common.Address) (event.Subscription, error) {
 
-	var implementationRule []interface{}
+	var implementationRule []any
 	for _, implementationItem := range implementation {
 		implementationRule = append(implementationRule, implementationItem)
 	}
@@ -1543,7 +1543,7 @@ type FactoryContractFactorySet struct {
 // Solidity: event FactorySet(address indexed factory, bytes32 initCodeHash)
 func (_FactoryContract *FactoryContractFilterer) FilterFactorySet(opts *bind.FilterOpts, factory []common.Address) (*FactoryContractFactorySetIterator, error) {
 
-	var factoryRule []interface{}
+	var factoryRule []any
 	for _, factoryItem := range factory {
 		factoryRule = append(factoryRule, factoryItem)
 	}
@@ -1560,7 +1560,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterFactorySet(opts *bind.Fil
 // Solidity: event FactorySet(address indexed factory, bytes32 initCodeHash)
 func (_FactoryContract *FactoryContractFilterer) WatchFactorySet(opts *bind.WatchOpts, sink chan<- *FactoryContractFactorySet, factory []common.Address) (event.Subscription, error) {
 
-	var factoryRule []interface{}
+	var factoryRule []any
 	for _, factoryItem := range factory {
 		factoryRule = append(factoryRule, factoryItem)
 	}
@@ -1688,7 +1688,7 @@ type FactoryContractIncentiveClaimed struct {
 // Solidity: event IncentiveClaimed(address indexed pandaPool, uint256 amount)
 func (_FactoryContract *FactoryContractFilterer) FilterIncentiveClaimed(opts *bind.FilterOpts, pandaPool []common.Address) (*FactoryContractIncentiveClaimedIterator, error) {
 
-	var pandaPoolRule []interface{}
+	var pandaPoolRule []any
 	for _, pandaPoolItem := range pandaPool {
 		pandaPoolRule = append(pandaPoolRule, pandaPoolItem)
 	}
@@ -1705,7 +1705,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterIncentiveClaimed(opts *bi
 // Solidity: event IncentiveClaimed(address indexed pandaPool, uint256 amount)
 func (_FactoryContract *FactoryContractFilterer) WatchIncentiveClaimed(opts *bind.WatchOpts, sink chan<- *FactoryContractIncentiveClaimed, pandaPool []common.Address) (event.Subscription, error) {
 
-	var pandaPoolRule []interface{}
+	var pandaPoolRule []any
 	for _, pandaPoolItem := range pandaPool {
 		pandaPoolRule = append(pandaPoolRule, pandaPoolItem)
 	}
@@ -1833,7 +1833,7 @@ type FactoryContractIncentiveSet struct {
 // Solidity: event IncentiveSet(address indexed token, uint256 amount)
 func (_FactoryContract *FactoryContractFilterer) FilterIncentiveSet(opts *bind.FilterOpts, token []common.Address) (*FactoryContractIncentiveSetIterator, error) {
 
-	var tokenRule []interface{}
+	var tokenRule []any
 	for _, tokenItem := range token {
 		tokenRule = append(tokenRule, tokenItem)
 	}
@@ -1850,7 +1850,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterIncentiveSet(opts *bind.F
 // Solidity: event IncentiveSet(address indexed token, uint256 amount)
 func (_FactoryContract *FactoryContractFilterer) WatchIncentiveSet(opts *bind.WatchOpts, sink chan<- *FactoryContractIncentiveSet, token []common.Address) (event.Subscription, error) {
 
-	var tokenRule []interface{}
+	var tokenRule []any
 	for _, tokenItem := range token {
 		tokenRule = append(tokenRule, tokenItem)
 	}
@@ -1978,7 +1978,7 @@ type FactoryContractMinRaiseSet struct {
 // Solidity: event MinRaiseSet(address indexed baseToken, uint256 minEndPrice)
 func (_FactoryContract *FactoryContractFilterer) FilterMinRaiseSet(opts *bind.FilterOpts, baseToken []common.Address) (*FactoryContractMinRaiseSetIterator, error) {
 
-	var baseTokenRule []interface{}
+	var baseTokenRule []any
 	for _, baseTokenItem := range baseToken {
 		baseTokenRule = append(baseTokenRule, baseTokenItem)
 	}
@@ -1995,7 +1995,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterMinRaiseSet(opts *bind.Fi
 // Solidity: event MinRaiseSet(address indexed baseToken, uint256 minEndPrice)
 func (_FactoryContract *FactoryContractFilterer) WatchMinRaiseSet(opts *bind.WatchOpts, sink chan<- *FactoryContractMinRaiseSet, baseToken []common.Address) (event.Subscription, error) {
 
-	var baseTokenRule []interface{}
+	var baseTokenRule []any
 	for _, baseTokenItem := range baseToken {
 		baseTokenRule = append(baseTokenRule, baseTokenItem)
 	}
@@ -2123,7 +2123,7 @@ type FactoryContractMinTradeSizeSet struct {
 // Solidity: event MinTradeSizeSet(address indexed baseToken, uint256 minTradeSize)
 func (_FactoryContract *FactoryContractFilterer) FilterMinTradeSizeSet(opts *bind.FilterOpts, baseToken []common.Address) (*FactoryContractMinTradeSizeSetIterator, error) {
 
-	var baseTokenRule []interface{}
+	var baseTokenRule []any
 	for _, baseTokenItem := range baseToken {
 		baseTokenRule = append(baseTokenRule, baseTokenItem)
 	}
@@ -2140,7 +2140,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterMinTradeSizeSet(opts *bin
 // Solidity: event MinTradeSizeSet(address indexed baseToken, uint256 minTradeSize)
 func (_FactoryContract *FactoryContractFilterer) WatchMinTradeSizeSet(opts *bind.WatchOpts, sink chan<- *FactoryContractMinTradeSizeSet, baseToken []common.Address) (event.Subscription, error) {
 
-	var baseTokenRule []interface{}
+	var baseTokenRule []any
 	for _, baseTokenItem := range baseToken {
 		baseTokenRule = append(baseTokenRule, baseTokenItem)
 	}
@@ -2268,11 +2268,11 @@ type FactoryContractOwnershipTransferred struct {
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_FactoryContract *FactoryContractFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*FactoryContractOwnershipTransferredIterator, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2289,11 +2289,11 @@ func (_FactoryContract *FactoryContractFilterer) FilterOwnershipTransferred(opts
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_FactoryContract *FactoryContractFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *FactoryContractOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2421,11 +2421,11 @@ type FactoryContractPandaDeployed struct {
 // Solidity: event PandaDeployed(address indexed pandaPool, address indexed implementation)
 func (_FactoryContract *FactoryContractFilterer) FilterPandaDeployed(opts *bind.FilterOpts, pandaPool []common.Address, implementation []common.Address) (*FactoryContractPandaDeployedIterator, error) {
 
-	var pandaPoolRule []interface{}
+	var pandaPoolRule []any
 	for _, pandaPoolItem := range pandaPool {
 		pandaPoolRule = append(pandaPoolRule, pandaPoolItem)
 	}
-	var implementationRule []interface{}
+	var implementationRule []any
 	for _, implementationItem := range implementation {
 		implementationRule = append(implementationRule, implementationItem)
 	}
@@ -2442,11 +2442,11 @@ func (_FactoryContract *FactoryContractFilterer) FilterPandaDeployed(opts *bind.
 // Solidity: event PandaDeployed(address indexed pandaPool, address indexed implementation)
 func (_FactoryContract *FactoryContractFilterer) WatchPandaDeployed(opts *bind.WatchOpts, sink chan<- *FactoryContractPandaDeployed, pandaPool []common.Address, implementation []common.Address) (event.Subscription, error) {
 
-	var pandaPoolRule []interface{}
+	var pandaPoolRule []any
 	for _, pandaPoolItem := range pandaPool {
 		pandaPoolRule = append(pandaPoolRule, pandaPoolItem)
 	}
-	var implementationRule []interface{}
+	var implementationRule []any
 	for _, implementationItem := range implementation {
 		implementationRule = append(implementationRule, implementationItem)
 	}
@@ -2710,7 +2710,7 @@ type FactoryContractTreasurySet struct {
 // Solidity: event TreasurySet(address indexed treasury)
 func (_FactoryContract *FactoryContractFilterer) FilterTreasurySet(opts *bind.FilterOpts, treasury []common.Address) (*FactoryContractTreasurySetIterator, error) {
 
-	var treasuryRule []interface{}
+	var treasuryRule []any
 	for _, treasuryItem := range treasury {
 		treasuryRule = append(treasuryRule, treasuryItem)
 	}
@@ -2727,7 +2727,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterTreasurySet(opts *bind.Fi
 // Solidity: event TreasurySet(address indexed treasury)
 func (_FactoryContract *FactoryContractFilterer) WatchTreasurySet(opts *bind.WatchOpts, sink chan<- *FactoryContractTreasurySet, treasury []common.Address) (event.Subscription, error) {
 
-	var treasuryRule []interface{}
+	var treasuryRule []any
 	for _, treasuryItem := range treasury {
 		treasuryRule = append(treasuryRule, treasuryItem)
 	}
@@ -2854,7 +2854,7 @@ type FactoryContractWberaSet struct {
 // Solidity: event WberaSet(address indexed wbera)
 func (_FactoryContract *FactoryContractFilterer) FilterWberaSet(opts *bind.FilterOpts, wbera []common.Address) (*FactoryContractWberaSetIterator, error) {
 
-	var wberaRule []interface{}
+	var wberaRule []any
 	for _, wberaItem := range wbera {
 		wberaRule = append(wberaRule, wberaItem)
 	}
@@ -2871,7 +2871,7 @@ func (_FactoryContract *FactoryContractFilterer) FilterWberaSet(opts *bind.Filte
 // Solidity: event WberaSet(address indexed wbera)
 func (_FactoryContract *FactoryContractFilterer) WatchWberaSet(opts *bind.WatchOpts, sink chan<- *FactoryContractWberaSet, wbera []common.Address) (event.Subscription, error) {
 
-	var wberaRule []interface{}
+	var wberaRule []any
 	for _, wberaItem := range wbera {
 		wberaRule = append(wberaRule, wberaItem)
 	}

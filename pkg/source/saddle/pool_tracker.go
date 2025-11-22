@@ -71,8 +71,8 @@ func (d *PoolTracker) getNewPoolState(
 			ABI:    swapFlashLoanABI,
 			Target: p.Address,
 			Method: poolMethodGetTokenBalance,
-			Params: []interface{}{uint8(i)},
-		}, []interface{}{&balances[i]})
+			Params: []any{uint8(i)},
+		}, []any{&balances[i]})
 	}
 
 	calls.AddCall(&ethrpc.Call{
@@ -80,14 +80,14 @@ func (d *PoolTracker) getNewPoolState(
 		Target: p.Address,
 		Method: "paused",
 		Params: nil,
-	}, []interface{}{&paused})
+	}, []any{&paused})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    swapFlashLoanABI,
 		Target: p.Address,
 		Method: poolMethodSwapStorage,
 		Params: nil,
-	}, []interface{}{&swapStorage})
+	}, []any{&swapStorage})
 
 	lpToken := p.GetLpToken()
 	calls.AddCall(&ethrpc.Call{
@@ -95,7 +95,7 @@ func (d *PoolTracker) getNewPoolState(
 		Target: lpToken,
 		Method: erc20MethodTotalSupply,
 		Params: nil,
-	}, []interface{}{&lpSupply})
+	}, []any{&lpSupply})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{

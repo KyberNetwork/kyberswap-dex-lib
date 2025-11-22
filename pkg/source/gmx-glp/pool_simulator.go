@@ -179,7 +179,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	var directionFlag uint8 = 0
 
 	if strings.EqualFold(tokenIn, p.yearnTokenVault.Address) {

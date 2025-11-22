@@ -89,15 +89,15 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&maticReserves})
+			Params: []any{poolAddress},
+		}, []any{&maticReserves})
 	getReserves.AddCall(
 		&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
-			Params: []interface{}{poolAddress},
-		}, []interface{}{&polygonReserves})
+			Params: []any{poolAddress},
+		}, []any{&polygonReserves})
 	if _, err := getReserves.TryAggregate(); err != nil {
 		logger.
 			WithFields(

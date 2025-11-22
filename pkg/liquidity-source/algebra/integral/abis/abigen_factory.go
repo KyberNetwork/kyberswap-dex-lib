@@ -146,7 +146,7 @@ func bindFactory(address common.Address, caller bind.ContractCaller, transactor 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Factory *FactoryRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Factory *FactoryRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Factory.Contract.FactoryCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -157,7 +157,7 @@ func (_Factory *FactoryRaw) Transfer(opts *bind.TransactOpts) (*types.Transactio
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Factory.Contract.FactoryTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_Factory *FactoryRaw) Transact(opts *bind.TransactOpts, method string, par
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Factory *FactoryCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_Factory *FactoryCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _Factory.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -176,7 +176,7 @@ func (_Factory *FactoryTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _Factory.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_Factory *FactoryTransactorRaw) Transact(opts *bind.TransactOpts, method s
 //
 // Solidity: function CUSTOM_POOL_DEPLOYER() view returns(bytes32)
 func (_Factory *FactoryCaller) CUSTOMPOOLDEPLOYER(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "CUSTOM_POOL_DEPLOYER")
 
 	if err != nil {
@@ -215,7 +215,7 @@ func (_Factory *FactoryCallerSession) CUSTOMPOOLDEPLOYER() ([32]byte, error) {
 //
 // Solidity: function DEFAULT_ADMIN_ROLE() view returns(bytes32)
 func (_Factory *FactoryCaller) DEFAULTADMINROLE(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "DEFAULT_ADMIN_ROLE")
 
 	if err != nil {
@@ -246,7 +246,7 @@ func (_Factory *FactoryCallerSession) DEFAULTADMINROLE() ([32]byte, error) {
 //
 // Solidity: function POOLS_ADMINISTRATOR_ROLE() view returns(bytes32)
 func (_Factory *FactoryCaller) POOLSADMINISTRATORROLE(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "POOLS_ADMINISTRATOR_ROLE")
 
 	if err != nil {
@@ -277,7 +277,7 @@ func (_Factory *FactoryCallerSession) POOLSADMINISTRATORROLE() ([32]byte, error)
 //
 // Solidity: function POOL_INIT_CODE_HASH() view returns(bytes32)
 func (_Factory *FactoryCaller) POOLINITCODEHASH(opts *bind.CallOpts) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "POOL_INIT_CODE_HASH")
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (_Factory *FactoryCallerSession) POOLINITCODEHASH() ([32]byte, error) {
 //
 // Solidity: function computeCustomPoolAddress(address deployer, address token0, address token1) view returns(address customPool)
 func (_Factory *FactoryCaller) ComputeCustomPoolAddress(opts *bind.CallOpts, deployer common.Address, token0 common.Address, token1 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "computeCustomPoolAddress", deployer, token0, token1)
 
 	if err != nil {
@@ -339,7 +339,7 @@ func (_Factory *FactoryCallerSession) ComputeCustomPoolAddress(deployer common.A
 //
 // Solidity: function computePoolAddress(address token0, address token1) view returns(address pool)
 func (_Factory *FactoryCaller) ComputePoolAddress(opts *bind.CallOpts, token0 common.Address, token1 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "computePoolAddress", token0, token1)
 
 	if err != nil {
@@ -370,7 +370,7 @@ func (_Factory *FactoryCallerSession) ComputePoolAddress(token0 common.Address, 
 //
 // Solidity: function customPoolByPair(address , address , address ) view returns(address)
 func (_Factory *FactoryCaller) CustomPoolByPair(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address, arg2 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "customPoolByPair", arg0, arg1, arg2)
 
 	if err != nil {
@@ -401,7 +401,7 @@ func (_Factory *FactoryCallerSession) CustomPoolByPair(arg0 common.Address, arg1
 //
 // Solidity: function defaultCommunityFee() view returns(uint16)
 func (_Factory *FactoryCaller) DefaultCommunityFee(opts *bind.CallOpts) (uint16, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "defaultCommunityFee")
 
 	if err != nil {
@@ -436,7 +436,7 @@ func (_Factory *FactoryCaller) DefaultConfigurationForPool(opts *bind.CallOpts) 
 	TickSpacing  *big.Int
 	Fee          uint16
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "defaultConfigurationForPool")
 
 	outstruct := new(struct {
@@ -482,7 +482,7 @@ func (_Factory *FactoryCallerSession) DefaultConfigurationForPool() (struct {
 //
 // Solidity: function defaultFee() view returns(uint16)
 func (_Factory *FactoryCaller) DefaultFee(opts *bind.CallOpts) (uint16, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "defaultFee")
 
 	if err != nil {
@@ -513,7 +513,7 @@ func (_Factory *FactoryCallerSession) DefaultFee() (uint16, error) {
 //
 // Solidity: function defaultPluginFactory() view returns(address)
 func (_Factory *FactoryCaller) DefaultPluginFactory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "defaultPluginFactory")
 
 	if err != nil {
@@ -544,7 +544,7 @@ func (_Factory *FactoryCallerSession) DefaultPluginFactory() (common.Address, er
 //
 // Solidity: function defaultTickspacing() view returns(int24)
 func (_Factory *FactoryCaller) DefaultTickspacing(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "defaultTickspacing")
 
 	if err != nil {
@@ -575,7 +575,7 @@ func (_Factory *FactoryCallerSession) DefaultTickspacing() (*big.Int, error) {
 //
 // Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
 func (_Factory *FactoryCaller) GetRoleAdmin(opts *bind.CallOpts, role [32]byte) ([32]byte, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "getRoleAdmin", role)
 
 	if err != nil {
@@ -606,7 +606,7 @@ func (_Factory *FactoryCallerSession) GetRoleAdmin(role [32]byte) ([32]byte, err
 //
 // Solidity: function getRoleMember(bytes32 role, uint256 index) view returns(address)
 func (_Factory *FactoryCaller) GetRoleMember(opts *bind.CallOpts, role [32]byte, index *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "getRoleMember", role, index)
 
 	if err != nil {
@@ -637,7 +637,7 @@ func (_Factory *FactoryCallerSession) GetRoleMember(role [32]byte, index *big.In
 //
 // Solidity: function getRoleMemberCount(bytes32 role) view returns(uint256)
 func (_Factory *FactoryCaller) GetRoleMemberCount(opts *bind.CallOpts, role [32]byte) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "getRoleMemberCount", role)
 
 	if err != nil {
@@ -668,7 +668,7 @@ func (_Factory *FactoryCallerSession) GetRoleMemberCount(role [32]byte) (*big.In
 //
 // Solidity: function hasRole(bytes32 role, address account) view returns(bool)
 func (_Factory *FactoryCaller) HasRole(opts *bind.CallOpts, role [32]byte, account common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "hasRole", role, account)
 
 	if err != nil {
@@ -699,7 +699,7 @@ func (_Factory *FactoryCallerSession) HasRole(role [32]byte, account common.Addr
 //
 // Solidity: function hasRoleOrOwner(bytes32 role, address account) view returns(bool)
 func (_Factory *FactoryCaller) HasRoleOrOwner(opts *bind.CallOpts, role [32]byte, account common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "hasRoleOrOwner", role, account)
 
 	if err != nil {
@@ -730,7 +730,7 @@ func (_Factory *FactoryCallerSession) HasRoleOrOwner(role [32]byte, account comm
 //
 // Solidity: function owner() view returns(address)
 func (_Factory *FactoryCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -761,7 +761,7 @@ func (_Factory *FactoryCallerSession) Owner() (common.Address, error) {
 //
 // Solidity: function pendingOwner() view returns(address)
 func (_Factory *FactoryCaller) PendingOwner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "pendingOwner")
 
 	if err != nil {
@@ -792,7 +792,7 @@ func (_Factory *FactoryCallerSession) PendingOwner() (common.Address, error) {
 //
 // Solidity: function poolByPair(address , address ) view returns(address)
 func (_Factory *FactoryCaller) PoolByPair(opts *bind.CallOpts, arg0 common.Address, arg1 common.Address) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "poolByPair", arg0, arg1)
 
 	if err != nil {
@@ -823,7 +823,7 @@ func (_Factory *FactoryCallerSession) PoolByPair(arg0 common.Address, arg1 commo
 //
 // Solidity: function poolDeployer() view returns(address)
 func (_Factory *FactoryCaller) PoolDeployer(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "poolDeployer")
 
 	if err != nil {
@@ -854,7 +854,7 @@ func (_Factory *FactoryCallerSession) PoolDeployer() (common.Address, error) {
 //
 // Solidity: function renounceOwnershipStartTimestamp() view returns(uint256)
 func (_Factory *FactoryCaller) RenounceOwnershipStartTimestamp(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "renounceOwnershipStartTimestamp")
 
 	if err != nil {
@@ -885,7 +885,7 @@ func (_Factory *FactoryCallerSession) RenounceOwnershipStartTimestamp() (*big.In
 //
 // Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
 func (_Factory *FactoryCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "supportsInterface", interfaceId)
 
 	if err != nil {
@@ -916,7 +916,7 @@ func (_Factory *FactoryCallerSession) SupportsInterface(interfaceId [4]byte) (bo
 //
 // Solidity: function vaultFactory() view returns(address)
 func (_Factory *FactoryCaller) VaultFactory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _Factory.contract.Call(opts, &out, "vaultFactory")
 
 	if err != nil {
@@ -1339,15 +1339,15 @@ type FactoryCustomPool struct {
 // Solidity: event CustomPool(address indexed deployer, address indexed token0, address indexed token1, address pool)
 func (_Factory *FactoryFilterer) FilterCustomPool(opts *bind.FilterOpts, deployer []common.Address, token0 []common.Address, token1 []common.Address) (*FactoryCustomPoolIterator, error) {
 
-	var deployerRule []interface{}
+	var deployerRule []any
 	for _, deployerItem := range deployer {
 		deployerRule = append(deployerRule, deployerItem)
 	}
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
@@ -1364,15 +1364,15 @@ func (_Factory *FactoryFilterer) FilterCustomPool(opts *bind.FilterOpts, deploye
 // Solidity: event CustomPool(address indexed deployer, address indexed token0, address indexed token1, address pool)
 func (_Factory *FactoryFilterer) WatchCustomPool(opts *bind.WatchOpts, sink chan<- *FactoryCustomPool, deployer []common.Address, token0 []common.Address, token1 []common.Address) (event.Subscription, error) {
 
-	var deployerRule []interface{}
+	var deployerRule []any
 	for _, deployerItem := range deployer {
 		deployerRule = append(deployerRule, deployerItem)
 	}
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
@@ -2036,11 +2036,11 @@ type FactoryOwnershipTransferStarted struct {
 // Solidity: event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) FilterOwnershipTransferStarted(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*FactoryOwnershipTransferStartedIterator, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2057,11 +2057,11 @@ func (_Factory *FactoryFilterer) FilterOwnershipTransferStarted(opts *bind.Filte
 // Solidity: event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) WatchOwnershipTransferStarted(opts *bind.WatchOpts, sink chan<- *FactoryOwnershipTransferStarted, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2189,11 +2189,11 @@ type FactoryOwnershipTransferred struct {
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*FactoryOwnershipTransferredIterator, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2210,11 +2210,11 @@ func (_Factory *FactoryFilterer) FilterOwnershipTransferred(opts *bind.FilterOpt
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_Factory *FactoryFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *FactoryOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2343,11 +2343,11 @@ type FactoryPool struct {
 // Solidity: event Pool(address indexed token0, address indexed token1, address pool)
 func (_Factory *FactoryFilterer) FilterPool(opts *bind.FilterOpts, token0 []common.Address, token1 []common.Address) (*FactoryPoolIterator, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
@@ -2364,11 +2364,11 @@ func (_Factory *FactoryFilterer) FilterPool(opts *bind.FilterOpts, token0 []comm
 // Solidity: event Pool(address indexed token0, address indexed token1, address pool)
 func (_Factory *FactoryFilterer) WatchPool(opts *bind.WatchOpts, sink chan<- *FactoryPool, token0 []common.Address, token1 []common.Address) (event.Subscription, error) {
 
-	var token0Rule []interface{}
+	var token0Rule []any
 	for _, token0Item := range token0 {
 		token0Rule = append(token0Rule, token0Item)
 	}
-	var token1Rule []interface{}
+	var token1Rule []any
 	for _, token1Item := range token1 {
 		token1Rule = append(token1Rule, token1Item)
 	}
@@ -2900,15 +2900,15 @@ type FactoryRoleAdminChanged struct {
 // Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
 func (_Factory *FactoryFilterer) FilterRoleAdminChanged(opts *bind.FilterOpts, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (*FactoryRoleAdminChangedIterator, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var previousAdminRoleRule []interface{}
+	var previousAdminRoleRule []any
 	for _, previousAdminRoleItem := range previousAdminRole {
 		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
 	}
-	var newAdminRoleRule []interface{}
+	var newAdminRoleRule []any
 	for _, newAdminRoleItem := range newAdminRole {
 		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
 	}
@@ -2925,15 +2925,15 @@ func (_Factory *FactoryFilterer) FilterRoleAdminChanged(opts *bind.FilterOpts, r
 // Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
 func (_Factory *FactoryFilterer) WatchRoleAdminChanged(opts *bind.WatchOpts, sink chan<- *FactoryRoleAdminChanged, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (event.Subscription, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var previousAdminRoleRule []interface{}
+	var previousAdminRoleRule []any
 	for _, previousAdminRoleItem := range previousAdminRole {
 		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
 	}
-	var newAdminRoleRule []interface{}
+	var newAdminRoleRule []any
 	for _, newAdminRoleItem := range newAdminRole {
 		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
 	}
@@ -3062,15 +3062,15 @@ type FactoryRoleGranted struct {
 // Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
 func (_Factory *FactoryFilterer) FilterRoleGranted(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*FactoryRoleGrantedIterator, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -3087,15 +3087,15 @@ func (_Factory *FactoryFilterer) FilterRoleGranted(opts *bind.FilterOpts, role [
 // Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
 func (_Factory *FactoryFilterer) WatchRoleGranted(opts *bind.WatchOpts, sink chan<- *FactoryRoleGranted, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -3224,15 +3224,15 @@ type FactoryRoleRevoked struct {
 // Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
 func (_Factory *FactoryFilterer) FilterRoleRevoked(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*FactoryRoleRevokedIterator, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -3249,15 +3249,15 @@ func (_Factory *FactoryFilterer) FilterRoleRevoked(opts *bind.FilterOpts, role [
 // Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
 func (_Factory *FactoryFilterer) WatchRoleRevoked(opts *bind.WatchOpts, sink chan<- *FactoryRoleRevoked, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
 
-	var roleRule []interface{}
+	var roleRule []any
 	for _, roleItem := range role {
 		roleRule = append(roleRule, roleItem)
 	}
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}

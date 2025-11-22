@@ -87,7 +87,7 @@ func (u *PoolsListUpdater) getSwapPaths(ctx context.Context) ([]SwapPath, error)
 		ABI:    vaultLiquidationResolverABI,
 		Target: u.config.VaultLiquidationResolver,
 		Method: VLRMethodGetAllSwapPaths,
-	}, []interface{}{&paths})
+	}, []any{&paths})
 
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

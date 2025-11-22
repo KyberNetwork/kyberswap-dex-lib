@@ -69,13 +69,13 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    stakedUSDeV2ABI,
 		Target: StakedUSDeV2,
 		Method: stakedUSDeV2MethodTotalSupply,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    stakedUSDeV2ABI,
 		Target: StakedUSDeV2,
 		Method: stakedUSDeV2MethodTotalAssets,
-	}, []interface{}{&totalAssets})
+	}, []any{&totalAssets})
 
 	result, err := req.Aggregate()
 	if err != nil {

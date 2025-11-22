@@ -131,7 +131,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.reserves[indexOut] = amtOut.Sub(s.reserves[indexOut], amtOut)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	exchange := s.GetExchange()
 	return PoolMeta{
 		Extra: Extra{

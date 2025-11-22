@@ -180,7 +180,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.globalState = si.GlobalState
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
 	var priceLimit v3Utils.Uint160
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)

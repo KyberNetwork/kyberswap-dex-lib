@@ -50,14 +50,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodPoolType,
 			Params: nil,
-		}, []interface{}{&poolTypes[i]})
+		}, []any{&poolTypes[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    stablePoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGetAssets,
 			Params: nil,
-		}, []interface{}{&assets[i]})
+		}, []any{&assets[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

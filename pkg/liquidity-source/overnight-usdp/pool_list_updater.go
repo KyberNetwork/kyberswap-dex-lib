@@ -113,7 +113,7 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 			ABI:    exchangeABI,
 			Target: u.config.Exchange,
 			Method: exchangeMethodUsdc,
-		}, []interface{}{&usdcAddress})
+		}, []any{&usdcAddress})
 	} else {
 		usdcAddress = u.config.Usdc
 	}
@@ -122,7 +122,7 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 			ABI:    exchangeABI,
 			Target: u.config.Exchange,
 			Method: exchangeMethodUsdPlus,
-		}, []interface{}{&usdPlusAddress})
+		}, []any{&usdPlusAddress})
 	} else {
 		usdPlusAddress = u.config.UsdPlus
 	}
@@ -130,17 +130,17 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodPaused,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodBuyFee,
-	}, []interface{}{&buyFee})
+	}, []any{&buyFee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: u.config.Exchange,
 		Method: exchangeMethodRedeemFee,
-	}, []interface{}{&redeemFee})
+	}, []any{&redeemFee})
 
 	var resp *ethrpc.Response
 	resp, err = req.Aggregate()
@@ -155,12 +155,12 @@ func (u *PoolsListUpdater) queryPoolInfo(ctx context.Context) (
 		ABI:    erc20ABI,
 		Target: usdcAddress.Hex(),
 		Method: erc20MethodDecimals,
-	}, []interface{}{&usdcDecimals})
+	}, []any{&usdcDecimals})
 	req.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
 		Target: usdPlusAddress.Hex(),
 		Method: erc20MethodDecimals,
-	}, []interface{}{&usdPlusDecimals})
+	}, []any{&usdPlusDecimals})
 
 	_, err = req.Aggregate()
 

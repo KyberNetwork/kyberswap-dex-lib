@@ -107,7 +107,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, lendingVaults []Lendin
 			ABI:    llamma.CurveLlammaABI,
 			Target: lendingVaults[i].AmmAddress,
 			Method: llamma.LlammaMethodA,
-		}, []interface{}{&aCoefficients[i]})
+		}, []any{&aCoefficients[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		return nil, err

@@ -88,15 +88,15 @@ func (t *PoolTracker) GetNewPoolState(
 				ABI:    multicallABI,
 				Target: t.cfg.MulticallContractAddress,
 				Method: "getEthBalance",
-				Params: []interface{}{poolAddr},
-			}, []interface{}{&reserves[i]})
+				Params: []any{poolAddr},
+			}, []any{&reserves[i]})
 		} else {
 			rpcRequest.AddCall(&ethrpc.Call{
 				ABI:    erc20ABI,
 				Target: tokenAddr.Hex(),
 				Method: "balanceOf",
-				Params: []interface{}{poolAddr},
-			}, []interface{}{&reserves[i]})
+				Params: []any{poolAddr},
+			}, []any{&reserves[i]})
 		}
 	}
 
@@ -109,16 +109,16 @@ func (t *PoolTracker) GetNewPoolState(
 			ABI:    queryABI,
 			Target: queryAddress.Hex(),
 			Method: "queryPrice",
-			Params: []interface{}{pair.Base, pair.Quote, pairInfo.PoolIdx},
-		}, []interface{}{&sqrtPriceX64s[i]})
+			Params: []any{pair.Base, pair.Quote, pairInfo.PoolIdx},
+		}, []any{&sqrtPriceX64s[i]})
 
 		// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-liquidity
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    queryABI,
 			Target: queryAddress.Hex(),
 			Method: "queryLiquidity",
-			Params: []interface{}{pair.Base, pair.Quote, pairInfo.PoolIdx},
-		}, []interface{}{&liquidities[i]})
+			Params: []any{pair.Base, pair.Quote, pairInfo.PoolIdx},
+		}, []any{&liquidities[i]})
 
 		i++
 	}

@@ -110,15 +110,15 @@ func (t *PoolTracker) getPoolReserves(
 		ABI:    dexReservesResolverABI,
 		Target: t.config.DexReservesResolver,
 		Method: DRRMethodGetPoolReservesAdjusted,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&poolReserves})
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&poolReserves})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    storageReadABI,
 		Target: poolAddress,
 		Method: SRMethodReadFromStorage,
-		Params: []interface{}{common.HexToHash("0x1")}, // slot 1
-	}, []interface{}{&dexVariables2})
+		Params: []any{common.HexToHash("0x1")}, // slot 1
+	}, []any{&dexVariables2})
 
 	resp, err := req.Aggregate()
 	if err != nil {

@@ -75,31 +75,31 @@ func (t *PoolTracker) getNewPoolState(
 		ABI:    potABI,
 		Target: t.config.Pot,
 		Method: t.config.SavingsRateSymbol,
-	}, []interface{}{&savingsRate})
+	}, []any{&savingsRate})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
 		Target: t.config.Pot,
 		Method: potMethodRHO,
-	}, []interface{}{&rho})
+	}, []any{&rho})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    potABI,
 		Target: t.config.Pot,
 		Method: potMethodCHI,
-	}, []interface{}{&chi})
+	}, []any{&chi})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    savingsABI,
 		Target: t.config.SavingsToken,
 		Method: savingsMethodTotalAssets,
-	}, []interface{}{&totalAssets})
+	}, []any{&totalAssets})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    savingsABI,
 		Target: t.config.SavingsToken,
 		Method: savingsMethodTotalSupply,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	result, err := req.Aggregate()
 	if err != nil {

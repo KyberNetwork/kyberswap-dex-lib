@@ -90,15 +90,15 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 				ABI:    underlyingCoins128ABI,
 				Target: pool.Address,
 				Method: poolMethodUnderlyingCoins,
-				Params: []interface{}{big.NewInt(int64(coinIdx))},
-			}, []interface{}{&underlyingCoins128[poolIdx][coinIdx]})
+				Params: []any{big.NewInt(int64(coinIdx))},
+			}, []any{&underlyingCoins128[poolIdx][coinIdx]})
 
 			calls.AddCall(&ethrpc.Call{
 				ABI:    underlyingCoins256ABI,
 				Target: pool.Address,
 				Method: poolMethodUnderlyingCoins,
-				Params: []interface{}{big.NewInt(int64(coinIdx))},
-			}, []interface{}{&underlyingCoins256[poolIdx][coinIdx]})
+				Params: []any{big.NewInt(int64(coinIdx))},
+			}, []any{&underlyingCoins256[poolIdx][coinIdx]})
 		}
 
 		calls.AddCall(&ethrpc.Call{
@@ -106,7 +106,7 @@ func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ 
 			Target: pool.Address,
 			Method: poolMethodGamma,
 			Params: nil,
-		}, []interface{}{&gammaList[poolIdx]})
+		}, []any{&gammaList[poolIdx]})
 	}
 
 	if _, err := calls.TryAggregate(); err != nil {

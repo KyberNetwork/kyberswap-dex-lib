@@ -147,7 +147,7 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

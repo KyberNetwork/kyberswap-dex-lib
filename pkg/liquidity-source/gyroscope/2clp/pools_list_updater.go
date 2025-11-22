@@ -98,7 +98,7 @@ func (u *PoolsListUpdater) getSqrtParameters(ctx context.Context, subgraphPools 
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetSqrtParameters,
-		}, []interface{}{&sqrtParameters[idx]})
+		}, []any{&sqrtParameters[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -121,7 +121,7 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaultAddresses[idx]})
+		}, []any{&vaultAddresses[idx]})
 	}
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

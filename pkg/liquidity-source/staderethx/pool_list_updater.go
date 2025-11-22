@@ -116,26 +116,26 @@ func getExtra(
 		ABI:    staderStakePoolsManagerABI,
 		Target: staderStakePoolsManager,
 		Method: staderStakePoolsManagerMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    staderStakePoolsManagerABI,
 		Target: staderStakePoolsManager,
 		Method: staderStakePoolsManagerMethodMinDeposit,
-		Params: []interface{}{},
-	}, []interface{}{&minDeposit})
+		Params: []any{},
+	}, []any{&minDeposit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    staderStakePoolsManagerABI,
 		Target: staderStakePoolsManager,
 		Method: staderStakePoolsManagerMethodMaxDeposit,
-		Params: []interface{}{},
-	}, []interface{}{&maxDeposit})
+		Params: []any{},
+	}, []any{&maxDeposit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    staderOracleABI,
 		Target: staderOracle,
 		Method: staderOracleMethodExchangeRate,
-		Params: []interface{}{},
-	}, []interface{}{&staderOracleExchangeRate})
+		Params: []any{},
+	}, []any{&staderOracleExchangeRate})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

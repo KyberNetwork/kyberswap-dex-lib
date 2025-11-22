@@ -121,12 +121,12 @@ func getReserves(
 		ABI:    frax_common.SfrxETHABI,
 		Target: poolAddress,
 		Method: sfrxeth.SfrxETHMethodTotalAssets,
-	}, []interface{}{&totalAssets})
+	}, []any{&totalAssets})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    frax_common.SfrxETHABI,
 		Target: poolAddress,
 		Method: sfrxeth.SfrxETHMethodTotalSupply,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

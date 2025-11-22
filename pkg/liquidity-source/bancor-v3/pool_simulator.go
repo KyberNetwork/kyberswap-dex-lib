@@ -173,7 +173,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	}
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMetaInfo{}
 }
 

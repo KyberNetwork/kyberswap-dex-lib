@@ -93,19 +93,19 @@ func (r *DexPriceAggregatorUniswapV3Reader) readData(
 			Target: address,
 			Method: DexPriceAggregatorUniswapV3MethodDefaultPoolFee,
 			Params: nil,
-		}, []interface{}{&dexPriceAggregator.DefaultPoolFee}).
+		}, []any{&dexPriceAggregator.DefaultPoolFee}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: DexPriceAggregatorUniswapV3MethodUniswapV3Factory,
 			Params: nil,
-		}, []interface{}{&dexPriceAggregator.UniswapV3Factory}).
+		}, []any{&dexPriceAggregator.UniswapV3Factory}).
 		AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: DexPriceAggregatorUniswapV3MethodWeth,
 			Params: nil,
-		}, []interface{}{&dexPriceAggregator.Weth})
+		}, []any{&dexPriceAggregator.Weth})
 
 	_, err := req.Aggregate()
 	if err != nil {
@@ -156,8 +156,8 @@ func (r *DexPriceAggregatorUniswapV3Reader) readOverriddenPoolForRoute(
 			ABI:    r.abi,
 			Target: address,
 			Method: DexPriceAggregatorUniswapV3MethodOverriddenPoolForRoute,
-			Params: []interface{}{routeFromPoolKeyBytes},
-		}, []interface{}{&overriddenPoolForRoutes[i]})
+			Params: []any{routeFromPoolKeyBytes},
+		}, []any{&overriddenPoolForRoutes[i]})
 	}
 
 	_, err := req.Aggregate()
@@ -199,7 +199,7 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolData(
 			Target: pool.String(),
 			Method: UniswapV3PoolMethodSlot0,
 			Params: nil,
-		}, []interface{}{&poolSlot0s[i]})
+		}, []any{&poolSlot0s[i]})
 	}
 
 	_, err := req.TryAggregate()
@@ -250,14 +250,14 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 				ABI:    uniswapV3Pool,
 				Target: poolAddress,
 				Method: UniswapV3PoolMethodObservations,
-				Params: []interface{}{big.NewInt(int64(observationIndex))},
-			}, []interface{}{&observations[i]}).
+				Params: []any{big.NewInt(int64(observationIndex))},
+			}, []any{&observations[i]}).
 			AddCall(&ethrpc.Call{
 				ABI:    uniswapV3Pool,
 				Target: poolAddress,
 				Method: UniswapV3PoolMethodObservations,
-				Params: []interface{}{big.NewInt(int64(prevIndex))},
-			}, []interface{}{&prevObservations[i]})
+				Params: []any{big.NewInt(int64(prevIndex))},
+			}, []any{&prevObservations[i]})
 	}
 
 	_, err := req.TryAggregate()
@@ -316,8 +316,8 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolTickCumulativeData(
 			ABI:    uniswapV3Pool,
 			Target: poolAddress,
 			Method: UniswapV3PoolMethodObserve,
-			Params: []interface{}{secondAgos},
-		}, []interface{}{&observeResult[i]})
+			Params: []any{secondAgos},
+		}, []any{&observeResult[i]})
 	}
 
 	_, err := req.TryAggregate()

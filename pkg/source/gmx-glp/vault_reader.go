@@ -66,18 +66,18 @@ func (r *VaultReader) readData(ctx context.Context, address string, vault *Vault
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(vaultMethodHasDynamicFees, nil), []interface{}{&vault.HasDynamicFees})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodIncludeAmmPrice, nil), []interface{}{&vault.IncludeAmmPrice})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodIsSwapEnabled, nil), []interface{}{&vault.IsSwapEnabled})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodPriceFeed, nil), []interface{}{&vault.PriceFeedAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodStableSwapFeeBasisPoints, nil), []interface{}{&vault.StableSwapFeeBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodStableTaxBasisPoints, nil), []interface{}{&vault.StableTaxBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodSwapFeeBasisPoints, nil), []interface{}{&vault.SwapFeeBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodTaxBasisPoints, nil), []interface{}{&vault.TaxBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodTotalTokenWeights, nil), []interface{}{&vault.TotalTokenWeights})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodUSDG, nil), []interface{}{&vault.USDGAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodAllWhitelistedTokensLength, nil), []interface{}{&vault.WhitelistedTokensCount})
-	rpcRequest.AddCall(callParamsFactory(vaultMethodMintBurnFeeBasisPoints, nil), []interface{}{&vault.MintBurnFeeBasicPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodHasDynamicFees, nil), []any{&vault.HasDynamicFees})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodIncludeAmmPrice, nil), []any{&vault.IncludeAmmPrice})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodIsSwapEnabled, nil), []any{&vault.IsSwapEnabled})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodPriceFeed, nil), []any{&vault.PriceFeedAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodStableSwapFeeBasisPoints, nil), []any{&vault.StableSwapFeeBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodStableTaxBasisPoints, nil), []any{&vault.StableTaxBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodSwapFeeBasisPoints, nil), []any{&vault.SwapFeeBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodTaxBasisPoints, nil), []any{&vault.TaxBasisPoints})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodTotalTokenWeights, nil), []any{&vault.TotalTokenWeights})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodUSDG, nil), []any{&vault.USDGAddress})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodAllWhitelistedTokensLength, nil), []any{&vault.WhitelistedTokensCount})
+	rpcRequest.AddCall(callParamsFactory(vaultMethodMintBurnFeeBasisPoints, nil), []any{&vault.MintBurnFeeBasicPoints})
 
 	_, err := rpcRequest.TryAggregate()
 
@@ -100,8 +100,8 @@ func (r *VaultReader) readWhitelistedTokens(
 			ABI:    r.abi,
 			Target: address,
 			Method: vaultMethodAllWhitelistedTokens,
-			Params: []interface{}{new(big.Int).SetInt64(int64(i))},
-		}, []interface{}{&tokenList[i]})
+			Params: []any{new(big.Int).SetInt64(int64(i))},
+		}, []any{&tokenList[i]})
 	}
 	res, err := rpcRequest.TryAggregate()
 	if err != nil {
@@ -116,8 +116,8 @@ func (r *VaultReader) readWhitelistedTokens(
 			ABI:    r.abi,
 			Target: address,
 			Method: vaultMethodWhitelistedTokens,
-			Params: []interface{}{tokenList[i]},
-		}, []interface{}{&isWhitelistedTokens[i]})
+			Params: []any{tokenList[i]},
+		}, []any{&isWhitelistedTokens[i]})
 	}
 	_, err = rpcRequest.TryAggregate()
 	if err != nil {
@@ -164,14 +164,14 @@ func (r *VaultReader) readTokensData(
 	for i, token := range vault.WhitelistedTokens {
 		tokenAddress := common.HexToAddress(token)
 
-		rpcRequest.AddCall(callParamsFactory(vaultMethodPoolAmounts, []interface{}{tokenAddress}), []interface{}{&poolAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodBufferAmounts, []interface{}{tokenAddress}), []interface{}{&bufferAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodReservedAmounts, []interface{}{tokenAddress}), []interface{}{&reservedAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenDecimals, []interface{}{tokenAddress}), []interface{}{&tokenDecimals[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodStableTokens, []interface{}{tokenAddress}), []interface{}{&stableTokens[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodUSDGAmounts, []interface{}{tokenAddress}), []interface{}{&usdgAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodMaxUSDGAmounts, []interface{}{tokenAddress}), []interface{}{&maxUSDGAmounts[i]})
-		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenWeights, []interface{}{tokenAddress}), []interface{}{&tokenWeights[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodPoolAmounts, []any{tokenAddress}), []any{&poolAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodBufferAmounts, []any{tokenAddress}), []any{&bufferAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodReservedAmounts, []any{tokenAddress}), []any{&reservedAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenDecimals, []any{tokenAddress}), []any{&tokenDecimals[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodStableTokens, []any{tokenAddress}), []any{&stableTokens[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodUSDGAmounts, []any{tokenAddress}), []any{&usdgAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodMaxUSDGAmounts, []any{tokenAddress}), []any{&maxUSDGAmounts[i]})
+		rpcRequest.AddCall(callParamsFactory(vaultMethodTokenWeights, []any{tokenAddress}), []any{&tokenWeights[i]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

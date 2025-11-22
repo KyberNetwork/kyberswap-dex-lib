@@ -80,8 +80,8 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    ABI,
 			Target: p.Address,
 			Method: t.config.PausedMethod,
-			Params: []interface{}{},
-		}, []interface{}{&paused})
+			Params: []any{},
+		}, []any{&paused})
 	}
 
 	if t.config.IsRateUpdatable {
@@ -89,8 +89,8 @@ func (t *PoolTracker) getNewPoolState(
 			ABI:    ABI,
 			Target: p.Address,
 			Method: t.config.RateMethod,
-			Params: []interface{}{},
-		}, []interface{}{&rate})
+			Params: []any{},
+		}, []any{&rate})
 	}
 
 	if len(calls.Calls) == 0 {

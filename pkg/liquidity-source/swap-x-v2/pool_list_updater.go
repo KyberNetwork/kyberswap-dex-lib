@@ -126,14 +126,14 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (velodromev2.
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&pairFactoryData.IsPaused})
+	}, []any{&pairFactoryData.IsPaused})
 
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
-	}, []interface{}{&pairFactoryData.AllPairsLength})
+	}, []any{&pairFactoryData.AllPairsLength})
 
 	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
 		return velodromev2.PoolFactoryData{}, err
@@ -169,8 +169,8 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAllPairs,
-			Params: []interface{}{index},
-		}, []interface{}{&listPoolAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPoolAddressesResult[i]})
 	}
 
 	resp, err := listPoolAddressesRequest.TryAggregate()
@@ -268,14 +268,14 @@ func (u *PoolsListUpdater) listPoolData(
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodStableFee,
-		Params: []interface{}{},
-	}, []interface{}{&stableFee})
+		Params: []any{},
+	}, []any{&stableFee})
 	listPoolMetadataRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodVolatileFee,
-		Params: []interface{}{},
-	}, []interface{}{&volatileFee})
+		Params: []any{},
+	}, []any{&volatileFee})
 
 	for i, poolAddress := range poolAddresses {
 		listPoolMetadataRequest.AddCall(&ethrpc.Call{
@@ -283,7 +283,7 @@ func (u *PoolsListUpdater) listPoolData(
 			Target: poolAddress.Hex(),
 			Method: poolMethodMetadata,
 			Params: nil,
-		}, []interface{}{&poolMetadataList[i]})
+		}, []any{&poolMetadataList[i]})
 	}
 
 	resp, err := listPoolMetadataRequest.Aggregate()

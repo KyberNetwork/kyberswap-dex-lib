@@ -83,71 +83,71 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client, overrides map[co
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getDepositEnabled",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.DepositEnabled})
+		Params: []any{},
+	}, []any{&poolExtra.DepositEnabled})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getMinimumDeposit",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.MinimumDeposit})
+		Params: []any{},
+	}, []any{&poolExtra.MinimumDeposit})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getMaximumDepositPoolSize",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.MaximumDepositPoolSize})
+		Params: []any{},
+	}, []any{&poolExtra.MaximumDepositPoolSize})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getAssignDepositsEnabled",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.AssignDepositsEnabled})
+		Params: []any{},
+	}, []any{&poolExtra.AssignDepositsEnabled})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,
 		Target: RocketDAOProtocolSettingsDeposit,
 		Method: "getDepositFee",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.DepositFee})
+		Params: []any{},
+	}, []any{&poolExtra.DepositFee})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketVaultABI,
 		Target: RocketVault,
 		Method: "balanceOf",
-		Params: []interface{}{"rocketDepositPool"},
-	}, []interface{}{&poolExtra.Balance})
+		Params: []any{"rocketDepositPool"},
+	}, []any{&poolExtra.Balance})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketMinipoolQueueABI,
 		Target: RocketMinipoolQueue,
 		Method: "getEffectiveCapacity",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.EffectiveCapacity})
+		Params: []any{},
+	}, []any{&poolExtra.EffectiveCapacity})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketNetworkBalancesABI,
 		Target: RocketNetworkBalances,
 		Method: "getTotalETHBalance",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.TotalETHBalance})
+		Params: []any{},
+	}, []any{&poolExtra.TotalETHBalance})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketNetworkBalancesABI,
 		Target: RocketNetworkBalances,
 		Method: "getTotalRETHSupply",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.TotalRETHSupply})
+		Params: []any{},
+	}, []any{&poolExtra.TotalRETHSupply})
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDepositPoolABI,
 		Target: RocketDepositPool,
 		Method: "getExcessBalance",
-		Params: []interface{}{},
-	}, []interface{}{&poolExtra.ExcessBalance})
+		Params: []any{},
+	}, []any{&poolExtra.ExcessBalance})
 
 	resp, err := rpcCalls.TryAggregate()
 	if err != nil {

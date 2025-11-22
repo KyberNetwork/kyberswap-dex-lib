@@ -117,7 +117,7 @@ func (s *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	s.totalAssets.Add(s.totalAssets, assets)
 }
 
-func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_, _ string) any {
 	return PoolMetaInfo{
 		BlockNumber: s.Info.BlockNumber,
 	}

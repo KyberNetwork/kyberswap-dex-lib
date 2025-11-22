@@ -63,13 +63,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Target: p.ID,
 				Method: ironSwapMethodGetTokenPrecisionMultipliers,
 				Params: nil,
-			}, []interface{}{&multipliers}).
+			}, []any{&multipliers}).
 			AddCall(&ethrpc.Call{
 				ABI:    ironSwap,
 				Target: p.ID,
 				Method: ironSwapMethodSwapStorage,
 				Params: nil,
-			}, []interface{}{&swapStorage})
+			}, []any{&swapStorage})
 
 		_, err := req.Aggregate()
 		if err != nil {

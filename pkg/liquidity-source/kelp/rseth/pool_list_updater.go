@@ -124,20 +124,20 @@ func getExtra(
 		ABI:    common.LRTConfigABI,
 		Target: common.LRTConfig,
 		Method: common.LRTConfigMethodGetSupportedAssetList,
-		Params: []interface{}{},
-	}, []interface{}{&assets})
+		Params: []any{},
+	}, []any{&assets})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.LRTDepositPoolABI,
 		Target: common.LRTDepositPool,
 		Method: common.LRTDepositPoolMethodMinAmountToDeposit,
-		Params: []interface{}{},
-	}, []interface{}{&minAmountToDeposit})
+		Params: []any{},
+	}, []any{&minAmountToDeposit})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.LRTOracleABI,
 		Target: common.LRTOracle,
 		Method: common.LRTOracleMethodRSETHPrice,
-		Params: []interface{}{},
-	}, []interface{}{&rsETHPrice})
+		Params: []any{},
+	}, []any{&rsETHPrice})
 
 	_, err := getPoolStateRequest.TryAggregate()
 	if err != nil {
@@ -163,22 +163,22 @@ func getExtra(
 			ABI:    common.LRTConfigABI,
 			Target: common.LRTConfig,
 			Method: common.LRTConfigMethodDepositLimitByAsset,
-			Params: []interface{}{asset},
-		}, []interface{}{&depositLimitByAsset[i]})
+			Params: []any{asset},
+		}, []any{&depositLimitByAsset[i]})
 
 		getAssetStateRequest.AddCall(&ethrpc.Call{
 			ABI:    common.LRTDepositPoolABI,
 			Target: common.LRTDepositPool,
 			Method: common.LRTDepositPoolMethodGetTotalAssetDeposits,
-			Params: []interface{}{asset},
-		}, []interface{}{&totalDepositByAsset[i]})
+			Params: []any{asset},
+		}, []any{&totalDepositByAsset[i]})
 
 		getAssetStateRequest.AddCall(&ethrpc.Call{
 			ABI:    common.LRTOracleABI,
 			Target: common.LRTOracle,
 			Method: common.LRTOracleMethodGetAssetPrice,
-			Params: []interface{}{asset},
-		}, []interface{}{&priceByAsset[i]})
+			Params: []any{asset},
+		}, []any{&priceByAsset[i]})
 
 		assetAddress := hexutil.Encode(asset[:])
 		if assetAddress == common.ETH {
@@ -189,7 +189,7 @@ func getExtra(
 			Target: assetAddress,
 			Method: common.Erc20MethodDecimals,
 			Params: nil,
-		}, []interface{}{&tokenDecimals[i]})
+		}, []any{&tokenDecimals[i]})
 	}
 
 	resp, err := getAssetStateRequest.TryAggregate()

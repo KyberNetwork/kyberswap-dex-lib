@@ -3,10 +3,9 @@ package composablestable
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer/v2/math"
@@ -269,7 +268,7 @@ func (s *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.Calc
 	}, nil
 }
 
-func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return PoolMetaInfo{
 		Vault:           s.vault,
 		PoolID:          s.poolID,

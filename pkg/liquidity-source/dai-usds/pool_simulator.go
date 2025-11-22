@@ -97,6 +97,6 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return []string{p.Info.Tokens[0]}
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return nil
 }

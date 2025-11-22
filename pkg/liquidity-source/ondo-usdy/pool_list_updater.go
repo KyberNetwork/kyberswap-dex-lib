@@ -163,17 +163,17 @@ func getExtra(
 			ABI:    rUSDYABI,
 			Target: pools[i].Address,
 			Method: rUSDYMethodPaused,
-		}, []interface{}{&paused[i]})
+		}, []any{&paused[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rUSDYABI,
 			Target: pools[i].Address,
 			Method: methodGetTotalShares,
-		}, []interface{}{&totalShares[i]})
+		}, []any{&totalShares[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rwaDynamicOracleABI,
 			Target: rwaDynamicOracleAddress[i],
 			Method: rwaDynamicOracleMethodGetPriceData,
-		}, []interface{}{&oraclePriceData[i]})
+		}, []any{&oraclePriceData[i]})
 	}
 
 	resp, err := calls.Aggregate()

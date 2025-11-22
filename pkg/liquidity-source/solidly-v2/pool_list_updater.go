@@ -121,7 +121,7 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (velodromev2.
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
-	}, []interface{}{&pairFactoryData.AllPairsLength})
+	}, []any{&pairFactoryData.AllPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return velodromev2.PoolFactoryData{}, err
@@ -156,8 +156,8 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 			ABI:    factoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodAllPairs,
-			Params: []interface{}{index},
-		}, []interface{}{&listPoolAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPoolAddressesResult[i]})
 	}
 
 	resp, err := listPoolAddressesRequest.TryAggregate()
@@ -211,14 +211,14 @@ func (u *PoolsListUpdater) listStandardPools(
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodStableFees,
-		Params: []interface{}{},
-	}, []interface{}{&stableFee})
+		Params: []any{},
+	}, []any{&stableFee})
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodVolatileFees,
-		Params: []interface{}{},
-	}, []interface{}{&volatileFee})
+		Params: []any{},
+	}, []any{&volatileFee})
 
 	for i, poolAddress := range poolAddresses {
 		req.AddCall(&ethrpc.Call{
@@ -226,7 +226,7 @@ func (u *PoolsListUpdater) listStandardPools(
 			Target: poolAddress.Hex(),
 			Method: poolMethodMetadata,
 			Params: nil,
-		}, []interface{}{&poolMetadataList[i]})
+		}, []any{&poolMetadataList[i]})
 	}
 	resp, err := req.Aggregate()
 	if err != nil {
@@ -299,14 +299,14 @@ func (u *PoolsListUpdater) listMemecorePools(
 			ABI:    memecoreABI,
 			Target: poolAddress.Hex(),
 			Method: memecoreMethodToken0,
-			Params: []interface{}{},
-		}, []interface{}{&token0List[i]})
+			Params: []any{},
+		}, []any{&token0List[i]})
 		req.AddCall(&ethrpc.Call{
 			ABI:    memecoreABI,
 			Target: poolAddress.Hex(),
 			Method: memecoreMethodToken1,
-			Params: []interface{}{},
-		}, []interface{}{&token1List[i]})
+			Params: []any{},
+		}, []any{&token1List[i]})
 	}
 	resp, err := req.Aggregate()
 	if err != nil {
@@ -369,15 +369,15 @@ func (u *PoolsListUpdater) listShadowLegacyPools(
 			ABI:    shadowLegacyABI,
 			Target: poolAddress.Hex(),
 			Method: shadowLegacyMethodFee,
-			Params: []interface{}{},
-		}, []interface{}{&fees[i]})
+			Params: []any{},
+		}, []any{&fees[i]})
 
 		req.AddCall(&ethrpc.Call{
 			ABI:    shadowLegacyABI,
 			Target: poolAddress.Hex(),
 			Method: poolMethodMetadata,
 			Params: nil,
-		}, []interface{}{&poolMetadataList[i]})
+		}, []any{&poolMetadataList[i]})
 	}
 	resp, err := req.Aggregate()
 	if err != nil {

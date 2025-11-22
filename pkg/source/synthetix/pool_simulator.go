@@ -176,7 +176,7 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	sourceCurrencyKey := p.poolState.CurrencyKeyBySynth[common.HexToAddress(tokenIn)]
 	destinationCurrencyKey := p.poolState.CurrencyKeyBySynth[common.HexToAddress(tokenOut)]
 	useAtomicExchange := p.useAtomicExchange()

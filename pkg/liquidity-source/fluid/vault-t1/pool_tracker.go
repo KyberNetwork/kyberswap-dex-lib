@@ -87,8 +87,8 @@ func (t *PoolTracker) getPoolSwapData(
 		ABI:    vaultLiquidationResolverABI,
 		Target: t.config.VaultLiquidationResolver,
 		Method: VLRMethodGetSwapForProtocol,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&output})
+		Params: []any{common.HexToAddress(poolAddress)},
+	}, []any{&output})
 
 	_, err := req.Call()
 	if err != nil {

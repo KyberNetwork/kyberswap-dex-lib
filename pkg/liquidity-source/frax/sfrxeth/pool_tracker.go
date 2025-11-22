@@ -95,17 +95,17 @@ func getState(
 		ABI:    frax_common.FrxETHMinterABI,
 		Target: minterAddress,
 		Method: minterMethodSubmitPaused,
-	}, []interface{}{&submitPaused})
+	}, []any{&submitPaused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    frax_common.SfrxETHABI,
 		Target: sfrxETHAddress,
 		Method: SfrxETHMethodTotalAssets,
-	}, []interface{}{&totalAssets})
+	}, []any{&totalAssets})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    frax_common.SfrxETHABI,
 		Target: sfrxETHAddress,
 		Method: SfrxETHMethodTotalSupply,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

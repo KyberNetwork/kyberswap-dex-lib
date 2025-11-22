@@ -76,7 +76,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 			Target: address,
 			Method: priceFeedMethodLatestRoundData,
 			Params: nil,
-		}, []interface{}{&latestRoundData})
+		}, []any{&latestRoundData})
 
 		if _, err := rpcRequest.Call(); err != nil {
 			return err
@@ -92,13 +92,13 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 			Target: address,
 			Method: "latestRound",
 			Params: nil,
-		}, []interface{}{&latestRound})
+		}, []any{&latestRound})
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    r.abi,
 			Target: address,
 			Method: "latestAnswer",
 			Params: nil,
-		}, []interface{}{&latestAnswer})
+		}, []any{&latestAnswer})
 
 		if _, err := rpcRequest.Aggregate(); err != nil {
 			return err
@@ -130,8 +130,8 @@ func (r *PriceFeedReader) getHistoryRoundData(ctx context.Context, address strin
 			ABI:    r.abi,
 			Target: address,
 			Method: priceFeedMethodGetRoundData,
-			Params: []interface{}{roundID},
-		}, []interface{}{&roundDataList[i-1]})
+			Params: []any{roundID},
+		}, []any{&roundDataList[i-1]})
 	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {

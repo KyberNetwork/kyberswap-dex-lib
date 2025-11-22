@@ -113,7 +113,7 @@ func (u *PoolsListUpdater) getAllPairsLength(ctx context.Context) (int, error) {
 		Target: u.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
-	}, []interface{}{&allPairsLength})
+	}, []any{&allPairsLength})
 
 	if _, err := getAllPairsLengthRequest.Call(); err != nil {
 		return 0, err
@@ -149,8 +149,8 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 			ABI:    deltaSwapV1FactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: factoryMethodGetPair,
-			Params: []interface{}{index},
-		}, []interface{}{&listPairAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPairAddressesResult[i]})
 	}
 
 	resp, err := listPairAddressesRequest.TryAggregate()
@@ -220,14 +220,14 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken0,
 			Params: nil,
-		}, []interface{}{&listToken0Result[i]})
+		}, []any{&listToken0Result[i]})
 
 		listTokensRequest.AddCall(&ethrpc.Call{
 			ABI:    deltaSwapV1PairABI,
 			Target: pairAddress.Hex(),
 			Method: pairMethodToken1,
 			Params: nil,
-		}, []interface{}{&listToken1Result[i]})
+		}, []any{&listToken1Result[i]})
 	}
 
 	if _, err := listTokensRequest.Aggregate(); err != nil {

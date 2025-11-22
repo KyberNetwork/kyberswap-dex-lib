@@ -194,7 +194,7 @@ func TestUpdateBalance(t *testing.T) {
 		in         string
 		inAmount   string
 		out        string
-		outOrError interface{}
+		outOrError any
 	}{
 		{0, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", "1017116", "0x18c14c2d707b2212e17d1579789fc06010cfca23", ErrLoss},
 		{0, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", "1017116218018521399",

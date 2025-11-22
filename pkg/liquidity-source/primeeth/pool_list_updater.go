@@ -116,32 +116,32 @@ func getExtra(
 		ABI:    lrtDepositPoolABI,
 		Target: lrtDepositPool,
 		Method: lrtDepositPoolMethodPaused,
-		Params: []interface{}{},
-	}, []interface{}{&paused})
+		Params: []any{},
+	}, []any{&paused})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lrtDepositPoolABI,
 		Target: lrtDepositPool,
 		Method: lrtDepositPoolMethodMinAmountToDeposit,
-		Params: []interface{}{},
-	}, []interface{}{&minAmountToDeposit})
+		Params: []any{},
+	}, []any{&minAmountToDeposit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lrtDepositPoolABI,
 		Target: lrtDepositPool,
 		Method: lrtDepositPoolMethodGetTotalAssetDeposits,
-		Params: []interface{}{gethcommon.HexToAddress(WETH)},
-	}, []interface{}{&totalAssetDeposit})
+		Params: []any{gethcommon.HexToAddress(WETH)},
+	}, []any{&totalAssetDeposit})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lrtConfigABI,
 		Target: lrtConfig,
 		Method: lrtConfigMethodDepositLimitByAsset,
-		Params: []interface{}{gethcommon.HexToAddress(WETH)},
-	}, []interface{}{&depositLimitByAsset})
+		Params: []any{gethcommon.HexToAddress(WETH)},
+	}, []any{&depositLimitByAsset})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    lrtOracleABI,
 		Target: lrtOracle,
 		Method: lrtOracleMethodPrimeETHPrice,
-		Params: []interface{}{},
-	}, []interface{}{&primeETHPrice})
+		Params: []any{},
+	}, []any{&primeETHPrice})
 
 	resp, err := calls.Aggregate()
 	if err != nil {

@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/go-resty/resty/v2"
 	"golang.org/x/sync/singleflight"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type RFQHandler struct {
@@ -52,7 +53,7 @@ func (h *RFQHandler) getAttestations(ctx context.Context) ([]Attestation, error)
 		return h.latestAttestations, nil
 	}
 
-	_, err, _ := h.g.Do("rfqAttestations", func() (interface{}, error) {
+	_, err, _ := h.g.Do("rfqAttestations", func() (any, error) {
 		var resp AttestationsResponse
 
 		_, err := h.httpClient.R().

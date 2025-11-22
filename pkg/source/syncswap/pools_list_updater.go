@@ -46,7 +46,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.MasterAddress,
 		Method: poolMasterMethodPoolsLength,
 		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get number of pools from master address")
@@ -71,8 +71,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    masterABI,
 			Target: d.config.MasterAddress,
 			Method: poolMasterMethodPools,
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressRequest.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -124,14 +124,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodPoolType,
 			Params: nil,
-		}, []interface{}{&poolTypes[i]})
+		}, []any{&poolTypes[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    classicPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGetAssets,
 			Params: nil,
-		}, []interface{}{&assets[i]})
+		}, []any{&assets[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{

@@ -71,8 +71,8 @@ func (t *PoolTracker) GetNewPoolState(
 				ABI:    poolABI,
 				Target: p.Address,
 				Method: poolMethodIndexToAsset,
-				Params: []interface{}{big.NewInt(int64(i))},
-			}, []interface{}{&assets[i]})
+				Params: []any{big.NewInt(int64(i))},
+			}, []any{&assets[i]})
 	}
 
 	getPoolState.AddCall(&ethrpc.Call{
@@ -80,21 +80,21 @@ func (t *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: poolMethodPaused,
 		Params: nil,
-	}, []interface{}{&paused})
+	}, []any{&paused})
 
 	getPoolState.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodA,
 		Params: nil,
-	}, []interface{}{&a})
+	}, []any{&a})
 
 	getPoolState.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: poolMethodLpFee,
 		Params: nil,
-	}, []interface{}{&lpFee})
+	}, []any{&lpFee})
 
 	if _, err = getPoolState.TryAggregate(); err != nil {
 		logger.
@@ -157,7 +157,7 @@ func (t *PoolTracker) getLastIndex(ctx context.Context, address string) (int, er
 		Target: address,
 		Method: poolMethodLastIndex,
 		Params: nil,
-	}, []interface{}{&lastIndex})
+	}, []any{&lastIndex})
 
 	if _, err := getLastIndexRequest.Call(); err != nil {
 		logger.

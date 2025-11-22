@@ -49,8 +49,8 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
 			Method: methodGetLiquiditySnapshot,
-			Params: []interface{}{big.NewInt(int64(start)), big.NewInt(int64(end))},
-		}, []interface{}{&deltaLiquidities})
+			Params: []any{big.NewInt(int64(start)), big.NewInt(int64(end))},
+		}, []any{&deltaLiquidities})
 		resp, err := rpcRequest.TryAggregate()
 		if err != nil {
 			return nil, err
@@ -117,8 +117,8 @@ func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Poo
 			ABI:    iZiSwapPoolABI,
 			Target: pool.Address,
 			Method: methodGetLimitOrderSnapshot,
-			Params: []interface{}{big.NewInt(int64(start)), big.NewInt(int64(end))},
-		}, []interface{}{&limitOrderDataRaw})
+			Params: []any{big.NewInt(int64(start)), big.NewInt(int64(end))},
+		}, []any{&limitOrderDataRaw})
 		resp, err := rpcRequest.TryAggregate()
 		if err != nil {
 			return nil, err

@@ -154,7 +154,7 @@ func bindLBFactory(address common.Address, caller bind.ContractCaller, transacto
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_LBFactory *LBFactoryRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_LBFactory *LBFactoryRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _LBFactory.Contract.LBFactoryCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -165,7 +165,7 @@ func (_LBFactory *LBFactoryRaw) Transfer(opts *bind.TransactOpts) (*types.Transa
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_LBFactory *LBFactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_LBFactory *LBFactoryRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _LBFactory.Contract.LBFactoryTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -173,7 +173,7 @@ func (_LBFactory *LBFactoryRaw) Transact(opts *bind.TransactOpts, method string,
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_LBFactory *LBFactoryCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_LBFactory *LBFactoryCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _LBFactory.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -184,7 +184,7 @@ func (_LBFactory *LBFactoryTransactorRaw) Transfer(opts *bind.TransactOpts) (*ty
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_LBFactory *LBFactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_LBFactory *LBFactoryTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _LBFactory.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -192,7 +192,7 @@ func (_LBFactory *LBFactoryTransactorRaw) Transact(opts *bind.TransactOpts, meth
 //
 // Solidity: function LBPairImplementation() view returns(address)
 func (_LBFactory *LBFactoryCaller) LBPairImplementation(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "LBPairImplementation")
 
 	if err != nil {
@@ -223,7 +223,7 @@ func (_LBFactory *LBFactoryCallerSession) LBPairImplementation() (common.Address
 //
 // Solidity: function MAX_BIN_STEP() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) MAXBINSTEP(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "MAX_BIN_STEP")
 
 	if err != nil {
@@ -254,7 +254,7 @@ func (_LBFactory *LBFactoryCallerSession) MAXBINSTEP() (*big.Int, error) {
 //
 // Solidity: function MAX_FEE() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) MAXFEE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "MAX_FEE")
 
 	if err != nil {
@@ -285,7 +285,7 @@ func (_LBFactory *LBFactoryCallerSession) MAXFEE() (*big.Int, error) {
 //
 // Solidity: function MAX_PROTOCOL_SHARE() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) MAXPROTOCOLSHARE(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "MAX_PROTOCOL_SHARE")
 
 	if err != nil {
@@ -316,7 +316,7 @@ func (_LBFactory *LBFactoryCallerSession) MAXPROTOCOLSHARE() (*big.Int, error) {
 //
 // Solidity: function MIN_BIN_STEP() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) MINBINSTEP(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "MIN_BIN_STEP")
 
 	if err != nil {
@@ -347,7 +347,7 @@ func (_LBFactory *LBFactoryCallerSession) MINBINSTEP() (*big.Int, error) {
 //
 // Solidity: function allLBPairs(uint256 ) view returns(address)
 func (_LBFactory *LBFactoryCaller) AllLBPairs(opts *bind.CallOpts, arg0 *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "allLBPairs", arg0)
 
 	if err != nil {
@@ -378,7 +378,7 @@ func (_LBFactory *LBFactoryCallerSession) AllLBPairs(arg0 *big.Int) (common.Addr
 //
 // Solidity: function creationUnlocked() view returns(bool)
 func (_LBFactory *LBFactoryCaller) CreationUnlocked(opts *bind.CallOpts) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "creationUnlocked")
 
 	if err != nil {
@@ -409,7 +409,7 @@ func (_LBFactory *LBFactoryCallerSession) CreationUnlocked() (bool, error) {
 //
 // Solidity: function feeRecipient() view returns(address)
 func (_LBFactory *LBFactoryCaller) FeeRecipient(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "feeRecipient")
 
 	if err != nil {
@@ -440,7 +440,7 @@ func (_LBFactory *LBFactoryCallerSession) FeeRecipient() (common.Address, error)
 //
 // Solidity: function flashLoanFee() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) FlashLoanFee(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "flashLoanFee")
 
 	if err != nil {
@@ -471,7 +471,7 @@ func (_LBFactory *LBFactoryCallerSession) FlashLoanFee() (*big.Int, error) {
 //
 // Solidity: function getAllBinSteps() view returns(uint256[] presetsBinStep)
 func (_LBFactory *LBFactoryCaller) GetAllBinSteps(opts *bind.CallOpts) ([]*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getAllBinSteps")
 
 	if err != nil {
@@ -502,7 +502,7 @@ func (_LBFactory *LBFactoryCallerSession) GetAllBinSteps() ([]*big.Int, error) {
 //
 // Solidity: function getAllLBPairs(address _tokenX, address _tokenY) view returns((uint16,address,bool,bool)[] LBPairsAvailable)
 func (_LBFactory *LBFactoryCaller) GetAllLBPairs(opts *bind.CallOpts, _tokenX common.Address, _tokenY common.Address) ([]ILBFactoryLBPairInformation, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getAllLBPairs", _tokenX, _tokenY)
 
 	if err != nil {
@@ -533,7 +533,7 @@ func (_LBFactory *LBFactoryCallerSession) GetAllLBPairs(_tokenX common.Address, 
 //
 // Solidity: function getLBPairInformation(address _tokenA, address _tokenB, uint256 _binStep) view returns((uint16,address,bool,bool))
 func (_LBFactory *LBFactoryCaller) GetLBPairInformation(opts *bind.CallOpts, _tokenA common.Address, _tokenB common.Address, _binStep *big.Int) (ILBFactoryLBPairInformation, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getLBPairInformation", _tokenA, _tokenB, _binStep)
 
 	if err != nil {
@@ -564,7 +564,7 @@ func (_LBFactory *LBFactoryCallerSession) GetLBPairInformation(_tokenA common.Ad
 //
 // Solidity: function getNumberOfLBPairs() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) GetNumberOfLBPairs(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getNumberOfLBPairs")
 
 	if err != nil {
@@ -595,7 +595,7 @@ func (_LBFactory *LBFactoryCallerSession) GetNumberOfLBPairs() (*big.Int, error)
 //
 // Solidity: function getNumberOfQuoteAssets() view returns(uint256)
 func (_LBFactory *LBFactoryCaller) GetNumberOfQuoteAssets(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getNumberOfQuoteAssets")
 
 	if err != nil {
@@ -635,7 +635,7 @@ func (_LBFactory *LBFactoryCaller) GetPreset(opts *bind.CallOpts, _binStep uint1
 	MaxVolatilityAccumulated *big.Int
 	SampleLifetime           *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getPreset", _binStep)
 
 	outstruct := new(struct {
@@ -701,7 +701,7 @@ func (_LBFactory *LBFactoryCallerSession) GetPreset(_binStep uint16) (struct {
 //
 // Solidity: function getQuoteAsset(uint256 _index) view returns(address)
 func (_LBFactory *LBFactoryCaller) GetQuoteAsset(opts *bind.CallOpts, _index *big.Int) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "getQuoteAsset", _index)
 
 	if err != nil {
@@ -732,7 +732,7 @@ func (_LBFactory *LBFactoryCallerSession) GetQuoteAsset(_index *big.Int) (common
 //
 // Solidity: function isQuoteAsset(address _token) view returns(bool)
 func (_LBFactory *LBFactoryCaller) IsQuoteAsset(opts *bind.CallOpts, _token common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "isQuoteAsset", _token)
 
 	if err != nil {
@@ -763,7 +763,7 @@ func (_LBFactory *LBFactoryCallerSession) IsQuoteAsset(_token common.Address) (b
 //
 // Solidity: function owner() view returns(address)
 func (_LBFactory *LBFactoryCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "owner")
 
 	if err != nil {
@@ -794,7 +794,7 @@ func (_LBFactory *LBFactoryCallerSession) Owner() (common.Address, error) {
 //
 // Solidity: function pendingOwner() view returns(address)
 func (_LBFactory *LBFactoryCaller) PendingOwner(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBFactory.contract.Call(opts, &out, "pendingOwner")
 
 	if err != nil {
@@ -1378,11 +1378,11 @@ type LBFactoryFeeParametersSet struct {
 // Solidity: event FeeParametersSet(address indexed sender, address indexed LBPair, uint256 binStep, uint256 baseFactor, uint256 filterPeriod, uint256 decayPeriod, uint256 reductionFactor, uint256 variableFeeControl, uint256 protocolShare, uint256 maxVolatilityAccumulated)
 func (_LBFactory *LBFactoryFilterer) FilterFeeParametersSet(opts *bind.FilterOpts, sender []common.Address, LBPair []common.Address) (*LBFactoryFeeParametersSetIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var LBPairRule []interface{}
+	var LBPairRule []any
 	for _, LBPairItem := range LBPair {
 		LBPairRule = append(LBPairRule, LBPairItem)
 	}
@@ -1399,11 +1399,11 @@ func (_LBFactory *LBFactoryFilterer) FilterFeeParametersSet(opts *bind.FilterOpt
 // Solidity: event FeeParametersSet(address indexed sender, address indexed LBPair, uint256 binStep, uint256 baseFactor, uint256 filterPeriod, uint256 decayPeriod, uint256 reductionFactor, uint256 variableFeeControl, uint256 protocolShare, uint256 maxVolatilityAccumulated)
 func (_LBFactory *LBFactoryFilterer) WatchFeeParametersSet(opts *bind.WatchOpts, sink chan<- *LBFactoryFeeParametersSet, sender []common.Address, LBPair []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var LBPairRule []interface{}
+	var LBPairRule []any
 	for _, LBPairItem := range LBPair {
 		LBPairRule = append(LBPairRule, LBPairItem)
 	}
@@ -1804,15 +1804,15 @@ type LBFactoryLBPairCreated struct {
 // Solidity: event LBPairCreated(address indexed tokenX, address indexed tokenY, uint256 indexed binStep, address LBPair, uint256 pid)
 func (_LBFactory *LBFactoryFilterer) FilterLBPairCreated(opts *bind.FilterOpts, tokenX []common.Address, tokenY []common.Address, binStep []*big.Int) (*LBFactoryLBPairCreatedIterator, error) {
 
-	var tokenXRule []interface{}
+	var tokenXRule []any
 	for _, tokenXItem := range tokenX {
 		tokenXRule = append(tokenXRule, tokenXItem)
 	}
-	var tokenYRule []interface{}
+	var tokenYRule []any
 	for _, tokenYItem := range tokenY {
 		tokenYRule = append(tokenYRule, tokenYItem)
 	}
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -1829,15 +1829,15 @@ func (_LBFactory *LBFactoryFilterer) FilterLBPairCreated(opts *bind.FilterOpts, 
 // Solidity: event LBPairCreated(address indexed tokenX, address indexed tokenY, uint256 indexed binStep, address LBPair, uint256 pid)
 func (_LBFactory *LBFactoryFilterer) WatchLBPairCreated(opts *bind.WatchOpts, sink chan<- *LBFactoryLBPairCreated, tokenX []common.Address, tokenY []common.Address, binStep []*big.Int) (event.Subscription, error) {
 
-	var tokenXRule []interface{}
+	var tokenXRule []any
 	for _, tokenXItem := range tokenX {
 		tokenXRule = append(tokenXRule, tokenXItem)
 	}
-	var tokenYRule []interface{}
+	var tokenYRule []any
 	for _, tokenYItem := range tokenY {
 		tokenYRule = append(tokenYRule, tokenYItem)
 	}
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -1965,7 +1965,7 @@ type LBFactoryLBPairIgnoredStateChanged struct {
 // Solidity: event LBPairIgnoredStateChanged(address indexed LBPair, bool ignored)
 func (_LBFactory *LBFactoryFilterer) FilterLBPairIgnoredStateChanged(opts *bind.FilterOpts, LBPair []common.Address) (*LBFactoryLBPairIgnoredStateChangedIterator, error) {
 
-	var LBPairRule []interface{}
+	var LBPairRule []any
 	for _, LBPairItem := range LBPair {
 		LBPairRule = append(LBPairRule, LBPairItem)
 	}
@@ -1982,7 +1982,7 @@ func (_LBFactory *LBFactoryFilterer) FilterLBPairIgnoredStateChanged(opts *bind.
 // Solidity: event LBPairIgnoredStateChanged(address indexed LBPair, bool ignored)
 func (_LBFactory *LBFactoryFilterer) WatchLBPairIgnoredStateChanged(opts *bind.WatchOpts, sink chan<- *LBFactoryLBPairIgnoredStateChanged, LBPair []common.Address) (event.Subscription, error) {
 
-	var LBPairRule []interface{}
+	var LBPairRule []any
 	for _, LBPairItem := range LBPair {
 		LBPairRule = append(LBPairRule, LBPairItem)
 	}
@@ -2245,11 +2245,11 @@ type LBFactoryOwnershipTransferred struct {
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_LBFactory *LBFactoryFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*LBFactoryOwnershipTransferredIterator, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2266,11 +2266,11 @@ func (_LBFactory *LBFactoryFilterer) FilterOwnershipTransferred(opts *bind.Filte
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
 func (_LBFactory *LBFactoryFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *LBFactoryOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
-	var previousOwnerRule []interface{}
+	var previousOwnerRule []any
 	for _, previousOwnerItem := range previousOwner {
 		previousOwnerRule = append(previousOwnerRule, previousOwnerItem)
 	}
-	var newOwnerRule []interface{}
+	var newOwnerRule []any
 	for _, newOwnerItem := range newOwner {
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
@@ -2397,7 +2397,7 @@ type LBFactoryPendingOwnerSet struct {
 // Solidity: event PendingOwnerSet(address indexed pendingOwner)
 func (_LBFactory *LBFactoryFilterer) FilterPendingOwnerSet(opts *bind.FilterOpts, pendingOwner []common.Address) (*LBFactoryPendingOwnerSetIterator, error) {
 
-	var pendingOwnerRule []interface{}
+	var pendingOwnerRule []any
 	for _, pendingOwnerItem := range pendingOwner {
 		pendingOwnerRule = append(pendingOwnerRule, pendingOwnerItem)
 	}
@@ -2414,7 +2414,7 @@ func (_LBFactory *LBFactoryFilterer) FilterPendingOwnerSet(opts *bind.FilterOpts
 // Solidity: event PendingOwnerSet(address indexed pendingOwner)
 func (_LBFactory *LBFactoryFilterer) WatchPendingOwnerSet(opts *bind.WatchOpts, sink chan<- *LBFactoryPendingOwnerSet, pendingOwner []common.Address) (event.Subscription, error) {
 
-	var pendingOwnerRule []interface{}
+	var pendingOwnerRule []any
 	for _, pendingOwnerItem := range pendingOwner {
 		pendingOwnerRule = append(pendingOwnerRule, pendingOwnerItem)
 	}
@@ -2541,7 +2541,7 @@ type LBFactoryPresetRemoved struct {
 // Solidity: event PresetRemoved(uint256 indexed binStep)
 func (_LBFactory *LBFactoryFilterer) FilterPresetRemoved(opts *bind.FilterOpts, binStep []*big.Int) (*LBFactoryPresetRemovedIterator, error) {
 
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -2558,7 +2558,7 @@ func (_LBFactory *LBFactoryFilterer) FilterPresetRemoved(opts *bind.FilterOpts, 
 // Solidity: event PresetRemoved(uint256 indexed binStep)
 func (_LBFactory *LBFactoryFilterer) WatchPresetRemoved(opts *bind.WatchOpts, sink chan<- *LBFactoryPresetRemoved, binStep []*big.Int) (event.Subscription, error) {
 
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -2693,7 +2693,7 @@ type LBFactoryPresetSet struct {
 // Solidity: event PresetSet(uint256 indexed binStep, uint256 baseFactor, uint256 filterPeriod, uint256 decayPeriod, uint256 reductionFactor, uint256 variableFeeControl, uint256 protocolShare, uint256 maxVolatilityAccumulated, uint256 sampleLifetime)
 func (_LBFactory *LBFactoryFilterer) FilterPresetSet(opts *bind.FilterOpts, binStep []*big.Int) (*LBFactoryPresetSetIterator, error) {
 
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -2710,7 +2710,7 @@ func (_LBFactory *LBFactoryFilterer) FilterPresetSet(opts *bind.FilterOpts, binS
 // Solidity: event PresetSet(uint256 indexed binStep, uint256 baseFactor, uint256 filterPeriod, uint256 decayPeriod, uint256 reductionFactor, uint256 variableFeeControl, uint256 protocolShare, uint256 maxVolatilityAccumulated, uint256 sampleLifetime)
 func (_LBFactory *LBFactoryFilterer) WatchPresetSet(opts *bind.WatchOpts, sink chan<- *LBFactoryPresetSet, binStep []*big.Int) (event.Subscription, error) {
 
-	var binStepRule []interface{}
+	var binStepRule []any
 	for _, binStepItem := range binStep {
 		binStepRule = append(binStepRule, binStepItem)
 	}
@@ -2837,7 +2837,7 @@ type LBFactoryQuoteAssetAdded struct {
 // Solidity: event QuoteAssetAdded(address indexed quoteAsset)
 func (_LBFactory *LBFactoryFilterer) FilterQuoteAssetAdded(opts *bind.FilterOpts, quoteAsset []common.Address) (*LBFactoryQuoteAssetAddedIterator, error) {
 
-	var quoteAssetRule []interface{}
+	var quoteAssetRule []any
 	for _, quoteAssetItem := range quoteAsset {
 		quoteAssetRule = append(quoteAssetRule, quoteAssetItem)
 	}
@@ -2854,7 +2854,7 @@ func (_LBFactory *LBFactoryFilterer) FilterQuoteAssetAdded(opts *bind.FilterOpts
 // Solidity: event QuoteAssetAdded(address indexed quoteAsset)
 func (_LBFactory *LBFactoryFilterer) WatchQuoteAssetAdded(opts *bind.WatchOpts, sink chan<- *LBFactoryQuoteAssetAdded, quoteAsset []common.Address) (event.Subscription, error) {
 
-	var quoteAssetRule []interface{}
+	var quoteAssetRule []any
 	for _, quoteAssetItem := range quoteAsset {
 		quoteAssetRule = append(quoteAssetRule, quoteAssetItem)
 	}
@@ -2981,7 +2981,7 @@ type LBFactoryQuoteAssetRemoved struct {
 // Solidity: event QuoteAssetRemoved(address indexed quoteAsset)
 func (_LBFactory *LBFactoryFilterer) FilterQuoteAssetRemoved(opts *bind.FilterOpts, quoteAsset []common.Address) (*LBFactoryQuoteAssetRemovedIterator, error) {
 
-	var quoteAssetRule []interface{}
+	var quoteAssetRule []any
 	for _, quoteAssetItem := range quoteAsset {
 		quoteAssetRule = append(quoteAssetRule, quoteAssetItem)
 	}
@@ -2998,7 +2998,7 @@ func (_LBFactory *LBFactoryFilterer) FilterQuoteAssetRemoved(opts *bind.FilterOp
 // Solidity: event QuoteAssetRemoved(address indexed quoteAsset)
 func (_LBFactory *LBFactoryFilterer) WatchQuoteAssetRemoved(opts *bind.WatchOpts, sink chan<- *LBFactoryQuoteAssetRemoved, quoteAsset []common.Address) (event.Subscription, error) {
 
-	var quoteAssetRule []interface{}
+	var quoteAssetRule []any
 	for _, quoteAssetItem := range quoteAsset {
 		quoteAssetRule = append(quoteAssetRule, quoteAssetItem)
 	}

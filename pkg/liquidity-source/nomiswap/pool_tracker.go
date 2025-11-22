@@ -59,31 +59,31 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: "swapFee",
 		Params: nil,
-	}, []interface{}{&swapFee})
+	}, []any{&swapFee})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    *stablePoolABI,
 		Target: p.Address,
 		Method: "token0PrecisionMultiplier",
 		Params: nil,
-	}, []interface{}{&token0PrecisionMultiplier})
+	}, []any{&token0PrecisionMultiplier})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    *stablePoolABI,
 		Target: p.Address,
 		Method: "token1PrecisionMultiplier",
 		Params: nil,
-	}, []interface{}{&token1PrecisionMultiplier})
+	}, []any{&token1PrecisionMultiplier})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    *stablePoolABI,
 		Target: p.Address,
 		Method: "getReserves",
 		Params: nil,
-	}, []interface{}{&reserve})
+	}, []any{&reserve})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    *stablePoolABI,
 		Target: p.Address,
 		Method: "getA",
 		Params: nil,
-	}, []interface{}{&A})
+	}, []any{&A})
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,

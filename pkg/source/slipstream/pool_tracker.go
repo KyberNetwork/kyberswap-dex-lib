@@ -171,28 +171,28 @@ func (d *PoolTracker) FetchRPCData(ctx context.Context, p *entity.Pool, blockNum
 		Target: p.Address,
 		Method: methodGetLiquidity,
 		Params: nil,
-	}, []interface{}{&liquidity})
+	}, []any{&liquidity})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: methodGetSlot0,
 		Params: nil,
-	}, []interface{}{&slot0})
+	}, []any{&slot0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: methodTickSpacing,
 		Params: nil,
-	}, []interface{}{&tickSpacing})
+	}, []any{&tickSpacing})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
 		Target: p.Address,
 		Method: methodFee,
 		Params: nil,
-	}, []interface{}{&feeTier})
+	}, []any{&feeTier})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{

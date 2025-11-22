@@ -82,7 +82,7 @@ func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	return p
 }
 
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return PoolMeta{
 		BlockNumber: s.Info.BlockNumber,
 	}

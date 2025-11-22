@@ -87,15 +87,15 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 		ABI:    common.LiquidityPoolABI,
 		Target: common.LiquidityPool,
 		Method: common.LiquidityPoolMethodGetTotalPooledEther,
-		Params: []interface{}{},
-	}, []interface{}{&totalPooledEther})
+		Params: []any{},
+	}, []any{&totalPooledEther})
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.EETHABI,
 		Target: common.EETH,
 		Method: common.EETHMethodTotalShares,
-		Params: []interface{}{},
-	}, []interface{}{&totalShares})
+		Params: []any{},
+	}, []any{&totalShares})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {

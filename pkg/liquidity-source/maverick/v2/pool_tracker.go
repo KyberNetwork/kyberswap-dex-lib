@@ -131,7 +131,7 @@ func (t *PoolTracker) getState(
 		Target: poolAddress,
 		Method: poolMethodGetState,
 		Params: nil,
-	}, []interface{}{
+	}, []any{
 		&getStateResult,
 	})
 
@@ -140,15 +140,15 @@ func (t *PoolTracker) getState(
 		ABI:    maverickV2PoolABI,
 		Target: poolAddress,
 		Method: "fee",
-		Params: []interface{}{true}, // true for tokenAIn
-	}, []interface{}{&feeAIn})
+		Params: []any{true}, // true for tokenAIn
+	}, []any{&feeAIn})
 
 	getStateRequest.AddCall(&ethrpc.Call{
 		ABI:    maverickV2PoolABI,
 		Target: poolAddress,
 		Method: "fee",
-		Params: []interface{}{false}, // false for tokenBIn
-	}, []interface{}{&feeBIn})
+		Params: []any{false}, // false for tokenBIn
+	}, []any{&feeBIn})
 
 	resp, err := getStateRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -192,7 +192,7 @@ func (t *PoolTracker) getFullPoolState(
 			ABI:    maverickV2PoolLensABI,
 			Target: t.config.PoolLensAddress,
 			Method: poolLensMethodGetFullPoolState,
-			Params: []interface{}{common.HexToAddress(poolAddress), uint32(startIndex), uint32(endIndex)},
+			Params: []any{common.HexToAddress(poolAddress), uint32(startIndex), uint32(endIndex)},
 		}
 		// fmt.Println("call debug:", common.HexToAddress(poolAddress), uint32(startIndex), uint32(endIndex))
 		allCalls = append(allCalls, call)
@@ -206,7 +206,7 @@ func (t *PoolTracker) getFullPoolState(
 	}
 
 	for i, call := range allCalls {
-		request.AddCall(call, []interface{}{&callResults[i]})
+		request.AddCall(call, []any{&callResults[i]})
 	}
 	_, err := request.TryBlockAndAggregate()
 	if err != nil {

@@ -45,7 +45,7 @@ func TestChainClientInterceptor(t *testing.T) {
 
 	var logs []string
 	chainClientInterceptorOpt := WithChainClientInterceptor([]ClientInterceptor{
-		func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error {
+		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			logs = append(logs, "Before interceptor 1")
 			if req.Header == nil {
 				req.Header = make(http.Header)
@@ -56,7 +56,7 @@ func TestChainClientInterceptor(t *testing.T) {
 			logs = append(logs, "After interceptor 1")
 			return err
 		},
-		func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error {
+		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			var err error
 			for i := 0; i < 3; i++ {
 				logs = append(logs, "Before interceptor 2")
@@ -65,20 +65,20 @@ func TestChainClientInterceptor(t *testing.T) {
 			}
 			return err
 		},
-		func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error {
+		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			logs = append(logs, "Before interceptor 3")
 			err := fn(ctx, req, resp)
 			logs = append(logs, "After interceptor 3")
 			return err
 		},
-		func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error {
+		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			logs = append(logs, "Before interceptor 4")
 			req.URL = "http://example.com"
 			err := fn(ctx, req, resp)
 			logs = append(logs, "After interceptor 4")
 			return err
 		},
-		func(ctx context.Context, req *Request, resp interface{}, fn RunFunc) error {
+		func(ctx context.Context, req *Request, resp any, fn RunFunc) error {
 			logs = append(logs, "Before interceptor 5")
 			err := fn(ctx, req, resp)
 			req.Header.Set("x-custom-header-3", "c")

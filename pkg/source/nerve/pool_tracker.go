@@ -52,7 +52,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: p.Address,
 		Method: methodGetSwapStorage,
 		Params: nil,
-	}, []interface{}{&swapStorage})
+	}, []any{&swapStorage})
 
 	if _, err := getSwapStorageRequest.Call(); err != nil {
 		log.Errorf("failed to get swap storage, err: %v", err)
@@ -96,8 +96,8 @@ func (d *PoolTracker) GetNewPoolState(
 			ABI:    swapABI,
 			Target: p.Address,
 			Method: methodGetTokenBalance,
-			Params: []interface{}{uint8(i)},
-		}, []interface{}{&balances[i]})
+			Params: []any{uint8(i)},
+		}, []any{&balances[i]})
 	}
 	// add totalSupply to reserves to maintain the old logic, will check logic (other part) why we need to add totalSupply
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -105,7 +105,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Target: lpToken,
 		Method: methodGetTotalSupply,
 		Params: nil,
-	}, []interface{}{&totalSupply})
+	}, []any{&totalSupply})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		log.Errorf("failed to get reserve, err: %v", err)

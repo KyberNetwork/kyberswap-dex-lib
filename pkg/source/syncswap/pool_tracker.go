@@ -74,19 +74,19 @@ func (d *PoolTracker) getVaultBalances(vault string, p entity.Pool) func(calls *
 			ABI:    classicPoolABI,
 			Target: p.Tokens[0].Address,
 			Method: poolMethodBalanceOf,
-			Params: []interface{}{
+			Params: []any{
 				common.HexToAddress(vault),
 			},
-		}, []interface{}{b0})
+		}, []any{b0})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    classicPoolABI,
 			Target: p.Tokens[1].Address,
 			Method: poolMethodBalanceOf,
-			Params: []interface{}{
+			Params: []any{
 				common.HexToAddress(vault),
 			},
-		}, []interface{}{b1})
+		}, []any{b1})
 		return true
 	}
 }
@@ -109,39 +109,39 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool, ge
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[0].Address),
 			common.HexToAddress(p.Tokens[1].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee0To1})
+	}, []any{&swapFee0To1})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[1].Address),
 			common.HexToAddress(p.Tokens[0].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee1To0})
+	}, []any{&swapFee1To0})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodVault,
 		Params: nil,
-	}, []interface{}{&vaultAddress})
+	}, []any{&vaultAddress})
 
 	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
 
@@ -211,53 +211,53 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool, get
 		ABI:    stablePoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[0].Address),
 			common.HexToAddress(p.Tokens[1].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee0To1})
+	}, []any{&swapFee0To1})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
 		Target: p.Address,
 		Method: poolMethodGetSwapFee,
-		Params: []interface{}{
+		Params: []any{
 			common.HexToAddress(addressZero),
 			common.HexToAddress(p.Tokens[1].Address),
 			common.HexToAddress(p.Tokens[0].Address),
 			[]byte{},
 		},
-	}, []interface{}{&swapFee1To0})
+	}, []any{&swapFee1To0})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
 		Target: p.Address,
 		Method: poolMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []any{&reserves})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
 		Target: p.Address,
 		Method: poolMethodToken0PrecisionMultiplier,
 		Params: nil,
-	}, []interface{}{&token0PrecisionMultiplier})
+	}, []any{&token0PrecisionMultiplier})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
 		Target: p.Address,
 		Method: poolMethodToken1PrecisionMultiplier,
 		Params: nil,
-	}, []interface{}{&token1PrecisionMultiplier})
+	}, []any{&token1PrecisionMultiplier})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    classicPoolABI,
 		Target: p.Address,
 		Method: poolMethodVault,
 		Params: nil,
-	}, []interface{}{&vaultAddress})
+	}, []any{&vaultAddress})
 
 	ok := getVaultBalances(calls, &vaultBalance0, &vaultBalance1)
 

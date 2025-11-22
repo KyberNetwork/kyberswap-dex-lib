@@ -60,13 +60,13 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 		Target: d.config.IntegrationHelperAddress,
 		Method: integrationHelperMethodAllBaseTokens,
 		Params: nil,
-	}, []interface{}{&baseTokens})
+	}, []any{&baseTokens})
 	calls.AddCall(&ethrpc.Call{
 		ABI:    WooPPV2ABI,
 		Target: d.config.WooPPV2Address,
 		Method: wooPPV2MethodQuoteToken,
 		Params: nil,
-	}, []interface{}{&quoteToken})
+	}, []any{&quoteToken})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
@@ -83,7 +83,7 @@ func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 			Target: token.Hex(),
 			Method: erc20MethodDecimals,
 			Params: nil,
-		}, []interface{}{&tokenDecimals[i]})
+		}, []any{&tokenDecimals[i]})
 	}
 	if _, err := decimalCalls.Aggregate(); err != nil {
 		logger.Errorf("failed to aggregate decimalCalls with error %v", err)

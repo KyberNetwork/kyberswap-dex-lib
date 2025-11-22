@@ -124,8 +124,8 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 			ABI:    GetABI(d.config.DexID),
 			Target: pool.ID,
 			Method: d.config.PausedMethod,
-			Params: []interface{}{},
-		}, []interface{}{&paused})
+			Params: []any{},
+		}, []any{&paused})
 	}
 
 	if d.config.IsRateUpdatable {
@@ -133,8 +133,8 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 			ABI:    GetABI(d.config.DexID),
 			Target: pool.ID,
 			Method: d.config.RateMethod,
-			Params: []interface{}{},
-		}, []interface{}{&rate})
+			Params: []any{},
+		}, []any{&rate})
 	} else {
 		rate = d.config.DefaultRate
 	}

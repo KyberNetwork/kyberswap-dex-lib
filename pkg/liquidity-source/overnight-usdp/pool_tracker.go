@@ -70,21 +70,21 @@ func (t *PoolTracker) getNewPoolState(
 		Target: t.config.Exchange,
 		Method: exchangeMethodPaused,
 		Params: nil,
-	}, []interface{}{&isPaused})
+	}, []any{&isPaused})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: t.config.Exchange,
 		Method: exchangeMethodBuyFee,
 		Params: nil,
-	}, []interface{}{&buyFee})
+	}, []any{&buyFee})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    exchangeABI,
 		Target: t.config.Exchange,
 		Method: exchangeMethodRedeemFee,
 		Params: nil,
-	}, []interface{}{&redeemFee})
+	}, []any{&redeemFee})
 
 	resp, err := req.Aggregate()
 	if err != nil {

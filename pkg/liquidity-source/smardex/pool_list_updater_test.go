@@ -49,7 +49,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 		Target: "0x7753F36E711B66a0350a753aba9F5651BAE76A1D",
 		Method: "allPairsLength",
 		Params: nil,
-	}, []interface{}{&length})
+	}, []any{&length})
 	_, err := req.TryAggregate()
 	if err != nil {
 		return

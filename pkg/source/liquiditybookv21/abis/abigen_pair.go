@@ -153,7 +153,7 @@ func bindLBPair(address common.Address, caller bind.ContractCaller, transactor b
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_LBPair *LBPairRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_LBPair *LBPairRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _LBPair.Contract.LBPairCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -164,7 +164,7 @@ func (_LBPair *LBPairRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction,
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_LBPair *LBPairRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_LBPair *LBPairRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _LBPair.Contract.LBPairTransactor.contract.Transact(opts, method, params...)
 }
 
@@ -172,7 +172,7 @@ func (_LBPair *LBPairRaw) Transact(opts *bind.TransactOpts, method string, param
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_LBPair *LBPairCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+func (_LBPair *LBPairCallerRaw) Call(opts *bind.CallOpts, result *[]any, method string, params ...any) error {
 	return _LBPair.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -183,7 +183,7 @@ func (_LBPair *LBPairTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Tr
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_LBPair *LBPairTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+func (_LBPair *LBPairTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...any) (*types.Transaction, error) {
 	return _LBPair.Contract.contract.Transact(opts, method, params...)
 }
 
@@ -191,7 +191,7 @@ func (_LBPair *LBPairTransactorRaw) Transact(opts *bind.TransactOpts, method str
 //
 // Solidity: function balanceOf(address account, uint256 id) view returns(uint256)
 func (_LBPair *LBPairCaller) BalanceOf(opts *bind.CallOpts, account common.Address, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "balanceOf", account, id)
 
 	if err != nil {
@@ -222,7 +222,7 @@ func (_LBPair *LBPairCallerSession) BalanceOf(account common.Address, id *big.In
 //
 // Solidity: function balanceOfBatch(address[] accounts, uint256[] ids) view returns(uint256[] batchBalances)
 func (_LBPair *LBPairCaller) BalanceOfBatch(opts *bind.CallOpts, accounts []common.Address, ids []*big.Int) ([]*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "balanceOfBatch", accounts, ids)
 
 	if err != nil {
@@ -253,7 +253,7 @@ func (_LBPair *LBPairCallerSession) BalanceOfBatch(accounts []common.Address, id
 //
 // Solidity: function getActiveId() view returns(uint24 activeId)
 func (_LBPair *LBPairCaller) GetActiveId(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getActiveId")
 
 	if err != nil {
@@ -287,7 +287,7 @@ func (_LBPair *LBPairCaller) GetBin(opts *bind.CallOpts, id *big.Int) (struct {
 	BinReserveX *big.Int
 	BinReserveY *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getBin", id)
 
 	outstruct := new(struct {
@@ -329,7 +329,7 @@ func (_LBPair *LBPairCallerSession) GetBin(id *big.Int) (struct {
 //
 // Solidity: function getBinStep() pure returns(uint16)
 func (_LBPair *LBPairCaller) GetBinStep(opts *bind.CallOpts) (uint16, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getBinStep")
 
 	if err != nil {
@@ -360,7 +360,7 @@ func (_LBPair *LBPairCallerSession) GetBinStep() (uint16, error) {
 //
 // Solidity: function getFactory() view returns(address factory)
 func (_LBPair *LBPairCaller) GetFactory(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getFactory")
 
 	if err != nil {
@@ -391,7 +391,7 @@ func (_LBPair *LBPairCallerSession) GetFactory() (common.Address, error) {
 //
 // Solidity: function getIdFromPrice(uint256 price) pure returns(uint24 id)
 func (_LBPair *LBPairCaller) GetIdFromPrice(opts *bind.CallOpts, price *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getIdFromPrice", price)
 
 	if err != nil {
@@ -422,7 +422,7 @@ func (_LBPair *LBPairCallerSession) GetIdFromPrice(price *big.Int) (*big.Int, er
 //
 // Solidity: function getNextNonEmptyBin(bool swapForY, uint24 id) view returns(uint24 nextId)
 func (_LBPair *LBPairCaller) GetNextNonEmptyBin(opts *bind.CallOpts, swapForY bool, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getNextNonEmptyBin", swapForY, id)
 
 	if err != nil {
@@ -459,7 +459,7 @@ func (_LBPair *LBPairCaller) GetOracleParameters(opts *bind.CallOpts) (struct {
 	LastUpdated    *big.Int
 	FirstTimestamp *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getOracleParameters")
 
 	outstruct := new(struct {
@@ -517,7 +517,7 @@ func (_LBPair *LBPairCaller) GetOracleSampleAt(opts *bind.CallOpts, lookupTimest
 	CumulativeVolatility uint64
 	CumulativeBinCrossed uint64
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getOracleSampleAt", lookupTimestamp)
 
 	outstruct := new(struct {
@@ -563,7 +563,7 @@ func (_LBPair *LBPairCallerSession) GetOracleSampleAt(lookupTimestamp *big.Int) 
 //
 // Solidity: function getPriceFromId(uint24 id) pure returns(uint256 price)
 func (_LBPair *LBPairCaller) GetPriceFromId(opts *bind.CallOpts, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getPriceFromId", id)
 
 	if err != nil {
@@ -597,7 +597,7 @@ func (_LBPair *LBPairCaller) GetProtocolFees(opts *bind.CallOpts) (struct {
 	ProtocolFeeX *big.Int
 	ProtocolFeeY *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getProtocolFees")
 
 	outstruct := new(struct {
@@ -642,7 +642,7 @@ func (_LBPair *LBPairCaller) GetReserves(opts *bind.CallOpts) (struct {
 	ReserveX *big.Int
 	ReserveY *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getReserves")
 
 	outstruct := new(struct {
@@ -692,7 +692,7 @@ func (_LBPair *LBPairCaller) GetStaticFeeParameters(opts *bind.CallOpts) (struct
 	ProtocolShare            uint16
 	MaxVolatilityAccumulator *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getStaticFeeParameters")
 
 	outstruct := new(struct {
@@ -758,7 +758,7 @@ func (_LBPair *LBPairCaller) GetSwapIn(opts *bind.CallOpts, amountOut *big.Int, 
 	AmountOutLeft *big.Int
 	Fee           *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getSwapIn", amountOut, swapForY)
 
 	outstruct := new(struct {
@@ -808,7 +808,7 @@ func (_LBPair *LBPairCaller) GetSwapOut(opts *bind.CallOpts, amountIn *big.Int, 
 	AmountOut    *big.Int
 	Fee          *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getSwapOut", amountIn, swapForY)
 
 	outstruct := new(struct {
@@ -854,7 +854,7 @@ func (_LBPair *LBPairCallerSession) GetSwapOut(amountIn *big.Int, swapForY bool)
 //
 // Solidity: function getTokenX() pure returns(address tokenX)
 func (_LBPair *LBPairCaller) GetTokenX(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getTokenX")
 
 	if err != nil {
@@ -885,7 +885,7 @@ func (_LBPair *LBPairCallerSession) GetTokenX() (common.Address, error) {
 //
 // Solidity: function getTokenY() pure returns(address tokenY)
 func (_LBPair *LBPairCaller) GetTokenY(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getTokenY")
 
 	if err != nil {
@@ -921,7 +921,7 @@ func (_LBPair *LBPairCaller) GetVariableFeeParameters(opts *bind.CallOpts) (stru
 	IdReference           *big.Int
 	TimeOfLastUpdate      *big.Int
 }, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "getVariableFeeParameters")
 
 	outstruct := new(struct {
@@ -971,7 +971,7 @@ func (_LBPair *LBPairCallerSession) GetVariableFeeParameters() (struct {
 //
 // Solidity: function isApprovedForAll(address owner, address spender) view returns(bool)
 func (_LBPair *LBPairCaller) IsApprovedForAll(opts *bind.CallOpts, owner common.Address, spender common.Address) (bool, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "isApprovedForAll", owner, spender)
 
 	if err != nil {
@@ -1002,7 +1002,7 @@ func (_LBPair *LBPairCallerSession) IsApprovedForAll(owner common.Address, spend
 //
 // Solidity: function name() view returns(string)
 func (_LBPair *LBPairCaller) Name(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "name")
 
 	if err != nil {
@@ -1033,7 +1033,7 @@ func (_LBPair *LBPairCallerSession) Name() (string, error) {
 //
 // Solidity: function symbol() view returns(string)
 func (_LBPair *LBPairCaller) Symbol(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "symbol")
 
 	if err != nil {
@@ -1064,7 +1064,7 @@ func (_LBPair *LBPairCallerSession) Symbol() (string, error) {
 //
 // Solidity: function totalSupply(uint256 id) view returns(uint256)
 func (_LBPair *LBPairCaller) TotalSupply(opts *bind.CallOpts, id *big.Int) (*big.Int, error) {
-	var out []interface{}
+	var out []any
 	err := _LBPair.contract.Call(opts, &out, "totalSupply", id)
 
 	if err != nil {
@@ -1171,11 +1171,11 @@ type LBPairApprovalForAll struct {
 // Solidity: event ApprovalForAll(address indexed account, address indexed sender, bool approved)
 func (_LBPair *LBPairFilterer) FilterApprovalForAll(opts *bind.FilterOpts, account []common.Address, sender []common.Address) (*LBPairApprovalForAllIterator, error) {
 
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1192,11 +1192,11 @@ func (_LBPair *LBPairFilterer) FilterApprovalForAll(opts *bind.FilterOpts, accou
 // Solidity: event ApprovalForAll(address indexed account, address indexed sender, bool approved)
 func (_LBPair *LBPairFilterer) WatchApprovalForAll(opts *bind.WatchOpts, sink chan<- *LBPairApprovalForAll, account []common.Address, sender []common.Address) (event.Subscription, error) {
 
-	var accountRule []interface{}
+	var accountRule []any
 	for _, accountItem := range account {
 		accountRule = append(accountRule, accountItem)
 	}
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1324,7 +1324,7 @@ type LBPairCollectedProtocolFees struct {
 // Solidity: event CollectedProtocolFees(address indexed feeRecipient, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) FilterCollectedProtocolFees(opts *bind.FilterOpts, feeRecipient []common.Address) (*LBPairCollectedProtocolFeesIterator, error) {
 
-	var feeRecipientRule []interface{}
+	var feeRecipientRule []any
 	for _, feeRecipientItem := range feeRecipient {
 		feeRecipientRule = append(feeRecipientRule, feeRecipientItem)
 	}
@@ -1341,7 +1341,7 @@ func (_LBPair *LBPairFilterer) FilterCollectedProtocolFees(opts *bind.FilterOpts
 // Solidity: event CollectedProtocolFees(address indexed feeRecipient, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) WatchCollectedProtocolFees(opts *bind.WatchOpts, sink chan<- *LBPairCollectedProtocolFees, feeRecipient []common.Address) (event.Subscription, error) {
 
-	var feeRecipientRule []interface{}
+	var feeRecipientRule []any
 	for _, feeRecipientItem := range feeRecipient {
 		feeRecipientRule = append(feeRecipientRule, feeRecipientItem)
 	}
@@ -1471,7 +1471,7 @@ type LBPairCompositionFees struct {
 // Solidity: event CompositionFees(address indexed sender, uint24 id, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) FilterCompositionFees(opts *bind.FilterOpts, sender []common.Address) (*LBPairCompositionFeesIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1488,7 +1488,7 @@ func (_LBPair *LBPairFilterer) FilterCompositionFees(opts *bind.FilterOpts, send
 // Solidity: event CompositionFees(address indexed sender, uint24 id, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) WatchCompositionFees(opts *bind.WatchOpts, sink chan<- *LBPairCompositionFees, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -1618,11 +1618,11 @@ type LBPairDepositedToBins struct {
 // Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts)
 func (_LBPair *LBPairFilterer) FilterDepositedToBins(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairDepositedToBinsIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1639,11 +1639,11 @@ func (_LBPair *LBPairFilterer) FilterDepositedToBins(opts *bind.FilterOpts, send
 // Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts)
 func (_LBPair *LBPairFilterer) WatchDepositedToBins(opts *bind.WatchOpts, sink chan<- *LBPairDepositedToBins, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1774,11 +1774,11 @@ type LBPairDepositedToBins0 struct {
 // Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) FilterDepositedToBins0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairDepositedToBins0Iterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1795,11 +1795,11 @@ func (_LBPair *LBPairFilterer) FilterDepositedToBins0(opts *bind.FilterOpts, sen
 // Solidity: event DepositedToBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) WatchDepositedToBins0(opts *bind.WatchOpts, sink chan<- *LBPairDepositedToBins0, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -1931,11 +1931,11 @@ type LBPairFlashLoan struct {
 // Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) FilterFlashLoan(opts *bind.FilterOpts, sender []common.Address, receiver []common.Address) (*LBPairFlashLoanIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var receiverRule []interface{}
+	var receiverRule []any
 	for _, receiverItem := range receiver {
 		receiverRule = append(receiverRule, receiverItem)
 	}
@@ -1952,11 +1952,11 @@ func (_LBPair *LBPairFilterer) FilterFlashLoan(opts *bind.FilterOpts, sender []c
 // Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) WatchFlashLoan(opts *bind.WatchOpts, sink chan<- *LBPairFlashLoan, sender []common.Address, receiver []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var receiverRule []interface{}
+	var receiverRule []any
 	for _, receiverItem := range receiver {
 		receiverRule = append(receiverRule, receiverItem)
 	}
@@ -2089,11 +2089,11 @@ type LBPairFlashLoan0 struct {
 // Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) FilterFlashLoan0(opts *bind.FilterOpts, sender []common.Address, receiver []common.Address) (*LBPairFlashLoan0Iterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var receiverRule []interface{}
+	var receiverRule []any
 	for _, receiverItem := range receiver {
 		receiverRule = append(receiverRule, receiverItem)
 	}
@@ -2110,11 +2110,11 @@ func (_LBPair *LBPairFilterer) FilterFlashLoan0(opts *bind.FilterOpts, sender []
 // Solidity: event FlashLoan(address indexed sender, address indexed receiver, uint24 activeId, bytes32 amounts, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) WatchFlashLoan0(opts *bind.WatchOpts, sink chan<- *LBPairFlashLoan0, sender []common.Address, receiver []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var receiverRule []interface{}
+	var receiverRule []any
 	for _, receiverItem := range receiver {
 		receiverRule = append(receiverRule, receiverItem)
 	}
@@ -2243,7 +2243,7 @@ type LBPairForcedDecay struct {
 // Solidity: event ForcedDecay(address indexed sender, uint24 idReference, uint24 volatilityReference)
 func (_LBPair *LBPairFilterer) FilterForcedDecay(opts *bind.FilterOpts, sender []common.Address) (*LBPairForcedDecayIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2260,7 +2260,7 @@ func (_LBPair *LBPairFilterer) FilterForcedDecay(opts *bind.FilterOpts, sender [
 // Solidity: event ForcedDecay(address indexed sender, uint24 idReference, uint24 volatilityReference)
 func (_LBPair *LBPairFilterer) WatchForcedDecay(opts *bind.WatchOpts, sink chan<- *LBPairForcedDecay, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2388,7 +2388,7 @@ type LBPairOracleLengthIncreased struct {
 // Solidity: event OracleLengthIncreased(address indexed sender, uint16 oracleLength)
 func (_LBPair *LBPairFilterer) FilterOracleLengthIncreased(opts *bind.FilterOpts, sender []common.Address) (*LBPairOracleLengthIncreasedIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2405,7 +2405,7 @@ func (_LBPair *LBPairFilterer) FilterOracleLengthIncreased(opts *bind.FilterOpts
 // Solidity: event OracleLengthIncreased(address indexed sender, uint16 oracleLength)
 func (_LBPair *LBPairFilterer) WatchOracleLengthIncreased(opts *bind.WatchOpts, sink chan<- *LBPairOracleLengthIncreased, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2539,7 +2539,7 @@ type LBPairStaticFeeParametersSet struct {
 // Solidity: event StaticFeeParametersSet(address indexed sender, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator)
 func (_LBPair *LBPairFilterer) FilterStaticFeeParametersSet(opts *bind.FilterOpts, sender []common.Address) (*LBPairStaticFeeParametersSetIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2556,7 +2556,7 @@ func (_LBPair *LBPairFilterer) FilterStaticFeeParametersSet(opts *bind.FilterOpt
 // Solidity: event StaticFeeParametersSet(address indexed sender, uint16 baseFactor, uint16 filterPeriod, uint16 decayPeriod, uint16 reductionFactor, uint24 variableFeeControl, uint16 protocolShare, uint24 maxVolatilityAccumulator)
 func (_LBPair *LBPairFilterer) WatchStaticFeeParametersSet(opts *bind.WatchOpts, sink chan<- *LBPairStaticFeeParametersSet, sender []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
@@ -2690,11 +2690,11 @@ type LBPairSwap struct {
 // Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) FilterSwap(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairSwapIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2711,11 +2711,11 @@ func (_LBPair *LBPairFilterer) FilterSwap(opts *bind.FilterOpts, sender []common
 // Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees)
 func (_LBPair *LBPairFilterer) WatchSwap(opts *bind.WatchOpts, sink chan<- *LBPairSwap, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2850,11 +2850,11 @@ type LBPairSwap0 struct {
 // Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) FilterSwap0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairSwap0Iterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -2871,11 +2871,11 @@ func (_LBPair *LBPairFilterer) FilterSwap0(opts *bind.FilterOpts, sender []commo
 // Solidity: event Swap(address indexed sender, address indexed to, uint24 id, bytes32 amountsIn, bytes32 amountsOut, uint24 volatilityAccumulator, bytes32 totalFees, bytes32 protocolFees, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) WatchSwap0(opts *bind.WatchOpts, sink chan<- *LBPairSwap0, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3006,15 +3006,15 @@ type LBPairTransferBatch struct {
 // Solidity: event TransferBatch(address indexed sender, address indexed from, address indexed to, uint256[] ids, uint256[] amounts)
 func (_LBPair *LBPairFilterer) FilterTransferBatch(opts *bind.FilterOpts, sender []common.Address, from []common.Address, to []common.Address) (*LBPairTransferBatchIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3031,15 +3031,15 @@ func (_LBPair *LBPairFilterer) FilterTransferBatch(opts *bind.FilterOpts, sender
 // Solidity: event TransferBatch(address indexed sender, address indexed from, address indexed to, uint256[] ids, uint256[] amounts)
 func (_LBPair *LBPairFilterer) WatchTransferBatch(opts *bind.WatchOpts, sink chan<- *LBPairTransferBatch, sender []common.Address, from []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var fromRule []interface{}
+	var fromRule []any
 	for _, fromItem := range from {
 		fromRule = append(fromRule, fromItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3169,11 +3169,11 @@ type LBPairWithdrawnFromBins struct {
 // Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts)
 func (_LBPair *LBPairFilterer) FilterWithdrawnFromBins(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairWithdrawnFromBinsIterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3190,11 +3190,11 @@ func (_LBPair *LBPairFilterer) FilterWithdrawnFromBins(opts *bind.FilterOpts, se
 // Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts)
 func (_LBPair *LBPairFilterer) WatchWithdrawnFromBins(opts *bind.WatchOpts, sink chan<- *LBPairWithdrawnFromBins, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3325,11 +3325,11 @@ type LBPairWithdrawnFromBins0 struct {
 // Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) FilterWithdrawnFromBins0(opts *bind.FilterOpts, sender []common.Address, to []common.Address) (*LBPairWithdrawnFromBins0Iterator, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}
@@ -3346,11 +3346,11 @@ func (_LBPair *LBPairFilterer) FilterWithdrawnFromBins0(opts *bind.FilterOpts, s
 // Solidity: event WithdrawnFromBins(address indexed sender, address indexed to, uint256[] ids, bytes32[] amounts, (uint256,uint256,uint256) priceData)
 func (_LBPair *LBPairFilterer) WatchWithdrawnFromBins0(opts *bind.WatchOpts, sink chan<- *LBPairWithdrawnFromBins0, sender []common.Address, to []common.Address) (event.Subscription, error) {
 
-	var senderRule []interface{}
+	var senderRule []any
 	for _, senderItem := range sender {
 		senderRule = append(senderRule, senderItem)
 	}
-	var toRule []interface{}
+	var toRule []any
 	for _, toItem := range to {
 		toRule = append(toRule, toItem)
 	}

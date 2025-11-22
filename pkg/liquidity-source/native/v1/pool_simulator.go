@@ -104,7 +104,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	return nativeTreasury
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	return MetaInfo{Timestamp: p.timestamp}
 }
 

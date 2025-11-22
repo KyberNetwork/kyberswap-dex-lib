@@ -39,15 +39,15 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed,
 		ABI:    r.abi,
 		Target: address,
 		Method: priceFeedMethodLatestAnswer,
-		Params: []interface{}{true},
-	}, []interface{}{&v0})
+		Params: []any{true},
+	}, []any{&v0})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
 		Method: priceFeedMethodLatestAnswer,
-		Params: []interface{}{false},
-	}, []interface{}{&v1})
+		Params: []any{false},
+	}, []any{&v1})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("error when call rpcRequest.Aggregate: %s | %s", err.Error(), address)

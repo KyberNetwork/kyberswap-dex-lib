@@ -47,7 +47,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		Target: d.config.FactoryAddress,
 		Method: "allPairsLength",
 		Params: nil,
-	}, []interface{}{&lengthBI}).Call(); err != nil {
+	}, []any{&lengthBI}).Call(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get number of pools from master address")
@@ -71,8 +71,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			ABI:    *stableFactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: "allPairs",
-			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
-		}, []interface{}{&poolAddresses[i]})
+			Params: []any{big.NewInt(int64(currentOffset + i))},
+		}, []any{&poolAddresses[i]})
 	}
 	if _, err := getPoolAddressRequest.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -122,19 +122,19 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < len(poolAddresses); i++ {
 		// reservesData, err1 := stablePoolABI.Pack("getReserves", nil)
-		// calls.AddCall(&ethrpc.Call{CallData: reservesData}, []interface{}{&reserves[i]})
+		// calls.AddCall(&ethrpc.Call{CallData: reservesData}, []any{&reserves[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *stablePoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: "token0",
 			Params: nil,
-		}, []interface{}{&tokens[i][0]})
+		}, []any{&tokens[i][0]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *stablePoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: "token1",
 			Params: nil,
-		}, []interface{}{&tokens[i][1]})
+		}, []any{&tokens[i][1]})
 	}
 
 	if _, err := calls.Aggregate(); err != nil {

@@ -634,7 +634,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.ActiveBand = out.N2
 }
 
-func (t *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, _ string) any {
 	return Meta{
 		TokenInIndex: t.GetTokenIndex(tokenIn),
 		BlockNumber:  t.Info.BlockNumber,

@@ -165,7 +165,7 @@ func (t *PoolSimulator) Swap(
 		}, t.gas.Swap, nil
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) any {
 	return syncswap.Meta{
 		VaultAddress: addressZero,
 	}

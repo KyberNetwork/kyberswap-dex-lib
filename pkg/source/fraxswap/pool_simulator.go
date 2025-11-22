@@ -176,7 +176,7 @@ func (p *PoolSimulator) CalcExactQuote(tokenIn string, _ string, base *big.Int) 
 	return exactQuote
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) any {
 	swapFee := new(big.Int).Sub(FeePrecision, p.Fee)
 
 	return Meta{

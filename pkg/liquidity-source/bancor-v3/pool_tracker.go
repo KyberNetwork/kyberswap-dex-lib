@@ -254,8 +254,8 @@ func (t *PoolTracker) getPoolCollection(
 			ABI:    poolCollectionABI,
 			Target: poolCollection,
 			Method: poolCollectionMethodPoolData,
-			Params: []interface{}{common.HexToAddress(p)},
-		}, []interface{}{&poolDatResp[idx]})
+			Params: []any{common.HexToAddress(p)},
+		}, []any{&poolDatResp[idx]})
 	}
 
 	var fee uint32
@@ -263,7 +263,7 @@ func (t *PoolTracker) getPoolCollection(
 		ABI:    poolCollectionABI,
 		Target: poolCollection,
 		Method: poolCollectionMethodNetworkFeePPM,
-	}, []interface{}{&fee})
+	}, []any{&fee})
 
 	if _, err := req.Aggregate(); err != nil {
 		return nil, err
@@ -296,8 +296,8 @@ func (t *PoolTracker) getCollectionByPool(
 			ABI:    bancorNetworkABI,
 			Target: bancorNetworkAddress,
 			Method: bancorNetworkMethodCollectionByPool,
-			Params: []interface{}{common.HexToAddress(liquidityPool)},
-		}, []interface{}{&poolCollections[idx]})
+			Params: []any{common.HexToAddress(liquidityPool)},
+		}, []any{&poolCollections[idx]})
 	}
 	_, err := req.Aggregate()
 	if err != nil {
@@ -324,7 +324,7 @@ func (t *PoolTracker) getLiquidityPools(
 		ABI:    bancorNetworkABI,
 		Target: bancorNetworkAddress,
 		Method: bancorNetworkMethodLiquidityPools,
-	}, []interface{}{&addresses})
+	}, []any{&addresses})
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {

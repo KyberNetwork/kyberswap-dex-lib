@@ -125,14 +125,14 @@ func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (PoolFactoryD
 		Target: u.config.FactoryAddress,
 		Method: poolFactoryMethodIsPaused,
 		Params: nil,
-	}, []interface{}{&pairFactoryData.IsPaused})
+	}, []any{&pairFactoryData.IsPaused})
 
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
 		ABI:    poolFactoryABI,
 		Target: u.config.FactoryAddress,
 		Method: poolFactoryMethodAllPoolsLength,
 		Params: nil,
-	}, []interface{}{&pairFactoryData.AllPairsLength})
+	}, []any{&pairFactoryData.AllPairsLength})
 
 	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
 		return PoolFactoryData{}, err
@@ -168,8 +168,8 @@ func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, ba
 			ABI:    poolFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: poolFactoryMethodAllPools,
-			Params: []interface{}{index},
-		}, []interface{}{&listPoolAddressesResult[i]})
+			Params: []any{index},
+		}, []any{&listPoolAddressesResult[i]})
 	}
 
 	resp, err := listPoolAddressesRequest.TryAggregate()
@@ -260,7 +260,7 @@ func (u *PoolsListUpdater) listPoolData(
 			Target: poolAddress.Hex(),
 			Method: poolMethodMetadata,
 			Params: nil,
-		}, []interface{}{&poolMetadataList[i]})
+		}, []any{&poolMetadataList[i]})
 	}
 
 	resp, err := listPoolMetadataRequest.Aggregate()
@@ -277,8 +277,8 @@ func (u *PoolsListUpdater) listPoolData(
 			ABI:    poolFactoryABI,
 			Target: u.config.FactoryAddress,
 			Method: poolFactoryMethodGetFee,
-			Params: []interface{}{poolAddress, poolMetadataList[i].St},
-		}, []interface{}{&feeList[i]})
+			Params: []any{poolAddress, poolMetadataList[i].St},
+		}, []any{&feeList[i]})
 	}
 
 	resp, err = listPoolFeeRequest.Aggregate()
