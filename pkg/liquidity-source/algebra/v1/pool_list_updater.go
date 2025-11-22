@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
@@ -96,7 +95,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		reserves := make([]string, 0, 2)
 
 		if p.Token0.Address != emptyString {
-			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
+			token0Decimals, err := kutils.Atou[uint8](p.Token0.Decimals)
 
 			if err != nil {
 				token0Decimals = defaultTokenDecimals
@@ -105,7 +104,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			tokenModel := entity.PoolToken{
 				Address:   p.Token0.Address,
 				Symbol:    p.Token0.Symbol,
-				Decimals:  uint8(token0Decimals),
+				Decimals:  token0Decimals,
 				Swappable: true,
 			}
 
@@ -114,7 +113,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 
 		if p.Token1.Address != emptyString {
-			token1Decimals, err := strconv.Atoi(p.Token1.Decimals)
+			token1Decimals, err := kutils.Atou[uint8](p.Token1.Decimals)
 
 			if err != nil {
 				token1Decimals = defaultTokenDecimals
@@ -123,7 +122,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			tokenModel := entity.PoolToken{
 				Address:   p.Token1.Address,
 				Symbol:    p.Token1.Symbol,
-				Decimals:  uint8(token1Decimals),
+				Decimals:  token1Decimals,
 				Swappable: true,
 			}
 
